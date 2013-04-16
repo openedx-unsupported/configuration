@@ -63,6 +63,7 @@ Create a user
 2. Create templates for /opt/wwc/lms-{env,auth}.json, these files are read by mitx/lms/envs/aws.py
 3. Set up virtualenv (currently configured to by default be in /opt/edx)
 4. Setup and configure rsyslog and logrotate
+5. Setup and configure nginx/apache
 5. Create upstart script for the lms service
 6. Setup and configure local mongo/mongoHQ
 7. Setup and configure local sqlite/RDS
