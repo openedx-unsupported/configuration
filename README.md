@@ -48,7 +48,7 @@ Create a user
 
   ```
   cd playbooks
-  ansible-playbook test.yaml -i ec2.py --private-key=/path/to/deployment.pem
+  ansible-playbook test.yaml -i /path/to/ec2.py --private-key=/path/to/deployment.pem
   ```
 ### CloudFormation TODO for mongo backed LMS stack
 
