@@ -5,15 +5,27 @@
 Ansible is a configuration management tool that edX is evaluating to replace the puppet environment 
 that was used for MITx and edX prior to going open source.
 
-Important reference links:
+http://ansible.cc/docs
 
-http://ansible.cc/docs/bestpractices.html
-http://ansible.cc/docs/modules.html
-http://ansible.cc/docs/playbooks2.html
+
 
 ## Directory Structure
 
 The directory structure should follow Ansible best practices.
+
+http://ansible.cc/docs/bestpractices.html
+
+
+
+* Hosts -  The ec2.py inventory script generates an inventory file where hosts are assigned to groups. 
+           Individual hosts can be targeted by the "Name" tag or the instance ID. 
+           I don't think there will be a reason to set host specific variables.
+* Groups - Groups are created automatically where hosts can be targeted by tags, security groups, region, etc.
+           In the edX context a group would be a set of machines that are deployed to that have one or more
+           roles. 
+* Roles  - A role will map to a single function/service that runs on server.
+
+
 
 ```
 
