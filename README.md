@@ -2,6 +2,57 @@
 
 ## Ansible
 
+Ansible is a configuration management tool that edX is evaluating to replace the puppet environment 
+that was used for MITx and edX prior to going open source.
+
+Important reference links:
+
+http://ansible.cc/docs/bestpractices.html
+http://ansible.cc/docs/modules.html
+http://ansible.cc/docs/playbooks2.html
+
+## Directory Structure
+
+The directory structure should follow Ansible best practices.
+
+```
+
+ec2.py                    # inventory script for creating groups from ec2 tags
+
+group_vars/
+   all                    # assign any variables that are common to all edX groups
+   tag_group_edxapp       # a variable set to true for every group of machines in the 
+   tag_group_xserver      # edX infrastructure
+   tag_group_worker
+   (etc..)
+
+site.yml                  # master playbook, this will include all groups
+
+edxapp.yml                # defines what roles will be configured for a group of machines 
+xserver.yml               
+worker.yml
+(etc..)
+
+roles/
+    common/               # tasks that are common to all roles 
+        tasks/            #
+            main.yml      #  <-- tasks file can include smaller files if warranted
+        handlers/         #
+            main.yml      #  <-- handlers file
+        templates/        #  <-- files for use with the template resource
+            ntp.conf.j2   #  <------- templates end in .j2
+        files/            #
+            bar.txt       #  <-- files for use with the copy resource
+        secure/           #  <-- Not checked in, will have secure data that cannot be public
+  
+    lms/                  # same structure as "common" was above
+    xserver/              # ""
+    worker/               # ""
+    (etc..)
+    
+```
+    
+
 ### Installation
 
 ```
