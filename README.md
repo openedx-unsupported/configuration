@@ -41,11 +41,10 @@ http://ansible.cc/docs/bestpractices.html
 
 * The ansible.cfg that is checked into the playbook directory has hash merging turned on, this allows
 us to to merge secure and custom data into the default variable definitions for every role.
-
 * For example, `vars/lms_vars.yml` (variables needed for the lms role) sets the `env_config` which has keys that can be overridden by `vars/secure/edxapp_stage_vars.yml` for setting passwords and hostnames.  
-
 * If needed, additional configuration can be layered, in the example `vars/secure/custom_vars.yml` changes some paramters that are set in `vars/secure/edxapp_stage_vars.yml`.
 
+_The secure/ directories are checked into the public repo for now as an example, these will need to be moved to a private repo or maintained outside of github_
 
 ### Users and Groups
 
