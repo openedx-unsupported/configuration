@@ -132,8 +132,8 @@ Create a user
 
 ### Ansible TODO for mongo backed LMS stack
 
-1. <s>Come up with a scheme to separate sensitive data</s>
-2. <s>Create templates for /opt/wwc/lms-{env,auth}.json, these files are read by mitx/lms/envs/aws.py</s>
+1. ~~Come up with a scheme to separate sensitive data~~
+2. ~~Create templates for /opt/wwc/lms-{env,auth}.json, these files are read by mitx/lms/envs/aws.py~~
 3. Set up virtualenv (currently configured to by default be in /opt/edx)
 4. Setup and configure rsyslog and logrotate
 5. Setup and configure nginx/apache
