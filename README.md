@@ -1,13 +1,30 @@
 # Configuration Management
+## AWS
+
+### Tagging
+
+Every AWS EC2 instance will have a *Group* tag that corresponds to a group of machines that need to be deployed to and targetted as a group of servers. 
+
+**Example:**
+* `Group`: `edxapp_stage`
+* `Group`: `edxapp_prod`
+* `Group`: `edxapp_some_other_environment`
+ 
+Additional tags can be added to instances but they shouldn't be required for deployement or configuration.
 
 ## Ansible
 
 Ansible is a configuration management tool that edX is evaluating to replace the puppet environment 
-that was used for MITx and edX prior to going open source.
+that is currently being used for edX servers.
 
 http://ansible.cc/docs
 
+_Note: Because the directory structure changes in v1.2 we are using the dev version instead of the official v1.1 release._
 
+
+* __Hosts__ -  The ec2.py inventory script generates an inventory file where hosts are assigned to groups. Individual hosts can be targeted by the "Name" tag or the instance ID. I don't think there will be a reason to set host specific variables.
+* __Groups__ - A Group name is an identifier that corresponds to a group of roles plus an identifier for the environment.  Example: __edxapp_stage__, __edxapp_prod__, __xserver_stage__, etc.  For the purpose of targetting servers for deployment groups are created automatically by the `ec2.py` inventory sript since these group names will map to the _Group_ AWS tag. 
+* __Roles__  - A role will map to a single function/service that runs on server.
 
 ## Organization
 
@@ -15,29 +32,19 @@ The directory structure should follow Ansible best practices.
 
 http://ansible.cc/docs/bestpractices.html
 
-Because the directory structure changes in v1.2 we are using the dev version
-of the official v1.1 release.
-
-
-* Hosts -  The ec2.py inventory script generates an inventory file where hosts are assigned to groups. Individual hosts can be targeted by the "Name" tag or the instance ID. I don't think there will be a reason to set host specific variables.
-* Groups - Groups are created automatically where hosts can be targeted by tags, security groups, region, etc.  In the edX context a group would be a set of machines that are deployed to that have one or more roles. 
-* Roles  - A role will map to a single function/service that runs on server.
-
-
-* At the top level there are yml files for every group and environment combination.
+* At the top level there are yml files for every group where a group name is an identifier that corresponds to a set of roles plus an environment.  
 * The standard environments are _stage_ and _production_.
 * Additional environments can be named as well, below an example is given called _custom_.
 
 
 ### Variables
 
-The ansible.cfg that is checked into the playbook directory has hash merging turned on, this allows
+* The ansible.cfg that is checked into the playbook directory has hash merging turned on, this allows
 us to to merge secure and custom data into the default variable definitions for every role.
 
-For example `vars/lms_vars.yml` sets the `env_config` hash whose keys can be overridden
-by `vars/secure/lms_vars.yml` for setting passwords and hostnames.  
-In addition the `vars/secure/custom_vars.yml` can selectively override a subset of keys if
-there is a custom environment that differs slightly from either prod or stage.
+* For example, `vars/lms_vars.yml` (variables needed for the lms role) sets the `env_config` which has keys that can be overridden by `vars/secure/edxapp_stage_vars.yml` for setting passwords and hostnames.  
+
+* If needed, additional configuration can be layered, in the example `vars/secure/custom_vars.yml` changes some paramters that are set in `vars/secure/edxapp_stage_vars.yml`.
 
 
 ### Users and Groups
@@ -52,7 +59,6 @@ Example users are in the vars/secure directory:
 
 * `/vars/secure/edxapp_stage_users.yml` <-- *env_users* for the edxapp staging environment  
 * `/vars/secure/users.yml` <-- *admin_users* will be realized on every server
-
 
 
 ```
