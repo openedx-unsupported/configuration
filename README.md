@@ -23,7 +23,7 @@ _Note: Because the directory structure changes in v1.2 we are using the dev vers
 
 
 * __Hosts__ -  The ec2.py inventory script generates an inventory file where hosts are assigned to groups. Individual hosts can be targeted by the "Name" tag or the instance ID. I don't think there will be a reason to set host specific variables.
-* __Groups__ - A Group name is an identifier that corresponds to a group of roles plus an identifier for the environment.  Example: __edxapp_stage__, __edxapp_prod__, __xserver_stage__, etc.  For the purpose of targetting servers for deployment groups are created automatically by the `ec2.py` inventory sript since these group names will map to the _Group_ AWS tag. 
+* __Groups__ - A Group name is an identifier that corresponds to a group of roles plus an identifier for the environment.  Example: _edxapp_stage_, _edxapp_prod_, _xserver_stage_, etc.  For the purpose of targetting servers for deployment groups are created automatically by the `ec2.py` inventory sript since these group names will map to the _Group_ AWS tag. 
 * __Roles__  - A role will map to a single function/service that runs on server.
 
 ## Organization
