@@ -87,25 +87,18 @@ edxapp_custom.yml <-- [ example custom environment playbook ]
   pip install -r ansible-requirements.txt
 ```
 
-### Launching example cloudformation stack
+### Launching example cloudformation stack - Working example
 
-Change the following in playbooks/cloudformation.yaml to suit your environment:
-
-```
-    args:
-      template_parameters:
-        KeyName: deployment
-        InstanceType: m1.small
-        NameTag: edx-ec2
-        GroupTag: edx-group
-```
-
-And run:
+#### Provision the stack
 
   ```
   cd playbooks
-  ansible-playbook cloudformation.yaml -i inventory.ini
+  ansible-playbook  -vvv cloudformation.yaml -i inventory.ini  -e 'key=<key name> name=<stack name> group=<group name>'
   ```
+  
+* _key_: SSH key name in AWS that is configured for the region
+* _name_: Name of the stack, must be a name that is not already in use otherwise the existing stack will update
+* _group_: Group name, example: `edxapp_stage`.  The group name should correspond to one of the yml files in the `playbooks/`
 
 
 While this is running you see the cloudformation events in the AWS console as the stack is brought up.
@@ -113,21 +106,22 @@ Loads the playbooks/cloudformation.yaml template which creates a single small EB
 See files/examples for adding other components to the stack.
 
 
-### Test EC2 tag discovery
-
-This should return a list of tags, assumes you have a `~/.boto` file:
-
-  `python playbooks/ec2.py`
   
-  
-### Running the test playbook
+### Configure the stack
 
-Create a user
+* Creates admin and env users
+* Creates base directories
+* Creates the lms json configuration files
 
-  ```
+```
   cd playbooks
-  ansible-playbook test.yaml -i /path/to/ec2.py --private-key=/path/to/deployment.pem
-  ```
+  ansible-playbook -v --user=ubuntu edxapp_stage.yml -i ./ec2.py --private-key=/path/to/aws/key.pem
+```
+
+*Note: this assumes the group used for the edx stack was "edxapp_stage"*
+
+
+
 ### CloudFormation TODO for mongo backed LMS stack
 
 1. Add ElasticCache and RDS configuration to the template
