@@ -10,7 +10,7 @@ Every AWS EC2 instance will have a *Group* tag that corresponds to a group of ma
 * `Group`: `edxapp_prod`
 * `Group`: `edxapp_some_other_environment`
  
-Additional tags can be added to instances but they shouldn't be required for deployement or configuration.
+Additional tags can be added to AWS resources in the stack but they should not be made necessary deployment or configuration.
 
 ## Ansible
 
