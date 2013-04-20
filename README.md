@@ -3,7 +3,7 @@
 
 ### Tagging
 
-Every AWS EC2 instance will have a *Group* tag that corresponds to a group of machines that need to be deployed to and targetted as a group of servers. 
+Every AWS EC2 instance will have a *Group* tag that corresponds to a group of machines that need to be deployed/targetted to as a group of servers. 
 
 **Example:**
 * `Group`: `edxapp_stage`
