@@ -1,6 +1,22 @@
+# requires:
+#   - common/tasks/main.yml
 ---
 - name: Install nginx
   sudo: True
   apt: pkg=nginx state={{ pkgs.nginx.state }}
-- include: nginx_site.yml state=link site_name=edx-release
-
+  notify: restart nginx
+# removing default link
+- name: Removing default nginx config
+  sudo: True
+  file: path=/etc/nginx/sites-available/default state=absent
+  notify: restart nginx
+# Standard configuration that is common across all roles
+# Default values for these variables are set in group_vars/all
+- include: nginx_site.yml state="{{ nginx_cfg.sites_enabled.edx_release }}" site_name=edx-release
+- include: nginx_site.yml state="{{ nginx_cfg.sites_enabled.basic_auth }}" site_name=basic-auth
+# Default htpassword file, required for basic auth
+- copy: content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd
+  sudo: True
+- name: Ensuring that nginx is running
+  sudo: True
+  service: name=nginx state=started
