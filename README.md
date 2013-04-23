@@ -111,9 +111,10 @@ Example users are in the `vars/secure` directory:
 
   ```
   cd playbooks
-  ansible-playbook  -vvv cloudformation.yaml -i inventory.ini  -e 'key=<key_name> name=<stack_name> group=<group_name>'
+  ansible-playbook  -vvv cloudformation.yaml -i inventory.ini  -e 'region=<aws_region> key=<key_name> name=<stack_name> group=<group_name>'
   ```
   
+* _aws_region_: example: `us-east-1`. Which AWS EC2 region to build stack in.
 * _key_name_: example: `deploy`. SSH key name configured in AWS for the region
 * _stack_name_: example: `EdxAppCustom`. Name of the stack, must not contain
   underscores or cloudformation will complain. Must be an unused name or
