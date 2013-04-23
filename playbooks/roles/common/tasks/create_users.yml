@@ -2,15 +2,28 @@
 - name: Create 'edx' users group
   group: name=edx state=present
   sudo: True
+  tags:
+  - users
+  - admin_users
+- name: Add user 'ubuntu' to 'edx' group
+  # This is a temporary measure for initial configuration; after the last 
+  # play is run and we've got a good set of users, ubuntu should no longer be used
+  user: name=ubuntu append=yes groups="edx"
+  sudo: True
+  tags:
+  - users
+  - admin_users
 - name: Creating admin users
+  # Admin users, by definition, should be able to sudo w/ password, and read adm-only files
   user: name={{ item.user }} append=yes groups={{ "adm,edx,"+",".join(item.groups) }} shell=/bin/bash
   sudo: True
   with_items: admin_users
+  when: admin_users is defined
   tags:
   - users
   - admin_users
 - name: Copying ssh keys for admin users
-  authorized_key: user={{ item.user }} key="{{ lookup('file', item.path) }}"
+  authorized_key: user={{ item.user }} key="{{lookup('file', item.path)}}"
   sudo: True
   with_items: admin_keys
   tags:
@@ -20,11 +33,13 @@
   user: name={{ item.user }} groups={{ ",".join(item.groups) }} shell=/bin/bash
   sudo: True
   with_items: env_users
+  when: env_users is defined
   tags:
   - users
 - name: Copying ssh keys for env users
-  authorized_key: user={{ item.user }} key="{{ lookup('file', item.path) }}"
+  authorized_key: user={{ item.user }} key="{{lookup('file', item.path)}}"
   sudo: True
   with_items: env_keys
+  when: env_keys is defined
   tags:
   - users

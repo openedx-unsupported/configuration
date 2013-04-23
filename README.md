@@ -39,6 +39,46 @@ version instead of the official v1.1 release._
 
 ## Organization
 
+### Secure vs. Insecure data
+
+As a general policy we want to protect the following data:
+
+* Usernames
+* Public keys (keys are ok to be public, but can be used to figure out usernames)
+* Hostnames
+* Passwords, api keys
+
+The folowing yml files and examples serve as templates that should be overridden with your own
+environment specific configuration:
+
+* vars in `secure_example/vars` 
+* files in `secure_example/files` 
+
+Directory structure for the secure repo:
+
+```
+
+ansible
+├── files
+├── keys
+└── vars
+
+```
+
+The same directory structure, required yml files and files are 
+in the secure_example dir:
+
+```
+secure_example/
+├── files
+├── keys
+└── vars
+```
+
+The default `secure\_dir` is set in `group\_vars/all` and can be overridden by
+adding another file in group_vars that corresponds to a deploy group name.
+
+
 The directory structure should follow Ansible best practices.
 
 http://ansible.cc/docs/bestpractices.html
@@ -84,8 +124,9 @@ Example users are in the `vars/secure` directory:
 
 ```
 cloudformation_templates  <-- official edX cloudformation templates
-│   └── examples          <-- example templates
-└── playbooks
+    └── examples          <-- example templates
+playbooks
+ └──
      edxapp_prod.yml      <-- example production environment playbook
      edxapp_stage.yml     <-- example stage environment playbook
      edxapp_custom.yml    <-- example custom environment playbook
@@ -108,7 +149,7 @@ cloudformation_templates  <-- official edX cloudformation templates
     │       └── templates 
     │   (etc)
     └── vars             <-- public variable definitions
-        └── secure       <-- secure variables (example)
+    └── secure_example   <-- secure variables (example)
 
 ```
 
@@ -170,9 +211,44 @@ If that works fine, then you can add an export of PYTHONPATH to
 * Creates base directories
 * Creates the lms json configuration files
 
+Because the reference architecture makes use of an Amazon VPC, you will not be able
+to address the hosts in the private subnets directly.  However, you can easily set 
+up a transparent "jumpbox" so that for all hosts in your vpc, connections are 
+tunneled.
+
+Add something like the following to your `~/.ssh/config` file.
+
+```
+Host *.us-west-1.compute-internal
+  ProxyCommand ssh -W %h:%p vpc-00000000-jumpbox
+  IdentityFile /path/to/aws/key.pem
+  ForwardAgent yes
+  User ubuntu
+
+Host vpc-00000000-jumpbox
+  HostName 54.236.224.226
+  IdentityFile /path/to/aws/key.pem
+  ForwardAgent yes
+  User ubuntu
+```
+
+This assumes that you only have one VPC in the ```us-west-1``` region
+that you're trying to ssh into.  Internal DNS names aren't qualified
+any further than that, so to support multiple VPC's you'd have to get
+creative with subnets, for example ip-10-1 and ip-10-2...
+
+Test this by typing `ssh ip-10-0-10-1.us-west-1.compute.internal`, 
+(of coruse using a hostname exists in your environment.)  If things 
+are configured correctly you will ssh to 10.0.10.1, jumping 
+transparently via your basion host.
+
+Assuming that the edxapp_stage.yml playbook targets hosts in your vpc
+for which there are entiries in your `.ssh/config`, do the 
+following to run your playbook.
+
 ```
   cd playbooks
-  ansible-playbook -v --user=ubuntu edxapp_stage.yml -i ./ec2.py --private-key=/path/to/aws/key.pem
+  ansible-playbook -v --user=ubuntu edxapp_stage.yml -i ./ec2.py -c ssh
 ```
 
 *Note: this assumes the group used for the edx stack was "edxapp_stage"*

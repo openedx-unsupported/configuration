@@ -4,7 +4,7 @@
   "Parameters":{
     "EnvironmentTag":{
       "Type":"String",
-      "Description":"A tag value applied to the hosts in the VPC indicating which environment to use during the configuration phase, e.g., development, stage, production",
+      "Description":"A tag value applied to the hosts in the VPC indicating which environment to use during the configuration phase, e.g., dev, stage, prod",
       "Default":"stage"
     },
     "KeyName":{
@@ -1330,6 +1330,14 @@
             "FromPort":"443",
             "ToPort":"443",
             "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
           }
         ]
       }
@@ -1653,7 +1661,7 @@
           "Ref":"EdxappServer"
         },
         "MinSize":"1",
-        "MaxSize":"2",
+        "MaxSize":"6",
         "DesiredCapacity":{
           "Ref":"EdxappDesiredCapacity"
         },
@@ -3131,64 +3139,53 @@
       }
     },
     "ElasticCacheCreateSubnetGroupCommand":{
-      "Description":"Commands to be run to create the elatic cache.  Creation isn't fully supported in CF today.",
+      "Description":"MANUAL COMMAND #1: create subnet group. (these commands have to be run by hand because they aren't supported by CloudFormation yet.",
       "Value":{
         "Fn::Join":[
           "",
           [
-            "elasticache-create-cache-subnet-group",
-            " ",
-            {
-              "Ref":"EdxVPC"
-            },
-            "-ElasticCacheSubnetGroup --description  'VPC ElasticCache Subnet Group'",
-            " --subnet-ID-list",
-            " ",
-            {
-              "Ref":"Cache01"
-            },
-            ",",
-            {
-              "Ref":"Cache02"
-            }
+            "elasticache-create-cache-subnet-group ", { "Ref":"EdxVPC" }, "-ElasticCacheSubnetGroup ",
+            "--description 'VPC ElasticCache Subnet Group' ",
+            "--subnet-ID-list ", { "Ref":"Cache01" }, ",", { "Ref":"Cache02" }
           ]
         ]
       }
     },
     "ElasticCacheCreateCacheClusterCommand":{
-      "Description":"Foo",
+      "Description":"MANUAL COMMAND #2: Create cache cluster.",
       "Value":{
         "Fn::Join":[
           "",
           [
-            "elasticache-create-cache-cluster",
-            " ",
-            {
-              "Ref":"EdxVPC"
-            },
-            "-Cache --num-cache-nodes ",
-            {
-              "Ref":"NumberOfCacheNodes"
-            },
-            " --cache-node-type ",
-            {
-              "Ref":"CacheNodeType"
-            },
-            " --engine memcached --engine-version 1.4.5 --port 12345 --preferred-availability-zone ",
-            {
-              "Fn::FindInMap":[
+            "elasticache-create-cache-cluster ", { "Ref":"EdxVPC" }, "-Cache ",
+            "--num-cache-nodes ", { "Ref":"NumberOfCacheNodes" }, " ",
+            "--cache-node-type ", { "Ref":"CacheNodeType" }, " ",
+            "--engine memcached ",
+            "--engine-version 1.4.5 ",
+            "--port 12345 ",
+            "--preferred-availability-zone ",
+            { "Fn::FindInMap":[
                 "MapRegionsToAvailZones",
                 { "Ref":"AWS::Region" },
                 "AZone0"
               ]
-            },
-            " --cache-parameter-group-name default.memcached1.4 --auto-minor-version-upgrade true",
-            " --cache-subnet-group-name ElasticCacheSubnetGroup",
-            " ",
-            {
-              "Ref":"EdxVPC"
-            },
-            "-ElasticCacheSubnetGroup"
+            }, " ",
+            "--cache-parameter-group-name default.memcached1.4 ",
+            "--auto-minor-version-upgrade true ",
+            "--cache-subnet-group-name ", { "Ref":"EdxVPC" },"-ElasticCacheSubnetGroup"
+          ]
+        ]
+      }
+    },
+    "EnableDNSHostnamesForVPCCommand":{
+      "Description":"MANUAL COMMAND #3: Change VPC setting to enable automatic DNS hostname resolution from within the VPC. Setting not supported in Cloudformation yet.",
+      "Value":{
+        "Fn::Join":[
+          "",
+          [
+            "ec2-modify-vpc-attribute ",
+            "-c ", { "Ref":"EdxVPC" }, " ",
+            "-d true"
           ]
         ]
       }
