@@ -81,21 +81,24 @@ Example users are in the `vars/secure` directory:
 * [*env_users* for staging environment](/vars/secure/edxapp_stage_users.yml)
 * [*admin_users* will be realized on every server](/vars/secure/users.yml)
 
-    edxapp_prod.yml      <-- example production environment playbook
-    edxapp_stage.yml     <-- example stage environment playbook
-    edxapp_custom.yml    <-- example custom environment playbook
-    ├── files            <-- edX cloudformation templates
-    │   └── examples     <-- example cloudformation templates
-    ├── group_vars       <-- var files that correspond to ansible group names (mapped to AWS tags)
-    ├── keys             <-- public keys
-    ├── roles            <-- edX services
-    │   ├── common       <-- tasks that are run for all roles
-    │   │   └── tasks
-    │   └── lms 
-    │       ├── tasks    <-- tasks that are run to setup an LMS
-    │       └── templates
-    └── vars             <-- public variable definitions
-        └── secure       <-- secure variables (example)
+
+     ```
+     edxapp_prod.yml      <-- example production environment playbook
+     edxapp_stage.yml     <-- example stage environment playbook
+     edxapp_custom.yml    <-- example custom environment playbook
+     ├── files            <-- edX cloudformation templates
+     │   └── examples     <-- example cloudformation templates
+     ├── group_vars       <-- var files that correspond to ansible group names (mapped to AWS tags)
+     ├── keys             <-- public keys
+     ├── roles            <-- edX services
+     │   ├── common       <-- tasks that are run for all roles
+     │   │   └── tasks
+     │   └── lms 
+     │       ├── tasks    <-- tasks that are run to setup an LMS
+     │       └── templates
+     └── vars             <-- public variable definitions
+         └── secure       <-- secure variables (example)
+     ```
 
 
 ### Installation
