@@ -111,7 +111,7 @@ Example users are in the `vars/secure` directory:
 
   ```
   cd playbooks
-  ansible-playbook  -vvv cloudformation.yaml -i inventory.ini  -e 'region=<aws_region> key=<key_name> name=<stack_name> group=<group_name>'
+  ansible-playbook  -vvv cloudformation.yml -i inventory.ini  -e 'region=<aws_region> key=<key_name> name=<stack_name> group=<group_name>'
   ```
   
 * _aws_region_: example: `us-east-1`. Which AWS EC2 region to build stack in.
@@ -123,7 +123,7 @@ Example users are in the `vars/secure` directory:
   one of the yml files in the `playbooks/`. Used for grouping hosts.
 
 While this is running you see the cloudformation events in the AWS console as
-the stack is brought up.  Loads the playbooks/cloudformation.yaml template
+the stack is brought up.  Loads the `playbooks/cloudformation.yml` template
 which creates a single small EBS backed EC2 instance.  
 
 _Note: You should read the output from ansible and not necessarily trust the
@@ -142,7 +142,7 @@ your virtualenv and see if it runs better that way. E.g.:
 
   ```
   export PYTHONPATH=$VIRTUAL_ENV/lib/python2.7/site-packages/ 
-  ansible-playbook playbooks/cloudformation.yaml -i playbooks/inventory.ini
+  ansible-playbook playbooks/cloudformation.yml -i playbooks/inventory.ini
   ```
 
 If that works fine, then you can add an export of PYTHONPATH to
@@ -164,7 +164,7 @@ If that works fine, then you can add an export of PYTHONPATH to
 ### CloudFormation TODO for mongo backed LMS stack
 
 1. Add ElasticCache and RDS configuration to the template
-2. Update cloudformation.yaml with new params, keep sensitive data separate
+2. Update `cloudformation.yml` with new params, keep sensitive data separate
 3. Come up with a better tagging scheme
 4. Add ELB, SSL setup
 
