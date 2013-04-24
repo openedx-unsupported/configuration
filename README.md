@@ -98,11 +98,15 @@ cloudformation_templates  <-- official edX cloudformation templates
     │   │   └── tasks
     │   ├── lms
     │   │   ├── tasks     <-- tasks that are run to setup an LMS
-    │   │   └── templates
+    │   │   ├── templates
+    │   │   └── vars      <-- main.yml in this directory is auto-loaded when the role is included
+    │   │
     │   └── nginx
-    │       ├── handlers
+    │       ├── handlers 
     │       ├── tasks
-    │       └── templates
+    │       ├── vars
+    │       └── templates 
+    │   (etc)
     └── vars             <-- public variable definitions
         └── secure       <-- secure variables (example)
 
