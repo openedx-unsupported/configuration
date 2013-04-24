@@ -114,6 +114,7 @@ cloudformation_templates  <-- official edX cloudformation templates
 ```
   mkvirtualenv ansible
   pip install -r ansible-requirements.txt
+  util/sync_hooks.sh
 ```
 
 ### Launching example cloudformation stack - Working example
