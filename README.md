@@ -177,23 +177,3 @@ If that works fine, then you can add an export of PYTHONPATH to
 
 *Note: this assumes the group used for the edx stack was "edxapp_stage"*
 
-### CloudFormation TODO for mongo backed LMS stack
-
-1. Add ElasticCache and RDS configuration to the template
-2. Update `cloudformation.yml` with new params, keep sensitive data separate
-3. Come up with a better tagging scheme
-4. Add ELB, SSL setup
-
-### Ansible TODO for mongo backed LMS stack
-
-1. ~~Come up with a scheme to separate sensitive data~~
-2. ~~Create templates for /opt/wwc/lms-{env,auth}.json, these files are read by
-   mitx/lms/envs/aws.py~~
-3. Set up virtualenv (currently configured to by default be in /opt/edx)
-4. Setup and configure rsyslog and logrotate
-5. Setup and configure nginx/apache
-5. Create upstart script for the lms service
-6. Setup and configure local mongo/mongoHQ
-7. Setup and configure local sqlite/RDS
-8. Create deploy playbook for git deploy
-
