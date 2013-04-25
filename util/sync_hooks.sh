@@ -19,7 +19,7 @@ for file in git-hooks/*.in; do
         cd $STARTED_FROM
         exit 1
     else
-        ln -v -s -b -f `pwd`/$file .git/hooks/$filepart
+        ln -v -s -f `pwd`/$file .git/hooks/$filepart
     fi
 done
 
