@@ -3,23 +3,24 @@
 #  - nginx/tasks/main.yml
 ---
 - name: create lms application config
-  template: src=env.json.j2 dest=/opt/wwc/lms-env.json
+  template: src=env.json.j2 dest=/opt/wwc/lms.env.json
   sudo: True
 
 - name: create lms auth file
-  template: src=auth.json.j2 dest=/opt/wwc/lms-auth.json
+  template: src=auth.json.j2 dest=/opt/wwc/lms.auth.json
   sudo: True
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-backend
 
 # Install ssh keys for ubuntu account to be able to check out from mitx
+# Temprory behavior, not needed after June 1. Perhaps still useful as a recipe.
 - name: install read-only ssh key for mitx repo (private)
-  copy: src=secure/mitx_readonly_key dest=/home/ubuntu/.ssh/id_rsa force=yes owner=ubuntu group=ubuntu mode=600
+  copy: src=vars/secure/ssh_deploy_private dest=/home/ubuntu/.ssh/id_rsa force=yes owner=ubuntu group=ubuntu mode=600
 - name: install read-only ssh key for mitx repo (public)
-  copy: src=secure/mitx_readonly_key.pub dest=/home/ubuntu/.ssh/id_rsa.pub force=yes owner=ubuntu group=ubuntu mode=644
+  copy: src=vars/secure/ssh_deploy_public dest=/home/ubuntu/.ssh/id_rsa.pub force=yes owner=ubuntu group=ubuntu mode=644
 - name: install read-only ssh key for mitx repo (host github known)
-  copy: src=secure/known_hosts dest=/home/ubuntu/.ssh/known_hosts force=yes owner=ubuntu group=ubuntu mode=600
+  copy: src=vars/secure/ssh_deploy_known_hosts dest=/home/ubuntu/.ssh/known_hosts force=yes owner=ubuntu group=ubuntu mode=600
 
 # Check out mitx repo to /opt/wwc
 - name: set permissions on /opt/wwc sgid for edx
