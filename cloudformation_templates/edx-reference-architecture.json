@@ -1,14 +1,16 @@
 {
   "AWSTemplateFormatVersion":"2010-09-09",
-  "Description":"A sample template to bring up a minimal, but complete version of the edX stack.  **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+  "Description":"Bring up the complete EdX stack in a VPC.",
   "Parameters":{
     "EnvironmentTag":{
       "Type":"String",
-      "Description":"A tag value applied to the hosts in the VPC indicating which environment to use during the configuration phase, e.g., development, stage, production"
+      "Description":"A tag value applied to the hosts in the VPC indicating which environment to use during the configuration phase, e.g., development, stage, production",
+      "Default":"stage"
     },
     "KeyName":{
       "Type":"String",
-      "Description":"Name of an existing EC2 KeyPair to enable SSH access to the web server"
+      "Description":"Name of an existing EC2 KeyPair to enable SSH access to the web server",
+      "Default":"deployment"
     },
     "InstanceType":{
       "Description":"WebServer EC2 instance type",
@@ -191,149 +193,65 @@
   },
   "Mappings":{
     "AWSInstanceType2Arch":{
-      "t1.micro":{
-        "Arch":"64"
-      },
-      "m1.small":{
-        "Arch":"64"
-      },
-      "m1.medium":{
-        "Arch":"64"
-      },
-      "m1.large":{
-        "Arch":"64"
-      },
-      "m1.xlarge":{
-        "Arch":"64"
-      },
-      "m2.xlarge":{
-        "Arch":"64"
-      },
-      "m2.2xlarge":{
-        "Arch":"64"
-      },
-      "m2.4xlarge":{
-        "Arch":"64"
-      },
-      "m3.xlarge":{
-        "Arch":"64"
-      },
-      "m3.2xlarge":{
-        "Arch":"64"
-      },
-      "c1.medium":{
-        "Arch":"64"
-      },
-      "c1.xlarge":{
-        "Arch":"64"
-      }
+      "t1.micro":        { "Arch":"64" },
+      "m1.small":        { "Arch":"64" },
+      "m1.medium":       { "Arch":"64" },
+      "m1.large":        { "Arch":"64" },
+      "m1.xlarge":       { "Arch":"64" },
+      "m2.xlarge":       { "Arch":"64" },
+      "m2.2xlarge":      { "Arch":"64" },
+      "m2.4xlarge":      { "Arch":"64" },
+      "m3.xlarge":       { "Arch":"64" },
+      "m3.2xlarge":      { "Arch":"64" },
+      "c1.medium":       { "Arch":"64" },
+      "c1.xlarge":       { "Arch":"64" }
     },
     "AWSRegionArch2AMI":{
-      "us-east-1":{
-        "32":"ami-def89fb7",
-        "64":"ami-d0f89fb9"
-      },
-      "us-west-1":{
-        "32":"ami-fc002cb9",
-        "64":"ami-fe002cbb"
-      },
-      "us-west-2":{
-        "32":"ami-0ef96e3e",
-        "64":"ami-70f96e40"
-      },
-      "eu-west-1":{
-        "32":"ami-c27b6fb6",
-        "64":"ami-ce7b6fba"
-      },
-      "sa-east-1":{
-        "32":"ami-a1da00bc",
-        "64":"ami-a3da00be"
-      },
-      "ap-southeast-1":{
-        "32":"ami-66084734",
-        "64":"ami-64084736"
-      },
-      "ap-southeast-2":{
-        "32":"ami-06ea7a3c",
-        "64":"ami-04ea7a3e"
-      },
-      "ap-northeast-1":{
-        "32":"ami-fc6ceefd",
-        "64":"ami-fe6ceeff"
-      }
+      "us-east-1":       { "32":"ami-def89fb7", "64":"ami-d0f89fb9" },
+      "us-west-1":       { "32":"ami-fc002cb9", "64":"ami-fe002cbb" },
+      "us-west-2":       { "32":"ami-0ef96e3e", "64":"ami-70f96e40" },
+      "eu-west-1":       { "32":"ami-c27b6fb6", "64":"ami-ce7b6fba" },
+      "sa-east-1":       { "32":"ami-a1da00bc", "64":"ami-a3da00be" },
+      "ap-southeast-1":  { "32":"ami-66084734", "64":"ami-64084736" },
+      "ap-southeast-2":  { "32":"ami-06ea7a3c", "64":"ami-04ea7a3e" },
+      "ap-northeast-1":  { "32":"ami-fc6ceefd", "64":"ami-fe6ceeff" }
     },
     "AWSNATAMI":{
-      "us-east-1":{
-        "AMI":"ami-c6699baf"
-      },
-      "us-west-2":{
-        "AMI":"ami-52ff7262"
-      },
-      "us-west-1":{
-        "AMI":"ami-3bcc9e7e"
-      },
-      "eu-west-1":{
-        "AMI":"ami-0b5b6c7f"
-      },
-      "ap-southeast-1":{
-        "AMI":"ami-02eb9350"
-      },
-      "ap-southeast-2":{
-        "AMI":"ami-ab990e91"
-      },
-      "ap-northeast-1":{
-        "AMI":"ami-14d86d15"
-      },
-      "sa-east-1":{
-        "AMI":"ami-0439e619"
-      }
+      "us-east-1":       { "AMI":"ami-c6699baf" },
+      "us-west-2":       { "AMI":"ami-52ff7262" },
+      "us-west-1":       { "AMI":"ami-3bcc9e7e" },
+      "eu-west-1":       { "AMI":"ami-0b5b6c7f" },
+      "ap-southeast-1":  { "AMI":"ami-02eb9350" },
+      "ap-southeast-2":  { "AMI":"ami-ab990e91" },
+      "ap-northeast-1":  { "AMI":"ami-14d86d15" },
+      "sa-east-1":       { "AMI":"ami-0439e619" }
     },
     "SubnetConfig":{
-      "VPC":{
-        "CIDR":"10.0.0.0/16"
-      },
-      "Public01":{
-        "CIDR":"10.0.0.0/24"
-      },
-      "Public02":{
-        "CIDR":"10.0.1.0/24"
-      },
-      "Edxapp01":{
-        "CIDR":"10.0.10.0/24"
-      },
-      "Edxapp02":{
-        "CIDR":"10.0.11.0/24"
-      },
-      "XServerJail01":{
-        "CIDR":"10.0.20.0/24"
-      },
-      "XServerJail02":{
-        "CIDR":"10.0.21.0/24"
-      },
-      "Xqueue01":{
-        "CIDR":"10.0.30.0/24"
-      },
-      "Xqueue02":{
-        "CIDR":"10.0.31.0/24"
-      },
-      "Rabbit01":{
-        "CIDR":"10.0.40.0/24"
-      },
-      "Rabbit02":{
-        "CIDR":"10.0.41.0/24"
-      },
-      "Data01":{
-        "CIDR":"10.0.50.0/24"
-      },
-      "Data02":{
-        "CIDR":"10.0.51.0/24"
-      },
-      "Cache01":{
-        "CIDR":"10.0.60.0/24"
-      },
-      "Cache02":{
-        "CIDR":"10.0.61.0/24"
-      }
+      "VPC":             { "CIDR":"10.0.0.0/16" },
+      "Public01":        { "CIDR":"10.0.0.0/24" },
+      "Public02":        { "CIDR":"10.0.1.0/24" },
+      "Edxapp01":        { "CIDR":"10.0.10.0/24" },
+      "Edxapp02":        { "CIDR":"10.0.11.0/24" },
+      "XServerJail01":   { "CIDR":"10.0.20.0/24" },
+      "XServerJail02":   { "CIDR":"10.0.21.0/24" },
+      "Xqueue01":        { "CIDR":"10.0.30.0/24" },
+      "Xqueue02":        { "CIDR":"10.0.31.0/24" },
+      "Rabbit01":        { "CIDR":"10.0.40.0/24" },
+      "Rabbit02":        { "CIDR":"10.0.41.0/24" },
+      "Data01":          { "CIDR":"10.0.50.0/24" },
+      "Data02":          { "CIDR":"10.0.51.0/24" },
+      "Cache01":         { "CIDR":"10.0.60.0/24" },
+      "Cache02":         { "CIDR":"10.0.61.0/24" }
+    },
+    "MapRegionsToAvailZones":{
+      "us-east-1":       { "AZone2":"us-east-1a",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
+      "us-west-1":       { "AZone0":"us-west-1a",      "AZone2":"us-west-1b",      "AZone1":"us-west-1c" },
+      "us-west-2":       { "AZone0":"us-west-2a",      "AZone1":"us-west-2b",      "AZone2":"us-west-2c" },
+      "eu-west-1":       { "AZone0":"eu-west-1a",      "AZone1":"eu-west-1b",      "AZone2":"eu-west-1c" },
+      "sa-east-1":       { "AZone0":"sa-east-1a",      "AZone1":"sa-east-1b",      "AZone2":"sa-east-1c" },
+      "ap-southeast-1":  { "AZone0":"ap-southeast-1a", "AZone1":"ap-southeast-1b", "AZone2":"ap-southeast-1c" },
+      "ap-southeast-2":  { "AZone0":"ap-southeast-2a", "AZone1":"ap-southeast-2b", "AZone2":"ap-southeast-2c" },
+      "ap-northeast-1":  { "AZone0":"ap-northeast-1a", "AZone1":"ap-northeast-1b", "AZone2":"ap-northeast-1c" }
     }
   },
   "Resources":{
@@ -357,7 +275,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b"
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        }
       }
     },
     "PublicSubnet02":{
@@ -373,7 +297,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c"
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        }
       }
     },
     "EdxappSubnet01":{
@@ -389,7 +319,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -415,7 +351,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -441,7 +383,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -467,7 +415,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -493,7 +447,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -519,7 +479,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -545,7 +511,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -571,7 +543,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -597,7 +575,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -623,7 +607,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -649,7 +639,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1b",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -675,7 +671,13 @@
             "CIDR"
           ]
         },
-        "AvailabilityZone":"us-east-1c",
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
         "Tags":[
           {
             "Key":"Application",
@@ -3172,7 +3174,22 @@
             {
               "Ref":"CacheNodeType"
             },
-            " --engine memcached --engine-version 1.4.5 --port 12345 --preferred-availability-zone us-east-1b",
+            " --engine memcached --engine-version 1.4.5 --port 12345 --preferred-availability-zone ",
+            {
+              "Fn::FindInMap":[
+                "MapRegionsToAvailZones",
+                { "Ref":"AWS::Region" },
+                "AZone0"
+              ]
+            },
+            " --engine memcached --engine-version 1.4.5 --port 12345 --preferred-availability-zone ",
+            {
+              "Fn::FindInMap":[
+                "MapRegionsToAvailZones",
+                { "Ref":"AWS::Region" },
+                "AZone0"
+              ]
+            },
             " --cache-parameter-group-name default.memcached1.4 --auto-minor-version-upgrade true",
             " --cache-subnet-group-name ElasticCacheSubnetGroup",
             " ",
