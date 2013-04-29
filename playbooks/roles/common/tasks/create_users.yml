@@ -1,17 +1,30 @@
 ---
+- name: Create 'edx' users group
+  group: name=edx state=present
+  sudo: True
 - name: Creating admin users
-  user: name={{ item.user }} groups={{ ",".join(item.groups) }}
+  user: name={{ item.user }} append=yes groups={{ "adm,edx,"+",".join(item.groups) }} shell=/bin/bash
   sudo: True
   with_items: admin_users
+  tags:
+  - users
+  - admin_users
 - name: Copying ssh keys for admin users
   authorized_key: user={{ item.user }} key="{{ lookup('file', item.path) }}"
   sudo: True
   with_items: admin_keys
+  tags:
+  - users
+  - admin_users
 - name: Creating env users
-  user: name={{ item.user }} groups={{ ",".join(item.groups) }}
+  user: name={{ item.user }} groups={{ ",".join(item.groups) }} shell=/bin/bash
   sudo: True
   with_items: env_users
+  tags:
+  - users
 - name: Copying ssh keys for env users
   authorized_key: user={{ item.user }} key="{{ lookup('file', item.path) }}"
   sudo: True
   with_items: env_keys
+  tags:
+  - users
