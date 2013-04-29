@@ -3,11 +3,11 @@
 #  - nginx/tasks/main.yml
 ---
 - name: create lms application config
-  template: src=env.json.j2 dest=/opt/wwc/lms.env.json
+  template: src=env.json.j2 dest=$app_base_dir/lms.env.json
   sudo: True
 
 - name: create lms auth file
-  template: src=auth.json.j2 dest=/opt/wwc/lms.auth.json
+  template: src=auth.json.j2 dest=$app_base_dir/lms.auth.json
   sudo: True
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
@@ -22,13 +22,13 @@
 - name: install read-only ssh key for mitx repo (host github known)
   copy: src=vars/secure/ssh_deploy_known_hosts dest=/home/ubuntu/.ssh/known_hosts force=yes owner=ubuntu group=ubuntu mode=600
 
-# Check out mitx repo to /opt/wwc
-- name: set permissions on /opt/wwc sgid for edx
-  file: path=/opt/wwc owner=root group=edx mode=2775 state=directory
-  file: path=/opt/wwc/mitx owner=ubuntu group=edx mode=2775 state=directory
+# Check out mitx repo to $app_base_dir
+- name: set permissions on $app_base_dir sgid for edx
+  file: path=$app_base_dir owner=root group=edx mode=2775 state=directory
+  file: path=$app_base_dir owner=ubuntu group=edx mode=2775 state=directory
   sudo: True
 - name: install git and its recommends
   apt: pkg=git state=installed install_recommends=yes 
   sudo: True
-- name: git checkout mitx repo into /opt/wwc
-  git: dest=/opt/wwc/mitx repo=git@github.com:MITx/mitx.git
+- name: git checkout mitx repo into $app_base_dir
+  git: dest=$app_base_dir/mitx repo=git@github.com:MITx/mitx.git
