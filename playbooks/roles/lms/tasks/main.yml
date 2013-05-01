@@ -51,7 +51,7 @@
   - lms
   - cms
 - name: git checkout mitx repo into $app_base_dir
-  git: dest=$app_base_dir/mitx repo=$lms_source_repo
+  git: dest={{app_base_dir}}/mitx repo={{lms_source_repo}}
   tags:
   - lms
   - cms
@@ -71,14 +71,14 @@
   tags:
   - lms
   - cms
-- name: update apt cache
+- name: update apt cache (if necessary)
   apt: update_cache=yes
   sudo: True
   only_if: "{{apt_repos_list_repo_adds.changed}}"
   tags:
   - lms
   - cms
-- name: store repmote apt_packages list for ansible use
+- name: store remote apt_packages list for ansible use
   command: cat {{app_base_dir}}/mitx/apt-packages.txt
   register: apt_packages_list
   tags:
@@ -87,82 +87,84 @@
 - name: install a bunch of system packages on which LMS and CMS rely
   apt: pkg={{item}} state=present
   with_items: 
-  - build-essential
-  - libxml++2.6-dev
-  - maven2
-  - libreadline6-dev
-  - python-scipy
-  - libfreetype6-dev
-  - openjdk-7-jre
-  - python-numpy
-  - inoticoming
-  - python-boto
-  - perl
-  - liblapack-dev
-  - curl
-  - reprepro
-  - gcc
-  - fabric
-  - zip
-  - libmysqlclient-dev
-  - python-pip
-  - vagrant
-  - libreadline-dev
-  - rsyslog
-  - g++
-  - libssl-dev
-  - sqlite3
-  - mongodb
-  - dvipng
-  - rubygems
-  - libxml2-utils
-  - ntp
-  - rake
-  - pylint
-  - mosh
-  - facter
-  - openjdk-7-jdk
-  - ghostscript
   - apparmor-utils
-  - python-coverage-test-runner
-  - gfortran
-  - ipython
-  - git
-  - graphviz
-  - super
-  - libxml2-dev
-  - mongodb-clients
   - aspell
-  - libjpeg8-dev
-  - gunicorn
-  - yui-compressor
-  - postfix
-  - mysql-client
-  - pep8
-  - libxslt1-dev
-  - libgraphviz-dev
-  - python-django-nose
-  - python-nose
+  - build-essential
+  - curl
+  - dvipng
+  - fabric
+  - facter
+  - g++
+  - gcc
+  - gfortran
+  - ghostscript
+  - git
+  - github-cli
+  - graphviz
   - graphviz-dev
-  - zlib1g-dev
-  - libpng12-dev
-  - pkg-config
-  - liblwp-protocol-https-perl
+  - gunicorn
+  - inoticoming
+  - ipython
+  - libcrypt-ssleay-perl
   - libcurl4-openssl-dev
   - libdigest-sha-perl
-  - python-jenkins
+  - libfreetype6-dev
+  - libgeos-dev
+  - libgraphviz-dev
+  - libjpeg8-dev
+  - liblapack-dev
+  - liblwp-protocol-https-perl
+  - libmysqlclient-dev
+  - libnet-amazon-ec2-perl
+  - libpng12-dev
+  - libreadline-dev
+  - libreadline6-dev
+  - libssl-dev
+  - libswitch-perl
+  - libwww-perl
+  - libxml++2.6-dev
+  - libxml2-dev
+  - libxml2-utils
+  - libxslt1-dev
+  - maven2
+  - mongodb
+  - mongodb-clients
+  - mysql-client
+  - nodejs
+  - ntp
+  - openjdk-7-jdk
+  - openjdk-7-jre
+  - pep8
+  - perl
+  - pkg-config
+  - postfix
   - puppet
   - puppet-common
+  - puppet-lint
   - puppetmaster
   - puppetmaster-common
-  - puppet-lint
-  - vim-puppet
+  - pylint
+  - python-boto
+  - python-coverage-test-runner
+  - python-django-nose
+  - python-jenkins
+  - python-nose
   - python-nosexcover
-  - libwww-perl
-  - libswitch-perl
-  - libcrypt-ssleay-perl
-  - libnet-amazon-ec2-perl
-  - github-cli
+  - python-numpy
+  - python-pip
+  - python-scipy
+  - rake
+  - reprepro
+  - rsyslog
+  - rubygems
+  - sqlite3
+  - super
+  - vagrant
+  - vim-puppet
+  - yui-compressor
+  - zip
+  - zlib1g-dev
+  sudo: True
   tags:
   - lms
   - cms
@@ -180,7 +182,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some 
   # requirements are pathed relative to the mitx repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd $app_base_dir/mitx && $venv_dir/bin/pip install --use-mirrors -r $app_base_dir/mitx/requirements.txt
+  shell: cd {{app_base_dir}}/mitx && {{venv_dir}}/bin/pip install --use-mirrors -r {{app_base_dir}}/mitx/requirements.txt
   tags:
   - lms
   - cms
