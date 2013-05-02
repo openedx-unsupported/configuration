@@ -51,8 +51,8 @@ As a general policy we want to protect the following data:
 The folowing yml files and examples serve as templates that should be overridden with your own
 environment specific configuration:
 
-* vars in `vars/secure_default/` 
-* files in `files/secure_default/` 
+* vars in `secure_example/vars` 
+* files in `secure_example/files` 
 
 Directory structure for the secure repo:
 
