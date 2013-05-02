@@ -15,12 +15,16 @@
 
 # Install ssh keys for ubuntu account to be able to check out from mitx
 # Temprory behavior, not needed after June 1. Perhaps still useful as a recipe.
+# {{ secure_dir }} is relative to the top-level playbooks dir so there is some
+# ugly relative pathing here
+
 - name: install read-only ssh key for mitx repo (private)
-  copy: src={{ secure_file_dir }}/ssh_deploy_private dest=/home/ubuntu/.ssh/id_rsa force=yes owner=ubuntu group=ubuntu mode=600
-- name: install read-only ssh key for mitx repo (public)
-  copy: src={{ secure_file_dir }}/ssh_deploy_public dest=/home/ubuntu/.ssh/id_rsa.pub force=yes owner=ubuntu group=ubuntu mode=644
-- name: install read-only ssh key for mitx repo (host github known)
-  copy: src={{ secure_file_dir }}/ssh_deploy_known_hosts dest=/home/ubuntu/.ssh/known_hosts force=yes owner=ubuntu group=ubuntu mode=600
+  copy: src=../../../{{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=root group=root mode=644
+  sudo: True
+
+- name: upload ssh script
+  copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=root mode=755
+  sudo: True
 
 # Check out mitx repo to $app_base_dir
 - name: set permissions on $app_base_dir sgid for edx
@@ -32,3 +36,5 @@
   sudo: True
 - name: git checkout mitx repo into $app_base_dir
   git: dest=$app_base_dir/mitx repo=git@github.com:MITx/mitx.git
+  environment:
+    GIT_SSH: /tmp/git_ssh.sh

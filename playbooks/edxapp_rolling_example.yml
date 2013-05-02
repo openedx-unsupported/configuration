@@ -1,11 +1,10 @@
 # ansible-playbook -v --user=ubuntu  edxapp_rolling_example.yml -i ./ec2.py  --private-key=/path/to/deployment.pem 
 
 - hosts: tag_Group_anothermulti
-  serial: 1
+  serial: 2
   vars_files:
-    - ["{{ secure_file_dir }}/edxapp_stage_vars.yml", "vars/secure_default/edxapp_stage_vars.yml"]
-    - ["{{ secure_file_dir }}/users.yml", "vars/secure_default/users.yml"]
-    - ["{{ secure_file_dir }}/edxapp_stage_users.yml", "vars/secure_default/edxapp_stage_users.yml"]
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/users.yml"
   pre_tasks:
     - name: Gathering ec2 facts 
       ec2_facts: 
@@ -21,7 +20,7 @@
     - common
     - nginx 
     - lms
-    - ruby
+#    - ruby
   post_tasks:
     - local_action: command util/elb_reg.py -e {{ ",".join(elbs[ansible_ec2_instance_id]) }} -i {{ ansible_ec2_instance_id }} register
 # Register will pass in the same elb list and the same instance id 
