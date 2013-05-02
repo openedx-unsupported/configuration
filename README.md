@@ -124,8 +124,9 @@ Example users are in the `vars/secure` directory:
 
 ```
 cloudformation_templates  <-- official edX cloudformation templates
-│   └── examples          <-- example templates
-└── playbooks
+    └── examples          <-- example templates
+playbooks
+ └──
      edxapp_prod.yml      <-- example production environment playbook
      edxapp_stage.yml     <-- example stage environment playbook
      edxapp_custom.yml    <-- example custom environment playbook
@@ -148,7 +149,7 @@ cloudformation_templates  <-- official edX cloudformation templates
     │       └── templates 
     │   (etc)
     └── vars             <-- public variable definitions
-        └── secure       <-- secure variables (example)
+    └── secure_example   <-- secure variables (example)
 
 ```
 
