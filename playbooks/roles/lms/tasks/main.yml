@@ -8,15 +8,18 @@
   sudo: True
   tags:
   - lms
+  - lms-env
 
 - name: create lms auth file
   template: src=auth.json.j2 dest=$app_base_dir/lms.auth.json
   sudo: True
   tags:
   - lms
+  - lms-env
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-backend
+
 
 # Install ssh keys for ubuntu account to be able to check out from mitx
 # Temprory behavior, not needed after June 1. Perhaps still useful as a recipe.
@@ -111,3 +114,6 @@
   tags:
   - lms
   - cms
+  
+- include: ../../gunicorn/tasks/main.yml 
+- include: ../../gunicorn/tasks/upstart.yml service_variant=lms
