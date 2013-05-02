@@ -3200,6 +3200,49 @@
           ]
         ]
       }
+    },
+    "EnableDNSHostnamesForVPCCommand":{
+      "Description":"MANUAL COMMAND #3: Change VPC setting to enable automatic DNS hostname resolution from within the VPC. Setting not supported in Cloudformation yet.",
+      "Value":{
+        "Fn::Join":[
+          "",
+          [
+            "ec2-modify-vpc-attribute ",
+            "-c ", { "Ref":"EdxVPC" }, " ",
+            "-d true"
+          ]
+        ]
+      }
+    },
+    "SSHConfigStanza":{
+      "Description":"This is the configuration bits you will need to add to your personal ssh config file to use the bastion host to access machines in your VPC. Typically ~/.ssh/config.",
+      "Value":{
+        "Fn::Join":[
+          "\n",
+          [
+            {
+              "Fn::Join":[
+                "",
+                [
+                  "Host *.", { "Ref":"AWS::Region" },
+                  "-c ", { "Ref":"EdxVPC" }, " ",
+                  "-d true"
+                ]
+              ]
+            },
+            {
+              "Fn::Join":[
+                "",
+                [
+                  "  ProxyCommand ssh -W %h:%p ", { "Ref":"BastionIPAddress" }
+                ]
+              ]
+            },
+            "  ForwardAgent yes ",
+            "  User ubuntu"
+          ]
+        ]
+      }
     }
   }
 }
