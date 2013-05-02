@@ -210,10 +210,47 @@ If that works fine, then you can add an export of PYTHONPATH to
 * Creates base directories
 * Creates the lms json configuration files
 
+Because the reference architecture makes use of an Amazon VPC, you will not be able
+to address the hosts in the private subnets directly.  However, you can easily set 
+up a transparent "jumpbox" so that for all hosts in your vpc, connections are 
+tunneled
+
+Add something like the following to your `~/.ssh/config` file.
+
+```
+Host vpc-00000000-jumpbox 
+  HostName 54.236.224.226
+  IdentityFile /path/to/aws/key.pem
+  ForwardAgent yes
+  User ubuntu
+
+Host 10.0.10.1
+  ProxyCommand ssh -W %h:%p vpc-00000000-jumpbox
+  ForwardAgent yes
+  HostName 10.0.10.242
+  IdentityFile /path/to/aws/key.pem
+  User ubuntu
+  
+  ...
+
+```
+You will need a host entry for each server that ansible will configure.
+
+Test this by typing `ssh 10.0.10.1`, use a hostname the exists in
+your environment.   If things are configured correctly you will ssh 
+to 10.0.10.1, jumping transparently via your basion host.
+
+Assuming that the edxapp_stage.yml playbook targets hosts in your vpc
+for which there are entiries in your `.ssh/config`, do the 
+following to run your playbook.
+
 ```
   cd playbooks
-  ansible-playbook -v --user=ubuntu edxapp_stage.yml -i ./ec2.py --private-key=/path/to/aws/key.pem
+  ansible-playbook -v --user=ubuntu edxapp_stage.yml -i ./ec2.py -c ssh
 ```
+We are in the process of writing utility scripts to generate this config,
+but for the moment it is a manual process.
+
 
 *Note: this assumes the group used for the edx stack was "edxapp_stage"*
 
