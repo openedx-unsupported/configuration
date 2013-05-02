@@ -1,5 +1,8 @@
 #
 #cribbed from https://github.com/mmoya/ansible-playbooks/blob/master/rbenv/main.yml
+- name: Create 'www' user (replicating historical environment)
+  user: name=www state=present
+  sudo: True
 - name: Create ruby base
   sudo: True
   file: path=$ruby_base state=directory owner=www group=www
@@ -73,9 +76,9 @@
   sudo: true
   when_failed: $ruby_installed
 
-- name: gem | gem install bundle
+- name: gem | gem install bundler
   shell: RBENV_ROOT=${rbenv_root} GEM_HOME=${gem_home} ${rbenv_root}/shims/gem install bundle chdir=${app_base_dir}/mitx
   sudo: true
 
 - name: bundle | bundle install
-  shell: RBENV_ROOT=${rbenv_root} GEM_HOME=${gem_home} ${gem_home}/bin/bundle install chdir=${app_base_dir}/mitx
+  shell: RBENV_ROOT=${rbenv_root} GEM_HOME=${gem_home} ${gem_home}/bin/bundle install --deployment --binstubs chdir=${app_base_dir}/mitx
