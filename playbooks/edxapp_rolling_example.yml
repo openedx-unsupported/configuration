@@ -8,21 +8,20 @@
   pre_tasks:
     - name: Gathering ec2 facts 
       ec2_facts: 
-    - name: Gathering ELB facts
-      local_action: ec2_elb_facts
-# These two modules "ec2_facts" and "ec2_elb_facts" are invoked in the 
-# pre_tasks and give us the $elbs and $ansible_ec2_isntance_id facts 
-# which are variables that can be used in the playbook
-    - local_action: command util/elb_reg.py -e {{ ",".join(elbs[ansible_ec2_instance_id]) }} -i {{ ansible_ec2_instance_id }} deregister
-# -e is the list of elbs that the current instances belong to and -i is 
-# the instance "active_elbs" are the elbs that are passed in.
+    - name: Removing instance from the ELB
+      local_action: ec2_elb
+      args:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        state: 'absent'
   roles:
     - common
     - nginx 
     - lms
-#    - ruby
+    - ruby
   post_tasks:
-    - local_action: command util/elb_reg.py -e {{ ",".join(elbs[ansible_ec2_instance_id]) }} -i {{ ansible_ec2_instance_id }} register
-# Register will pass in the same elb list and the same instance id 
-# to add it back to the pool
-
+    - name: Adding instance back to the ELB
+      local_action: ec2_elb
+      args:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        ec2_elbs: "{{ ec2_elbs }}"
+        state: 'present'
