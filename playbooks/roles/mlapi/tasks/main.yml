@@ -1,4 +1,9 @@
 ---
+- name: stop running services
+  service: name=celery state=stopped
+  service: name=nginx state=stopped
+  service: name=ml-service-api state=stopped
+
 - name: create mlapi application config env.json file
   template: src=env.json.j2 dest=$app_base_dir/env.json
   sudo: True
@@ -54,11 +59,8 @@
 - name : install python requirements for machine-learning
   pip: requirements="{{ml_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
 
-- name: render nltk data download shell script from template
-  template: src=install_nltk_data.sh.j2 dest={{ml_dir}}/install_nltk_data.sh
-
 - name: install nltk data using rendered shell script
-  action: script {{ml_dir}}/install_nltk_data.sh
+  shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
 
 - name: set permissions on nltk data directory
   file: path={{nltk_data_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
@@ -75,10 +77,10 @@
 - name: django migrate for ml-service-api
   shell: command="{{venv_dir}}/bin/activate; cd {{ml_api_dir}}; python manage.py migrate --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}"
 
-- name: django migrate for ml-service-api
+- name: django collectstatic for ml-service-api
   shell: command="{{venv_dir}}/bin/activate; cd {{ml_api_dir}}; python manage.py collectstatic --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}"
 
-- name: django migrate for ml-service-api
+- name: django update_index for ml-service-api
   shell: command="{{venv_dir}}/bin/activate; cd {{ml_api_dir}}; python manage.py update_index --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}"
 
 - name: render celery service from template
@@ -96,3 +98,8 @@
 - name: render nginx sites available
   template: src=default.j2 dest=/etc/nginx/sites-available/default
   sudo: True
+
+- name: start up services
+  service: name=celery state=started
+  service: name=nginx state=started
+  service: name=ml-service-api state=started
