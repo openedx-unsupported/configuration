@@ -19,37 +19,51 @@
 - name: Install git so that we can clone repos
   apt: pkg=git install_recommends=yes state=present
   sudo: True
+
 - name: create ml api directory and set permissions
   file: path={{ml_api_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
+
 - name: create machine learning directory and set permissions
   file: path={{ml_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
+
 - name: git checkout ml-service-api repo into $app_base_dir
   git: dest={{ml_api_dir}} repo={{mlapi_source_repo}}
+
 - name: git checkout machine-learning repo into $app_base_dir
   git: dest={{ml_dir}} repo={{ml_source_repo}}
+
 - name: install ml-service-api apt packages
   command: xargs -a $app_base_dir/ml-service-api/apt-packages.txt apt-get install -y
   sudo: yes
+
 - name: install machine-learning apt packages
   command: xargs -a $app_base_dir/machine-learning/apt-packages.txt apt-get install -y
   sudo: yes
+
 - name : install python pre-requirements for ml-service-api
   pip: requirements="{{ml_api_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+
 - name : install python pre-requirements for machine-learning
   pip: requirements="{{ml_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+
 - name : install python requirements for ml-service-api
   pip: requirements="{{ml_api_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+
 - name : install python requirements for machine-learning
   pip: requirements="{{ml_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+
 - name: render nltk data download shell script from template
-  template: src=install_nltk_data.sh.j2 dest=$app_base_dir/install_nltk_data.sh
+  template: src=install_nltk_data.sh.j2 dest={{ml_dir}}/install_nltk_data.sh
+
 - name: install nltk data using rendered shell script
-  action: script $app_base_sir/install_nltk_data.sh
+  action: script {{ml_dir}}/install_nltk_data.sh
+
 - name: set permissions on nltk data directory
   file: path={{nltk_data_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
+
 - name: django syncdb for ml-service-api
   django_manage: >
       command=syncdb
@@ -57,25 +71,28 @@
       settings={{ml_api_settings}}
       pythonpath={{ml_api_dir}}
       virtualenv={{venv_dir}}
-- name: django migrate for ml-service-api
-  django_manage: >
-      command=migrate
-      app_path={{ml_api_dir}}
-      settings={{ml_api_settings}}
-      pythonpath={{ml_api_dir}}
-      virtualenv={{venv_dir}}
-- name: django collectstatic for ml-service-api
-  django_manage: >
-      command=collectstatic
-      app_path={{ml_api_dir}}
-      settings={{ml_api_settings}}
-      pythonpath={{ml_api_dir}}
-      virtualenv={{venv_dir}}
-- name: django update_index for ml-service-api
-  django_manage: >
-      command=update_index
-      app_path={{ml_api_dir}}
-      settings={{ml_api_settings}}
-      pythonpath={{ml_api_dir}}
-      virtualenv={{venv_dir}}
 
+- name: django migrate for ml-service-api
+  shell: command="{{venv_dir}}/bin/activate; cd {{ml_api_dir}}; python manage.py migrate --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}"
+
+- name: django migrate for ml-service-api
+  shell: command="{{venv_dir}}/bin/activate; cd {{ml_api_dir}}; python manage.py collectstatic --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}"
+
+- name: django migrate for ml-service-api
+  shell: command="{{venv_dir}}/bin/activate; cd {{ml_api_dir}}; python manage.py update_index --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}"
+
+- name: render celery service from template
+  template: src=celery.conf.j2 dest=/etc/init/celery.conf
+  sudo: True
+
+- name: render ml-service-api service from template
+  template: src=ml-service-api.conf.j2 dest=/etc/init/ml-service-api.conf
+  sudo: True
+
+- name: create nginx directory and set perms
+  file: path=/etc/nginx/sites-available owner=root group=edx mode=2775 state=directory
+  sudo: True
+
+- name: render nginx sites available
+  template: src=default.j2 dest=/etc/nginx/sites-available/default
+  sudo: True

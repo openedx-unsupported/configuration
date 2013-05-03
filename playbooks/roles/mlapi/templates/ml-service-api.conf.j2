@@ -1,0 +1,21 @@
+# gunicorn
+
+description "ML API Server"
+author "Vik Paruchuri <vik@edx.org>"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 3 30
+
+env PID=/var/run/gunicorn/ml-service-api.pid
+env WORKERS=4
+env PORT=7999
+env LANG=en_US.UTF-8
+env DJANGO_SETTINGS_MODULE={{ml_api_settings}}
+
+chdir {{ml_api_dir}}
+setuid {{remote_user}}
+
+exec {{venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=30 --pythonpath={{ml_api_dir}} ml_service_api.wsgi
