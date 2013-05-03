@@ -8,19 +8,29 @@
   sudo: True
 
 # Check out mitx repo to $app_base_dir
-- name: Create virtualenv dir
-  sudo: True
-  file: path=/opt/edx state=directory owner=ubuntu group=ubuntu
 - name: set permissions on $app_base_dir sgid for edx
-  file: path=$app_base_dir owner=root group=edx mode=2775 state=directory
   file: path=$app_base_dir owner=ubuntu group=edx mode=2775 state=directory
   file: path=/opt/edx owner=ubuntu group=edx mode=2775 state=directory
   sudo: True
-- name: install a bunch of system packages on which mlapi relies
-  apt: pkg={{item}} state=present
-  with_items: mlapi_debian_pkgs
+- name: Install git so that we can clone repos
+  apt: pkg=git install_recommends=yes state=present
+  sudo: True
+- name: create edx virtualenv directory
+  file: path=$app_base_dir/ml-service-api owner=ubuntu group=edx mode=2775 state=directory
+  sudo: True
+- name: create edx virtualenv directory
+  file: path=$app_base_dir/machine-learning owner=ubuntu group=edx mode=2775 state=directory
   sudo: True
 - name: git checkout ml-service-api repo into $app_base_dir
-  git: dest=$app_base_dir/ml-service-api repo=git@github.com:edx/ml-service-api.git
+  git: dest=$app_base_dir/ml-service-api repo={{mlapi_source_repo}}
 - name: git checkout ml-service-api repo into $app_base_dir
-  git: dest=$app_base_dir/machine-learning repo=git@github.com:edx/machine-learning.git
+  git: dest=$app_base_dir/machine-learning repo={{ml_source_repo}}
+- name: install ml-service-api apt packages
+  command: xargs -a {{app_base_dir}}/ml-service-api/apt-packages.txt install
+  sudo: yes
+- name: install machine-learning apt packages
+  command: xargs -a {{app_base_dir}}/machine-learning/apt-packages.txt install
+  sudo: yes
+- name : install python pre-requirements
+  pip: requirements="{{app_base_dir}}/ml-service-api/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+
