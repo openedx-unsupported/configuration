@@ -1,11 +1,24 @@
 ---
 - include: create_users.yml
 - name: Create application root
-  file: path=$app_base_dir state=directory owner=root group=root
+  # In the future consider making group edx r/t adm
+  file: path=$app_base_dir state=directory owner=root group=adm mode=2775 
   sudo: True
+  tags:
+  - pre_install
 - name: Create log directory
-  file: path=/mnt/logs state=directory
+  file: path=/mnt/logs state=directory mode=2770 group=adm owner=root
   sudo: True
+  tags:
+  - pre_install
+- name: Create aliases to the log directory
+  file: state=link src=/mnt/logs path=$app_base_dir/log
+  tags:
+  - pre_install
+- name: Touch the edx log file into place 
+  command: touch -a /mnt/logs/edx.log
+  tags:
+  - pre_install
 - name: Update apt cache
   apt: update_cache=yes
   sudo: True
