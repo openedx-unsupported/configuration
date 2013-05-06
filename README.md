@@ -48,7 +48,7 @@ As a general policy we want to protect the following data:
 * Hostnames
 * Passwords, api keys
 
-The folowing yml files and examples serve as templates that should be overridden with your own
+The following yml files and examples serve as templates that should be overridden with your own
 environment specific configuration:
 
 * vars in `secure_example/vars` 
@@ -75,7 +75,7 @@ secure_example/
 └── vars
 ```
 
-The default `secure\_dir` is set in `group\_vars/all` and can be overridden by
+The default `secure_dir` is set in `group_vars/all` and can be overridden by
 adding another file in group_vars that corresponds to a deploy group name.
 
 
@@ -176,7 +176,7 @@ playbooks
 * _stack_name_: example: `EdxAppCustom`. Name of the stack, must not contain
   underscores or cloudformation will complain. Must be an unused name or
   otherwise the existing stack will update.
-* _group_name_: example: `edxapp\_stage`. The group name should correspond to
+* _group_name_: example: `edxapp_stage`. The group name should correspond to
   one of the yml files in the `playbooks/`. Used for grouping hosts.
 
 While this is running you see the cloudformation events in the AWS console as
@@ -238,7 +238,7 @@ any further than that, so to support multiple VPC's you'd have to get
 creative with subnets, for example ip-10-1 and ip-10-2...
 
 Test this by typing `ssh ip-10-0-10-1.us-west-1.compute.internal`, 
-(of coruse using a hostname exists in your environment.)  If things 
+(of course using a hostname exists in your environment.)  If things 
 are configured correctly you will ssh to 10.0.10.1, jumping 
 transparently via your basion host.
 
