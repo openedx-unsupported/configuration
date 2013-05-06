@@ -17,6 +17,9 @@
   command: sysctl vm.overcommit_memory=1
   sudo: yes
 
+- name: add github to the known hosts file
+  shell: ssh-keyscan -H github.com > ~/.ssh/known_hosts
+
 - name: set permissions on $app_base_dir sgid for edx
   file: path=$app_base_dir owner={{remote_user}} group=edx mode=2775 state=directory
   file: path={{venv_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
@@ -34,10 +37,10 @@
   file: path={{ml_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
 
-- name: git checkout ml-service-api repo into $app_base_dir
+- name: git checkout ml-service-api repo into ml_api_dir
   git: dest={{ml_api_dir}} repo={{mlapi_source_repo}} version={{ml_api_branch}}
 
-- name: git checkout machine-learning repo into $app_base_dir
+- name: git checkout machine-learning repo into ml_dir
   git: dest={{ml_dir}} repo={{ml_source_repo}} version={{ml_branch}}
 
 - name: install ml-service-api apt packages
@@ -59,6 +62,9 @@
 
 - name : install python requirements for machine-learning
   pip: requirements="{{ml_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+
+ - name: install machine-learning python package
+   shell: command="{{venv_dir}}/bin/activate; cd {{ml_dir}}; python setup.py install"
 
 - name: install nltk data using rendered shell script
   shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
