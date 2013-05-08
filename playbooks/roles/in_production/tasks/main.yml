@@ -1,0 +1,18 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+#  - nginx/tasks/main.yml
+#  - lms/tasks/main.yml
+#  - ruby/tasks/main.yml
+#  - npm/tasks/main.yml
+---
+- name: Make sure LMS is running
+  service: name=lms state=started
+  tags:
+  - production
+
+- name: Disable HTTP Basic Auth on site
+  file: path=/etc/nginx/sites-enabled/basic-auth state=absent
+  notify: restart nginx
+  tags:
+  - production
