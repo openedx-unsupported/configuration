@@ -2,16 +2,13 @@
 #cribbed from https://github.com/mmoya/ansible-playbooks/blob/master/rbenv/main.yml
 - name: Create 'www' user (replicating historical environment)
   user: name=www state=present
-  sudo: True
   tags:
   - ruby
 - name: Create ruby base
-  sudo: True
   file: path=$ruby_base state=directory owner=www group=www
   tags:
   - ruby
 - name: rbenv | install build depends
-  sudo: true
   apt: pkg=$item state=present install_recommends=no
   with_items:
     - build-essential
@@ -27,25 +24,21 @@
   - ruby
 
 - name: rbenv | update rbenv repo
-  sudo: true
   git: repo=git://github.com/sstephenson/rbenv.git dest=$rbenv_root version=v0.4.0
   tags:
   - ruby
 
 - name: rbenv | add rbenv to path
-  sudo: true
   file: path=/usr/local/bin/rbenv src=${rbenv_root}/bin/rbenv state=link
   tags:
   - ruby
 
 - name: rbenv | add rbenv initialization to profile
-  sudo: true
   template: src=rbenv.sh.j2 dest=/etc/profile.d/rbenv.sh owner=root group=root mode=0755
   tags:
   - ruby
 
 - name: rbenv | check ruby-build installed
-  sudo: true
   command: test -x /usr/local/bin/ruby-build
   register: rbuild_present
   ignore_errors: yes
@@ -66,7 +59,6 @@
   - ruby
 
 - name: rbenv | install ruby-build
-  sudo: true
   command: ./install.sh chdir=${tempdir.stdout}/ruby-build
   when_failed: $rbuild_present
   tags:
@@ -87,28 +79,24 @@
 
 - name: rbenv | install ruby $ruby_version
   shell: RBENV_ROOT=${rbenv_root} rbenv install $ruby_version
-  sudo: true
   when_failed: $ruby_installed
   tags:
   - ruby
 
 - name: rbenv | set global ruby $ruby_version
   shell: RBENV_ROOT=${rbenv_root} rbenv global $ruby_version
-  sudo: true
   when_failed: $ruby_installed
   tags:
   - ruby
 
 - name: rbenv | rehash
   shell: RBENV_ROOT=${rbenv_root} rbenv rehash
-  sudo: true
   when_failed: $ruby_installed
   tags:
   - ruby
 
 - name: gem | gem install bundler
   shell: RBENV_ROOT=${rbenv_root} GEM_HOME=${gem_home} ${rbenv_root}/shims/gem install bundle chdir=${app_base_dir}/mitx
-  sudo: true
   tags:
   - ruby
 

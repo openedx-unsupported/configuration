@@ -3,12 +3,10 @@
 - name: Create application root
   # In the future consider making group edx r/t adm
   file: path=$app_base_dir state=directory owner=root group=adm mode=2775 
-  sudo: True
   tags:
   - pre_install
 - name: Create log directory
   file: path=/mnt/logs state=directory mode=2770 group=adm owner=root
-  sudo: True
   tags:
   - pre_install
 - name: Create aliases to the log directory
@@ -21,14 +19,19 @@
   - pre_install
 - name: Update apt cache
   apt: update_cache=yes
-  sudo: True
+  tags:
+  - pre_install
 
 - include: create_venv.yml
 
 - name: Install role-independent useful system packages
   apt: pkg={{item}} install_recommends=yes state=present
   with_items:
+  - ack-grep
+  - lynx-cur
   - mosh
-  - tmux
-  sudo: True
+  - most
+  - screen
+  tags:
+  - pre_install
 

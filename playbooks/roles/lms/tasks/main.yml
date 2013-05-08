@@ -5,14 +5,12 @@
 ---
 - name: create lms application config
   template: src=env.json.j2 dest=$app_base_dir/lms.env.json
-  sudo: True
   tags:
   - lms
   - lms-env
 
 - name: create lms auth file
   template: src=auth.json.j2 dest=$app_base_dir/lms.auth.json
-  sudo: True
   tags:
   - lms
   - lms-env
@@ -27,15 +25,13 @@
 # ugly relative pathing here
 
 - name: install read-only ssh key for mitx repo (private)
-  copy: src=../../../{{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=root group=adm mode=640
-  sudo: True
+  copy: src=../../../{{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=600
   tags:
   - lms
   - cms
 
 - name: upload ssh script
   copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=adm mode=750
-  sudo: True
   tags:
   - lms
   - cms
@@ -43,7 +39,6 @@
 # Check out mitx repo to $app_base_dir
 - name: install git and its recommends
   apt: pkg=git state=present install_recommends=yes 
-  sudo: True
   tags:
   - lms
   - cms
@@ -86,7 +81,6 @@
 - name: install a bunch of system packages on which LMS and CMS rely
   apt: pkg={{item}} state=present
   with_items: lms_debian_pkgs
-  sudo: True
   tags:
   - lms
   - cms
