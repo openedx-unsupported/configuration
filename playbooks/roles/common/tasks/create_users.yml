@@ -1,6 +1,7 @@
 ---
 - name: Create 'edx' users group
   group: name=edx state=present
+  sudo: True
   tags:
   - users
   - admin_users
@@ -8,6 +9,7 @@
   # This is a temporary measure for initial configuration; after the last 
   # play is run and we've got a good set of users, ubuntu should no longer be used
   user: name=ubuntu append=yes groups="edx"
+  sudo: True
   tags:
   - users
   - admin_users
@@ -16,12 +18,14 @@
   user: name={{ item.user }} append=yes groups={{ "adm,edx,"+",".join(item.groups) }} shell=/bin/bash
   with_items: admin_users
   when: admin_users is defined
+  sudo: True
   tags:
   - users
   - admin_users
 - name: Copying ssh keys for admin users
   authorized_key: user={{ item.user }} key="{{lookup('file', item.path)}}"
   with_items: admin_keys
+  sudo: True
   tags:
   - users
   - admin_users
