@@ -4,6 +4,7 @@
   tags:
   - users
   - admin_users
+
 - name: Add user 'ubuntu' to 'edx' group
   # This is a temporary measure for initial configuration; after the last 
   # play is run and we've got a good set of users, ubuntu should no longer be used
@@ -11,6 +12,7 @@
   tags:
   - users
   - admin_users
+
 - name: Creating admin users
   # Admin users, by definition, should be able to sudo w/ password, and read adm-only files
   user: name={{ item.user }} append=yes groups={{ "adm,edx,"+",".join(item.groups) }} shell=/bin/bash
@@ -19,21 +21,31 @@
   tags:
   - users
   - admin_users
+
 - name: Copying ssh keys for admin users
   authorized_key: user={{ item.user }} key="{{lookup('file', item.path)}}"
   with_items: admin_keys
   tags:
   - users
   - admin_users
+
 - name: Creating env users
   user: name={{ item.user }} groups={{ ",".join(item.groups) }} shell=/bin/bash
   with_items: env_users
   when: env_users is defined
   tags:
   - users
+
 - name: Copying ssh keys for env users
   authorized_key: user={{ item.user }} key="{{lookup('file', item.path)}}"
   with_items: env_keys
   when: env_keys is defined
   tags:
   - users
+
+- name: Group adm passwordless sudo
+  copy: content="%adm ALL=(ALL) NOPASSWD:ALL" dest=/etc/sudoers.d/adm-group owner=root group=root mode=0440
+  tags:
+  - users
+  - admin_users
+
