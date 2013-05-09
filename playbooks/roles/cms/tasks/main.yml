@@ -4,22 +4,20 @@
 #  - nginx/tasks/main.yml
 ---
 - name: create cms application config
-  template: src=env.json.j2 dest=$app_base_dir/cms.env.json
+  template: src=env.json.j2 dest=$app_base_dir/cms.env.json mode=644
   tags:
   - cms-env
   - cms
 
 - name: create cms auth file
-  template: src=auth.json.j2 dest=$app_base_dir/cms.auth.json
+  template: src=auth.json.j2 dest=$app_base_dir/cms.auth.json mode=644
   tags:
   - cms-env
   - cms
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms
-  tags:
-  - cms
-  - cms-env
+  
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms-backend
-  tags:
-  - cms
-  - cms-env
+
+# Creates LMS upstart file
+- include: ../../gunicorn/tasks/upstart.yml service_variant=cms
