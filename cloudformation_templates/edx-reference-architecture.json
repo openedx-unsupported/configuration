@@ -49,6 +49,11 @@
       "Type":"Number",
       "Default":"80"
     },
+    "CacheNodePort":{
+      "Description":"The TCP port for the nodes in the Elasticache cluster",
+      "Type":"Number",
+      "Default":"11211"
+    },
     "BastionInstanceType":{
       "Description":"Bastion Host EC2 instance type",
       "Type":"String",
@@ -3097,10 +3102,10 @@
         "SecurityGroupIngress":[
           {
             "IpProtocol":"tcp",
-            "FromPort":"12345",
-            "ToPort":"12345",
+            "FromPort": { "Ref":"CacheNodePort" },
+            "ToPort": { "Ref":"CacheNodePort" },
             "SourceSecurityGroupId":{
-              "Ref":"EdxappELBSecurityGroup"
+              "Ref":"EdxappServerSecurityGroup"
             }
           }
         ]
@@ -3184,7 +3189,7 @@
             "--cache-node-type ", { "Ref":"CacheNodeType" }, " ",
             "--engine memcached ",
             "--engine-version 1.4.5 ",
-            "--port 12345 ",
+            "--port ", { "Ref":"CacheNodePort"}, " ",
             "--preferred-availability-zone ",
             { "Fn::FindInMap":[
                 "MapRegionsToAvailZones",
@@ -3194,7 +3199,8 @@
             }, " ",
             "--cache-parameter-group-name default.memcached1.4 ",
             "--auto-minor-version-upgrade true ",
-            "--cache-subnet-group-name ", { "Ref":"EdxVPC" },"-ElasticCacheSubnetGroup"
+            "--cache-subnet-group-name ", { "Ref":"EdxVPC" },"-ElasticCacheSubnetGroup ",
+	    "--security-group-ids ", { "Ref":"CacheSecurityGroup" }
           ]
         ]
       }
