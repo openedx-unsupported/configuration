@@ -7,8 +7,8 @@
   service: name=nginx state=stopped
   sudo: True
 
-- name: stop ml-service-api
-  service: name=ml-service-api state=stopped
+- name: stop discern
+  service: name=discern state=stopped
   sudo: True
 
 - name: create mlapi application config env.json file
@@ -43,27 +43,27 @@
   file: path={{ml_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
 
-- name: git checkout ml-service-api repo into ml_api_dir
+- name: git checkout discern repo into ml_api_dir
   git: dest={{ml_api_dir}} repo={{mlapi_source_repo}} version={{ml_api_branch}}
 
 - name: git checkout machine-learning repo into ml_dir
   git: dest={{ml_dir}} repo={{ml_source_repo}} version={{ml_branch}}
 
-- name: install ml-service-api apt packages
-  command: xargs -a $app_base_dir/ml-service-api/apt-packages.txt apt-get install -y
+- name: install discern apt packages
+  command: xargs -a $app_base_dir/discern/apt-packages.txt apt-get install -y
   sudo: yes
 
 - name: install machine-learning apt packages
   command: xargs -a $app_base_dir/machine-learning/apt-packages.txt apt-get install -y
   sudo: yes
 
-- name : install python pre-requirements for ml-service-api
+- name : install python pre-requirements for discern
   pip: requirements="{{ml_api_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
 
 - name : install python pre-requirements for machine-learning
   pip: requirements="{{ml_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
 
-- name : install python requirements for ml-service-api
+- name : install python requirements for discern
   pip: requirements="{{ml_api_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
 
 - name : install python requirements for machine-learning
@@ -79,24 +79,24 @@
   file: path={{nltk_data_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
 
-- name: django syncdb for ml-service-api
+- name: django syncdb for discern
   shell: ls; {{venv_dir}}/bin/python {{ml_api_dir}}/manage.py syncdb --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}
 
-- name: django migrate for ml-service-api
+- name: django migrate for discern
   shell: ls; {{venv_dir}}/bin/python {{ml_api_dir}}/manage.py migrate --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}
 
-- name: django collectstatic for ml-service-api
+- name: django collectstatic for discern
   shell: ls; {{venv_dir}}/bin/python {{ml_api_dir}}/manage.py collectstatic --noinput --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}
 
-- name: django update_index for ml-service-api
+- name: django update_index for discern
   shell: ls; {{venv_dir}}/bin/python {{ml_api_dir}}/manage.py update_index --settings={{ml_api_settings}} --pythonpath={{ml_api_dir}}
 
 - name: render celery service from template
   template: src=celery.conf.j2 dest=/etc/init/celery.conf
   sudo: True
 
-- name: render ml-service-api service from template
-  template: src=ml-service-api.conf.j2 dest=/etc/init/ml-service-api.conf
+- name: render discern service from template
+  template: src=discern.conf.j2 dest=/etc/init/discern.conf
   sudo: True
 
 - name: create nginx directory and set perms
@@ -115,6 +115,6 @@
   service: name=nginx state=started
   sudo: True
 
-- name: start ml-service-api
-  service: name=ml-service-api state=started
+- name: start discern
+  service: name=discern state=started
   sudo: True
