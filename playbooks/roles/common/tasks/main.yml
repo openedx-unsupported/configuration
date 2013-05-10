@@ -16,38 +16,44 @@
   tags:
   - pre_install
   
-- name: Create log directory
-  file: path=/mnt/logs state=directory mode=2770 group=adm owner=root
-  tags:
-  - pre_install
-- name: Create aliases to the log directory
-  file: state=link src=/mnt/logs path=$app_base_dir/log
-  tags:
-  - pre_install
-- name: Touch the edx log file into place 
-  command: touch -a /mnt/logs/edx.log
-  tags:
-  - pre_install
-- name: Set permissions on edx log file
-  file: path=/mnt/logs/edx.log owner=www-data group=adm mode=775
-  tags:
-  - pre_install
-- name: Update apt cache
-  apt: update_cache=yes
-  tags:
-  - pre_install
-
-- include: create_venv.yml
-
 - name: Install role-independent useful system packages
-  apt: pkg={{item}} install_recommends=yes state=present
+  # do this before log dir setup; rsyslog package guarantees syslog user present
+  apt: pkg={{item}} install_recommends=yes state=present update_cache=yes
   with_items:
   - ack-grep
   - lynx-cur
   - mosh
-  - most
+  - rsyslog
   - screen
   - tree
   tags:
   - pre_install
+
+- name: Create log directory
+  file: path=$log_base_dir state=directory mode=2770 group=adm owner=syslog
+  tags:
+  - pre_install
+
+- name: Create aliases to the log directory
+  file: state=link src=$log_base_dir path=$app_base_dir/log
+  tags:
+  - pre_install
+  - logging
+
+- name: Touch edx log file into place 
+  # This is done for the benefit of the rake commands, which expect it
+  command: touch -a {{log_base_dir}}/edx.log
+  tags:
+  - pre_install
+  - logging
+
+- name: Set permissions on edx log file
+  # This is done for the benefit of the rake commands, which expect it
+  file: path={{log_base_dir}}/edx.log owner=syslog group=adm mode=770
+  tags:
+  - pre_install
+  - logging
+
+- include: create_venv.yml
+- include: rsyslog.yml
 
