@@ -49,7 +49,7 @@ cd /opt/wwc/mitx
 BRANCH="origin/feature/edx-west/stanford-theme"
 
 export GIT_SSH="/tmp/git_ssh.sh"
-run git remote update
+run git fetch origin -p
 run git checkout $BRANCH
 
 if [[ $do_CMS ]]; then
