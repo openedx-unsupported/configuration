@@ -1,10 +1,108 @@
 # Configuration Management
+
+## Introduction
+
+**This project is currently in alpha**
+
+The goal of the edx/configuration project is to provide a simple, but
+flexible, way for anyone to stand up an instance of the edX platform
+that is fully configured and ready-to-go.
+
+Building the platform takes place to two phases:
+
+* Infrastruce provisioning
+* Service configuration
+
+As much as possible, we have tried to keep a clean distinction between
+provisioning and configuration.  You are not obliged to use our tools
+and are free to use one, but not the other.  The provisioing phase 
+stands-up the required resources and tags them with role identifiers
+so that the configuration tool can come in and complete the job.
+
+The reference platform is provisioned using an Amazon
+[CloudFormation](http://aws.amazon.com/cloudformation/) template.
+When the stack has been fully created you will have a new AWS Virtual
+Private Cloud with hosts for the core edX services.  This template
+will build quite a number of AWS resources that cost money, so please
+consider this before you start.
+
+The configuration phase is manged by [Ansible](http://ansible.cc/).
+We have provided a number of playbooks that will configure each of
+the edX service.  
+
+This project is a re-write of the current edX provisioning and
+configuration tools, we will be migrating features to this project
+over time, so expect frequent changes.
+
 ## AWS
+
+### Building the stack
+
+The first step is to provision the CloudFormation stack.  There are 
+several options for doing this.
+
+* The [AWS console](https://console.aws.amazon.com/cloudformation/home)
+* The AWS [CloudFormation CLI](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-installing-cli.html)
+* Via Ansible
+
+If you don't have experience with CloudFormation, the web console is a
+good place to start because it will use a form wizard to gather
+configuration parameters, it will give you continuous feedback during
+the process of building the stack and useful error messages when
+problems occur.
+
+Details on how to build the stack using Ansible are available below.
+
+### Connecting to Hosts in the Stack
+
+Because the reference architecture makes use of an Amazon VPC, you will not be able
+to address the hosts in the private subnets directly.  However, you can easily set 
+up a transparent "jumpbox" so that for all hosts in your vpc, connections are 
+tunneled.
+
+Add something like the following to your `~/.ssh/config` file.
+
+```
+Host *.us-west-1.compute-internal
+  ProxyCommand ssh -W %h:%p vpc-00000000-jumpbox
+  IdentityFile /path/to/aws/key.pem
+  ForwardAgent yes
+  User ubuntu
+
+Host vpc-00000000-jumpbox
+  HostName 54.236.224.226
+  IdentityFile /path/to/aws/key.pem
+  ForwardAgent yes
+  User ubuntu
+```
+
+This assumes that you only have one VPC in the ```us-west-1``` region
+that you're trying to ssh into.  Internal DNS names aren't qualified
+any further than that, so to support multiple VPC's you'd have to get
+creative with subnets, for example ip-10-1 and ip-10-2...
+
+Test this by typing `ssh ip-10-0-10-1.us-west-1.compute.internal`, 
+(of course using a hostname exists in your environment.)  If things 
+are configured correctly you will ssh to 10.0.10.1, jumping 
+transparently via your basion host.
+
+Getting this working in important because we'll be using Ansible
+with the SSH transport and it will rely on this configuration
+being in place in order to configure your servers.
 
 ### Tagging
 
-Every AWS EC2 instance will have a *Group* tag that corresponds to a group of
-machines that need to be deployed/targetted to as a group of servers. 
+Tagging is the bridge between the provisioning and configuration
+phases.  The servers provisioned in your VPC will be stock Ubuntu
+12.0.4 LTS servers.  The only difference between them with be the tags
+that CloudFront has applied to them.  These tags will be used by Ansible
+to map playbooks to the correct servers.  The application of the
+appropriate playbook, will turn each stock host into an appropriately
+configured service.
+
+The *Group* tag is where the magic happens.  Every AWS EC2 instance
+will have a *Group* tag that corresponds to a group of machines that
+need to be deployed/targeted to as a group of servers.
 
 **Example:**
 * `Group`: `edxapp_stage`
@@ -31,9 +129,9 @@ version instead of the official v1.1 release._
   specific variables.
 * __Groups__ - A Group name is an identifier that corresponds to a group of
   roles plus an identifier for the environment.  Example: *edxapp_stage*,
-  *edxapp_prod*, *xserver_stage*, etc.  For the purpose of targetting servers
+  *edxapp_prod*, *xserver_stage*, etc.  For the purpose of targeting servers
   for deployment groups are created automatically by the `ec2.py` inventory
-  sript since these group names will map to the _Group_ AWS tag. 
+  script since these group names will map to the _Group_ AWS tag. 
 * __Roles__  - A role will map to a single function/service that runs on
   server.
 
@@ -44,9 +142,9 @@ version instead of the official v1.1 release._
 As a general policy we want to protect the following data:
 
 * Usernames
-* Public keys (keys are ok to be public, but can be used to figure out usernames)
+* Public keys (keys are OK to be public, but can be used to figure out usernames)
 * Hostnames
-* Passwords, api keys
+* Passwords, API keys
 
 The following yml files and examples serve as templates that should be overridden with your own
 environment specific configuration:
@@ -54,7 +152,7 @@ environment specific configuration:
 * vars in `secure_example/vars` 
 * files in `secure_example/files` 
 
-Directory structure for the secure repo:
+Directory structure for the secure repository:
 
 ```
 
@@ -166,6 +264,8 @@ playbooks
 
 #### Provision the stack
 
+**This assumes that you have workng ssh as described above**
+
   ```
   cd playbooks
   ansible-playbook  -vvv cloudformation.yml -i inventory.ini  -e 'region=<aws_region> key=<key_name> name=<stack_name> group=<group_name>'
@@ -211,36 +311,6 @@ If that works fine, then you can add an export of PYTHONPATH to
 * Creates base directories
 * Creates the lms json configuration files
 
-Because the reference architecture makes use of an Amazon VPC, you will not be able
-to address the hosts in the private subnets directly.  However, you can easily set 
-up a transparent "jumpbox" so that for all hosts in your vpc, connections are 
-tunneled.
-
-Add something like the following to your `~/.ssh/config` file.
-
-```
-Host *.us-west-1.compute-internal
-  ProxyCommand ssh -W %h:%p vpc-00000000-jumpbox
-  IdentityFile /path/to/aws/key.pem
-  ForwardAgent yes
-  User ubuntu
-
-Host vpc-00000000-jumpbox
-  HostName 54.236.224.226
-  IdentityFile /path/to/aws/key.pem
-  ForwardAgent yes
-  User ubuntu
-```
-
-This assumes that you only have one VPC in the ```us-west-1``` region
-that you're trying to ssh into.  Internal DNS names aren't qualified
-any further than that, so to support multiple VPC's you'd have to get
-creative with subnets, for example ip-10-1 and ip-10-2...
-
-Test this by typing `ssh ip-10-0-10-1.us-west-1.compute.internal`, 
-(of course using a hostname exists in your environment.)  If things 
-are configured correctly you will ssh to 10.0.10.1, jumping 
-transparently via your basion host.
 
 Assuming that the edxapp_stage.yml playbook targets hosts in your vpc
 for which there are entiries in your `.ssh/config`, do the 
