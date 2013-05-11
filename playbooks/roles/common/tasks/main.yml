@@ -22,6 +22,7 @@
   with_items:
   - ack-grep
   - lynx-cur
+  - logrotate
   - mosh
   - rsyslog
   - screen
@@ -34,15 +35,21 @@
   tags:
   - pre_install
 
-- name: Create aliases to the log directory
+- name: Create alias from app_base_dir to the log_base_dir
   file: state=link src=$log_base_dir path=$app_base_dir/log
+  tags:
+  - pre_install
+  - logging
+
+- name: Create convenience link from log_base_dir to system logs
+  file: state=link src=/var/log path=$log_base_dir/system
   tags:
   - pre_install
   - logging
 
 - name: Touch edx log file into place 
   # This is done for the benefit of the rake commands, which expect it
-  command: touch -a {{log_base_dir}}/edx.log
+  command: touch -a {{log_base_dir}}/edx.log creates={{log_base_dir}}/edx.log
   tags:
   - pre_install
   - logging
@@ -55,5 +62,5 @@
   - logging
 
 - include: create_venv.yml
-- include: rsyslog.yml
+- include: edx_logging_base.yml
 
