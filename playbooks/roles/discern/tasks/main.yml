@@ -1,0 +1,133 @@
+---
+#Stop all services
+- name: stop celery
+  service: name=celery state=stopped
+  sudo: True
+
+- name: stop nginx
+  service: name=nginx state=stopped
+  sudo: True
+
+- name: stop discern
+  service: name=discern state=stopped
+  sudo: True
+
+#Upload config files for django (auth and env)
+- name: create discern application config env.json file
+  template: src=env.json.j2 dest=$app_base_dir/env.json
+  sudo: True
+
+- name: create discern auth file auth.json
+  template: src=auth.json.j2 dest=$app_base_dir/auth.json
+  sudo: True
+
+#Needed if using redis to prevent memory issues
+- name: change memory commit settings -- needed for redis
+  command: sysctl vm.overcommit_memory=1
+  sudo: yes
+
+#Needed to pull repos from github, due to hanging on host add prompt otherwise
+- name: add github to the known hosts file
+  shell: ssh-keyscan -H github.com > ~/.ssh/known_hosts
+
+- name: set permissions on $app_base_dir sgid for edx
+  file: path=$app_base_dir owner={{remote_user}} group=edx mode=2775 state=directory
+  file: path={{venv_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
+  sudo: True
+
+- name: Install git so that we can clone repos
+  apt: pkg=git install_recommends=yes state=present
+  sudo: True
+
+#Create directories for repos
+- name: create discern directory and set permissions
+  file: path={{discern_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
+  sudo: True
+
+- name: create ease directory and set permissions
+  file: path={{ease_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
+  sudo: True
+
+#Grab both repos or update
+- name: git checkout discern repo into discern_dir
+  git: dest={{discern_dir}} repo={{discern_source_repo}} version={{discern_branch}}
+
+- name: git checkout ease repo into ease_dir
+  git: dest={{ease_dir}} repo={{ease_source_repo}} version={{ease_branch}}
+
+#Install system packages
+- name: install discern apt packages
+  command: xargs -a {{discern_dir}}/apt-packages.txt apt-get install -y
+  sudo: yes
+
+- name: install ease apt packages
+  command: xargs -a {{ease_dir}}/apt-packages.txt apt-get install -y
+  sudo: yes
+
+#Numpy has to be a pre-requirement in order for scipy to build
+- name : install python pre-requirements for discern
+  pip: requirements="{{discern_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+
+- name : install python pre-requirements for ease
+  pip: requirements="{{ease_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+
+- name : install python requirements for discern
+  pip: requirements="{{discern_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+
+- name : install python requirements for ease
+  pip: requirements="{{ease_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+
+- name: install ease python package
+  shell: command="{{venv_dir}}/bin/activate; cd {{ease_dir}}; python setup.py install"
+
+#Needed for the ease package to work
+- name: install nltk data using rendered shell script
+  shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
+
+- name: set permissions on nltk data directory
+  file: path={{nltk_data_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
+  sudo: True
+
+#Run this instead of using the ansible module because the ansible module only support syncdb of these four, and does not
+#support virtualenvs as of this comment
+- name: django syncdb for discern
+  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py syncdb --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
+
+- name: django migrate for discern
+  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py migrate --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
+
+- name: django collectstatic for discern
+  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py collectstatic --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
+
+- name: django update_index for discern
+  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
+
+#Create the templates for upstart services
+- name: render celery service from template
+  template: src=celery.conf.j2 dest=/etc/init/celery.conf
+  sudo: True
+
+- name: render discern service from template
+  template: src=discern.conf.j2 dest=/etc/init/discern.conf
+  sudo: True
+
+- name: create nginx directory and set perms
+  file: path=/etc/nginx/sites-available owner=root group=edx mode=2775 state=directory
+  sudo: True
+
+- name: render nginx sites available
+  template: src=default.j2 dest=/etc/nginx/sites-available/default
+  sudo: True
+
+#start the services up
+- name: start celery
+  service: name=celery state=started
+  sudo: True
+
+- name: start nginx
+  service: name=nginx state=started
+  sudo: True
+
+- name: start discern
+  service: name=discern state=started
+  sudo: True
