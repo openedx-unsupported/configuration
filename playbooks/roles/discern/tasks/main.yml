@@ -39,8 +39,8 @@
   file: path={{item}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
   with_items:
-    - {{discern_dir}}
-    - {{ease_dir}}
+   - ${discern_dir}
+   - ${ease_dir}
 
 #Grab both repos or update
 - name: git checkout discern repo into discern_dir
@@ -54,21 +54,21 @@
   command: xargs -a {{item}}/apt-packages.txt apt-get install -y
   sudo: yes
   with_items:
-    - {{discern_dir}}
-    - {{ease_dir}}
+    - ${discern_dir}
+    - ${ease_dir}
 
 #Numpy has to be a pre-requirement in order for scipy to build
 - name : install python pre-requirements for discern and ease
   pip: requirements="{{item}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
   with_items:
-    - {{discern_dir}}
-    - {{ease_dir}}
+    - ${discern_dir}
+    - ${ease_dir}
 
 - name : install python requirements for discern and ease
   pip: requirements="{{item}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
   with_items:
-    - {{discern_dir}}
-    - {{ease_dir}}
+    - ${discern_dir}
+    - ${ease_dir}
 
 - name: install ease python package
   shell: command="{{venv_dir}}/bin/activate; cd {{ease_dir}}; python setup.py install"
@@ -84,7 +84,7 @@
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
 - name: django syncdb for discern
-  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
+  shell: ${venv_dir}/bin/python {{discern_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
   with_items:
     - syncdb
     - migrate
@@ -92,7 +92,7 @@
 
 #Have this separate from the other three because it doesn't take the noinput flag
 - name: django update_index for discern
-  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
+  shell: ${venv_dir}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
 
 #Create the templates for upstart services
 - name: render celery service from template
