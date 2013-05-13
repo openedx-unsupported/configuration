@@ -2,40 +2,74 @@
 - include: create_users.yml
 - name: Create application root
   # In the future consider making group edx r/t adm
-  file: path=$app_base_dir state=directory owner=root group=adm mode=2775
-  sudo: True
-  tags:
-  - pre_install
-- name: Create log directory
-  file: path=/mnt/logs state=directory mode=2770 group=adm owner=root
-  sudo: True
-  tags:
-  - pre_install
-- name: Create aliases to the log directory
-  file: state=link src=/mnt/logs path=$app_base_dir/log
-  tags:
-  - pre_install
-- name: Touch the edx log file into place 
-  command: touch -a /mnt/logs/edx.log
-  tags:
-  - pre_install
-- name: Update apt cache
-  apt: update_cache=yes
+  file: path=$app_base_dir state=directory owner=root group=adm mode=2775 
   sudo: True
   tags:
   - pre_install
 
+- name: Create upload directory
+  file: path=$app_base_dir/uploads mode=2775 state=directory owner=root group=adm
+  sudo: True
+  tags:
+  - pre_install
+
+- name: Create data dir
+  file: path={{ app_base_dir }}/data state=directory owner=root group=root
+  sudo: True
+  tags:
+  - pre_install
+  
 - name: Install role-independent useful system packages
-  apt: pkg={{item}} install_recommends=yes state=present
+  # do this before log dir setup; rsyslog package guarantees syslog user present
+  apt: pkg={{item}} install_recommends=yes state=present update_cache=yes
   sudo: True
   with_items:
   - ack-grep
   - lynx-cur
+  - logrotate
   - mosh
-  - most
+  - rsyslog
   - screen
-  - python-pip
+  - tree
   tags:
   - pre_install
 
+- name: Create log directory
+  file: path=$log_base_dir state=directory mode=2770 group=adm owner=syslog
+  sudo: True
+  tags:
+  - pre_install
+
+- name: Create alias from app_base_dir to the log_base_dir
+  file: state=link src=$log_base_dir path=$app_base_dir/log
+  sudo: True
+  tags:
+  - pre_install
+  - logging
+
+- name: Create convenience link from log_base_dir to system logs
+  file: state=link src=/var/log path=$log_base_dir/system
+  sudo: True
+  tags:
+  - pre_install
+  - logging
+
+- name: Touch edx log file into place 
+  # This is done for the benefit of the rake commands, which expect it
+  command: touch -a {{log_base_dir}}/edx.log creates={{log_base_dir}}/edx.log
+  tags:
+  - pre_install
+  - logging
+
+- name: Set permissions on edx log file
+  # This is done for the benefit of the rake commands, which expect it
+  file: path={{log_base_dir}}/edx.log owner=syslog group=adm mode=770
+  sudo: True
+  tags:
+  - pre_install
+  - logging
+
 - include: create_venv.yml
+- include: edx_logging_base.yml
+
+- include: software_update.yml
