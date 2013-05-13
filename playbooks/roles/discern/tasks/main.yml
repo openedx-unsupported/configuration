@@ -1,24 +1,19 @@
 ---
-#Stop all services
-- name: stop celery
-  service: name=celery state=stopped
+- name: stop all services
+  service: name={{item}} state=stopped
   sudo: True
-
-- name: stop nginx
-  service: name=nginx state=stopped
-  sudo: True
-
-- name: stop discern
-  service: name=discern state=stopped
-  sudo: True
+  with_items:
+    - celery
+    - nginx
+    - discern
 
 #Upload config files for django (auth and env)
 - name: create discern application config env.json file
-  template: src=env.json.j2 dest=$app_base_dir/env.json
+  template: src=env.json.j2 dest=$app_base_dir/env.json owner={{remote_user}} group=edx mode=0640
   sudo: True
 
 - name: create discern auth file auth.json
-  template: src=auth.json.j2 dest=$app_base_dir/auth.json
+  template: src=auth.json.j2 dest=$app_base_dir/auth.json owner={{remote_user}} group=edx mode=0640
   sudo: True
 
 #Needed if using redis to prevent memory issues
@@ -41,12 +36,11 @@
 
 #Create directories for repos
 - name: create discern directory and set permissions
-  file: path={{discern_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
+  file: path={{item}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
-
-- name: create ease directory and set permissions
-  file: path={{ease_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
-  sudo: True
+  with_items:
+    - {{discern_dir}}
+    - {{ease_dir}}
 
 #Grab both repos or update
 - name: git checkout discern repo into discern_dir
@@ -56,26 +50,25 @@
   git: dest={{ease_dir}} repo={{ease_source_repo}} version={{ease_branch}}
 
 #Install system packages
-- name: install discern apt packages
-  command: xargs -a {{discern_dir}}/apt-packages.txt apt-get install -y
+- name: install discern and ease apt packages
+  command: xargs -a {{item}}/apt-packages.txt apt-get install -y
   sudo: yes
-
-- name: install ease apt packages
-  command: xargs -a {{ease_dir}}/apt-packages.txt apt-get install -y
-  sudo: yes
+  with_items:
+    - {{discern_dir}}
+    - {{ease_dir}}
 
 #Numpy has to be a pre-requirement in order for scipy to build
-- name : install python pre-requirements for discern
-  pip: requirements="{{discern_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+- name : install python pre-requirements for discern and ease
+  pip: requirements="{{item}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+  with_items:
+    - {{discern_dir}}
+    - {{ease_dir}}
 
-- name : install python pre-requirements for ease
-  pip: requirements="{{ease_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
-
-- name : install python requirements for discern
-  pip: requirements="{{discern_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
-
-- name : install python requirements for ease
-  pip: requirements="{{ease_dir}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+- name : install python requirements for discern and ease
+  pip: requirements="{{item}}/requirements.txt" virtualenv="{{venv_dir}}" state=present
+  with_items:
+    - {{discern_dir}}
+    - {{ease_dir}}
 
 - name: install ease python package
   shell: command="{{venv_dir}}/bin/activate; cd {{ease_dir}}; python setup.py install"
@@ -88,17 +81,16 @@
   file: path={{nltk_data_dir}} owner={{remote_user}} group=edx mode=2775 state=directory
   sudo: True
 
-#Run this instead of using the ansible module because the ansible module only support syncdb of these four, and does not
+#Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
 - name: django syncdb for discern
-  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py syncdb --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
+  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
+  with_items:
+    - syncdb
+    - migrate
+    - collectstatic
 
-- name: django migrate for discern
-  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py migrate --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
-
-- name: django collectstatic for discern
-  shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py collectstatic --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
-
+#Have this separate from the other three because it doesn't take the noinput flag
 - name: django update_index for discern
   shell: ls; {{venv_dir}}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
 
@@ -119,15 +111,10 @@
   template: src=default.j2 dest=/etc/nginx/sites-available/default
   sudo: True
 
-#start the services up
-- name: start celery
-  service: name=celery state=started
+- name: start all services
+  service: name={{item}} state=started
   sudo: True
-
-- name: start nginx
-  service: name=nginx state=started
-  sudo: True
-
-- name: start discern
-  service: name=discern state=started
-  sudo: True
+  with_items:
+    - celery
+    - nginx
+    - discern
