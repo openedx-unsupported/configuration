@@ -1,0 +1,36 @@
+# custom edx syslog configuration
+# Put in place and templatized by ansible 
+#
+# Cliffs notes version: ansible uses local0 and local1, so they have to be
+# plumbed through appropriately.
+ 
+#############
+# Change some global configuration
+#############
+# don't escape newlines
+$EscapeControlCharactersOnReceive off
+$SystemLogRateLimitInterval 0
+$RepeatedMsgReduction off
+$MaxMessageSize 32768
+ 
+#############
+# Override default auth config so we can ignore local0 and local1 also
+#############
+auth,authpriv.*                                         /var/log/auth.log
+*.*;auth,authpriv.none,local0.none,local1.none          -/var/log/syslog
+ 
+# According to the docs for rsyslog, "syslogtag" is the "TAG" from 
+# the message which in the case of tracking logs is interpreted to 
+# be everything before the first whitespace character. 
+# This is why we include "syslogtag."
+# Maybe one day this will be answered:
+# - http://stackoverflow.com/questions/10449447/how-to-avoid-syslogtag-from-rsyslog-template
+$template tracking,"%syslogtag%%msg%\n"
+ 
+# looks for [service_name=<name>] in the beginning of the log message,
+# if it exists the log will go into {{log_base_dir}}/<name>/edx.log, otherwise
+# it will go into {{log_base_dir}}/edx.log
+$template DynaFile,"{{log_base_dir}}/%syslogtag:R,ERE,1,BLANK:\[service_variant=([a-zA-Z_-]*)\].*--end%/edx.log"
+ 
+local0.*                        -?DynaFile
+local1.*                        {{log_base_dir}}/tracking.log;tracking

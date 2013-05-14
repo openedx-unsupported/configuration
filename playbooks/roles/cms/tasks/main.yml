@@ -19,5 +19,15 @@
   
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms-backend
 
+- name: Create CMS log target directory
+  file: path={{log_base_dir}}/cms state=directory owner=syslog group=adm mode=2770
+  tags:
+  - cms 
+  - cms-env
+  - logging
+
+# If we set up CMS, we have to set up edx logging
+- include: ../../common/tasks/edx_logging_base.yml
+
 # Creates LMS upstart file
 - include: ../../gunicorn/tasks/upstart.yml service_variant=cms
