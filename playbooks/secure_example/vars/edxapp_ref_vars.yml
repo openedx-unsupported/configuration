@@ -122,6 +122,11 @@ lms_env_config:  &lms_env
   'COMMENTS_SERVICE_KEY':  'hidden-prod'
 
 cms_auth_config:
+  'CONTENTSTORE':
+    'ENGINE':  'xmodule.contentstore.mongo.MongoContentStore'
+  'MODULESTORE':
+    'default':
+      'ENGINE':  'xmodule.modulestore.mongo.MongoModuleStore'
   'AWS_ACCESS_KEY_ID':  'hidden-prod'
   'AWS_SECRET_ACCESS_KEY':  'hidden-prod'
   'CONTENTSTORE':
@@ -166,27 +171,31 @@ cms_auth_config:
 cms_env_config:
   'CACHES':
     'default':
-      'KEY_PREFIX':  'hidden-prod'
-      'LOCATION': [ 'hidden-prod',
-        'hidden-prod']
+      'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
+      'KEY_FUNCTION':  'util.memcache.safe_key'
+      'KEY_PREFIX': 'cms.edx.org'
+      'LOCATION': [ "deploycache-large.foo-bar.amazonaws.com:11211" ]
+    'mongo_metadata_inheritance':
+      'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
+      'KEY_FUNCTION':  'util.memcache.safe_key'
+      'TIMEOUT': 300
+      'KEY_PREFIX': 'cms.edx.org'
+      'LOCATION': [ "deploycache-large.foo-bar.amazonaws.com:11211" ]
+    'staticfiles':
+      'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
+      'KEY_FUNCTION':  'util.memcache.safe_key'
+      'KEY_PREFIX': 'cms.edx.org'
+      'LOCATION': [ "deploycache-large.foo-bar.amazonaws.com:11211" ]
     'general':
       'KEY_PREFIX':  'hidden-prod'
       'LOCATION': [ 'hidden-prod',
         'hidden-prod']
-    'mongo_metadata_inheritance':
-      'KEY_PREFIX':  'hidden-prod'
-      'LOCATION': [ 'hidden-prod',
-        'hidden-prod']
-    'staticfiles':
-      'KEY_PREFIX':  'hidden-prod'
-      'LOCATION': [ 'hidden-prod',
-        'hidden-prod']
-  'LOG_DIR':  'hidden-prod'
-  'LOGGING_ENV': 'hidden-prod'
-  'SITE_NAME': 'hidden-prod'
-  'SYSLOG_SERVER': 'hidden-prod'
-  'LMS_BASE': 'hidden-prod'
-  'SESSION_COOKIE_DOMAIN': 'hidden-prod'
+  'LOG_DIR': '{{log_base_dir}}/edx'
+  'LOGGING_ENV': 'cms-dev'
+  'SITE_NAME': 'studio.cms-dev.m.edx.org'
+  'SYSLOG_SERVER': 'syslog.a.m.i4x.org'
+  'LMS_BASE': 'cms-dev.m.edx.org'
+  'SESSION_COOKIE_DOMAIN': '.cms-dev.m.edx.org'
   'SEGMENT_IO_KEY': 'hidden-prod'
   'MITX_FEATURES':
     'DISABLE_COURSE_CREATION': false
