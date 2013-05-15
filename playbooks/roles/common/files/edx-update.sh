@@ -44,7 +44,7 @@ source /etc/profile
 source /opt/edx/bin/activate
 export PATH=$PATH:/opt/www/.gem/bin
 
-cd /opt/wwc/mitx
+cd /opt/wwc/edx-platform
 
 BRANCH="origin/feature/edx-west/stanford-theme"
 
