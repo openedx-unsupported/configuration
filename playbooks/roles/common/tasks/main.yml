@@ -1,20 +1,24 @@
 ---
 - include: create_users.yml
+
 - name: Create application root
   # In the future consider making group edx r/t adm
   file: path=$app_base_dir state=directory owner=root group=adm mode=2775 
   tags:
   - pre_install
+  - update
 
 - name: Create upload directory
   file: path=$app_base_dir/uploads mode=2775 state=directory owner=root group=adm
   tags:
   - pre_install
+  - update
 
 - name: Create data dir
   file: path={{ app_base_dir }}/data state=directory owner=root group=root
   tags:
   - pre_install
+  - update
   
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -29,23 +33,27 @@
   - tree
   tags:
   - pre_install
+  - update
 
 - name: Create log directory
   file: path=$log_base_dir state=directory mode=2770 group=adm owner=syslog
   tags:
   - pre_install
+  - update
 
 - name: Create alias from app_base_dir to the log_base_dir
   file: state=link src=$log_base_dir path=$app_base_dir/log
   tags:
   - pre_install
   - logging
+  - update
 
 - name: Create convenience link from log_base_dir to system logs
   file: state=link src=/var/log path=$log_base_dir/system
   tags:
   - pre_install
   - logging
+  - update
 
 - name: Touch edx log file into place 
   # This is done for the benefit of the rake commands, which expect it
@@ -53,6 +61,7 @@
   tags:
   - pre_install
   - logging
+  - install
 
 - name: Set permissions on edx log file
   # This is done for the benefit of the rake commands, which expect it
@@ -60,6 +69,7 @@
   tags:
   - pre_install
   - logging
+  - update
 
 - include: create_venv.yml
 - include: edx_logging_base.yml

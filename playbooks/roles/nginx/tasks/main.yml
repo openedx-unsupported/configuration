@@ -6,6 +6,7 @@
   notify: restart nginx
   tags:
   - nginx
+  - install
 
 # Standard configuration that is common across all roles
 # Default values for these variables are set in group_vars/all
@@ -17,12 +18,14 @@
   copy: content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd
   tags:
   - nginx
+  - update
 
 - name: Create nginx log file location (just in case)
   file: path={{log_base_dir}}/nginx state=directory owner=syslog group=adm mode=2770
   tags:
   - nginx
   - logging
+  - update
 
 # removing default link
 - name: Removing default nginx config and restart (enabled)
@@ -30,11 +33,13 @@
   notify: restart nginx
   tags:
   - nginx
+  - update
 
 - name: Ensuring that nginx is running
   service: name=nginx state=started
   tags:
   - nginx
+  - update
 
 # Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
 
@@ -42,14 +47,17 @@
   template: dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2 owner=root group=root mode=644
   tags:
   - logging
+  - update
 
 - name: Set up nginx access log rotation
   template: dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2 owner=root group=root mode=644
   tags:
   - logging
+  - update
 
 - name: Removing default nginx config (available)
   file: path=/etc/nginx/sites-available/default state=absent
   tags:
   - nginx
+  - update
 
