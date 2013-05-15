@@ -4,16 +4,18 @@
 #  - nginx/tasks/main.yml
 ---
 - name: create lms application config
-  template: src=env.json.j2 dest=$app_base_dir/lms.env.json
+  template: src=env.json.j2 dest=$app_base_dir/lms.env.json mode=640 owner=www-data group=adm
   tags:
   - lms
   - lms-env
+  - update
 
 - name: create lms auth file
-  template: src=auth.json.j2 dest=$app_base_dir/lms.auth.json
+  template: src=auth.json.j2 dest=$app_base_dir/lms.auth.json mode=640 owner=www-data group=adm
   tags:
   - lms
   - lms-env
+  - update
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-backend
@@ -24,6 +26,7 @@
   - cms
   - lms
   - lms-env
+  - update
 
 - name: Create lms log target directory
   file: path={{log_base_dir}}/lms state=directory owner=syslog group=adm mode=2770
@@ -31,6 +34,7 @@
   - lms
   - lms-env
   - logging
+  - update
 
 # If we set up LMS, we have to set up edx logging
 - include: ../../common/tasks/edx_logging_base.yml
@@ -45,12 +49,14 @@
   tags:
   - lms
   - cms
+  - update
 
 - name: upload ssh script
   copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=adm mode=750
   tags:
   - lms
   - cms
+  - update
 
 # Check out mitx repo to $app_base_dir
 - name: install git and its recommends
@@ -58,13 +64,15 @@
   tags:
   - lms
   - cms
-- name: git checkout mitx repo into $app_base_dir
-  git: dest={{app_base_dir}}/mitx repo={{lms_source_repo}}
+
+- name: git checkout edx-platform repo into $app_base_dir
+  git: dest={{platform_code_dir}} repo={{lms_source_repo}}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
   tags:
   - lms
   - cms
+  - install
 
 ## Install the debian package requirements system-wide
 - name: store remote apt_repos list for ansible use
@@ -73,6 +81,8 @@
   tags:
   - lms
   - cms
+  - install
+
 - name: add apt_repos to the remote hosts
   apt_repository: repo="$item"
   with_items: "{{apt_repos_list.stdout.split()}}"
@@ -81,6 +91,8 @@
   tags:
   - lms
   - cms
+  - install
+
 - name: update apt cache (if necessary)
   apt: update_cache=yes
   sudo: True
@@ -88,18 +100,23 @@
   tags:
   - lms
   - cms
+  - install
+
 - name: store remote apt_packages list for ansible use
   command: cat {{app_base_dir}}/mitx/apt-packages.txt
   register: apt_packages_list
   tags:
   - lms
   - cms
+  - install
+
 - name: install a bunch of system packages on which LMS and CMS rely
   apt: pkg={{item}} state=present
   with_items: lms_debian_pkgs
   tags:
   - lms
   - cms
+  - install
 
 # Install the python requirements into $venv_dir 
 - name : install python pre-requirements
@@ -107,6 +124,7 @@
   tags:
   - lms
   - cms
+  - install
 
 # Install the python modules into $venv_dir 
 - name : install python packages using the shell
@@ -118,6 +136,7 @@
   tags:
   - lms
   - cms
+  - install
   
 # Creates LMS upstart file
 - include: ../../gunicorn/tasks/upstart.yml service_variant=lms

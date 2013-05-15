@@ -1,11 +1,10 @@
 server {
-  # LMS configuration file for nginx, templated by ansible
+  # LMS-preview configuration file for nginx, templated by ansible
 
   listen 80;
 
-  server_name *.edx.org;
-  access_log {{log_base_dir}}/nginx/access.log;
-  error_log {{log_base_dir}}/nginx/error.log error;
+  server_name trace-lms-preview.*
+              preview.lms-dev.m.edx.org;
 
   #
   # Send error response when request host isn't under our control
@@ -16,9 +15,9 @@ server {
 
   set $reject 'no';
 
-  if ($host !~* (edx.org|edxonline.org)$ ) {
-    set $reject 'yes';
-  }
+  #if ($host !~* (edx.org|edxonline.org)$ ) {
+  #  set $reject 'yes';
+  #}
 
   if ($request_uri ~ ^(/heartbeat)$) {
     set $reject 'no';
@@ -34,40 +33,32 @@ server {
 
   rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
 
-  # CS188 rewrite rule for Arjun 9/19/12
-  rewrite ^/ai$ http://$host/courses/BerkeleyX/CS188.1x/2012_Fall/about last;
-
-  # redirect /ai to the about page for CS188.1x
-  rewrite ^/ai$ https://$host/courses/BerkeleyX/CS188.1x/2012_Fall/about last;
-
-  location @proxy_to_lms_app {
+  location @proxy_to_lms-preview_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     proxy_set_header X-Forwarded-For $http_x_forwarded_for;
     proxy_set_header Host $http_host;
 
     proxy_redirect off;
-    proxy_pass http://lms-backend;
+    proxy_pass http://lms-preview-backend;
   }
 
   location / {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms-preview_app;
   }
 
   # No basic auth security on the github_service_hook url, so that github can use it for cms
   location /github_service_hook {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms-preview_app;
   }
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms-preview_app;
   }
 
   # Check security on this
   location ~ /static/(?P<file>.*) {
-    auth_basic            "Restricted";
-    auth_basic_user_file  /etc/nginx/lms.htpasswd;
     root {{app_base_dir}};
     try_files /staticfiles/$file /course_static/$file =404;
 

@@ -1,0 +1,23 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+#  - nginx/tasks/main.yml
+---
+- name: create lms application config
+  template: src=env.json.j2 dest=$app_base_dir/lms-preview.env.json mode=640 owner=www-data group=adm
+  tags:
+  - lms-preview
+  - lms-preview-env
+
+- name: create lms auth file
+  template: src=auth.json.j2 dest=$app_base_dir/lms-preview.auth.json mode=640 owner=www-data group=adm
+  tags:
+  - lms-preview
+  - lms-preview-env
+
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-preview
+
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-preview-backend
+
+# Creates LMS Preview upstart file
+- include: ../../gunicorn/tasks/upstart.yml service_variant=lms-preview
