@@ -39,12 +39,12 @@
 # If we set up LMS, we have to set up edx logging
 - include: ../../common/tasks/edx_logging_base.yml
 
-# Install ssh keys for ubuntu account to be able to check out from mitx
+# Install ssh keys for ubuntu account to be able to check out from edx-platform
 # Temprory behavior, not needed after June 1. Perhaps still useful as a recipe.
 # {{ secure_dir }} is relative to the top-level playbooks dir so there is some
 # ugly relative pathing here
 
-- name: install read-only ssh key for mitx repo (private)
+- name: install read-only ssh key for edx-platform repo (private)
   copy: src=../../../{{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=600
   tags:
   - lms
@@ -58,15 +58,15 @@
   - cms
   - update
 
-# Check out mitx repo to $app_base_dir
+# Check out edx-platform repo to $app_base_dir
 - name: install git and its recommends
   apt: pkg=git state=present install_recommends=yes 
   tags:
   - lms
   - cms
 
-- name: git checkout edx-platform repo into $app_base_dir
-  git: dest={{platform_code_dir}} repo={{lms_source_repo}}
+- name: git checkout edx-platform repo into app_base_dir
+  git: dest=$lms_code_dir repo=$lms_source_repo
   environment:
     GIT_SSH: /tmp/git_ssh.sh
   tags:
@@ -76,7 +76,7 @@
 
 ## Install the debian package requirements system-wide
 - name: store remote apt_repos list for ansible use
-  command: cat {{app_base_dir}}/mitx/apt-repos.txt
+  command: cat {{lms_code_dir}}/apt-repos.txt
   register: apt_repos_list
   tags:
   - lms
@@ -103,7 +103,7 @@
   - install
 
 - name: store remote apt_packages list for ansible use
-  command: cat {{app_base_dir}}/mitx/apt-packages.txt
+  command: cat {{lms_code_dir}}/apt-packages.txt
   register: apt_packages_list
   tags:
   - lms
@@ -120,7 +120,7 @@
 
 # Install the python requirements into $venv_dir 
 - name : install python pre-requirements
-  pip: requirements="{{app_base_dir}}/mitx/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{lms_code_dir}}/pre-requirements.txt" virtualenv="{{venv_dir}}" state=present
   tags:
   - lms
   - cms
@@ -128,15 +128,15 @@
 
 # Install the python modules into $venv_dir 
 - name : install python packages using the shell
-  #pip: requirements="{{app_base_dir}}/mitx/requirements.txt" virtualenv="{{venv_dir}}" 
+  #pip: requirements="{{lms_code_dir}}/requirements.txt" virtualenv="{{venv_dir}}" 
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some 
-  # requirements are pathed relative to the mitx repo. Using the pip from inside the virtual environment implicitly
+  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{app_base_dir}}/mitx && {{venv_dir}}/bin/pip install --use-mirrors -r {{app_base_dir}}/mitx/requirements.txt
+  shell: cd {{lms_code_dir}} && {{venv_dir}}/bin/pip install --exists-action w -r {{lms_code_dir}}/requirements.txt
   tags:
   - lms
   - cms
   - install
-  
+  - pip 
 # Creates LMS upstart file
 - include: ../../gunicorn/tasks/upstart.yml service_variant=lms
