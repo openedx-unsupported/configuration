@@ -53,6 +53,26 @@ problems occur.
 
 Details on how to build the stack using Ansible are available below.
 
+
+### Post Bringup Manual Commands
+
+Unfortunately there is some infrastructure that we need that is currently not supported
+by CloudFormation.  So once your stack is created by CloudFormation you need to run
+a few manual commands to fill in those gaps.
+
+This requires that you've installed the command line utilities for [ElastiCache][cachecli]
+and [EC2][ec2cli].  Note that we requrire at least version 1.8 of the ElastiCache CLI due
+to some newer commands that we rely on.
+  [cachecli]: http://aws.amazon.com/developertools/2310261897259567
+  [ec2cli]: http://aws.amazon.com/developertools/351
+
+At the end of the CloudFormation run you should check the "Outputs" tab in
+Amazon UI and that will have the commands you need to run.  This screenshot 
+shows what that output looks like.
+
+![Amazon CloudFormation Output Screenshot](cfn-output-example.png)
+
+
 ### Connecting to Hosts in the Stack
 
 Because the reference architecture makes use of an Amazon VPC, you will not be able
@@ -64,16 +84,12 @@ Add something like the following to your `~/.ssh/config` file.
 
 ```
 Host *.us-west-1.compute-internal
-  ProxyCommand ssh -W %h:%p vpc-00000000-jumpbox
-  IdentityFile /path/to/aws/key.pem
+  ProxyCommand ssh -W %h:%p vpc-us-west-1-jumpbox
   ForwardAgent yes
-  User ubuntu
 
-Host vpc-00000000-jumpbox
-  HostName 54.236.224.226
-  IdentityFile /path/to/aws/key.pem
+Host vpc-us-west-1-jumpbox
+  HostName 54.236.202.101
   ForwardAgent yes
-  User ubuntu
 ```
 
 This assumes that you only have one VPC in the ```us-west-1``` region
