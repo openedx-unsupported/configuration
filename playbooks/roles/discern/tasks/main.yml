@@ -1,4 +1,8 @@
 ---
+- name: Create discern user
+  # Admin users, by definition, should be able to sudo w/ password, and read adm-only files
+  user: name={{ discern_user }} append=yes groups={{ "adm,edx" }} shell=/bin/bash
+
 - name: upload sudoers template to sudoers.tmp
   template: src=sudoers.j2 dest=/etc/sudoers.tmp owner=root group=root mode=0440
 
@@ -14,10 +18,10 @@
 
 #Upload config files for django (auth and env)
 - name: create discern application config env.json file
-  template: src=env.json.j2 dest={{app_base_dir}}/env.json owner=root group=edx mode=0640
+  template: src=env.json.j2 dest={{app_base_dir}}/env.json owner={{discern_user}} group=edx mode=0640
 
 - name: create discern auth file auth.json
-  template: src=auth.json.j2 dest={{app_base_dir}}/auth.json owner=root group=edx mode=0640
+  template: src=auth.json.j2 dest={{app_base_dir}}/auth.json owner={{discern_user}} group=edx mode=0640
 
 #Needed if using redis to prevent memory issues
 - name: change memory commit settings -- needed for redis
@@ -36,7 +40,7 @@
 
 #Create directories for repos
 - name: create discern and ease directories and set permissions
-  file: path={{item}} owner=root group=edx mode=2775 state=directory
+  file: path={{item}} owner={{discern_user}} group=edx mode=2775 state=directory
   with_items:
    - ${discern_dir}
    - ${ease_dir}
@@ -80,7 +84,7 @@
   shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
 
 - name: set permissions on nltk data directory
-  file: path={{nltk_data_dir}} owner=root group=edx mode=2775 state=directory
+  file: path={{nltk_data_dir}} owner={{discern_user}} group=edx mode=2775 state=directory
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
