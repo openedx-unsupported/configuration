@@ -1,11 +1,16 @@
 ---
+#Allows us to recover from a bad sudoers file
+- name: Install policykit
+  apt: pkg=policykit-1 install_recommends=yes state=present update_cache=yes
+
+#Discern user is admin
 - name: Create discern user
-  # Admin users, by definition, should be able to sudo w/ password, and read adm-only files
   user: name={{ discern_user }} append=yes groups={{ "adm,edx" }} shell=/bin/bash
 
-- name: upload sudoers template to sudoers.tmp
+- name: upload sudoers template to /tmp/sudoers
   copy: src=sudoers-discern dest=/tmp/{{site_name}} owner=root group=root mode=0440
 
+#Verify file and move to sudoers.d folder
 - name: move temp file to sudoers.d
   shell: visudo -q -c -f /tmp/{{site_name}} && cp /tmp/{{site_name}} /etc/sudoers.d/{{site_name}}
 
