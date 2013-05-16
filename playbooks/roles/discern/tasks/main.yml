@@ -109,8 +109,16 @@
 - name: create nginx directory and set perms
   file: path=/etc/nginx/sites-available owner=root group=edx mode=2775 state=directory
 
+#Install nginx sites available
+#remove default link, render template, link template to itself to activate
+- name: Removing default nginx config and restart (enabled)
+  file: path=/etc/nginx/sites-enabled/default state=absent
+
 - name: render nginx sites available
-  template: src=default.j2 dest=/etc/nginx/sites-available/default
+  template: src=default.j2 dest=/etc/nginx/sites-available/{{ site_name }}
+
+- name: Creating nginx config link {{ site_name }}
+  file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state={{ state }} owner=root group=root
 
 - name: start all services
   service: name={{item}} state=started
