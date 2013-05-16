@@ -24,6 +24,10 @@ from .timestamps import no_ts
 REPO_URL = 'git@github.com:{}/{}'
 REPO_DIRNAME = '/opt/wwc'
 GIT_USER = "www-data"
+AA_COMPLAIN = '/usr/sbin/aa-complain'
+AA_ENFORCE = '/usr/sbin/aa-enforce'
+AA_SANDBOX_POLICY = '/etc/apparmor.d/code.sandbox'
+VIRTUAL_ENVS = ['/opt/edx', '/opt/edx-sandbox']
 
 
 @task(default=True, aliases=['deploy'])
@@ -363,25 +367,47 @@ def _install_requirements(pkg):
     if they exists for the repo.
     will not run pip install if the requirements file
     has not changed since the last run
+
+    Turns off apparmor enforcement during pip install
+    for the sandbox virtualenv
     """
 
-    def pip_install(file):
+    def pip_install(file, venv='/opt/edx'):
         with prefix("export GIT_SSH=/tmp/git.sh"):
-            with prefix('source /opt/edx/bin/activate'):
+            with prefix('source {}'.format(os.path.join(venv, 'bin/activate'))):
                 with prefix('export PIP_DOWNLOAD_CACHE=/tmp/pip_download_cache'):
                     noopable(sudo)('pip install --exists-action w -r {0}'.format(file))
 
-    # Run old-style requirements
+    if files.exists(AA_COMPLAIN) and files.exists(AA_SANDBOX_POLICY):
+        # in order to install code-sandbox requirements the
+        # code sandbox apparmor policy must be temporarily
+        # suspended
+        sudo('{0} {1}'.format(AA_COMPLAIN, AA_SANDBOX_POLICY))
+
+    # Run old-style requirements TODO: remove
     _run_if_changed(pkg, 'pre-requirements.txt', partial(
-                    pip_install, 'pre-requirements.txt'))
+                    pip_install, file='pre-requirements.txt', venv='/opt/edx'),
+                    'cat *requirements.txt')
     _run_if_changed(pkg, 'requirements.txt', partial(
-                    pip_install, 'requirements.txt'), 'cat *requirements.txt')
+                    pip_install, file='requirements.txt', venv='/opt/edx'),
+                    'cat *requirements.txt')
+    # end old-style requirements
 
     # Run new-style requirements
-    _run_if_changed(pkg, 'requirements/base.txt', partial(
-                    pip_install, 'requirements/base.txt'), 'cat requirements/*.txt')
-    _run_if_changed(pkg, 'requirements/post.txt', partial(
-                    pip_install, 'requirements/post.txt'))
+    for venv in VIRTUAL_ENVS:
+        if not files.exists(venv):
+            # skip if the virtualenv doesn't exist
+            continue
+        venv_name = os.path.basename(venv)
+        pip_cmd_base = partial(pip_install, file='requirements/{}/base.txt'.format(venv_name), venv=venv)
+        pip_cmd_post = partial(pip_install, file='requirements/{}/post.txt'.format(venv_name), venv=venv)
+        _run_if_changed(pkg, 'requirements/{}/base.txt'.format(venv_name), pip_cmd_base,
+                        'cat requirements/{}/*.txt'.format(venv_name))
+        _run_if_changed(pkg, 'requirements/{}/post.txt'.format(venv_name), pip_cmd_post,
+                        'cat requirements/{}/*.txt'.format(venv_name))
+
+    if files.exists(AA_ENFORCE) and files.exists(AA_SANDBOX_POLICY):
+        sudo('{0} {1}'.format(AA_ENFORCE, AA_SANDBOX_POLICY))
 
 
 @task
