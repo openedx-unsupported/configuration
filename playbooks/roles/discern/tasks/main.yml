@@ -1,6 +1,9 @@
 ---
-- name: update sudoers file with template
-  template: src=sudoers.j2 dest=/etc/sudoers owner=root group=root mode=0440
+- name: upload sudoers template to sudoers.tmp
+  template: src=sudoers.j2 dest=/etc/sudoers.tmp owner=root group=root mode=0440
+
+- name: update sudoers file with sudoers.tmp
+  shell: visudo -q -c -f /etc/sudoers.tmp && cp /etc/sudoers.tmp /etc/sudoers
 
 - name: stop all services
   service: name={{item}} state=stopped
