@@ -63,6 +63,9 @@
   git: dest={{discern_dir}} repo={{discern_source_repo}} version={{discern_branch}}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
+  notify:
+    - restart celery
+    - restart discern
 
 - name: git checkout ease repo into ease_dir
   git: dest={{ease_dir}} repo={{ease_source_repo}} version={{ease_branch}}
@@ -126,10 +129,8 @@
 
 - name: render nginx sites available
   template: src=nginx-discern.j2 dest=/etc/nginx/sites-available/{{ site_name }}
+  notify: restart nginx
 
 - name: Creating nginx config link {{ site_name }}
   file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state=link owner=root group=root
-  notify:
-    - restart nginx
-    - restart discern
-    - restart celery
+  notify: restart nginx
