@@ -1,4 +1,13 @@
 ---
+#Create the templates for upstart services
+- name: render celery service from template
+  template: src=celery.conf.j2 dest=/etc/init/celery.conf owner=root group=edx mode=0664
+  notify: restart celery
+
+- name: render discern service from template
+  template: src=discern.conf.j2 dest=/etc/init/discern.conf owner=root group=edx mode=0664
+  notify: restart discern
+
 #Allows us to recover from a bad sudoers file
 - name: Install policykit
   apt: pkg=policykit-1 install_recommends=yes state=present update_cache=yes
@@ -14,19 +23,18 @@
 - name: move temp file to sudoers.d
   shell: visudo -q -c -f /tmp/{{site_name}} && cp /tmp/{{site_name}} /etc/sudoers.d/{{site_name}}
 
-- name: stop all services
-  service: name={{item}} state=stopped
-  with_items:
-    - celery
-    - nginx
-    - discern
-
 #Upload config files for django (auth and env)
 - name: create discern application config env.json file
   template: src=env.json.j2 dest={{app_base_dir}}/env.json owner={{discern_user}} group=edx mode=0640
+  notify:
+    - restart celery
+    - restart discern
 
 - name: create discern auth file auth.json
   template: src=auth.json.j2 dest={{app_base_dir}}/auth.json owner={{discern_user}} group=edx mode=0640
+  notify:
+    - restart celery
+    - restart discern
 
 #Needed if using redis to prevent memory issues
 - name: change memory commit settings -- needed for redis
@@ -60,6 +68,9 @@
   git: dest={{ease_dir}} repo={{ease_source_repo}} version={{ease_branch}}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
+  notify:
+    - restart celery
+    - restart discern
 
 #Install system packages
 - name: install discern and ease apt packages
@@ -104,13 +115,6 @@
 - name: django update_index for discern
   shell: ${venv_dir}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
 
-#Create the templates for upstart services
-- name: render celery service from template
-  template: src=celery.conf.j2 dest=/etc/init/celery.conf owner=root group=edx mode=0664
-
-- name: render discern service from template
-  template: src=discern.conf.j2 dest=/etc/init/discern.conf owner=root group=edx mode=0664
-
 - name: create nginx directory and set perms
   file: path=/etc/nginx/sites-available owner=root group=edx mode=2775 state=directory
 
@@ -118,16 +122,14 @@
 #remove default link, render template, link template to sites-enabled to activate
 - name: Removing default nginx config
   file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: restart nginx
 
 - name: render nginx sites available
   template: src=nginx-discern.j2 dest=/etc/nginx/sites-available/{{ site_name }}
 
 - name: Creating nginx config link {{ site_name }}
   file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state=link owner=root group=root
-
-- name: start all services
-  service: name={{item}} state=started
-  with_items:
-    - celery
-    - nginx
-    - discern
+  notify:
+    - restart nginx
+    - restart discern
+    - restart celery
