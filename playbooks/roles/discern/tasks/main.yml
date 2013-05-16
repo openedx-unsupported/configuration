@@ -4,7 +4,10 @@
   user: name={{ discern_user }} append=yes groups={{ "adm,edx" }} shell=/bin/bash
 
 - name: upload sudoers template to sudoers.tmp
-  copy: src=sudoers-discern dest=/etc/sudoers.d/{{site_name}} owner=root group=root mode=0440
+  copy: src=sudoers-discern dest=/tmp/{{site_name}} owner=root group=root mode=0440
+
+- name: move temp file to sudoers.d
+  shell: visudo -q -c -f /tmp/{{site_name}} && cp /tmp/{{site_name}} /etc/sudoers.d/{{site_name}}
 
 - name: stop all services
   service: name={{item}} state=stopped
