@@ -47,7 +47,12 @@
     "WebServerPort":{
       "Description":"The TCP port for the Web Server",
       "Type":"Number",
-      "Default":"8888"
+      "Default":"80"
+    },
+    "CacheNodePort":{
+      "Description":"The TCP port for the nodes in the Elasticache cluster",
+      "Type":"Number",
+      "Default":"11211"
     },
     "BastionInstanceType":{
       "Description":"Bastion Host EC2 instance type",
@@ -1571,6 +1576,10 @@
                 "'\n",
                 "  exit 1\n",
                 "}\n",
+                "for dev in /dev/xvdc /dev/xvdd; do sudo echo w | fdisk $dev; sudo mkfs -t ext4 $dev;done;\n",
+                "sudo mkdir /mnt/logs\n",
+                "sudo mount /dev/xvdc /mnt/logs\n",
+                "sudo mount /dev/xvdd /opt\n",
                 "apt-get -y update\n",
                 "apt-get -y install python-setuptools\n",
                 "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
@@ -1616,13 +1625,13 @@
         },
         "BlockDeviceMappings":[
           {
-            "DeviceName":"/dev/xvdb",
+            "DeviceName":"/dev/xvdc",
             "Ebs":{
               "VolumeSize":"50"
             }
           },
           {
-            "DeviceName":"/dev/xvdc",
+            "DeviceName":"/dev/xvdd",
             "Ebs":{
               "VolumeSize":"50"
             }
@@ -1761,6 +1770,10 @@
     "EdxappELB":{
       "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties":{
+        "LBCookieStickinessPolicy" : [{
+          "PolicyName" : "EdxappStickinessPolicy",
+          "CookieExpirationPeriod" : "180"
+        } ],
         "SecurityGroups":[
           {
             "Ref":"EdxappELBSecurityGroup"
@@ -1785,6 +1798,9 @@
         "Subnets":[
           {
             "Ref":"PublicSubnet01"
+          },
+          {
+            "Ref":"PublicSubnet02"
           }
         ]
       }
@@ -1992,13 +2008,13 @@
         },
         "BlockDeviceMappings":[
           {
-            "DeviceName":"/dev/xvdb",
+            "DeviceName":"/dev/xvdc",
             "Ebs":{
               "VolumeSize":"50"
             }
           },
           {
-            "DeviceName":"/dev/xvdc",
+            "DeviceName":"/dev/xvdd",
             "Ebs":{
               "VolumeSize":"50"
             }
@@ -2162,9 +2178,12 @@
           "Timeout":"5"
         },
         "Subnets":[
-          {
-            "Ref":"PublicSubnet01"
-          }
+            {
+		"Ref":"XqueueSubnet01"
+            },
+            {
+		"Ref":"XqueueSubnet02"
+            }
         ]
       }
     },
@@ -2365,13 +2384,13 @@
         },
         "BlockDeviceMappings":[
           {
-            "DeviceName":"/dev/xvdb",
+            "DeviceName":"/dev/xvdc",
             "Ebs":{
               "VolumeSize":"50"
             }
           },
           {
-            "DeviceName":"/dev/xvdc",
+            "DeviceName":"/dev/xvdd",
             "Ebs":{
               "VolumeSize":"50"
             }
@@ -2537,10 +2556,10 @@
         },
         "Subnets":[
           {
-            "Ref":"PublicSubnet01"
+            "Ref":"RabbitSubnet01"
           },
           {
-            "Ref":"PublicSubnet02"
+            "Ref":"RabbitSubnet02"
           }
         ]
       }
@@ -2750,13 +2769,13 @@
         },
         "BlockDeviceMappings":[
           {
-            "DeviceName":"/dev/xvdb",
+            "DeviceName":"/dev/xvdc",
             "Ebs":{
               "VolumeSize":"50"
             }
           },
           {
-            "DeviceName":"/dev/xvdc",
+            "DeviceName":"/dev/xvdd",
             "Ebs":{
               "VolumeSize":"50"
             }
@@ -2922,10 +2941,10 @@
         },
         "Subnets":[
           {
-            "Ref":"PublicSubnet01"
+            "Ref":"XServerSubnet01"
           },
           {
-            "Ref":"PublicSubnet02"
+            "Ref":"XServerSubnet02"
           }
         ]
       }
@@ -3087,10 +3106,10 @@
         "SecurityGroupIngress":[
           {
             "IpProtocol":"tcp",
-            "FromPort":"12345",
-            "ToPort":"12345",
+            "FromPort": { "Ref":"CacheNodePort" },
+            "ToPort": { "Ref":"CacheNodePort" },
             "SourceSecurityGroupId":{
-              "Ref":"EdxappELBSecurityGroup"
+              "Ref":"EdxappServerSecurityGroup"
             }
           }
         ]
@@ -3174,7 +3193,7 @@
             "--cache-node-type ", { "Ref":"CacheNodeType" }, " ",
             "--engine memcached ",
             "--engine-version 1.4.5 ",
-            "--port 12345 ",
+            "--port ", { "Ref":"CacheNodePort"}, " ",
             "--preferred-availability-zone ",
             { "Fn::FindInMap":[
                 "MapRegionsToAvailZones",
@@ -3184,7 +3203,8 @@
             }, " ",
             "--cache-parameter-group-name default.memcached1.4 ",
             "--auto-minor-version-upgrade true ",
-            "--cache-subnet-group-name ", { "Ref":"EdxVPC" },"-ElasticCacheSubnetGroup"
+            "--cache-subnet-group-name ", { "Ref":"EdxVPC" },"-ElasticCacheSubnetGroup ",
+	    "--security-group-ids ", { "Ref":"CacheSecurityGroup" }
           ]
         ]
       }
