@@ -63,14 +63,15 @@ a few manual commands to fill in those gaps.
 This requires that you've installed the command line utilities for [ElastiCache][cachecli]
 and [EC2][ec2cli].  Note that we requrire at least version 1.8 of the ElastiCache CLI due
 to some newer commands that we rely on.
+
   [cachecli]: http://aws.amazon.com/developertools/2310261897259567
   [ec2cli]: http://aws.amazon.com/developertools/351
 
 At the end of the CloudFormation run you should check the "Outputs" tab in
-Amazon UI and that will have the commands you need to run.  This screenshot 
-shows what that output looks like.
+Amazon UI and that will have the commands you need to run (see
+screenshot).
 
-![Amazon CloudFormation Output Screenshot](cfn-output-example.png)
+![CloudFormation Output (Amazon console)](doc/cfn-output-example.png)
 
 
 ### Connecting to Hosts in the Stack
