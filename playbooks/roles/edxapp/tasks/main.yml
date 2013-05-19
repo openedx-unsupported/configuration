@@ -3,23 +3,6 @@
 #  - common/tasks/main.yml
 #  - nginx/tasks/main.yml
 ---
-- name: create lms application config
-  template: src=env.json.j2 dest=$app_base_dir/lms.env.json mode=640 owner=www-data group=adm
-  tags:
-  - lms
-  - lms-env
-  - update
-
-- name: create lms auth file
-  template: src=auth.json.j2 dest=$app_base_dir/lms.auth.json mode=640 owner=www-data group=adm
-  tags:
-  - lms
-  - lms-env
-  - update
-
-- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
-- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-backend
-
 - name: Change permissions on datadir
   file: path={{ app_base_dir }}/data state=directory owner=www-data group=www-data
   tags:
@@ -90,43 +73,6 @@
   - cms
   - install
 
-
-## Install the debian package requirements system-wide
-- name: store remote apt_repos list for ansible use
-  command: cat {{ apt_sources_file }}
-  register: apt_repos_list
-  tags:
-  - lms
-  - cms
-  - install
-
-- name: add apt_repos to the remote hosts
-  apt_repository: repo="$item"
-  with_items: "{{apt_repos_list.stdout.split()}}"
-  register: apt_repos_list_repo_adds
-  sudo: True
-  tags:
-  - lms
-  - cms
-  - install
-
-- name: update apt cache (if necessary)
-  apt: update_cache=yes
-  sudo: True
-  only_if: "{{apt_repos_list_repo_adds.changed}}"
-  tags:
-  - lms
-  - cms
-  - install
-
-- name: store remote apt_packages list for ansible use
-  command: cat {{ apt_packages_file }}
-  register: apt_packages_list
-  tags:
-  - lms
-  - cms
-  - install
-
 - name: install a bunch of system packages on which LMS and CMS rely
   apt: pkg={{item}} state=present
   with_items: lms_debian_pkgs
@@ -147,10 +93,10 @@
   - cms
   - install
   
-  
+ 
 # Install the python post requirements into {{ venv_dir }}
 - name : install python post-requirements
-  pip: requirements="{{ post_requirements_file }}" virtualenv="{{ venv_dir }}" state=present
+  pip: requirements="{{post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
   tags:
   - lms
   - cms
@@ -170,7 +116,13 @@
   - lms
   - cms
   - install
-  
 
-# Creates LMS upstart file
-- include: ../../gunicorn/tasks/upstart.yml service_variant=lms
+- include: lms.yml
+  when: lms_env_config != False
+- include: lms-xml.yml
+  when: lms_xml_env_config != False
+- include: cms.yml
+  when: cms_env_config != False
+- include: lms-preview.yml
+  when: lms_preview_env_config != False
+ 
