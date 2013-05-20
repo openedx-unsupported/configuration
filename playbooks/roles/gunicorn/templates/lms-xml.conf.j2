@@ -10,19 +10,18 @@ respawn
 respawn limit 3 30
 
 env PID=/var/tmp/lms-xml.pid
-env NEW_RELIC_CONFIG_FILE=/opt/wwc/newrelic.ini
-env NEWRELIC=/opt/edx/bin/newrelic-admin
-env WORKERS=4
+#env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
+#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
+env WORKERS={{ ansible_processor_cores * 4 }}
 env PORT=8030
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=lms.envs.aws
 env SERVICE_VARIANT="lms-xml"
 
-
-chdir /opt/wwc/edx-platform
+chdir {{platform_code_dir}}
 setuid www-data
 
-exec $NEWRELIC run-program /opt/edx/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath=/opt/wwc/edx-platform lms.wsgi
+exec {{venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{platform_code_dir}}  lms.wsgi
 
 post-start script
   while true

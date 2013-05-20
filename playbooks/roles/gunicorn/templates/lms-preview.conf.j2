@@ -3,15 +3,15 @@
 description "gunicorn server"
 author "Calen Pennington <cpennington@mitx.mit.edu>"
 
-start on runlevel [2345]
-stop on runlevel [!2345]
+start on started edxapp
+stop on stopped edxapp
 
 respawn
 respawn limit 3 30
 
 env PID=/var/tmp/lms.pid
-#env NEW_RELIC_CONFIG_FILE=${app_base_dir}/newrelic.ini
-#env NEWRELIC=${venv_dir}/bin/newrelic-admin
+#env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
+#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
 env WORKERS={{ ansible_processor_cores * 2 }}
 env PORT=8020
 env LANG=en_US.UTF-8
@@ -21,7 +21,7 @@ env SERVICE_VARIANT="lms-preview"
 chdir {{platform_code_dir}}
 setuid www-data
 
-exec ${venv_dir}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{platform_code_dir}} lms.wsgi
+exec {{venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{platform_code_dir}} lms.wsgi
 
 post-start script
   while true
