@@ -1,0 +1,79 @@
+#/etc/init/edxapp.conf
+
+description "Starts and stops multiple edX services, e.g., lms, cms, etc., installed in a stacked configuration."
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+##
+## Each awaited service is responsible for ensuring that it is ready
+## for service when it returns.
+##
+pre-start script
+
+{% if 'lms-xml' in service_variants_enabled %}
+if [ -e /etc/init/lms-xml.conf ]; then
+  start wait-for-state WAIT_FOR=lms-xml WAITER=$UPSTART_JOB
+fi
+{% endif %}
+
+{% if 'lms' in service_variants_enabled %}
+if [ -e /etc/init/lms.conf ]; then
+  start wait-for-state WAIT_FOR=lms WAITER=$UPSTART_JOB
+fi
+{% endif %}
+
+{% if 'lms-preview' in service_variants_enabled %}
+if [ -e /etc/init/lms-preview.conf ]; then
+  start wait-for-state WAIT_FOR=lms-preview WAITER=$UPSTART_JOB
+fi
+{% endif %}
+
+{% if 'cms' in service_variants_enabled %}
+if [ -e /etc/init/cms.conf ]; then
+  start wait-for-state WAIT_FOR=cms WAITER=$UPSTART_JOB
+fi
+{% endif %}
+
+end script
+
+script
+  # Noop process for other edX components to take their
+  # marching orders from.  In the edxapp deployment, 
+  # lms, cms, etc. will listen for this process to start
+  # and stop and follow suit.
+  while true
+    do
+      logger -t $0 "edX App Shell Daemon is running..."
+      sleep 600
+    done
+end script
+
+pre-stop script
+
+{% if 'lms-xml' in service_variants_enabled %}
+if [ -e /etc/init/lms-xml.conf ]; then
+  start wait-for-state WAIT_FOR=lms-xml WAITER=$UPSTART_JOB TARGET_GOAL="stop"
+fi
+{% endif %}
+
+{% if 'lms' in service_variants_enabled %}
+if [ -e /etc/init/lms.conf ]; then
+  start wait-for-state WAIT_FOR=lms WAITER=$UPSTART_JOB TARGET_GOAL="stop"
+fi
+{% endif %}
+
+{% if 'lms-preview' in service_variants_enabled %}
+if [ -e /etc/init/lms-preview.conf ]; then
+  start wait-for-state WAIT_FOR=lms-preview WAITER=$UPSTART_JOB TARGET_GOAL="stop"
+fi
+{% endif %}
+
+{% if 'cms' in service_variants_enabled %}
+if [ -e /etc/init/cms.conf ]; then
+  start wait-for-state WAIT_FOR=cms WAITER=$UPSTART_JOB TARGET_GOAL="stop"
+fi
+{% endif %}
+
+end script
+

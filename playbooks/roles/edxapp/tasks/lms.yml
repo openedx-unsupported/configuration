@@ -1,0 +1,19 @@
+---
+- name: create lms application config
+  template: src=lms.env.json.j2 dest=$app_base_dir/lms.env.json mode=640 owner=www-data group=adm
+  tags:
+  - lms
+  - lms-env
+  - update
+
+- name: create lms auth file
+  template: src=lms.auth.json.j2 dest=$app_base_dir/lms.auth.json mode=640 owner=www-data group=adm
+  tags:
+  - lms
+  - lms-env
+  - update
+
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-backend
+# Creates LMS upstart file
+- include: ../../gunicorn/tasks/upstart.yml service_variant=lms
