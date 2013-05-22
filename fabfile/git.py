@@ -262,21 +262,21 @@ def deploy(auto_migrate=False):
             _install_gemfile(pkg)
             _install_npm_package(pkg)
 
-#        with dog_stats_api.timer(metric_name, tags=repo_tags + ['step:fact']):
-#            # drop a file for puppet so it knows that
-#            # code is installed for the service
-#            with cd('/etc/facter/facts.d'):
-#                pkg_config = PackageInfo()
-#                if pkg.repo_name in pkg_config.service_repos:
-#                    # facts can't have dashes so they are converted
-#                    # to underscores
-#                    noopable(sudo)(
-#                        'echo "{0}_installed=true" > {0}_installed.txt'.format(
-#                        pkg.repo_name.replace("-", "_")))
+        with dog_stats_api.timer(metric_name, tags=repo_tags + ['step:fact']):
+            # drop a file for puppet so it knows that
+            # code is installed for the service
+            with cd('/etc/facter/facts.d'):
+                pkg_config = PackageInfo()
+                if pkg.repo_name in pkg_config.service_repos:
+                    # facts can't have dashes so they are converted
+                    # to underscores
+                    noopable(sudo)(
+                        'echo "{0}_installed=true" > {0}_installed.txt'.format(
+                        pkg.repo_name.replace("-", "_")))
 
-#    with dog_stats_api.timer(metric_name, tags=package_tags +
-#                             ['step:pkg_version']):
-#        pkg_version()
+    with dog_stats_api.timer(metric_name, tags=package_tags +
+                             ['step:pkg_version']):
+        pkg_version()
 
     with dog_stats_api.timer(metric_name, tags=package_tags +
                              ['step:post_commands']):
@@ -384,15 +384,6 @@ def _install_requirements(pkg):
         # suspended
         sudo('{0} {1}'.format(AA_COMPLAIN, AA_SANDBOX_POLICY))
 
-    # Run old-style requirements TODO: remove
-    _run_if_changed(pkg, 'pre-requirements.txt', partial(
-                    pip_install, file='pre-requirements.txt', venv='/opt/edx'),
-                    'cat *requirements.txt')
-    _run_if_changed(pkg, 'requirements.txt', partial(
-                    pip_install, file='requirements.txt', venv='/opt/edx'),
-                    'cat *requirements.txt')
-    # end old-style requirements
-
     # Run new-style requirements
     for venv in VIRTUAL_ENVS:
         if not files.exists(venv):
@@ -408,7 +399,6 @@ def _install_requirements(pkg):
 
     if files.exists(AA_ENFORCE) and files.exists(AA_SANDBOX_POLICY):
         sudo('{0} {1}'.format(AA_ENFORCE, AA_SANDBOX_POLICY))
-
 
 @task
 @runs_once
