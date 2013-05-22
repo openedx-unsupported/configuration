@@ -1,18 +1,20 @@
 % This file managed by ansible
 % keep erlang kernel communcations to a range
 [
+ {% if enable_ha %}
  {kernel,
   [{inet_dist_listen_min, 65500},
    {inet_dist_listen_max, 65510}
   ]
  },
+ {% endif %}
  {rabbit, [
     {% if enable_ha %}
        {cluster_nodes, {[
          {% for svr in groups[ha_group_tag] %}
            'rabbit@{{hostvars[svr]['ansible_hostname']}}'{% if loop.index != loop.length %},{% endif %}
          {% endfor %}
-       ], 'disk'}}
+       ], 'disc'}}
     {% endif %} 
  ]},
   % Configure the Stomp Plugin listening port

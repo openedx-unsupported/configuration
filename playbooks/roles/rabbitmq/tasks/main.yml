@@ -11,7 +11,9 @@
 
 - name: install rabbitmq
   apt: pkg=rabbitmq-server install_recommends=yes state=present update_cache=yes
-  notify: restart rabbitmq
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
   tags:
     - rabbitmq
 
@@ -20,13 +22,17 @@
   with_items:
     - rabbitmq_management
     - rabbitmq_stomp
-  notify: restart rabbitmq
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
   tags:
     - rabbitmq
 
 - name: sets erlang cookie if ha clustering
   template: src=erlang_cookie.j2 dest=/var/lib/rabbitmq/.erlang.cookie owner=rabbitmq group=rabbitmq mode=0400
-  notify: restart rabbitmq
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
   when: enable_ha
   tags:
     - rabbitmq
@@ -36,7 +42,9 @@
   with_items:
     - rabbitmq.config
     - rabbitmq-env.conf
-  notify: restart rabbitmq
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
   tags:
     - rabbitmq
 
