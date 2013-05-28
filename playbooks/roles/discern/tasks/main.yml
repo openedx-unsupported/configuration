@@ -75,9 +75,12 @@
     - restart celery
     - restart discern
 
-- name: set permissions on repo dir
-  file: path={{discern_dir}} owner={{discern_user}} group=edx mode=2775 state=directory recurse=yes
-  file: path={{ease_dir}} owner={{discern_user}} group=edx mode=2775 state=directory recurse=yes
+#Use shell because the recurse option does not work with file
+- name: set permissions on repo dirs
+  shell: chown -R {{discern_user}} {{item}} && chmod -R 664 {{item}}
+  with_items:
+    - ${discern_dir}
+    - ${ease_dir}
 
 #Install system packages
 - name: install discern and ease apt packages
@@ -102,12 +105,8 @@
 - name: install ease python package
   shell: ${venv_dir}/bin/activate; cd {{ease_dir}}; python setup.py install
 
-#Needed for the ease package to work
-- name: install nltk data using rendered shell script
-  shell: cp -r {{ease_dir}}/ease/data/nltk_data {{nltk_data_root}}
-
-- name: set permissions on nltk data directory
-  file: path={{nltk_data_dir}} owner={{discern_user}} group=edx mode=2775 state=directory
+- name: copy nltk data dir from ease repo into common lib
+  file: src={{ease_dir}}/ease/data/nltk_data dest={{nltk_data_dir}} owner={{discern_user}} group=edx mode=664 state=directory
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
