@@ -1,0 +1,21 @@
+# edx core worker
+ 
+description "edX app core celery worker"
+ 
+stop on stopping edx-worker
+ 
+respawn
+ 
+# use the name of the queue as the instance name
+instance edx.${VARIANT}.core.${QUEUE}
+ 
+env CONCURRENCY=2
+env LOGLEVEL=INFO
+env DJANGO_SETTINGS_MODULE=lms.envs.aws
+env PYTHONPATH={{platform_code_dir}}
+env SERVICE_VARIANT=lms
+setuid www-data
+ 
+chdir {{platform_code_dir}}
+ 
+exec ${venv_dir}/bin/django-admin.py celery worker --settings=$DJANGO_SETTINGS_MODULE --pythonpath=$PYTHONPATH --loglevel=$LOGLEVEL --queues=edx.${VARIANT}.core.${QUEUE} --hostname=edx.${VARIANT}.core.${QUEUE}.`hostname` --concurrency=$CONCURRENCY

@@ -1,0 +1,21 @@
+---
+- name: creating edxworker upstart script
+  sudo: True
+  template: src=edx-worker.conf.j2 dest=/etc/init/edx-worker.conf owner=root group=root
+  tags:
+  - upstart
+  - edx_worker_upstart
+  - update
+
+#write the upstart script for lms worker
+- name: writing lms worker upstart script to /etc/init
+  sudo: True
+  template: src={{ item }} dest=/etc/init/edx-core-worker.conf owner=root group=root
+  first_available_file:
+  - "{{ local_dir }}/edx_worker_upstart/templates/lms_worker.conf.j2"
+  # seems like paths in first_available_file must be relative to the playbooks dir
+  - "roles/edx_worker_upstart/templates/lms_worker.conf.j2"
+  tags:
+  - upstart
+  - edx_worker_upstart
+  - update
