@@ -1,5 +1,4 @@
 # datadog integration configuration
-
 datadog_api: ''
 
 # repo_dirs : Exhaustive list of repo-dirs and their corresponding repo-names
@@ -21,12 +20,16 @@ repo_dirs:
   /opt/wwc/grading-controller: edx/grading-controller
   /opt/wwc/ease: edx/ease
   /opt/wwc/edx-platform: edx/edx-platform
+  /opt/wwc/data/cs50: MITx/cs50
+  /opt/wwc/data/edx4edx: MITx/edx4edx
+  /opt/wwc/data/700x: MITx/700x
   /opt/wwc/xqueue: edx/xqueue
   /opt/wwc/xserver: edx/xserver
   /opt/wwc/certificates: edx/certificates
+  /opt/wwc/drupal: MITx/drupal
   /opt/wwc/latex2edx: edx/latex2edx_xserver
   /opt/wwc/worker: edx/edx-platform
-
+  /opt/sysadmin: MITx/sysadmin
 # {pre,post}_checkout_regex:
 #      What actions to take before and after a repo checkout.
 #      Commands will be grouped together if multiple matches are made
@@ -134,76 +137,97 @@ post_checkout_regex: !!omap
 
   - ^edx-platform$|^content-.*$:
     - |
-      # Requirements files have been moved, so check the location first
-      if [[ -e /opt/wwc/edx-platform/local-requirements.txt ]]; then
+      #install local requirements for the platform
+      if [[ -e /opt/wwc/edx-platform/requirements/edx/local.txt ]]; then
         cd /opt/wwc/edx-platform
-        sudo -E /opt/edx/bin/pip install -q --upgrade --no-deps -r \
-        /opt/wwc/edx-platform/local-requirements.txt
+        sudo -E /opt/edx/bin/pip install -q --upgrade --no-deps --ignore-installed \
+        --exists-action w -r /opt/wwc/edx-platform/requirements/edx/local.txt
       fi
-      # Then check the new location
-      if [[ -e /opt/wwc/edx-platform/requirements/local.txt ]]; then
-        cd /opt/wwc/edx-platform
-        sudo -E /opt/edx/bin/pip install -q --upgrade --no-deps -r \
-        /opt/wwc/edx-platform/requirements/local.txt
-      fi
+      #install local requirements for the sandbox
 
+      if [[ -e /etc/apparmor.d/code.sandbox ]]; then
+        sudo /usr/sbin/aa-complain /etc/apparmor.d/code.sandbox
+
+        if [[ -e /opt/wwc/edx-platform/requirements/edx-sandbox/local.txt ]]; then
+          cd /opt/wwc/edx-platform
+          sudo -E /opt/edx-sandbox/bin/pip install -q --upgrade --no-deps --ignore-installed \
+          --exists-action w -r /opt/wwc/edx-platform/requirements/edx-sandbox/local.txt
+          fi
+        sudo /usr/sbin/aa-enforce /etc/apparmor.d/code.sandbox
+      fi
   - ^edx-platform$:
     - |
+      # On servers running the workers, which run from the same cloned
+      # repo, we don't want to run collect static.  This could cause
+      # problems because the cache's are shared with the edx-platform instances
+      # it's also simply not necessary for the workers as they have no
+      # view component.
+      edx_workers_status=$(service edx-workers status 2>/dev/null || true)
       # git.py already handle prerequisites, so don't let rake try to install them as well
-      export NO_PREREQ_INSTALL=1
-      # This is not a developer workspace, so we don't want to do the workspace migrations
-      # Instead, we rely on having a clean checkout every time
-      export SKIP_WS_MIGRATIONS=1
+      if [[ -z $edx_workers_status ]]; then
+        export NO_PREREQ_INSTALL=1
+        # This is not a developer workspace, so we don't want to do the workspace migrations
+        # Instead, we rely on having a clean checkout every time
+        export SKIP_WS_MIGRATIONS=1
 
-      export RBENV_ROOT=/opt/www/.rbenv
-      # Use rbenv binaries
-      export PATH=$RBENV_ROOT/shims:$RBENV_ROOT/bin:$PATH
-      # Use binaries installed in rbenv
-      export PATH=/opt/wwc/edx-platform/bin:$PATH
-      # Use binaries installed in virtualenv
-      export PATH=/opt/edx/bin:$PATH
-      eval "$(rbenv init -)"
-      # {{}} is used here because of python .format upstream
-      LMS_VARIANT="$(ls -1 /opt/wwc/lms*.env.json | tail -1 | xargs -i basename {{}} .env.json)"
-      export RUN="sudo -E -u www-data env SERVICE_VARIANT=$LMS_VARIANT PATH=$PATH"
-      cd /opt/wwc/edx-platform
+        export RBENV_ROOT=/opt/www/.rbenv
+        # Use rbenv binaries
+        export PATH=$RBENV_ROOT/shims:$RBENV_ROOT/bin:$PATH
+        # Use binaries installed in rbenv
+        export PATH=/opt/wwc/edx-platform/bin:$PATH
+        # Use binaries installed in virtualenv
+        export PATH=/opt/edx/bin:$PATH
+        eval "$(rbenv init -)"
+        # {{}} is used here because of python .format upstream
+        LMS_VARIANT="$(ls -1 /opt/wwc/lms*.env.json | tail -1 | xargs -i basename {{}} .env.json)"
+        export RUN="sudo -E -u www-data env SERVICE_VARIANT=$LMS_VARIANT PATH=$PATH"
+        cd /opt/wwc/edx-platform
 
-      # If we're gather_assets is available, run it (to compile coffee and sass, and then collectstatic)
-      if $(rake -T | grep --quiet gather_assets); then
-        $RUN rake lms:gather_assets:aws
-      # Otherwise, we're still using django pipeline, so just run collectstatic [TODO: Remove this clause when gather_assets gets to prod]
-      elif $($RUN django-admin.py help collectstatic --pythonpath=/opt/wwc/edx-platform --settings=lms.envs.aws &>/dev/null); then
-        $RUN django-admin.py collectstatic \
-        --pythonpath=/opt/wwc/edx-platform --settings=lms.envs.aws \
-        --noinput --verbosity=0
+        # If we're gather_assets is available, run it (to compile coffee and sass, and then collectstatic)
+        if $(rake -T | grep --quiet gather_assets); then
+          $RUN rake lms:gather_assets:aws
+          # Otherwise, we're still using django pipeline, so just run collectstatic [TODO: Remove this clause when gather_assets gets to prod]
+          elif $($RUN django-admin.py help collectstatic --pythonpath=/opt/wwc/edx-platform --settings=lms.envs.aws &>/dev/null); then
+          $RUN django-admin.py collectstatic \
+          --pythonpath=/opt/wwc/edx-platform --settings=lms.envs.aws \
+          --noinput --verbosity=0
+        fi
       fi
     - |
-      export NO_PREREQ_INSTALL=1
-      export SKIP_WS_MIGRATIONS=1
-      export RBENV_ROOT=/opt/www/.rbenv
-      # Use rbenv binaries
-      export PATH=$RBENV_ROOT/shims:$RBENV_ROOT/bin:$PATH
-      # Use binaries installed in rbenv
-      export PATH=/opt/wwc/edx-platform/bin:$PATH
-      # Use binaries installed in virtualenv
-      export PATH=/opt/edx/bin:$PATH
-      eval "$(rbenv init -)"
-      export RUN="sudo -E -u www-data env SERVICE_VARIANT=cms PATH=$PATH"
-      cd /opt/wwc/edx-platform
-      # If we're gather_assets is available, run it (to compile coffee and sass, and then collectstatic)
-      if $(rake -T | grep --quiet gather_assets); then
-        $RUN rake cms:gather_assets:aws
-      # Otherwise, we're still using django pipeline, so just run collectstatic [TODO: Remove this clause when gather_assets gets to prod]
-      elif $($RUN django-admin.py help collectstatic --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws &>/dev/null) && [[ -r /opt/wwc/cms.auth.json ]]; then
-        $RUN django-admin.py collectstatic \
-        --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws \
-        --noinput --verbosity=0
+      # On servers running the workers, which run from the same cloned
+      # repo, we don't want to run collect static.  This could cause
+      # problems because the cache's are shared with the edx-platform instances
+      # it's also simply not necessary for the workers as they have no
+      # view component.
+      edx_workers_status=$(service edx-workers status 2>/dev/null || true)
+      # git.py already handle prerequisites, so don't let rake try to install them as well
+      if [[ -z $edx_workers_status ]]; then
+        export NO_PREREQ_INSTALL=1
+        export SKIP_WS_MIGRATIONS=1
+        export RBENV_ROOT=/opt/www/.rbenv
+        # Use rbenv binaries
+        export PATH=$RBENV_ROOT/shims:$RBENV_ROOT/bin:$PATH
+        # Use binaries installed in rbenv
+        export PATH=/opt/wwc/edx-platform/bin:$PATH
+        # Use binaries installed in virtualenv
+        export PATH=/opt/edx/bin:$PATH
+        eval "$(rbenv init -)"
+        export RUN="sudo -E -u www-data env SERVICE_VARIANT=cms PATH=$PATH"
+        cd /opt/wwc/edx-platform
+        # If we're gather_assets is available, run it (to compile coffee and sass, and then collectstatic)
+        if $(rake -T | grep --quiet gather_assets); then
+          $RUN rake cms:gather_assets:aws
+          # Otherwise, we're still using django pipeline, so just run collectstatic [TODO: Remove this clause when gather_assets gets to prod]
+          elif $($RUN django-admin.py help collectstatic --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws &>/dev/null) && [[ -r /opt/wwc/cms.auth.json ]]; then
+          $RUN django-admin.py collectstatic \
+          --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws \
+          --noinput --verbosity=0
+        fi
+        if $($RUN django-admin.py help update_templates --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws &>/dev/null) && [[ -r /opt/wwc/cms.auth.json ]]; then
+          $RUN django-admin.py update_templates \
+          --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws
+        fi
       fi
-      if $($RUN django-admin.py help update_templates --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws &>/dev/null) && [[ -r /opt/wwc/cms.auth.json ]]; then
-        $RUN django-admin.py update_templates \
-        --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws
-      fi
-
   - ^edx-platform$|^content-.*$:
     - |
       edxapp_status=$(service edxapp status 2>/dev/null || true)
