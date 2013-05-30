@@ -4,7 +4,6 @@ import re
 import socket
 
 from functools import partial
-from dogapi import dog_stats_api
 from fabric.api import task, sudo, runs_once, execute
 from fabric.api import cd, env, abort, parallel, prefix
 from fabric.colors import white, green, red
@@ -222,11 +221,9 @@ def deploy(auto_migrate=False):
     metric_name = 'fabric.deployment'
 
     # pre checkout commands
-    with dog_stats_api.timer(metric_name, tags=package_tags +
-                             ['step:pre_commands']):
-        with prefix("export GIT_SSH=/tmp/git.sh"):
-            for cmd in env.pre_post['pre']:
-                noopable(sudo)(cmd)
+    with prefix("export GIT_SSH=/tmp/git.sh"):
+        for cmd in env.pre_post['pre']:
+            noopable(sudo)(cmd)
 
     put(os.path.join(os.path.dirname(__file__), 'git.sh'),
         '/tmp/git.sh', mode=0755, use_sudo=True)
@@ -238,52 +235,44 @@ def deploy(auto_migrate=False):
             'existance:' + 'existing' if existing_repo else 'absent',
         ]
 
-        with dog_stats_api.timer(metric_name, tags=repo_tags + ['step:clone']):
-            if existing_repo:
-                if not files.exists(os.path.join(pkg.repo_root, '.git'),
-                                    use_sudo=True):
-                    raise Exception("Repo root not a git repo - {0}".format(
-                        os.path.join(pkg.repo_root, '.git')))
-                with cd(pkg.repo_root):
-                    if pkg.revision == 'absent':
-                        noopable(sudo)('rm -rf {0}'.format(pkg.repo_root))
-                    else:
-                        checkout(pkg.revision)
-            else:
-                with cd(os.path.dirname(pkg.repo_root)):
-                    if pkg.revision != 'absent':
-                        clone(pkg.repo_org, pkg.repo_name, pkg.name, pkg.revision)
-            if '~' in pkg.name:
-                _update_course_xml(pkg, pkg.name.split('~')[1])
+        if existing_repo:
+            if not files.exists(os.path.join(pkg.repo_root, '.git'),
+                                use_sudo=True):
+                raise Exception("Repo root not a git repo - {0}".format(
+                    os.path.join(pkg.repo_root, '.git')))
+            with cd(pkg.repo_root):
+                if pkg.revision == 'absent':
+                    noopable(sudo)('rm -rf {0}'.format(pkg.repo_root))
+                else:
+                    checkout(pkg.revision)
+        else:
+            with cd(os.path.dirname(pkg.repo_root)):
+                if pkg.revision != 'absent':
+                    clone(pkg.repo_org, pkg.repo_name, pkg.name, pkg.revision)
+        if '~' in pkg.name:
+            _update_course_xml(pkg, pkg.name.split('~')[1])
 
-        with dog_stats_api.timer(metric_name, tags=repo_tags +
-                                 ['step:requirements']):
-            _install_requirements(pkg)
-            _install_gemfile(pkg)
-            _install_npm_package(pkg)
+        _install_requirements(pkg)
+        _install_gemfile(pkg)
+        _install_npm_package(pkg)
 
-#        with dog_stats_api.timer(metric_name, tags=repo_tags + ['step:fact']):
-#            # drop a file for puppet so it knows that
-#            # code is installed for the service
-#            with cd('/etc/facter/facts.d'):
-#                pkg_config = PackageInfo()
-#                if pkg.repo_name in pkg_config.service_repos:
-#                    # facts can't have dashes so they are converted
-#                    # to underscores
-#                    noopable(sudo)(
-#                        'echo "{0}_installed=true" > {0}_installed.txt'.format(
-#                        pkg.repo_name.replace("-", "_")))
+        # drop a file for puppet so it knows that
+        # code is installed for the service
+#        with cd('/etc/facter/facts.d'):
+#            pkg_config = PackageInfo()
+#            if pkg.repo_name in pkg_config.service_repos:
+#                # facts can't have dashes so they are converted
+#                # to underscores
+#                noopable(sudo)(
+#                    'echo "{0}_installed=true" > {0}_installed.txt'.format(
+#                    pkg.repo_name.replace("-", "_")))
 
-#    with dog_stats_api.timer(metric_name, tags=package_tags +
-#                             ['step:pkg_version']):
-#        pkg_version()
+    pkg_version()
 
-    with dog_stats_api.timer(metric_name, tags=package_tags +
-                             ['step:post_commands']):
-        # post checkout commands
-        with prefix("export GIT_SSH=/tmp/git.sh"):
-            for cmd in env.pre_post['post']:
-                noopable(sudo)(cmd)
+    # post checkout commands
+    with prefix("export GIT_SSH=/tmp/git.sh"):
+        for cmd in env.pre_post['post']:
+            noopable(sudo)(cmd)
 
     if 'mitx' in [pkg.name for pkg in packages]:
         # do not slow down content deploys by checking
@@ -384,15 +373,6 @@ def _install_requirements(pkg):
         # suspended
         sudo('{0} {1}'.format(AA_COMPLAIN, AA_SANDBOX_POLICY))
 
-    # Run old-style requirements TODO: remove
-    _run_if_changed(pkg, 'pre-requirements.txt', partial(
-                    pip_install, file='pre-requirements.txt', venv='/opt/edx'),
-                    'cat *requirements.txt')
-    _run_if_changed(pkg, 'requirements.txt', partial(
-                    pip_install, file='requirements.txt', venv='/opt/edx'),
-                    'cat *requirements.txt')
-    # end old-style requirements
-
     # Run new-style requirements
     for venv in VIRTUAL_ENVS:
         if not files.exists(venv):
@@ -408,7 +388,6 @@ def _install_requirements(pkg):
 
     if files.exists(AA_ENFORCE) and files.exists(AA_SANDBOX_POLICY):
         sudo('{0} {1}'.format(AA_ENFORCE, AA_SANDBOX_POLICY))
-
 
 @task
 @runs_once
