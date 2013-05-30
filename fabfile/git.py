@@ -258,14 +258,14 @@ def deploy(auto_migrate=False):
 
         # drop a file for puppet so it knows that
         # code is installed for the service
-        with cd('/etc/facter/facts.d'):
-            pkg_config = PackageInfo()
-            if pkg.repo_name in pkg_config.service_repos:
-                # facts can't have dashes so they are converted
-                # to underscores
-                noopable(sudo)(
-                    'echo "{0}_installed=true" > {0}_installed.txt'.format(
-                    pkg.repo_name.replace("-", "_")))
+#        with cd('/etc/facter/facts.d'):
+#            pkg_config = PackageInfo()
+#            if pkg.repo_name in pkg_config.service_repos:
+#                # facts can't have dashes so they are converted
+#                # to underscores
+#                noopable(sudo)(
+#                    'echo "{0}_installed=true" > {0}_installed.txt'.format(
+#                    pkg.repo_name.replace("-", "_")))
 
     pkg_version()
 
