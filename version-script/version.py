@@ -96,7 +96,7 @@ def main():
         for line in remote_output.splitlines():
             if ' (fetch)' in line:
                 repo_url = re.search(
-                        'git@(.*) \(fetch\)', line).group(1).replace(
+                        '(git@|git://)(.*) \(fetch\)', line).group(2).replace(
                                                                 ':', '/')
                 break
         if not repo_url:
