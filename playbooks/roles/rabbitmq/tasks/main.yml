@@ -1,16 +1,50 @@
 #Add rabbitmq to sources.  See http://www.rabbitmq.com/install-debian.html
 - name: add in rabbitmq line to sources.list
   lineinfile: dest=/etc/apt/sources.list state=present line="deb http://www.rabbitmq.com/debian/ testing main" regexp='^deb http://www.rabbitmq.com/debian/ testing main'
+  tags:
+    - rabbitmq
 
 - name: add rabbit key
   apt_key: url=http://www.rabbitmq.com/rabbitmq-signing-key-public.asc state=present
+  tags:
+    - rabbitmq
 
 - name: install rabbitmq
   apt: pkg=rabbitmq-server install_recommends=yes state=present update_cache=yes
-  notify: restart rabbitmq
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
+  tags:
+    - rabbitmq
 
+- name: enable rabbitmq plugins
+  shell: "rabbitmq-plugins enable {{ item }}"
+  with_items:
+    - rabbitmq_management
+    - rabbitmq_stomp
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
+  tags:
+    - rabbitmq
 
+- name: sets erlang cookie if ha clustering
+  template: src=erlang_cookie.j2 dest=/var/lib/rabbitmq/.erlang.cookie owner=rabbitmq group=rabbitmq mode=0400
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
+  when: enable_ha
+  tags:
+    - rabbitmq
 
-
-
+- name: write out rabbitmq.config and rabbitmq-env.conf configurations
+  template: src={{item}}.j2 dest=/etc/rabbitmq/{{item}} owner=rabbitmq group=rabbitmq mode=0640
+  with_items:
+    - rabbitmq.config
+    - rabbitmq-env.conf
+  notify: 
+    - use rabbitmqctl to stop rabbitmq
+    - restart rabbitmq
+  tags:
+    - rabbitmq
 
