@@ -1,0 +1,25 @@
+---
+
+#- hosts: tag_environment_prod:&tag_function_webserver:&tag_test_test
+- hosts: i-a4d28cfc
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+    - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
+  roles:
+    - common
+    - nginx
+    - gunicorn
+    - edxapp
+    - ruby
+    - npm
+    # run this role last
+    - in_production
+  tasks:
+    - debug: msg="{{ lms_preview_auth_config}}"
+      tags:
+        - debug
+    - debug: msg="{{ lms_preview_env_config}}"
+      tags:
+        - debug
