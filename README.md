@@ -107,6 +107,26 @@ Getting this working in important because we'll be using Ansible
 with the SSH transport and it will rely on this configuration
 being in place in order to configure your servers.
 
+
+### Finding your hosts via boto
+
+Boto is how fabric looks up metadata about your stack, most importantly
+finding the names of your machines.  It needs your access information.
+This should be the contents of your ```~/.boto``` file.  Make sure
+to customize the region:
+
+```ini
+[Credentials]
+aws_access_key_id = AAAAAAAAAAAAAAAAAAAA
+aws_secret_access_key = BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+
+[Boto]
+debug = 1
+ec2_region_name = us-west-1
+ec2_region_endpoint = ec2.us-west-1.amazonaws.com
+```
+
+
 ### Tagging
 
 Tagging is the bridge between the provisioning and configuration
@@ -339,4 +359,5 @@ following to run your playbook.
 ```
 
 *Note: this assumes the group used for the edx stack was "edxapp_stage"*
+
 
