@@ -51,8 +51,31 @@ configuration parameters, it will give you continuous feedback during
 the process of building the stack and useful error messages when
 problems occur.
 
+Before you create the stack you will need to create a key-pair that can
+be used to connect to the stack once it's instantiated.  To do this
+go to the 'EC2' section and create a new key-pair under the 'Key Pairs'
+section.  Note the name of this key and update
+`cloudformation_templates/edx-reference-architecture.json` file.  Under the
+'KeyName' section change the value of 'Default' to the name of the key-pair
+you just created.
+
 Details on how to build the stack using Ansible are available below.
 
+#### Building with the AWS Console
+From the AWS main page that lists all the services you can use.  Click on the
+CloudFormation link.  This will take you to a list of cloud stacks you currently
+have active.  Here click the 'Create Stack' button.  In the wizard you can give a
+name for your stack and pass in a template which defines the edX stack.  Use the
+`edx-reference-architecture.json` template in the `cloudformation_templates` directory.
+
+#### Building with the CloudFormation CLI
+To build from the CloudFormation CLI you will have to first upload the configuration
+file to an S3 Bucket.  The easiest way to do this is to use `s3cmd`.
+
+```
+s3cmd put /path/to/edx-reference-architecture.json s3://<bucket_name>
+aws cloudformation create-stack --stack-name <stack_name> --template-url https://s3.amazonaws.com/<bucket_name>/edx-reference-architecture.json --capabilities CAPABILITY_IAM
+```
 
 ### Post Bringup Manual Commands
 
