@@ -96,6 +96,7 @@ screenshot).
 
 ![CloudFormation Output (Amazon console)](doc/cfn-output-example.png)
 
+Run the commands shown here before moving onto the next step.
 
 ### Connecting to Hosts in the Stack
 
@@ -154,7 +155,7 @@ ec2_region_endpoint = ec2.us-west-1.amazonaws.com
 
 Tagging is the bridge between the provisioning and configuration
 phases.  The servers provisioned in your VPC will be stock Ubuntu
-12.0.4 LTS servers.  The only difference between them with be the tags
+12.0.4 LTS servers.  The only difference between them will be the tags
 that CloudFront has applied to them.  These tags will be used by Ansible
 to map playbooks to the correct servers.  The application of the
 appropriate playbook, will turn each stock host into an appropriately
