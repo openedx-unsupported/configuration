@@ -25,8 +25,8 @@ JUMPBOX_CONFIG = """
       User {user}
     """
 
-HOS_CONFIG = """
-    Host {ip}
+HOST_CONFIG = """
+    Host {name}
       ProxyCommand ssh -W %h:%p {jump_box}
       HostName {ip}
       IdentityFile {identity_file}
@@ -48,8 +48,8 @@ def _ssh_config(args):
     user = args.get("<user>",DEFAULT_USER)
     vpc_id = args.get("<vpc_id>")
 
-
     jump_box = "{vpc_id}-jumpbox".format(vpc_id=vpc_id)
+    friendly = "{vpc_id}-{logical_id}-{instance_id}"
 
     reservations = vpc.get_all_instances(filters={'vpc-id' : vpc_id})
 
@@ -67,7 +67,8 @@ def _ssh_config(args):
                     identity_file=identity_file)
 
             else:
-                print HOS_CONFIG.format(
+                print HOST_CONFIG.format(
+                    name=instance.private_ip_address,
                     vpc_id=vpc_id,
                     jump_box=jump_box,
                     ip=instance.private_ip_address,
@@ -76,7 +77,11 @@ def _ssh_config(args):
                     identity_file=identity_file)
 
             #duplicating for convenience with ansible
-            print HOS_CONFIG.format(
+            name = friendly.format(vpc_id=vpc_id,
+                                   logical_id=logical_id,
+                                   instance_id=instance.id)
+            print HOST_CONFIG.format(
+                name=name,
                 vpc_id=vpc_id,
                 jump_box=jump_box,
                 ip=instance.private_ip_address,
