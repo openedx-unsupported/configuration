@@ -54,6 +54,11 @@
       "Type":"Number",
       "Default":"11211"
     },
+    "SSLCertificateARN":{
+      "Description":"The ARN for an SSL certificate to use with the edxapp.",
+      "Type":"String",
+      "Default":"arn:aws:iam::372153017832:server-certificate/dummy"
+    },
     "BastionInstanceType":{
       "Description":"Bastion Host EC2 instance type",
       "Type":"String",
@@ -1786,10 +1791,21 @@
               "Ref":"WebServerPort"
             },
             "Protocol":"HTTP"
+          },
+          {
+            "LoadBalancerPort":"443",
+            "InstancePort":{
+              "Ref":"WebServerPort"
+            },
+            "Protocol":"HTTPS",
+            "InstanceProtocol":"HTTP",
+            "SSLCertificateId": {
+              "Ref": "SSLCertificateARN"
+            }
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:22",
+          "Target":"HTTP:80/heartbeat",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
