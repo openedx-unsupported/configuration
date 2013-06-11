@@ -78,6 +78,10 @@
 - name: gather lms static assets with rake
   shell: executable=/bin/bash chdir=/opt/wwc/edx-platform SERVICE_VARIANT={{ LMS_VARIANT }} rake lms:gather_assets:aws
   when: grep_gather_assets.rc == 0
+  notify:
+  - restart lms
+  - restart lms-xml
+  - restart lms-preview
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -91,6 +95,10 @@
 - name: gather lms static assets with django
   shell: SERVICE_VARIANT={{ LMS_VARIANT }} django-admin.py collectstatic --pythonpath=/opt/wwc/edx-platform --settings=lms.envs.aws
   when: grep_gather_assets.rc != 0 and check_lms_collect_static.rc == 0
+  notify:
+  - restart lms
+  - restart lms-xml
+  - restart lms-preview
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -106,6 +114,8 @@
 #  script: gather_assets.sh
   shell: executable=/bin/bash chdir=/opt/wwc/edx-platform SERVICE_VARIANT={{ CMS_VARIANT }} rake cms:gather_assets:aws
   when: grep_gather_assets.rc == 0
+  notify:
+  - restart cms
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -116,6 +126,8 @@
 - name: gather cms static assets with django
   shell: SERVICE_VARIANT={{ CMS_VARIANT }} django-admin.py collectstatic --pythonpath=/opt/wwc/edx-platform --settings=lms.envs.aws --noinput --verbosity=0
   when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc == 0
+  notify:
+  - restart cms
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -126,6 +138,8 @@
 - name: update cms templates
   shell: SERVICE_VARIANT={{ CMS_VARIANT }} django-admin.py update_templates --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws
   when: check_cms_update_templates.rc == 0
+  notify:
+  - restart cms
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
