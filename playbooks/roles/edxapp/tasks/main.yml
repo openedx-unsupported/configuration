@@ -28,16 +28,12 @@
   - logging
   - update
 
-# If we set up LMS, we have to set up edx logging
-- include: ../../common/tasks/edx_logging_base.yml
-
 # Install ssh keys for ubuntu account to be able to check out from edx-platform
 # Temprory behavior, not needed after June 1. Perhaps still useful as a recipe.
 # {{ secure_dir }} is relative to the top-level playbooks dir so there is some
-# ugly relative pathing here
 
 - name: install read-only ssh key for edx-platform repo (private)
-  copy: src=../../../{{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=600
+  copy: src={{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=600
   tags:
   - lms
   - cms
@@ -57,22 +53,6 @@
   - lms
   - cms
 
-- name: git checkout edx-platform repo into $app_base_dir
-  git: dest={{platform_code_dir}} repo={{lms_source_repo}} version={{lms_version}}
-  environment:
-    GIT_SSH: /tmp/git_ssh.sh
-  tags:
-  - lms
-  - cms
-  - install
-  
-- name: sets permissions on platform code dir
-  file: path={{platform_code_dir}} state=directory owner=www-data group=www-data mode=755
-  tags:
-  - lms
-  - cms
-  - install
-
 - name: install a bunch of system packages on which LMS and CMS rely
   apt: pkg={{item}} state=present
   with_items: lms_debian_pkgs
@@ -82,49 +62,6 @@
   - install
 
 
-# Install the python pre requirements into {{ venv_dir }}
-- name : install python pre-requirements
-  pip: requirements="{{pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
-  tags:
-  - lms
-  - cms
-  - install
-
-# Install the python modules into {{ venv_dir }}
-- name : install base python packages using the shell
-  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some 
-  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
-  # installs everything into that virtual environment.
-  shell: cd {{ platform_code_dir }} && {{ venv_dir }}/bin/pip install --use-mirrors -r {{ base_requirements_file }}
-  tags:
-  - lms
-  - cms
-  - install
-  
- 
-# Install the python post requirements into {{ venv_dir }}
-- name : install python post-requirements
-  pip: requirements="{{post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
-  tags:
-  - lms
-  - cms
-  - install
-
-# Install the final python modules into {{ venv_dir }}
-- name : install python post-post requirements using the shell
-  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some 
-  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
-  # installs everything into that virtual environment.
-  shell: cd {{ platform_code_dir }} && {{ venv_dir }}/bin/pip install --use-mirrors -r {{ item }}
-  with_items:
-  - "{{ repo_requirements_file }}"
-  - "{{ github_requirements_file }}"
-  - "{{ local_requirements_file }}"
-  tags:
-  - lms
-  - cms
-  - install
-
 - include: lms.yml
   when: "'lms' in service_variants_enabled"
 - include: lms-xml.yml
@@ -133,4 +70,7 @@
   when: "'cms' in service_variants_enabled"
 - include: lms-preview.yml
   when: "'lms-preview' in service_variants_enabled"
- 
+
+- include: npm.yml
+- include: ruby.yml
+- include: deploy.yml
