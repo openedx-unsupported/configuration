@@ -1,0 +1,59 @@
+# Stop all services.
+- name: stop edxapp services
+  service: name=edxapp state=stopped
+  tags:
+  - lms
+  - lms-xml
+  - lms-preview
+  - cms
+  - deploy
+
+# Do A Checkout
+- name: git checkout edx-platform repo into $app_base_dir
+  git: dest={{platform_code_dir}} repo={{lms_source_repo}} version={{lms_version}}
+  environment:
+    GIT_SSH: /tmp/git_ssh.sh
+  tags:
+  - lms
+  - cms
+  - install
+
+# Do Post Checkout Tasks.
+- name: create platform code dir
+  file: path={{platform_code_dir}} state=directory owner=www-data group=www-data mode=755
+  tags:
+  - lms
+  - cms
+  - install
+
+# TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
+# portions of the deploy needs to be incorporated here.
+
+- name: sets permissions on platform code dir and contents
+  file: path={{platform_code_dir}} state=directory owner=www-data group=www-data recurse=yes
+  # Post Checkout tasks will get run as handlers when the {{ platform_code_dir }} is ready.
+  # Look at the handlers/main.yml in this role for a description of the tasks stated below.
+  notify:
+  - gem | gem install bundler
+  - bundle | bundle install
+  - Install edx-platform npm dependencies
+  - install python pre-requirements
+  - install python base-requirements
+  - install python post-requirements
+  - install python post-post requirements
+  - check if rake gather_assets is available
+  - check if django can collect lms static data
+  - check if django can collect cms static data
+  - check if django can update cms templates
+  - gather lms static assets with rake
+  - gather lms static assets with django
+  - gather cms static assets with rake
+  - gather cms static assets with django
+  - update cms templates
+  - lms asset static failure check
+  - cms asset static failure check
+  tags:
+  - lms
+  - cms
+  - install
+
