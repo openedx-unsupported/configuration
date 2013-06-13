@@ -17,6 +17,7 @@
   - lms
   - cms
   - install
+  - deploy
 
 # Do Post Checkout Tasks.
 - name: create platform code dir
@@ -26,6 +27,18 @@
   - cms
   - install
 
+- name: checkout theme
+  git: dest={{app_base_dir}}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+  when: edxapp_theme_name != ''
+  tags:
+  - cms
+  - lms-xml
+  - lms-preview
+  - lms
+  - update
+  - deploy
+
+
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
 
@@ -33,27 +46,19 @@
   file: path={{platform_code_dir}} state=directory owner=www-data group=www-data recurse=yes
   # Post Checkout tasks will get run as handlers when the {{ platform_code_dir }} is ready.
   # Look at the handlers/main.yml in this role for a description of the tasks stated below.
-  notify:
-  - gem | gem install bundler
-  - bundle | bundle install
-  - Install edx-platform npm dependencies
-  - install python pre-requirements
-  - install python base-requirements
-  - install python post-requirements
-  - install python post-post requirements
-  - check if rake gather_assets is available
-  - check if django can collect lms static data
-  - check if django can collect cms static data
-  - check if django can update cms templates
-  - gather lms static assets with rake
-  - gather lms static assets with django
-  - gather cms static assets with rake
-  - gather cms static assets with django
-  - update cms templates
-  - lms asset static failure check
-  - cms asset static failure check
   tags:
   - lms
   - cms
   - install
+  - deploy
 
+# want deploy handlers to always run when deploy tag is specified, so move into a no op task
+- name: run deploy handlers
+  shell: echo "running deploy handlers"
+  notify:
+  - invoke all deploy handlers
+  tags:
+  - lms
+  - cms
+  - install
+  - deploy
