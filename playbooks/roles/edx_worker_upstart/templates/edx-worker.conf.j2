@@ -1,0 +1,12 @@
+# edx workers
+ 
+description "start edX app workers"
+ 
+start on runlevel [2345]
+stop on runlevel [!2345]
+ 
+pre-start script
+        start edx-core-worker QUEUE=low     CONCURRENCY={{ ansible_processor_cores }}  VARIANT=lms
+        start edx-core-worker QUEUE=default CONCURRENCY={{ ansible_processor_cores }}  VARIANT=lms
+        start edx-core-worker QUEUE=high    CONCURRENCY={{ ansible_processor_cores*2 }}  VARIANT=lms
+end script
