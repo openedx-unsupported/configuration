@@ -1,13 +1,33 @@
 ---
-# Restart Start all services.
-- name: restart edxapp
-  service: name=edxapp state=restarted
+- name: invoke all deploy handlers
+  shell: echo "running deploy handlers"
+  notify:
+  - gem | gem install bundler
+  - bundle | bundle install
+  - Install edx-platform npm dependencies
+  - install python pre-requirements
+  - install python base-requirements
+  - install python post-requirements
+  - install python post-post requirements
+  - check if rake gather_assets is available
+  - check if django can collect lms static data
+  - check if django can collect cms static data
+  - check if django can update cms templates
+  - gather lms static assets with rake
+  - gather lms static assets with django
+  - gather cms static assets with rake
+  - gather cms static assets with django
+  - update cms templates
+  - lms asset static failure check
+  - cms asset static failure check
+  - stop edxapp
+  - start edxapp
   tags:
   - lms
-  - lms-xml
-  - lms-preview
   - cms
+  - install
   - deploy
+
 
 # Ruby plays that need to be run after platform updates.
 - name: gem | gem install bundler
@@ -30,6 +50,7 @@
   tags:
   - npm
   - update
+  - deploy
 
 # Python plays that need to be run after platform updates.
 
@@ -40,6 +61,7 @@
   - lms
   - cms
   - install
+  - deploy
 
 # Install the python modules into {{ venv_dir }}
 - name : install python base-requirements
@@ -51,7 +73,7 @@
   - lms
   - cms
   - install
-
+  - deploy
 
 # Install the python post requirements into {{ venv_dir }}
 - name : install python post-requirements
@@ -60,6 +82,7 @@
   - lms
   - cms
   - install
+  - deploy
 
 # Install the final python modules into {{ venv_dir }}
 - name : install python post-post requirements
@@ -75,6 +98,7 @@
   - lms
   - cms
   - install
+  - deploy
 
 # This check needs to be run to see if rake can be used but its failure should not stop the run.
 - name: check if rake gather_assets is available
@@ -126,7 +150,8 @@
   shell: executable=/bin/bash chdir={{ platform_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
   when: grep_gather_assets.rc == 0
   notify:
-  - restart edxapp
+  - stop edxapp
+  - start edxapp
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -141,7 +166,8 @@
   shell: SERVICE_VARIANT={{ lms_variant }} django-admin.py collectstatic --pythonpath={{ platform_code_dir }} --settings=lms.envs.aws --noinput --verbosity=0
   when: grep_gather_assets.rc != 0 and check_lms_collect_static.rc == 0
   notify:
-  - restart edxapp
+  - stop edxapp
+  - start edxapp
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -158,7 +184,8 @@
   shell: executable=/bin/bash chdir={{ platform_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
   when: grep_gather_assets.rc == 0
   notify:
-  - restart edxapp
+  - stop edxapp
+  - start edxapp
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -170,7 +197,8 @@
   shell: SERVICE_VARIANT={{ cms_variant }} django-admin.py collectstatic --pythonpath={{ platform_code_dir }} --settings=lms.envs.aws --noinput --verbosity=0
   when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc == 0
   notify:
-  - restart edxapp
+  - stop edxapp
+  - start edxapp
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -182,7 +210,8 @@
   shell: SERVICE_VARIANT={{ cms_variant }} django-admin.py update_templates --pythonpath={{ platform_code_dir }} --settings=cms.envs.aws
   when: check_cms_update_templates.rc == 0
   notify:
-  - restart edxapp
+  - stop edxapp
+  - start edxapp
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
@@ -204,5 +233,23 @@
   shell: /bin/false
   when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc != 0
   tags:
+  - cms
+  - deploy
+
+- name: stop edxapp
+  service: name=edxapp state=stopped
+  tags:
+  - lms
+  - lms-xml
+  - lms-preview
+  - cms
+  - deploy
+
+- name: start edxapp
+  service: name=edxapp state=started
+  tags:
+  - lms
+  - lms-xml
+  - lms-preview
   - cms
   - deploy
