@@ -6,17 +6,25 @@
 - name: create lms-xml application config
   template: src=lms-xml.env.json.j2 dest=$app_base_dir/lms-xml.env.json mode=640 owner=www-data group=adm
   tags:
-  - cms-env
-  - cms
+  - lms-xml-env
+  - lmx-xml
   - update
 
 - name: create lms-xml auth file
   template: src=lms-xml.auth.json.j2 dest=$app_base_dir/lms-xml.auth.json mode=640 owner=www-data group=adm
   tags:
-  - cms-env
-  - cms
+  - lms-xml-env
+  - lmx-xml
   - update
-  
+
+- name: Create lms-xml log target directory
+  file: path={{log_base_dir}}/lms-xml state=directory owner=syslog group=adm mode=2770
+  tags:
+  - lms-xml
+  - lms-xml-env
+  - logging
+  - update
+
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-xml
   
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-xml-backend
