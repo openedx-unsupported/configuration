@@ -1,4 +1,35 @@
 # Provision and bring up xserver
 ---
 
+- name: ensure sandbox group exists
+  group: name=sandbox
+
+- name: ensure sandbox user exists
+  user: name=sandbox group=sandbox
+
+- name: create sandbox python
+  shell: cp /usr/bin/python2.7 /usr/bin/python-sandbox
+
+- name: set sandbox sudoers settings
+  copy: src=01-sandbox dest=/etc/sudoers.d/01-sandbox
+
+# Make sure this line is in the common-session file.
+- name: ensure pam-limits module is loaded
+  lineinfile:
+    dest=/etc/pam.d/common-session
+    regexp="session required pam_limits.so"
+    line="session required pam_limits.so"
+
+- name: set sandbox limits
+  copy: src=sandbox.conf dest=/etc/security/limits.d/sandbox.conf
+
+- name: ensure apparmor package
+  apt: pkg=apparmor-utils state=present
+
+- name: load python-sandbox apparmor profile
+  copy: src=usr.bin.python-sandbox dest=/etc/apparmor.d/usr.bin.python-sandbox
+
+- name: enforce app-armor rules
+  shell: aa-enforce /usr/bin/python-sandbox
+
 - include: deploy.yml
