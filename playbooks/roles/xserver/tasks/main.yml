@@ -24,13 +24,19 @@
     line="session required pam_limits.so"
 
 - name: set sandbox limits
-  copy: src=sandbox.conf dest=/etc/security/limits.d/sandbox.conf
+  copy: src={{ item }} dest=/etc/security/limits.d/sandbox.conf
+  first_available_file:
+  - {{ secure_dir }}/sandbox.conf
+  - sandbox.conf
 
 - name: ensure apparmor package
   apt: pkg=apparmor-utils state=present
 
 - name: load python-sandbox apparmor profile
-  copy: src=usr.bin.python-sandbox dest=/etc/apparmor.d/usr.bin.python-sandbox
+  template: src={{ item }} dest=/etc/apparmor.d/edx_apparmor_sandbox
+  first_available_file:
+  - {{ secure_dir }}/files/edx_apparmor_sandbox.j2
+  - usr.bin.python-sandbox.j2
 
 - name: enforce app-armor rules
   command: aa-enforce {{ sandbox_venv_dir }}
