@@ -8,7 +8,7 @@
   user: name=sandbox group=sandbox
 
 - name: create sandbox python directory
-  file: path={{ sandbox_venv_dir }} owner=ubuntu group=adm moe=2775 state=directory
+  file: path={{ sandbox_venv_dir }} owner=ubuntu group=adm mode=2775 state=directory
 
 - name: create sandbox python
   command: /usr/local/bin/virtualenv {{ sandbox_venv_dir }} --distribute creates={{ sandbox_venv_dir }}/bin/activate
@@ -26,8 +26,8 @@
 - name: set sandbox limits
   copy: src={{ item }} dest=/etc/security/limits.d/sandbox.conf
   first_available_file:
-  - {{ secure_dir }}/sandbox.conf
-  - sandbox.conf
+  - "{{ secure_dir }}/sandbox.conf"
+  - "sandbox.conf"
 
 - name: ensure apparmor package
   apt: pkg=apparmor-utils state=present
@@ -35,8 +35,8 @@
 - name: load python-sandbox apparmor profile
   template: src={{ item }} dest=/etc/apparmor.d/edx_apparmor_sandbox
   first_available_file:
-  - {{ secure_dir }}/files/edx_apparmor_sandbox.j2
-  - usr.bin.python-sandbox.j2
+  - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
+  - "usr.bin.python-sandbox.j2"
 
 - name: enforce app-armor rules
   command: aa-enforce {{ sandbox_venv_dir }}
