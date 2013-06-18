@@ -20,6 +20,7 @@
   - update cms templates
   - lms asset static failure check
   - cms asset static failure check
+  - syncdb and migrate
   - stop edxapp
   - start edxapp
   tags:
@@ -236,6 +237,12 @@
   - cms
   - deploy
 
+- name: syncdb and migrate
+  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  when: migrate_db is defined
+  tags:
+  - syncdb
+
 - name: stop edxapp
   service: name=edxapp state=stopped
   tags:
@@ -253,3 +260,4 @@
   - lms-preview
   - cms
   - deploy
+
