@@ -39,7 +39,8 @@ over time, so expect frequent changes.
 ### Quick start - Building the stack on a single server
 
 
-To deploy the entire edX platform on a single ec2 instance yo
+To deploy the entire edX platform on a single ec2 instance
+run the following commands:
 
 ```
 git clone git@github.com:edx/configuration
