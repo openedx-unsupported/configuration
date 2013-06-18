@@ -13,7 +13,11 @@ respawn limit 3 30
 env PID=/var/tmp/cms.pid
 #env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
 #env NEWRELIC={{venv_dir}}/bin/newrelic-admin
-env WORKERS={{ ansible_processor_cores * 2 }}
+{% if facter_processorcount %}
+env WORKERS={{ worker_core_mult.cms * facter_processorcount|int }}
+{% else %}
+env WORKERS={{ worker_core_mult.cms * ansible_processor_cores }}
+{% endif %}
 env PORT=8010
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=cms.envs.aws
