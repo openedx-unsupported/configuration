@@ -1,32 +1,11 @@
 server {
   # LMS configuration file for nginx, templated by ansible
 
-  listen 80;
+  listen {{lms_nginx_port}} default;
 
-  server_name *.edx.org;
   access_log {{log_base_dir}}/nginx/access.log;
   error_log {{log_base_dir}}/nginx/error.log error;
 
-  #
-  # Send error response when request host isn't under our control
-  # We will no longer respond to proxy attempts like this with
-  # anything.
-  # curl -i -A '' -x http://www.edx.org:80 --proxy-negotiate -U u:p -u u:p http://chat.sdtz.com
-  #
-
-  set $reject 'no';
-
-  if ($host !~* (edx.org|edxonline.org)$ ) {
-    set $reject 'yes';
-  }
-
-  if ($request_uri ~ ^(/heartbeat)$) {
-    set $reject 'no';
-  }
-
-  if ( $reject = 'yes' ) {
-    return 444;
-  }
   # CS184 requires uploads of up to 4MB for submitting screenshots.
   # CMS requires larger value for course assest, values provided
   # via hiera.
@@ -34,11 +13,6 @@ server {
 
   rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
 
-  # CS188 rewrite rule for Arjun 9/19/12
-  rewrite ^/ai$ http://$host/courses/BerkeleyX/CS188.1x/2012_Fall/about last;
-
-  # redirect /ai to the about page for CS188.1x
-  rewrite ^/ai$ https://$host/courses/BerkeleyX/CS188.1x/2012_Fall/about last;
 
   location @proxy_to_lms_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
@@ -66,8 +40,6 @@ server {
 
   # Check security on this
   location ~ /static/(?P<file>.*) {
-    auth_basic            "Restricted";
-    auth_basic_user_file  /etc/nginx/nginx.htpasswd;
     root {{app_base_dir}};
     try_files /staticfiles/$file /course_static/$file =404;
 
@@ -96,13 +68,5 @@ server {
   # Run our actual redirect...
   if ($do_redirect = "true") {
     rewrite ^ https://$host$request_uri? permanent;
-  }
-
-  # Monitoring support for datadog.
-  location /nginx_status {
-    stub_status on;
-    access_log off;
-    allow 127.0.0.1/32;
-    deny all;
   }
 }

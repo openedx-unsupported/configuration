@@ -1,31 +1,10 @@
 server {
   # LMS-preview configuration file for nginx, templated by ansible
 
-  listen 80;
+  listen {{lms_preview_nginx_port}};
 
-  server_name trace-lms-preview.*
-              preview.lms-dev.m.edx.org;
+  server_name preview.*;
 
-  #
-  # Send error response when request host isn't under our control
-  # We will no longer respond to proxy attempts like this with
-  # anything.
-  # curl -i -A '' -x http://www.edx.org:80 --proxy-negotiate -U u:p -u u:p http://chat.sdtz.com
-  #
-
-  set $reject 'no';
-
-  #if ($host !~* (edx.org|edxonline.org)$ ) {
-  #  set $reject 'yes';
-  #}
-
-  if ($request_uri ~ ^(/heartbeat)$) {
-    set $reject 'no';
-  }
-
-  if ( $reject = 'yes' ) {
-    return 444;
-  }
   # CS184 requires uploads of up to 4MB for submitting screenshots.
   # CMS requires larger value for course assest, values provided
   # via hiera.
@@ -87,13 +66,5 @@ server {
   # Run our actual redirect...
   if ($do_redirect = "true") {
     rewrite ^ https://$host$request_uri? permanent;
-  }
-
-  # Monitoring support for datadog.
-  location /nginx_status {
-    stub_status on;
-    access_log off;
-    allow 127.0.0.1/32;
-    deny all;
   }
 }

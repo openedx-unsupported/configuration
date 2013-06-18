@@ -1,32 +1,9 @@
 server {
   # LMS-preview configuration file for nginx, templated by ansible
 
-  listen 80;
+  listen {{lms_xml_nginx_port}};
 
-  server_name trace-lms-xml.*
-              xml.lms-dev.m.edx.org;
-
-  #
-  # Send error response when request host isn't under our control
-  # We will no longer respond to proxy attempts like this with
-  # anything.
-  # curl -i -A '' -x http://www.edx.org:80 --proxy-negotiate -U u:p -u u:p http://chat.sdtz.com
-  #
-
-  set $reject 'no';
-
-  #if ($host !~* (edx.org|edxonline.org)$ ) {
-  #  set $reject 'yes';
-  #}
-
-  if ($request_uri ~ ^(/heartbeat)$) {
-    set $reject 'no';
-  }
-
-  if ( $reject = 'yes' ) {
-    return 444;
-  }
-  # CS184 requires uploads of up to 4MB for submitting screenshots.
+    # CS184 requires uploads of up to 4MB for submitting screenshots.
   # CMS requires larger value for course assest, values provided
   # via hiera.
   client_max_body_size 4M;

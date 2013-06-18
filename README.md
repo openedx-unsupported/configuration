@@ -36,7 +36,34 @@ over time, so expect frequent changes.
 
 ## AWS
 
-### Building the stack
+### Quick start - Building the stack on a single server
+
+
+To deploy the entire edX platform on a single ec2 instance
+run the following commands:
+
+```
+git clone git@github.com:edx/configuration
+mkvirtualenv ansible
+cd configuration
+pip install -r ansible-requirements.txt
+cd playbooks
+(adjust the settings in edx_sandbox.yml)
+`ansible-playbook  -vvv --user=ubuntu edx_sandbox.yml -i ec2.py -e 'secure_dir=secure_example`
+```
+
+This will install the following services on a single instance
+
+* edX lms (django/python) for courseware
+* edX studio (django/python) for course authoring
+* mysql (running locally)
+* mongo (running locally)
+* memcache (running locally)
+
+Note: In order for mail to work properly you will need to add AWS credentials for an account that
+has SES permissions, see `secure\_example/vars/edxapp\_sandbox.yml`
+
+### Building the stack with CloudFormation
 
 The first step is to provision the CloudFormation stack.  There are 
 several options for doing this.
