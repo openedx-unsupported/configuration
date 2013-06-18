@@ -1,0 +1,32 @@
+- name: Create sandbox instance
+  hosts: localhost
+  connection: local
+  user: root
+  sudo: False
+  gather_facts: False
+
+  vars:
+    keypair: continuous-integration
+    instance_type: m1.large
+    security_group: sandbox
+    image: ami-d0f89fb9
+    region: us-east-1
+
+  roles:
+    - launch_instance
+
+- name: Configure instance(s)
+  hosts: ec2-54-226-85-68.compute-1.amazonaws.com
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: True
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_sandbox.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - nginx
+    - gunicorn
+    - edxlocal
+    - edxapp
