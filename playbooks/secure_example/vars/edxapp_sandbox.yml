@@ -16,13 +16,42 @@
 #  Set the following before using this configuration
 #  configuration.
 #   
-#    * AWS_ACCESS_KEY_ID
-#    * AWS_SECRET_ACCESS_KEY
+#    * AWS_ACCESS_KEY_ID (lms, xqueue)
+#    * AWS_SECRET_ACCESS_KEY (lms, xqueue)
 #    * SESSION_COOKIE_DOMAIN
 #    * FEEDBACK_SUBMISSION_EMAIL
 #
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
+
+
+xqueue:
+  env_config:
+    'XQUEUES':
+      # push queue
+      - 'edX-DemoX': 'http://localhost:18050'
+      # pull queues
+      - 'test-pull': !!null
+      - 'certificates': !!null
+      - 'open-ended': !!null
+    'XQUEUE_WORKERS_PER_QUEUE': 12
+    'LOGGING_ENV' : 'sandbox'
+    'LOG_DIR' : '/mnt/logs'
+    'SYSLOG_SERVER' : 'syslog.a.m.i4x.org'
+    'RABBIT_HOST' : 'localhost'
+    'S3_BUCKET_PREFIX' : 'sandbox-bucket'
+
+  auth_config:
+    'AWS_ACCESS_KEY_ID' : ''
+    'AWS_SECRET_ACCESS_KEY' : ''
+    'REQUESTS_BASIC_AUTH': ['edx', 'edx']
+    'USERS': {'lms': 'password'}
+    'RABBITMQ_USER': 'edx'
+    'RABBITMQ_PASS': 'edx'
+    'DATABASES':
+      'default': { 'ENGINE': 'django.db.backends.mysql', 'NAME': 'xqueue', 'USER': 'root', 'PASSWORD': '', 'HOST': 'localhost', 'PORT': '3306' }
+
+
 
 lms_generic_auth_config:  &lms_generic_auth
   'CONTENTSTORE':
