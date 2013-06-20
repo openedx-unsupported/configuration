@@ -1,0 +1,39 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+#  - nginx/tasks/main.yml
+---
+- name: Change permissions on datadir
+  file: path={{ app_base_dir }}/data state=directory owner=www-data group=www-data
+  tags:
+  - xqueue
+
+# Check out xqueue repo to $app_base_dir
+- name: install git and its recommends
+  apt: pkg=git state=present install_recommends=yes 
+  tags:
+  - xqueue
+
+- name: install a bunch of system packages on which LMS and CMS rely
+  apt: pkg={{item}} state=present
+  with_items: xqueue_debian_pkgs
+  tags:
+  - xqueue
+
+- name: create xqueue application config
+  template: src=xqueue_env.json.j2 dest=$app_base_dir/env.json mode=640 owner=www-data group=adm
+  tags:
+  - xqueue
+
+- name: create xqueue auth file
+  template: src=xqueue_auth.json.j2 dest=$app_base_dir/auth.json mode=640 owner=www-data group=adm
+  tags:
+  - xqueue
+
+- name: creating xqueue upstart script
+  sudo: True
+  template: src=xqueue_conf.j2 dest=/etc/init/xqueue_conf owner=root group=root
+  tags:
+  - xqueue
+
+- include: deploy.yml
