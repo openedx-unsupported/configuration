@@ -18,12 +18,14 @@
   pip: requirements="{{xqueue.pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
   tags:
   - xqueue
+  - deploy
 
 # Install the python post requirements into {{ venv_dir }}
 - name : install python post-requirements
   pip: requirements="{{xqueue.post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
   tags:
   - xqueue
+  - deploy
 
 - name: syncdb and migrate
   shell: sudo -u www-data /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
@@ -31,6 +33,7 @@
   tags:
   - xqueue
   - syncdb
+  - deploy
 
 - name: stop xqueue
   service: name=xqueue state=stopped
