@@ -3,18 +3,21 @@
   service: name=xqueue state=stopped
   tags:
   - xqueue
+  - deploy
 
 # Do A Checkout
 - name: git checkout xqueue repo into $app_base_dir
   git: dest={{xqueue_code_dir}} repo={{xqueue.source_repo}} version={{xqueue.version}}
   tags:
   - xqueue
+  - deploy
 
 # Do Post Checkout Tasks.
 - name: create xqueue code dir
   file: path={{xqueue_code_dir}} state=directory owner=www-data group=www-data mode=755
   tags:
   - xqueue
+  - deploy
 
 
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
@@ -26,6 +29,7 @@
   # Look at the handlers/main.yml in this role for a description of the tasks stated below.
   tags:
   - xqueue
+  - deploy
 
 # want deploy handlers to always run when deploy tag is specified, so move into a no op task
 - name: run deploy handlers
@@ -34,3 +38,4 @@
   - invoke all deploy handlers
   tags:
   - xqueue
+  - deploy
