@@ -1,0 +1,26 @@
+# gunicorn
+
+description "gunicorn server"
+author "Calen Pennington <cpennington@mitx.mit.edu>"
+
+start on started edxapp
+stop on stopped edxapp
+
+respawn
+respawn limit 3 30
+
+env PID=/var/tmp/xserver.pid
+env NEW_RELIC_CONFIG_FILE={{ app_base_dir }}/newrelic.ini
+env NEWRELIC={{ venv_dir }}/bin/newrelic-admin
+env WORKERS={{ ansible_processor|length }}
+env PORT={{ xserver_port }}
+env LANG=en_US.UTF-8
+env DJANGO_SETTINGS_MODULE=xserver_aws_settings
+env SERVICE_VARIANT="xserver"
+
+
+chdir {{ xserver_code_dir }}
+setuid www-data
+
+exec {{ venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=30 --pythonpath={{ xserver_code_dir }} pyxserver_wsgi:application
+
