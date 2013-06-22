@@ -21,19 +21,21 @@
   - xqueue
 
 - name: create xqueue application config
-  template: src=xqueue_env.json.j2 dest=$app_base_dir/env.json mode=640 owner=www-data group=adm
+  template: src=xqueue.env.json.j2 dest=$app_base_dir/env.json mode=0640 owner=www-data group=adm
   tags:
   - xqueue
 
 - name: create xqueue auth file
-  template: src=xqueue_auth.json.j2 dest=$app_base_dir/auth.json mode=640 owner=www-data group=adm
+  template: src=xqueue.auth.json.j2 dest=$app_base_dir/auth.json mode=0640 owner=www-data group=adm
   tags:
   - xqueue
 
 - name: creating xqueue upstart script
-  sudo: True
-  template: src=xqueue_conf.j2 dest=/etc/init/xqueue_conf owner=root group=root
+  template: src=xqueue.conf.j2 dest=/etc/init/xqueue.conf mode=0640 owner=root group=adm
   tags:
   - xqueue
+
+# Install nginx site
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=xqueue
 
 - include: deploy.yml
