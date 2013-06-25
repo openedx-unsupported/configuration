@@ -1,32 +1,20 @@
 ---
-- name: invoke all deploy handlers
-  shell: echo "running deploy handlers"
-  notify:
-  - gem | gem install bundler
-  - bundle | bundle install
-  - Install edx-platform npm dependencies
-  - install python pre-requirements
-  - install python base-requirements
-  - install python post-requirements
-  - install python post-post requirements
-  - check if rake gather_assets is available
-  - check if django can collect lms static data
-  - check if django can collect cms static data
-  - check if django can update cms templates
-  - gather lms static assets with rake
-  - gather lms static assets with django
-  - gather cms static assets with rake
-  - gather cms static assets with django
-  - update cms templates
-  - lms asset static failure check
-  - cms asset static failure check
-  - syncdb and migrate
-  - stop edxapp
-  - start edxapp
+- name: start edxapp
+  service: name=edxapp state=started
   tags:
   - lms
+  - lms-xml
+  - lms-preview
   - cms
-  - install
+  - deploy
+
+- name: stop edxapp
+  service: name=edxapp state=stopped
+  tags:
+  - lms
+  - lms-xml
+  - lms-preview
+  - cms
   - deploy
 
 - name: restart edxapp
