@@ -4,29 +4,39 @@
   - deploy
 
 - name: checkout code
-  git: dest={{ xserver_code_dir }} repo={{ xserver_source_repo }} version={{ xserver_version }}
+  git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
   tags:
   - deploy
 
 - name: install requirements
-  pip: requirements="{{ xserver_requirements_file }}" virtualenv="{{ venv_dir }}" state=present
+  pip: requirements="{{xserver_requirements_file}}" virtualenv="{{venv_dir}}" state=present
   tags:
   - deploy
 
 - name: install sandbox requirements
-  pip: requirements="{{ xserver_requirements_file }}" virtualenv="{{ xserver_sandbox_venv_dir }}" state=present
+  pip: requirements="{{xserver_requirements_file}}" virtualenv="{{xserver_sandbox_venv_dir}}" state=present
   tags:
   - deploy
 
 - name: create xserver application config
-  template: src=xserver.env.json.j2 dest={{ app_base_dir }}/env.json mode=640 owner=www-data group=adm
+  template: src=xserver.env.json.j2 dest={{app_base_dir}}/env.json mode=640 owner=www-data group=adm
+  tags:
+  - deploy
+
+- name: install read-only ssh key for the content repo that is required for grading
+  copy: src={{ xserver_git_identity_path }} dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=60
   tags:
   - deploy
 
 - name: checkout grader code
-  git: dest={{ xserver_grader_dir }} repo={{ xserver_grader_source }} version={{ xserver_grader_version }}
+  git: dest={{xserver_grader_dir}} repo={{xserver_grader_source}} version={{xserver_grader_version}}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
+  tags:
+  - deploy
+
+- name: remove read-only ssh key for the content repo
+  file: path=/etc/git-identity state=absent
   tags:
   - deploy
 
