@@ -49,7 +49,7 @@ cd configuration
 pip install -r ansible-requirements.txt
 cd playbooks
 (adjust the settings in edx_sandbox.yml)
-`ansible-playbook  -vvv --user=ubuntu edx_sandbox.yml -i ec2.py -e 'secure_dir=secure_example`
+`ansible-playbook  -vvv --user=ubuntu edx_sandbox.yml -i inventory.ini -e 'secure_dir=secure_example`
 ```
 
 This will install the following services on a single instance
