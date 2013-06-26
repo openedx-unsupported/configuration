@@ -1,0 +1,57 @@
+
+# Do A Checkout
+- name: git checkout ease repo into its base dir
+  git: dest={{ease_code_dir}} repo={{ease_source_repo}} version={{ease_version}}
+  tags:
+  - ease
+  - deploy
+
+# Do Post Checkout Tasks.
+- name: change permissions on ease code dir
+  file: path={{ease_code_dir}} state=directory owner=www-data group=www-data mode=755 recurse=yes
+  tags:
+  - ease
+  - deploy
+
+
+# TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
+# portions of the deploy needs to be incorporated here.
+
+- name: install ease apt-packages
+  command: xargs -a {{ease_code_dir}}/apt-packages.txt apt-get install -y
+  tags:
+  - ease
+  - deploy
+
+# Install the python pre requirements into {{ venv_dir }}
+- name: install ease python pre-requirements
+  pip: requirements="{{ease_pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  tags:
+  - ease
+  - deploy
+
+# Install the python post requirements into {{ venv_dir }}
+- name: install ease python post-requirements
+  pip: requirements="{{ease_post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  tags:
+  - ease
+  - deploy
+
+- name: install ease python package
+  shell: command="{{venv_dir}}/bin/activate; cd {{ease_code_dir}}; python setup.py install"
+  tags:
+  - ease
+  - deploy
+
+#Needed for the ease package to work
+- name: install nltk data using rendered shell script
+  shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
+  tags:
+  - ease
+  - deploy
+
+- name: set permissions on nltk data directory
+  file: path={{nltk_data_dir}} owner=ubuntu group=adm mode=2775 state=directory
+  tags:
+  - ease
+  - deploy
