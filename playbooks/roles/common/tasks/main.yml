@@ -78,25 +78,8 @@
   - logging
   - update
 
-# Install ssh keys for ubuntu account to be able to check out from edx-platform
-# Temprory behavior, not needed after June 1. Perhaps still useful as a recipe.
-# {{ secure_dir }} is relative to the top-level playbooks dir so there is some
-
-- name: install read-only ssh key for edx-platform repo (private)
-  copy: src={{ secure_dir }}/files/git-identity dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=600
-  tags:
-  - lms
-  - cms
-  - update
-
-- name: upload ssh script
-  copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=adm mode=750
-  tags:
-  - lms
-  - cms
-  - update
+- name: upload sudo config for key forwarding as root
+  copy: src=ssh_key_forward dest=/etc/sudoers.d/ssh_key_forward validate='visudo -c -f %s'
 
 - include: create_venv.yml
 - include: edx_logging_base.yml
-
-- include: software_update.yml

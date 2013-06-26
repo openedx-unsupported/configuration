@@ -1,40 +1,3 @@
----
-- name: invoke all deploy handlers
-  shell: echo "running deploy handlers"
-  notify:
-  - install python pre-requirements
-  - install python post-requirements
-  - syncdb and migrate
-  - stop xqueue
-  - start xqueue
-  tags:
-  - xqueue
-  - deploy
-
-
-
-# Install the python pre requirements into {{ venv_dir }}
-- name : install python pre-requirements
-  pip: requirements="{{xqueue_pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
-  tags:
-  - xqueue
-  - deploy
-
-# Install the python post requirements into {{ venv_dir }}
-- name : install python post-requirements
-  pip: requirements="{{xqueue_post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
-  tags:
-  - xqueue
-  - deploy
-
-- name: syncdb and migrate
-  shell: sudo -u www-data /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=xqueue_aws_settings --pythonpath=/opt/wwc/xqueue
-  when: migrate_db is defined
-  tags:
-  - xqueue
-  - syncdb
-  - deploy
-
 - name: stop xqueue
   service: name=xqueue state=stopped
   tags:
@@ -47,3 +10,8 @@
   - xqueue
   - deploy
 
+- name: restart xqueue
+  service: name=xqueue state=restarted
+  tags:
+  - xqueue
+  - deploy

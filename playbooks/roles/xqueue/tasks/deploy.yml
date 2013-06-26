@@ -31,11 +31,36 @@
   - xqueue
   - deploy
 
-# want deploy handlers to always run when deploy tag is specified, so move into a no op task
-- name: run deploy handlers
-  shell: echo "running deploy handlers"
-  notify:
-  - invoke all deploy handlers
+# Install the python pre requirements into {{ venv_dir }}
+- name : install python pre-requirements
+  pip: requirements="{{xqueue_pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  tags:
+  - xqueue
+  - deploy
+
+# Install the python post requirements into {{ venv_dir }}
+- name : install python post-requirements
+  pip: requirements="{{xqueue_post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  tags:
+  - xqueue
+  - deploy
+
+- name: syncdb and migrate
+  shell: sudo -u www-data /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
+  when: migrate_db is defined
+  tags:
+  - xqueue
+  - syncdb
+  - deploy
+
+- name: stop xqueue
+  service: name=xqueue state=stopped
+  tags:
+  - xqueue
+  - deploy
+
+- name: start xqueue
+  service: name=xqueue state=started
   tags:
   - xqueue
   - deploy
