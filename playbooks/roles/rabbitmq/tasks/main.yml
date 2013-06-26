@@ -1,31 +1,69 @@
 ---
 # Tasks related to setting up the rabbitmq machines
+- name: create a rabbitmq group
+  group: name=rabbitmq
 
-- name: install rabbitmq
-  apt: pkg={{rabbitmq_pkg}} state=present
+- name: create a rabbitmq user
+  user: name=rabbitmq group=rabbitmq
 
-- name: create rabbitmq directory
-  file: path={{rabbitmq_config_dir}} owner=root group=root mode=0755 state=directory
- 
-- name: add rabbitmq cluster configuration
-  template: src=rabbitmq.config.j2 dest={{rabbitmq_config_dir}}/rabbitmq.config owner=root group=root mode=0644
-
-- name: add rabbitmq environment configuration
-  template: src=rabbitmq-env.conf.j2 dest={{rabbitmq_config_dir}}/rabbitmq-env.conf owner=root group=root mode=0644
-
+# Defaulting to /var/lib/rabbitmq
 - name: crate cookie directory
   file: path={{rabbitmq_cookie_dir}} owner=rabbitmq group=rabbitmq mode=0755 state=directory
 
 - name: add rabbitmq erlang cookie
+  template: src=erlang.cookie.j2 dest=/home/rabbitmq/.erlang.cookie owner=rabbitmq group=rabbitmq mode=0400
+
+- name: add rabbitmq erlang cookie
   template: src=erlang.cookie.j2 dest={{rabbitmq_cookie_location}} owner=rabbitmq group=rabbitmq mode=0400
 
+# Defaulting to /etc/rabbitmq
+- name: create rabbitmq directory
+  file: path={{rabbitmq_config_dir}} owner=root group=root mode=0755 state=directory
+ 
+- name: add rabbitmq environment configuration
+  template: src=rabbitmq-env.conf.j2 dest={{rabbitmq_config_dir}}/rabbitmq-env.conf owner=root group=root mode=0644
+
+- name: add rabbitmq cluster configuration
+  template: src=rabbitmq.config.j2 dest={{rabbitmq_config_dir}}/rabbitmq.config owner=root group=root mode=0644
+
+- name: install rabbitmq
+  apt: pkg={{rabbitmq_pkg}} state=present
+
+- name: stop rabbit cluster
+  service: name="rabbitmq-server" state=stopped
+
+# For some reason this needs to be run from the shell.  Running it via the 
+# service module produces inconsintent results.
+- name: kill rabbit nodes
+  shell: executable=/bin/bash killall epmd beam
+  ignore_errors: True
+  tags:
+  - testit
+
+- name: start rabbit nodes
+  shell: executable=/bin/bash service rabbitmq-server start
+  tags:
+  - testit
+
+- name: remove guest user
+  rabbitmq_user: user="guest" state=absent
+  ignore_errors: True
+
+- name: add admin users
+  rabbitmq_user: user='{{item.name}}' password='{{item.password}}' tags="administrator" state=present 
+  with_items: rabbitmq_auth_config.admins
+  when: "'admins' in rabbitmq_auth_config"
+  ignore_errors: True
+
+# Verify user changes
 - name: get rabbit user list
   command: rabbitmqctl list_users
   register: rabbitmq_users
 
-- name: start rabbit cluster
-  service: name="rabbitmq-server" state=restarted
+- name: check all expected users exist.
+  command: rabbitmqctl list_user_permissions {{item.name}}
+  with_items: rabbitmq_auth_config.admins
 
-- name: delete guest user
-  command: rabbitmqctl delete_user guest
-  when: rabbitmq_users.stdout.contains("guest")
+- name: make sure guest has been removed
+  fail: "Guest user still has an account."
+  when: "'guest' in rabbitmq_users"
