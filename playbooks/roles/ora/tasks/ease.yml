@@ -1,3 +1,32 @@
+- name: See if edx-ora.conf is installed
+  shell: "[ -f /etc/init/edx-ora.conf ] && echo 'Found' || echo ''"
+  register: edx_ora_installed
+  tags:
+  - ora
+  - deploy
+
+- name: See if edx-ora-celery.conf is installed
+  shell: "[ -f /etc/init/edx-ora-celery.conf ] && echo 'Found' || echo ''"
+  register: edx_ora_celery_installed
+  tags:
+  - ora
+  - deploy
+
+# Stop ora service.
+- name: stop edx-ora service
+  service: name=edx-ora state=stopped
+  when: edx_ora_installed.stdout == 'Found'
+  tags:
+  - ora
+  - deploy
+
+- name: stop edx-ora-celery service
+  service: name=edx-ora-celery state=stopped
+  when: edx_ora_celery_installed.stdout == 'Found'
+  tags:
+  - ora
+  - deploy
+
 
 # Do A Checkout
 - name: git checkout ease repo into its base dir
@@ -44,8 +73,17 @@
   - deploy
 
 #Needed for the ease package to work
+- name: check for the existence of nltk data taggers/maxent_treebank_pos_tagger/english.pickle
+  shell: "[ -f {{nltk_data_dir}}/taggers/maxent_treebank_pos_tagger/english.pickle ] && echo 'Found' || echo ''"
+  register: nltk_data_installed
+  tags:
+  - ease
+  - deploy
+
+
 - name: install nltk data using rendered shell script
-  shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
+  command: "{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
+  when: nltk_data_installed.stdout  != "Found"
   tags:
   - ease
   - deploy
