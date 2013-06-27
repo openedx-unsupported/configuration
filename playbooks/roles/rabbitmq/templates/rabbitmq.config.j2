@@ -1,0 +1,16 @@
+{# Get the list of hosts that are in the same stack as the current machine
+   and also a rabbitmq machine.
+#}
+{%- set hosts= [] -%}
+{%- for name in  group_names -%}
+  {%- if name.startswith("tag_aws_cloudformation_stack-name_") -%}
+    {%- for host in groups.tag_group_rabbitmq -%}
+      {%- if host in groups[name] -%}
+        {% do hosts.append("rabbit@ip-" + host.replace('.','-')) %}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endfor -%}
+
+[{rabbit,
+  [{cluster_nodes, {['{{ hosts|join("\',\'") }}'], disc}}]}].

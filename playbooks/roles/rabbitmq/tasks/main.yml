@@ -1,0 +1,54 @@
+---
+# It is recommended that this role be played with serial set to 1 because
+# There is a bug with initializing multiple nodes in the HA cluster at once
+# http://rabbitmq.1065348.n5.nabble.com/Rabbitmq-boot-failure-with-quot-tables-not-present-quot-td24494.html
+
+- name: trust rabbit repository
+  apt_key: url={{rabbitmq_apt_key}} state=present
+
+- name: add rabbit repository
+  apt_repository: repo="{{rabbitmq_repository}}" state=present
+
+- name: install rabbitmq
+  apt: pkg={{rabbitmq_pkg}} state=present
+
+- name: stop rabbit cluster
+  service: name=rabbitmq-server state=stopped
+
+# Defaulting to /var/lib/rabbitmq
+- name: create cookie directory
+  file: path={{rabbitmq_cookie_dir}} owner=rabbitmq group=rabbitmq mode=0755 state=directory
+
+
+- name: add rabbitmq erlang cookie
+  template: src=erlang.cookie.j2 dest={{rabbitmq_cookie_location}} owner=rabbitmq group=rabbitmq mode=0400
+  register: erlang_cookie
+
+# Defaulting to /etc/rabbitmq
+- name: create rabbitmq config directory
+  file: path={{rabbitmq_config_dir}} owner=root group=root mode=0755 state=directory
+ 
+- name: add rabbitmq environment configuration
+  template: src=rabbitmq-env.conf.j2 dest={{rabbitmq_config_dir}}/rabbitmq-env.conf owner=root group=root mode=0644
+
+- name: add rabbitmq cluster configuration
+  template: src=rabbitmq.config.j2 dest={{rabbitmq_config_dir}}/rabbitmq.config owner=root group=root mode=0644
+  register: cluster_configuration
+
+# When rabbitmq starts up it creates a folder of metadata at '/var/lib/rabbitmq/mnesia'.
+# This folder should be deleted before clustering is setup because it retains data
+# that can conflict with the clustering information.
+- name: remove mnesia configuration
+  file: path={{rabbitmq_mnesia_folder}} state=absent
+  when: erlang_cookie.changed or cluster_configuration.changed
+
+- name: start rabbit nodes
+  service: name=rabbitmq-server state=restarted
+
+- name: remove guest user
+  rabbitmq_user: user="guest" state=absent
+
+- name: add admin users
+  rabbitmq_user: user='{{item.name}}' password='{{item.password}}' tags="administrator" state=present 
+  with_items: rabbitmq_auth_config.admins
+  when: "'admins' in rabbitmq_auth_config"
