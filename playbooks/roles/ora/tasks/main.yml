@@ -1,0 +1,42 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+#  - nginx/tasks/main.yml
+---
+- name: Change permissions on datadir
+  file: path={{ app_base_dir }}/data state=directory owner=www-data group=www-data
+  tags:
+  - ora
+
+- name: Create ml_models directory
+  file: path={{ app_base_dir }}/ml_models state=directory owner=www-data group=www-data
+  tags:
+  - ora
+
+# Check out ora repo to $app_base_dir
+- name: install git and its recommends
+  apt: pkg=git state=present install_recommends=yes
+  tags:
+  - ora
+
+- name: install a bunch of system packages on which ora depends
+  apt: pkg={{item}} state=present
+  with_items: ora_debian_pkgs
+  tags:
+  - ora
+
+- name: create ora application config
+  template: src=ora.env.json.j2 dest=$app_base_dir/env.json mode=0640 owner=www-data group=adm
+  tags:
+  - ora
+
+- name: create ora auth file
+  template: src=ora.auth.json.j2 dest=$app_base_dir/auth.json mode=0640 owner=www-data group=adm
+  tags:
+  - ora
+
+# Install nginx site
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=ora
+
+- include: ease.yml
+- include: deploy.yml
