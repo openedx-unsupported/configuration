@@ -1,0 +1,24 @@
+# /etc/init/edx-ora.conf
+
+description "edX ORA server"
+author "edx <info@edx.org>"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 3 30
+
+env PID=/var/run/gunicorn/edx-ora.pid
+env WORKERS={{ ora_gunicorn_workers }}
+env PORT={{ ora_gunicorn_port }}
+env LANG=en_US.UTF-8
+env DJANGO_SETTINGS_MODULE=edx_ora.aws
+
+pre-start script
+end script
+
+chdir {{ ora_code_dir }}
+setuid www-data
+
+exec {{ ora_venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=90 --pythonpath={{ ora_code_dir}} edx_ora.wsgi
