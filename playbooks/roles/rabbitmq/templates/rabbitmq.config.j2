@@ -1,9 +1,11 @@
 {# Get the list of hosts that are in the same stack as the current machine
    and also a rabbitmq machine.
 #}
+
+{%- if rabbitmq_clustered_hosts|length == 0 -%}
 {%- set hosts= [] -%}
 {%- for name in  group_names -%}
-  {%- if name.startswith("tag_aws_cloudformation_stack-name_") -%}
+  {%- if name.startswith(rabbitmq_aws_stack_name) -%}
     {%- for host in groups.tag_group_rabbitmq -%}
       {%- if host in groups[name] -%}
         {% do hosts.append("rabbit@ip-" + host.replace('.','-')) %}
@@ -14,3 +16,12 @@
 
 [{rabbit,
   [{cluster_nodes, {['{{ hosts|join("\',\'") }}'], disc}}]}].
+
+{%- else -%}
+{# If rabbitmq_clustered_hosts is set, use that instead assuming an aws stack.
+   Note: That these names should include the node name prefix. eg. 'rabbit@hostname'
+#}
+[{rabbit,
+  [{cluster_nodes, {['{{ rabbitmq_clustered_hosts|join("\',\'") }}'], disc}}]}].
+
+{%- endif -%}
