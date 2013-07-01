@@ -45,29 +45,31 @@
 
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
-
-- name: install ease apt-packages
-  command: xargs -a {{ease_code_dir}}/apt-packages.txt apt-get install -y
+#
+- name: install ease system packages
+  apt: pkg={{item}} state=present
+  with_items: ease_debian_pkgs
   tags:
   - ease
   - deploy
 
-# Install the python pre requirements into {{ venv_dir }}
+
+# Install the python pre requirements into {{ ease_venv_dir }}
 - name: install ease python pre-requirements
-  pip: requirements="{{ease_pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{ease_pre_requirements_file}}" virtualenv="{{ease_venv_dir}}" state=present
   tags:
   - ease
   - deploy
 
-# Install the python post requirements into {{ venv_dir }}
+# Install the python post requirements into {{ ease_venv_dir }}
 - name: install ease python post-requirements
-  pip: requirements="{{ease_post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{ease_post_requirements_file}}" virtualenv="{{ease_venv_dir}}" state=present
   tags:
   - ease
   - deploy
 
 - name: install ease python package
-  shell: command="{{venv_dir}}/bin/activate; cd {{ease_code_dir}}; python setup.py install"
+  shell: command="{{ease_venv_dir}}/bin/activate; cd {{ease_code_dir}}; python setup.py install"
   tags:
   - ease
   - deploy
@@ -82,7 +84,7 @@
 
 
 - name: install nltk data using rendered shell script
-  command: "{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
+  command: "{{ease_venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
   when: nltk_data_installed.stdout  != "Found"
   tags:
   - ease
