@@ -35,6 +35,32 @@
   tags:
   - ora
 
+- name: create ora upstart script
+  template: src=edx-ora.conf.j2 dest=/etc/init/edx-ora.conf mode=0640 owner=root group=adm
+  tags:
+  - ora
+
+- name: create ora-celery upstart script
+  template: src=edx-ora-celery.conf.j2 dest=/etc/init/edx-ora-celery.conf mode=0640 owner=root group=adm
+  tags:
+  - ora
+
+- name: install debian packages that ora needs
+  apt: pkg={{item}} state=present
+  with_items: ora_debian_pkgs
+  tags:
+  - ora
+
+- name: create the ora virtual environment
+  file: path={{ ora_venv_dir }} owner=root group=adm mode=2775 state=directory
+  tags:
+  - ora
+
+- name: bootstrap the ora virtual environment
+  command: /usr/local/bin/virtualenv {{ ora_venv_dir }} --distribute creates={{ora_venv_dir}}/bin/activate
+  tags:
+  - ora
+
 # Install nginx site
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=ora
 
