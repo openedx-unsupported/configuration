@@ -1,0 +1,17 @@
+#Celery task for edx-ora
+
+description "Celery grading controller"
+author "Vik Paruchuri <vik@edx.org>"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 3 30
+
+env DJANGO_SETTINGS_MODULE=edx_ora.aws
+
+chdir {{ ora_code_dir }}
+setuid www-data
+
+exec {{ ora_venv_dir }}/bin/python {{ ora_code_dir }}/manage.py celeryd --loglevel=info --settings=edx_ora.aws --pythonpath={{ ora_code_dir}} -B --autoscale=4,1

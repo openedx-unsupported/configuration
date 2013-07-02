@@ -16,6 +16,7 @@
 - name: stop edx-ora service
   service: name=edx-ora state=stopped
   when: edx_ora_installed.stdout == 'Found'
+  notify: restart edx-ora
   tags:
   - ora
   - deploy
@@ -23,6 +24,7 @@
 - name: stop edx-ora-celery service
   service: name=edx-ora-celery state=stopped
   when: edx_ora_celery_installed.stdout == 'Found'
+  notify: restart edx-ora-celery
   tags:
   - ora
   - deploy
@@ -30,6 +32,9 @@
 # Do A Checkout
 - name: git checkout ora repo into $app_base_dir
   git: dest={{ora_code_dir}} repo={{ora_source_repo}} version={{ora_version}}
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - deploy
@@ -37,49 +42,34 @@
 # Do Post Checkout Tasks.
 - name: change permissions on ora code dir
   file: path={{ora_code_dir}} state=directory owner=www-data group=www-data mode=755 recurse=yes
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - deploy
 
-- name: copy over edx-ora upstart scripts from repo
-  shell: "cp {{ora_code_dir}}/edx-ora.conf /etc/init/edx-ora.conf;
-          chmod 644 /etc/init/edx-ora.conf; chown root:root /etc/init/edx-ora.conf;"
-  tags:
-  - ora
-  - deploy
-
-- name: set correct port in edx-ora.conf
-  lineinfile: dest=/etc/init/edx-ora.conf regexp="^env PORT=[0-9]+" line="env PORT={{ora_gunicorn_port}}"
-  tags:
-  - ora
-  - deploy
-
-- name: copy over edx-ora-celery upstart scripts from repo
-  shell: "cp {{ora_code_dir}}/edx-ora-celery.conf /etc/init/edx-ora-celery.conf;
-          chmod 644 /etc/init/edx-ora-celery.conf; chown root:root /etc/init/edx-ora-celery.conf;"
-  tags:
-  - ora
-  - deploy
 
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
 
-- name: install ora apt-packages
-  command: xargs -a {{ora_code_dir}}/apt-packages.txt apt-get install -y
-  tags:
-  - ora
-  - deploy
 
-# Install the python pre requirements into {{ venv_dir }}
+# Install the python pre requirements into {{ ora_venv_dir }}
 - name: install python pre-requirements
-  pip: requirements="{{ora_pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{ora_pre_requirements_file}}" virtualenv="{{ora_venv_dir}}" state=present
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - deploy
 
-# Install the python post requirements into {{ venv_dir }}
+# Install the python post requirements into {{ ora_venv_dir }}
 - name: install python post-requirements
-  pip: requirements="{{ora_post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{ora_post_requirements_file}}" virtualenv="{{ora_venv_dir}}" state=present
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - deploy
@@ -87,33 +77,30 @@
   #Needed if using redis to prevent memory issues
 - name: change memory commit settings -- needed for redis
   command: sysctl vm.overcommit_memory=1
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - deploy
 
 - name: syncdb and migrate
-  shell: sudo -u www-data {{venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  shell: sudo -u www-data {{ora_venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
   when: migrate_db
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - syncdb
   - deploy
 
 - name: create users
-  shell: sudo -u www-data {{venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  shell: sudo -u www-data {{ora_venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  notify:
+    - restart edx-ora
+    - restart edx-ora-celery
   tags:
   - ora
   - syncdb
-  - deploy
-
-- name: restart edx-ora
-  service: name=edx-ora state=restarted
-  tags:
-  - ora
-  - deploy
-
-- name: restart edx-ora-celery
-  service: name=edx-ora-celery state=restarted
-  tags:
-  - ora
   - deploy
