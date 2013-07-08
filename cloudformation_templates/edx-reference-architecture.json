@@ -2181,19 +2181,19 @@
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:22",
+          "Target":"HTTP:80/xqueue/status",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
           "Timeout":"5"
         },
         "Subnets":[
-            {
-		"Ref":"XqueueSubnet01"
-            },
-            {
-		"Ref":"XqueueSubnet02"
-            }
+          {
+            "Ref":"PublicSubnet01"
+          },
+          {
+            "Ref":"PublicSubnet02"
+          }
         ]
       }
     },
@@ -2254,6 +2254,12 @@
             "IpProtocol":"tcp",
             "FromPort":"80",
             "ToPort":"80",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"443",
+            "ToPort":"443",
             "CidrIp":"0.0.0.0/0"
           }
         ]
@@ -2558,7 +2564,7 @@
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:22",
+          "Target":"TCP:5672",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
@@ -2643,11 +2649,25 @@
           },
           {
             "IpProtocol":"tcp",
+            "FromPort":"5672",
+            "ToPort":"5672",
+            "SourceSecurityGroupId" : {
+		"Ref" : "XqueueServerSecurityGroup"
+	    }
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"6163",
+            "ToPort":"6163",
+            "SourceSecurityGroupId" : {
+		"Ref" : "XqueueServerSecurityGroup"
+	    }
+          },
+          {
+            "IpProtocol":"tcp",
             "FromPort":"0",
             "ToPort":"65535",
-            "SourceSecurityGroupId" : {
-		"Ref" : "RabbitMQServerSecurityGroup"
-	    }
+            "CidrIp":"10.0.0.0/16"
           },
           {
             "IpProtocol":"tcp",
