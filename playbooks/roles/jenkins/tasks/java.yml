@@ -1,0 +1,29 @@
+---
+- name: Install httplib2
+  pip: name=httplib2
+
+- name: Create JDK dir
+  command: mkdir -p {{ jdk_root }}
+
+- name: Download Java
+  uri: url={{ jdk_download_url }}
+       creates=/var/tmp/{{ jdk_archive }} 
+       dest=/var/tmp
+       HEADER_Cookie={{ jdk_cookie_header }}
+
+- name: Unpack Java
+  command: tar zxvf /var/tmp/{{ jdk_archive }} -C {{jdk_root}} 
+           creates={{ jdk_root }}/{{ jdk_folder }}
+  register: jdk_installed
+
+- name: Install java command
+  command: update-alternatives --install 
+           /usr/bin/java java 
+           {{ jdk_root }}/{{ jdk_folder }}/bin/java 1
+  only_if: ${jdk_installed.changed}
+
+- name: Install jar command
+  command: update-alternatives --install 
+           /usr/bin/jar jar 
+           {{ jdk_root }}/{{ jdk_folder }}/bin/jar 1
+  only_if: ${jdk_installed.changed}
