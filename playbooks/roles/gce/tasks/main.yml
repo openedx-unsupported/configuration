@@ -11,3 +11,24 @@
   copy: src=lms-preview dest=/etc/init.d/lms-preview owner=root mode=750
   tags:
   - gce
+- name: Ensure that postfix is running
+  service: name=postfix state=started
+  tags:
+  - gce
+- name: remove the upstart scripts
+  file: path=/etc/init/{{ item }} state=absent
+  tags:
+  - gce
+  with_items:
+  - lms.conf
+  - lms-preview.conf
+  - cms.conf
+  - lms-xml.conf
+- name: start the lms, lms-preview and cms
+  shell: service {{ item }} start
+  with_items:
+  - lms
+  - lms-preview
+  - cms
+  tags:
+  - gce
