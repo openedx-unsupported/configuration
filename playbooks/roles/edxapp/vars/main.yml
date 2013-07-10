@@ -2,6 +2,145 @@
 # when the role is included
 ---
 
+# These are default values for the env and auth
+# configuration files. There should be no
+# host identifying or sensitive information and
+# the defaults should be appropriate for running
+# all roles on a single instance
+
+#Use YAML references (& and *) and hash merge <<: to factor out shared settings
+#see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
+edxapp_generic_auth_config:  &edxapp_generic_auth
+  'AWS_ACCESS_KEY_ID':  ''
+  'AWS_SECRET_ACCESS_KEY':  ''
+  'SECRET_KEY':  ''
+  'XQUEUE_INTERFACE':
+    'basic_auth': [ 'noauth',  'noauth']
+    'django_auth': { 'password':  'password',
+      'username':  'lms'}
+    'url':  'https://localhost'
+  'CONTENTSTORE':
+    'ENGINE':  'xmodule.contentstore.mongo.MongoContentStore'
+    'OPTIONS':
+      'db':  'wwc'
+      'host': [ 'localhost' ]
+      'password':  'password'
+      'port': 27017
+      'user':  'mongo'
+  'MODULESTORE':
+    'default':
+      'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
+      'OPTIONS':  &lms_modulestore_default_options
+        'collection':  'modulestore'
+        'db':  'wwc'
+        'default_class':  'xmodule.hidden_module.HiddenDescriptor'
+        'fs_root':  '/opt/wwc/data'
+        'host': [ 'localhost' ]
+        'password':  'password'
+        'port': 27017
+        'render_template':  'mitxmako.shortcuts.render_to_string'
+        'user':  'mongo'
+    # Needed for the CMS to be able to run update_templates
+    'direct':
+      'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
+      'OPTIONS':  *lms_modulestore_default_options
+  'DATABASES':
+    'default':
+      'ENGINE': 'django.db.backends.mysql'
+      'NAME': 'wwc'
+      'USER': 'root'
+      'PASSWORD': ''
+      # Provide the name of a host running mysql.
+      'HOST': 'localhost'
+      'PORT': '3306'
+  'PEARSON_TEST_PASSWORD':  ''
+  'OPEN_ENDED_GRADING_INTERFACE':
+    'url':  ''
+    'password':  ''
+    'peer_grading':  'peer_grading'
+    'staff_grading':  'staff_grading'
+    'grading_controller':  'grading_controller'
+    'username':  'lms'
+  'ANALYTICS_API_KEY':  ''
+  'ZENDESK_USER': ''
+  'ZENDESK_API_KEY': ''
+  'CELERY_BROKER_USER': 'celery'
+  'CELERY_BROKER_PASSWORD': ''
+ 
+generic_env_config:  &edxapp_generic_env
+  'BOOK_URL':  ''
+  'CERT_QUEUE':  'certificates'
+  'LOCAL_LOGLEVEL':  'INFO'
+  'MITX_FEATURES':
+    'AUTH_USE_OPENID_PROVIDER': true
+    'CERTIFICATES_ENABLED': true
+    'ENABLE_DISCUSSION_SERVICE': true
+    'ENABLE_INSTRUCTOR_ANALYTICS': true
+    'ENABLE_PEARSON_HACK_TEST': false
+    'SUBDOMAIN_BRANDING': false
+    'SUBDOMAIN_COURSE_LISTINGS': false
+  'WIKI_ENABLED': true
+  'SYSLOG_SERVER':  'syslog.a.m.i4x.org'
+  'SITE_NAME':  'example.com'
+  'LOG_DIR':  '/mnt/logs/edx'
+  'MEDIA_URL':  ''
+  'ANALYTICS_SERVER_URL':  ''
+  'EEDBACK_SUBMISSION_EMAIL': ''
+  'TIME_ZONE': 'America/New_York'
+  'CACHES':  &lms_caches
+    'default': &default_lms_cache
+      'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
+      'KEY_FUNCTION':  'util.memcache.safe_key'
+      'KEY_PREFIX':  'sandbox_default'
+      'LOCATION': [ 'localhost' ]
+    'general':
+      <<: *default_lms_cache
+      'KEY_PREFIX':  'sandbox_general'
+    'mongo_metadata_inheritance':
+      <<: *default_lms_cache
+      'KEY_PREFIX':  'integration_mongo_metadata_inheritance'
+    'staticfiles':
+      <<: *default_lms_cache
+      'KEY_PREFIX':  'integration_static_files'
+    'celery':
+      <<: *default_lms_cache
+      'KEY_PREFIX':  'integration_celery'
+  'CELERY_BROKER_TRANSPORT': 'amqp'
+  'CELERY_BROKER_HOSTNAME': ''
+  'COMMENTS_SERVICE_URL':  ''
+  'LOGGING_ENV':  'sandbox'
+  'SESSION_COOKIE_DOMAIN':  !!null
+  'COMMENTS_SERVICE_KEY':  ''
+  'SEGMENT_IO_LMS': true
+  'CODE_JAIL':
+    'limits':
+      'VMEM': 0
+      'REALTIME': 3
+lms_auth_config:
+  <<: *edxapp_generic_auth
+lms_env_config:
+  <<: *edxapp_generic_env
+lms_xml_auth_config:
+  <<: *edxapp_generic_auth
+  'MODULESTORE':
+    'default':
+      'ENGINE': 'xmodule.modulestore.xml.XMLModuleStore'
+      'OPTIONS':
+        'data_dir': '/opt/wwc/data'
+        'default_class': 'xmodule.hidden_module.HiddenDescriptor'
+lms_xml_env_config:
+  <<: *edxapp_generic_env
+cms_auth_config:
+  <<: *edxapp_generic_auth
+cms_env_config:
+  <<: *edxapp_generic_env
+lms_preview_auth_config:
+  <<: *edxapp_generic_auth
+lms_preview_env_config:
+  <<: *edxapp_generic_env
+
+
+
 # install dir for the edx-platform repo
 edx_platform_code_dir: "{{ app_base_dir }}/edx-platform"
 
@@ -27,6 +166,10 @@ service_variants_enabled:
   - lms-xml
   - cms
   - lms-preview
+
+
+
+
 
 lms_auth_config: {}
 lms_env_config: {}
