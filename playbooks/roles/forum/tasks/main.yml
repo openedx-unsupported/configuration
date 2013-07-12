@@ -1,8 +1,32 @@
 ---
 
-- name: Add the app directory
-  file: path={{ app_base_dir }}/cs_comments_service state=directory owner=$forum_user group=$forum_user
+- name: Create $forum_user user
+  user: name=$forum_user state=present shell=/bin/bash home=$forum_home
   tags:
-  - forums
+  - ruby
+  - update
+
+- include: ../../rbenv/tasks/main.yml
+
+- name: setup the forum env
+  template: src=forum.sh.j2 dest=/etc/profile.d/forum.sh owner=root group=root mode=0755
+  tags:
+  - forum
+  - update
+
+- name: copying cs_comments_service SysVunit script
+  template: src=cs_comments_service.j2 dest=/etc/init.d/cs_comments_service owner=root group=root mode=750
+  tags:
+  - forum
+  - install
+  only_if: "'${ansible_distribution}' == 'Debian'"
+
+
+- name: copying cs_comments_service upstart script
+  template: src=cs_comments_service.conf.j2 dest=/etc/init/cs_comments_service.conf owner=root group=root mode=750
+  tags:
+  - forum
+  - install
+  only_if: "'${ansible_distribution}' == 'ubuntu'"
 
 - include: deploy.yml

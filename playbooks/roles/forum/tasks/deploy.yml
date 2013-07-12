@@ -1,90 +1,31 @@
-# Stop xqueue service.
-#- name: stop forum service
-#  service: name=forum state=stopped
-#  tags:
-#  - forum
-#  - deploy
+- name: stop forum service
+  service: name=cs_comments_service state=stopped
+  tags:
+  - forum
+  - deploy
 
-# Do A Checkout
 - name: git checkout forum repo into $app_base_dir
   git: dest={{forum_code_dir}} repo={{forum_source_repo}} version={{forum_version}}
   tags:
   - forum
   - deploy
 
-# Do Post Checkout Tasks.
-- name: create xqueue code dir
-  file: path={{xqueue_code_dir}} state=directory owner=www-data group=www-data mode=755
-  tags:
-  - forum
-  - deploy
-
-
 - name: sets permissions on forum code dir and contents
-  file: path={{forum_code_dir}} state=directory owner=www-data group=www-data recurse=yes
+  file: path={{forum_code_dir}} state=directory owner=forum group=forum recurse=yes
   tags:
   - forum
   - deploy
 
 - name: install comments service bundle
   shell: executable=/bin/bash ${rbenv_root}/shims/bundle install chdir={{forum_code_dir}}
+  sudo: yes
+  sudo_user: ${forum_user}
   tags:
     - forum
     - install
 
-- name: download elastic search and check SHA
-  get_url: url=https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-${elastic_search_version}.deb dest=/var/tmp/elasticsearch-${elastic_search_version}.deb
-  tags:
-    - forum
-    - install
-
-- name: download Oracle Java
-  shell: executable=/bin/bash curl -b gpw_e24=http%3A%2F%2Fwww.oracle.com -O -L 'http://download.oracle.com/otn-pub/java/jdk/7u25-b15/jdk-7u25-linux-x64.tar.gz' chdir=/var/tmp
-
-- name: install Oracle Java
-  shell: exectuable=/bin/bash mkdir -p /usr/lib/jvm && tar -C /usr/lib/jvm -zxvf /var/tmp/jdk-7u25-linux-x64.tar.gz 
-  sudo: true
-  tags:
-    - forum 
-    - install
-
-- name: create symlink expected by elasticsearch
-  file: src=/usr/lib/jvm/jdk1.7.0_25 dest=/usr/lib/jvm/java-7-oracle state=link
-
-- name: add JAVA_HOME for Oracle Java
-  template: src=java.sh.j2 dest=/etc/profile.d/java.sh owner=root group=root mode=0755
+- name: start forum service
+  service: name=cs_comments_service state=started
   tags:
   - forum
-  - update
-
-- name: install elasticsearch from local package
-  shell: executable=/bin/bash dpkg -i /var/tmp/elasticsearch-${elastic_search_version}.deb
-  tags:
-    - forum
-    - install
-
-- name: setup the forum env
-  template: src=forum.sh.j2 dest=/etc/profile.d/forum.sh owner=root group=root mode=0755
-  tags:
-  - forum
-  - update
-
-- name: copying cs_comments_service init script
-  template: src=cs_comments_service.j2 dest=/etc/init.d/cs_comments_service owner=root group=root mode=750
-  tags:
-  - forum
-  - update
-
-
-#- name: install elasticsearch
-#  apt: pkg=$item state=present install_recommends=no
-#  with-items:
-#    - elast
-
-
-
-#- name: start xqueue
-#  service: name=xqueue state=started
-#  tags:
-#  - forum
-#  - deploy
+  - deploy

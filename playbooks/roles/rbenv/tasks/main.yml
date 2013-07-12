@@ -1,14 +1,9 @@
 #
 # cribbed from https://github.com/mmoya/ansible-playbooks/blob/master/rbenv/main.yml
 #
-- name: Create $forum_user user
-  user: name=$forum_user state=present shell=/bin/bash
-  tags:
-  - ruby
-  - update
 
 - name: Create ruby base
-  file: path=$ruby_base state=directory owner=$forum_user group=$forum_user
+  file: path=$ruby_base state=directory owner=$rbenv_user group=$rbenv_user
   tags:
   - ruby
   - update
@@ -31,21 +26,34 @@
 
 - name: rbenv | update rbenv repo
   git: repo=https://github.com/sstephenson/rbenv.git dest=$rbenv_root version=v0.4.0
+  sudo: true  
+  sudo_user: $rbenv_user 
   tags:
   - ruby
   - install
 
-- name: rbenv | add rbenv to path
-  file: path=/usr/local/bin/rbenv src=${rbenv_root}/bin/rbenv state=link
+- name: rbenv | ensure .bashrc exists
+  shell: touch $ruby_base/.bashrc
+  sudo: true  
+  sudo_user: $rbenv_user 
   tags:
   - ruby
   - update
 
-- name: rbenv | add rbenv initialization to profile
-  template: src=rbenv.sh.j2 dest=/etc/profile.d/rbenv.sh owner=root group=root mode=0755
-  tags:
-  - ruby
-  - update
+- name: ensure pam-limits module is loaded
+  lineinfile:
+    dest=$ruby_base/.bashrc
+    regexp="export RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} PATH={{ gem_home }}/bin:{{ rbenv_root }}/bin:$PATH"
+    line="export RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} PATH={{ gem_home }}/bin:{{ rbenv_root }}/bin:$PATH"
+
+- name: ensure pam-limits module is loaded
+  lineinfile:
+    dest=$ruby_base/.bashrc
+    regexp='eval "$(rbenv init -)"'    
+    line='eval "$(rbenv init -)"'
+
+- name: drop a bash_profile
+  copy: src=../../common/files/bash_profile dest=$ruby_base/.bash_profile owner=$rbenv_user group=$rbenv_user
 
 - name: rbenv | check ruby-build installed
   command: test -x /usr/local/bin/ruby-build
@@ -58,6 +66,8 @@
 - name: rbenv | create temporary directory
   command: mktemp -d
   register: tempdir
+  sudo: true  
+  sudo_user: $rbenv_user 
   when_failed: $rbuild_present
   tags:
   - ruby
@@ -66,6 +76,8 @@
 - name: rbenv | clone ruby-build repo
   git: repo=https://github.com/sstephenson/ruby-build.git dest=${tempdir.stdout}/ruby-build
   when_failed: $rbuild_present
+  sudo: true  
+  sudo_user: $rbenv_user 
   tags:
   - ruby
   - install
@@ -85,29 +97,28 @@
   - install
 
 - name: rbenv | check ruby $ruby_version installed
-  shell: RBENV_ROOT=${rbenv_root} rbenv versions | grep $ruby_version
+  shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/bin/rbenv versions | grep $ruby_version
   register: ruby_installed
+  sudo: true
+  sudo_user: $rbenv_user 
   ignore_errors: yes
   tags:
   - ruby
   - install
 
 - name: rbenv | install ruby $ruby_version
-  shell: RBENV_ROOT=${rbenv_root} rbenv install $ruby_version
+  shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/bin/rbenv install $ruby_version
   when_failed: $ruby_installed
+  sudo: true
+  sudo_user: $rbenv_user 
   tags:
   - ruby
   - install
 
 - name: rbenv | set global ruby $ruby_version
-  shell: RBENV_ROOT=${rbenv_root} rbenv global $ruby_version
-  when_failed: $ruby_installed
-  tags:
-  - ruby
-  - install
-
-- name: rbenv | rehash
-  shell: RBENV_ROOT=${rbenv_root} rbenv rehash
+  shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/bin/rbenv global $ruby_version
+  sudo: true
+  sudo_user: $rbenv_user 
   when_failed: $ruby_installed
   tags:
   - ruby
@@ -115,6 +126,17 @@
 
 - name: install bundler
   shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/shims/gem install bundler
+  sudo: true
+  sudo_user: $rbenv_user 
+  tags:
+  - ruby
+  - install
+
+- name: rbenv | rehash
+  shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/bin/rbenv rehash  
+  sudo: true
+  sudo_user: $rbenv_user 
+  when_failed: $ruby_installed
   tags:
   - ruby
   - install
