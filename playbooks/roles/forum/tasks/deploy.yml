@@ -6,18 +6,14 @@
 
 - name: git checkout forum repo into $app_base_dir
   git: dest={{forum_code_dir}} repo={{forum_source_repo}} version={{forum_version}}
-  tags:
-  - forum
-  - deploy
-
-- name: sets permissions on forum code dir and contents
-  file: path={{forum_code_dir}} state=directory owner=forum group=forum recurse=yes
+  sudo: yes
+  sudo_user: ${forum_user}
   tags:
   - forum
   - deploy
 
 - name: install comments service bundle
-  shell: executable=/bin/bash ${rbenv_root}/shims/bundle install chdir={{forum_code_dir}}
+  shell: executable=/bin/bash bundle install chdir={{forum_code_dir}}
   sudo: yes
   sudo_user: ${forum_user}
   tags:
