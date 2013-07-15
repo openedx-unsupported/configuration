@@ -1,0 +1,17 @@
+# gunicorn
+
+description "xqueue server"
+author "devops <devops@edx.org>"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 3 30
+
+env LANG=en_US.UTF-8
+env WORKERS_PER_QUEUE={{xqueue_env_config.XQUEUE_WORKERS_PER_QUEUE}}
+chdir {{xqueue_code_dir}}
+setuid www-data
+
+exec {{venv_dir}}/bin/django-admin.py run_consumer --pythonpath={{xqueue_code_dir}} --settings=xqueue.aws_settings $WORKERS_PER_QUEUE
