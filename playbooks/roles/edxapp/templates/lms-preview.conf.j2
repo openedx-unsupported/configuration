@@ -12,10 +12,12 @@ respawn limit 3 30
 env PID=/var/tmp/lms.pid
 #env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
 #env NEWRELIC={{venv_dir}}/bin/newrelic-admin
-{% if facter_processorcount %}
+{% if facter_processorcount|int(default="NaN") is number  %}
 env WORKERS={{ worker_core_mult.lms_preview * facter_processorcount|int }}
+{% elif ansible_processor_cores|int(default="NaN") is number %}
+env WORKERS={{ worker_core_mult.lms_preview * ansible_processor_cores|int }}
 {% else %}
-env WORKERS={{ worker_core_mult.lms_preview * ansible_processor_cores }}
+env WORKERS={{ worker_core_mult.lms_preview }}
 {% endif %}
 env PORT=8020
 env LANG=en_US.UTF-8
