@@ -1,9 +1,32 @@
 # gunicorn
 # Templated and placed by ansible from jinja2 source
- 
-description "gunicorn server"
-author "Calen Pennington <cpennington@mitx.mit.edu>"
- 
+{% if celery_worker %}
+# CMS Celery Worker Upstart Script
+description "cms celery worker"
+
+stop on stopping edx-workers
+
+respawn
+
+instance edx.${SERVICE_VARIANT}.core.${QUEUE}
+
+#env NEW_RELIC_CONFIG_FILE=/opt/wwc/newrelic.ini
+#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
+env CONCURRENCY=${CONCURRENCY}
+env LOGLEVEL=info
+env DJANGO_SETTINGS_MODULE=cms.envs.aws
+env PYTHONPATH={{edx_platform_code_dir}}
+env SERVICE_VARIANT=${SERVICE_VARIANT}
+
+setuid www-data
+
+chdir {{edx_platform_code_dir}}
+
+exec {{venv_dir}}/bin/django-admin.py celery worker --settings=$DJANGO_SETTINGS_MODULE --pythonpath=$PYTHONPATH --loglevel=$LOGLEVEL --queues=edx.${SERVICE_VARIANT}.core.${QUEUE} --hostname=edx.${SERVICE_VARIANT}.core.${QUEUE}.`hostname` --concurrency=$CONCURRENCY
+
+{% else %}
+description "cms gunicorn"
+# CMS Upstart Script
 start on started edxapp
 stop on stopped edxapp
  
@@ -27,5 +50,6 @@ env SERVICE_VARIANT="cms"
  
 chdir {{edx_platform_code_dir}}
 setuid www-data
- 
+
 exec {{venv_dir}}/bin/gunicorn_django -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} --settings=cms.envs.aws
+{% endif %}
