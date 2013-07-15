@@ -1,19 +1,21 @@
-- name: Create sandbox instance
-  hosts: localhost
-  connection: local
-  gather_facts: False
-  vars:
-    keypair: continuous-integration
-    instance_type: m1.xlarge
-    security_group: sandbox
-    image: ami-d0f89fb9
-    region: us-east-1
-    instance_tags: '{"Name": "edx-sandbox"}'
-  roles:
-    - launch_instance
-
+# This playbook is to configure
+# the official edX sandbox instance
+# sandbox.edx.org
+#
+# On the machine you want to configure run the following
+# command from the configuration/playbooks directory:
+#   ansible-playbook -c local --limit "localhost:127.0.0.1" /path/to/configuration/playbooks/edx_sandbox.yml -i "localhost,"
+# 
+# To use different default ports for lms-preview, cms and to set the lms_base and lms_preview_base,
+# for the following configuration:
+#   studio listening on port 80 - studio.example.com
+#   lms listening on port 80 - example.com
+#   lms-preview listening on port 80 - preview.example.com
+#
+#   ansible-playbook -c local --limit "localhost:127.0.0.1" path/to/configuration/playbooks/edx_sandbox.yml -i "localhost," -e "cms_nginx_port=80 lms_preview_nginx_port=80 c_lms_base=example.com  c_preview_lms_base=preview.example.com"
+#
 - name: Configure instance(s)
-  hosts: launched
+  hosts: localhost
   sudo: True
   gather_facts: True
   vars:
