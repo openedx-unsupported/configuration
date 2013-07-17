@@ -41,17 +41,21 @@
   - ruby
   - update
 
-- name: rebenv | add RBENV_ROOT to .bashrc
-  lineinfile:
-    dest=$ruby_base/.bashrc
-    regexp="export RBENV_ROOT={{ rbenv_root }} PATH={{ rbenv_root }}/bin:$PATH"
-    line="export RBENV_ROOT={{ rbenv_root }} PATH={{ rbenv_root }}/bin:$PATH"
+- name: rbenv | drop a bash_profile
+  copy: src=../../common/files/bash_profile dest=$ruby_base/.bash_profile owner=$rbenv_user group=$rbenv_user
 
-- name: rebenv | add eval of rbevn to .bashrc
+
+- name: rbenv | ensure ruby_env exists
+  template: src=ruby_env.j2 dest={{ ruby_base }}/ruby_env owner={{ rbenv_user }} group={{ rbenv_user }}
+  tags:
+  - ruby
+  - update
+
+- name: rebenv | add source of ruby_env to .bashrc
   lineinfile:
     dest=$ruby_base/.bashrc
-    regexp='eval "$(rbenv init -)"'    
-    line='eval "$(rbenv init -)"'
+    regexp='. {{ruby_base}}/ruby_env'    
+    line='. {{ruby_base}}/ruby_env'
 
 - name: rbenv | drop a bash_profile
   copy: src=../../common/files/bash_profile dest=$ruby_base/.bash_profile owner=$rbenv_user group=$rbenv_user
