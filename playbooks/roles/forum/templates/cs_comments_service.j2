@@ -10,10 +10,11 @@
 ### END INIT INFO
 
 # www-data is the default www user on debian
-USER=forum
+USER={{ forum_user }}
 NAME="cs_comments_service"
 RETVAL=0
-DAEMON=/opt/forum/.rbenv/shims/ruby
+APP_ROOT={{ forum_code_dir }}
+DAEMON={{ rbenv_root }}/shims/ruby
 PID=/var/tmp/cs_comments_service.pid
 OPTIONS="app.rb"
 
@@ -23,23 +24,22 @@ OPTIONS="app.rb"
 start()
 {
     echo "Starting $NAME."
-    cd /opt/wwc/cs_comments_service
-    start-stop-daemon -b --start --pidfile $PID -m -c $USER --exec $DAEMON -- $OPTIONS
+    start-stop-daemon -b --start --pidfile ${PID} -m -c ${USER} -d ${APP_ROOT}--exec ${DAEMON} -- ${OPTIONS}
 }
 
 stop()
 {
-    if [ -f $PID ]; then
+    if [ -f ${PID} ]; then
         echo "Stopping $NAME"
-        kill $(cat $PID)
+        kill $(cat ${PID})
     fi
 }
 
 reload()
 {
     echo "Reloading $NAME:"
-    if [ -f $PID ]
-    then kill -HUP `cat $PID` && echo "OK" || echo "failed";
+    if [ -f ${PID} ]
+    then kill -HUP `cat ${PID}` && echo "OK" || echo "failed";
     fi
 }
 

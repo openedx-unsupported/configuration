@@ -1,5 +1,6 @@
 #
 # cribbed from https://github.com/mmoya/ansible-playbooks/blob/master/rbenv/main.yml
+# with a number of changes.
 #
 
 - name: Create ruby base
@@ -40,19 +41,19 @@
   - ruby
   - update
 
-- name: ensure pam-limits module is loaded
+- name: rebenv | add RBENV_ROOT to .bashrc
   lineinfile:
     dest=$ruby_base/.bashrc
-    regexp="export RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} PATH={{ gem_home }}/bin:{{ rbenv_root }}/bin:$PATH"
-    line="export RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} PATH={{ gem_home }}/bin:{{ rbenv_root }}/bin:$PATH"
+    regexp="export RBENV_ROOT={{ rbenv_root }} PATH={{ rbenv_root }}/bin:$PATH"
+    line="export RBENV_ROOT={{ rbenv_root }} PATH={{ rbenv_root }}/bin:$PATH"
 
-- name: ensure pam-limits module is loaded
+- name: rebenv | add eval of rbevn to .bashrc
   lineinfile:
     dest=$ruby_base/.bashrc
     regexp='eval "$(rbenv init -)"'    
     line='eval "$(rbenv init -)"'
 
-- name: drop a bash_profile
+- name: rbenv | drop a bash_profile
   copy: src=../../common/files/bash_profile dest=$ruby_base/.bash_profile owner=$rbenv_user group=$rbenv_user
 
 - name: rbenv | check ruby-build installed
@@ -124,8 +125,8 @@
   - ruby
   - install
 
-- name: install bundler
-  shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/shims/gem install bundler
+- name: rbenv | install bundler
+  shell: RBENV_ROOT=${rbenv_root} ${rbenv_root}/shims/gem install bundler -v 1.3.2
   sudo: true
   sudo_user: $rbenv_user 
   tags:

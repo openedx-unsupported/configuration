@@ -1,13 +1,9 @@
-- name: stop forum service
-  service: name=cs_comments_service state=stopped
-  tags:
-  - forum
-  - deploy
-
-- name: git checkout forum repo into $app_base_dir
+- name: git checkout forum repo into {{forum_code_dir}}
   git: dest={{forum_code_dir}} repo={{forum_source_repo}} version={{forum_version}}
   sudo: yes
   sudo_user: ${forum_user}
+  notify: 
+    - restart the forum service
   tags:
   - forum
   - deploy
@@ -16,12 +12,8 @@
   shell: executable=/bin/bash {{ rbenv_root }}/shims/bundle install chdir={{ forum_code_dir }}
   sudo: yes
   sudo_user: ${forum_user}
+  notify: 
+    - restart the forum service
   tags:
     - forum
-    - install
-
-- name: start forum service
-  service: name=cs_comments_service state=started
-  tags:
-  - forum
-  - deploy
+    - deploy
