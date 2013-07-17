@@ -26,8 +26,14 @@
   - update
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-xml
+  when: celery_worker is not defined
   
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-xml-backend
+  when: celery_worker is not defined
 
 # Creates upstart file
-- include: upstart.yml service_variant=lms-xml
+- include: upstart.yml basename=lms-xml
+  when: celery_worker is not defined
+
+- include: upstart.yml basename=edx-worker-lms-xml
+  when: celery_worker is defined
