@@ -18,8 +18,10 @@
   - update
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms
+  when: celery_worker is not defined
   
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms-backend
+  when: celery_worker is not defined
 
 - name: Create CMS log target directory
   file: path={{log_base_dir}}/cms state=directory owner=syslog group=adm mode=2770
@@ -29,5 +31,9 @@
   - logging
   - update
 
-# Creates LMS upstart file
-- include: upstart.yml service_variant=cms
+# Creates CMS upstart file
+- include: upstart.yml basename=cms
+  when: celery_worker is not defined
+
+- include: upstart.yml basename=edx-worker-cms
+  when: celery_worker is defined

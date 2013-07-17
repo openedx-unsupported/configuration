@@ -1,0 +1,29 @@
+# edx workers
+# managed by puppet or ansible
+
+description "start edX app workers"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+pre-start script
+
+   {% if 'cms' in service_variants_enabled %}
+   start edx-worker-cms QUEUE=low CONCURRENCY=1 SERVICE_VARIANT=cms
+   start edx-worker-cms QUEUE=default CONCURRENCY=3 SERVICE_VARIANT=cms
+   start edx-worker-cms QUEUE=high CONCURRENCY=4 SERVICE_VARIANT=cms
+   {% endif %}
+
+   {% if 'lms' in service_variants_enabled %}
+   start edx-worker-lms QUEUE=low CONCURRENCY=1 SERVICE_VARIANT=lms
+   start edx-worker-lms QUEUE=default CONCURRENCY=3 SERVICE_VARIANT=lms
+   start edx-worker-lms QUEUE=high CONCURRENCY=4 SERVICE_VARIANT=lms
+   {% endif %}
+
+   {% if 'lms-xml' in service_variants_enabled %}
+   start edx-worker-lms-xml QUEUE=low CONCURRENCY=1 SERVICE_VARIANT=lms-xml
+   start edx-worker-lms-xml QUEUE=default CONCURRENCY=3 SERVICE_VARIANT=lms-xml
+   start edx-worker-lms-xml QUEUE=high CONCURRENCY=4 SERVICE_VARIANT=lms-xml
+   {% endif %}
+
+end script

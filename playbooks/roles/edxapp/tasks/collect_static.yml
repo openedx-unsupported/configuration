@@ -1,0 +1,86 @@
+# Gather lms assets using rake if possible
+- name: gather lms static assets with rake
+  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
+  when: grep_gather_assets.rc == 0
+  notify:
+  - restart edxapp
+  sudo: yes
+  sudo_user: www-data
+  environment: "{{ deploy_environment }}"
+  tags:
+  - lms
+  - lms-preview
+  - lms-xml
+  - deploy
+
+# Gather lms assets using django if necessary(When rake doesn't know how)
+- name: gather lms static assets with django
+  shell: SERVICE_VARIANT={{ lms_variant }} django-admin.py collectstatic --pythonpath={{ edx_platform_code_dir }} --settings=lms.envs.aws --noinput --verbosity=0
+  when: grep_gather_assets.rc != 0 and check_lms_collect_static.rc == 0
+  notify:
+  - restart edxapp
+  sudo: yes
+  sudo_user: www-data
+  environment: "{{ deploy_environment }}"
+  tags:
+  - lms
+  - lms-preview
+  - lms-xml
+  - deploy
+
+
+# Gather cms assets using rake if possible
+- name: gather cms static assets with rake
+#  script: gather_assets.sh
+  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
+  when: grep_gather_assets.rc == 0
+  notify:
+  - restart edxapp
+  sudo: yes
+  sudo_user: www-data
+  environment: "{{ deploy_environment }}"
+  tags:
+  - cms
+  - deploy
+
+- name: gather cms static assets with django
+  shell: SERVICE_VARIANT={{ cms_variant }} django-admin.py collectstatic --pythonpath={{ edx_platform_code_dir }} --settings=lms.envs.aws --noinput --verbosity=0
+  when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc == 0
+  notify:
+  - restart edxapp
+  sudo: yes
+  sudo_user: www-data
+  environment: "{{ deploy_environment }}"
+  tags:
+  - cms
+  - deploy
+
+- name: update cms templates
+  shell: SERVICE_VARIANT={{ cms_variant }} django-admin.py update_templates --pythonpath={{ edx_platform_code_dir }} --settings=cms.envs.aws
+  when: check_cms_update_templates.rc == 0
+  notify:
+  - restart edxapp
+  sudo: yes
+  sudo_user: www-data
+  environment: "{{ deploy_environment }}"
+  tags:
+  - cms
+  - deploy
+
+# Add failure checks for if no static assets were deployed.
+- name: lms asset static failure check
+  shell: /bin/false
+  when: grep_gather_assets.rc != 0 and check_lms_collect_static.rc != 0
+  tags:
+  - lms
+  - lms-preview
+  - lms-xml
+  - deploy
+
+- name: cms asset static failure check
+  shell: /bin/false
+  when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc != 0
+  tags:
+  - cms
+  - deploy
+
