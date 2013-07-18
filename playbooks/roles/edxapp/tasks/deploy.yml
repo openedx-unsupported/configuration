@@ -180,11 +180,12 @@
   when: celery_worker is not defined
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
-# This is necessary for the local mysql5.5, not sure if this fix will ever get merged
+# This is necessary for when syncdb is run and the django_openid_auth module is installed,
+# not sure if this fix will ever get merged
 # We should never do this in production
-- name: mysql5.5 workaround - NOT FOR PRODUCTION
+- name: openid workaround - NOT FOR PRODUCTION
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
-  when: mysql5_workaround is defined
+  when: openid_workaround is defined
 
 - name: syncdb and migrate
   shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
