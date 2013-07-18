@@ -2,32 +2,32 @@
   command: test -d /usr/lib/jvm/{{ java_base }}
   ignore_errors: true
   register: java_present
+  tags:
+    - oraclejdk
+    - install
 
 - name: oraclejdk | download Oracle Java
   shell: executable=/bin/bash curl -b gpw_e24=http%3A%2F%2Fwww.oracle.com -O -L {{ java_url }} chdir=/var/tmp
-  when_failed: $java_present
+  when: java_present|failed
 
 - name: oraclejdk | install Oracle Java
   shell: exectuable=/bin/bash mkdir -p /usr/lib/jvm && tar -C /usr/lib/jvm -zxvf /var/tmp/{{ java_file }}
   sudo: true
-  when_failed: $java_present
+  when: java_present|failed
   tags:
-    - forum 
+    - oraclejdk
     - install
 
-#
-# TODO: relocate, maybe?
-#
 - name: oraclejdk | create symlink expected by elasticsearch
   file: src=/usr/lib/jvm/{{ java_base }} dest={{ java_link }} state=link
-  when_failed: $java_present
+  when: java_present|failed
   tags:
-    - forum 
+    - oraclejdk
     - install
 
 - name: oraclejdk | add JAVA_HOME for Oracle Java
   template: src=java.sh.j2 dest=/etc/profile.d/java.sh owner=root group=root mode=0755
-  when_failed: $java_present
+  when: java_present|failed
   tags:
-  - forum
-  - update
+  - oraclejdk
+  - install
