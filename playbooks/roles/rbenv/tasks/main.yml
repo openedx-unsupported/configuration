@@ -12,11 +12,18 @@
 - fail: rbenv_ruby_version required for role
   when: rbenv_ruby_version is not defined
 
-#- name: rbenv | create ruby base
-#  file: path=$ruby_base state=directory owner={{ rbenv_user }} group={{ rbenv_user }}
-#  tags:
-#  - ruby
-#  - update
+#
+# It's unfortunate that this needs to happen here,
+# but the rbenv needs to exist when the service
+# that relies on it is provisioned and the service
+# user and it's home needs to exist for rbenv to 
+# install into.
+#
+- name: rbenv | create rbenv owner $forum_user
+  user: name=$forum_user state=present shell=/bin/bash home=$forum_home
+  tags:
+  - forum
+  - update
 
 - name: rbenv | install build depends
   apt: pkg=$item state=present install_recommends=no
@@ -111,7 +118,7 @@
   - install
 
 - name: rbenv | check ruby {{ rbenv_ruby_version }} installed
-  shell: ${rbenv_user_home}/.rbenv/bin/rbenv versions | grep ${rbenv_ruby_version}
+  shell: "{{ rbenv_user_home }}/.rbenv/bin/rbenv versions | grep {{ rbenv_ruby_version }}"
   register: ruby_installed
   sudo: true
   sudo_user: "{{ rbenv_user }}" 
@@ -121,7 +128,7 @@
   - install
 
 - name: rbenv | install ruby {{ rbenv_ruby_version }}
-  shell: ${rbenv_user_home }/.rbenv/bin/rbenv install ${rbenv_ruby_version}
+  shell: "{{ rbenv_user_home }}/.rbenv/bin/rbenv install {{ rbenv_ruby_version }}"
   when_failed: $ruby_installed
   sudo: true
   sudo_user: "{{ rbenv_user }}" 
