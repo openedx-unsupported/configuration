@@ -7,6 +7,8 @@
 
 - name: forum | setup the forum env
   template: src=forum_env.j2 dest={{ forum_home }}/forum_env owner={{ forum_user }} group={{ forum_user }}
+  notify: 
+    - forum | restart the forum service
   tags:
   - forum
   - update
@@ -24,9 +26,17 @@
     dest="{{ forum_home }}/.bashrc"
     regexp='. {{ forum_home }}/forum_env'    
     line='. {{ forum_home }}/forum_env'
+  notify: 
+    - forum | restart the forum service
+  tags:
+  - forum
+  - update
+
 
 - name: forum | copy cs_comments_service SysVunit script
   template: src=cs_comments_service.j2 dest=/etc/init.d/cs_comments_service owner=root group=root mode=750
+  notify: 
+    - forum | restart the forum service
   tags:
   - forum
   - install
@@ -35,6 +45,8 @@
 
 - name: forum | copy cs_comments_service upstart script
   template: src=cs_comments_service.conf.j2 dest=/etc/init/cs_comments_service.conf owner=root group=root mode=750
+  notify: 
+    - forum | restart the forum service
   tags:
   - forum
   - install
