@@ -1,0 +1,37 @@
+---
+- name: Install Firefox
+  apt: pkg=firefox
+
+- name: Download PhantomJS
+  get_url: url={{ phantomjs_url }}
+           dest=/var/tmp/{{ phantomjs_archive }}
+
+- name: Untar PhantomJS
+  command: tar -xjf /var/tmp/{{ phantomjs_archive }} -C /var/tmp/
+           creates=/var/tmp/{{ phantomjs_folder }}
+
+- name: Install PhantomJS
+  command: mv /var/tmp/{{ phantomjs_folder }}/bin/phantomjs /usr/local/bin/phantomjs
+           creates=/usr/local/bin/phantomjs
+
+- name: Set PhantomJS permissions
+  command: chmod go+rx /usr/local/bin/phantomjs
+
+- name: Install Google Chrome
+  command: wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+           chdir=/var/tmp
+
+- name: Install Google Chrome 2
+  command: dpkg -i google-chrome-stable_current_amd64.deb
+           chdir=/var/tmp
+  ignore_errors: True
+
+- name: Install Google Chrome 3
+  command: apt-get -f -y install
+
+#- name: Install ChromeDriver
+#  shell: wget --quiet http://chromedriver.googlecode.com/files/chromedriver2_linux64_0.8.zip \
+#         unzip chromedriver2_linux64_0.8.zip \
+#         mv chromedriver /usr/local/bin/chromedriver \
+#         chmod go+rx /usr/local/bin/chromedriver
+#         chdir=/var/tmp
