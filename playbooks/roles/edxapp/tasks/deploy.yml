@@ -128,6 +128,24 @@
   - install
   - deploy
 
+
+# Install the sandbox python modules into {{ venv_dir }}
+- name : install sandbox requirements into regular venv
+  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
+  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
+  # installs everything into that virtual environment.
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install --use-mirrors -r {{ item }}
+  with_items:
+  - "{{ sandbox_base_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_post_requirements }}"
+  when: install_sandbox_reqs_into_regular_venv
+  tags:
+  - lms
+  - cms
+  - install
+  - deploy
+
 # This check needs to be run to see if rake can be used but its failure should not stop the run.
 - name: check if rake gather_assets is available
   shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} rake -T | grep gather_assets
