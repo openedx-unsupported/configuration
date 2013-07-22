@@ -258,7 +258,8 @@
       "Cache01":         { "CIDR":"10.0.60.0/24" },
       "Cache02":         { "CIDR":"10.0.61.0/24" },
       "Worker01":        { "CIDR":"10.0.70.0/24" },
-      "Worker02":        { "CIDR":"10.0.71.0/24" }
+      "Worker02":        { "CIDR":"10.0.71.0/24" },
+      "NATWatcher01":      { "CIDR":"10.0.70.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1a",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -767,6 +768,38 @@
           {
             "Key":"Network",
             "Value":"Private"
+          }
+        ]
+      }
+    },
+    "NATWatcher01":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "NATWatcher01",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone2"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"Elasticache"
+          },
+          {
+            "Key":"Network",
+            "Value":"Cache"
           }
         ]
       }
@@ -1374,6 +1407,79 @@
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
         }
+      }
+    },
+    "BackupNATIPAddress":{
+      "Type":"AWS::EC2::EIP",
+      "Properties":{
+        "Domain":"vpc",
+        "InstanceId":{
+          "Ref":"BackupNATDevice"
+        }
+      }
+    },
+    "BackupNATDevice":{
+      "Type":"AWS::EC2::Instance",
+      "Properties":{
+        "InstanceType":{
+          "Ref":"NATInstanceType"
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "SubnetId":{
+          "Ref":"PublicSubnet02"
+        },
+        "SourceDestCheck":"false",
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSRegionArch2AMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            {
+              "Fn::FindInMap":[
+                "AWSInstanceType2Arch",
+                "t1.micro",
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "SecurityGroupIds":[
+          {
+            "Ref":"NATSecurityGroup"
+          }
+        ]
+      }
+    },
+    "NATWatcherServer":{
+      "Type":"AWS::EC2::Instance",
+      "Properties":{
+        "InstanceType":{
+          "Ref":"NATInstanceType"
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "SubnetId":{
+          "Ref":"NATWatcher01"
+        },
+        "SourceDestCheck":"false",
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSNATAMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "SecurityGroupIds":[
+          {
+            "Ref":"NATSecurityGroup"
+          }
+        ]
       }
     },
     "NATIPAddress":{
