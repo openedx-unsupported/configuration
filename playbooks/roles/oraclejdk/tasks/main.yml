@@ -1,0 +1,33 @@
+- name: oraclejdk | check for Oracle Java version {{ oraclejdk_base }}
+  command: test -d /usr/lib/jvm/{{ oraclejdk_base }}
+  ignore_errors: true
+  register: oraclejdk_present
+  tags:
+    - oraclejdk
+    - install
+
+- name: oraclejdk | download Oracle Java
+  shell: executable="/bin/bash curl -b gpw_e24=http%3A%2F%2Fwww.oracle.com -O -L {{ oraclejdk_url }} chdir=/var/tmp" creates="/var/tmp/{ oraclejdk_file }"
+  when: oraclejdk_present|failed
+
+- name: oraclejdk | install Oracle Java
+  shell: exectuable=/bin/bash mkdir -p /usr/lib/jvm && tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }} creates="/usr/lib/jvm/{{ oraclejdk_base }}"
+  sudo: true
+  when: oraclejdk_present|failed
+  tags:
+    - oraclejdk
+    - install
+
+- name: oraclejdk | create symlink expected by elasticsearch
+  file: src=/usr/lib/jvm/{{ oraclejdk_base }} dest={{ oraclejdk_link }} state=link
+  when: oraclejdk_present|failed
+  tags:
+    - oraclejdk
+    - install
+
+- name: oraclejdk | add JAVA_HOME for Oracle Java
+  template: src=java.sh.j2 dest=/etc/profile.d/java.sh owner=root group=root mode=0755
+  when: oraclejdk_present|failed
+  tags:
+  - oraclejdk
+  - install
