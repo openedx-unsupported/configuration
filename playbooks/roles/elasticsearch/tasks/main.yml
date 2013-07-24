@@ -1,0 +1,23 @@
+- name:  elasticsearch | check for elasticsearch
+  command: test -f /var/tmp/elasticsearch-${elasticsearch_version}.deb
+  ignore_errors: true
+  register: elasticsearch_present
+
+- name:  elasticsearch | download elasticsearch
+  get_url: url={{ elasticsearch_url }} dest=/var/tmp/{{ elasticsearch_file }}
+  when: elasticsearch_present|failed
+  tags:
+    - elasticsearch
+    - install
+
+- name:  elasticsearch | check elasticsearch version
+  shell: test -n "$(dpkg --list elasticsearch | grep {{ elasticsearch_version }})"
+  ignore_errors: true
+  register: elasticsearch_installed
+
+- name: elasticsearch | install elasticsearch from local package
+  shell: executable=/bin/bash dpkg -i /var/tmp/elasticsearch-${elasticsearch_version}.deb
+  when: elasticsearch_installed|failed
+  tags:
+    - elasticsearch
+    - install
