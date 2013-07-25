@@ -1,9 +1,25 @@
 ---
 
+# forum
 #
-# This role depends upon the rbenv role which needs to 
-# be included in the same playbook prior to this role.
+# Dependencies:
 #
+#   * common
+#   * elasticsearch
+#   * oraclejdk
+#   * rbenv
+# 
+# 
+# Example play:
+#   roles:
+#   - common
+#   - oraclejdk
+#   - elasticsearch 
+#   - role: rbenv
+#     rbenv_user: "{{ forum_user }}"
+#     rbenv_user_home: "{{ forum_rbenv_dir }}"
+#     rbenv_ruby_version: "{{ forum_ruby_version }}"
+#   - forum
 
 - name: forum | setup the forum env
   template: src=forum_env.j2 dest={{ forum_home }}/forum_env owner={{ forum_user }} group={{ forum_user }}
@@ -40,17 +56,17 @@
   tags:
   - forum
   - install
-  only_if: "'${ansible_distribution}' == 'Debian'"
+  when: ansible_distribution == 'Debian'
 
 
 - name: forum | copy cs_comments_service upstart script
-  template: src=cs_comments_service.conf.j2 dest=/etc/init/cs_comments_service.conf owner=root group=root mode=750
+  template: src=cs_comments_service.conf.j2 dest=/etc/init/cs_comments_service.conf owner=root group=root mode=644
   notify: 
     - forum | restart the forum service
   tags:
   - forum
   - install
-  only_if: "'${ansible_distribution}' == 'Ubuntu'"
+  when: ansible_distribution == 'Ubuntu'
 
 - include: deploy.yml
 - include: test.yml
