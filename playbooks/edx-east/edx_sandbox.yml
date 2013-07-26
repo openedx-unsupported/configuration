@@ -1,0 +1,29 @@
+---
+
+# This playbook is to configuration
+# the official edX sandbox instance
+# sandbox.edx.org
+
+- name: Configure instance(s)
+  hosts: tag_Name_edx-sandbox
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: True
+    mysql5_workaround: True
+  vars_files:
+    - "{{ secure_dir }}/vars/edx_sandbox.yml"
+  roles:
+    - common
+    - nginx
+    - edxlocal
+    - edxapp
+    - rabbitmq
+    - oraclejdk
+    - elasticsearch
+    - { role: 'edxapp', celery_worker: True }
+    - role: rbenv
+      rbenv_user: "{{ forum_user }}"
+      rbenv_user_home: "{{ forum_home }}"
+      rbenv_ruby_version: "{{ forum_ruby_version }}"
+    - forum
