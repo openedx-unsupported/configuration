@@ -1,40 +1,28 @@
-# gunicorn
-
-description "gunicorn server"
-author "Calen Pennington <cpennington@mitx.mit.edu>"
-
-start on started edxapp
-stop on stopped edxapp
-
-respawn
-respawn limit 3 30
-
-env PID=/var/tmp/lms.pid
-#env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
-#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
+[program:lms-preview]
 {% if ansible_processor|length > 0 %}
-env WORKERS={{ ansible_processor|length * worker_core_mult.lms_preview }}
+command={{ venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:{{ edxapp_lms_preview_app_port }} -w {{ ansible_processor|length * worker_core_mult.lms_preview }} --timeout=300 --pythonpath={{ edx_platform_code_dir }} lms.wsgi
 {% else %}
-env WORKERS={{ worker_core_mult.lms_preview }}
+command={{ venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:{{ edxapp_lms_preview_app_port }} -w {{ worker_core_mult.lms_preview }} --timeout=300 --pythonpath={{ edx_platform_code_dir }} lms.wsgi
 {% endif %}
-env PORT={{edxapp_lms_preview_app_port}}
-env LANG=en_US.UTF-8
-env DJANGO_SETTINGS_MODULE=lms.envs.aws
-env SERVICE_VARIANT="lms-preview"
-  
-chdir {{edx_platform_code_dir}}
-setuid www-data
-
-exec {{venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} lms.wsgi
-
-post-start script
-  while true
-  do
-    if $(curl -s -i localhost:$PORT/heartbeat | egrep -q '200 OK'); then
-      break;
-    else
-      sleep 1;
-    fi
-  done
-end script
-
+process_name=%(program_name)s
+numprocs=1
+directory={{ edx_platform_code_dir }}
+umask=022
+autostart=true
+autorestart=true
+startsecs=10
+startretries=3
+exitcodes=0,2
+stopsignal=TERM
+stopwaitsecs=10
+user=www-data
+redirect_stderr=false
+stdout_logfile=/mnt/logs/lms-preview-stdout.log
+stdout_logfile_maxbytes=1MB
+stdout_logfile_backups=10
+stdout_capture_maxbytes=1MB
+stderr_logfile=/mnt/logs/lms-preview-stderr.log
+stderr_logfile_maxbytes=1MB
+stderr_logfile_backups=10
+stderr_capture_maxbytes=1MB
+environment=PID=/var/tmp/lms-preview.pid,LANG=en_US.UTF-8,DJANGO_SETTINGS_MODULE=lms.envs.aws,SERVICE_VARIANT=lms-preview

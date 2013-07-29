@@ -1,27 +1,28 @@
-# gunicorn
-# Templated and placed by ansible from jinja2 source
-description "cms gunicorn"
-# CMS Upstart Script
-start on started edxapp
-stop on stopped edxapp
- 
-respawn
-respawn limit 3 30
- 
-env PID=/var/tmp/cms.pid
-#env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
-#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
+[program:cms]
 {% if ansible_processor|length > 0 %}
-env WORKERS={{ ansible_processor|length * worker_core_mult.cms }}
+command={{ venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:{{ edxapp_cms_app_port }} -w {{ ansible_processor|length * worker_core_mult.cms }} --timeout=300 --pythonpath={{ edx_platform_code_dir }} cms.wsgi
 {% else %}
-env WORKERS={{ worker_core_mult.cms }}
+command={{ venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:{{ edxapp_cms_app_port }} -w {{ worker_core_mult.cms }} --timeout=300 --pythonpath={{ edx_platform_code_dir }} cms.wsgi
 {% endif %}
-env PORT={{edxapp_cms_app_port}}
-env LANG=en_US.UTF-8
-env DJANGO_SETTINGS_MODULE=cms.envs.aws
-env SERVICE_VARIANT="cms"
- 
-chdir {{edx_platform_code_dir}}
-setuid www-data
-
-exec {{venv_dir}}/bin/gunicorn_django -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} --settings=cms.envs.aws
+process_name=%(program_name)s
+numprocs=1
+directory={{ edx_platform_code_dir }}
+umask=022
+autostart=true
+autorestart=true
+startsecs=10
+startretries=3
+exitcodes=0,2
+stopsignal=TERM
+stopwaitsecs=10
+user=www-data
+redirect_stderr=false
+stdout_logfile=/mnt/logs/cms-stdout.log
+stdout_logfile_maxbytes=1MB
+stdout_logfile_backups=10
+stdout_capture_maxbytes=1MB
+stderr_logfile=/mnt/logs/cms-stderr.log
+stderr_logfile_maxbytes=1MB
+stderr_logfile_backups=10
+stderr_capture_maxbytes=1MB
+environment=PID=/var/tmp/cms.pid,LANG=en_US.UTF-8,DJANGO_SETTINGS_MODULE=cms.envs.aws,SERVICE_VARIANT=cms
