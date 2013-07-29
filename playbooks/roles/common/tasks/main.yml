@@ -1,6 +1,13 @@
 ---
 - include: create_users.yml
 
+- name: Add user www-data
+  # This user should be created on the system by default
+  user: name=www-data
+  tags:
+  - pre_install
+  - update
+
 - name: Create application root
   # In the future consider making group edx r/t adm
   file: path={{ app_base_dir }} state=directory owner=root group=adm mode=2775 
@@ -31,8 +38,7 @@
   
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
-  apt: pkg={{item}} install_recommends=yes state=present update_cache=yes
-  with_items: common_pkgs
+  apt: pkg={{','.join(common_debian_pkgs)}} install_recommends=yes state=present update_cache=yes
   tags:
   - pre_install
   - update

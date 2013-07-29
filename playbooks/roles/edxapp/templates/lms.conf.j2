@@ -1,8 +1,5 @@
 # gunicorn
-
-description "gunicorn server"
-author "Calen Pennington <cpennington@mitx.mit.edu>"
-
+# Templated and placed by ansible from jinja2 source
 start on started edxapp
 stop on stopped edxapp
 
@@ -12,12 +9,12 @@ respawn limit 3 30
 env PID=/var/tmp/lms.pid
 #env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
 #env NEWRELIC={{venv_dir}}/bin/newrelic-admin
-{% if facter_processorcount %}
-env WORKERS={{ worker_core_mult.lms * facter_processorcount|int }}
+{% if ansible_processor|length > 0 %}
+env WORKERS={{ ansible_processor|length * worker_core_mult.lms }}
 {% else %}
-env WORKERS={{ worker_core_mult.lms * ansible_processor_cores }}
+env WORKERS={{ worker_core_mult.lms }}
 {% endif %}
-env PORT=8000
+env PORT={{edxapp_lms_app_port}}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=lms.envs.aws
 env SERVICE_VARIANT="lms"
@@ -37,4 +34,3 @@ post-start script
     fi
   done
 end script
-

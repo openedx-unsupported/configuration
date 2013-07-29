@@ -1,0 +1,24 @@
+# gunicorn
+# Templated and placed by ansible from jinja2 source
+# CMS Celery Worker Upstart Script
+description "lms celery worker"
+
+stop on stopping edx-workers
+
+respawn
+
+instance edx.${SERVICE_VARIANT}.core.${QUEUE}
+
+#env NEW_RELIC_CONFIG_FILE=/opt/wwc/newrelic.ini
+#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
+env CONCURRENCY=${CONCURRENCY}
+env LOGLEVEL=info
+env DJANGO_SETTINGS_MODULE=lms.envs.aws
+env PYTHONPATH={{edx_platform_code_dir}}
+env SERVICE_VARIANT=${SERVICE_VARIANT}
+
+setuid www-data
+
+chdir {{edx_platform_code_dir}}
+
+exec {{venv_dir}}/bin/django-admin.py celery worker --settings=$DJANGO_SETTINGS_MODULE --pythonpath=$PYTHONPATH --loglevel=$LOGLEVEL --queues=edx.${SERVICE_VARIANT}.core.${QUEUE} --hostname=edx.${SERVICE_VARIANT}.core.${QUEUE}.`hostname` --concurrency=$CONCURRENCY

@@ -1,0 +1,29 @@
+---
+
+- name: forum | stop the forum service
+  service: name=cs_comments_service state=stopped
+  tags:
+  - deploy
+
+- name:  forum | git checkout forum repo into {{ forum_code_dir }}
+  git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
+  sudo: yes
+  sudo_user: "{{ forum_user }}"
+  notify: 
+    - forum | restart the forum service
+  tags:
+  - forum
+  - deploy
+
+- name: forum | install comments service bundle
+  shell: executable=/bin/bash {{ forum_home }}/.rbenv/shims/bundle install chdir={{ forum_code_dir }}
+  sudo: yes
+  sudo_user: "{{ forum_user }}"
+  tags:
+  - forum
+  - deploy
+
+- name: forum | restart the forum service
+  service: name=cs_comments_service state=restarted
+  tags:
+  - deploy
