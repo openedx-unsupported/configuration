@@ -1,0 +1,72 @@
+#!/bin/sh 
+
+### BEGIN INIT INFO
+# Provides:       seismic_web
+# Required-Start: $local_fs $syslog
+# Required-Stop:  $local_fs $syslog
+# Default-Start:  2 3 4 5
+# Default-Stop:   0 1 6
+# Short-Description: Gunicorn processes for seismic_web
+### END INIT INFO
+
+# www-data is the default www user on debian
+USER=www-data
+NAME="cms"
+RETVAL=0
+PORT=8010
+WORKERS=8
+LANG=en_US.UTF-8
+DJANGO_SETTINGS_MODULE=cms.envs.aws
+DAEMON=/opt/edx/bin/gunicorn_django
+PID=/var/tmp/cms.pid
+OPTIONS="-b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws"
+export SERVICE_VARIANT="cms"
+
+# source function library
+. /lib/lsb/init-functions
+
+
+start()
+{
+    echo "Starting $NAME."
+    cd /opt/wwc/edx-platform
+    start-stop-daemon -b --start --pidfile $PID -m -c $USER --exec $DAEMON -- $OPTIONS
+}
+
+stop()
+{
+    if [ -f $PID ]; then
+        echo "Stopping $NAME"
+        kill $(cat $PID)
+    fi
+}
+
+reload()
+{
+    echo "Reloading $NAME:"
+    if [ -f $PID ]
+    then kill -HUP `cat $PID` && echo "OK" || echo "failed";
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        reload
+        ;;
+    reload)
+        reload
+        ;;
+    force-reload)
+        stop && start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        RETVAL=1
+esac
+exit $RETVAL

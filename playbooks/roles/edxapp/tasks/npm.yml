@@ -2,8 +2,28 @@
 #   - common/tasks/main.yml
 #   - ruby/tasks/main.yml
 ---
-- name: Install npm
-  apt: pkg=npm state=present install_recommends=no
+#- name: Install npm
+#  apt: pkg=npm state=present install_recommends=no
+#  tags:
+#  - npm
+#  - install
+#
+- name: Clone node
+  git: repo=https://github.com/joyent/node.git dest=/var/tmp/node version=v0.6.12
   tags:
   - npm
-  - install
+
+- name: Configure node
+  shell: ./configure --openssl-libpath=/usr/lib/ssl chdir=/var/tmp/node
+  tags:
+  - npm
+
+- name: Build node
+  shell: make chdir=/var/tmp/node
+  tags:
+  - npm
+
+- name: Install node
+  shell: make install chdir=/var/tmp/node
+  tags:
+  - npm
