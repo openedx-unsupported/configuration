@@ -1,9 +1,7 @@
 # gunicorn
 # Templated and placed by ansible from jinja2 source
- 
-description "gunicorn server"
-author "Calen Pennington <cpennington@mitx.mit.edu>"
- 
+description "cms gunicorn"
+# CMS Upstart Script
 start on started edxapp
 stop on stopped edxapp
  
@@ -13,17 +11,17 @@ respawn limit 3 30
 env PID=/var/tmp/cms.pid
 #env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
 #env NEWRELIC={{venv_dir}}/bin/newrelic-admin
-{% if facter_processorcount %}
-env WORKERS={{ worker_core_mult.cms * facter_processorcount|int }}
+{% if ansible_processor|length > 0 %}
+env WORKERS={{ ansible_processor|length * worker_core_mult.cms }}
 {% else %}
-env WORKERS={{ worker_core_mult.cms * ansible_processor_cores }}
+env WORKERS={{ worker_core_mult.cms }}
 {% endif %}
-env PORT=8010
+env PORT={{edxapp_cms_app_port}}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=cms.envs.aws
 env SERVICE_VARIANT="cms"
  
 chdir {{edx_platform_code_dir}}
 setuid www-data
- 
+
 exec {{venv_dir}}/bin/gunicorn_django -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} --settings=cms.envs.aws

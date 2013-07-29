@@ -1,12 +1,19 @@
 # Stop all services.
 - name: stop edxapp services
   service: name=edxapp state=stopped
+  when: celery_worker is not defined
   ignore_errors: yes
   tags:
   - lms
   - lms-xml
   - lms-preview
   - cms
+  - deploy
+
+- name: stop edx workers
+  service: name=edx-workers state=stopped
+  when: celery_worker is defined
+  tags:
   - deploy
 
 # Do A Checkout
@@ -122,6 +129,24 @@
   - install
   - deploy
 
+
+# Install the sandbox python modules into {{ venv_dir }}
+- name : install sandbox requirements into regular venv
+  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
+  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
+  # installs everything into that virtual environment.
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install --use-mirrors -r {{ item }}
+  with_items:
+  - "{{ sandbox_base_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_post_requirements }}"
+  when: install_sandbox_reqs_into_regular_venv
+  tags:
+  - lms
+  - cms
+  - install
+  - deploy
+
 # This check needs to be run to see if rake can be used but its failure should not stop the run.
 - name: check if rake gather_assets is available
   shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} rake -T | grep gather_assets
@@ -141,6 +166,7 @@
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
+  ignore_errors: yes
   tags:
   - lms
   - lms-preview
@@ -153,6 +179,7 @@
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
+  ignore_errors: yes
   tags:
   - cms
   - deploy
@@ -163,106 +190,25 @@
   sudo: yes
   sudo_user: www-data
   environment: "{{ deploy_environment }}"
+  ignore_errors: yes
   tags:
   - cms
   - deploy
 
-# Gather lms assets using rake if possible
-- name: gather lms static assets with rake
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
-  when: grep_gather_assets.rc == 0
-  notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  tags:
-  - lms
-  - lms-preview
-  - lms-xml
-  - deploy
-
-# Gather lms assets using django if necessary(When rake doesn't know how)
-- name: gather lms static assets with django
-  shell: SERVICE_VARIANT={{ lms_variant }} django-admin.py collectstatic --pythonpath={{ edx_platform_code_dir }} --settings=lms.envs.aws --noinput --verbosity=0
-  when: grep_gather_assets.rc != 0 and check_lms_collect_static.rc == 0
-  notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  tags:
-  - lms
-  - lms-preview
-  - lms-xml
-  - deploy
-
-
-# Gather cms assets using rake if possible
-- name: gather cms static assets with rake
-#  script: gather_assets.sh
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
-  when: grep_gather_assets.rc == 0
-  notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  tags:
-  - cms
-  - deploy
-
-- name: gather cms static assets with django
-  shell: SERVICE_VARIANT={{ cms_variant }} django-admin.py collectstatic --pythonpath={{ edx_platform_code_dir }} --settings=lms.envs.aws --noinput --verbosity=0
-  when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc == 0
-  notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  tags:
-  - cms
-  - deploy
-
-- name: update cms templates
-  shell: SERVICE_VARIANT={{ cms_variant }} django-admin.py update_templates --pythonpath={{ edx_platform_code_dir }} --settings=cms.envs.aws
-  when: check_cms_update_templates.rc == 0
-  notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  tags:
-  - cms
-  - deploy
-
-# Add failure checks for if no static assets were deployed.
-- name: lms asset static failure check
-  shell: /bin/false
-  when: grep_gather_assets.rc != 0 and check_lms_collect_static.rc != 0
-  tags:
-  - lms
-  - lms-preview
-  - lms-xml
-  - deploy
-
-- name: cms asset static failure check
-  shell: /bin/false
-  when: grep_gather_assets.rc != 0 and check_cms_collect_static.rc != 0
-  tags:
-  - cms
-  - deploy
+- include: collect_static.yml
+  when: celery_worker is not defined
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
-# This is necessary for the local mysql5.5, not sure if this fix will ever get merged
+# This is necessary for when syncdb is run and the django_openid_auth module is installed,
+# not sure if this fix will ever get merged
 # We should never do this in production
-- name: mysql5.5 workaround - NOT FOR PRODUCTION
+- name: openid workaround - NOT FOR PRODUCTION
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
-  when: mysql5_workaround is defined
+  when: openid_workaround is defined
 
 - name: syncdb and migrate
   shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_db
+  when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
   - deploy
   - lms
@@ -273,6 +219,7 @@
 
 - name: restart edxapp
   service: name=edxapp state=restarted
+  when: celery_worker is not defined
   ignore_errors: yes
   tags:
   - lms

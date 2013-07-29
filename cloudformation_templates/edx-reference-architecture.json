@@ -125,6 +125,11 @@
       "Type":"Number",
       "Default":"2"
     },
+    "WorkerDesiredCapacity":{
+      "Description":"The Auto-scaling group desired capacity for the celery worker hosts",
+      "Type":"Number",
+      "Default":"2"
+    },
     "CacheNodeType":{
       "Default":"cache.m1.small",
       "Description":"The compute and memory capacity of the nodes in the Cache Cluster",
@@ -251,7 +256,9 @@
       "Data01":          { "CIDR":"10.0.50.0/24" },
       "Data02":          { "CIDR":"10.0.51.0/24" },
       "Cache01":         { "CIDR":"10.0.60.0/24" },
-      "Cache02":         { "CIDR":"10.0.61.0/24" }
+      "Cache02":         { "CIDR":"10.0.61.0/24" },
+      "Worker01":        { "CIDR":"10.0.70.0/24" },
+      "Worker02":        { "CIDR":"10.0.71.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1a",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -700,6 +707,70 @@
         ]
       }
     },
+    "WorkerSubnet01":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Worker01",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"worker"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
+    "WorkerSubnet02":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Worker02",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"worker"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
     "InternetGateway":{
       "Type":"AWS::EC2::InternetGateway",
       "Properties":{
@@ -1075,6 +1146,28 @@
         }
       }
     },
+    "PrivateSubnetRouteTableAssociationWorker01":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"WorkerSubnet01"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
+    "PrivateSubnetRouteTableAssociationWorker02":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"WorkerSubnet02"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
     "PrivateNetworkAcl":{
       "Type":"AWS::EC2::NetworkAcl",
       "Properties":{
@@ -1255,6 +1348,28 @@
       "Properties":{
         "SubnetId":{
           "Ref":"Cache02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationWorker01":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"WorkerSubnet01"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationWorker02":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"WorkerSubnet02"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -2181,19 +2296,19 @@
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:22",
+          "Target":"HTTP:80/xqueue/status/",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
           "Timeout":"5"
         },
         "Subnets":[
-            {
-		"Ref":"XqueueSubnet01"
-            },
-            {
-		"Ref":"XqueueSubnet02"
-            }
+          {
+            "Ref":"PublicSubnet01"
+          },
+          {
+            "Ref":"PublicSubnet02"
+          }
         ]
       }
     },
@@ -2254,6 +2369,12 @@
             "IpProtocol":"tcp",
             "FromPort":"80",
             "ToPort":"80",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"443",
+            "ToPort":"443",
             "CidrIp":"0.0.0.0/0"
           }
         ]
@@ -2558,7 +2679,7 @@
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:22",
+          "Target":"TCP:5672",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
@@ -2643,11 +2764,25 @@
           },
           {
             "IpProtocol":"tcp",
+            "FromPort":"5672",
+            "ToPort":"5672",
+            "SourceSecurityGroupId" : {
+		"Ref" : "XqueueServerSecurityGroup"
+	    }
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"6163",
+            "ToPort":"6163",
+            "SourceSecurityGroupId" : {
+		"Ref" : "XqueueServerSecurityGroup"
+	    }
+          },
+          {
+            "IpProtocol":"tcp",
             "FromPort":"0",
             "ToPort":"65535",
-            "SourceSecurityGroupId" : {
-		"Ref" : "RabbitMQServerSecurityGroup"
-	    }
+            "CidrIp":"10.0.0.0/16"
           },
           {
             "IpProtocol":"tcp",
@@ -2948,18 +3083,13 @@
         ],
         "Listeners":[
           {
-            "LoadBalancerPort":"5672",
-            "InstancePort":"5672",
-            "Protocol":"TCP"
-          },
-          {
-            "LoadBalancerPort":"6163",
-            "InstancePort":"6163",
-            "Protocol":"TCP"
+            "LoadBalancerPort":"80",
+            "InstancePort":"80",
+            "Protocol":"HTTP"
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:22",
+          "Target":"HTTP:80/",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
@@ -3085,6 +3215,9 @@
           {
             "EC2SecurityGroupId":{
               "Ref":"EdxappServerSecurityGroup"
+            },
+            "EC2SecurityGroupId":{
+              "Ref":"XqueueServerSecurityGroup"
             }
           }
         ],
@@ -3139,6 +3272,400 @@
             }
           }
         ]
+      }
+    },
+    "WorkerServer":{
+      "Type":"AWS::AutoScaling::LaunchConfiguration",
+      "Metadata":{
+        "AWS::CloudFormation::Init":{
+          "config":{
+            "files":{
+              "/home/ubuntu/.s3cfg":{
+                "content":{
+                  "Fn::Join":[
+                    "",
+                    [
+                      "[default]\n",
+                      "access_key = ",
+                      {
+                        "Ref":"HostKeys"
+                      },
+                      "\n",
+                      "secret_key = ",
+                      {
+                        "Fn::GetAtt":[
+                          "HostKeys",
+                          "SecretAccessKey"
+                        ]
+                      },
+                      "\n",
+                      "use_https = True\n"
+                    ]
+                  ]
+                },
+                "mode":"000644",
+                "owner":"ubuntu",
+                "group":"ubuntu"
+              }
+            }
+          }
+        }
+      },
+      "Properties":{
+        "SecurityGroups":[
+          {
+            "Ref":"WorkerServerSecurityGroup"
+          }
+        ],
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSRegionArch2AMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            {
+              "Fn::FindInMap":[
+                "AWSInstanceType2Arch",
+                {
+                  "Ref":"InstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "UserData":{
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash\n",
+                "exec >> /home/ubuntu/cflog.log\n",
+                "exec 2>> /home/ubuntu/cflog.log\n",
+                "function error_exit\n",
+                "{\n",
+                "  cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref":"EdxServerWaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "for dev in /dev/xvdc /dev/xvdd; do sudo echo w | fdisk $dev; sudo mkfs -t ext4 $dev;done;\n",
+                "sudo mkdir /mnt/logs\n",
+                "sudo mount /dev/xvdc /mnt/logs\n",
+                "sudo mount /dev/xvdd /opt\n",
+                "apt-get -y update\n",
+                "apt-get -y install python-setuptools\n",
+                "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
+                "cfn-init --region ",
+                {
+                  "Ref":"AWS::Region"
+                },
+                "    -s ",
+                {
+                  "Ref":"AWS::StackName"
+                },
+                " -r WorkerServer ",
+                "         --access-key ",
+                {
+                  "Ref":"HostKeys"
+                },
+                "         --secret-key ",
+                {
+                  "Fn::GetAtt":[
+                    "HostKeys",
+                    "SecretAccessKey"
+                  ]
+                },
+                " || error_exit 'Failed to run cfn-init'\n",
+                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
+                "# If all went well, signal success\n",
+                "cfn-signal -e $? -r 'Edx Server configuration' '",
+                {
+                  "Ref":"EdxServerWaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "InstanceType":{
+          "Ref":"InstanceType"
+        },
+        "BlockDeviceMappings":[
+          {
+            "DeviceName":"/dev/xvdc",
+            "Ebs":{
+              "VolumeSize":"50"
+            }
+          },
+          {
+            "DeviceName":"/dev/xvdd",
+            "Ebs":{
+              "VolumeSize":"50"
+            }
+          }
+        ]
+      }
+    },
+    "WorkerServerASGroup":{
+      "Type":"AWS::AutoScaling::AutoScalingGroup",
+      "Properties":{
+        "AvailabilityZones":[
+          {
+            "Fn::GetAtt":[
+              "WorkerSubnet01",
+              "AvailabilityZone"
+            ]
+          },
+          {
+            "Fn::GetAtt":[
+              "WorkerSubnet02",
+              "AvailabilityZone"
+            ]
+          }
+        ],
+        "VPCZoneIdentifier":[
+          {
+            "Ref":"WorkerSubnet01"
+          },
+          {
+            "Ref":"WorkerSubnet02"
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"group",
+            "Value":"worker",
+            "PropagateAtLaunch":true
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            },
+            "PropagateAtLaunch":true
+          }
+        ],
+        "LaunchConfigurationName":{
+          "Ref":"WorkerServer"
+        },
+        "MinSize":"2",
+        "MaxSize":"2",
+        "DesiredCapacity":{
+          "Ref":"WorkerDesiredCapacity"
+        },
+        "LoadBalancerNames":[
+          {
+            "Ref":"WorkerELB"
+          }
+        ]
+      }
+    },
+    "WorkerServerScaleUpPolicy":{
+      "Type":"AWS::AutoScaling::ScalingPolicy",
+      "Properties":{
+        "AdjustmentType":"ChangeInCapacity",
+        "AutoScalingGroupName":{
+          "Ref":"WorkerServerASGroup"
+        },
+        "Cooldown":"60",
+        "ScalingAdjustment":"1"
+      }
+    },
+    "WorkerServerScaleDownPolicy":{
+      "Type":"AWS::AutoScaling::ScalingPolicy",
+      "Properties":{
+        "AdjustmentType":"ChangeInCapacity",
+        "AutoScalingGroupName":{
+          "Ref":"WorkerServerASGroup"
+        },
+        "Cooldown":"60",
+        "ScalingAdjustment":"-1"
+      }
+    },
+    "WorkerCPUAlarmHigh":{
+      "Type":"AWS::CloudWatch::Alarm",
+      "Properties":{
+        "AlarmDescription":"Scale-up if CPU > 90% for 10 minutes",
+        "MetricName":"CPUUtilization",
+        "Namespace":"AWS/EC2",
+        "Statistic":"Average",
+        "Period":"300",
+        "EvaluationPeriods":"2",
+        "Threshold":"90",
+        "AlarmActions":[
+          {
+            "Ref":"WorkerServerScaleUpPolicy"
+          }
+        ],
+        "Dimensions":[
+          {
+            "Name":"AutoScalingGroupName",
+            "Value":{
+              "Ref":"WorkerServerASGroup"
+            }
+          }
+        ],
+        "ComparisonOperator":"GreaterThanThreshold"
+      }
+    },
+    "WorkerCPUAlarmLow":{
+      "Type":"AWS::CloudWatch::Alarm",
+      "Properties":{
+        "AlarmDescription":"Scale-down if CPU < 70% for 10 minutes",
+        "MetricName":"CPUUtilization",
+        "Namespace":"AWS/EC2",
+        "Statistic":"Average",
+        "Period":"300",
+        "EvaluationPeriods":"2",
+        "Threshold":"70",
+        "AlarmActions":[
+          {
+            "Ref":"WorkerServerScaleDownPolicy"
+          }
+        ],
+        "Dimensions":[
+          {
+            "Name":"AutoScalingGroupName",
+            "Value":{
+              "Ref":"WorkerServerASGroup"
+            }
+          }
+        ],
+        "ComparisonOperator":"LessThanThreshold"
+      }
+    },
+    "WorkerELB":{
+      "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties":{
+        "SecurityGroups":[
+          {
+            "Ref":"WorkerELBSecurityGroup"
+          }
+        ],
+        "Listeners":[
+          {
+            "LoadBalancerPort":"80",
+            "InstancePort":{
+              "Ref":"WebServerPort"
+            },
+            "Protocol":"HTTP"
+          },
+          {
+            "LoadBalancerPort":"443",
+            "InstancePort":{
+              "Ref":"WebServerPort"
+            },
+            "Protocol":"HTTPS",
+            "InstanceProtocol":"HTTP",
+            "SSLCertificateId": {
+              "Ref": "SSLCertificateARN"
+            }
+          }
+        ],
+        "HealthCheck":{
+          "Target":"HTTP:80/heartbeat",
+          "HealthyThreshold":"3",
+          "UnhealthyThreshold":"5",
+          "Interval":"30",
+          "Timeout":"5"
+        },
+        "Subnets":[
+          {
+            "Ref":"PublicSubnet01"
+          },
+          {
+            "Ref":"PublicSubnet02"
+          }
+        ]
+      }
+    },
+    "WorkerELBSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Enable HTTP access on port 80",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"80",
+            "ToPort":"80",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"443",
+            "ToPort":"443",
+            "CidrIp":"0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"80",
+            "ToPort":"80",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"443",
+            "ToPort":"443",
+            "CidrIp":"0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "WorkerServerSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Open up SSH access plus Edx Server required ports",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"80",
+            "ToPort":"80",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"443",
+            "ToPort":"443",
+            "CidrIp":"0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "EdxServerWaitHandle":{
+      "Type":"AWS::CloudFormation::WaitConditionHandle"
+    },
+    "EdxServerWaitCondition":{
+      "Type":"AWS::CloudFormation::WaitCondition",
+      "DependsOn":"WorkerServer",
+      "Properties":{
+        "Handle":{
+          "Ref":"EdxServerWaitHandle"
+        },
+        "Timeout":"1200"
       }
     }
   },

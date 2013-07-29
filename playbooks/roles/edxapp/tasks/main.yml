@@ -48,9 +48,17 @@
 - name: creating edxapp upstart script
   sudo: True
   template: src=edxapp.conf.j2 dest=/etc/init/edxapp.conf owner=root group=root
+  when: "celery_worker is not defined"
   tags:
   - upstart
   - gunicorn
+  - update
+
+- name: create edx-workers upstart script
+  template: src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf owner=root group=root
+  when: "celery_worker is defined"
+  tags:
+  - upstart
   - update
 
 - include: npm.yml

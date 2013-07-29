@@ -12,12 +12,12 @@ respawn limit 3 30
 env PID=/var/tmp/lms.pid
 #env NEW_RELIC_CONFIG_FILE={{app_base_dir}}/newrelic.ini
 #env NEWRELIC={{venv_dir}}/bin/newrelic-admin
-{% if facter_processorcount %}
-env WORKERS={{ worker_core_mult.lms_preview * facter_processorcount|int }}
+{% if ansible_processor|length > 0 %}
+env WORKERS={{ ansible_processor|length * worker_core_mult.lms_preview }}
 {% else %}
-env WORKERS={{ worker_core_mult.lms_preview * ansible_processor_cores }}
+env WORKERS={{ worker_core_mult.lms_preview }}
 {% endif %}
-env PORT=8020
+env PORT={{edxapp_lms_preview_app_port}}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=lms.envs.aws
 env SERVICE_VARIANT="lms-preview"

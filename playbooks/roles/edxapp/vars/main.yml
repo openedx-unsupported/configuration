@@ -8,6 +8,11 @@
 # the defaults should be appropriate for running
 # all roles on a single instance
 
+# These are custom variables that can be overridden
+# on the command line to change specific values in the hash
+c_lms_base: ''
+c_preview_lms_base: ''
+
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
 edxapp_generic_auth_config:  &edxapp_generic_auth
@@ -15,10 +20,10 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   'AWS_SECRET_ACCESS_KEY':  ''
   'SECRET_KEY':  ''
   'XQUEUE_INTERFACE':
-    'basic_auth': [ 'noauth',  'noauth']
+    'basic_auth': [ 'edx',  'edx']
     'django_auth': { 'password':  'password',
       'username':  'lms'}
-    'url':  'https://localhost'
+    'url':  'https://localhost:18040'
   'CONTENTSTORE':
     'ENGINE':  'xmodule.contentstore.mongo.MongoContentStore'
     'OPTIONS':
@@ -55,8 +60,8 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       'PORT': '3306'
   'PEARSON_TEST_PASSWORD':  ''
   'OPEN_ENDED_GRADING_INTERFACE':
-    'url':  ''
-    'password':  ''
+    'url':  'http://localhost:18091'
+    'password':  'password'
     'peer_grading':  'peer_grading'
     'staff_grading':  'staff_grading'
     'grading_controller':  'grading_controller'
@@ -68,9 +73,12 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   'CELERY_BROKER_PASSWORD': ''
  
 generic_env_config:  &edxapp_generic_env
+  'LMS_BASE': "{{ c_lms_base }}"
   'BOOK_URL':  ''
   'CERT_QUEUE':  'certificates'
   'LOCAL_LOGLEVEL':  'INFO'
+  # default email backed set to local SMTP
+  'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend'
   'MITX_FEATURES':
     'AUTH_USE_OPENID_PROVIDER': true
     'CERTIFICATES_ENABLED': true
@@ -79,10 +87,9 @@ generic_env_config:  &edxapp_generic_env
     'ENABLE_PEARSON_HACK_TEST': false
     'SUBDOMAIN_BRANDING': false
     'SUBDOMAIN_COURSE_LISTINGS': false
+    'PREVIEW_LMS_BASE': "{{ c_preview_lms_base }}"
   'WIKI_ENABLED': true
   'SYSLOG_SERVER':  'syslog.a.m.i4x.org'
-  'EMAIL_BACKEND': 'django.core.mail.backends.filebased.EmailBackend'
-  'EMAIL_FILE_PATH': '/var/tmp/email'
   'SITE_NAME':  'example.com'
   'LOG_DIR':  '/mnt/logs/edx'
   'MEDIA_URL':  ''
@@ -109,10 +116,10 @@ generic_env_config:  &edxapp_generic_env
       'KEY_PREFIX':  'integration_celery'
   'CELERY_BROKER_TRANSPORT': 'amqp'
   'CELERY_BROKER_HOSTNAME': ''
-  'COMMENTS_SERVICE_URL':  ''
+  'COMMENTS_SERVICE_URL':  'http://localhost:4567'
   'LOGGING_ENV':  'sandbox'
   'SESSION_COOKIE_DOMAIN':  !!null
-  'COMMENTS_SERVICE_KEY':  ''
+  'COMMENTS_SERVICE_KEY':  'password'
   'SEGMENT_IO_LMS': true
   'CODE_JAIL':
     'limits':
@@ -156,6 +163,11 @@ lms_nginx_port: 80
 lms_preview_nginx_port: 18020
 cms_nginx_port: 18010
 
+edxapp_cms_app_port: 8010
+edxapp_lms_app_port: 8000
+edxapp_lms_xml_app_port: 8030
+edxapp_lms_preview_app_port: 8020
+
 # These vars are for creating the application json config
 # files.  There are two for each service that uses the
 # 'edx-platform' code.  Defining them will create the upstart
@@ -182,17 +194,24 @@ worker_core_mult:
 #Stanford, for example, uses edxapp_theme_name: 'stanford'
 edxapp_theme_name: ''
 edxapp_theme_source_repo: 'https://github.com/Stanford-Online/edx-theme.git'
-edxapp_theme_version: 'jarv/gce-email-backend'
+edxapp_theme_version: 'HEAD'
 
 # make this the public URL instead of writable
 lms_source_repo: https://github.com/edx/edx-platform.git
-lms_version: '5b16fbe3692d984517d870f5eec4c48c9bf1fe16'
+lms_version: 'HEAD'
 local_requirements_file:  "{{ edx_platform_code_dir }}/requirements/edx/local.txt"
 pre_requirements_file:    "{{ edx_platform_code_dir }}/requirements/edx/pre.txt"
 post_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/post.txt"
 base_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/base.txt"
 github_requirements_file: "{{ edx_platform_code_dir }}/requirements/edx/github.txt"
 repo_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/repo.txt"
+
+sandbox_base_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/base.txt"
+sandbox_local_requirements: "{{ edx_platform_code_dir }}/requirements/edx-sandbox/local.txt"
+sandbox_post_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/post.txt"
+
+#do we want to install the sandbox requirements into the regular virtual env
+install_sandbox_reqs_into_regular_venv: true
 
 lms_debian_pkgs:
   - apparmor-utils

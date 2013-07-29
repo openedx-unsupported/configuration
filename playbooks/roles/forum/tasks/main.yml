@@ -1,0 +1,72 @@
+---
+
+# forum
+#
+# Dependencies:
+#
+#   * common
+#   * elasticsearch
+#   * oraclejdk
+#   * rbenv
+# 
+# 
+# Example play:
+#   roles:
+#   - common
+#   - oraclejdk
+#   - elasticsearch 
+#   - role: rbenv
+#     rbenv_user: "{{ forum_user }}"
+#     rbenv_user_home: "{{ forum_rbenv_dir }}"
+#     rbenv_ruby_version: "{{ forum_ruby_version }}"
+#   - forum
+
+- name: forum | setup the forum env
+  template: src=forum_env.j2 dest={{ forum_home }}/forum_env owner={{ forum_user }} group={{ forum_user }}
+  notify: 
+    - forum | restart the forum service
+  tags:
+  - forum
+  - update
+
+- name: forum | ensure .bashrc exists
+  shell: touch {{ forum_home }}/.bashrc
+  sudo: true  
+  sudo_user: "{{ forum_user }}"
+  tags:
+  - forum
+  - update
+
+- name: forum | add source of ruby_env to .bashrc
+  lineinfile:
+    dest="{{ forum_home }}/.bashrc"
+    regexp='. {{ forum_home }}/forum_env'    
+    line='. {{ forum_home }}/forum_env'
+  notify: 
+    - forum | restart the forum service
+  tags:
+  - forum
+  - update
+
+
+- name: forum | copy cs_comments_service SysVunit script
+  template: src=cs_comments_service.j2 dest=/etc/init.d/cs_comments_service owner=root group=root mode=750
+  notify: 
+    - forum | restart the forum service
+  tags:
+  - forum
+  - install
+  when: ansible_distribution == 'Debian'
+
+
+- name: forum | copy cs_comments_service upstart script
+  template: src=cs_comments_service.conf.j2 dest=/etc/init/cs_comments_service.conf owner=root group=root mode=644
+  notify: 
+    - forum | restart the forum service
+  tags:
+  - forum
+  - install
+  when: ansible_distribution == 'Ubuntu'
+
+- include: deploy.yml
+- include: test.yml
