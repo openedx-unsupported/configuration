@@ -1,3 +1,25 @@
+---
+
+# rbenv
+# 
+# Dependencies:
+#
+#   * common
+# 
+# Example play:
+#
+#   roles:
+#   - common
+#   - role: rbenv
+#     rbenv_user: "{{ forum_user }}"
+#     rbenv_user_home: "{{ forum_rbenv_dir }}"
+#     rbenv_ruby_version: "{{ forum_ruby_version }}"
+#
+# Parameters:
+#  
+#   * rbenv_user
+#   * rbenv_user_home
+#   * rbenv_ruby_version
 #
 # cribbed from https://github.com/mmoya/ansible-playbooks/blob/master/rbenv/main.yml
 # with a number of changes.
@@ -12,21 +34,35 @@
 - fail: rbenv_ruby_version required for role
   when: rbenv_ruby_version is not defined
 
-#
-# It's unfortunate that this needs to happen here,
-# but the rbenv needs to exist when the service
-# that relies on it is provisioned and the service
-# user and it's home needs to exist for rbenv to 
-# install into.
-#
-- name: rbenv | create rbenv owner $forum_user
-  user: name=$forum_user state=present shell=/bin/bash home=$forum_home
+- name: rbenv | create {{ rbenv_user_home }}
+  # workaround for the case where the parent
+  # directory doesn't exist
+  file: >
+    path={{ rbenv_user_home }} 
+    state=directory
+
+- name: rbenv | create rbenv user {{ rbenv_user }}
+  user: >
+    name={{ rbenv_user }} 
+    state=present 
+    shell=/bin/bash 
+    home={{ rbenv_user_home }}
+    createhome=yes
   tags:
   - forum
   - update
 
+- name: rbenv | ensure homedir permissions {{ rbenv_user_home }}
+  # workaround for the case where the parent
+  # directory doesn't exist
+  file: >
+    path={{ rbenv_user_home }} 
+    owner={{ rbenv_user }}
+    group={{ rbenv_user }}
+    state=directory
+
 - name: rbenv | install build depends
-  apt: pkg=$item state=present install_recommends=no
+  apt: pkg={{ item }} state=present install_recommends=no
   with_items:
     - build-essential
     - git
@@ -42,7 +78,10 @@
   - install
 
 - name: rbenv | update rbenv repo
-  git: repo=https://github.com/sstephenson/rbenv.git dest={{ rbenv_user_home }}/.rbenv version={{ rbenv_version }}
+  git: >
+    repo=https://github.com/sstephenson/rbenv.git 
+    dest={{ rbenv_user_home }}/.rbenv 
+    version={{ rbenv_version }}
   sudo: true  
   sudo_user: "{{ rbenv_user }}"
   tags:
@@ -58,11 +97,19 @@
   - update
 
 - name: rbenv | drop a bash_profile
-  copy: src=../../common/files/bash_profile dest={{ rbenv_user_home }}/.bash_profile owner={{ rbenv_user }} group={{ rbenv_user }}
+  copy: >
+    src=../../common/files/bash_profile 
+    dest={{ rbenv_user_home }}/.bash_profile 
+    owner={{ rbenv_user }} 
+    group={{ rbenv_user }}
 
 
 - name: rbenv | ensure ruby_env exists
-  template: src=ruby_env.j2 dest={{ rbenv_user_home }}/ruby_env owner={{ rbenv_user }} group={{ rbenv_user }}
+  template: >
+    src=ruby_env.j2 
+    dest={{ rbenv_user_home }}/ruby_env 
+    owner={{ rbenv_user }} 
+    group={{ rbenv_user }}
   tags:
   - ruby
   - update
@@ -74,7 +121,11 @@
     line='. {{ rbenv_user_home }}/ruby_env'
 
 - name: rbenv | drop a bash_profile
-  copy: src=../../common/files/bash_profile dest={{ rbenv_user_home }}/.bash_profile owner={{ rbenv_user }} group={{ rbenv_user }}
+  copy: >
+    src=../../common/files/bash_profile 
+    dest={{ rbenv_user_home }}/.bash_profile 
+    owner={{ rbenv_user }} 
+    group={{ rbenv_user }}
 
 - name: rbenv | check ruby-build installed
   command: test -x /usr/local/bin/ruby-build
@@ -95,7 +146,7 @@
   - install
 
 - name: rbenv | clone ruby-build repo
-  git: repo=https://github.com/sstephenson/ruby-build.git dest=${tempdir.stdout}/ruby-build
+  git: repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
   when:  rbuild_present|failed
   sudo: true  
   sudo_user: "{{ rbenv_user }}" 
