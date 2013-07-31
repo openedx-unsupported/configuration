@@ -1,0 +1,45 @@
+---
+
+# Overview:
+# 
+# Creates OS accounts for users based on their github credential.
+# Expects to find a list in scope named github_users with
+# the following structure:
+#
+# github_users:
+#   - user: me_at_github
+#     groups:
+#     - adm
+#   - user: otheruser
+#     groups: 
+#     - users
+#
+
+- name: common | create local user for github user
+  user: 
+    name={{ item.user }} 
+    {% if item.groups %}groups={{ ",".join(item.groups) }}{% endif %}
+    shell=/bin/bash
+  with_items: github_users
+  tags:
+    - users
+    - update
+
+- name: common | create .ssh directory
+  file: 
+    path=/home/{{ item.user }}/.ssh state=directory mode=0600 
+    owner={{ item.user }} group={{ item.user }}
+  with_items: github_users
+  tags:
+    - users
+    - update
+
+- name: common | copy github key[s] to .ssh/authorized_keys
+  get_url: 
+    url=https://github.com/{{ item.user }}.keys 
+    dest=/home/{{ item.user }}/.ssh/authorized_keys mode=0600 
+    owner={{ item.user }} group={{ item.user }}
+  with_items: github_users
+  tags:
+    - users
+    - update
