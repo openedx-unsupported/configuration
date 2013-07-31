@@ -1,0 +1,77 @@
+#
+# TODO: Needed while this repo is private
+#
+- name: notifier | upload ssh script
+  copy: 
+    src=git_ssh.sh dest=/tmp/git_ssh.sh 
+    force=yes owner=root group=adm mode=750
+  tags:
+  - notifier
+  - install
+  - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: notifier | install read-only ssh key required for checkout
+  copy: 
+    src={{ notifier_git_identity_path }} dest=/etc/git-identity 
+    force=yes owner=ubuntu group=adm mode=60
+  tags:
+  - deploy
+  - install
+  - update
+
+- name: notifier | checkout code
+  git: 
+    dest={{ notifier_code_dir }} repo={{ notifier_source_repo }} 
+    version={{ notifier_version }}
+  environment:
+    GIT_SSH: /tmp/git_ssh.sh
+  tags:
+    - deploy
+    - install
+    - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: notifier | update src permissions
+  file: 
+    path={{ notifier_code_dir }} state=directory owner={{ notifier_user }} 
+    group={{ notifier_user }} mode=2750 recurse=yes
+  tags:
+  - deploy
+  - install
+  - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: notifier | remove read-only ssh key for the content repo
+  file: path=/etc/git-identity state=absent
+  tags:
+  - deploy
+  - install
+  - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: notifier | remove ssh script
+  file: path=/tmp/git_ssh.sh state=absent
+  tags:
+  - deploy
+  - install
+  - update
+
+- name: notifier | install application requirements
+  pip: 
+    requirements="{{ notifier_requirements_file }}" 
+    virtualenv="{{ notifier_venv_dir }}" state=present
+  sudo: true  
+  sudo_user: "{{ notifier_user }}"
+  tags:
+  - deploy
+  - install
+  - update
