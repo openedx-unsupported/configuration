@@ -24,6 +24,42 @@
   - install
   - update
 
+- name: common | create incommon ca directory
+  file: 
+    path="/usr/share/ca-certificates/incommon" mode=2775 state=directory
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: common | retrieve incommon server CA
+  shell: curl https://www.incommon.org/cert/repository/InCommonServerCA.txt -o /usr/share/ca-certificates/incommon/InCommonServerCA.crt
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: common | add InCommon ca cert
+  lineinfile:
+    dest=/etc/ca-certificates.conf
+    regexp='incommon/InCommonServerCA.crt'    
+    line='incommon/InCommonServerCA.crt'
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: common | update ca certs globally
+  shell: update-ca-certificates
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
 - name: notifier | create notifier user {{ notifier_user }}
   user: 
     name={{ notifier_user }} state=present shell=/bin/bash 
@@ -41,6 +77,13 @@
   - notifier
   - install
   - update
+
+- name: notifier | drop a bash_profile
+  copy: >
+    src=../../common/files/bash_profile 
+    dest={{ notifier_home }}/.bash_profile 
+    owner={{ notifier_user }} 
+    group={{ notifier_user }}
 
 - name: notifier | ensure .bashrc exists
   shell: touch {{ notifier_home }}/.bashrc
