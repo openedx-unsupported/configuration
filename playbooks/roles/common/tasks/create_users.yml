@@ -1,12 +1,12 @@
 ---
-- name: Create 'edx' users group
+- name: common | Create 'edx' users group
   group: name=edx state=present
   tags:
   - users
   - admin_users
   - update
 
-- name: Add user 'ubuntu' to 'edx' group
+- name: common | Add user 'ubuntu' to 'edx' group
   # This is a temporary measure for initial configuration; after the last 
   # play is run and we've got a good set of users, ubuntu should no longer be used
   user: name=ubuntu append=yes groups="edx"
@@ -15,7 +15,7 @@
   - admin_users
   - update
 
-- name: Creating admin users
+- name: common | Creating admin users
   # Admin users, by definition, should be able to sudo w/ password, and read adm-only files
   user: name={{ item.user }} append=yes groups={{ "adm,edx,"+",".join(item.groups) }} shell=/bin/bash
   with_items: admin_users
@@ -25,7 +25,7 @@
   - admin_users
   - update
 
-- name: Copying ssh keys for admin users
+- name: common | Copying ssh keys for admin users
   authorized_key: user={{item.user}} key="{{ lookup('file', item.path ) }}"
   with_items: admin_keys
   when: admin_keys is defined
@@ -34,7 +34,7 @@
   - admin_users
   - update
 
-- name: Creating env users
+- name: common | Creating env users
   user: name={{ item.user }} {% if item.groups %}groups={{ ",".join(item.groups) }}{% endif %} shell=/bin/bash
   with_items: env_users
   when: env_users is defined
@@ -42,7 +42,7 @@
   - users
   - update
 
-- name: Copying ssh keys for env users
+- name: common | Copying ssh keys for env users
   authorized_key: user={{ item.user }} key="{{ lookup('file', item.path ) }}"
   with_items: env_keys
   when: env_keys is defined
@@ -50,10 +50,9 @@
   - users
   - update
 
-- name: Group adm passwordless sudo
+- name: common | Group adm passwordless sudo
   copy: content="%adm ALL=(ALL) NOPASSWD:ALL" dest=/etc/sudoers.d/adm-group owner=root group=root mode=0440
   tags:
   - users
   - admin_users
   - update
-
