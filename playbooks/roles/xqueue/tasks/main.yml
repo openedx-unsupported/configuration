@@ -3,12 +3,12 @@
 #  - common/tasks/main.yml
 #  - nginx/tasks/main.yml
 ---
-- name: Change permissions on datadir
+- name: xqueue | Change permissions on datadir
   file: path={{app_base_dir}}/data state=directory owner=www-data group=www-data
   tags:
   - xqueue
 
-- name: create xqueue db
+- name: xqueue | create xqueue db
   mysql_db: >
     name={{xqueue_auth_config.DATABASES.default.NAME}}
     login_host={{xqueue_auth_config.DATABASES.default.HOST}}
@@ -18,46 +18,46 @@
     encoding=utf8
 
 # Check out xqueue repo to {{xqueue_code_dir}}
-- name: install git and its recommends
+- name: xqueue | install git and its recommends
   apt: pkg=git state=present install_recommends=yes 
   tags:
   - xqueue
 
-- name: install a bunch of system packages on which xqueue relies
+- name: xqueue | install a bunch of system packages on which xqueue relies
   apt: pkg={{','.join(xqueue_debian_pkgs)}} state=present
   notify:
-  - restart xqueue
-  - restart xqueue consumer
+  - xqueue | restart xqueue
+  - xqueue | restart xqueue consumer
   tags:
   - xqueue
 
-- name: create xqueue application config
+- name: xqueue | create xqueue application config
   template: src=xqueue.env.json.j2 dest={{app_base_dir}}/env.json mode=0640 owner=www-data group=adm
   notify:
-  - restart xqueue
-  - restart xqueue consumer
+  - xqueue | restart xqueue
+  - xqueue | restart xqueue consumer
   tags:
   - xqueue
 
-- name: create xqueue auth file
+- name: xqueue | create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{app_base_dir}}/auth.json mode=0640 owner=www-data group=adm
   notify:
-  - restart xqueue
-  - restart xqueue consumer
+  - xqueue | restart xqueue
+  - xqueue | restart xqueue consumer
   tags:
   - xqueue
 
-- name: creating xqueue upstart script
+- name: xqueue | creating xqueue upstart script
   template: src=xqueue.conf.j2 dest=/etc/init/xqueue.conf mode=0640 owner=root group=adm
   notify:
-  - restart xqueue
+  - xqueue | restart xqueue
   tags:
   - xqueue
 
-- name: create xqueue consumer upstart script
+- name: xqueue | create xqueue consumer upstart script
   template: src=xqueue_consumer.conf.j2 dest=/etc/init/xqueue_consumer.conf mode=0640 owner=root group=adm
   notify:
-  - restart xqueue consumer
+  - xqueue | restart xqueue consumer
   tags:
   - xqueue
 

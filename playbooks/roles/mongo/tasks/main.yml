@@ -1,27 +1,27 @@
 
 ---
-- name: install python-pymongo (req for ansible)
+- name: mongo | install python-pymongo (req for ansible)
   pip: name=pymongo
  
-- name: install mongo server and recommends  
+- name: mongo | install mongo server and recommends  
   apt: pkg=mongodb-server state=present install_recommends=yes
 
-- name: stop mongo service
+- name: mongo | stop mongo service
   service: name=mongodb state=stopped
 
-- name: move mongodb to /mnt
+- name: mongo | move mongodb to /mnt
   command: mv /var/lib/mongodb  /mnt/.  creates=/mnt/mongodb
 
-- name: create mongodb symlink
+- name: mongo | create mongodb symlink
   file: src=/mnt/mongodb dest=/var/lib/mongodb state=link
 
-- name: start mongo service
+- name: mongo | start mongo service
   service: name=mongodb state=started
 
-- name: wait for mongo server to start
+- name: mongo | wait for mongo server to start
   wait_for: port=27017 delay=2
 
-- name: create a mongodb user
+- name: mongo | create a mongodb user
   mongodb_user: >
     database=cs_comments_service
     name=cs_comments_service

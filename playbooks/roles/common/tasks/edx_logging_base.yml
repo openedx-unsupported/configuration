@@ -1,30 +1,30 @@
 ---
-- name: Install rsyslog configuration for edX
+- name: common | Install rsyslog configuration for edX
   template: dest=/etc/rsyslog.d/99-edx.conf src=edx_rsyslog.j2 owner=root group=root mode=644
-  notify: restart rsyslogd
+  notify: common | restart rsyslogd
   tags:
   - logging
   - update
 
-- name: Install logrotate configuration for edX
+- name: common | Install logrotate configuration for edX
   template: dest=/etc/logrotate.d/edx-services src=edx_logrotate.j2 owner=root group=root mode=644
   tags:
   - logging
   - update
 
-- name: Touch tracking file into existence
+- name: common | Touch tracking file into existence
   command: touch -a {{log_base_dir}}/tracking.log creates={{log_base_dir}}/tracking.log
   tags:
   - logging
   - update
 
-- name: Set permissions on tracking file
+- name: common | Set permissions on tracking file
   file: path={{log_base_dir}}/tracking.log owner=syslog group=adm mode=640
   tags:
   - logging
   - update
 
-- name: Install logrotate configuration for tracking file
+- name: common | Install logrotate configuration for tracking file
   template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
   tags:
   - logging

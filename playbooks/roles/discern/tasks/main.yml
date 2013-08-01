@@ -1,74 +1,74 @@
 ---
 #Create the templates for upstart services
-- name: render celery service from template
+- name: discern | render celery service from template
   template: src=celery.conf.j2 dest=/etc/init/celery.conf owner=root group=edx mode=0664
-  notify: restart celery
+  notify: discern | restart celery
 
-- name: render discern service from template
+- name: discern | render discern service from template
   template: src=discern.conf.j2 dest=/etc/init/discern.conf owner=root group=edx mode=0664
-  notify: restart discern
+  notify: discern | restart discern
 
 #Allows us to recover from a bad sudoers file
-- name: Install policykit
+- name: discern | Install policykit
   apt: pkg=policykit-1 install_recommends=yes state=present update_cache=yes
 
 #Discern user is admin
-- name: Create discern user
+- name: discern | Create discern user
   user: name={{ discern_user }} append=yes groups="adm,edx" shell=/bin/bash
 
-- name: upload sudoers template to /tmp/sudoers
+- name: discern | upload sudoers template to /tmp/sudoers
   copy: src=sudoers-discern dest=/tmp/{{site_name}} owner=root group=root mode=0440
 
 #Verify file and move to sudoers.d folder
-- name: move temp file to sudoers.d
+- name: discern | move temp file to sudoers.d
   shell: visudo -q -c -f /tmp/{{site_name}} && cp /tmp/{{site_name}} /etc/sudoers.d/{{site_name}}
 
 #Upload config files for django (auth and env)
-- name: create discern application config env.json file
+- name: discern | create discern application config env.json file
   template: src=env.json.j2 dest={{app_base_dir}}/env.json owner={{discern_user}} group=edx mode=0640
   notify:
-    - restart celery
-    - restart discern
+    - discern | restart celery
+    - discern | restart discern
 
-- name: create discern auth file auth.json
+- name: discern | create discern auth file auth.json
   template: src=auth.json.j2 dest={{app_base_dir}}/auth.json owner={{discern_user}} group=edx mode=0640
   notify:
-    - restart celery
-    - restart discern
+    - discern | restart celery
+    - discern | restart discern
 
 #Needed if using redis to prevent memory issues
-- name: change memory commit settings -- needed for redis
+- name: discern | change memory commit settings -- needed for redis
   command: sysctl vm.overcommit_memory=1
 
-- name: set permissions on app_base_dir sgid for edx
+- name: discern | set permissions on app_base_dir sgid for edx
   file: path={{app_base_dir}} owner=root group=edx mode=2775 state=directory
   file: path={{venv_dir}} owner=root group=edx mode=2775 state=directory
 
-- name: Install git so that we can clone repos
+- name: discern | Install git so that we can clone repos
   apt: pkg=git install_recommends=yes state=present
 
 #Create directories for repos
-- name: create discern and ease directories and set permissions
+- name: discern | create discern and ease directories and set permissions
   file: path={{item}} owner={{discern_user}} group=edx mode=2775 state=directory
   with_items:
    - ${discern_dir}
    - ${ease_dir}
 
 #Grab both repos or update
-- name: git checkout discern repo into discern_dir
+- name: discern | git checkout discern repo into discern_dir
   git: dest={{discern_dir}} repo={{discern_source_repo}} version={{discern_branch}}
   notify:
-    - restart celery
-    - restart discern
+    - discern | restart celery
+    - discern | restart discern
 
-- name: git checkout ease repo into ease_dir
+- name: discern | git checkout ease repo into ease_dir
   git: dest={{ease_dir}} repo={{ease_source_repo}} version={{ease_branch}}
   notify:
-    - restart celery
-    - restart discern
+    - discern | restart celery
+    - discern | restart discern
 
 #Install system packages
-- name: install discern and ease apt packages
+- name: discern | install discern and ease apt packages
   command: xargs -a {{item}}/apt-packages.txt apt-get install -y
   with_items:
     - ${discern_dir}
@@ -87,19 +87,19 @@
     - ${discern_dir}
     - ${ease_dir}
 
-- name: install ease python package
+- name: discern | install ease python package
   shell: command="{{venv_dir}}/bin/activate; cd {{ease_dir}}; python setup.py install"
 
 #Needed for the ease package to work
-- name: install nltk data using rendered shell script
+- name: discern | install nltk data using rendered shell script
   shell: command="{{venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
 
-- name: set permissions on nltk data directory
+- name: discern | set permissions on nltk data directory
   file: path={{nltk_data_dir}} owner={{discern_user}} group=edx mode=2775 state=directory
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
-- name: django syncdb, migrate, and collectstatic for discern
+- name: discern | django syncdb, migrate, and collectstatic for discern
   shell: ${venv_dir}/bin/python {{discern_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_dir}}
   with_items:
     - syncdb
@@ -107,22 +107,22 @@
     - collectstatic
 
 #Have this separate from the other three because it doesn't take the noinput flag
-- name: django update_index for discern
+- name: discern | django update_index for discern
   shell: ${venv_dir}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
 
-- name: create nginx directory and set perms
+- name: discern | create nginx directory and set perms
   file: path=/etc/nginx/sites-available owner=root group=edx mode=2775 state=directory
 
 #Install nginx sites available
 #remove default link, render template, link template to sites-enabled to activate
-- name: Removing default nginx config
+- name: discern | Removing default nginx config
   file: path=/etc/nginx/sites-enabled/default state=absent
-  notify: restart nginx
+  notify: discern | restart nginx
 
-- name: render nginx sites available
+- name: discern | render nginx sites available
   template: src=nginx-discern.j2 dest=/etc/nginx/sites-available/{{ site_name }}
-  notify: restart nginx
+  notify: discern | restart nginx
 
-- name: Creating nginx config link {{ site_name }}
+- name: discern | Creating nginx config link {{ site_name }}
   file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state=link owner=root group=root
-  notify: restart nginx
+  notify: discern | restart nginx

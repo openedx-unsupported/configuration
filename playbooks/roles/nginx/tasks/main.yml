@@ -1,9 +1,9 @@
 # requires:
 #   - common/tasks/main.yml
 ---
-- name: Install nginx
+- name: nginx | Install nginx
   apt: pkg=nginx state={{ pkgs.nginx.state }}
-  notify: restart nginx
+  notify: nginx | restart nginx
   tags:
   - nginx
   - install
@@ -14,13 +14,13 @@
 - include: nginx_site.yml state={{nginx_cfg.sites_enabled.edx_release}} site_name=edx-release
 - include: nginx_site.yml state={{nginx_cfg.sites_enabled.basic_auth}} site_name=basic-auth
 
-- name: Write out default htpasswd file
+- name: nginx | Write out default htpasswd file
   copy: content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd owner=www-data group=www-data mode=0600
   tags:
   - nginx
   - update
 
-- name: Create nginx log file location (just in case)
+- name: nginx | Create nginx log file location (just in case)
   file: path={{log_base_dir}}/nginx state=directory owner=syslog group=adm mode=2770
   tags:
   - nginx
@@ -28,34 +28,34 @@
   - update
 
 # removing default link
-- name: Removing default nginx config and restart (enabled)
+- name: nginx | Removing default nginx config and restart (enabled)
   file: path=/etc/nginx/sites-enabled/default state=absent
-  notify: restart nginx
+  notify: nginx | restart nginx
   tags:
   - nginx
   - update
 
 # Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
 
-- name: Set up nginx access log rotation
+- name: nginx | Set up nginx access log rotation
   template: dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2 owner=root group=root mode=644
   tags:
   - logging
   - update
 
-- name: Set up nginx access log rotation
+- name: nginx | Set up nginx access log rotation
   template: dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2 owner=root group=root mode=644
   tags:
   - logging
   - update
 
-- name: Removing default nginx config (available)
+- name: nginx | Removing default nginx config (available)
   file: path=/etc/nginx/sites-available/default state=absent
   tags:
   - nginx
   - update
   
-- name: Register the fact that nginx has run
+- name: nginx | Register the fact that nginx has run
   command: echo True
   register: nginx_role_run
   tags:
@@ -65,5 +65,5 @@
 # If tasks that notify restart nginx don't change the state of the remote system
 # their corresponding notifications don't get run.  If nginx has been stopped for
 # any reason, this will ensure that it is started up again.
-- name: make sure nginx has started
+- name: nginx | make sure nginx has started
   service: name=nginx state=started

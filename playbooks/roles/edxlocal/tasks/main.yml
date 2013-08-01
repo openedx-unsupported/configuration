@@ -11,64 +11,64 @@
 #  http://downloads.mysql.com/archives/mysql-5.1/mysql-5.1.62.tar.gz
 #
 ---
-- name: install python-pymongo (req for ansible)
+- name: edxlocal | install python-pymongo (req for ansible)
   pip: name=pymongo
  
-- name: install python-mysqldb (req for ansible)
+- name: edxlocal | install python-mysqldb (req for ansible)
   apt: pkg=python-mysqldb state=present
 
-- name: install mysql server and recommends
+- name: edxlocal | install mysql server and recommends
   apt: pkg=mysql-server-5.5 state=present install_recommends=yes 
 
-- name: create a database for edxapp
+- name: edxlocal | create a database for edxapp
   mysql_db: >
     db=edxapp
     state=present
     encoding=utf8
 
-- name: create a database for xqueue
+- name: edxlocal | create a database for xqueue
   mysql_db: >
     db=xqueue
     state=present
     encoding=utf8
 
-- name: create a database for ora
+- name: edxlocal | create a database for ora
   mysql_db: >
     db=ora
     state=present
     encoding=utf8
 
-- name: install mongo server and recommends  
+- name: edxlocal | install mongo server and recommends  
   apt: pkg=mongodb-server state=present install_recommends=yes
 
-- name: stop mongo service
+- name: edxlocal | stop mongo service
   service: name=mongodb state=stopped
 
-- name: move mongodb to /mnt
+- name: edxlocal | move mongodb to /mnt
   command: mv /var/lib/mongodb  /mnt/.  creates=/mnt/mongodb
 
-- name: create mongodb symlink
+- name: edxlocal | create mongodb symlink
   file: src=/mnt/mongodb dest=/var/lib/mongodb state=link
 
-- name: start mongo service
+- name: edxlocal | start mongo service
   service: name=mongodb state=started
 
-- name: wait for mongo server to start
+- name: edxlocal | wait for mongo server to start
   wait_for: port=27017 delay=2
 
-- name: create a mongodb user for edxapp
+- name: edxlocal | create a mongodb user for edxapp
   mongodb_user: >
     database=edxapp
     name=edxapp
     password=password
     state=present
 
-- name: create a mongodb user for forums
+- name: edxlocal | create a mongodb user for forums
   mongodb_user: >
     database=cs_comments_service
     name=cs_comments_service
     password=password
     state=present
 
-- name: install memcached
+- name: edxlocal | install memcached
   apt: pkg=memcached state=present
