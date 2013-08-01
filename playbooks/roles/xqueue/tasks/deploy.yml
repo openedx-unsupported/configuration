@@ -1,25 +1,25 @@
 # Stop xqueue service.
-- name: stop xqueue service
+- name: xqueue | stop xqueue service
   service: name=xqueue state=stopped
   tags:
   - xqueue
   - deploy
 
-- name: stop xqueue consumer service
+- name: xqueue | stop xqueue consumer service
   service: name=xqueue_consumer state=stopped
   tags:
   - xqueue
   - deploy
 
 # Do A Checkout
-- name: git checkout xqueue repo into $app_base_dir
+- name: xqueue | git checkout xqueue repo into $app_base_dir
   git: dest={{xqueue_code_dir}} repo={{xqueue_source_repo}} version={{xqueue_version}}
   tags:
   - xqueue
   - deploy
 
 # Do Post Checkout Tasks.
-- name: create xqueue code dir
+- name: xqueue | create xqueue code dir
   file: path={{xqueue_code_dir}} state=directory owner=www-data group=www-data mode=755
   tags:
   - xqueue
@@ -29,7 +29,7 @@
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
 
-- name: sets permissions on xqueue code dir and contents
+- name: xqueue | sets permissions on xqueue code dir and contents
   file: path={{xqueue_code_dir}} state=directory owner=www-data group=www-data recurse=yes
   # Post Checkout tasks will get run as handlers when the {{ xqueue_code_dir }} is ready.
   # Look at the handlers/main.yml in this role for a description of the tasks stated below.
@@ -51,7 +51,7 @@
   - xqueue
   - deploy
 
-- name: syncdb and migrate
+- name: xqueue | syncdb and migrate
   shell: sudo -u www-data /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
@@ -59,7 +59,7 @@
   - syncdb
   - deploy
 
-- name: create users
+- name: xqueue | create users
   shell: sudo -u www-data /opt/edx/bin/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
   when: update_users is defined
   tags:
@@ -67,19 +67,19 @@
   - syncdb
   - deploy
 
-- name: stop xqueue
+- name: xqueue | stop xqueue
   service: name=xqueue state=stopped
   tags:
   - xqueue
   - deploy
 
-- name: start xqueue
+- name: xqueue | start xqueue
   service: name=xqueue state=started
   tags:
   - xqueue
   - deploy
 
-- name: start xqueue consumer
+- name: xqueue | start xqueue consumer
   service: name=xqueue_consumer state=started
   tags:
   - xqueue

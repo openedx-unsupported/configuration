@@ -1,12 +1,12 @@
 # Requires nginx package
 ---
-- name: Copying nginx config {{ site_name }}
+- name: nginx | Copying nginx config {{ site_name }}
   template: src={{ item }} dest=/etc/nginx/sites-available/{{ site_name }}
   first_available_file:
   - "{{ local_dir }}/nginx/templates/{{ site_name }}.j2"
   # seems like paths in first_available_file must be relative to the playbooks dir
   - "roles/nginx/templates/{{ site_name }}.j2" 
-  notify: restart nginx
+  notify: nginx | restart nginx
   when_set: $nginx_role_run
   tags:
   - nginx
@@ -15,9 +15,9 @@
   - nginx-env
   - update
 
-- name: Creating nginx config link {{ site_name }}
+- name: nginx | Creating nginx config link {{ site_name }}
   file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state={{ state }} owner=root group=root
-  notify: restart nginx
+  notify: nginx | restart nginx
   when_set: $nginx_role_run
   tags:
   - nginx
