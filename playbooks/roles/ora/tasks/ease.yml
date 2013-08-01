@@ -1,11 +1,11 @@
-- name: See if edx-ora.conf is installed
+- name: ora | See if edx-ora.conf is installed
   shell: "[ -f /etc/init/edx-ora.conf ] && echo 'Found' || echo ''"
   register: edx_ora_installed
   tags:
   - ora
   - deploy
 
-- name: See if edx-ora-celery.conf is installed
+- name: ora | See if edx-ora-celery.conf is installed
   shell: "[ -f /etc/init/edx-ora-celery.conf ] && echo 'Found' || echo ''"
   register: edx_ora_celery_installed
   tags:
@@ -13,14 +13,14 @@
   - deploy
 
 # Stop ora service.
-- name: stop edx-ora service
+- name: ora | stop edx-ora service
   service: name=edx-ora state=stopped
   when: edx_ora_installed.stdout == 'Found'
   tags:
   - ora
   - deploy
 
-- name: stop edx-ora-celery service
+- name: ora | stop edx-ora-celery service
   service: name=edx-ora-celery state=stopped
   when: edx_ora_celery_installed.stdout == 'Found'
   tags:
@@ -29,14 +29,14 @@
 
 
 # Do A Checkout
-- name: git checkout ease repo into its base dir
+- name: ora | git checkout ease repo into its base dir
   git: dest={{ease_code_dir}} repo={{ease_source_repo}} version={{ease_version}}
   tags:
   - ease
   - deploy
 
 # Do Post Checkout Tasks.
-- name: change permissions on ease code dir
+- name: ora | change permissions on ease code dir
   file: path={{ease_code_dir}} state=directory owner=www-data group=www-data mode=755 recurse=yes
   tags:
   - ease
@@ -46,7 +46,7 @@
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
 #
-- name: install ease system packages
+- name: ora | install ease system packages
   apt: pkg={{item}} state=present
   with_items: ease_debian_pkgs
   tags:
@@ -55,27 +55,27 @@
 
 
 # Install the python pre requirements into {{ ease_venv_dir }}
-- name: install ease python pre-requirements
+- name: ora | install ease python pre-requirements
   pip: requirements="{{ease_pre_requirements_file}}" virtualenv="{{ease_venv_dir}}" state=present
   tags:
   - ease
   - deploy
 
 # Install the python post requirements into {{ ease_venv_dir }}
-- name: install ease python post-requirements
+- name: ora | install ease python post-requirements
   pip: requirements="{{ease_post_requirements_file}}" virtualenv="{{ease_venv_dir}}" state=present
   tags:
   - ease
   - deploy
 
-- name: install ease python package
+- name: ora | install ease python package
   shell: command="{{ease_venv_dir}}/bin/activate; cd {{ease_code_dir}}; python setup.py install"
   tags:
   - ease
   - deploy
 
 #Needed for the ease package to work
-- name: check for the existence of nltk data taggers/maxent_treebank_pos_tagger/english.pickle
+- name: ora | check for the existence of nltk data taggers/maxent_treebank_pos_tagger/english.pickle
   shell: "[ -f {{nltk_data_dir}}/taggers/maxent_treebank_pos_tagger/english.pickle ] && echo 'Found' || echo ''"
   register: nltk_data_installed
   tags:
@@ -83,14 +83,14 @@
   - deploy
 
 
-- name: install nltk data using rendered shell script
+- name: ora | install nltk data using rendered shell script
   command: "{{ease_venv_dir}}/bin/python -m nltk.downloader -d {{nltk_data_dir}} all"
   when: nltk_data_installed.stdout  != "Found"
   tags:
   - ease
   - deploy
 
-- name: set permissions on nltk data directory
+- name: ora | set permissions on nltk data directory
   file: path={{nltk_data_dir}} owner=ubuntu group=adm mode=2775 state=directory
   tags:
   - ease

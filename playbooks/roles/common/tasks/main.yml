@@ -1,66 +1,66 @@
 ---
 - include: create_users.yml
 
-- name: Add user www-data
+- name: common | Add user www-data
   # This user should be created on the system by default
   user: name=www-data
   tags:
   - pre_install
   - update
 
-- name: Create application root
+- name: common | Create application root
   # In the future consider making group edx r/t adm
   file: path={{ app_base_dir }} state=directory owner=root group=adm mode=2775 
   tags:
   - pre_install
   - update
 
-- name: Create upload directory
+- name: common | Create upload directory
   file: path={{ app_base_dir }}/uploads mode=2775 state=directory owner=root group=adm
   tags:
   - pre_install
   - update
 
-- name: Create data dir
+- name: common | Create data dir
   file: path={{ app_base_dir }}/data state=directory owner=www-data group=root
   tags:
   - pre_install
   - update
   
-- name: Create staticfiles dir
+- name: common | Create staticfiles dir
   file: path={{ app_base_dir }}/staticfiles state=directory owner=www-data group=adm mode=2775 
   tags:
   - pre_install
   - update
   
-- name: Install role-independent useful system packages
+- name: common | Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
   apt: pkg={{','.join(common_debian_pkgs)}} install_recommends=yes state=present update_cache=yes
   tags:
   - pre_install
   - update
 
-- name: Create log directory
+- name: common | Create log directory
   file: path=$log_base_dir state=directory mode=2770 group=adm owner=syslog
   tags:
   - pre_install
   - update
 
-- name: Create alias from app_base_dir to the log_base_dir
+- name: common | Create alias from app_base_dir to the log_base_dir
   file: state=link src=$log_base_dir path=$app_base_dir/log
   tags:
   - pre_install
   - logging
   - update
 
-- name: Create convenience link from log_base_dir to system logs
+- name: common | Create convenience link from log_base_dir to system logs
   file: state=link src=/var/log path=$log_base_dir/system
   tags:
   - pre_install
   - logging
   - update
 
-- name: Touch edx log file into place 
+- name: common | Touch edx log file into place 
   # This is done for the benefit of the rake commands, which expect it
   command: touch -a {{log_base_dir}}/edx.log creates={{log_base_dir}}/edx.log
   tags:
@@ -68,7 +68,7 @@
   - logging
   - install
 
-- name: Set permissions on edx log file
+- name: common | Set permissions on edx log file
   # This is done for the benefit of the rake commands, which expect it
   file: path={{log_base_dir}}/edx.log owner=syslog group=adm mode=640
   tags:
@@ -76,7 +76,7 @@
   - logging
   - update
 
-- name: upload sudo config for key forwarding as root
+- name: common | upload sudo config for key forwarding as root
   copy: src=ssh_key_forward dest=/etc/sudoers.d/ssh_key_forward validate='visudo -c -f %s' owner=root group=root mode=0440
 
 - include: create_venv.yml
