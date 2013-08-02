@@ -1,0 +1,113 @@
+---
+
+# virtualenv
+#
+# Overview:
+#
+# Creates the edX standard virtual env associated with 
+# a particular service account.  The name of the account, the
+# path to the accounts home directory and the name of the 
+# virtualenv are provided as parameters.
+# 
+# Dependencies:
+#
+#   * common
+# 
+# Example play:
+#
+#   roles:
+#   - common
+#   - role: virtualenv
+#     virtualenv_user: "{{ user }}"
+#     virtualenv_user_home: "{{ user_home }}"
+#     virtualenv_name: "{{ name }}"
+#
+# Parameters:
+#  
+#   * virtualenv_user
+#   * virtualenv_user_home
+#   * virtualenv_name
+#
+
+- fail: virtualenv_user required for role
+  when: virtualenv_user is not defined
+
+- fail: virtualenv_user_home required for role
+  when: virtualenv_user_home is not defined
+
+- fail: virtualenv_name required for role
+  when: virtualenv_name is not defined
+
+- name: virtualenv | create {{ virtualenv_user_home }}
+  # workaround for the case where the parent
+  # directory doesn't exist
+  file: >
+    path={{ virtualenv_user_home }} 
+    state=directory
+  tags: 
+    - install
+    - update
+
+- name: virtualenv | create virtualenv user {{ virtualenv_user }}
+  user: >
+    name={{ virtualenv_user }} 
+    state=present 
+    shell=/bin/bash 
+    home={{ virtualenv_user_home }}
+    createhome=yes
+  tags:
+  - install
+  - update
+
+- name: virtualenv | ensure homedir permissions {{ virtualenv_user_home }}
+  # workaround for the case where the parent
+  # directory doesn't exist
+  file: >
+    path={{ virtualenv_user_home }} 
+    owner={{ virtualenv_user }}
+    group={{ virtualenv_user }}
+    state=directory
+  tags:
+    - install
+    - update
+
+- name: virtualenv | install pre-requisities
+  apt: pkg={{','.join(virtualenv_apt_pkgs)}} install_recommends=yes state=present update_cache=yes
+  tags:
+  - install
+  - update
+
+- name: virtualenv | pip install virtualenv
+  pip: name=virtualenv state=latest
+  with_items: virtualenv_python_pkgs
+  tags:
+  - install
+  - update
+
+- name: virtualenv | create virtualenv directory
+  file: 
+    path="{{ virtualenv_user_home }}/virtualenvs/{{ virtualenv_name }}" owner={{ virtualenv_user }} 
+    group={{ virtualenv_user }}  mode=2775 state=directory recurse=yes
+  tags:
+  - install
+  - update
+
+- name: virtualenv | create the virtualenv directory initial contents
+  command: 
+    /usr/local/bin/virtualenv "{{ virtualenv_user_home }}/virtualenvs/{{ virtualenv_name }}" --distribute 
+    creates="{{ virtualenv_user_home }}/virtualenvs/{{ virtualenv_name }}/bin/activate"
+  sudo: yes
+  sudo_user: "{{ virtualenv_user }}"
+  tags:
+  - install
+  - update
+
+- name:  virtualenv | pip install gunicorn
+  pip: 
+    name=gunicorn virtualenv="{{ virtualenv_user_home }}/virtualenvs/{{ virtualenv_name }}" 
+    state=present
+  sudo: yes
+  sudo_user: "{{ virtualenv_user }}"
+  tags:
+  - install
+  - update

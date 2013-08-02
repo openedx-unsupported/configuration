@@ -1,0 +1,118 @@
+---
+
+#
+# notifier
+# 
+# Overview:
+# 
+# Provides the edX notifier service, a service for sending 
+# notifications over messaging protocols.
+#
+# Dependencies:
+#
+#   * common
+# 
+# Example play:
+#   roles:
+#   - common
+#   - notifier
+#
+- name: notifier | install notifier specific system packages
+  apt: pkg={{','.join(notifier_debian_pkgs)}} state=present
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: common | create incommon ca directory
+  file: 
+    path="/usr/share/ca-certificates/incommon" mode=2775 state=directory
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: common | retrieve incommon server CA
+  shell: curl https://www.incommon.org/cert/repository/InCommonServerCA.txt -o /usr/share/ca-certificates/incommon/InCommonServerCA.crt
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: common | add InCommon ca cert
+  lineinfile:
+    dest=/etc/ca-certificates.conf
+    regexp='incommon/InCommonServerCA.crt'    
+    line='incommon/InCommonServerCA.crt'
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: common | update ca certs globally
+  shell: update-ca-certificates
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: notifier | create notifier user {{ notifier_user }}
+  user: 
+    name={{ notifier_user }} state=present shell=/bin/bash 
+    home={{ notifier_home }} createhome=yes
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | setup the notifier env
+  template: 
+    src=notifier_env.j2 dest={{ notifier_home }}/notifier_env 
+    owner="{{ notifier_user }}" group="{{ notifier_user }}"
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | drop a bash_profile
+  copy: >
+    src=../../common/files/bash_profile 
+    dest={{ notifier_home }}/.bash_profile 
+    owner={{ notifier_user }} 
+    group={{ notifier_user }}
+
+
+- name: notifier | ensure .bashrc exists
+  shell: touch {{ notifier_home }}/.bashrc
+  sudo: true  
+  sudo_user: "{{ notifier_user }}"
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | add source of notifier_env to .bashrc
+  lineinfile:
+    dest={{ notifier_home }}/.bashrc
+    regexp='. {{ notifier_home }}/notifier_env'    
+    line='. {{ notifier_home }}/notifier_env'
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | add source venv to .bashrc
+  lineinfile:
+    dest={{ notifier_home }}/.bashrc
+    regexp='. {{ notifier_venv_dir }}/bin/activate'    
+    line='. {{ notifier_venv_dir }}/bin/activate'
+  tags:
+  - notifier
+  - install
+  - update
+
+- include: deploy.yml
