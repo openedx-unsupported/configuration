@@ -4,7 +4,7 @@
 #  - common/tasks/main.yml
 #  - nginx/tasks/main.yml
 #
-#  This installs mysql-server-5.5 though 
+#  This installs mysql-server-5.5 though
 #  in production we use mysql-5.1.62.
 #
 #  We could install from source instead:
@@ -13,12 +13,12 @@
 ---
 - name: edxlocal | install python-pymongo (req for ansible)
   pip: name=pymongo
- 
+
 - name: edxlocal | install python-mysqldb (req for ansible)
   apt: pkg=python-mysqldb state=present
 
 - name: edxlocal | install mysql server and recommends
-  apt: pkg=mysql-server-5.5 state=present install_recommends=yes 
+  apt: pkg=mysql-server-5.5 state=present install_recommends=yes
 
 - name: edxlocal | create a database for edxapp
   mysql_db: >
@@ -38,7 +38,7 @@
     state=present
     encoding=utf8
 
-- name: edxlocal | install mongo server and recommends  
+- name: edxlocal | install mongo server and recommends
   apt: pkg=mongodb-server state=present install_recommends=yes
 
 - name: edxlocal | stop mongo service
@@ -72,3 +72,60 @@
 
 - name: edxlocal | install memcached
   apt: pkg=memcached state=present
+
+- name: Install Ruby-bundler
+  apt: pkg=ruby-bundler
+
+- name: Install rubygems
+  apt: pkg=rubygems
+
+- name: install rbenv
+  apt: pkg=rbenv state=present
+
+- name: Install npm
+  apt: pkg=npm
+
+- name: install libgraphviz-dev
+  apt: pkg=libgraphviz-dev
+
+- name: install gfortran
+  apt: pkg=gfortran
+
+- name: install libopenblas-dev
+  apt: pkg=libopenblas-dev
+
+- name: install liblapack-dev
+  apt: pkg=liblapack-dev
+
+- name: install libxml2-dev
+  apt: pkg=libxml2-dev
+
+- name: Install libgeos
+  apt: pkg=libgeos-dev
+
+- name: Install python-dev
+  apt: pkg=python-dev
+
+- name: Install libmysqlclient-dev
+  apt: pkg=libmysqlclient-dev
+
+- name: Install build-essential for gcli
+  apt: pkg=build-essential state=present
+
+- name: Git clone ruby-build
+  shell: git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+
+- name: install ruby-build
+  shell: sh install.sh chdir=~/.rbenv/plugins/ruby-build/
+
+- name: Install ruby version
+  shell: rbenv install 1.9.3-p362
+
+- name: Set rbenv version
+  shell: rbenv global 1.9.3-p362
+
+- name: Install gcli
+  shell: rbenv exec gem install github_cli
+
+- name: TEMPORARILY DISABLE gcli
+  shell: echo "#!/bin/bash\necho gcli" > /usr/local/bin/gcli
