@@ -8,15 +8,6 @@
   tags:
   - xqueue
 
-- name: xqueue | create xqueue db
-  mysql_db: >
-    name={{xqueue_auth_config.DATABASES.default.NAME}}
-    login_host={{xqueue_auth_config.DATABASES.default.HOST}}
-    login_user={{xqueue_auth_config.DATABASES.default.USER}}
-    login_password={{xqueue_auth_config.DATABASES.default.PASSWORD}}
-    state=present
-    encoding=utf8
-
 # Check out xqueue repo to {{xqueue_code_dir}}
 - name: xqueue | install git and its recommends
   apt: pkg=git state=present install_recommends=yes 
@@ -30,6 +21,15 @@
   - xqueue | restart xqueue consumer
   tags:
   - xqueue
+
+- name: xqueue | create xqueue db
+  mysql_db: >
+    name={{xqueue_auth_config.DATABASES.default.NAME}}
+    login_host={{xqueue_auth_config.DATABASES.default.HOST}}
+    login_user={{xqueue_auth_config.DATABASES.default.USER}}
+    login_password={{xqueue_auth_config.DATABASES.default.PASSWORD}}
+    state=present
+    encoding=utf8
 
 - name: xqueue | create xqueue application config
   template: src=xqueue.env.json.j2 dest={{app_base_dir}}/env.json mode=0640 owner=www-data group=adm
