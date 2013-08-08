@@ -1,5 +1,10 @@
 - hosts: tag_environment_stage:&tag_function_webserver
   sudo: True
+  vars_prompt:
+    - name: "migrate_db"
+      prompt: "Should this playbook run database migrations? (<Return> for false, anything else for true)"
+      default: false
+      private: no
   vars:
     secure_dir: ../../../edx-secret/ansible
     local_dir: ../../../edx-secret/ansible/local
@@ -7,9 +12,11 @@
     - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
     - "{{ secure_dir }}/vars/edxapp_stage_users.yml"
+    #- "{{ secure_dir }}/vars/shib_stage_vars.yml"
   roles:
     - common
     - nginx
-    # - gunicorn
     - edxapp
+    - apache
+    - shibboleth
     #- in_production
