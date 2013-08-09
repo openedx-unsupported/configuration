@@ -1,4 +1,7 @@
 ---
+- name: Add the jenkins user to the edx group
+  user: name=jenkins append=yes groups="edx"
+
 - name: Install Jenkins
   shell: wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
 
@@ -12,12 +15,11 @@
   apt: pkg=jenkins state=present
 
 - name: Make plugins directory
+  sudo_user: jenkins
   shell: mkdir -p {{ jenkins_home }}/plugins
 
-- name: Mod plugins directory permissions
-  shell: chmod -R 777 {{ jenkins_home }}/plugins
-
 - name: Install Jenkins plugins
+  sudo_user: jenkins
   get_url: url=http://updates.jenkins-ci.org/latest/${item}
            dest={{ jenkins_home }}/plugins/${item}
   with_items:
@@ -64,39 +66,3 @@
     - violations.hpi
   notify:
     - restart Jenkins
-
-- name: Mod plugins directory permissions (Again)
-  shell: chmod -R 777 {{ jenkins_home }}/plugins
-
-- name: Restart Jenkins to allow for new plugins
-  shell: service jenkins restart
-
-- name: Make backup directory
-  shell: mkdir {{ jenkins_home }}/backup
-
-- name: Make backup directory
-  shell: chmod -R 777 {{ jenkins_home }}/backup
-
-- name: Chmod mnt
-  shell: chmod -R 777 /mnt/
-
-- name: Chmod /usr/local
-  shell: chmod -R 777 /usr/local/
-
-- name: chmod tmp
-  shell: chmod -R 777 /tmp/
-
-- name: Symbolic link site packages
-  shell: ln -s /usr/local/lib/python2.7/site-packages/ /usr/local/lib/python2.7/dist-packages/
-
-- name: install numpy
-  shell: pip install numpy==1.6.2
-
-- name: install scipy
-  shell: pip install scipy==0.11.0
-
-# - name: cmod lib directory for restore **Undo this after restore**
-#   shell: chmod -R 777 /var/lib
-
-# - name: Git clone
-#   action: git repo=https://github.com/lapentab/jenkinsconfig.git dest={{jenkins_home}}/backup
