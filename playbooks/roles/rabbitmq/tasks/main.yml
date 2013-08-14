@@ -38,8 +38,9 @@
   template: src=rabbitmq.config.j2 dest={{rabbitmq_config_dir}}/rabbitmq.config owner=root group=root mode=0644
   register: cluster_configuration
 
-- name: rabbitmq | add the mangement plugin
-  rabbitmq_plugin: names=rabbitmq_management state=enabled
+- name: rabbitmq | install plugins
+  rabbitmq_plugin: 
+    names={{",".join(rabbitmq_plugins)}} state=enabled
 
 # When rabbitmq starts up it creates a folder of metadata at '/var/lib/rabbitmq/mnesia'.
 # This folder should be deleted before clustering is setup because it retains data
@@ -65,3 +66,16 @@
     state=present
   with_items: rabbitmq_auth_config.admins
   when: "'admins' in rabbitmq_auth_config"
+
+#
+# Depends upon the management plugin
+#
+- name: rabbitmq | install admin tools
+  get_url: 
+    url=http://localhost:{{ rabbitmq_management_port }}/cli/rabbitmqadmin
+    dest=/usr/local/bin/rabbitmqadmin
+
+- name: rabbitmq | ensure rabbitmqadmin attributes
+  file: 
+    path=/usr/local/bin/rabbitmqadmin owner=root 
+    group=root mode=0655
