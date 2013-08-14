@@ -126,30 +126,30 @@
   - install
   - update
 
-#
+
 # TODO: Add version improvement
 #
-- name: notifier | check if dd is installed
-  command: test -e /etc/dd-agent/datadog.conf
-  register: dd_present
-  ignore_errors: yes
-  tags:
-  - notifier
-  - install
-  - update
+# name: notifier | check if dd is installed
+# command: test -e /etc/dd-agent/datadog.conf
+# register: dd_present
+# ignore_errors: yes
+# tags:
+# - notifier
+# - install
+# - update
+#
+# name: notifier | install datadog agent
+# shell: bash -c "$(wget -qO- http://dtdg.co/agent-install-ubuntu)"
+# environment:
+#   DD_API_KEY: "{{ notifier_dd_api_key }}"
+#  when: dd_present|failed
+#  tags:
+#  - notifier
+#  - install
+#  - update
+#  - ubuntu
 
-- name: notifier | install datadog agent
-  shell: bash -c "$(wget -qO- http://dtdg.co/agent-install-ubuntu)"
-  environment:
-    DD_API_KEY: "{{ notifier_dd_api_key }}"
-  when: dd_present|failed
-  tags:
-  - notifier
-  - install
-  - update
-  - ubuntu
-
-- name: common | create notifier/bin directory
+- name: notifier | create notifier/bin directory
   file: 
     path="{{ notifier_home }}/bin" mode=2775 state=directory
   tags:
@@ -175,18 +175,29 @@
   - install
   - update
 
-- name: notifier | add cron job
-  cron: name="forums digest" hour="0" minute="0" job="$HOME/forums_digest.sh 1440"
-  sudo: true  
-  sudo_user: "{{ notifier_user }}"
+#- name: notifier | add cron job
+#  cron: 
+#    name="forums digest" hour={{ notifier_cron_hour }} 
+#    minute="{{ notifier_cron_minute }}" job="$HOME/forums_digest.sh 1440"
+#  sudo: true  
+#  sudo_user: "{{ notifier_user }}"
+#  tags:
+#  - notifier
+#  - install
+#  - update
+
+- name: notifier | supervisord config for celery workers
+  template: 
+    src=etc/supervisor/conf.d/notifier-celery-workers.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-workers.conf 
+  notify: notifier | restart supervisor
   tags:
   - notifier
   - install
   - update
 
-- name: notifier | supervisord config for celery workers
+- name: notifier | supervisord config for celery beat
   template: 
-    src=etc/supervisor/conf.d/notifier-celery-workers.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-workers.conf 
+    src=etc/supervisor/conf.d/notifier-celery-beat.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-beat.conf 
   notify: notifier | restart supervisor
   tags:
   - notifier
