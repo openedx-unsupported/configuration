@@ -70,59 +70,18 @@
     password=password
     state=present
 
-- name: edxlocal | install memcached
-  apt: pkg=memcached state=present
-
-- name: Install Ruby-bundler
-  apt: pkg=ruby-bundler
-
-- name: Install rubygems
-  apt: pkg=rubygems
-
-- name: install rbenv
-  apt: pkg=rbenv state=present
-
-- name: Install npm
-  apt: pkg=npm
-
-- name: install libgraphviz-dev
-  apt: pkg=libgraphviz-dev
-
-- name: install gfortran
-  apt: pkg=gfortran
-
-- name: install libopenblas-dev
-  apt: pkg=libopenblas-dev
-
-- name: install liblapack-dev
-  apt: pkg=liblapack-dev
-
-- name: install libxml2-dev
-  apt: pkg=libxml2-dev
-
-- name: Install libgeos
-  apt: pkg=libgeos-dev
-
-- name: Install python-dev
-  apt: pkg=python-dev
-
-- name: Install libmysqlclient-dev
-  apt: pkg=libmysqlclient-dev
-
-- name: Install build-essential for gcli
-  apt: pkg=build-essential state=present
-
-- name: Install pkg-config
-  apt: pkg=pkg-config
+- name: edxlocal | install edxlocal specific system packages
+  apt: pkg={{','.join(edxlocal_debian_pkgs)}} state=present
 
 - name: Git clone ruby-build
-  shell: git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
+  shell: git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build creates=~/.rbenv/plugins/ruby-build
 
 - name: install ruby-build
   shell: sh install.sh chdir=~/.rbenv/plugins/ruby-build/
 
 - name: Install ruby version
-  shell: rbenv install 1.9.3-p374
+  shell: yes n|rbenv install 1.9.3-p374
+  ignore_errors: yes
 
 - name: Set rbenv version
   shell: rbenv global 1.9.3-p374
@@ -130,11 +89,6 @@
 - name: Install gcli
   shell: rbenv exec gem install github_cli
 
-- name: install libxslt-dev
-  apt: pkg=libxslt-dev
-
-- name: Install rake
-  apt: pkg=rake
-
+# This is done so that it will not report back to github while testing
 - name: TEMPORARILY DISABLE gcli
   shell: echo "#!/bin/bash\necho gcli" > /usr/local/bin/gcli

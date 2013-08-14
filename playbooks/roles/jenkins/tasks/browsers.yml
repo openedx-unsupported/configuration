@@ -15,47 +15,32 @@
            creates=/usr/local/bin/phantomjs
 
 - name: Set PhantomJS permissions
-  command: chmod go+rx /usr/local/bin/phantomjs
+  file: path=/usr/local/bin/phantomjs mode=0755 state=directory
 
 - name: Install chrome dependencies
-  apt: pkg=libgconf2-4
-
-- name: Install chrome dependencies 2
-  apt: pkg=libxss1
-
-- name: Install chrome dependencies 3
-  apt: pkg=libnss3-1d
-
-- name: Install chrome dependencies 4
-  apt: pkg=libcurl3
-
-- name: Install chrome dependencies 5
-  apt: pkg=xdg-utils
+  apt: pkg=libgconf2-4,libxss1,libnss3-1d,libcurl3,xdg-utils
 
 - name: Install unzip O_o
   apt: pkg=unzip
 
 - name: Install Google Chrome
-  command: wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-           chdir=/var/tmp
+  get_url: url=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb dest=/var/tmp/google-chrome-stable_current_amd64.deb
 
 - name: Install Google Chrome 2
   command: dpkg -i google-chrome-stable_current_amd64.deb
            chdir=/var/tmp
   ignore_errors: True
 
-- name: Install Google Chrome 3
-  command: apt-get -f -y install
-
 - name: Install ChromeDriver
-  shell: wget --quiet https://chromedriver.googlecode.com/files/chromedriver_linux64_2.1.zip
+  get_url: url=https://chromedriver.googlecode.com/files/chromedriver_linux64_2.1.zip dest=/var/tmp/chromedriver_linux64_2.1.zip
 
 - name: Install ChromeDriver 2
-  shell: unzip chromedriver_linux64_2.1.zip
+  shell: unzip /var/tmp/chromedriver_linux64_2.1.zip
+         chdir=/var/tmp
 
 - name: Install ChromeDriver 3
-  shell: mv chromedriver /usr/local/bin/chromedriver
+  shell: mv /var/tmp/chromedriver /usr/local/bin/chromedriver
 
 - name: Install Chromedriver 4
-  shell: chmod go+rx /usr/local/bin/chromedriver
+  file: path=/usr/local/bin/chromedriver mode=0755
 
