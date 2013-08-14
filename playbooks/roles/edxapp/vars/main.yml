@@ -35,7 +35,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   'MODULESTORE':
     'default':
       'ENGINE': 'xmodule.modulestore.mongo.DraftMongoModuleStore'
-      'OPTIONS':  &lms_modulestore_default_options
+      'OPTIONS':  &generic_modulestore_default_options
         'collection':  'modulestore'
         'db':  'edxapp'
         'default_class':  'xmodule.hidden_module.HiddenDescriptor'
@@ -48,7 +48,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
     # Needed for the CMS to be able to run update_templates
     'direct':
       'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
-      'OPTIONS':  *lms_modulestore_default_options
+      'OPTIONS':  *generic_modulestore_default_options
   'DATABASES':
     'default':
       'ENGINE': 'django.db.backends.mysql'
@@ -96,23 +96,23 @@ generic_env_config:  &edxapp_generic_env
   'ANALYTICS_SERVER_URL':  ''
   'EEDBACK_SUBMISSION_EMAIL': ''
   'TIME_ZONE': 'America/New_York'
-  'CACHES':  &lms_caches
-    'default': &default_lms_cache
+  'CACHES':
+    'default': &default_generic_cache
       'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
       'KEY_FUNCTION':  'util.memcache.safe_key'
       'KEY_PREFIX':  'sandbox_default'
       'LOCATION': [ 'localhost:11211' ]
     'general':
-      <<: *default_lms_cache
+      <<: *default_generic_cache
       'KEY_PREFIX':  'sandbox_general'
     'mongo_metadata_inheritance':
-      <<: *default_lms_cache
+      <<: *default_generic_cache
       'KEY_PREFIX':  'integration_mongo_metadata_inheritance'
     'staticfiles':
-      <<: *default_lms_cache
+      <<: *default_generic_cache
       'KEY_PREFIX':  'integration_static_files'
     'celery':
-      <<: *default_lms_cache
+      <<: *default_generic_cache
       'KEY_PREFIX':  'integration_celery'
   'CELERY_BROKER_TRANSPORT': 'amqp'
   'CELERY_BROKER_HOSTNAME': ''
@@ -127,6 +127,11 @@ generic_env_config:  &edxapp_generic_env
       'REALTIME': 3
 lms_auth_config:
   <<: *edxapp_generic_auth
+  'MODULESTORE':
+    'default':
+      'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
+      'OPTIONS': *generic_modulestore_default_options
+
 lms_env_config:
   <<: *edxapp_generic_env
 lms_xml_auth_config:
