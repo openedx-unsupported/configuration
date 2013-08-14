@@ -7,6 +7,7 @@
     force=yes owner=root group=adm mode=750
   tags:
   - notifier
+  - deploy
   - install
   - update
 
@@ -18,6 +19,7 @@
     src={{ notifier_git_identity_path }} dest=/etc/git-identity 
     force=yes owner=ubuntu group=adm mode=60
   tags:
+  - notifier
   - deploy
   - install
   - update
@@ -29,6 +31,7 @@
   environment:
     GIT_SSH: /tmp/git_ssh.sh
   tags:
+    - notifier
     - deploy
     - install
     - update
@@ -41,6 +44,7 @@
     path={{ notifier_code_dir }} state=directory owner={{ notifier_user }} 
     group={{ notifier_user }} mode=2750 recurse=yes
   tags:
+  - notifier
   - deploy
   - install
   - update
@@ -51,6 +55,7 @@
 - name: notifier | remove read-only ssh key for the content repo
   file: path=/etc/git-identity state=absent
   tags:
+  - notifier
   - deploy
   - install
   - update
@@ -61,6 +66,7 @@
 - name: notifier | remove ssh script
   file: path=/tmp/git_ssh.sh state=absent
   tags:
+  - notifier
   - deploy
   - install
   - update
@@ -72,6 +78,18 @@
   sudo: true  
   sudo_user: "{{ notifier_user }}"
   tags:
+  - notifier
+  - deploy
+  - install
+  - update
+
+- name: notifier | syncdb
+  shell: >
+    cd {{ notifier_code_dir }} && {{ notifier_venv_dir }}/bin/python manage.py syncdb
+  sudo: true  
+  sudo_user: "{{ notifier_user }}"
+  tags:
+  - notifier
   - deploy
   - install
   - update
