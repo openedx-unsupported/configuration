@@ -1,6 +1,6 @@
 [program:notifier-celery-beat]
 
-command=/bin/bash -c 'source {{ notifier_home }}/notifier_env && {{ notifier_venv_dir }}/bin/python manage.py celery beat -l INFO'
+command={{ notifier_venv_dir }}/bin/python manage.py celery beat -l DEBUG
 
 process_name=%(program_name)s
 numprocs=1
@@ -23,4 +23,7 @@ stderr_logfile=/tmp/notifier-celery-beat-stderr.log
 stderr_logfile_maxbytes=1MB
 stderr_logfile_backups=10
 stderr_capture_maxbytes=1MB
-environment=PID='/var/tmp/notifier-celery-beat.pid',LANG=en_US.UTF-8
+environment=PID='/var/tmp/notifier-celery-beat.pid',LANG=en_US.UTF-8,
+{%- for name,value in notifier_env_vars.items() -%}
+{{name}}="{{value}}"{%- if not loop.last -%},{%- endif -%}
+{%- endfor -%}
