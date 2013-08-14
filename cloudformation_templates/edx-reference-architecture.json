@@ -943,6 +943,40 @@
         }
       }
     },
+    "InboundPingRequestPublicNetworkAclEntry":{
+      "Type":"AWS::EC2::NetworkAclEntry",
+      "Properties":{
+        "NetworkAclId":{
+          "Ref":"PublicNetworkAcl"
+        },
+        "RuleNumber":"104",
+        "Protocol":"1",
+        "RuleAction":"allow",
+        "Egress":"false",
+        "CidrBlock":"10.0.0.0/16",
+        "Icmp": {
+          "Code": "0",
+          "Type": "0"
+        }
+      }
+    },
+    "InboundPingReplyPublicNetworkAclEntry":{
+      "Type":"AWS::EC2::NetworkAclEntry",
+      "Properties":{
+        "NetworkAclId":{
+          "Ref":"PublicNetworkAcl"
+        },
+        "RuleNumber":"105",
+        "Protocol":"1",
+        "RuleAction":"allow",
+        "Egress":"false",
+        "CidrBlock":"10.0.0.0/16",
+        "Icmp": {
+          "Code": "0",
+          "Type": "8"
+        }
+      }
+    },
     "OutboundPublicNetworkAclEntry":{
       "Type":"AWS::EC2::NetworkAclEntry",
       "Properties":{
@@ -957,6 +991,40 @@
         "PortRange":{
           "From":"0",
           "To":"65535"
+        }
+      }
+    },
+    "OutboundPingRequestPublicNetworkAclEntry":{
+      "Type":"AWS::EC2::NetworkAclEntry",
+      "Properties":{
+        "NetworkAclId":{
+          "Ref":"PublicNetworkAcl"
+        },
+        "RuleNumber":"101",
+        "Protocol":"1",
+        "RuleAction":"allow",
+        "Egress":"true",
+        "CidrBlock":"10.0.0.0/16",
+        "Icmp": {
+          "Code": "0",
+          "Type": "0"
+        }
+      }
+    },
+    "OutboundPingReplyPublicNetworkAclEntry":{
+      "Type":"AWS::EC2::NetworkAclEntry",
+      "Properties":{
+        "NetworkAclId":{
+          "Ref":"PublicNetworkAcl"
+        },
+        "RuleNumber":"102",
+        "Protocol":"1",
+        "RuleAction":"allow",
+        "Egress":"true",
+        "CidrBlock":"10.0.0.0/16",
+        "Icmp": {
+          "Code": "0",
+          "Type": "8"
         }
       }
     },
@@ -1414,6 +1482,50 @@
         ]
       }
     },
+    "BackupNATIPAddress":{
+      "Type":"AWS::EC2::EIP",
+      "Properties":{
+        "Domain":"vpc",
+        "InstanceId":{
+          "Ref":"BackupNATDevice"
+        }
+      }
+    },
+    "BackupNATDevice":{
+      "Type":"AWS::EC2::Instance",
+      "Properties":{
+        "InstanceType":{
+          "Ref":"NATInstanceType"
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "SubnetId":{
+          "Ref":"PublicSubnet02"
+        },
+        "SourceDestCheck":"false",
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSRegionArch2AMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            {
+              "Fn::FindInMap":[
+                "AWSInstanceType2Arch",
+                "t1.micro",
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "SecurityGroupIds":[
+          {
+            "Ref":"NATSecurityGroup"
+          }
+        ]
+      }
+    },
     "NATSecurityGroup":{
       "Type":"AWS::EC2::SecurityGroup",
       "Properties":{
@@ -1453,6 +1565,12 @@
             "FromPort":"10016",
             "ToPort":"10016",
             "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"icmp",
+            "FromPort":"-1",
+            "ToPort":"-1",
+            "CidrIp":"0.0.0.0/0"
           }
         ],
         "SecurityGroupEgress":[
@@ -1491,6 +1609,47 @@
         ]
       }
     },
+    "NATMonitorRole": {
+       "Type": "AWS::IAM::Role",
+       "Properties": {
+          "AssumeRolePolicyDocument": {
+             "Statement": [ {
+                "Effect": "Allow",
+                "Principal": {
+                   "Service": [ "ec2.amazonaws.com" ]
+                },
+                "Action": [ "sts:AssumeRole" ]
+             } ]
+          },
+          "Path": "/",
+          "Policies": [ {
+             "PolicyName": "NAT_Takeover",
+             "PolicyDocument": {
+                "Statement": [ {
+                   "Effect": "Allow",
+                   "Action": [
+                        "ec2:DescribeInstances",
+                        "ec2:DescribeRouteTables",
+                        "ec2:CreateRoute",
+                        "ec2:ReplaceRoute",
+                        "ec2:StartInstances",
+                        "ec2:StopInstances"
+                   ],
+                   "Resource": "*"
+                } ]
+             }
+             } ]
+          }
+    },
+    "NATMonitorRoleProfile": {
+       "Type": "AWS::IAM::InstanceProfile",
+       "Properties": {
+          "Path": "/",
+          "Roles": [ {
+             "Ref": "NATMonitorRole"
+          } ]
+       }
+    },
     "BastionIPAddress":{
       "Type":"AWS::EC2::EIP",
       "Properties":{
@@ -1508,6 +1667,9 @@
         },
         "KeyName":{
           "Ref":"KeyName"
+        },
+        "IamInstanceProfile" : { 
+          "Ref" : "NATMonitorRoleProfile"
         },
         "SubnetId":{
           "Ref":"PublicSubnet01"
@@ -1533,7 +1695,146 @@
           {
             "Ref":"BastionSecurityGroup"
           }
-        ]
+        ],
+        "Tags":[
+          {
+            "Key":"group",
+            "Value":"bastion"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            },
+            "PropagateAtLaunch":true
+          }
+        ],
+        "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n",
+          "mkdir -p /opt/edx/bin\n",
+          "cd /opt\n",
+          "apt-get update\n",
+          "apt-get install openjdk-6-jre-headless unzip -y\n",
+          "wget http://s3.amazonaws.com/ec2-downloads/ec2-api-tools.zip\n",
+          "unzip ec2-api-tools.zip\n",
+          "rm ec2-api-tools.zip\n",
+          "ln -sf ec2-api-tools-* ec2-api-tools\n",
+
+          "cat <<'EOF' > /opt/edx/bin/nat_monitor.sh\n",
+          "#!/bin/bash\n",
+          "# This script will monitor another NAT instance and take over its routes\n",
+          "# if communication with the other instance fails\n",
+          "\n",
+          "# NAT instance variables\n",
+          "# Other instance's IP to ping and route to grab if other node goes down\n",
+          "PRIMARY_NAT_ID=", { "Ref":"NATDevice" }, "\n",
+          "BACKUP_NAT_ID=", { "Ref": "BackupNATDevice" }, "\n",
+          "NAT_RT_ID=", { "Ref": "PrivateRouteTable" }, "\n",
+          "\n",
+          "# Specify the EC2 region that this will be running in (e.g. https://ec2.us-east-1.amazonaws.com)\n",
+          "EC2_URL=https://ec2.",{ "Ref": "AWS::Region" },".amazonaws.com\n",
+          "\n",
+          "# Health Check variables\n",
+          "Num_Pings=3\n",
+          "Ping_Timeout=1\n",
+          "Wait_Between_Pings=2\n",
+          "Wait_for_Instance_Stop=60\n",
+          "Wait_for_Instance_Start=300\n",
+          "\n",
+          "# leverage AWS security credentials provided by EC2 roles\n",
+          "# Setup environment for ec2 api tools\n",
+          "export EC2_HOME=/opt/ec2-api-tools\n",
+          "export AWS_IAM_HOME=/opt/IAMCli\n",
+          "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-amd64\n",
+          "PATH=/opt/ec2-api-tools/bin:$PATH\n",
+          "\n",
+          "# Determine the NAT instance private IP so we can ping the other NAT instance, take over\n",
+          "# its route, and reboot it.  Requires EC2 DescribeInstances, ReplaceRoute, and Start/RebootInstances\n",
+          "# permissions.  The following example EC2 Roles policy will authorize these commands:\n",
+          "# {\n",
+          "#  \"Statement\": [\n",
+          "#    {\n",
+          "#      \"Action\": [\n",
+          "#        \"ec2:DescribeInstances\",\n",
+          "#        \"ec2:CreateRoute\",\n",
+          "#        \"ec2:ReplaceRoute\",\n",
+          "#        \"ec2:StartInstances\",\n",
+          "#        \"ec2:StopInstances\"\n",
+          "#      ],\n",
+          "#      \"Effect\": \"Allow\",\n",
+          "#      \"Resource\": \"*\"\n",
+          "#    }\n",
+          "#  ]\n",
+          "# }\n",
+          "\n",
+          "# Get the primary NAT instance's IP\n",
+          "PRIMARY_NAT_IP=`/opt/ec2-api-tools/bin/ec2-describe-instances $PRIMARY_NAT_ID -U $EC2_URL | grep PRIVATEIPADDRESS -m 1 | awk '{print $2;}'`\n",
+          "BACKUP_NAT_IP=`/opt/ec2-api-tools/bin/ec2-describe-instances $BACKUP_NAT_ID -U $EC2_URL | grep PRIVATEIPADDRESS -m 1 | awk '{print $2;}'`\n",
+          "\n",
+          "echo `date` \"-- Starting NAT monitor\"\n",
+          "\n",
+          "while [ . ]; do\n",
+          "  # Check the health of both instances.\n",
+          "  primary_pingresult=`ping -c $Num_Pings -W $Ping_Timeout $PRIMARY_NAT_IP| grep time= | wc -l`\n",
+          "\n",
+          "  if [ \"$primary_pingresult\" == \"0\" ]; then\n",
+          "    backup_pingresult=`ping -c $Num_Pings -W $Ping_Timeout $BACKUP_NAT_IP| grep time= | wc -l`\n",
+          "    if [ \"$backup_pingresult\" == \"0\" ]; then\n",
+          "      echo `date` \"-- Both NAT devices un reachable.\"\n",
+          "      #TODO: Notify alert that both NATs are down.\n",
+          "    else #Backup nat is healthy.\n",
+          "      # Set HEALTHY variables to unhealthy (0)\n",
+          "      ROUTE_HEALTHY=0\n",
+          "      NAT_HEALTHY=0\n",
+          "      STOPPING_NAT=0\n",
+          "      while [ \"$NAT_HEALTHY\" == \"0\" ]; do\n",
+          "      # Primary NAT instance is unhealthy, loop while we try to fix it\n",
+          "        if [ \"$ROUTE_HEALTHY\" == \"0\" ]; then\n",
+          "          echo `date` \"-- NAT($PRIMARY_NAT_ID) heartbeat failed, using $BACKUP_NAT_ID for $NAT_RT_ID default route\"\n",
+          "          /opt/ec2-api-tools/bin/ec2-replace-route $NAT_RT_ID -r 0.0.0.0/0 -i $BACKUP_NAT_ID -U $EC2_URL\n",
+          "          ROUTE_HEALTHY=1\n",
+          "        fi\n",
+          "        # Check NAT state to see if we should stop it or start it again\n",
+          "        NAT_STATE=`/opt/ec2-api-tools/bin/ec2-describe-instances $PRIMARY_NAT_ID -U $EC2_URL | grep INSTANCE | awk '{print $5;}'`\n",
+          "        if [ \"$NAT_STATE\" == \"stopped\" ]; then\n",
+          "          echo `date` \"-- NAT($PRIMARY_NAT_ID) instance stopped, starting it back up\"\n",
+          "          /opt/ec2-api-tools/bin/ec2-start-instances $PRIMARY_NAT_ID -U $EC2_URL\n",
+          "          sleep $Wait_for_Instance_Start\n",
+          "        else\n",
+          "          if [ \"$STOPPING_NAT\" == \"0\" ]; then\n",
+          "            echo `date` \"-- NAT($PRIMARY_NAT_ID) instance $NAT_STATE, attempting to stop for reboot\"\n",
+          "            /opt/ec2-api-tools/bin/ec2-stop-instances $PRIMARY_NAT_ID -U $EC2_URL\n",
+          "            STOPPING_NAT=1\n",
+          "          fi\n",
+          "          sleep $Wait_for_Instance_Stop\n",
+          "        fi\n",
+          "        unhealthy_nat_pingresult=`ping -c $Num_Pings -W $Ping_Timeout $PRIMARY_NAT_IP| grep time= | wc -l`\n",
+          "        if [ \"$unhealthy_nat_pingresult\" == \"$Num_Pings\" ]; then\n",
+          "          NAT_HEALTHY=1\n",
+          "        fi\n",
+          "      done\n",
+          "\n",
+          "      # Backup nat was healthy so we switched to it.  It is now the primary.\n",
+          "      if [ \"$ROUTE_HEALTHY\" == \"1\" ]; then\n",
+          "        TEMP_NAT_ID=$PRIMARY_NAT_ID\n",
+          "        TEMP_NAT_IP=$PRIMARY_NAT_IP\n",
+          "\n",
+          "        PRIMARY_NAT_ID=$BACKUP_NAT_ID\n",
+          "        PRIMARY_NAT_IP=$BACKUP_NAT_IP\n",
+          "\n",
+          "        BACKUP_NAT_ID=$TEMP_NAT_ID\n",
+          "        BACKUP_NAT_IP=$TEMP_NAT_IP\n",
+          "      fi\n",
+          "    fi\n",
+          "  else\n",
+          "    sleep $Wait_Between_Pings\n",
+          "  fi\n",
+          "done\n",
+          "EOF\n",
+          "chmod u+x /opt/edx/bin/nat_monitor.sh\n",
+          "echo '@reboot /opt/edx/bin/nat_monitor.sh > /var/log/nat_monitor.log' | crontab\n",
+          "/opt/edx/bin/nat_monitor.sh > /var/log/nat_monitor.log &\n"
+        ]]}}
       }
     },
     "BastionSecurityGroup":{
@@ -1559,6 +1860,24 @@
             "FromPort":"22",
             "ToPort":"22",
             "CidrIp":"10.0.0.0/16"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"80",
+            "ToPort":"80",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"443",
+            "ToPort":"443",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"icmp",
+            "FromPort":"-1",
+            "ToPort":"-1",
+            "CidrIp":"0.0.0.0/0"
           }
         ]
       }
