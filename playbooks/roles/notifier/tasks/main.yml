@@ -126,43 +126,9 @@
   - install
   - update
 
-
-# TODO: Add version improvement
-#
-# name: notifier | check if dd is installed
-# command: test -e /etc/dd-agent/datadog.conf
-# register: dd_present
-# ignore_errors: yes
-# tags:
-# - notifier
-# - install
-# - update
-#
-# name: notifier | install datadog agent
-# shell: bash -c "$(wget -qO- http://dtdg.co/agent-install-ubuntu)"
-# environment:
-#   DD_API_KEY: "{{ notifier_dd_api_key }}"
-#  when: dd_present|failed
-#  tags:
-#  - notifier
-#  - install
-#  - update
-#  - ubuntu
-
 - name: notifier | create notifier/bin directory
   file: 
     path="{{ notifier_home }}/bin" mode=2775 state=directory
-  tags:
-  - notifier
-  - install
-  - update
-
-- name: notifier | create job script
-  copy: >
-    src=opt/notifier/bin/forums_digest.sh 
-    dest={{ notifier_home }}/bin/forums_digest.sh 
-    owner={{ notifier_user }} 
-    group={{ notifier_user }}
   tags:
   - notifier
   - install
@@ -175,21 +141,10 @@
   - install
   - update
 
-#- name: notifier | add cron job
-#  cron: 
-#    name="forums digest" hour={{ notifier_cron_hour }} 
-#    minute="{{ notifier_cron_minute }}" job="$HOME/forums_digest.sh 1440"
-#  sudo: true  
-#  sudo_user: "{{ notifier_user }}"
-#  tags:
-#  - notifier
-#  - install
-#  - update
-
 - name: notifier | supervisord config for celery workers
   template: 
     src=etc/supervisor/conf.d/notifier-celery-workers.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-workers.conf 
-  notify: notifier | restart supervisor
+  notify: notifier | restart notifier-celery-workers
   tags:
   - notifier
   - install
@@ -198,7 +153,7 @@
 - name: notifier | supervisord config for celery beat
   template: 
     src=etc/supervisor/conf.d/notifier-celery-beat.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-beat.conf 
-  notify: notifier | restart supervisor
+  notify: notifier | restart notifier-celery-beat
   tags:
   - notifier
   - install

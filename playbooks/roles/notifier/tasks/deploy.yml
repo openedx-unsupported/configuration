@@ -5,6 +5,8 @@
   copy: 
     src=git_ssh.sh dest=/tmp/git_ssh.sh 
     force=yes owner=root group=adm mode=750
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
@@ -18,6 +20,8 @@
   copy: 
     src={{ notifier_git_identity_path }} dest=/etc/git-identity 
     force=yes owner=ubuntu group=adm mode=60
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
@@ -30,6 +34,8 @@
     version={{ notifier_version }}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
+  notify:
+    - notifier | restart notifier
   tags:
     - notifier
     - deploy
@@ -43,6 +49,8 @@
   file: 
     path={{ notifier_code_dir }} state=directory owner={{ notifier_user }} 
     group={{ notifier_user }} mode=2750 recurse=yes
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
@@ -54,6 +62,8 @@
 #
 - name: notifier | remove read-only ssh key for the content repo
   file: path=/etc/git-identity state=absent
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
@@ -65,6 +75,8 @@
 #
 - name: notifier | remove ssh script
   file: path=/tmp/git_ssh.sh state=absent
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
@@ -77,6 +89,8 @@
     virtualenv="{{ notifier_venv_dir }}" state=present
   sudo: true  
   sudo_user: "{{ notifier_user }}"
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
@@ -88,6 +102,8 @@
     cd {{ notifier_code_dir }} && {{ notifier_venv_dir }}/bin/python manage.py syncdb
   sudo: true  
   sudo_user: "{{ notifier_user }}"
+  notify:
+    - notifier | restart notifier
   tags:
   - notifier
   - deploy
