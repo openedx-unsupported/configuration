@@ -24,9 +24,19 @@
   - install
   - update
 
+- name: notifier | check if incommon ca is installed
+  command: test -e /usr/share/ca-certificates/incommon/InCommonServerCA.crt
+  register: incommon_present
+  ignore_errors: yes
+  tags:
+  - notifier
+  - install
+  - update
+
 - name: common | create incommon ca directory
   file: 
     path="/usr/share/ca-certificates/incommon" mode=2775 state=directory
+  when: incommon_present|failed
   tags:
   - notifier
   - install
@@ -35,6 +45,7 @@
 
 - name: common | retrieve incommon server CA
   shell: curl https://www.incommon.org/cert/repository/InCommonServerCA.txt -o /usr/share/ca-certificates/incommon/InCommonServerCA.crt
+  when: incommon_present|failed
   tags:
   - notifier
   - install
@@ -110,6 +121,48 @@
     dest={{ notifier_home }}/.bashrc
     regexp='. {{ notifier_venv_dir }}/bin/activate'    
     line='. {{ notifier_venv_dir }}/bin/activate'
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | create notifier/bin directory
+  file: 
+    path="{{ notifier_home }}/bin" mode=2775 state=directory
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | make the script executable
+  file: path={{ notifier_home }}/bin/forums_digest.sh state=file mode=2755
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: common | create supervisor log directoy
+  file: 
+    path={{notifier_supervisor_log_dest }} mode=2750 state=directory
+  tags:
+  - notifier
+  - install
+  - update
+  - ubuntu
+
+- name: notifier | supervisord config for celery workers
+  template: 
+    src=etc/supervisor/conf.d/notifier-celery-workers.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-workers.conf 
+  notify: notifier | restart notifier-celery-workers
+  tags:
+  - notifier
+  - install
+  - update
+
+- name: notifier | supervisord config for celery beat
+  template: 
+    src=etc/supervisor/conf.d/notifier-celery-beat.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-beat.conf 
+  notify: notifier | restart notifier-celery-beat
   tags:
   - notifier
   - install
