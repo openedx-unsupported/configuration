@@ -3,6 +3,21 @@
 ##
 ## for future compliance, when the API comes on line.
 ##
-- name: notifier | restart the notifier service
-  service: name=notifier state=restarted
 
+- name: notifier | install notifier-celery-beat
+  supervisorctl: name=notifier-celery-beat state=present
+
+- name: notifier | install notifier-celery-workers
+  supervisorctl: name=notifier-celery-workers state=present
+
+- name: notifier | restart notifier
+  supervisorctl: name=notifier-celery-beat state=restarted
+  notify:
+    - notifier | install notifier-celery-workers
+    - notifier | install notifier-celery-beat
+        
+- name: notifier | restart notifier-celery-beat
+  supervisorctl: name=notifier-celery-beat state=restarted
+
+- name: notifier | restart notifier-celery-workers
+  supervisorctl: name=notifier-celery-workers state=restarted
