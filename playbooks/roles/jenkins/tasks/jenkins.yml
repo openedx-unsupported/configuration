@@ -1,50 +1,50 @@
 ---
-- name: Add the jenkins user to the edx group
+- name: jenkins | Add the jenkins user to the edx group
   user: name=jenkins append=yes groups="edx"
 
-- name: edxlocal | install jenkins specific system packages
+- name: jenkins | install jenkins specific system packages
   apt: pkg={{','.join(jenkins_debian_pkgs)}} state=present
 
-- name: Install gcli
+- name: jenkins | Install gcli
   sudo_user: jenkins
   shell: /home/jenkins/.rbenv/bin/rbenv exec gem install github_cli
 
 # This is done so that it will not report back to github while testing
-- name: TEMPORARILY DISABLE gcli
+- name: jenkins | TEMPORARILY DISABLE gcli
   shell: echo "#!/bin/bash\necho gcli" > /usr/local/bin/gcli
 
-- name: Install Jenkins
+- name: jenkins | Install Jenkins
   shell: wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
 
-- name: Install Jenkins 2
+- name: jenkins | Install Jenkins 2
   shell: sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
 
-- name: Install Jenkins 3
+- name: jenkins | Install Jenkins 3
   shell: apt-get update
 
-- name: install jenkins 4
+- name: jenkins | install jenkins 4
   apt: pkg=jenkins state=present
 
-- name: Make plugins directory
+- name: jenkins | Make plugins directory
   sudo_user: jenkins
   shell: mkdir -p {{ jenkins_home }}/plugins
 
-- name: Make virtualenv directory
+- name: jenkins | Make virtualenv directory
   shell: mkdir -p /mnt/virtualenvs
 
-- name: Chown virtualenv directory
+- name: jenkins | Chown virtualenv directory
   file: path=/mnt/virtualenvs/ state=directory owner=jenkins recurse=yes
 
-- name: Make pip-cache directory
+- name: jenkins | Make pip-cache directory
   shell: mkdir -p /mnt/pip-cache
 
-- name: Chown pip-cache directory
+- name: jenkins | Chown pip-cache directory
   file: path=/mnt/pip-cache/ state=directory owner=jenkins recurse=yes
 
-- name: Allow /usr/local/bin to be executable
+- name: jenkins | Allow /usr/local/bin to be executable
   shell: chmod -R go+x /usr/local/bin
 
-- name: Install Jenkins plugins
+- name: jenkins | Install Jenkins plugins
   sudo_user: jenkins
   get_url: url=http://updates.jenkins-ci.org/latest/${item}
            dest={{ jenkins_home }}/plugins/${item}
