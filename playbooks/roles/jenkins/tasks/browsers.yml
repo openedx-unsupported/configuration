@@ -1,0 +1,46 @@
+---
+- name: browsers | Install Firefox
+  apt: pkg=firefox
+
+- name: browsers | Download PhantomJS
+  get_url: url={{ jenkins_phantomjs_url }}
+           dest=/var/tmp/{{ jenkins_phantomjs_archive }}
+
+- name: browsers | Untar PhantomJS
+  command: tar -xjf /var/tmp/{{ jenkins_phantomjs_archive }} -C /var/tmp/
+           creates=/var/tmp/{{ jenkins_phantomjs_folder }}
+
+- name: browsers | Install PhantomJS
+  command: mv /var/tmp/{{ jenkins_phantomjs_folder }} /usr/local/bin/phantomjs
+           creates=/usr/local/bin/phantomjs
+
+- name: browsers | Set PhantomJS permissions
+  file: path=/usr/local/bin/phantomjs mode=0755 state=directory
+
+- name: browsers | Install chrome dependencies
+  apt: pkg=libgconf2-4,libxss1,libnss3-1d,libcurl3,xdg-utils
+
+- name: browsers | Install unzip O_o
+  apt: pkg=unzip
+
+- name: browsers | Install Google Chrome
+  get_url: url=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb dest=/var/tmp/google-chrome-stable_current_amd64.deb
+
+- name: browsers | Install Google Chrome 2
+  command: dpkg -i google-chrome-stable_current_amd64.deb
+           chdir=/var/tmp
+  ignore_errors: True
+
+- name: browsers | Install ChromeDriver
+  get_url: url=https://chromedriver.googlecode.com/files/chromedriver_linux64_2.1.zip dest=/var/tmp/chromedriver_linux64_2.1.zip
+
+- name: browsers | Install ChromeDriver 2
+  shell: unzip /var/tmp/chromedriver_linux64_2.1.zip
+         chdir=/var/tmp
+
+- name: browsers | Install ChromeDriver 3
+  shell: mv /var/tmp/chromedriver /usr/local/bin/chromedriver
+
+- name: browsers | Install Chromedriver 4
+  file: path=/usr/local/bin/chromedriver mode=0755
+
