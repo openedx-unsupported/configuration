@@ -1,0 +1,74 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+#  - nginx/tasks/main.yml
+---
+# do by hand for now -- jrbl
+#- name: git checkout certificates repo to $app_base_dir
+#  git: dest={{app_base_dir}}/certificates repo=git@github.com:edx/certificates.git version=master
+#  tags:
+#  - certs-env
+
+- name: put verify nginx configuration file into place
+  template: src=verify.j2 dest=/etc/nginx/sites-available/verify
+  when: cert_worker != True
+  tags:
+  - jrbl
+  - certificate-verifications
+
+- name: put verify nginx configuration link in place
+  file: src=/etc/nginx/sites-available/verify dest=/etc/nginx/sites-enabled/verify state=link owner=root group=root
+  when: cert_worker != True
+  notify: restart nginx
+  tags:
+  - jrbl
+  - certificate-verifications
+
+- name: create certification virtual environment container
+  file: state=directory path={{venv_certs}} mode=2775 owner=www-data group=adm
+  when: cert_worker == True
+  tags:
+  - jrbl
+  - certificate-setup
+
+- name: set permissions on certificate code dir and contents
+  file: path={{home_certs}} state=directory owner=ubuntu group=adm recurse=yes
+  when: cert_worker == True
+  tags:
+  - jrbl
+  - certificate-setup
+
+- name: create certification virtual environment initial contents
+  command: /usr/local/bin/virtualenv {{venv_certs}} --distribute creates={{venv_certs}}/bin/activate
+  when: cert_worker == True
+  tags:
+  - jrbl
+  - certificate-setup
+
+- name: create location for gpg information
+  file: state=directory path={{venv_certs}}/gpg mode=0700 owner=ubuntu group=adm
+  when: cert_worker == True
+  tags:
+  - jrbl
+  - certificate-signing
+
+- name: put gpg information in place
+  copy: src={{secure_dir}}/files/{{item}} dest={{venv_certs}}/gpg/{{item}} mode=0400 owner=ubuntu group=adm
+  when: cert_worker == True
+  with_items:
+  - gpg.conf
+  - pubring.gpg
+  - secring.gpg
+  - trustdb.gpg
+  tags:
+  - jrbl
+  - certificate-signing
+
+- name: install certificate prerequisites
+  #pip: requirements="{{home_certs}}/requirements.txt" virtualenv="{{venv_certs}}" state=present
+  shell: cd {{home_certs}} && {{venv_certs}}/bin/pip install --exists-action w --use-mirrors -r requirements.txt
+  when: cert_worker == True
+  tags:
+  - jrbl
+  - certificate-setup
+
