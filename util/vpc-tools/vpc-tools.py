@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config vpc <vpc_id> identity-file <identity_file> user <user>
+    vpc-tools.py ssh-config vpc <vpc_id> identity-file <identity_file> user <user> [config-file <config_file>]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
@@ -27,7 +27,7 @@ JUMPBOX_CONFIG = """
 
 HOST_CONFIG = """
     Host {name}
-      ProxyCommand ssh -W %h:%p {jump_box}
+      ProxyCommand ssh {config_file} -W %h:%p {jump_box}
       HostName {ip}
       IdentityFile {identity_file}
       ForwardAgent yes
@@ -47,6 +47,11 @@ def _ssh_config(args):
     identity_file = args.get("<identity_file>")
     user = args.get("<user>",DEFAULT_USER)
     vpc_id = args.get("<vpc_id>")
+    config_file = args.get("<config_file>")
+    if config_file:
+      config_file = "-F {}".format(config_file)
+    else:
+      config_file = "nothing"
 
     jump_box = "{vpc_id}-jumpbox".format(vpc_id=vpc_id)
     friendly = "{vpc_id}-{logical_id}-{instance_id}"
@@ -74,7 +79,8 @@ def _ssh_config(args):
                     ip=instance.private_ip_address,
                     user=user,
                     logical_id=logical_id,
-                    identity_file=identity_file)
+                    identity_file=identity_file,
+                    config_file=config_file)
 
             #duplicating for convenience with ansible
             name = friendly.format(vpc_id=vpc_id,
@@ -87,7 +93,8 @@ def _ssh_config(args):
                 ip=instance.private_ip_address,
                 user=user,
                 logical_id=logical_id,
-                identity_file=identity_file)
+                identity_file=identity_file,
+                config_file=config_file)
 
 
 if __name__ == '__main__':
