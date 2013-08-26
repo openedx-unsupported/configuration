@@ -60,6 +60,7 @@
     owner={{ rbenv_user }}
     group={{ rbenv_user }}
     state=directory
+    recurse=yes
 
 - name: rbenv | install build depends
   apt: pkg={{ item }} state=present install_recommends=no
@@ -179,7 +180,7 @@
   - install
 
 - name: rbenv | install ruby {{ rbenv_ruby_version }}
-  shell: "{{ rbenv_user_home }}/.rbenv/bin/rbenv install {{ rbenv_ruby_version }}"
+  shell: "{{ rbenv_user_home }}/.rbenv/bin/rbenv install {{ rbenv_ruby_version }} creates={{rbenv_user_home}}/.rbenv/versions/{{rbenv_ruby_version}}"
   when: ruby_installed|failed
   sudo: true
   sudo_user: "{{ rbenv_user }}" 
@@ -191,7 +192,6 @@
   shell: "{{rbenv_user_home }}/.rbenv/bin/rbenv global {{ rbenv_ruby_version }}"
   sudo: true
   sudo_user: "{{ rbenv_user }}"
-  when: ruby_installed|failed
   tags:
   - ruby
   - install
@@ -208,7 +208,6 @@
   shell: "{{rbenv_user_home}}/.rbenv/bin/rbenv rehash"
   sudo: true
   sudo_user: "{{ rbenv_user }}" 
-  when: ruby_installed|failed
   tags:
   - ruby
   - install
