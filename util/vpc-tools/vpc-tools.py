@@ -45,9 +45,13 @@ def _ssh_config(args):
     vpc = boto.connect_vpc()
 
     identity_file = args.get("<identity_file>")
-    user = args.get("<user>",DEFAULT_USER)
+    user = args.get("<user>")
     vpc_id = args.get("<vpc_id>")
     config_file = args.get("<config_file>")
+
+    if not user:
+      user = DEFAULT_USER
+
     if config_file:
       config_file = "-F {}".format(config_file)
     else:
