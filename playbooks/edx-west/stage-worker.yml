@@ -1,0 +1,21 @@
+# this gets all running prod webservers
+- hosts: tag_environment_stage:&tag_function_util
+# or we can get subsets of them by name
+#- hosts: ~tag_Name_util(1|2)_prod
+  sudo: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    local_dir:  '../../../configuration-secure/ansible/local'
+    migrate_db: "no"
+    certs_s3_bucket: 'http://cert-bucket.s3-website-us-west-1.amazonaws.com'
+    venv_certs: '/opt/certlibs'
+    home_certs: '/opt/wwc/certificates'
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+    - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
+    - "{{ secure_dir }}/vars/shib_prod_vars.yml"
+  roles:
+    - common
+    - { role: 'edxapp', celery_worker: True }
+    - { role: 'certhost', cert_worker: True }
