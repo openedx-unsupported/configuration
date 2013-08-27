@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config vpc <vpc_id> identity-file <identity_file> user <user> [config-file <config_file>] [strict-host-check <strict_host_check>]
+    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) identity-file <identity_file> user <user> [config-file <config_file>] [strict-host-check <strict_host_check>]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
@@ -43,13 +43,26 @@ def dispatch(args):
     if args.get("ssh-config"):
         _ssh_config(args)
 
+def vpc_for_stack_name(stack_name):
+    cfn = boto.connect_cloudformation()
+    resources = cfn.list_stack_resources(stack_name)
+    for resource in resources:
+      if resource.resource_type == 'AWS::EC2::VPC':
+        return resource.physical_resource_id
+
 def _ssh_config(args):
+    if args.get("vpc"):
+      vpc_id = args.get("<vpc_id>")
+    elif args.get("stack-name"):
+      stack_name = args.get("<stack_name>")
+      vpc_id = vpc_for_stack_name(stack_name)
+    else:
+      raise Exception("No way to know which vpc to query.")
 
     vpc = boto.connect_vpc()
 
     identity_file = args.get("<identity_file>")
     user = args.get("<user>")
-    vpc_id = args.get("<vpc_id>")
     config_file = args.get("<config_file>")
     strict_host_check = args.get("<strict_host_check>")
 
