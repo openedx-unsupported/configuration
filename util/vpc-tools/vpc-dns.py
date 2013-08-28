@@ -1,7 +1,7 @@
 """vpc-dns.py
 
 Usage:
-    vpc-dns.py create-zone vpc <vpc-id>
+    vpc-dns.py create-zone (vpc <vpc_id> | stack-name <stack_name>)
     vpc-dns.py (-h --help)
     vpc-dns.py (-v --version)
 
@@ -12,6 +12,7 @@ Options:
 import boto
 from boto.route53.record import ResourceRecordSets
 from docopt import docopt
+from vpcutil import vpc_for_stack_name
 
 class VPCDns:
     BACKEND_ZONE = "Z4AI6ADZTL3HN"
@@ -106,8 +107,13 @@ class VPCDns:
 VERSION="0.1"
 
 def dispatch(args):
-
-    vpc_id = args.get("<vpc-id>")
+    if args.get("vpc"):
+      vpc_id = args.get("<vpc_id>")
+    elif args.get("stack-name"):
+      stack_name = args.get("<stack_name>")
+      vpc_id = vpc_for_stack_name(stack_name)
+    else:
+      raise Exception("No vpc_id or stack_name provided.")
 
     c = VPCDns(vpc_id=vpc_id)
 
