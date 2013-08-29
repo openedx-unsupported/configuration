@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) identity-file <identity_file> user <user> [config-file <config_file>] [strict-host-check <strict_host_check>]
+    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) identity-file <identity_file> user <user> [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
@@ -17,7 +17,7 @@ from vpcutil import vpc_for_stack_name
 
 VERSION="vpc tools 0.1"
 DEFAULT_USER="ubuntu"
-DEFAULT_HOST_CHECK="yes"
+DEFAULT_HOST_CHECK="ask"
 
 JUMPBOX_CONFIG = """
     Host {jump_box}
@@ -69,7 +69,7 @@ def _ssh_config(args):
     if config_file:
       config_file = "-F {}".format(config_file)
     else:
-      config_file = "nothing"
+      config_file = ""
 
     jump_box = "{vpc_id}-jumpbox".format(vpc_id=vpc_id)
     friendly = "{vpc_id}-{logical_id}-{instance_id}"
