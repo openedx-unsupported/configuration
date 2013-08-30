@@ -57,28 +57,28 @@
 - name: rbenv | create temporary directory
   command: mktemp -d
   register: tempdir
-  when_failed: $rbuild_present
+  when: rbuild_present|failed
   tags:
   - ruby
   - install
 
 - name: rbenv | clone ruby-build repo
   git: repo=https://github.com/sstephenson/ruby-build.git dest=${tempdir.stdout}/ruby-build
-  when_failed: $rbuild_present
+  when: rbuild_present|failed
   tags:
   - ruby
   - install
 
 - name: rbenv | install ruby-build
   command: ./install.sh chdir=${tempdir.stdout}/ruby-build
-  when_failed: $rbuild_present
+  when: rbuild_present|failed
   tags:
   - ruby
   - install
 
 - name: rbenv | remove temporary directory
   file: path=${tempdir.stdout} state=absent
-  when_failed: $rbuild_present
+  when: rbuild_present|failed
   tags:
   - ruby
   - install
@@ -93,21 +93,21 @@
 
 - name: rbenv | install ruby $ruby_version
   shell: RBENV_ROOT=${rbenv_root} rbenv install $ruby_version
-  when_failed: $ruby_installed
+  when: ruby_installed|failed
   tags:
   - ruby
   - install
 
 - name: rbenv | set global ruby $ruby_version
   shell: RBENV_ROOT=${rbenv_root} rbenv global $ruby_version
-  when_failed: $ruby_installed
+  when: ruby_installed|failed
   tags:
   - ruby
   - install
 
 - name: rbenv | rehash
   shell: RBENV_ROOT=${rbenv_root} rbenv rehash
-  when_failed: $ruby_installed
+  when: ruby_installed|failed
   tags:
   - ruby
   - install
