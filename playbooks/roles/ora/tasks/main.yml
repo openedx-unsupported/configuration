@@ -3,11 +3,6 @@
 #  - common/tasks/main.yml
 #  - nginx/tasks/main.yml
 ---
-- name: ora | Change permissions on datadir
-  file: path={{ora_code_dir}}/../data state=directory owner=www-data group=www-data
-  tags:
-  - ora
-
 - name: ora | Create ml_models directory
   file: path={{ora_code_dir}}/../ml_models state=directory owner={{ ora_user }} group={{ ora_user }}
   tags:
@@ -42,16 +37,6 @@
 - name: ora | install debian packages that ora needs
   apt: pkg={{item}} state=present
   with_items: ora_debian_pkgs
-  tags:
-  - ora
-
-- name: ora | create the ora virtual environment
-  file: path={{ ora_venv_dir }} owner=root group=adm mode=2775 state=directory
-  tags:
-  - ora
-
-- name: ora | bootstrap the ora virtual environment
-  command: /usr/local/bin/virtualenv {{ ora_venv_dir }} --distribute creates={{ora_venv_dir}}/bin/activate
   tags:
   - ora
 
