@@ -7,7 +7,11 @@ respawn
 respawn limit 3 30
 
 env PID=/var/tmp/xqueue.pid
-env WORKERS={{ ansible_processor_cores * 2 }}
+{% if ansible_processor|length > 0 %}
+env WORKERS={{ ansible_processor|length * 2 }}
+{% else %}
+env WORKERS=2
+{% endif %}
 env PORT={{ xqueue_gunicorn_port }}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=xqueue.aws_settings
