@@ -1,36 +1,94 @@
+# this file is managed by puppet
 # custom edx syslog configuration
-# Put in place and templatized by ansible 
 #
-# Cliffs notes version: ansible uses local0 and local1, so they have to be
-# plumbed through appropriately.
- 
-#############
-# Change some global configuration
-#############
+
+
+#  Default rules for rsyslog.
+#
+#                       For more information see rsyslog.conf(5) and /etc/rsyslog.conf
+
+#
+# First some standard log files.  Log by facility.
+
 # don't escape newlines
 $EscapeControlCharactersOnReceive off
+
 $SystemLogRateLimitInterval 0
 $RepeatedMsgReduction off
 $MaxMessageSize 32768
- 
-#############
-# Override default auth config so we can ignore local0 and local1 also
-#############
+
 auth,authpriv.*                                         /var/log/auth.log
 *.*;auth,authpriv.none,local0.none,local1.none          -/var/log/syslog
- 
-# According to the docs for rsyslog, "syslogtag" is the "TAG" from 
-# the message which in the case of tracking logs is interpreted to 
-# be everything before the first whitespace character. 
+
+# According to the docs for rsyslog, "syslogtag" is the "TAG" from
+# the message which in the case of tracking logs is interpreted to
+# be everything before the first whitespace character.
 # This is why we include "syslogtag."
-# Maybe one day this will be answered:
-# - http://stackoverflow.com/questions/10449447/how-to-avoid-syslogtag-from-rsyslog-template
+# Maybe one day this will be answered - http://stackoverflow.com/questions/10449447/how-to-avoid-syslogtag-from-rsyslog-template
 $template tracking,"%syslogtag%%msg%\n"
- 
+
 # looks for [service_name=<name>] in the beginning of the log message,
-# if it exists the log will go into {{log_base_dir}}/<name>/edx.log, otherwise
-# it will go into {{log_base_dir}}/edx.log
-$template DynaFile,"{{log_base_dir}}/%syslogtag:R,ERE,1,BLANK:\[service_variant=([a-zA-Z_-]*)\].*--end%/edx.log"
- 
+# if it exists the log will go into /mnt/logs/<name>/edx.log, otherwise
+# it will go into /mnt/logs/edx.log
+$template DynaFile,"/mnt/logs/%syslogtag:R,ERE,1,BLANK:\[service_variant=([a-zA-Z_-]*)\].*--end%/edx.log"
+
 local0.*                        -?DynaFile
-local1.*                        {{log_base_dir}}/tracking.log;tracking
+local1.*                        /mnt/logs/tracking.log;tracking
+#cron.*                         /var/log/cron.log
+#daemon.*                       -/var/log/daemon.log
+kern.*                          -/var/log/kern.log
+#lpr.*                          -/var/log/lpr.log
+mail.*                          -/var/log/mail.log
+#
+# Logging for the mail system.  Split it up so that
+# it is easy to write scripts to parse these files.
+#
+#mail.info                      -/var/log/mail.info
+#mail.warn                      -/var/log/mail.warn
+mail.err                        /var/log/mail.err
+
+#
+# Logging for INN news system.
+#
+news.crit                       /var/log/news/news.crit
+news.err                        /var/log/news/news.err
+news.notice                     -/var/log/news/news.notice
+
+#
+# Some "catch-all" log files.
+#
+#*.=debug;\
+#       auth,authpriv.none;\
+#       news.none;mail.none     -/var/log/debug
+#*.=info;*.=notice;*.=warn;\
+#       auth,authpriv.none;\
+#       cron,daemon.none;\
+#       mail,news.none          -/var/log/messages
+
+#
+# Emergencies are sent to everybody logged in.
+#
+*.emerg                                :omusrmsg:*
+
+#
+# I like to have messages displayed on the console, but only on a virtual
+# console I usually leave idle.
+#
+#daemon,mail.*;\
+#       news.=crit;news.=err;news.=notice;\
+#       *.=debug;*.=info;\
+#       *.=notice;*.=warn       /dev/tty8
+
+# The named pipe /dev/xconsole is for the `xconsole' utility.  To use it,
+# you must invoke `xconsole' with the `-file' option:
+#
+#    $ xconsole -file /dev/xconsole [...]
+#
+# NOTE: adjust the list below, or you'll go crazy if you have a reasonably
+#      busy site..
+#
+daemon.*;mail.*;\
+        news.err;\
+        *.=debug;*.=info;\
+        *.=notice;*.=warn       |/dev/xconsole
+
