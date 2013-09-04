@@ -1,0 +1,34 @@
+---
+- name: common | Create jenkins group
+  group: name={{ jenkins_group }} state=present
+
+- name: jenkins | Add the jenkins user to the group
+  user: name={{ jenkins_user }} append=yes groups={{ jenkins_group }}
+
+- name: jenkins | Install Jenkins
+  shell: wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+
+- name: jenkins | Install Jenkins 2
+  shell: sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+
+- name: jenkins | Install Jenkins 3
+  shell: apt-get update
+
+- name: jenkins | Install jenkins 4
+  apt: pkg=jenkins state=present
+
+- name: jenkins | Make plugins directory
+  sudo_user: jenkins
+  shell: mkdir -p {{ jenkins_home }}/plugins
+
+- name: jenkins | Install Jenkins plugins
+  sudo_user: jenkins
+  get_url: url=http://updates.jenkins-ci.org/download/plugins/${item.name}/${item.version}/${item.name}.hpi
+           dest={{ jenkins_home }}/plugins/${item.name}.hpi
+  with_items: "{{ jenkins_plugins }}"
+  notify:
+    - restart Jenkins
+
+- name: Install git
+  apt: pkg=git state=present
+

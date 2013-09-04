@@ -1,0 +1,27 @@
+---
+- name: JSCover | Install Java
+  apt: pkg=openjdk-7-jre-headless state=present
+
+- name: JSCover | Download JSCover
+  get_url: url={{ jscover_url }} dest=/var/tmp/jscover.zip
+
+- name: JSCover | Unzip JSCover
+  shell: unzip /var/tmp/jscover.zip -d /var/tmp/jscover
+         creates=/var/tmp/jscover
+
+- name: JSCover | Install JSCover JAR
+  command: cp /var/tmp/jscover/target/dist/JSCover-all.jar /usr/local/bin/JSCover-all.jar
+           creates=/usr/local/bin/JSCover-all.jar
+
+- name: JSCover | Set JSCover permissions
+  command: chmod go+rx /usr/local/bin/JSCover-all.jar
+
+- name: JSCover | Add bash script
+  template: src=jscover.sh.j2 dest={{ jenkins_user_home }}/jscover
+            owner={{ jenkins_user }} group={{ jenkins_group }} mode=0755 
+
+- name: JSCover | Add source of jscover.sh to .bashrc
+  lineinfile:
+    dest="{{ jenkins_user_home }}/.bashrc"
+    regexp=". {{ jenkins_user_home }}/jscover"
+    line=". {{ jenkins_user_home }}/jscover"
