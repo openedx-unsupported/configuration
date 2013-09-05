@@ -136,20 +136,30 @@
   - ruby
   - install
 
+- name: rbenv | if ruby-build exists, which versions we can install
+  command: /usr/local/bin/ruby-build --definitions
+  when: rbuild_present|success
+  register: installable_ruby_vers
+  ignore_errors: yes
+  tags:
+  - ruby
+  - install
+
+### in this block, we (re)install ruby-build if it doesn't exist or if it can't install the requested version
 - name: rbenv | create temporary directory
   command: mktemp -d
   register: tempdir
   sudo: true  
-  sudo_user: "{{ rbenv_user }}" 
-  when: rbuild_present|failed
+  sudo_user: "{{ rbenv_user }}"
+  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
   - ruby
   - install
 
 - name: rbenv | clone ruby-build repo
   git: repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
-  when:  rbuild_present|failed
-  sudo: true  
+  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  sudo: true
   sudo_user: "{{ rbenv_user }}" 
   tags:
   - ruby
@@ -157,14 +167,14 @@
 
 - name: rbenv | install ruby-build
   command: ./install.sh chdir={{ tempdir.stdout }}/ruby-build
-  when: rbuild_present|failed
+  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
   - ruby
   - install
 
 - name: rbenv | remove temporary directory
   file: path={{ tempdir.stdout }} state=absent
-  when: rbuild_present|failed
+  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
   - ruby
   - install
