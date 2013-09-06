@@ -20,7 +20,7 @@
 
 # Do Post Checkout Tasks.
 - name: xqueue | create xqueue code dir
-  file: path={{xqueue_code_dir}} state=directory owner=www-data group=www-data mode=755
+  file: path={{xqueue_code_dir}} state=directory owner={{ xqueue_user }} group={{ xqueue_user }} mode=755
   tags:
   - xqueue
   - deploy
@@ -30,29 +30,29 @@
 # portions of the deploy needs to be incorporated here.
 
 - name: xqueue | sets permissions on xqueue code dir and contents
-  file: path={{xqueue_code_dir}} state=directory owner=www-data group=www-data recurse=yes
+  file: path={{xqueue_code_dir}} state=directory owner={{ xqueue_user }} group={{ xqueue_user }} recurse=yes
   # Post Checkout tasks will get run as handlers when the {{ xqueue_code_dir }} is ready.
   # Look at the handlers/main.yml in this role for a description of the tasks stated below.
   tags:
   - xqueue
   - deploy
 
-# Install the python pre requirements into {{ venv_dir }}
+# Install the python pre requirements into {{ xqueue_venv_dir }}
 - name : install python pre-requirements
-  pip: requirements="{{xqueue_pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{xqueue_pre_requirements_file}}" virtualenv="{{xqueue_venv_dir}}" state=present
   tags:
   - xqueue
   - deploy
 
-# Install the python post requirements into {{ venv_dir }}
+# Install the python post requirements into {{ xqueue_venv_dir }}
 - name : install python post-requirements
-  pip: requirements="{{xqueue_post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: requirements="{{xqueue_post_requirements_file}}" virtualenv="{{xqueue_venv_dir}}" state=present
   tags:
   - xqueue
   - deploy
 
 - name: xqueue | syncdb and migrate
-  shell: sudo -u www-data SERVICE_VARIANT=xqueue /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
+  shell: sudo -u {{ xqueue_user }} SERVICE_VARIANT=xqueue {{ xqueue_venv_dir }}/bin/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
   - xqueue
@@ -60,7 +60,7 @@
   - deploy
 
 - name: xqueue | create users
-  shell: sudo -u www-data SERVICE_VARIANT=xqueue /opt/edx/bin/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
+  shell: sudo -u {{ xqueue_user }} SERVICE_VARIANT=xqueue {{ xqueue_venv_dir }}/bin/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath=/opt/wwc/xqueue
   when: update_users is defined
   tags:
   - xqueue
