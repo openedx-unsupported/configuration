@@ -1,35 +1,50 @@
 ---
-- hosts: tag_aws_cloudformation_stack-name_feanilpractice:&tag_group_edxapp
+- hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_edxapp
   sudo: True
   vars_files:
+    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
     - nginx
-    - edxapp
-    - { role: 'edxapp', celery_worker: True }
-
-- hosts: tag_aws_cloudformation_stack-name_feanilpractice:&tag_group_xserver
+    - role: 'edxapp'
+      lms_nginx_port: 80
+      cms_nginx_port: 80
+      edxapp_lms_env: 'lms.envs.load_test'
+      lms_version: 'HEAD'
+- hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_xserver
   sudo: True
   vars_files:
+    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
     - nginx
     - xserver
-- hosts: tag_aws_cloudformation_stack-name_feanilpractice:&tag_group_rabbitmq
+- hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_rabbitmq
   serial: 1
   sudo: True
   vars_files:
+    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
     - rabbitmq
-- hosts: tag_aws_cloudformation_stack-name_feanilpractice:&tag_group_xqueue
+- hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_xqueue
   sudo: True
   vars_files:
+    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
     - nginx
     - xqueue
+- hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_worker
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - nginx
+    - { role: 'edxapp', celery_worker: True }
