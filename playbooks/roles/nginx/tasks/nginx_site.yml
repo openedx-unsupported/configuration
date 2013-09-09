@@ -1,5 +1,14 @@
 # Requires nginx package
 ---
+- name: nginx | Install job to ensure log directories exist
+  template: src=nginx-dirs.conf.j2 dest=/etc/init/nginx-dirs.conf mode=0640 owner=root group=root
+  when_set: $nginx_role_run
+  notify: nginx | restart nginx
+  tags:
+  - nginx
+  - nginx-env
+  - update
+
 - name: nginx | Copying nginx config {{ site_name }}
   template: src={{ item }} dest=/etc/nginx/sites-available/{{ site_name }}
   first_available_file:
