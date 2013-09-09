@@ -13,7 +13,7 @@ instance edx.${SERVICE_VARIANT}.core.${QUEUE}
 #env NEWRELIC={{venv_dir}}/bin/newrelic-admin
 env CONCURRENCY=${CONCURRENCY}
 env LOGLEVEL=info
-env DJANGO_SETTINGS_MODULE=lms.envs.aws
+env DJANGO_SETTINGS_MODULE=aws
 env PYTHONPATH={{edx_platform_code_dir}}
 env SERVICE_VARIANT=${SERVICE_VARIANT}
 
@@ -21,4 +21,4 @@ setuid www-data
 
 chdir {{edx_platform_code_dir}}
 
-exec {{venv_dir}}/bin/django-admin.py celery worker --settings=$DJANGO_SETTINGS_MODULE --pythonpath=$PYTHONPATH --loglevel=$LOGLEVEL --queues=edx.${SERVICE_VARIANT}.core.${QUEUE} --hostname=edx.${SERVICE_VARIANT}.core.${QUEUE}.`hostname` --concurrency=$CONCURRENCY
+exec {{venv_dir}}/bin/python {{edx_platform_code_dir}}/manage.py $SERVICE_VARIANT --settings=$DJANGO_SETTINGS_MODULE celery worker --loglevel=$LOGLEVEL --queues=edx.${SERVICE_VARIANT}.core.${QUEUE} --hostname=edx.${SERVICE_VARIANT}.core.${QUEUE}.`hostname` --concurrency=$CONCURRENCY
