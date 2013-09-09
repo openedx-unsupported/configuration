@@ -3,15 +3,31 @@
   sudo: True
   vars_files:
     - "{{ secure_dir }}/vars/dev/dev2.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
+#    - datadog
     - nginx
     - role: 'edxapp'
       lms_nginx_port: 80
       cms_nginx_port: 80
       edxapp_lms_env: 'lms.envs.load_test'
-      lms_version: 'release'
+      lms_version: 'd84de2f890df6a6ed2bcf38c71d67cf7be4962a2'
+- hosts: tag_aws_cloudformation_stack-name_dev2:&tag_group_worker
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/dev2.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+#    - datadog
+    - nginx
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      celery_worker: True
+      lms_version: 'd84de2f890df6a6ed2bcf38c71d67cf7be4962a2'
 #- hosts: tag_aws_cloudformation_stack-name_dev2:&tag_group_xserver
 #  sudo: True
 #  vars_files:
@@ -39,12 +55,3 @@
 #    - common
 #    - nginx
 #    - xqueue
-#- hosts: tag_aws_cloudformation_stack-name_dev2:&tag_group_worker
-#  sudo: True
-#  vars_files:
-#    - "{{ secure_dir }}/vars/dev/dev2.yml"
-#    - "{{ secure_dir }}/vars/users.yml"
-#  roles:
-#    - common
-#    - nginx
-#    - { role: 'edxapp', celery_worker: True }
