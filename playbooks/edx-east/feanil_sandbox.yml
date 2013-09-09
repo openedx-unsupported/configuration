@@ -12,6 +12,20 @@
       cms_nginx_port: 80
       edxapp_lms_env: 'lms.envs.load_test'
       lms_version: 'HEAD'
+- hosts: tag_aws_cloudformation_stack-name_dev2:&tag_group_worker
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/dev2.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+#    - datadog
+    - nginx
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      celery_worker: True
+      lms_version: 'HEAD'
 - hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_xserver
   sudo: True
   vars_files:
@@ -39,12 +53,3 @@
     - common
     - nginx
     - xqueue
-- hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_worker
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
-    - "{{ secure_dir }}/vars/users.yml"
-  roles:
-    - common
-    - nginx
-    - { role: 'edxapp', celery_worker: True }
