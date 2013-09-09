@@ -1,19 +1,25 @@
 # this gets all running prod webservers
-- hosts: tag_environment_prod:&tag_function_xserver
+#- hosts: tag_environment_prod:&tag_function_webserver
 # or we can get subsets of them by name
-#- hosts: ~tag_Name_xserver(1|2)_prod
-#- hosts: security_group_edx-prod-EdxappServerSecurityGroup-NSKCQTMZIPQB
+- hosts: ~tag_Name_app(10|20)_cme
   sudo: True
+  vars_prompt:
+    - name: "migrate_db"
+      prompt: "Should this playbook run database migrations? (Type 'yes' to run, anything else to skip migrations)"
+      default: "no"
+      private: no
   vars:
     secure_dir: '../../../configuration-secure/ansible'
     # this indicates the path to site-specific (with precedence)
     # things like nginx template files
     local_dir:  '../../../configuration-secure/ansible/local'
   vars_files:
-    - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
+    - "{{ secure_dir }}/vars/edxapp_cme_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
     - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
   roles:
     - common
     - nginx
-    - xserver
+    - edxapp
+    # run this role last
+    - in_production
