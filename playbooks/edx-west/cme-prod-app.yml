@@ -1,3 +1,15 @@
+
+# set up the fireball transport
+#- hosts: ~tag_Name_app(10|20)_cme
+#  gather_facts: no
+#  connection: ssh # or paramiko
+#  sudo: yes
+#  tasks:
+#      - apt: pkg=gcc state=present
+#      - apt: pkg=libzmq-dev,python-zmq state=present
+#      - action: fireball
+
+
 # this gets all running prod webservers
 #- hosts: tag_environment_prod:&tag_function_webserver
 # or we can get subsets of them by name
@@ -9,10 +21,10 @@
       default: "no"
       private: no
   vars:
-    secure_dir: '../../../configuration-secure/ansible'
+    secure_dir: '../../../edx-secret/ansible'
     # this indicates the path to site-specific (with precedence)
     # things like nginx template files
-    local_dir:  '../../../configuration-secure/ansible/local'
+    local_dir:  '../../../../../../edx-secret/ansible/local'
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_cme_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
@@ -20,6 +32,6 @@
   roles:
     - common
     - nginx
-    - edxapp
+    - {'role': 'edxapp', 'openid_workaround': true}
     # run this role last
-    - in_production
+    # - in_production
