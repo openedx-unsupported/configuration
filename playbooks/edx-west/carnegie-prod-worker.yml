@@ -1,0 +1,18 @@
+# this gets all running prod webservers
+- hosts: tag_environment_prod_carn:&tag_function_util
+# or we can get subsets of them by name
+#- hosts: ~tag_Name_util(10)_carn
+  sudo: True
+  vars:
+    secure_dir: '../../../edx-secret/ansible'
+    # this indicates the path to site-specific (with precedence)
+    # things like nginx template files
+    local_dir:  '../../../../../../edx-secret/ansible/local'
+    migrate_db: "no"
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+    - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
+  roles:
+    - common
+    - { role: 'edxapp', celery_worker: True }
