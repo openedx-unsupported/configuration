@@ -1,0 +1,41 @@
+# This playbook is to configure
+# the official edX sandbox instance
+# sandbox.edx.org
+#
+# On the machine you want to configure run the following
+# command from the configuration/playbooks directory:
+#   ansible-playbook -c local --limit "localhost:127.0.0.1" /path/to/configuration/playbooks/edx_sandbox.yml -i "localhost,"
+# 
+# To use different default ports for lms-preview, cms and to set the lms_base and lms_preview_base,
+# for the following configuration:
+#   studio listening on port 80 - studio.example.com
+#   lms listening on port 80 - example.com
+#   lms-preview listening on port 80 - preview.example.com
+#
+#   ansible-playbook -c local --limit "localhost:127.0.0.1" path/to/configuration/playbooks/edx_sandbox.yml -i "localhost," -e "cms_nginx_port=80 lms_preview_nginx_port=80 c_lms_base=example.com  c_preview_lms_base=preview.example.com"
+#
+- name: Configure instance(s)
+  hosts: localhost
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    c_skip_grader_checkout: True
+  roles:
+    - common
+    - nginx
+    - edxlocal
+    - edxapp
+    - rabbitmq
+    - xqueue
+    - xserver
+    - ora
+    - { role: 'edxapp', celery_worker: True }
+    - oraclejdk
+    - elasticsearch
+    - role: rbenv
+      rbenv_user: "{{ forum_user }}"
+      rbenv_user_home: "{{ forum_home }}"
+      rbenv_ruby_version: "{{ forum_ruby_version }}"
+    - forum
