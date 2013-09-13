@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) identity-file <identity_file> user <user> [config-file <config_file>] [strict-host-check <strict_host_check>]
+    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) identity-file <identity_file> user <user> [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
@@ -12,11 +12,12 @@ Options:
 """
 import boto
 from docopt import docopt
+from vpcutil import vpc_for_stack_name
 
 
 VERSION="vpc tools 0.1"
 DEFAULT_USER="ubuntu"
-DEFAULT_HOST_CHECK="yes"
+DEFAULT_HOST_CHECK="ask"
 
 JUMPBOX_CONFIG = """
     Host {jump_box}
@@ -43,13 +44,6 @@ def dispatch(args):
     if args.get("ssh-config"):
         _ssh_config(args)
 
-def vpc_for_stack_name(stack_name):
-    cfn = boto.connect_cloudformation()
-    resources = cfn.list_stack_resources(stack_name)
-    for resource in resources:
-      if resource.resource_type == 'AWS::EC2::VPC':
-        return resource.physical_resource_id
-
 def _ssh_config(args):
     if args.get("vpc"):
       vpc_id = args.get("<vpc_id>")
@@ -57,7 +51,7 @@ def _ssh_config(args):
       stack_name = args.get("<stack_name>")
       vpc_id = vpc_for_stack_name(stack_name)
     else:
-      raise Exception("No way to know which vpc to query.")
+      raise Exception("No vpc_id or stack_name provided.")
 
     vpc = boto.connect_vpc()
 
@@ -75,7 +69,7 @@ def _ssh_config(args):
     if config_file:
       config_file = "-F {}".format(config_file)
     else:
-      config_file = "nothing"
+      config_file = ""
 
     jump_box = "{vpc_id}-jumpbox".format(vpc_id=vpc_id)
     friendly = "{vpc_id}-{logical_id}-{instance_id}"
