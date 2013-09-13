@@ -51,7 +51,7 @@ def _ssh_config(args):
       stack_name = args.get("<stack_name>")
       vpc_id = vpc_for_stack_name(stack_name)
     else:
-      raise Exception("No vpc_idao or stack_name provided.")
+      raise Exception("No vpc_id or stack_name provided.")
 
     vpc = boto.connect_vpc()
 
