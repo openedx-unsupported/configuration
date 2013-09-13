@@ -223,17 +223,13 @@ post_checkout_regex: !!omap
           --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws \
           --noinput --verbosity=0
         fi
-        if $($RUN django-admin.py help update_templates --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws &>/dev/null) && [[ -r /opt/wwc/cms.auth.json ]]; then
-          $RUN django-admin.py update_templates \
-          --pythonpath=/opt/wwc/edx-platform --settings=cms.envs.aws
-        fi
       fi
   - ^edx-platform$|^content-.*$:
     - |
       edxapp_status=$(service edxapp status 2>/dev/null || true)
 
       edx_workers_status=$(service edx-workers status 2>/dev/null || true)
-      
+
       if [[ -n $edxapp_status ]]; then
         if [[ $edxapp_status == *stop* ]]; then
           service edxapp start;
