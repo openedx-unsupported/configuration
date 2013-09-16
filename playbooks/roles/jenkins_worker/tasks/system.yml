@@ -3,7 +3,7 @@
   group: name={{ jenkins_group }} state=present
 
 - name: jenkins | Add the jenkins user to the group
-  user: name={{ jenkins_user }} append=yes groups={{ jenkins_group }}
+  user: name={{ jenkins_user }} append=yes group={{ jenkins_group }}
 
 - name: jenkins | Create .ssh directory
   file: path={{ jenkins_user_home }}/.ssh state=directory
@@ -19,7 +19,7 @@
 - name: jenkins | Set key permissions
   file: path={{ jenkins_user_home }}/.ssh/authorized_keys
         owner={{ jenkins_user }} group={{ jenkins_group }}
-        mode=600
+        mode=400
 
 - name: jenkins | Create directory for builds
   file: path={{ jenkins_workspace }}
@@ -29,18 +29,17 @@
 - name: jenkins | Install system packages
   apt: pkg=${item}
   with_items:
-    - npm
-    - graphviz
-    - npm
-    - libgraphviz-dev
+    - build-essential
     - gfortran
+    - graphviz
+    - libgraphviz-dev
     - libopenblas-dev
     - liblapack-dev
     - libxml2-dev
     - libgeos-dev
     - libmysqlclient-dev
-    - build-essential
-    - pkg-config
     - libxslt1-dev
-  tags:
-    - system_pkgs
+    - npm
+    - pkg-config
+    - unzip
+    - xml-twig-tools
