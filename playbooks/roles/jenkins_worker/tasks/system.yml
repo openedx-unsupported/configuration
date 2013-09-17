@@ -9,6 +9,11 @@
   shell: touch {{ jenkins_user_home }}/.bashrc
   sudo_user: "{{ jenkins_user }}"
 
+- name: jenkins | Create directory for builds
+  file: path={{ jenkins_workspace }}
+    owner={{ jenkins_user }} group={{ jenkins_group }}
+    state=directory
+
 - name: jenkins | Create .ssh directory
   file: path={{ jenkins_user_home }}/.ssh state=directory
         owner={{ jenkins_user }} group={{ jenkins_group }}
@@ -24,11 +29,6 @@
   file: path={{ jenkins_user_home }}/.ssh/authorized_keys
         owner={{ jenkins_user }} group={{ jenkins_group }}
         mode=400
-
-- name: jenkins | Create directory for builds
-  file: path={{ jenkins_workspace }}
-        owner={{ jenkins_user }} group={{ jenkins_group }}
-        state=directory
 
 - name: jenkins | Install system packages
   apt: pkg=${item} update_cache=yes state=present
@@ -48,3 +48,21 @@
     - pkg-config
     - unzip
     - xml-twig-tools
+
+- name: jenkins | Stop mongo service
+  service: name=mongodb state=stopped
+
+- name: jenkins | Configure Mongo
+  template: src=mongodb_conf.j2
+    dest=/etc/mongodb.conf
+    owner=root
+    group=root
+
+- name: jenkins | Configure Mongo upstart script
+  template: src=mongodb_upstart.j2
+    dest=/etc/init/mongodb.conf
+    owner=root
+    group=root
+
+- name: jenkins | Start the mongo service
+  service: name=mongodb state=stopped
