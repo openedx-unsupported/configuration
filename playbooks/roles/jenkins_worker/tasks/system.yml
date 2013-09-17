@@ -1,9 +1,13 @@
 ---
-- name: common | Create jenkins group
+- name: jenkins | Create jenkins group
   group: name={{ jenkins_group }} state=present
 
 - name: jenkins | Add the jenkins user to the group
   user: name={{ jenkins_user }} append=yes group={{ jenkins_group }}
+
+- name: jenkins | ensure .bashrc exists
+  shell: touch {{ jenkins_user_home }}/.bashrc
+  sudo_user: "{{ jenkins_user }}"
 
 - name: jenkins | Create .ssh directory
   file: path={{ jenkins_user_home }}/.ssh state=directory
@@ -44,3 +48,16 @@
     - pkg-config
     - unzip
     - xml-twig-tools
+
+# Move MongoDB data to /mnt/mongodb to avoid running out of disk space
+- name: jenkins | Stop mongo service
+  service: name=mongodb state=stopped
+
+- name: jenkins | Move mongodb to /mnt
+  command: mv /var/lib/mongodb  /mnt/.  creates=/mnt/mongodb
+
+- name: jenkins | Create mongodb symlink
+  file: src=/mnt/mongodb dest=/var/lib/mongodb state=link
+
+- name: jenkins | Start mongo service
+  service: name=mongodb state=started
