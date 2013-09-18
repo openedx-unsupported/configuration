@@ -3,34 +3,48 @@ set -e
 
 #####################################################
 #
-# python_pkgs.sh
+# install_python_pkgs.sh
 #
-# Use easy_install to download packages from
-# an S3 bucket and install them in the system.
+# Use easy_install to install all
+# .egg files in a folder into a virtualenv.
 #
 # Usage:
 #
-#    python_pkgs.sh S3_URL
+#    install_python_pkgs.sh EGG_DIR VENV
 # 
-# where `S3_URL` is the URL of an S3 bucket
-# containing .egg files
+# where `EGG_DIR` is the directory containing
+# the .egg files
+#
+# and `VENV` is the virtualenv in which to install
+# the packages.  If the virtualenv does not yet
+# exist, it will be created.
+#
+# If the virtualenv already exists, it will not
+# be modified.
 #
 ######################################################
 
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 S3_URL"
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 EGG_DIR VENV"
     exit 1
 fi
 
-S3_URL=$1
+EGG_DIR=$1
+VENV=$2
 
-# Retrieve the list of files in the bucket
-echo "Downloading Python packages from S3..."
-curl $S3_URL | xml_grep 'Key' --text_only > /tmp/python_pkgs.txt
+if [ -e $VENV/bin/activate ]; then
+    echo "$VENV already exists; skipping installation..."
+else
 
-# Install each package into the virtualenv
-# If an error occurs, print stderr but do not abort
-echo "Installing Python packages..."
-while read package; do
-    easy_install $S3_URL/$package || true
-done < /tmp/python_pkgs.txt
+    # Create and activate the virtualenv
+    echo "No virtualenv found; creating it..."
+    mkdir -p $VENV
+    virtualenv $VENV
+    . $VENV/bin/activate
+
+    # Install the .egg files into the virtualenv
+    echo "Installing Python eggs..."
+    for egg_file in $EGG_DIR/*.egg; do
+        easy_install $egg_file || true
+    done
+fi

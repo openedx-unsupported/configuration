@@ -76,15 +76,16 @@
   service: name=mongodb state=stopped
 
 
-# Install scripts to load Python packages from S3 on startup
-- name: jenkins | Install Python packages script
-  copy: src="install_python_pkgs.sh" dest="/usr/local/bin/install_python_pkgs.sh"
+# Install bash scripts
+- name: jenkins | Install Python packages scripts
+  copy: src="${item}" dest="/usr/local/bin/${item}"
         force=yes
-
-- name: jenkins | Make Python packages script executable
-  file: path="/usr/local/bin/install_python_pkgs.sh"
         owner=root group=root
         mode=755
+  with_items:
+    - download_python_pkgs.sh
+    - install_python_pkgs.sh
 
+# Install upstart script to download Python packages from S3
 - name: jenkins | Install Python packages upstart script
   template: src="python_pkgs.conf.j2" dest="/etc/init/python_pkgs.conf"

@@ -3,4 +3,16 @@
 start on runlevel [2345]
 
 task
-exec install_python_pkgs.sh {{ PYTHON_PKG_URL }}
+script
+
+    # Create the directory to hold Python virtualenvs
+    mkdir -p {{ python_virtualenv }}
+
+    # Download .egg files from S3
+    download_python_pkgs.sh {{ python_pkg_url }} {{ python_download_dir }}
+
+    # Give the Jenkins user access
+    chown {{ jenkins_user }}:{{ jenkins_group }} -R 600 {{ python_download_dir }}
+    chown {{ jenkins_user }}:{{ jenkins_group }} -R 600 {{ python_virtualenv }}
+
+end script
