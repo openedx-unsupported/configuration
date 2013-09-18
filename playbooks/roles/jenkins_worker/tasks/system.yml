@@ -49,6 +49,8 @@
     - unzip
     - xml-twig-tools
 
+# Configure Mongo to use /mnt so we don't
+# run out of disk space
 - name: jenkins | Stop mongo service
   service: name=mongodb state=stopped
 
@@ -66,3 +68,17 @@
 
 - name: jenkins | Start the mongo service
   service: name=mongodb state=stopped
+
+
+# Install scripts to load Python packages from S3 on startup
+- name: jenkins | Install Python packages script
+  copy: src="install_python_pkgs.sh" dest="/usr/local/bin/install_python_pkgs.sh"
+        force=yes
+
+- name: jenkins | Make Python packages script executable
+  file: path="/usr/local/bin/install_python_pkgs.sh"
+        owner=root group=root
+        mode=755
+
+- name: jenkins | Install Python packages upstart script
+  template: src="python_pkgs.conf.j2" dest="/etc/init/python_pkgs.conf"
