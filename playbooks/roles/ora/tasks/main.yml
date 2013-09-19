@@ -3,13 +3,8 @@
 #  - common/tasks/main.yml
 #  - nginx/tasks/main.yml
 ---
-- name: ora | Change permissions on datadir
-  file: path={{ora_code_dir}}/../data state=directory owner=www-data group=www-data
-  tags:
-  - ora
-
 - name: ora | Create ml_models directory
-  file: path={{ora_code_dir}}/../ml_models state=directory owner=www-data group=www-data
+  file: path={{ora_code_dir}}/../ml_models state=directory owner={{ ora_user }} group={{ ora_user }}
   tags:
   - ora
 
@@ -20,12 +15,12 @@
   - ora
 
 - name: ora | create ora application config
-  template: src=ora.env.json.j2 dest={{ora_code_dir}}/../env.json mode=0640 owner=www-data group=adm
+  template: src=ora.env.json.j2 dest={{ora_code_dir}}/../ora.env.json mode=0640 owner={{ ora_user }} group=adm
   tags:
   - ora
 
 - name: ora | create ora auth file
-  template: src=ora.auth.json.j2 dest={{ora_code_dir}}/../auth.json mode=0640 owner=www-data group=adm
+  template: src=ora.auth.json.j2 dest={{ora_code_dir}}/../ora.auth.json mode=0640 owner={{ ora_user }} group=adm
   tags:
   - ora
 
@@ -42,16 +37,6 @@
 - name: ora | install debian packages that ora needs
   apt: pkg={{item}} state=present
   with_items: ora_debian_pkgs
-  tags:
-  - ora
-
-- name: ora | create the ora virtual environment
-  file: path={{ ora_venv_dir }} owner=root group=adm mode=2775 state=directory
-  tags:
-  - ora
-
-- name: ora | bootstrap the ora virtual environment
-  command: /usr/local/bin/virtualenv {{ ora_venv_dir }} --distribute creates={{ora_venv_dir}}/bin/activate
   tags:
   - ora
 

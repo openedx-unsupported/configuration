@@ -7,7 +7,11 @@ respawn
 respawn limit 3 30
 
 env PID=/var/tmp/xqueue.pid
-env WORKERS={{ ansible_processor_cores * 2 }}
+{% if ansible_processor|length > 0 %}
+env WORKERS={{ ansible_processor|length * 2 }}
+{% else %}
+env WORKERS=2
+{% endif %}
 env PORT={{ xqueue_gunicorn_port }}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=xqueue.aws_settings
@@ -15,6 +19,6 @@ env SERVICE_VARIANT="xqueue"
 
 
 chdir {{ xqueue_code_dir }}
-setuid www-data
+setuid {{ xqueue_user }}
 
-exec {{ venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+exec {{ xqueue_venv_dir }}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
