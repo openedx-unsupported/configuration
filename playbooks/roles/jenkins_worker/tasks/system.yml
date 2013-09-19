@@ -5,10 +5,6 @@
 - name: jenkins | Add the jenkins user to the group
   user: name={{ jenkins_user }} append=yes group={{ jenkins_group }}
 
-- name: jenkins | ensure .bashrc exists
-  shell: touch {{ jenkins_user_home }}/.bashrc
-  sudo_user: "{{ jenkins_user }}"
-
 
 # We need the upstart script to create the build directory
 # so that (a) it will be run when a new instance is created
@@ -35,7 +31,7 @@
         owner={{ jenkins_user }} group={{ jenkins_group }}
         mode=400
 
-- name: jenkins | Install jenkins-specific system packages
+- name: jenkins | Install system packages
   apt: pkg=${item} update_cache=yes state=present
   with_items:
     - ack-grep
@@ -54,41 +50,38 @@
     - mongodb
     - npm
     - pkg-config
+    - python2.7
+    - python-pip
+    - python2.7-dev
     - unzip
     - xml-twig-tools
 
+- name: jenkins | Configure environment variables
+  template: src=jenkins_env.sh.j2 dest=/usr/local/bin/jenkins_env.sh
+            owner=root group=root mode=0555
 
-# Configure Mongo to use /mnt so we don't
-# run out of disk space
-- name: jenkins | Stop mongo service
-  service: name=mongodb state=stopped
+- name: jenkins | ensure .bash_profile exists
+  shell: touch {{ jenkins_user_home }}/.bash_profile
+  sudo_user: "{{ jenkins_user }}"
 
-- name: jenkins | Configure Mongo
-  template: src=mongodb_conf.j2
-    dest=/etc/mongodb.conf
-    owner=root
-    group=root
+- name: jenkins | ensure .bashrc exists
+  shell: touch {{ jenkins_user_home }}/.bashrc
+  sudo_user: "{{ jenkins_user }}"
 
-- name: jenkins | Configure Mongo upstart script
-  template: src=mongodb_upstart.j2
-    dest=/etc/init/mongodb.conf
-    owner=root
-    group=root
-
-- name: jenkins | Start the mongo service
-  service: name=mongodb state=stopped
+- name: jenkins | Configure bashrc
+  lineinfile: dest={{ jenkins_user_home }}/.bashrc
+              regexp="source /usr/local/bin/jenkins_env.sh"
+              line="source /usr/local/bin/jenkins_env.sh"
 
 
-# Install bash scripts
-- name: jenkins | Install Python packages scripts
-  copy: src="${item}" dest="/usr/local/bin/${item}"
-        force=yes
-        owner=root group=root
-        mode=755
-  with_items:
-    - download_python_pkgs.sh
-    - install_python_pkgs.sh
+# Ensure that code executed by the worker can't be
+# installed to execute on login.
+- name: Set permissions on .bash_profile
+  file: path="{{ jenkins_user_home }}/.bash_profile" state=file
+        owner="{{ jenkins_user }}" group="{{ jenkins_group }}"
+        mode=0500
 
-# Install upstart script to download Python packages from S3
-- name: jenkins | Install Python packages upstart script
-  template: src="python_pkgs.conf.j2" dest="/etc/init/python_pkgs.conf"
+- name: Set permissions on .bashrc
+  file: path="{{ jenkins_user_home }}/.bashrc" state=file
+        owner="{{ jenkins_user }}" group="{{ jenkins_group }}"
+        mode=0500

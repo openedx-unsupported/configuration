@@ -1,0 +1,28 @@
+---
+
+- name: jenkins | Install rbenv
+  git: repo=https://github.com/sstephenson/rbenv.git 
+       dest={{ rbenv_root }}
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins | Install ruby-build
+  git: repo=https://github.com/sstephenson/ruby-build.git
+       dest={{ rbenv_root }}/plugins/ruby-build
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins | Install ruby
+  command: "{{ rbenv_root }}/bin/rbenv install {{ ruby_version }}
+           creates={{ rbenv_root }}/versions/{{ ruby_version }}"
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins | Set global ruby
+  command: "{{ rbenv_root }}/bin/rbenv global {{ ruby_version }}"
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins | Install bundler
+  command: "{{ rbenv_root }}/shims/gem install bundler"
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins | Rbenv rehash
+  command: "{{ rbenv_root }}/bin/rbenv rehash"
+  sudo_user: "{{ jenkins_user }}"

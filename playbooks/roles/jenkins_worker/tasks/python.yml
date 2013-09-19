@@ -1,0 +1,21 @@
+---
+
+- name: jenkins | Install virtualenv
+  pip: name=virtualenv state=present
+
+- name: jenkins | Install virtualenv wrapper
+  pip: name=virtualenvwrapper state=present
+
+# Install bash scripts
+- name: jenkins | Install Python packages scripts
+  copy: src="${item}" dest="/usr/local/bin/${item}"
+        force=yes
+        owner=root group=root
+        mode=755
+  with_items:
+    - download_python_pkgs.sh
+    - install_python_pkgs.sh
+
+# Install upstart script to download Python packages from S3
+- name: jenkins | Install Python packages upstart script
+  template: src="python_pkgs.conf.j2" dest="/etc/init/python_pkgs.conf"

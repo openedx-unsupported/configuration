@@ -36,6 +36,11 @@ if [ -e $VENV/bin/activate ]; then
     echo "$VENV already exists; skipping installation..."
 else
 
+    # Create python egg cache and set correct permissions
+    PYTHON_EGG_CACHE=$HOME/.python-eggs
+    mkdir -p $PYTHON_EGG_CACHE
+    chmod 600 $PYTHON_EGG_CACHE
+
     # Create and activate the virtualenv
     echo "No virtualenv found; creating it..."
     mkdir -p $VENV
