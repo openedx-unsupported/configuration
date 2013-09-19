@@ -16,7 +16,7 @@
   - deploy
 
 # Do A Checkout
-- name: git checkout edx-platform repo into $app_base_dir
+- name: edxapp | checkout edx-platform repo into {{edx_platform_code_dir}}
   git: dest={{edx_platform_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
   tags:
   - lms
@@ -216,6 +216,17 @@
 - name: syncdb and migrate
   shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+  - deploy
+  - lms
+  - lms-xml
+  - lms-preview
+  - cms
+  - syncdb
+
+- name: db migrate
+  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  when: migrate_only is defined and migrate_only|lower == "yes"
   tags:
   - deploy
   - lms
