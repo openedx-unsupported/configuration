@@ -56,32 +56,6 @@
     - unzip
     - xml-twig-tools
 
-- name: jenkins | Configure environment variables
+- name: jenkins | Add script to set up environment variables
   template: src=jenkins_env.sh.j2 dest=/usr/local/bin/jenkins_env.sh
             owner=root group=root mode=0555
-
-- name: jenkins | ensure .bash_profile exists
-  shell: touch {{ jenkins_user_home }}/.bash_profile
-  sudo_user: "{{ jenkins_user }}"
-
-- name: jenkins | ensure .bashrc exists
-  shell: touch {{ jenkins_user_home }}/.bashrc
-  sudo_user: "{{ jenkins_user }}"
-
-- name: jenkins | Configure bashrc
-  lineinfile: dest={{ jenkins_user_home }}/.bashrc
-              regexp="source /usr/local/bin/jenkins_env.sh"
-              line="source /usr/local/bin/jenkins_env.sh"
-
-
-# Ensure that code executed by the worker can't be
-# installed to execute on login.
-- name: Set permissions on .bash_profile
-  file: path="{{ jenkins_user_home }}/.bash_profile" state=file
-        owner="{{ jenkins_user }}" group="{{ jenkins_group }}"
-        mode=0500
-
-- name: Set permissions on .bashrc
-  file: path="{{ jenkins_user_home }}/.bashrc" state=file
-        owner="{{ jenkins_user }}" group="{{ jenkins_group }}"
-        mode=0500
