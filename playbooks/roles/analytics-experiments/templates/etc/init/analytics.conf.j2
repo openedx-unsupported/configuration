@@ -1,0 +1,21 @@
+# gunicorn
+
+description "Analytics server under gunicorn"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+respawn limit 3 30
+
+env SERVICE_VARIANT={{ ax_service_variant }}
+env PID=/var/tmp/analytics.pid
+env WORKERS={{ ax_workers }}
+env PORT={{ ax_server_port }}
+env LANG={{ ax_env_lang }}
+env DJANGO_SETTINGS_MODULE={{ ax_django_settings }}
+
+chdir {{ ax_code_dir }}
+setuid {{ ax_web_user }}
+
+exec {{ ax_venv_dir }}/bin/gunicorn -b 0.0.0.0:$PORT -w $WORKERS --pythonpath={{ ax_code_dir }}/anserv anserv.wsgi

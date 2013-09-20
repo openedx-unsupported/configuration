@@ -1,0 +1,101 @@
+---
+
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role analytics-experiments
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: analytics-experiments | install system packages
+  apt: pkg={{','.join(ax_debian_pkgs)}} state=present
+  tags:
+  - analytics-experiments
+  - install
+  - update
+
+- name: analytics-experiments | create analytics-experiments user {{ ax_user }}
+  user: 
+    name={{ ax_user }} state=present shell=/bin/bash 
+    home={{ ax_home }} createhome=yes
+  tags:
+  - analytics-experiments
+  - install
+  - update
+
+- name: analytics-experiments | setup the analytics-experiments env
+  template: 
+    src=opt/wwc/analytics-experiments/{{ ax_env }}.j2
+    dest={{ ax_home }}/{{ ax_env }} 
+    owner="{{ ax_user }}" group="{{ ax_user }}"
+  tags:
+  - analytics-experiments
+  - install
+  - update
+
+- name: analytics-experiments | drop a bash_profile
+  copy: >
+    src=../../common/files/bash_profile 
+    dest={{ ax_home }}/.bash_profile 
+    owner={{ ax_user }} 
+    group={{ ax_user }}
+
+
+- name: analytics-experiments | ensure .bashrc exists
+  shell: touch {{ ax_home }}/.bashrc
+  sudo: true  
+  sudo_user: "{{ ax_user }}"
+  tags:
+  - analytics-experiments
+  - install
+  - update
+
+- name: analytics-experiments | add source of analytics-experiments_env to .bashrc
+  lineinfile:
+    dest={{ ax_home }}/.bashrc
+    regexp='. {{ ax_home }}/analytics-experiments_env'    
+    line='. {{ ax_home }}/analytics_experiments_env'
+  tags:
+  - analytics-experiments
+  - install
+  - update
+
+- name: analytics-experiments | add source venv to .bashrc
+  lineinfile:
+    dest={{ ax_home }}/.bashrc
+    regexp='. {{ ax_venv_dir }}/bin/activate'    
+    line='. {{ ax_venv_dir }}/bin/activate'
+  tags:
+  - analytics-experiments
+  - install
+  - update
+
+- name: analytics-experiments | install global python requirements
+  pip: name={{ item }}
+  with_items: ax_pip_pkgs
+  tags:
+  - analytics-experiments
+  - install
+  - update
+  
+- name: analtyics-experiments | install service
+  template:
+    src=etc/init/analytics.conf.j2 dest=/etc/init/analytics.conf
+    owner=root group=root
+
+- include: deploy.yml    

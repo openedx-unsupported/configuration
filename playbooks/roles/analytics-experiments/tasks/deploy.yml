@@ -1,0 +1,98 @@
+#
+# TODO: Needed while this repo is private
+#
+- name: analytics-experiments | upload ssh script
+  copy: 
+    src=git_ssh.sh dest=/tmp/git_ssh.sh 
+    force=yes owner=root group=adm mode=750
+  tags:
+  - analytics-experiments
+  - deploy
+  - install
+  - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: analytics-experiments | install read-only ssh key required for checkout
+  copy: 
+    src={{ ax_git_identity_path }} dest=/etc/git-identity 
+    force=yes owner=ubuntu group=adm mode=60
+  tags:
+  - analytics-experiments
+  - deploy
+  - install
+  - update
+
+- name: analytics-experiments | checkout code
+  git: 
+    dest={{ ax_code_dir }} repo={{ ax_source_repo }} 
+    version={{ ax_version }}
+  environment:
+    GIT_SSH: /tmp/git_ssh.sh
+    notify: analytics-experiments | restart the analytics service
+  tags:
+    - analytics-experiments
+    - deploy
+    - install
+    - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: analytics-experiments | update src permissions
+  file: 
+    path={{ ax_code_dir }} state=directory owner={{ ax_user }} 
+    group={{ ax_web_user }} mode=2750 recurse=yes
+  tags:
+  - analytics-experiments
+  - deploy
+  - install
+  - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: analytics-experiments | remove read-only ssh key for the content repo
+  file: path=/etc/git-identity state=absent
+  tags:
+  - analytics-experiments
+  - deploy
+  - install
+  - update
+
+#
+# TODO: Needed while this repo is private
+#
+- name: analytics-experiments | remove ssh script
+  file: path=/tmp/git_ssh.sh state=absent
+  tags:
+  - analytics-experiments
+  - deploy
+  - install
+  - update
+
+- name: analytics-experiments | install application requirements
+  pip: 
+    requirements={{ ax_requirements_file }}
+    virtualenv={{ ax_venv_dir }} state=present
+  sudo: true  
+  sudo_user: "{{ ax_user }}"
+  tags:
+  - analytics-experiments
+  - deploy
+  - install
+  - update
+
+#- name: analytics-experiments | syncdb
+#  shell: >
+#    cd {{ ax_code_dir }} && {{ ax_venv_dir }}/bin/python manage.py syncdb
+#  sudo: true  
+#  sudo_user: "{{ ax_user }}"
+#  notify:
+#    - analytics-experiments | restart analytics-experiments
+#  tags:
+#  - analytics-experiments
+#  - deploy
+#  - install
+#  - update
