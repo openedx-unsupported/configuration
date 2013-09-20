@@ -1,4 +1,12 @@
 ---
+
+- name: jenkins | install jenkins specific system packages
+  apt:
+    pkg={{','.join(jenkins_debian_pkgs)}}
+    state=present update_cache=yes
+  tags:
+  - jenkins
+
 - name: common | Create jenkins group
   group: name={{ jenkins_group }} state=present
 
@@ -29,6 +37,14 @@
   notify:
     - restart Jenkins
 
-- name: Install git
-  apt: pkg=git state=present
+- name: jenkins | Setup nginix vhost
+  template:
+    src=etc/nginx/sites-available/jenkins.j2
+    dest=/etc/nginx/sites-available/jenkins
 
+- name: jenkins | enable jenkins vhost
+  file:
+    src=/etc/nginx/sites-available/jenkins
+    dest=/etc/nginx/sites-enabled/jenkins
+    state=link
+  notify: jenkins | restart nginx
