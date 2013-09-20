@@ -158,45 +158,35 @@
 - name: changing group ownership to www-data for everything in the venv (workaround)
   shell: chgrp -R www-data {{ venv_dir }}
 
-# This check needs to be run to see if rake can be used but its failure should not stop the run.
-- name: check if rake gather_assets is available
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} rake -T | grep gather_assets
-  environment: "{{ deploy_environment }}"
-  register: grep_gather_assets
-  ignore_errors: yes
-  tags:
-  - lms
-  - lms-preview
-  - lms-xml
-  - cms
-  - deploy
 
-- name: check if django can collect lms static data
-  shell: SERVICE_VARIANT={{ lms_variant }} django-admin.py help collectstatic --pythonpath={{ edx_platform_code_dir }} --settings=lms.envs.aws
-  register: check_lms_collect_static
+# Gather lms assets using rake if possible
+- name: gather lms static assets with rake
+  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
+  notify:
+  - restart edxapp
   sudo: yes
   sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  ignore_errors: yes
-  tags:
-  - lms
-  - lms-preview
-  - lms-xml
-  - deploy
-
-- name: check if django can collect cms static data
-  shell: SERVICE_VARIANT={{ lms_variant }} django-admin.py help collectstatic --pythonpath={{ edx_platform_code_dir }} --settings=cms.envs.aws
-  register: check_cms_collect_static
-  sudo: yes
-  sudo_user: www-data
-  environment: "{{ deploy_environment }}"
-  ignore_errors: yes
-  tags:
-  - cms
-  - deploy
-
-- include: collect_static.yml
   when: celery_worker is not defined
+  environment: "{{ deploy_environment }}"
+  tags:
+  - lms
+  - lms-preview
+  - lms-xml
+  - deploy
+
+# Gather cms assets using rake if possible
+- name: gather cms static assets with rake
+  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
+  notify:
+  - restart edxapp
+  sudo: yes
+  sudo_user: www-data
+  when: celery_worker is not defined
+  environment: "{{ deploy_environment }}"
+  tags:
+  - cms
+  - deploy
+
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
