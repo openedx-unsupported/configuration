@@ -19,8 +19,9 @@ set -e
 # the packages.  If the virtualenv does not yet
 # exist, it will be created.
 #
-# If the virtualenv already exists, it will not
-# be modified.
+# If the virtualenv has already been created
+# and the packages installed, then the script
+# will skip installation.
 #
 ######################################################
 
@@ -32,7 +33,7 @@ fi
 EGG_DIR=$1
 VENV=$2
 
-if [ -e $VENV/bin/activate ]; then
+if [ -e $VENV/install_finished ]; then
     echo "$VENV already exists; skipping installation..."
 else
 
@@ -52,4 +53,10 @@ else
     for egg_file in $EGG_DIR/*.egg; do
         easy_install $egg_file || true
     done
+
+    # Create indicator that we finished successfully.
+    # If we were interrupted (maybe the job was aborted),
+    # then this file won't be created, so the next
+    # job will retry the intallation (instead of skipping it).
+    touch $VENV/install_finished
 fi
