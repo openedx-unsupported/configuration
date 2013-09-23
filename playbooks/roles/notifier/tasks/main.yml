@@ -159,13 +159,26 @@
   - install
   - update
 
-- name: notifier | supervisord config for celery beat
+- name: notifier | supervisord config for scheduler
   template: 
-    src=etc/supervisor/conf.d/notifier-celery-beat.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-beat.conf 
-  notify: notifier | restart notifier-celery-beat
+    src=etc/supervisor/conf.d/notifier-scheduler.conf.j2 dest=/etc/supervisor/conf.d/notifier-scheduler.conf 
+  notify: notifier | restart notifier-scheduler
   tags:
   - notifier
   - install
   - update
 
+- name: notifier | add cron job
+  cron: 
+    name="forums digest" hour={{ notifier_cron_hour }} 
+    minute="{{ notifier_cron_minute }}" job="$HOME/forums_digest.sh 1440"
+    state="absent"
+  sudo: true  
+  sudo_user: "{{ notifier_user }}"
+  tags:
+  - notifier
+  - install
+  - update
+  - clean
+  
 - include: deploy.yml
