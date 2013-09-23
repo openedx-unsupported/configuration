@@ -5,6 +5,8 @@
   sudo: True
   vars:
     secure_dir: ../../../edx-secret/ansible
+    # this indicates the path to site-specific (with precedence)
+    # things like nginx template files
     local_dir: ../../../edx-secret/ansible/local
     migrate_db: "no"
   vars_files:
@@ -14,3 +16,19 @@
   roles:
     - common
     - { role: 'edxapp', celery_worker: True }
+
+# run the notifier on the first util machine only
+- hosts: ~tag_Name_util1_stage
+  sudo: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    migrate_db: "no"
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/notifier_stage_vars.yml"
+  roles:
+    - role: virtualenv
+      virtualenv_user: "notifier"
+      virtualenv_user_home: "/opt/wwc/notifier"
+      virtualenv_name: "notifier"
+    - notifier
