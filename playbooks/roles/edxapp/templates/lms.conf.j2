@@ -15,6 +15,7 @@ env WORKERS={{ ansible_processor|length * worker_core_mult.lms }}
 env WORKERS={{ worker_core_mult.lms }}
 {% endif %}
 env PORT={{edxapp_lms_app_port}}
+env ADDRESS={{edxapp_lms_app_address}}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE={{ edxapp_lms_env }}
 env SERVICE_VARIANT="lms"
@@ -22,7 +23,7 @@ env SERVICE_VARIANT="lms"
 chdir {{edx_platform_code_dir}}
 setuid www-data
 
-exec {{venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} lms.wsgi
+exec {{venv_dir}}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} lms.wsgi
 
 post-start script
   while true
