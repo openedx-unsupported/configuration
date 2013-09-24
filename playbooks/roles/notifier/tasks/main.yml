@@ -96,7 +96,6 @@
     owner={{ notifier_user }} 
     group={{ notifier_user }}
 
-
 - name: notifier | ensure .bashrc exists
   shell: touch {{ notifier_home }}/.bashrc
   sudo: true  
@@ -126,16 +125,17 @@
   - install
   - update
 
-- name: notifier | create notifier/bin directory
-  file: 
-    path="{{ notifier_home }}/bin" mode=2775 state=directory
+- name: notifier | create notifier/db directory
+  file:
+    path="{{ notifier_home }}/db" mode=2775 state=directory
   tags:
   - notifier
   - install
   - update
 
-- name: notifier | make the script executable
-  file: path={{ notifier_home }}/bin/forums_digest.sh state=file mode=2755
+- name: notifier | create notifier/bin directory
+  file: 
+    path="{{ notifier_home }}/bin" mode=2775 state=directory
   tags:
   - notifier
   - install
@@ -168,17 +168,4 @@
   - install
   - update
 
-- name: notifier | add cron job
-  cron: 
-    name="forums digest" hour={{ notifier_cron_hour }} 
-    minute="{{ notifier_cron_minute }}" job="$HOME/forums_digest.sh 1440"
-    state="absent"
-  sudo: true  
-  sudo_user: "{{ notifier_user }}"
-  tags:
-  - notifier
-  - install
-  - update
-  - clean
-  
 - include: deploy.yml
