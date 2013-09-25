@@ -15,26 +15,62 @@ PREVIEW_LMS_BASE: ''
 CMS_BASE: ''
 AWS_ACCESS_KEY_ID:  ''
 AWS_SECRET_ACCESS_KEY:  ''
+XQUEUE_BASIC_AUTH: [ 'edx', 'edx' ]
+XQUEUE_DJANGO_AUTH:
+  username: 'lms'
+  password: 'password'
+
+MONGO_HOST: ['localhost']
+MONGO_PASSWORD: 'password'
+MONGO_PORT: 27017
+MONGO_USER: 'mongo'
+
+MYSQL_DB_NAME: 'edxapp'
+MYSQL_USER: 'root'
+MYSQL_PASSWORD: ''
+MYSQL_HOST: 'localhost'
+MYSQL_PORT: '3306'
+
+EMAIL_BACKEND: 'django.core.mail.backends.smtp.EmailBackend'
+
+LOG_LEVEL: 'INFO'
+
+MEMCACHE: [ 'localhost:11211' ]
+COMMENTS_SERVICE_URL:  'http://localhost:4567'
+COMMENTS_SERVICE_KEY:  'password'
+
+EDXAPP_SECRET_KEY: ''
+
+PEARSON_TEST_PASWORD: ''
+
+OEE_URL: 'http://localhost:18091/'
+OEE_USER: 'lms'
+OEE_PASSWORD: 'password'
+
+ANALYTICS_API_KEY:  ''
+ZENDESK_USER: ''
+ZENDESK_API_KEY: ''
+CELERY_USER: 'celery'
+CELERY_PASSWORD: ''
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
 edxapp_generic_auth_config:  &edxapp_generic_auth
   'AWS_ACCESS_KEY_ID':  "{{AWS_ACCESS_KEY_ID}}"
   'AWS_SECRET_ACCESS_KEY': "{{AWS_SECRET_ACCESS_KEY}}"
-  'SECRET_KEY':  ''
+  'SECRET_KEY':  '{{EDXAPP_SECRET_KEY}}'
   'XQUEUE_INTERFACE':
-    'basic_auth': [ 'edx',  'edx']
-    'django_auth': { 'password':  'password',
-      'username':  'lms'}
-    'url':  'http://localhost:18040'
+    'basic_auth': $XQUEUE_BASIC_AUTH
+    'django_auth': $XQUEUE_DJANGO_AUTH
+    'url': "{{XQUEUE_URL}}"
   'CONTENTSTORE':
     'ENGINE':  'xmodule.contentstore.mongo.MongoContentStore'
     'OPTIONS':
-      'db':  'edxapp'
-      'host': [ 'localhost' ]
-      'password':  'password'
-      'port': 27017
-      'user':  'mongo'
+      'db': '{{MONGO_DB_NAME}}'
+      'host': $MONGO_HOSTS
+      'password': '{{MONGO_PASSWORD}}'
+      'port': '{{MONGO_PORT}}'
+      'user': '{{MONGO_USER}}'
   'MODULESTORE':
     'default':
       'ENGINE': 'xmodule.modulestore.mongo.DraftMongoModuleStore'
@@ -43,45 +79,46 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         'db':  'edxapp'
         'default_class':  'xmodule.hidden_module.HiddenDescriptor'
         'fs_root':  '/opt/wwc/data'
-        'host': [ 'localhost' ]
-        'password':  'password'
-        'port': 27017
+        'host': $MONGO_HOSTS
+        'password':  '{{MONGO_PASSWORD}}'
+        'port': '{{MONGO_PORT}}'
         'render_template':  'mitxmako.shortcuts.render_to_string'
-        'user':  'mongo'
+        'user': '{{MONGO_USER}}'
+    # Needed for the CMS to be able to run update_templates
     'direct':
       'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
       'OPTIONS':  *generic_modulestore_default_options
   'DATABASES':
     'default':
       'ENGINE': 'django.db.backends.mysql'
-      'NAME': 'edxapp'
-      'USER': 'root'
-      'PASSWORD': ''
-      # Provide the name of a host running mysql.
-      'HOST': 'localhost'
+      'NAME': '{{MYSQL_DB_NAME}}'
+      'USER': '{{MYSQL_USER}}'
+      'PASSWORD': '{{MYSQL_PASSWORD}}'
+      'HOST': '{{MYSQL_HOST}}'
       'PORT': '3306'
-  'PEARSON_TEST_PASSWORD':  ''
+  'PEARSON_TEST_PASSWORD':  '{{PEARSON_TEST_PASSWORD}}'
   'OPEN_ENDED_GRADING_INTERFACE':
-    'url':  'http://localhost:18091/'
-    'password':  'password'
+    'url': '{{OEE_URL}}'
+    'password': '{{OEE_PASSWORD}}'
     'peer_grading':  'peer_grading'
     'staff_grading':  'staff_grading'
     'grading_controller':  'grading_controller'
-    'username':  'lms'
-  'ANALYTICS_API_KEY':  ''
-  'ZENDESK_USER': ''
-  'ZENDESK_API_KEY': ''
-  'CELERY_BROKER_USER': 'celery'
-  'CELERY_BROKER_PASSWORD': ''
+    'username': '{{OEE_USER}}'
+  'ANALYTICS_API_KEY':  '{{ANALYTICS_API_KEY}}'
+  'ZENDESK_USER': '{{ZENDESK_USER}}'
+  'ZENDESK_API_KEY': '{{ZENDESK_API_KEY}}'
+  'CELERY_BROKER_USER': '{{CELERY_USER}}'
+  'CELERY_BROKER_PASSWORD': '{{CELERY_PASSWORD}}'
 
+  'BOOK_URL':  ''
 generic_env_config:  &edxapp_generic_env
   'LMS_BASE': "{{LMS_BASE}}"
   'CMS_BASE': "{{CMS_BASE}}"
-  'BOOK_URL':  ''
+  'BOOK_URL':  '{{BOOK_URL}}'
   'CERT_QUEUE':  'certificates'
-  'LOCAL_LOGLEVEL':  'INFO'
+  'LOCAL_LOGLEVEL': '{{LOG_LEVEL}}'
   # default email backed set to local SMTP
-  'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend'
+  'EMAIL_BACKEND': '{{EMAIL_BACKEND}}'
   'MITX_FEATURES':
     'AUTH_USE_OPENID_PROVIDER': true
     'CERTIFICATES_ENABLED': true
@@ -104,7 +141,7 @@ generic_env_config:  &edxapp_generic_env
       'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
       'KEY_FUNCTION':  'util.memcache.safe_key'
       'KEY_PREFIX':  'sandbox_default'
-      'LOCATION': [ 'localhost:11211' ]
+      'LOCATION': $MEMCACHE
     'general':
       <<: *default_generic_cache
       'KEY_PREFIX':  'sandbox_general'
@@ -119,10 +156,10 @@ generic_env_config:  &edxapp_generic_env
       'KEY_PREFIX':  'integration_celery'
   'CELERY_BROKER_TRANSPORT': 'amqp'
   'CELERY_BROKER_HOSTNAME': ''
-  'COMMENTS_SERVICE_URL':  'http://localhost:4567'
+  'COMMENTS_SERVICE_URL': '{{COMMENTS_SERVICE_URL}}'
   'LOGGING_ENV':  'sandbox'
   'SESSION_COOKIE_DOMAIN':  !!null
-  'COMMENTS_SERVICE_KEY':  'password'
+  'COMMENTS_SERVICE_KEY': '{{COMMENTS_SERVICE_KEY}}'
   'SEGMENT_IO_LMS': true
   'CODE_JAIL':
     'limits':
