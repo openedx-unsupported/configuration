@@ -37,6 +37,31 @@
   notify:
     - restart Jenkins
 
+# We had to fork the git-client plugin repo
+# to fix an obscure bug.  If and when the PR gets
+# merged into the main repo and released,
+# we can use the regular plugin install process.
+# Until then, we need to compile and install it ourselves.
+- name: jenkins | Checkout custom git-client plugin repo
+  git: repo=https://github.com/edx/git-client-plugin.git
+       dest=/tmp/git-client-plugin
+
+- name: jenkins | Compile custom git-client plugin
+  command: mvn install chdir=/tmp/git-client-plugin
+           creates=/tmp/git-client-plugin/target/git-client.hpi
+
+- name: jenkins | Install custom git-client
+  command: mv /tmp/git-client-plugin/target/git-client.hpi
+           {{ jenkins_home }}/plugins/git-client.hpi
+           creates={{ jenkins_home }}/plugins/git-client.hpi
+  notify:
+    - restart Jenkins
+
+- name: jenkins | Set git-client plugin permissions
+  file: path={{ jenkins_home }}/plugins/git-client.hpi
+        owner={{ jenkins_user }} group={{ jenkins_group }}
+        mode=700
+
 - name: jenkins | Setup nginix vhost
   template:
     src=etc/nginx/sites-available/jenkins.j2
