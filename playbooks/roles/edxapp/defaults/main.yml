@@ -2,14 +2,16 @@
 # when the role is included
 ---
 
-# These are default values for the env and auth
-# configuration files. There should be no
-# host identifying or sensitive information and
-# the defaults should be appropriate for running
-# all roles on a single instance
+# These are variables that default to a localhost
+# setup and are meant to be overwritten for
+# different environments.
+#
+# Variables in all caps are environment specific
+# Lowercase variables are internal to the role
+#
+# Defaults specified here should not contain
+# any secrets or host identifying information.
 
-# These are custom variables that can be overridden
-# on the command line to change specific values in the hash
 EDXAPP_LMS_BASE: ''
 EDXAPP_PREVIEW_LMS_BASE: ''
 EDXAPP_CMS_BASE: ''
@@ -20,10 +22,11 @@ EDXAPP_XQUEUE_DJANGO_AUTH:
   username: 'lms'
   password: 'password'
 
-EDXAPP_MONGO_HOST: ['localhost']
+EDXAPP_MONGO_HOSTS: ['localhost']
 EDXAPP_MONGO_PASSWORD: 'password'
 EDXAPP_MONGO_PORT: 27017
 EDXAPP_MONGO_USER: 'mongo'
+EDXAPP_MONGO_DB_NAME: 'edxapp'
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
 EDXAPP_MYSQL_USER: 'root'
@@ -74,6 +77,9 @@ EDXAPP_LOGGING_ENV:  'sandbox'
 EDXAPP_SYSLOG_SERVER: ''
 EDXAPP_RABBIT_HOSTNAME: 'rabbit.{{ENV_NAME}}.vpc.edx.org'
 EDXAPP_XML_MAPPINGS: {}
+
+
+#-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
@@ -196,12 +202,12 @@ lms_auth_config:
             OPTIONS:
               default_class: 'xmodule.hidden_module.HiddenDescriptor'
               host: $EDXAPP_MONGO_HOSTS
-              db:  $EDXAPP_MONGO_DB_NAME
+              db: $EDXAPP_MONGO_DB_NAME
               collection: 'modulestore'
               render_template: 'mitxmako.shortcuts.render_to_string'
               user: $EDXAPP_MONGO_USER
-              password:  $EDXAPP_MONGO_PASSWORD
-              port: 10016
+              password: $EDXAPP_MONGO_PASSWORD
+              port: $EDXAPP_MONGO_PORT
               fs_root: '/opt/wwc/data'
             ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
 
