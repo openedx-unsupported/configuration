@@ -96,7 +96,6 @@
     owner={{ notifier_user }} 
     group={{ notifier_user }}
 
-
 - name: notifier | ensure .bashrc exists
   shell: touch {{ notifier_home }}/.bashrc
   sudo: true  
@@ -126,16 +125,17 @@
   - install
   - update
 
-- name: notifier | create notifier/bin directory
-  file: 
-    path="{{ notifier_home }}/bin" mode=2775 state=directory
+- name: notifier | create notifier DB directory
+  file:
+    path="{{ notifier_db_dir }}" mode=2775 state=directory
   tags:
   - notifier
   - install
   - update
 
-- name: notifier | make the script executable
-  file: path={{ notifier_home }}/bin/forums_digest.sh state=file mode=2755
+- name: notifier | create notifier/bin directory
+  file: 
+    path="{{ notifier_home }}/bin" mode=2775 state=directory
   tags:
   - notifier
   - install
@@ -159,10 +159,10 @@
   - install
   - update
 
-- name: notifier | supervisord config for celery beat
+- name: notifier | supervisord config for scheduler
   template: 
-    src=etc/supervisor/conf.d/notifier-celery-beat.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-beat.conf 
-  notify: notifier | restart notifier-celery-beat
+    src=etc/supervisor/conf.d/notifier-scheduler.conf.j2 dest=/etc/supervisor/conf.d/notifier-scheduler.conf 
+  notify: notifier | restart notifier-scheduler
   tags:
   - notifier
   - install

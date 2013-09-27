@@ -1,0 +1,25 @@
+- hosts: ~tag_Name_app(10|20)_carn
+  sudo: True
+  vars_prompt:
+    - name: "migrate_db"
+      prompt: "Should this playbook run database migrations? (Type 'yes' to run, anything else to skip migrations)"
+      default: "no"
+      private: no
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    # this indicates the path to site-specific (with precedence)
+    # things like nginx template files
+    #local_dir:  '../../../edx-secret/ansible/local'
+    local_dir: "{{secure_dir}}/local"
+    # this toggles http basic auth on and off. false in production
+    not_prod: false
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+    - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
+  roles:
+    - common
+    - {'role': 'nginx', 'nginx_conf': true}
+    - {'role': 'edxapp', 'openid_workaround': true, 'template_subdir': 'carnegie'}
+    # run this role last
+    # - in_production

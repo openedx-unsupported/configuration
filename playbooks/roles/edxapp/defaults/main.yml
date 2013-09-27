@@ -1,0 +1,317 @@
+# variables common to the lms role, automatically loaded
+# when the role is included
+---
+
+# These are default values for the env and auth
+# configuration files. There should be no
+# host identifying or sensitive information and
+# the defaults should be appropriate for running
+# all roles on a single instance
+
+# These are custom variables that can be overridden
+# on the command line to change specific values in the hash
+c_lms_base: ''
+c_preview_lms_base: ''
+
+#Use YAML references (& and *) and hash merge <<: to factor out shared settings
+#see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
+edxapp_generic_auth_config:  &edxapp_generic_auth
+  'AWS_ACCESS_KEY_ID':  ''
+  'AWS_SECRET_ACCESS_KEY':  ''
+  'SECRET_KEY':  ''
+  'XQUEUE_INTERFACE':
+    'basic_auth': [ 'edx',  'edx']
+    'django_auth': { 'password':  'password',
+      'username':  'lms'}
+    'url':  'http://localhost:18040'
+  'CONTENTSTORE':
+    'ENGINE':  'xmodule.contentstore.mongo.MongoContentStore'
+    'OPTIONS':
+      'db':  'edxapp'
+      'host': [ 'localhost' ]
+      'password':  'password'
+      'port': 27017
+      'user':  'mongo'
+  'MODULESTORE':
+    'default':
+      'ENGINE': 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+      'OPTIONS':  &generic_modulestore_default_options
+        'collection':  'modulestore'
+        'db':  'edxapp'
+        'default_class':  'xmodule.hidden_module.HiddenDescriptor'
+        'fs_root':  '/opt/wwc/data'
+        'host': [ 'localhost' ]
+        'password':  'password'
+        'port': 27017
+        'render_template':  'mitxmako.shortcuts.render_to_string'
+        'user':  'mongo'
+    'direct':
+      'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
+      'OPTIONS':  *generic_modulestore_default_options
+  'DATABASES':
+    'default':
+      'ENGINE': 'django.db.backends.mysql'
+      'NAME': 'edxapp'
+      'USER': 'root'
+      'PASSWORD': ''
+      # Provide the name of a host running mysql.
+      'HOST': 'localhost'
+      'PORT': '3306'
+  'PEARSON_TEST_PASSWORD':  ''
+  'OPEN_ENDED_GRADING_INTERFACE':
+    'url':  'http://localhost:18091/'
+    'password':  'password'
+    'peer_grading':  'peer_grading'
+    'staff_grading':  'staff_grading'
+    'grading_controller':  'grading_controller'
+    'username':  'lms'
+  'ANALYTICS_API_KEY':  ''
+  'ZENDESK_USER': ''
+  'ZENDESK_API_KEY': ''
+  'CELERY_BROKER_USER': 'celery'
+  'CELERY_BROKER_PASSWORD': ''
+
+generic_env_config:  &edxapp_generic_env
+  'LMS_BASE': "{{ c_lms_base }}"
+  'BOOK_URL':  ''
+  'CERT_QUEUE':  'certificates'
+  'LOCAL_LOGLEVEL':  'INFO'
+  # default email backed set to local SMTP
+  'EMAIL_BACKEND': 'django.core.mail.backends.smtp.EmailBackend'
+  'MITX_FEATURES':
+    'AUTH_USE_OPENID_PROVIDER': true
+    'CERTIFICATES_ENABLED': true
+    'ENABLE_DISCUSSION_SERVICE': true
+    'ENABLE_INSTRUCTOR_ANALYTICS': true
+    'ENABLE_PEARSON_HACK_TEST': false
+    'SUBDOMAIN_BRANDING': false
+    'SUBDOMAIN_COURSE_LISTINGS': false
+    'PREVIEW_LMS_BASE': "{{ c_preview_lms_base }}"
+  'WIKI_ENABLED': true
+  'SYSLOG_SERVER':  'syslog.a.m.i4x.org'
+  'SITE_NAME':  'example.com'
+  'LOG_DIR':  '/mnt/logs/edx'
+  'MEDIA_URL':  ''
+  'ANALYTICS_SERVER_URL':  ''
+  'FEEDBACK_SUBMISSION_EMAIL': ''
+  'TIME_ZONE': 'America/New_York'
+  'CACHES':
+    'default': &default_generic_cache
+      'BACKEND':  'django.core.cache.backends.memcached.MemcachedCache'
+      'KEY_FUNCTION':  'util.memcache.safe_key'
+      'KEY_PREFIX':  'sandbox_default'
+      'LOCATION': [ 'localhost:11211' ]
+    'general':
+      <<: *default_generic_cache
+      'KEY_PREFIX':  'sandbox_general'
+    'mongo_metadata_inheritance':
+      <<: *default_generic_cache
+      'KEY_PREFIX':  'integration_mongo_metadata_inheritance'
+    'staticfiles':
+      <<: *default_generic_cache
+      'KEY_PREFIX':  'integration_static_files'
+    'celery':
+      <<: *default_generic_cache
+      'KEY_PREFIX':  'integration_celery'
+  'CELERY_BROKER_TRANSPORT': 'amqp'
+  'CELERY_BROKER_HOSTNAME': ''
+  'COMMENTS_SERVICE_URL':  'http://localhost:4567'
+  'LOGGING_ENV':  'sandbox'
+  'SESSION_COOKIE_DOMAIN':  !!null
+  'COMMENTS_SERVICE_KEY':  'password'
+  'SEGMENT_IO_LMS': true
+  'CODE_JAIL':
+    'limits':
+      'VMEM': 0
+      'REALTIME': 3
+lms_auth_config:
+  <<: *edxapp_generic_auth
+  'MODULESTORE':
+    'default':
+      'ENGINE': 'xmodule.modulestore.mongo.MongoModuleStore'
+      'OPTIONS': *generic_modulestore_default_options
+
+lms_env_config:
+  <<: *edxapp_generic_env
+lms_xml_auth_config:
+  <<: *edxapp_generic_auth
+  'MODULESTORE':
+    'default':
+      'ENGINE': 'xmodule.modulestore.xml.XMLModuleStore'
+      'OPTIONS':
+        'data_dir': '/opt/wwc/data'
+        'default_class': 'xmodule.hidden_module.HiddenDescriptor'
+lms_xml_env_config:
+  <<: *edxapp_generic_env
+cms_auth_config:
+  <<: *edxapp_generic_auth
+cms_env_config:
+  <<: *edxapp_generic_env
+lms_preview_auth_config:
+  <<: *edxapp_generic_auth
+lms_preview_env_config:
+  <<: *edxapp_generic_env
+
+
+
+# install dir for the edx-platform repo
+edx_platform_code_dir: "{{ app_base_dir }}/edx-platform"
+
+# Default nginx listen ports
+# These should be overrided if you want
+# to serve all content on port 80
+
+
+lms_xml_nginx_port: 18030
+lms_nginx_port: 80
+lms_preview_nginx_port: 18020
+cms_nginx_port: 18010
+
+edxapp_cms_app_port: 8010
+edxapp_lms_app_port: 8000
+edxapp_lms_xml_app_port: 8030
+edxapp_lms_preview_app_port: 8020
+
+edxapp_cms_app_address: 127.0.0.1
+edxapp_lms_app_address: 127.0.0.1
+edxapp_lms_xml_app_address: 127.0.0.1
+edxapp_lms_preview_app_address: 127.0.0.1
+
+# These vars are for creating the application json config
+# files.  There are two for each service that uses the
+# 'edx-platform' code.  Defining them will create the upstart
+# job and nginx configuration for the corresponding service.
+# It will also enable the corresponding section in the
+# 'edxapp' upstart job.
+
+service_variants_enabled:
+  - lms
+  - cms
+
+edxapp_lms_env: 'lms.envs.aws'
+
+
+#Number of gunicorn worker processes to spawn, as a multiplier to number of virtual cores
+worker_core_mult:
+  lms: 4
+  lms_preview: 2
+  lms_xml: 2
+  cms: 2
+
+#Theming
+#To turn off theming, specify edxapp_theme_name: ''
+#Stanford, for example, uses edxapp_theme_name: 'stanford'
+edxapp_theme_name: ''
+edxapp_theme_source_repo: 'https://github.com/Stanford-Online/edx-theme.git'
+edxapp_theme_version: 'HEAD'
+
+# make this the public URL instead of writable
+edx_platform_repo: https://github.com/edx/edx-platform.git
+# `edx_platform_commit` can be anything that git recognizes as a commit
+# reference, including a tag, a branch name, or a commit hash
+edx_platform_commit: 'release'
+local_requirements_file:  "{{ edx_platform_code_dir }}/requirements/edx/local.txt"
+pre_requirements_file:    "{{ edx_platform_code_dir }}/requirements/edx/pre.txt"
+post_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/post.txt"
+base_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/base.txt"
+github_requirements_file: "{{ edx_platform_code_dir }}/requirements/edx/github.txt"
+repo_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/repo.txt"
+
+sandbox_base_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/base.txt"
+sandbox_local_requirements: "{{ edx_platform_code_dir }}/requirements/edx-sandbox/local.txt"
+sandbox_post_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/post.txt"
+
+#do we want to install the sandbox requirements into the regular virtual env
+install_sandbox_reqs_into_regular_venv: true
+
+lms_debian_pkgs:
+  - apparmor-utils
+  - aspell
+  - build-essential
+  - curl
+  - dvipng
+  - fabric
+  - g++
+  - gcc
+  - gfortran
+  - ghostscript
+  - github-cli
+  - graphviz
+  - graphviz-dev
+  - gunicorn
+  - inoticoming
+  - ipython
+  - libcrypt-ssleay-perl
+  - libcurl4-openssl-dev
+  - libdigest-sha-perl
+  - libfreetype6-dev
+  - libgeos-dev
+  - libgraphviz-dev
+  - libjpeg8-dev
+  - liblapack-dev
+  - liblwp-protocol-https-perl
+  - libmysqlclient-dev
+  - libnet-amazon-ec2-perl
+  - libpng12-dev
+  - libreadline-dev
+  - libreadline6-dev
+  - libssl-dev
+  - libswitch-perl
+  - libwww-perl
+  - libxml++2.6-dev
+  - libxml2-dev
+  - libxml2-utils
+  - libxslt1-dev
+  - lynx-cur
+  - maven2
+  - mongodb-clients
+  - mysql-client
+  - npm
+  - ntp
+  - openjdk-7-jdk
+  - openjdk-7-jre
+  - pep8
+  - perl
+  - pkg-config
+  - postfix
+  - pylint
+  - python-boto
+  - python-coverage-test-runner
+  - python-django-nose
+  - python-jenkins
+  - python-nose
+  - python-nosexcover
+  - python-numpy
+  - python-pip
+  - python-scipy
+  - rake
+  - reprepro
+  - rsyslog
+  - rubygems
+  - sqlite3
+  - super
+  - vagrant
+  - yui-compressor
+  - zip
+  - zlib1g-dev
+
+# Ruby Specific Vars
+ruby_base: /opt/www
+rbenv_root: "{{ ruby_base }}/.rbenv"
+ruby_version: "1.9.3-p374"
+gem_home: "{{ ruby_base }}/.gem"
+
+# Deploy Specific Vars
+lms_variant: lms
+cms_variant: cms
+
+deploy_environment:
+  LANG: "en_US.UTF-8"
+  NO_PREREQ_INSTALL: 1
+  SKIP_WS_MIGRATIONS: 1
+  RBENV_ROOT: "{{ rbenv_root }}"
+  GEM_HOME: "{{ gem_home }}"
+  PATH: "{{ venv_dir }}/bin:{{ edx_platform_code_dir }}/bin:{{ rbenv_root }}/bin:{{ rbenv_root }}/shims:{{ gem_home }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Worker Settings
+worker_django_settings_module: 'aws'

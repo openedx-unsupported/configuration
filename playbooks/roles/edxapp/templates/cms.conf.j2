@@ -17,6 +17,7 @@ env WORKERS={{ ansible_processor|length * worker_core_mult.cms }}
 env WORKERS={{ worker_core_mult.cms }}
 {% endif %}
 env PORT={{edxapp_cms_app_port}}
+env ADDRESS={{edxapp_cms_app_address}}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=cms.envs.aws
 env SERVICE_VARIANT="cms"
@@ -24,4 +25,4 @@ env SERVICE_VARIANT="cms"
 chdir {{edx_platform_code_dir}}
 setuid www-data
 
-exec {{venv_dir}}/bin/gunicorn_django -b 127.0.0.1:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} --settings=cms.envs.aws
+exec {{venv_dir}}/bin/gunicorn_django -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} --settings=cms.envs.aws
