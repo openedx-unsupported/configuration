@@ -73,6 +73,7 @@ EDXAPP_LOGGING_ENV:  'sandbox'
 
 EDXAPP_SYSLOG_SERVER: ''
 EDXAPP_RABBIT_HOSTNAME: 'rabbit.{{ENV_NAME}}.vpc.edx.org'
+EDXAPP_XML_MAPPINGS: {}
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
@@ -182,8 +183,27 @@ lms_auth_config:
   <<: *edxapp_generic_auth
   MODULESTORE:
     default:
-      ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
-      OPTIONS: *generic_modulestore_default_options
+      ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
+      OPTIONS:
+        mappings: $EDXAPP_XML_MAPPINGS
+        stores:
+          xml:
+            ENGINE: 'xmodule.modulestore.xml.XMLModuleStore'
+            OPTIONS:
+              data_dir: '/opt/wwc/data'
+              default_class: 'xmodule.hidden_module.HiddenDescriptor'
+          default:
+            OPTIONS:
+              default_class: 'xmodule.hidden_module.HiddenDescriptor'
+              host: $EDXAPP_MONGO_HOSTS
+              db:  $EDXAPP_MONGO_DB_NAME
+              collection: 'modulestore'
+              render_template: 'mitxmako.shortcuts.render_to_string'
+              user: $EDXAPP_MONGO_USER
+              password:  $EDXAPP_MONGO_PASSWORD
+              port: 10016,
+              fs_root: '/opt/wwc/data'
+            ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
 
 lms_env_config:
   <<: *edxapp_generic_env
