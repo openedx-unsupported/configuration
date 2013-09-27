@@ -13,17 +13,14 @@
 - name: jenkins | Add the jenkins user to the group
   user: name={{ jenkins_user }} append=yes groups={{ jenkins_group }}
 
-- name: jenkins | Install Jenkins
-  shell: wget -q -O - http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key | sudo apt-key add -
+- name: jenkins | Install Jenkins apt key
+  apt_key: url=http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key state=present
 
-- name: jenkins | Install Jenkins 2
-  shell: sh -c 'echo deb http://pkg.jenkins-ci.org/debian binary/ > /etc/apt/sources.list.d/jenkins.list'
+- name: jenkins | Add apt repository
+  apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/' state=present
 
-- name: jenkins | Install Jenkins 3
-  shell: apt-get update
-
-- name: jenkins | Install jenkins 4
-  apt: pkg=jenkins state=present
+- name: jenkins | Install jenkins package
+  apt: pkg=jenkins state=present update_cache=yes
 
 - name: jenkins | Make plugins directory
   sudo_user: jenkins
