@@ -320,6 +320,8 @@
   "Resources":{
     "EdxVPC":{
       "Type":"AWS::EC2::VPC",
+      "EnableDnsSupport" : "true",
+      "EnableDnsHostnames" : "true",
       "Properties":{
         "CidrBlock":"10.0.0.0/16",
         "InstanceTenancy":"default"
@@ -4104,6 +4106,33 @@
         },
         "Timeout":"1200"
       }
+    },
+    "CacheSubnetGroup" : {
+        "Type" : "AWS::ElastiCache::SubnetGroup",
+        "Properties" : {
+            "Description" : "Cache Subnet Group",
+            "SubnetIds" : [ { "Ref" : "PublicSubnet01" }, { "Ref" : "PublicSubnet02" }  ]
+        }
+    },
+    "CacheParameters" : {
+      "Type" : "AWS::ElastiCache::ParameterGroup",
+      "Properties" : {
+        "CacheParameterGroupFamily" : "memcached1.4",
+        "Description" : "Parameter group",
+        "Properties" : {
+          "cas_disabled" : "1"
+        }
+      }
+    },
+    "CacheCluster" : {
+      "Type": "AWS::ElastiCache::CacheCluster",
+      "Properties": {
+        "CacheSubnetGroupName" : { "Ref" : "CacheSubnetGroup" },
+        "CacheNodeType"        : { "Ref" : "CacheNodeType" },
+        "VpcSecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup" } ],
+        "Engine"               : "memcached",
+        "NumCacheNodes"        : { "Ref" : "NumberOfCacheNodes" }
+      }
     }
   },
   "Outputs":{
@@ -4158,59 +4187,6 @@
           ]
         ]
       }
-    },
-    "ElasticCacheCreateSubnetGroupCommand":{
-      "Description":"MANUAL COMMAND #1: create subnet group. (these commands have to be run by hand because they aren't supported by CloudFormation yet.",
-      "Value":{
-        "Fn::Join":[
-          "",
-          [
-            "elasticache-create-cache-subnet-group ", { "Ref":"EdxVPC" }, "-ElasticCacheSubnetGroup ",
-            "--description 'VPC ElasticCache Subnet Group' ",
-            "--subnet-ID-list ", { "Ref":"Cache01" }, ",", { "Ref":"Cache02" }
-          ]
-        ]
-      }
-    },
-    "ElasticCacheCreateCacheClusterCommand":{
-      "Description":"MANUAL COMMAND #2: Create cache cluster.",
-      "Value":{
-        "Fn::Join":[
-          "",
-          [
-            "elasticache-create-cache-cluster ", { "Ref":"EdxVPC" }, "-Cache ",
-            "--num-cache-nodes ", { "Ref":"NumberOfCacheNodes" }, " ",
-            "--cache-node-type ", { "Ref":"CacheNodeType" }, " ",
-            "--engine memcached ",
-            "--engine-version 1.4.5 ",
-            "--port ", { "Ref":"CacheNodePort"}, " ",
-            "--preferred-availability-zone ",
-            { "Fn::FindInMap":[
-                "MapRegionsToAvailZones",
-                { "Ref":"AWS::Region" },
-                "AZone0"
-              ]
-            }, " ",
-            "--cache-parameter-group-name default.memcached1.4 ",
-            "--auto-minor-version-upgrade true ",
-            "--cache-subnet-group-name ", { "Ref":"EdxVPC" },"-ElasticCacheSubnetGroup ",
-	    "--security-group-ids ", { "Ref":"CacheSecurityGroup" }
-          ]
-        ]
-      }
-    },
-    "EnableDNSHostnamesForVPCCommand":{
-      "Description":"MANUAL COMMAND #3: Change VPC setting to enable automatic DNS hostname resolution from within the VPC. Setting not supported in Cloudformation yet.",
-      "Value":{
-        "Fn::Join":[
-          "",
-          [
-            "ec2-modify-vpc-attribute ",
-            "-c ", { "Ref":"EdxVPC" }, " ",
-            "-d true"
-          ]
-        ]
-      }
-    }
+    }    
   }
 }
