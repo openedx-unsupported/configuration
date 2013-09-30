@@ -1,16 +1,16 @@
 ---
 
-- name: jenkins | Install virtualenv
+- name: jenkins_worker | Install virtualenv
   pip: name=virtualenv state=present
 
-- name: jenkins | Install virtualenv wrapper
+- name: jenkins_worker | Install virtualenv wrapper
   pip: name=virtualenvwrapper state=present
 
-- name: jenkins | Install requests
+- name: jenkins_worker | Install requests
   pip: name=requests state=present
 
 # Install bash scripts
-- name: jenkins | Install Python packages scripts
+- name: jenkins_worker | Install Python packages scripts
   copy: src="${item}" dest="/usr/local/bin/${item}"
         force=yes
         owner=root group=root
@@ -20,19 +20,19 @@
     - install_python_pkgs.sh
 
 # Install scripts requiring a GitHub OAuth token
-- fail: GitHub OAuth token not defined
+- fail: jenkins_worker | OAuth token not defined
   when: github_oauth_token is not defined
 
-- name: jenkins | Install Python GitHub PR auth script
+- name: jenkins_worker | Install Python GitHub PR auth script
   template: src="github_pr_auth.py.j2" dest="/usr/local/bin/github_pr_auth.py"
             owner=root group=root
             mode=755
 
-- name: jenkins | Install Python GitHub post status script
+- name: jenkins_worker | Install Python GitHub post status script
   template: src="github_post_status.py.j2" dest="/usr/local/bin/github_post_status.py"
             owner=root group=root
             mode=755
 
 # Install upstart script to download Python packages from S3
-- name: jenkins | Install Python packages upstart script
+- name: jenkins_worker | Install Python packages upstart script
   template: src="python_pkgs.conf.j2" dest="/etc/init/python_pkgs.conf"
