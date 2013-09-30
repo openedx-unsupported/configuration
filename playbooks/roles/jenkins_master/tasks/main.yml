@@ -32,7 +32,7 @@
            dest={{ jenkins_home }}/plugins/${item.name}.hpi
   with_items: "{{ jenkins_plugins }}"
   notify:
-    - restart Jenkins
+    - jenkins_master | restart Jenkins
 
 # We had to fork the git-client plugin repo
 # to fix an obscure bug.  If and when the PR gets
@@ -52,7 +52,7 @@
            {{ jenkins_home }}/plugins/git-client.hpi
            creates={{ jenkins_home }}/plugins/git-client.hpi
   notify:
-    - restart Jenkins
+    - jenkins_master | restart Jenkins
 
 - name: jenkins_master | Set git-client plugin permissions
   file: path={{ jenkins_home }}/plugins/git-client.hpi
@@ -69,4 +69,4 @@
     src=/etc/nginx/sites-available/jenkins
     dest=/etc/nginx/sites-enabled/jenkins
     state=link
-  notify: jenkins | start nginx
+  notify: jenkins_master | start nginx
