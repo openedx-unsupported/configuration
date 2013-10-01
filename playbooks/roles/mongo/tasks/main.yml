@@ -38,6 +38,15 @@
   file: src={{ storage_base_dir }}/mongodb dest=/var/lib/mongodb state=link
   tags: mongo
 
+- name: mongo | copy mongodb key file
+  copy: >
+    src={{ secure_dir }}/files/mongo_key
+    dest={{ mongo_key_file }}
+    mode=0600
+    owner=mongodb
+    group=mongodb
+  when: mongo_clustered is defined
+
 - name: mongo | copy configuration template
   template: src=mongodb.conf.j2 dest=/etc/mongodb.conf backup=yes
   notify: restart mongo
@@ -51,6 +60,18 @@
   wait_for: port=27017 delay=2
   tags: mongo
 
+- name: mongo | Create the file to initialize the mongod replica set
+  template: src=repset_init.j2 dest=/tmp/repset_init.js
+  when: mongo_clustered is defined
+  tags: mongo
+
+- name: mongo | Initialize the replication set
+  shell: /usr/bin/mongo  /tmp/repset_init.js 
+  when: mongo_clustered is defined
+  tags: mongo
+
+# Ignoring errors here because slave instances will fail this command
+# since slaveOk is false in ansible 1.3.
 - name: mongo | create a mongodb user
   mongodb_user: >
     database={{ item.database }}
@@ -59,3 +80,4 @@
     state=present
   with_items: MONGO_USERS
   tags: mongo
+  ignore_errors: yes
