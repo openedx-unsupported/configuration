@@ -89,7 +89,27 @@
 
 # Python plays that need to be run after platform updates.
 
+# Install wheel archives before populating the virtualenv
+# to speed up installation
+
+- name: Download the wheel archive
+  get_url: url={{edxapp_wheel_url}}/{{edxapp_wheel_archive}}.tar.gz dest=/var/tmp
+
+- name: Untar the wheel archive
+  shell: >
+    tar -xzf {{edxapp_wheel_archive}}.tar.gz 
+      chdir=/var/tmp 
+      creates=/var/tmp/{{edxapp_wheel_archive}}
+    
+- name: Install from wheel files
+  shell: >
+    {{venv_dir}}/bin/pip install --use-wheel --no-index --find-links=/var/tmp/{{edxapp_wheel_archive}} {{item}}
+      creates=/var/tmp/{{edxapp_wheel_archive}}.installed
+      chdir={{ edx_platform_code_dir }}
+  with_items: edxapp_wheel_pkgs
+
 # Install the python pre requirements into {{ venv_dir }}
+
 - name : install python pre-requirements
   pip: requirements="{{pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
   tags:

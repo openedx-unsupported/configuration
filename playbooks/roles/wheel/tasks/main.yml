@@ -1,0 +1,98 @@
+# Creates a wheel distributions and upload them to s3
+
+---
+
+- name: wheel | install packages needed for wheel
+  apt: pkg={{ item }} state=present install_recommends=yes update_cache=yes
+  with_items: wheel_debian_pkgs
+
+- name: wheel | pip install virtualenv
+  pip: name=virtualenv state=present
+
+- name: wheel | pip install virtualenvwrapper
+  pip: name=virtualenvwrapper state=present
+
+- name: wheel | create virtualenv directory
+  file: path={{ wheel_venv_dir }} state=directory
+
+- name: wheel | create the virtualenv directories for each repo
+  command: /usr/local/bin/virtualenv {{ item.venv }} --distribute creates={{ item.venv }}/bin/activate
+  with_items: wheel_repos
+
+# install base pip packages for venv
+# TODO - move these packages into the requirements.txt
+- name: wheel | install base pip packages for venv
+  shell: >
+    {{ item.venv }}/bin/pip install {{ " ".join(wheel_base_pip_pkgs) }}
+  with_items: wheel_repos
+
+- name: wheel | checkout all repos into {{ wheel_venv_dir }}
+  git: dest={{ item.git }} repo={{ item.url }} version={{ item.version }}
+  with_items: wheel_repos
+
+- name: wheel | git clean after checking out repos
+  shell: >
+    git clean -xdf
+      chdir={{ item.git }}
+  with_items: wheel_repos
+
+- name: wheel | get date string
+  shell: date +%Y%m%d
+  register: wheel_date
+
+- name: wheel | create wheel archive dir
+  file: path={{ item.wheel_path }}-{{ wheel_date.stdout }} state=directory
+  with_items: wheel_repos
+
+
+# Builds the wheel files.  As the wheel files are built
+# the virtualenvironment is populated as some libraries (like scipy)
+# require other libraries to be availble (numpy)
+
+# This would be less messy if ansible had nested loops..
+
+- name: wheel | build wheel files for edx platform
+  shell: >
+    {{ wheel_edx_platform_venv_path }}/bin/pip wheel --wheel-dir={{ wheel_edx_platform_path }}-{{ wheel_date.stdout }} -r {{ item }}; 
+    {{ wheel_edx_platform_venv_path }}/bin/pip install --use-wheel --no-index --find-links={{ wheel_edx_platform_path }}-{{ wheel_date.stdout }} -r {{ item }}; 
+    {{ wheel_edx_platform_venv_path }}/bin/pip install --exists-action w -r {{ item }}
+      chdir={{ wheel_edx_platform_git_path }}
+  with_items: wheel_edx_platform_req_files
+
+- name: wheel | build wheel files for xqueue
+  shell: >
+    {{ wheel_xqueue_venv_path }}/bin/pip wheel --wheel-dir={{ wheel_xqueue_path }}-{{ wheel_date.stdout }} -r {{ item }}; 
+    {{ wheel_xqueue_venv_path }}/bin/pip install --use-wheel --no-index --find-links={{ wheel_xqueue_path }}-{{ wheel_date.stdout }} -r {{ item }}; 
+    {{ wheel_xqueue_venv_path }}/bin/pip install --exists-action w -r {{ item }}
+      chdir={{ wheel_xqueue_git_path }}
+  with_items: wheel_xqueue_req_files
+
+- name: wheel | build wheel files for xserver
+  shell: >
+    {{ wheel_xserver_venv_path }}/bin/pip wheel --wheel-dir={{ wheel_xserver_path }}-{{ wheel_date.stdout }} -r {{ item }}; 
+    {{ wheel_xserver_venv_path }}/bin/pip install --use-wheel --no-index --find-links={{ wheel_xserver_path }}-{{ wheel_date.stdout }} -r {{ item }}; 
+    {{ wheel_xserver_venv_path }}/bin/pip install --exists-action w -r {{ item }}
+      chdir={{ wheel_xserver_git_path }}
+  with_items: wheel_xserver_req_files
+
+- name: wheel | create edx-platform distro (compressed tar file)
+  shell: >
+    tar -czf {{ item.name }}-{{ wheel_date.stdout }}-wheel.tar.gz  {{ item.wheel }}-{{ wheel_date.stdout }}
+      chdir={{ wheel_dir }}
+  with_items: wheel_repos
+
+
+# upload the wheel distribution 
+# if s3 credentials are provided
+
+- name: wheel | upload wheel distro
+  s3: >
+    bucket=edx-static
+    object=/wheel/{{ item.name }}-{{ wheel_date.stdout }}-wheel.tar.gz
+    src={{ wheel_dir }}/{{ item.name }}-{{ wheel_date.stdout }}-wheel.tar.gz
+    mode=put
+    overwrite=true
+    aws_access_key={{ WHEEL_S3CMD_ACCESS_KEY }}
+    aws_secret_key={{ WHEEL_S3CMD_SECRET_KEY }}
+  when: WHEEL_S3CMD_ACCESS_KEY and WHEEL_S3CMD_SECRET_KEY
+  with_items: wheel_repos
