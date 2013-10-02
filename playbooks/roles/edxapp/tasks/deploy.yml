@@ -100,13 +100,19 @@
     tar -xzf {{edxapp_wheel_archive}}.tar.gz 
       chdir=/var/tmp 
       creates=/var/tmp/{{edxapp_wheel_archive}}
-    
+
+- name: Register wheel packages from archive
+  shell: >
+    ls | cut -d- -f1
+      chdir=/var/tmp/{{edxapp_wheel_archive}}
+  register: edxapp_wheel_pkgs
+
 - name: Install from wheel files
   shell: >
     {{venv_dir}}/bin/pip install --use-wheel --no-index --find-links=/var/tmp/{{edxapp_wheel_archive}} {{item}}
       creates=/var/tmp/{{edxapp_wheel_archive}}.installed
       chdir={{ edx_platform_code_dir }}
-  with_items: edxapp_wheel_pkgs
+  with_items: edxapp_wheel_pkgs.stdout_lines
 
 # Install the python pre requirements into {{ venv_dir }}
 
