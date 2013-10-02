@@ -94,18 +94,24 @@
 
 - name: Download the wheel archive
   get_url: url={{edxapp_wheel_url}}/{{edxapp_wheel_archive}}.tar.gz dest=/var/tmp
+  tags:
+  - deploy
 
 - name: Untar the wheel archive
   shell: >
     tar -xzf {{edxapp_wheel_archive}}.tar.gz 
       chdir=/var/tmp 
       creates=/var/tmp/{{edxapp_wheel_archive}}
+  tags:
+  - deploy
 
 - name: Register wheel packages from archive
   shell: >
     ls | cut -d- -f1
       chdir=/var/tmp/{{edxapp_wheel_archive}}
   register: edxapp_wheel_pkgs
+  tags:
+  - deploy
 
 - name: Install from wheel files
   shell: >
@@ -113,6 +119,8 @@
       creates=/var/tmp/{{edxapp_wheel_archive}}.installed
       chdir={{ edx_platform_code_dir }}
   with_items: edxapp_wheel_pkgs.stdout_lines
+  tags:
+  - deploy
 
 # Install the python pre requirements into {{ venv_dir }}
 
