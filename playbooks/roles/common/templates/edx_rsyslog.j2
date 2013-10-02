@@ -27,12 +27,12 @@ auth,authpriv.*                                         /var/log/auth.log
 $template tracking,"%syslogtag%%msg%\n"
 
 # looks for [service_name=<name>] in the beginning of the log message,
-# if it exists the log will go into /mnt/logs/<name>/edx.log, otherwise
-# it will go into /mnt/logs/edx.log
-$template DynaFile,"/mnt/logs/%syslogtag:R,ERE,1,BLANK:\[service_variant=([a-zA-Z_-]*)\].*--end%/edx.log"
+# if it exists the log will go into {{log_base_dir}}/<name>/edx.log, otherwise
+# it will go into {{log_base_dir}}/edx.log
+$template DynaFile,"{{log_base_dir}}/%syslogtag:R,ERE,1,BLANK:\[service_variant=([a-zA-Z_-]*)\].*--end%/edx.log"
 
 local0.*                        -?DynaFile
-local1.*                        /mnt/logs/tracking.log;tracking
+local1.*                        {{log_base_dir}}/tracking.log;tracking
 #cron.*                         /var/log/cron.log
 #daemon.*                       -/var/log/daemon.log
 kern.*                          -/var/log/kern.log
