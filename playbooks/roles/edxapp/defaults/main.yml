@@ -104,7 +104,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       port: $EDXAPP_MONGO_PORT
       user: $EDXAPP_MONGO_USER
   MODULESTORE:
-    default:
+    default: &edxapp_generic_default_modulestore
       ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
       OPTIONS:  &generic_modulestore_default_options
         collection:  'modulestore'
@@ -117,7 +117,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         render_template:  'mitxmako.shortcuts.render_to_string'
         user: $EDXAPP_MONGO_USER
     # Needed for the CMS to be able to run update_templates
-    direct:
+    direct: &edxapp_generic_direct_modulestore
       ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
       OPTIONS:  *generic_modulestore_default_options
   DATABASES:
@@ -223,6 +223,8 @@ cms_env_config:
   <<: *edxapp_generic_env
 lms_preview_auth_config:
   <<: *edxapp_generic_auth
+  MODULESTORE:
+    default: *edxapp_generic_default_modulestore
 lms_preview_env_config:
   <<: *edxapp_generic_env
 
