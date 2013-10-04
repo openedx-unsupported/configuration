@@ -22,6 +22,26 @@
 - name: jenkins_master | Install jenkins package
   apt: pkg=jenkins state=present update_cache=yes
 
+- name: jenkins_master | Stop Jenkins
+  service: name=jenkins state=stopped
+
+# Move /var/lib/jenkins to Jenkins home (on the EBS)
+- name: jenkins_master | Move /var/lib/jenkins
+  command: mv /var/lib/jenkins {{ jenkins_home }}
+           creates={{ jenkins_home }}
+
+- name: jenkins_master | Set owner for Jenkins home
+  file: path={{ jenkins_home }} recurse=yes state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }}
+
+# Symlink /var/lib/jenkins to /mnt/jenkins
+# since Jenkins will expect its files to be in /var/lib/jenkins
+- name: jenkins_master | Symlink /var/lib/jenkins
+  file: src={{ jenkins_home }} dest=/var/lib/jenkins state=link
+        owner={{ jenkins_user }} group={{ jenkins_group }}
+  notify:
+    - jenkins_master | restart Jenkins
+
 - name: jenkins_master | Make plugins directory
   sudo_user: jenkins
   shell: mkdir -p {{ jenkins_home }}/plugins
