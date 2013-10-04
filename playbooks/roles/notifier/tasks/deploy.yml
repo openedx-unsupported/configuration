@@ -9,8 +9,8 @@
 
 - name: notifier | checkout code
   git: 
-    dest={{ notifier_code_dir }} repo={{ notifier_source_repo }} 
-    version={{ notifier_version }}
+    dest={{ NOTIFIER_CODE_DIR }} repo={{ NOTIFIER_SOURCE_REPO }} 
+    version={{ NOTIFIER_VERSION }}
   notify:
     - notifier | restart notifier
   tags:
@@ -21,7 +21,7 @@
 
 - name: notifier | source repo group perms
   file: 
-    path={{ notifier_source_repo }} mode=2775 state=directory
+    path={{ NOTIFIER_SOURCE_REPO }} mode=2775 state=directory
   tags:
     - notifier
     - deploy
@@ -30,10 +30,10 @@
 
 - name: notifier | install application requirements
   pip: 
-    requirements="{{ notifier_requirements_file }}" 
-    virtualenv="{{ notifier_venv_dir }}" state=present
+    requirements="{{ NOTIFIER_REQUIREMENTS_FILE }}" 
+    virtualenv="{{ NOTIFIER_VENV_DIR }}" state=present
   sudo: true  
-  sudo_user: "{{ notifier_user }}"
+  sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier
   tags:
@@ -44,9 +44,9 @@
 
 - name: notifier | syncdb
   shell: >
-    cd {{ notifier_code_dir }} && {{ notifier_venv_dir }}/bin/python manage.py syncdb
+    cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
   sudo: true  
-  sudo_user: "{{ notifier_user }}"
+  sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier
   tags:
