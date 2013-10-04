@@ -8,42 +8,72 @@
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
 #
-# Vars for role analytics-experiments
+# Vars for role analytics-server
 # vars are namespace with the module name.
 #
-ax_role_name: "analytics-experiments"
-ax_user: "analytics-experiments" 
-ax_home: "/opt/wwc/analytics-experiments"
-ax_venv_dir: "{{ ax_home }}/virtualenvs/analytics-experiments"
-ax_source_repo: "git@github.com:edx/analytics-server.git"
-ax_code_dir: "{{ ax_home }}/src"
-ax_version: "master"
-ax_git_identity_path: "{{ secure_dir }}/files/git-identity"
-ax_requirements_file: "{{ ax_code_dir }}/requirements.txt"
-ax_log_level: "INFO"
-ax_rsyslog_enabled: "yes"
-ax_web_user: "www-data"
-ax_env: "analytics-experiments_env"
-ax_service_variant: 'analytics'
-ax_workers: '4'
-ax_server_port: '9000'
-ax_env_lang: 'en_US.UTF-8'
-ax_django_settings: 'anserv.settings'
 
-ax_env_vars:
-  ANALYTICS_EXPERIMENTS_LOG_LEVEL: "{{ ax_log_level }}"
+AS_DB_ANALYTICS_PASSWORD: ''
+AS_DB_ANALYTICS_USER: ''
+AS_DB_ANALYTICS_HOST: ''
 
+DATABASES:
+  default: &databases_default
+    ENGINE: 'django.db.backends.mysql'
+    NAME: 'wwc'
+    USER: 'edxapp001'
+    PASSWORD: 'CHANGEME'
+    HOST: 'CHANGEME'
+    PORT: 3306
+
+analytics_auth_config:
+  DATABASES:
+    analytics:
+      <<: *databases_default
+      USER: $AS_DB_ANALYTICS_USER
+      PASSWORD: $AS_DB_ANALYTICS_PASSWORD
+      HOST: $AS_DB_ANALYTICS_HOST
+  ANALYTICS_API_KEY: $AS_API_KEY
+  ANALYTICS_RESULTS_DB:
+    MONGO_URI: $AS_DB_RESULTS_URL
+    MONGO_DB: $AS_DB_RESULTS_DB
+    MONGO_STORED_QUERIES_COLLECTION: $AS_DB_RESULTS_COLLECTION
+
+as_role_name: "analytics-server"
+as_user: "analytics-server" 
+as_home: "/opt/wwc/analytics-server"
+as_venv_dir: "{{ as_home }}/virtualenvs/analytics-server"
+as_source_repo: "git@github.com:edx/analytics-server.git"
+as_code_dir: "{{ as_home }}/src"
+as_version: "master"
+as_git_identity_path: "{{ secure_dir }}/files/git-identity"
+as_requirements_file: "{{ as_code_dir }}/requirements.txt"
+as_log_level: "INFO"
+as_rsyslog_enabled: "yes"
+as_web_user: "www-data"
+as_env: "analytics-server_env"
+as_service_variant: 'analytics'
+as_workers: '4'
+as_server_port: '9000'
+as_env_lang: 'en_US.UTF-8'
+as_django_settings: 'anserv.settings'
+
+as_env_vars:
+  ANALYTICS_SERVER_LOG_LEVEL: "{{ as_log_level }}"
+  
+as_automated_rbash_links:
+  - /usr/bin/sudo
+  - /usr/bin/scp
 
 #
 # OS packages
 #
 
-ax_debian_pkgs:
+as_debian_pkgs:
   - mongodb-clients
   - zip
   - libmysqlclient-dev
 
-ax_redhat_pkgs: []
+as_redhat_pkgs: []
 
-ax_pip_pkgs:
+as_pip_pkgs:
   - git+https://github.com/s3tools/s3cmd.git#egg=s3cmd

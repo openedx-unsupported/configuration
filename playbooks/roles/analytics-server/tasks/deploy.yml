@@ -1,12 +1,12 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics-experiments | upload ssh script
+- name: analytics-server | upload ssh script
   copy: 
     src=git_ssh.sh dest=/tmp/git_ssh.sh 
     force=yes owner=root group=adm mode=750
   tags:
-  - analytics-experiments
+  - analytics-server
   - deploy
   - install
   - update
@@ -14,25 +14,25 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics-experiments | install read-only ssh key required for checkout
+- name: analytics-server | install read-only ssh key required for checkout
   copy: 
-    src={{ ax_git_identity_path }} dest=/etc/git-identity 
+    src={{ as_git_identity_path }} dest=/etc/git-identity 
     force=yes owner=ubuntu group=adm mode=60
   tags:
-  - analytics-experiments
+  - analytics-server
   - deploy
   - install
   - update
 
-- name: analytics-experiments | checkout code
+- name: analytics-server | checkout code
   git: 
-    dest={{ ax_code_dir }} repo={{ ax_source_repo }} 
-    version={{ ax_version }}
+    dest={{ as_code_dir }} repo={{ as_source_repo }} 
+    version={{ as_version }} force=true
   environment:
     GIT_SSH: /tmp/git_ssh.sh
-    notify: analytics-experiments | restart the analytics service
+    notify: analytics-server | restart the analytics service
   tags:
-    - analytics-experiments
+    - analytics-server
     - deploy
     - install
     - update
@@ -40,12 +40,12 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics-experiments | update src permissions
+- name: analytics-server | update src permissions
   file: 
-    path={{ ax_code_dir }} state=directory owner={{ ax_user }} 
-    group={{ ax_web_user }} mode=2750 recurse=yes
+    path={{ as_code_dir }} state=directory owner={{ as_user }} 
+    group={{ as_web_user }} mode=2750 recurse=yes
   tags:
-  - analytics-experiments
+  - analytics-server
   - deploy
   - install
   - update
@@ -53,10 +53,10 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics-experiments | remove read-only ssh key for the content repo
+- name: analytics-server | remove read-only ssh key for the content repo
   file: path=/etc/git-identity state=absent
   tags:
-  - analytics-experiments
+  - analytics-server
   - deploy
   - install
   - update
@@ -64,35 +64,35 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics-experiments | remove ssh script
+- name: analytics-server | remove ssh script
   file: path=/tmp/git_ssh.sh state=absent
   tags:
-  - analytics-experiments
+  - analytics-server
   - deploy
   - install
   - update
 
-- name: analytics-experiments | install application requirements
+- name: analytics-server | install application requirements
   pip: 
-    requirements={{ ax_requirements_file }}
-    virtualenv={{ ax_venv_dir }} state=present
+    requirements={{ as_requirements_file }}
+    virtualenv={{ as_venv_dir }} state=present
   sudo: true  
-  sudo_user: "{{ ax_user }}"
+  sudo_user: "{{ as_user }}"
   tags:
-  - analytics-experiments
+  - analytics-server
   - deploy
   - install
   - update
 
-#- name: analytics-experiments | syncdb
+#- name: analytics-server | syncdb
 #  shell: >
-#    cd {{ ax_code_dir }} && {{ ax_venv_dir }}/bin/python manage.py syncdb
+#    cd {{ as_code_dir }} && {{ as_venv_dir }}/bin/python manage.py syncdb
 #  sudo: true  
-#  sudo_user: "{{ ax_user }}"
+#  sudo_user: "{{ as_user }}"
 #  notify:
-#    - analytics-experiments | restart analytics-experiments
+#    - analytics-server | restart analytics-server
 #  tags:
-#  - analytics-experiments
+#  - analytics-server
 #  - deploy
 #  - install
 #  - update

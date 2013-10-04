@@ -10,7 +10,7 @@
 #
 #
 #
-# Tasks for role analytics-experiments
+# Tasks for role analytics-server
 # 
 # Overview:
 # 
@@ -22,88 +22,88 @@
 #
 #
 
-- name: analytics-experiments | install system packages
-  apt: pkg={{','.join(ax_debian_pkgs)}} state=present
+- name: analytics-server | install system packages
+  apt: pkg={{','.join(as_debian_pkgs)}} state=present
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | create analytics-experiments user {{ ax_user }}
+- name: analytics-server | create analytics-server user {{ as_user }}
   user: 
-    name={{ ax_user }} state=present shell=/bin/bash 
-    home={{ ax_home }} createhome=yes
+    name={{ as_user }} state=present shell=/bin/bash 
+    home={{ as_home }} createhome=yes
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | setup the analytics-experiments env
+- name: analytics-server | setup the analytics-server env
   template: 
-    src=opt/wwc/analytics-experiments/{{ ax_env }}.j2
-    dest={{ ax_home }}/{{ ax_env }} 
-    owner="{{ ax_user }}" group="{{ ax_user }}"
+    src=opt/wwc/analytics-server/{{ as_env }}.j2
+    dest={{ as_home }}/{{ as_env }} 
+    owner="{{ as_user }}" group="{{ as_user }}"
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | drop a bash_profile
+- name: analytics-server | drop a bash_profile
   copy: >
     src=../../common/files/bash_profile 
-    dest={{ ax_home }}/.bash_profile 
-    owner={{ ax_user }} 
-    group={{ ax_user }}
+    dest={{ as_home }}/.bash_profile 
+    owner={{ as_user }} 
+    group={{ as_user }}
 
 
-- name: analytics-experiments | ensure .bashrc exists
-  shell: touch {{ ax_home }}/.bashrc
+- name: analytics-server | ensure .bashrc exists
+  shell: touch {{ as_home }}/.bashrc
   sudo: true  
-  sudo_user: "{{ ax_user }}"
+  sudo_user: "{{ as_user }}"
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | add source of analytics-experiments_env to .bashrc
+- name: analytics-server | add source of analytics-server_env to .bashrc
   lineinfile:
-    dest={{ ax_home }}/.bashrc
-    regexp='. {{ ax_home }}/analytics-experiments_env'    
-    line='. {{ ax_home }}/analytics_experiments_env'
+    dest={{ as_home }}/.bashrc
+    regexp='. {{ as_home }}/analytics-server_env'    
+    line='. {{ as_home }}/analytics_server_env'
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | add source venv to .bashrc
+- name: analytics-server | add source venv to .bashrc
   lineinfile:
-    dest={{ ax_home }}/.bashrc
-    regexp='. {{ ax_venv_dir }}/bin/activate'    
-    line='. {{ ax_venv_dir }}/bin/activate'
+    dest={{ as_home }}/.bashrc
+    regexp='. {{ as_venv_dir }}/bin/activate'    
+    line='. {{ as_venv_dir }}/bin/activate'
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | install global python requirements
+- name: analytics-server | install global python requirements
   pip: name={{ item }}
-  with_items: ax_pip_pkgs
+  with_items: as_pip_pkgs
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
 
-- name: analytics-experiments | create config
+- name: analytics-server | create config
   template: 
     src=opt/wwc/analytics.auth.json.j2
     dest=/opt/wwc/analytics.auth.json 
-    owner="{{ ax_web_user }}" group="{{ ax_web_user }}"
+    owner="{{ as_web_user }}" group="{{ as_web_user }}"
   tags:
-  - analytics-experiments
+  - analytics-server
   - install
   - update
   
-- name: analtyics-experiments | install service
+- name: analytics-server | install service
   template:
     src=etc/init/analytics.conf.j2 dest=/etc/init/analytics.conf
     owner=root group=root
