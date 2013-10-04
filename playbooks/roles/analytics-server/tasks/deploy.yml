@@ -3,7 +3,7 @@
 #
 - name: analytics-server | upload ssh script
   copy: 
-    src=git_ssh.sh dest=/tmp/git_ssh.sh 
+    src=git_ssh.sh dest={{ as_git_ssh }}
     force=yes owner=root group=adm mode=750
   tags:
   - analytics-server
@@ -16,8 +16,8 @@
 #
 - name: analytics-server | install read-only ssh key required for checkout
   copy: 
-    src={{ as_git_identity_path }} dest=/etc/git-identity 
-    force=yes owner=ubuntu group=adm mode=60
+    src={{ as_git_identity_path }} dest={{ as_git_identity_dest }}
+    force=yes owner=ubuntu group=adm mode=0600
   tags:
   - analytics-server
   - deploy
@@ -55,7 +55,7 @@
 # TODO: Needed while this repo is private
 #
 - name: analytics-server | remove read-only ssh key for the content repo
-  file: path=/etc/git-identity state=absent
+  file: {{ as_git_identity_dest }} state=absent
   tags:
   - analytics-server
   - deploy
@@ -66,7 +66,7 @@
 # TODO: Needed while this repo is private
 #
 - name: analytics-server | remove ssh script
-  file: path=/tmp/git_ssh.sh state=absent
+  file: path={{ as_git_ssh }} state=absent
   tags:
   - analytics-server
   - deploy
