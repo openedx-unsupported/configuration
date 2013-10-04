@@ -2,8 +2,8 @@
 # TODO: Needed while this repo is private
 #
 - name: analytics-server | upload ssh script
-  copy: 
-    src=git_ssh.sh dest={{ as_git_ssh }}
+  template: 
+    src=tmp/{{ as_role_name }}.git_ssh.sh.j2 dest={{ as_git_ssh }}
     force=yes owner=root group=adm mode=750
   tags:
   - analytics-server
@@ -29,7 +29,7 @@
     dest={{ as_code_dir }} repo={{ as_source_repo }} 
     version={{ as_version }} force=true
   environment:
-    GIT_SSH: /tmp/git_ssh.sh
+    GIT_SSH: $as_git_ssh
     notify: analytics-server | restart the analytics service
   notify: analytics-server | start the analytics service
   tags:
@@ -55,7 +55,7 @@
 # TODO: Needed while this repo is private
 #
 - name: analytics-server | remove read-only ssh key for the content repo
-  file: {{ as_git_identity_dest }} state=absent
+  file: path={{ as_git_identity_dest }} state=absent
   tags:
   - analytics-server
   - deploy
