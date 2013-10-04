@@ -7,18 +7,52 @@
 # code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
-#
-#
 # Tasks for role s3fs
 # 
 # Overview:
-# 
+#
+# Installs a forked version of s3fs from
+# https://github.com/tongwang/s3fs-c/archive that supports
+# using IAM roles for authentication.
 #
 # Dependencies:
 #
+# The role depending upon s3fs is responsible for mounting the
+# buckets.
+#
+# Assuming the following config
+#
+# my_role_s3fs_mounts:
+#   - { bucket: "my_bucket", mount_point: "/mnt/s3/my_bucket", owner: "root", group: "adm", mode: "0755" }
+#
+# The role would need to include tasks like the following
+#
+# - name: my_role | create s3fs mount points
+#   file:
+#     path={{ item.mount_point }} owner={{ item.owner }}
+#     group={{ item.group }} mode={{ item.mode }} state="directory"
+#   with_items: "{{ my_role_s3fs_mounts }}"
+#
+# - name: my_role | mount s3 buckets
+#   mount:
+#     name={{ item.mount_point }} src={{ item.bucket }} fstype=fuse.s3fs
+#     opts=use_cache=/tmp,iam_role={{ task_iam_role }} state=mounted
+#   with_items: "{{ myrole_s3fs_mounts }}"
 # 
 # Example play:
 #
+# Required sudo for the installation phase.
+#
+# - name: Configure instance(s)
+#   hosts: s3fs_hosts
+#   sudo: True
+#   vars_files:
+#     - "{{ secure_dir }}/vars/common/common.yml"
+#     - "{{ secure_dir }}/vars/users.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#     - s3fs
 #
 
 - name: s3fs | install system packages
