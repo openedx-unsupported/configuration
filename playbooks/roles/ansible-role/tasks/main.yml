@@ -1,11 +1,21 @@
 ---
 
+- name: ansible-role | check if the role exists
+  command: test -d roles/{{ role_name }}
+  register: role_exists
+  ignore_errors: yes
+
+- name: ansible-role | prompt for overwrite
+  pause: prompt="Role {{ role_name }} exists. Overwrite? Touch any key to continue or <CTRL>-c, then a, to abort."
+  when: role_exists | success
+
 - name: ansible-role | create role directories
   file: path=roles/{{role_name}}/{{ item }} state=directory
   with_items:
     - tasks
+    - meta
     - handlers
-    - vars
+    - defaults
     - templates
     - files
 
@@ -13,5 +23,6 @@
   template: src={{ item }}/main.yml.j2 dest=roles/{{ role_name }}/{{ item }}/main.yml
   with_items:
     - tasks
+    - meta
+    - defaults
     - handlers
-    - vars
