@@ -21,12 +21,7 @@
 #
 #
 
-- name: splunkforwarder | stub ansible task
-  debug: msg="This is a stub task created by the ansible-role role"
-  notify: splunk | notify me
-
 # Install Splunk Forwarder
-
 - name: splunkforwarder| install splunkforwarder specific system packages
   apt: pkg={{','.join(splunk_debian_pkgs)}} state=present
   tags:
@@ -35,11 +30,9 @@
   - update
 
 - name: splunkforwarder | download the splunk deb
-  shell:
-    chdir="/tmp/" 
-    executable="/bin/bash" 
-    creates="/tmp/{{SPLUNKFORWARDER_DEB}}"
-    wget -q {{SPLUNKFORWARDER_PACKAGE_LOCATION}}{{SPLUNKFORWARDER_DEB}}
+  get_url: >
+    dest="/tmp/{{SPLUNKFORWARDER_DEB}}"
+    url="{{SPLUNKFORWARDER_PACKAGE_LOCATION}}{{SPLUNKFORWARDER_DEB}}"
   register: download_deb
 
 - name: splunkforwarder | install splunk forwarder
@@ -52,23 +45,29 @@
   when: download_deb.changed
 
 - name: splunkforwarder | create boot script
-  shell: creates=/etc/init.d/splunk {{splunkforwarder_output_dir}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
+  shell: >
+    {{splunkforwarder_output_dir}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
+      creates=/etc/init.d/splunk 
   register: create_boot_script
   when: download_deb.changed
+  notify: splunkforwarder | restart splunkforwarder
 
 # Update credentials
 - name: splunkforwarder | update admin pasword
   shell: "{{splunkforwarder_output_dir}}/bin/splunk edit user admin -password {{SPLUNKFORWARDER_PASSWORD}} -auth admin:changeme --accept-license --answer-yes --no-prompt"
   when: download_deb.changed
+  notify: splunkforwarder | restart splunkforwarder
 
 - name: splunkforwarder | add chkconfig to init script
   shell: 'sed -i -e "s/\/bin\/sh/\/bin\/sh\n# chkconfig: 235 98 55/" /etc/init.d/splunk'
   when: download_deb.changed and create_boot_script.changed
+  notify: splunkforwarder | restart splunkforwarder
 
 # Ensure permissions on splunk content
 - name: splunkforwarder | ensure splunk forder permissions
   file: path={{splunkforwarder_output_dir}} state=directory recurse=yes owner=splunk group=splunk
   when: download_deb.changed
+  notify: splunkforwarder | restart splunkforwarder
 
 # Drop template files.
 - name: splunkforwarder | drop input configuration
@@ -78,6 +77,7 @@
     owner=splunk
     group=splunk
     mode=644
+  notify: splunkforwarder | restart splunkforwarder
 
 - name: splunkforwarder | create outputs config file
   template:
@@ -86,7 +86,4 @@
     owner=splunk
     group=splunk
     mode=644
-
-# Restart Splunk
-- name: splunkforwarder | restart the splunk forwarder
-  service: name=splunk state=restarted
+  notify: splunkforwarder | restart splunkforwarder
