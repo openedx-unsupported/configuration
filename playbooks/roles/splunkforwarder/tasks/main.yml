@@ -44,6 +44,21 @@
   user: name=splunk group=splunk createhome=no state=present append=yes groups=syslog
   when: download_deb.changed
 
+# Need to start splunk manually so that it can create various files
+# and directories that aren't created till the first run and are needed
+# to run some of the below commands.
+- name: splunkforwarder | start splunk manually
+  shell: >
+    {{splunkforwarder_output_dir}}/bin/splunk start --accept-license --answer-yes --no-prompt
+      creates={{splunkforwarder_output_dir}}/var/lib/splunk
+  when: download_deb.changed
+  register: started_manually
+
+- name: splunkforwarder | stop splunk manually
+  shell: >
+    {{splunkforwarder_output_dir}}/bin/splunk stop --accept-license --answer-yes --no-prompt
+  when: download_deb.changed and started_manually.changed
+
 - name: splunkforwarder | create boot script
   shell: >
     {{splunkforwarder_output_dir}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
