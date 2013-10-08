@@ -21,13 +21,22 @@
 # Dependencies:
 #
 # This role depends upon variables provided by an including role
-# via the my_role/meta/main.yml file.  Includes take the following form:
+# via the my_role/meta/main.yml file.  Includes take the following forms:
 #
 #  dependencies:
 #  - {
 #  role: automated,
 #  automated_rbash_links: $as_automated_rbash_links,
 #  automated_sudoers_file: 'roles/my_role/files/etc/sudoers.d/99-my_role'
+#  }
+#
+# or
+#
+#  dependencies:
+#  - {
+#  role: automated,
+#  automated_rbash_links: $as_automated_rbash_links,
+#  automated_sudoers_template: 'roles/my_role/templates/etc/sudoers.d/99-my_role.j2'
 #  }
 #
 # The sudoers file is optional.  Note that for sudo to work it must be
@@ -43,7 +52,7 @@
 - fail: automated_rbash_links required for role
   when: automated_rbash_links is not defined
   
-- name: automated | create task user
+- name: automated | create automated user
   user: 
     name={{ automated_user }} state=present shell=/bin/rbash 
     home={{ automated_home }} createhome=yes
@@ -52,30 +61,45 @@
   - install
   - update
 
-- name: automated | create sudoers file
+- name: automated | create sudoers file from file
   copy:
     dest=/etc/sudoers.d/{{ automated_sudoers_file.split('/').pop() }}
-    src={{ automated_sudoers_file }} owner=root
-    group=root mode=0440
+    src={{ automated_sudoers_file }} owner="root"
+    group="root" mode=0440 validate='visudo -cf %s'
   when: automated_sudoers_file is defined
   tags:
   - automated
   - install
   - update
 
-- name: automated | update shell file mode
-  shell: chmod 640 .bash* .profile
+- name: automated | create sudoers file from template
+  template:
+    dest=/etc/sudoers.d/{{ automated_sudoers_file.split('/').pop() }}
+    src={{ automated_sudoers_template }} owner="root"
+    group="root" mode=0440 validate='visudo -cf %s'
+  when: automated_sudoers_tempate is defined
   tags:
   - automated
   - install
   - update
 
-- name: automated | update shell file ownership
-  shell: chown root.{{ automated_user }} {{ automated_home }}/.bash* {{ automated_home }}/.profile
+  #
+  # Prevent user from updating their PATH and
+  # environment.
+  #
+- name: automated | update shell file mode
+  file:
+    path={{ automated_home }}/{{ item }} mode=0640
+    state=file owner="root" group={{ automated_user }}
   tags:
   - automated
   - install
   - update
+  with_items:
+    - .bashrc
+    - .bash_profile
+    - .profile
+    - .bash_logout
   
 - name: automated | change ~automated ownership
   file: 
