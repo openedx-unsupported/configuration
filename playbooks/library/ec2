@@ -184,7 +184,7 @@ options:
     required: false
     default: 'present'
     aliases: []
-  size:
+  root_ebs_size:
     version_added: "1.4"
     desription:
       - size of the root volume in gigabytes
@@ -219,7 +219,7 @@ EXAMPLES = '''
     wait: yes
     group: webserver
     count: 3
-    size: 50
+    root_ebs_size: 50
 
 # Advanced example with tagging and CloudWatch
 - local_action:
@@ -396,11 +396,11 @@ def create_instances(module, ec2):
     vpc_subnet_id = module.params.get('vpc_subnet_id')
     private_ip = module.params.get('private_ip')
     instance_profile_name = module.params.get('instance_profile_name')
-    size = module.params.get('size')
+    root_ebs_size = module.params.get('root_ebs_size')
 
     if size:
         dev_sda1 = boto.ec2.blockdevicemapping.EBSBlockDeviceType()
-        dev_sda1.size = size
+        dev_sda1.size = root_ebs_size
         bdm = boto.ec2.blockdevicemapping.BlockDeviceMapping()
         bdm['/dev/sda1'] = dev_sda1
     else:
@@ -608,7 +608,7 @@ def main():
             instance_profile_name = dict(),
             instance_ids = dict(type='list'),
             state = dict(default='present'),
-            size = dict(default=None),
+            root_ebs_size = dict(default=None),
         )
     )
 
