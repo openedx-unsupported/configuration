@@ -23,19 +23,21 @@
 - name: jenkins_worker | Install Chrome dependencies
   apt: pkg=libgconf2-4,libxss1,libnss3-1d,libcurl3,xdg-utils
 
-- name: jenkins_worker | Install Google Chrome
-  get_url: url=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb dest=/var/tmp/google-chrome-stable_current_amd64.deb
+- name: jenkins_worker | Google Chrome apt key
+  apt_key: url={{ chrome_apt_key }} state=present
 
-- name: jenkins_worker | Install Google Chrome 2
-  command: dpkg -i google-chrome-stable_current_amd64.deb
-           chdir=/var/tmp
-  ignore_errors: True
+- name: jenkins_worker | Google Chrome apt repo
+  apt_repository: repo='deb {{ chrome_apt_repo }} stable main'
+
+- name: jenkins_worker | Install Google Chrome
+  apt: pkg=google-chrome-stable state=present update_cache=yes
 
 - name: jenkins_worker | Install ChromeDriver
-  get_url: url=https://chromedriver.googlecode.com/files/chromedriver_linux64_2.1.zip dest=/var/tmp/chromedriver_linux64_2.1.zip
+  get_url: url={{ chromedriver_url }}
+           dest=/var/tmp/chromedriver_{{ chromedriver_version }}.zip
 
 - name: jenkins_worker | Install ChromeDriver 2
-  shell: unzip /var/tmp/chromedriver_linux64_2.1.zip
+  shell: unzip /var/tmp/chromedriver_{{ chromedriver_version }}.zip
          chdir=/var/tmp
 
 - name: jenkins_worker | Install ChromeDriver 3
