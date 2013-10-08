@@ -27,6 +27,7 @@
 #  - {
 #  role: automated,
 #  automated_rbash_links: $as_automated_rbash_links,
+#  automated_sudoers_dest: '99-my_role'
 #  automated_sudoers_file: 'roles/my_role/files/etc/sudoers.d/99-my_role'
 #  }
 #
@@ -36,6 +37,7 @@
 #  - {
 #  role: automated,
 #  automated_rbash_links: $as_automated_rbash_links,
+#  automated_sudoers_dest: '99-my_role'
 #  automated_sudoers_template: 'roles/my_role/templates/etc/sudoers.d/99-my_role.j2'
 #  }
 #
@@ -51,6 +53,9 @@
 
 - fail: automated_rbash_links required for role
   when: automated_rbash_links is not defined
+
+- fail: automated_sudoers_dest required for role
+  when: automated_sudoers_dest is not defined
   
 - name: automated | create automated user
   user: 
@@ -77,7 +82,7 @@
     dest=/etc/sudoers.d/{{ automated_sudoers_file.split('/').pop() }}
     src={{ automated_sudoers_template }} owner="root"
     group="root" mode=0440 validate='visudo -cf %s'
-  when: automated_sudoers_tempate is defined
+  when: automated_sudoers_template is defined
   tags:
   - automated
   - install
