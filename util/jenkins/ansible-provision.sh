@@ -49,7 +49,7 @@ instance_type: $instance_type
 security_group: $security_group
 ami: $ami
 region: $region
-instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "from_jenkins": "true"}'
+instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins"}'
 root_ebs_size: $root_ebs_size
 gh_users:
   - user: jarv
