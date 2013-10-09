@@ -92,6 +92,10 @@ cat $extra_vars
 
 
 cd playbooks/edx-east
+# run the tasks to launch an ec2 instance from AMI
 ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
+# run tasks to update application config files that 
+# for the hostnames
+ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu
 rm -f "$extra_vars"
 
