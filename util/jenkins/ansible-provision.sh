@@ -5,6 +5,7 @@
 # as environment variables
 # 
 # - github_username - REQUIRED (will also be the jenkins user)
+# - server_type
 # - instance_type
 # - region
 # - aws_account
@@ -96,6 +97,8 @@ cd playbooks/edx-east
 ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
 # run tasks to update application config files that 
 # for the hostnames
-ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu
+if [[ $server_type == "full_edx_stack" ]]; then
+    ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu
+fi
 rm -f "$extra_vars"
 
