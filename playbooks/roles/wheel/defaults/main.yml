@@ -1,0 +1,93 @@
+WHEEL_S3CMD_ACCESS_KEY: !!null
+WHEEL_S3CMD_SECRET_KEY: !!null
+
+wheel_debian_pkgs:
+  - build-essential
+  - s3cmd
+  - pkg-config
+  - graphviz-dev
+  - graphviz
+  - libmysqlclient-dev
+  # for scipy
+  - gfortran 
+  - libopenblas-dev 
+  - liblapack-dev
+  - g++
+  - libxml2-dev
+  - libxslt1-dev
+  # for uploading the wheel pkg
+  - python-boto
+  # needed for virtualenv (currently installed by common)
+  - python2.7
+  - python-pip
+  - python2.7-dev
+  - git
+
+# TODO: this should go in individual 
+# repo requirements files
+wheel_base_pip_pkgs:
+- pip==1.4.1
+- setuptools==1.1.6
+- wheel==0.22.0
+- gunicorn==0.17.4
+
+wheel_venv_dir: /var/tmp/venv
+wheel_dir: /var/tmp
+
+wheel_edx_platform_dir: edx-platform
+wheel_edx_platform_path: $wheel_dir/$wheel_edx_platform_dir
+wheel_edx_platform_venv_path: $wheel_venv_dir/edx-platform
+wheel_edx_platform_git_path: $wheel_dir/edx-platform
+# github and local requirements cannot be turned into wheel archives
+wheel_edx_platform_req_files:
+  - requirements/edx/pre.txt
+  - requirements/edx/base.txt
+  - requirements/edx/post.txt
+  - requirements/edx-sandbox/base.txt
+  - requirements/edx-sandbox/post.txt
+
+wheel_xqueue_dir: xqueue
+wheel_xqueue_path: $wheel_dir/$wheel_xqueue_dir
+wheel_xqueue_venv_path: $wheel_venv_dir/xqueue
+wheel_xqueue_git_path: $wheel_dir/xqueue
+wheel_xqueue_req_files:
+  - pre-requirements.txt
+  - requirements.txt
+
+wheel_xserver_dir: xserver
+wheel_xserver_path: $wheel_dir/$wheel_xserver_dir
+wheel_xserver_venv_path: $wheel_venv_dir/xserver
+wheel_xserver_git_path: $wheel_dir/xserver
+wheel_xserver_req_files:
+  - requirements.txt
+
+wheel_repos:
+  - url: https://github.com/edx/edx-platform.git
+    version: 'release'
+    venv: $wheel_edx_platform_venv_path
+    git: $wheel_edx_platform_git_path
+    wheel_path: $wheel_dir/$wheel_edx_platform_dir
+    wheel: $wheel_edx_platform_dir
+    name: edx-platform
+  - url: https://github.com/edx/xserver.git
+    version: 'HEAD'
+    venv: $wheel_xserver_venv_path
+    git: $wheel_xserver_git_path
+    wheel_path: $wheel_dir/$wheel_xserver_dir
+    wheel: $wheel_xserver_dir
+    name: xserver
+  - url: https://github.com/edx/xqueue.git
+    version: 'HEAD'
+    venv: $wheel_xqueue_venv_path
+    git: $wheel_xqueue_git_path
+    wheel_path: $wheel_dir/$wheel_xqueue_dir
+    wheel: $wheel_xqueue_dir
+    name: xqueue
+
+# these are wheel files that should not be
+# included in wheel archives because they
+# do not install cleanly with pip
+wheel_bans:
+  - distribute
+  - django_mako
+  - GitPython
