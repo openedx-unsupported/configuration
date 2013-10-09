@@ -20,9 +20,8 @@
 
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
-if [[ $github_username == "PUT_YOUR_GITHUB_USERNAME_HERE" ]]; then
-  echo "You need to specify a git username to create an ec2 instance"
-  exit 1
+if [[ -z $github_username  ]]; then
+  github_username=$BUILD_USER
 fi
 
 if [[ ! -f $BOTO_CONFIG ]]; then
@@ -70,7 +69,7 @@ instance_type: $instance_type
 security_group: $security_group
 ami: $ami
 region: $region
-instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins"}'
+instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
 root_ebs_size: $root_ebs_size
 gh_users:
   - user: jarv
@@ -97,7 +96,7 @@ cd playbooks/edx-east
 ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
 # run tasks to update application config files that 
 # for the hostnames
-if [[ $server_type == "full_edx_stack" ]]; then
+if [[ $server_type == "full_edx_installation" ]]; then
     ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu
 fi
 rm -f "$extra_vars"
