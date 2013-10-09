@@ -41,7 +41,7 @@ if [[ -z $name_tag ]]; then
 fi
 
 if [[ -z $ami ]]; then
-  if [[ $server_type == "full_edx_stack" ]]; then
+  if [[ $server_type == "full_edx_installation" ]]; then
     ami="ami-4d1c4c24"
   elif [[ $server_type == "ubuntu_12.04" ]]; then
     ami="ami-d0f89fb9"
