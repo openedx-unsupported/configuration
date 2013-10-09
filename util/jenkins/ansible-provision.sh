@@ -21,7 +21,7 @@
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 if [[ -z $github_username  ]]; then
-  github_username=$BUILD_USER
+  github_username=$BUILD_USER_ID
 fi
 
 if [[ ! -f $BOTO_CONFIG ]]; then
@@ -69,7 +69,7 @@ instance_type: $instance_type
 security_group: $security_group
 ami: $ami
 region: $region
-instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins"}'
+instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
 root_ebs_size: $root_ebs_size
 gh_users:
   - user: jarv
