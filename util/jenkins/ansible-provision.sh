@@ -39,9 +39,29 @@ if [[ -z $name_tag ]]; then
   name_tag=${github_username}-${environment}
 fi
 
+if [[ -z $ami ]]; then
+  if [[ $server_type == "full_edx_stack" ]]; then
+    ami="ami-4d1c4c24"
+  elif [[ $server_type == "ubuntu_12.04" ]]; then
+    ami="ami-d0f89fb9"
+  fi
+fi
+
+if [[ -z $instance_type ]]; then
+  if [[ $server_type == "full_edx_stack" ]]; then
+    instance_type="m1.medium"
+  elif [[ $server_type == "ubuntu_12.04" ]]; then
+    instance_type="m1.small"
+  fi
+
+fi
+
 cat << EOF > $extra_vars
 ---
-
+EDXAPP_PREVIEW_LMS_BASE: preview.${dns_name}.${dns_zone}
+EDXAPP_LMS_BASE: ${dns_name}.${dns_zone}
+EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
+EDXAPP_CMS_NGINX_PORT: 80
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 dns_name: $dns_name
 keypair: $keypair
