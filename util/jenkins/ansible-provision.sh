@@ -54,16 +54,16 @@ root_ebs_size: $root_ebs_size
 gh_users:
   - user: jarv
     groups:
-    - ubuntu
+    - adm
   - user: feanil
     groups:
-    - ubuntu
+    - adm
   - user: e0d
     groups:
-    - ubuntu
+    - adm
   - user: ${github_username}
     groups:
-    - ubuntu
+    - adm
 dns_zone: $dns_zone
 EOF
 
