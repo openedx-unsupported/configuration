@@ -137,8 +137,8 @@ class Ec2Inventory(object):
         self.index = {}
 
         # Read settings and parse CLI arguments
-        self.read_settings()
         self.parse_cli_args()
+        self.read_settings()
 
         # Cache
         if self.args.refresh_cache:
@@ -177,7 +177,7 @@ class Ec2Inventory(object):
         ''' Reads the settings from the ec2.ini file '''
 
         config = ConfigParser.SafeConfigParser()
-        config.read(os.path.dirname(os.path.realpath(__file__)) + '/ec2.ini')
+        config.read(self.args.inifile)
 
         # is eucalyptus?
         self.eucalyptus_host = None
@@ -230,6 +230,10 @@ class Ec2Inventory(object):
                            help='Get all the variables about a specific instance')
         parser.add_argument('--refresh-cache', action='store_true', default=False,
                            help='Force refresh of cache by making API requests to EC2 (default: False - use cache files)')
+
+        default_inifile = os.environ.get("ANSIBLE_EC2_INI", os.path.dirname(os.path.realpath(__file__))+'/ec2.ini')
+
+        parser.add_argument('--inifile', dest='inifile', help='Path to init script to use', default=default_inifile)
         self.args = parser.parse_args()
 
 
