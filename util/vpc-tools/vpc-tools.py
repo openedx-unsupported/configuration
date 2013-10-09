@@ -91,7 +91,7 @@ def _ssh_config(args):
             instance_number = id_type_counter[logical_id]
             id_type_counter[logical_id] += 1
 
-            if logical_id == "BastionHost":
+            if logical_id == "BastionHost" or logical_id == 'bastion':
 
                 print JUMPBOX_CONFIG.format(
                     jump_box=jump_box,
