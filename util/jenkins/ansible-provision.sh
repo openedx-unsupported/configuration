@@ -97,7 +97,7 @@ ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  
 # run tasks to update application config files that 
 # for the hostnames
 if [[ $server_type == "full_edx_installation" ]]; then
-    ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu
+    ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu --tags "lms-env,cms-env,lms-preview-env"
 fi
 rm -f "$extra_vars"
 
