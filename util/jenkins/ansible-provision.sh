@@ -104,8 +104,7 @@ cat $extra_vars
 cd playbooks/edx-east
 # run the tasks to launch an ec2 instance from AMI
 ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
-# run tasks to update application config files that 
-# for the hostnames
+# run tasks to update application config files for the sandbox hostname
 if [[ $server_type == "full_edx_installation" ]]; then
     ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu --tags "lms-env,cms-env,lms-preview-env"
 fi
