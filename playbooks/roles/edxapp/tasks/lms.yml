@@ -1,19 +1,19 @@
 ---
 - name: create lms application config
   template: src=lms.env.json.j2 dest=$app_base_dir/lms.env.json mode=640 owner=www-data group=adm
-  notify: restart edxapp
   tags:
   - lms
   - lms-env
   - update
+  - deploy
 
 - name: create lms auth file
   template: src=lms.auth.json.j2 dest=$app_base_dir/lms.auth.json mode=640 owner=www-data group=adm
-  notify: restart edxapp
   tags:
   - lms
   - lms-env
   - update
+  - deploy
 
 - name: Create lms log target directory
   file: path={{log_base_dir}}/lms state=directory owner=syslog group=syslog mode=2750
@@ -22,6 +22,7 @@
   - lms-env
   - logging
   - update
+  - deploy
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms
   when: celery_worker is not defined
