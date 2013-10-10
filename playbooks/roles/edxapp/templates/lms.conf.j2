@@ -23,7 +23,11 @@ env SERVICE_VARIANT="lms"
 chdir {{edx_platform_code_dir}}
 setuid www-data
 
+{% if EDXAPP_DEV_MODE %}
+exec {{edx_platform_code_dir}}/manage.py lms runserver $ADDRESS:$PORT --settings=aws
+{% else %}
 exec {{venv_dir}}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} lms.wsgi
+{% endif %}
 
 post-start script
   while true
