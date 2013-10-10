@@ -12,8 +12,9 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = "vagrant"
   config.ssh.forward_agent = true
 
-  nfs_setting = RUBY_PLATFORM =~ /darwin/ || RUBY_PLATFORM =~ /linux/
-  config.vm.synced_folder "edx-platform", "/opt/edx/edx-platform", id: "vagrant-root", :nfs => nfs_setting, :create => true
+  #nfs_setting = RUBY_PLATFORM =~ /darwin/ || RUBY_PLATFORM =~ /linux/
+  #config.vm.synced_folder "edx-platform", "/opt/wwc/edx-platform", id: "vagrant-root", :nfs => nfs_setting, :create => true, owner: "www-data", group: "www-data"
+  config.vm.synced_folder "edx-platform", "/opt/wwc/edx-platform", id: "vagrant-root", :create => true, owner: "www-data", group: "www-data"
 
   # Configure /etc/hosts on the host machine
   # This requires the vagrant-hostsupdater plugin
@@ -36,5 +37,7 @@ Vagrant.configure("2") do |config|
     ansible.inventory_path = "../../playbooks/vagrant/inventory.ini"
     ansible.extra_vars = { EDXAPP_DEV_MODE: true }
     ansible.verbose = "extra"
+    ansible.sudo = true
+    ansible.sudo_user = "root"
   end
 end
