@@ -32,6 +32,14 @@ fi
 
 cat << EOF > $extra_vars
 ---
+
+EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
+EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
+EDXAPP_CMS_NGINX_PORT: 80
+XSERVER_GRADER_CHECKOUT: False
+c_skip_grader_checkout: True
+
 edx_platform_commit: $edxapp_version
 forum_version: $forum_version
 xqueue_version: $xqueue_version
