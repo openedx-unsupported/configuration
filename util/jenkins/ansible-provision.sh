@@ -20,11 +20,15 @@
 
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
+function ascii_convert {
+  echo $1 | iconv -f utf8 -t ascii//TRANSLIT//IGNORE
+}
+
 # remove non-ascii chars from build user vars
-BUILD_USER_LAST_NAME=$(echo $BUILD_USER_LAST_NAME | iconv -c -f utf-8 -t ascii)
-BUILD_USER_FIRST_NAME=$(echo $BUILD_USER_FIRST_NAME | iconv -c -f utf-8 -t ascii)
-BUILD_USER_ID=$(echo $BUILD_USER_ID | iconv -c -f utf-8 -t ascii)
-BUILD_USER=$(echo $BUILD_USER | iconv -c -f utf-8 -t ascii)
+BUILD_USER_LAST_NAME=$(ascii_convert $BUILD_USER_LAST_NAME)
+BUILD_USER_FIRST_NAME=$(ascii_convert $BUILD_USER_FIRST_NAME)
+BUILD_USER_ID=$(ascii_convert $BUILD_USER_ID)
+BUILD_USER=$(ascii_convert $BUILD_USER)
 
 if [[ -z $github_username  ]]; then
   github_username=$BUILD_USER_ID
