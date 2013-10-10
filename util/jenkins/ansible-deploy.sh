@@ -59,7 +59,7 @@ cd playbooks
 
 for i in "${!deploy[@]}"; do
     if [[ ${deploy[$i]} == "true" ]]; then
-        ansible-playbook -vvvv edx-east/deployment/deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+        ansible-playbook -vvvv edx-east/deployment/deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
     fi
 done
 rm -f "$extra_vars"
