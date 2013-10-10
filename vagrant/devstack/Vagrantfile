@@ -11,6 +11,10 @@ Vagrant.configure("2") do |config|
   config.vm.network :private_network, ip: "192.168.33.10"
   config.ssh.forward_agent = true
 
+  nfs_setting = RUBY_PLATFORM =~ /darwin/ || RUBY_PLATFORM =~ /linux/
+  config.vm.synced_folder "edx-platform", "/opt/edx/edx-platform", id: "vagrant-root", :nfs => nfs_setting
+
+
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
 
@@ -24,7 +28,7 @@ Vagrant.configure("2") do |config|
     # point Vagrant at the location of your playbook you want to run
     ansible.playbook = "../../playbooks/vagrant-devstack.yml"
     ansible.inventory_path = "../../playbooks/vagrant/inventory.ini"
-    ansible.extra_vars = { c_skip_grader_checkout: 'True' }
+    ansible.extra_vars = { EDXAPP_DEV_MODE: true }
     ansible.verbose = "extra"
   end
 end
