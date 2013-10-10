@@ -1,0 +1,35 @@
+---
+- name: jenkins_worker_browsers | Install Firefox
+  apt: pkg=firefox update_cache=yes
+
+- name: jenkins_worker_browsers | Install dbus-x11 (FF requirement)
+  apt: pkg=dbus-x11
+
+- name: jenkins_worker_browsers | Install Chrome dependencies
+  apt: pkg=libgconf2-4,libxss1,libnss3-1d,libcurl3,xdg-utils
+
+- name: jenkins_worker_browsers | Google Chrome apt key
+  apt_key: url={{ chrome_apt_key }} state=present
+
+- name: jenkins_worker_browsers | Google Chrome apt repo
+  apt_repository: repo='deb {{ chrome_apt_repo }} stable main'
+
+- name: jenkins_worker_browsers | Install Google Chrome
+  apt: pkg=google-chrome-stable state=present update_cache=yes
+
+- name: jenkins_worker_browsers | Install unzip (for ChromeDriver)
+  apt: pkg=unzip
+
+- name: jenkins_worker_browsers | Install ChromeDriver
+  get_url: url={{ chromedriver_url }}
+           dest=/var/tmp/chromedriver_{{ chromedriver_version }}.zip
+
+- name: jenkins_worker_browsers | Install ChromeDriver 2
+  shell: unzip /var/tmp/chromedriver_{{ chromedriver_version }}.zip
+         chdir=/var/tmp
+
+- name: jenkins_worker_browsers | Install ChromeDriver 3
+  shell: mv /var/tmp/chromedriver /usr/local/bin/chromedriver
+
+- name: jenkins_worker_browsers | Install Chromedriver 4
+  file: path=/usr/local/bin/chromedriver mode=0755

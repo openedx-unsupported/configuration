@@ -1,0 +1,20 @@
+---
+
+# If we're running headless, install a virtual display
+- name: jenkins_worker_browser | install xvfb
+  apt: pkg=xvfb state=present
+  when: install_gui is not defined
+
+- name: jenkins_worker_browser | create xvfb upstart script
+  template: src=xvfb.conf.j2 dest=/etc/init/xvfb.conf owner=root group=root
+  when: install_gui is not defined
+
+- name: jenkins_worker_browser | start xvfb
+  shell: start xvfb
+  ignore_errors: yes
+  when: install_gui is not defined
+
+# Otherwise, install a GUI
+- name: jenkins_worker_browser | install GUI
+  apt: pkg=ubuntu-desktop update_cache=yes
+  when: install_gui is defined
