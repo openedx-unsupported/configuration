@@ -13,6 +13,8 @@ Options:
 import boto
 from docopt import docopt
 from vpcutil import vpc_for_stack_name
+from vpcutil import stack_name_for_vpc
+from collections import defaultdict
 
 
 VERSION="vpc tools 0.1"
@@ -29,6 +31,7 @@ JUMPBOX_CONFIG = """
     """
 
 HOST_CONFIG = """
+    # Instance ID: {instance_id}
     Host {name}
       ProxyCommand ssh {config_file} -W %h:%p {jump_box}
       HostName {ip}
@@ -47,6 +50,7 @@ def dispatch(args):
 def _ssh_config(args):
     if args.get("vpc"):
       vpc_id = args.get("<vpc_id>")
+      stack_name = stack_name_for_vpc(vpc_id)
     elif args.get("stack-name"):
       stack_name = args.get("<stack_name>")
       vpc_id = vpc_for_stack_name(stack_name)
@@ -71,17 +75,23 @@ def _ssh_config(args):
     else:
       config_file = ""
 
-    jump_box = "{vpc_id}-jumpbox".format(vpc_id=vpc_id)
-    friendly = "{vpc_id}-{logical_id}-{instance_id}"
+    jump_box = "{stack_name}-jumpbox".format(stack_name=stack_name)
+    friendly = "{stack_name}-{logical_id}-{instance_number}"
+    id_type_counter = defaultdict(int)
 
     reservations = vpc.get_all_instances(filters={'vpc-id' : vpc_id})
 
     for reservation in reservations:
         for instance in reservation.instances:
 
-            logical_id = instance.__dict__['tags']['aws:cloudformation:logical-id']
+            if 'group' in instance.tags:
+                logical_id = instance.tags['group']
+            else:
+                logical_id = instance.tags['aws:cloudformation:logical-id']
+            instance_number = id_type_counter[logical_id]
+            id_type_counter[logical_id] += 1
 
-            if logical_id == "BastionHost":
+            if logical_id == "BastionHost" or logical_id == 'bastion':
 
                 print JUMPBOX_CONFIG.format(
                     jump_box=jump_box,
@@ -90,33 +100,32 @@ def _ssh_config(args):
                     identity_file=identity_file,
                     strict_host_check=strict_host_check)
 
-            else:
-                print HOST_CONFIG.format(
-                    name=instance.private_ip_address,
-                    vpc_id=vpc_id,
-                    jump_box=jump_box,
-                    ip=instance.private_ip_address,
-                    user=user,
-                    logical_id=logical_id,
-                    identity_file=identity_file,
-                    config_file=config_file,
-                    strict_host_check=strict_host_check)
-
-            #duplicating for convenience with ansible
-            name = friendly.format(vpc_id=vpc_id,
-                                   logical_id=logical_id,
-                                   instance_id=instance.id)
+            # Print host config even for the bastion box because that is how
+            # ansible accesses it.
             print HOST_CONFIG.format(
-                name=name,
-                vpc_id=vpc_id,
+                name=instance.private_ip_address,
                 jump_box=jump_box,
                 ip=instance.private_ip_address,
                 user=user,
-                logical_id=logical_id,
                 identity_file=identity_file,
                 config_file=config_file,
-                strict_host_check=strict_host_check)
+                strict_host_check=strict_host_check,
+                instance_id=instance.id)
 
+            #duplicating for convenience with ansible
+            name = friendly.format(stack_name=stack_name,
+                                   logical_id=logical_id,
+                                   instance_number=instance_number)
+
+            print HOST_CONFIG.format(
+                name=name,
+                jump_box=jump_box,
+                ip=instance.private_ip_address,
+                user=user,
+                identity_file=identity_file,
+                config_file=config_file,
+                strict_host_check=strict_host_check,
+                instance_id=instance.id)
 
 if __name__ == '__main__':
     args = docopt(__doc__, version=VERSION)
