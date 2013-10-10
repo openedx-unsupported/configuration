@@ -4,7 +4,7 @@
 # assumes the following parameters set
 # as environment variables
 # 
-# - github_username - REQUIRED (will also be the jenkins user)
+# - github_username
 # - server_type
 # - instance_type
 # - region
