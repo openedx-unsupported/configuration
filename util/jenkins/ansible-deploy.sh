@@ -8,7 +8,12 @@
 # {edxapp,forum,xqueue,xserver,ora}_version - commit or tag
  
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
-source "ascii-convert.sh"
+if [[ -z $WORKSPACE ]]; then
+    dir=$(dirname $0)
+    source "$dir/ascii-convert.sh"
+else
+    source "$WORKSPACE/util/jenkins/ascii-convert.sh"
+fi
 
 if [[ -z $github_username  ]]; then
   github_username=$BUILD_USER_ID
