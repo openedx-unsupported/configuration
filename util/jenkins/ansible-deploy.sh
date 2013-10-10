@@ -55,8 +55,9 @@ deploy[xqueue]=$xqueue
 deploy[xserver]=$xserver
 deploy[ora]=$ora
 
-cd playbooks/edx-east
+ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
+cd playbooks/edx-east
 for i in "${!deploy[@]}"; do
     if [[ ${deploy[$i]} == "true" ]]; then
         ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
