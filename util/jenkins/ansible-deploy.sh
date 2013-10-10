@@ -55,11 +55,11 @@ deploy[xqueue]=$xqueue
 deploy[xserver]=$xserver
 deploy[ora]=$ora
 
-cd playbooks
+cd playbooks/edx-east
 
 for i in "${!deploy[@]}"; do
     if [[ ${deploy[$i]} == "true" ]]; then
-        ansible-playbook -vvvv edx-east/deployment/deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
+        ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
     fi
 done
 rm -f "$extra_vars"
