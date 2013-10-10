@@ -41,6 +41,8 @@ EOF
 
 cat $extra_vars
 
+echo "Deploying to $deploy_host"
+
 declare -A deploy
 
 deploy[edxapp]=$edxapp
