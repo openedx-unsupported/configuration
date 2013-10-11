@@ -14,10 +14,21 @@
 # Set the environment to activate the virtualenv
 - name: vagrant_dev | Activate virtualenv
   lineinfile: dest={{ vagrant_home }}/.bashrc
-              regexp=". {{ venv_dir }}/bin/activate"
+              regexp="^. {{ venv_dir }}/bin/activate"
               line=". {{ venv_dir }}/bin/activate"
               state=present
               create=yes
               owner=vagrant
               group=vagrant
   when: venv_dir is defined
+
+# Go straight to /opt/wwc
+- name: vagrant_dev | Default directory
+  lineinfile: dest={{ vagrant_home }}/.bashrc
+              regexp="^cd {{ app_base_dir }}"
+              line="cd {{ app_base_dir }}"
+              state=present
+              create=yes
+              owner=vagrant
+              group=vagrant
+  when: app_base_dir is defined
