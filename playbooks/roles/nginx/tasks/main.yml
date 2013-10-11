@@ -16,8 +16,31 @@
   - nginx
   - install
 
-# Default configuration that is common across all roles
-- include: nginx_site.yml state=link site_name=edx-release
+- name: nginx | Creating common nginx configuration
+  template: src={{ item }} dest=/etc/nginx/sites-available/edx-release.j2 owner=root group=root mode=0600
+  notify: nginx | reload nginx
+  tags:
+  - nginx
+
+- name: nginx | Creating link for common nginx configuration
+  file: src=/etc/nginx/sites-available/edx-release dest=/etc/nginx/sites-enabled/edx-release state=link owner=root group=root
+  notify: nginx | reload nginx
+  tags:
+  - nginx
+
+- name: nginx | Copying nginx config {{ site_name }}
+  template: src={{ item }} dest=/etc/nginx/sites-available/{{ site_name }} owner=root group=root mode=0600
+  notify: nginx | reload nginx
+  with_items: nginx_sites
+  tags:
+  - nginx
+
+- name: nginx | Creating nginx config link {{ site_name }}
+  file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state=link owner=root group=root
+  notify: nginx | reload nginx
+  with_items: nginx_sites
+  tags:
+  - nginx
 
 - name: nginx | Write out default htpasswd file
   copy: content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd owner=www-data group=www-data mode=0600
