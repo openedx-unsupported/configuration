@@ -28,8 +28,19 @@ server {
     proxy_redirect off;
     proxy_pass http://lms-backend;
   }
+  location / {
+     auth_basic            "Restricted";
+     auth_basic_user_file  /etc/nginx/nginx.htpasswd;
+     root {{app_base_dir}}/main_static;
+     index index.html
+     proxy_set_header X-Forwarded-Proto https;
+  }
 
   location / {
+
+    {% if  EDXAPP_LMS_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_lms_app;
   }
 

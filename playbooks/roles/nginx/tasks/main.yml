@@ -11,16 +11,13 @@
 - name: nginx | Server configuration file
   copy: src={{secure_dir}}/files/nginx.conf dest=/etc/nginx/nginx.conf owner=root group=root mode=0644
   when: nginx_conf is defined
-  notify: nginx | restart nginx
+  notify: nginx | reload nginx
   tags:
   - nginx
   - install
 
-# Standard configuration that is common across all roles
-# Default values for these variables are set in group_vars/all
-# Note: remove spaces in {{..}}, otherwise you will get a template parsing error.
-- include: nginx_site.yml state={{nginx_cfg.sites_enabled.edx_release}} site_name=edx-release
-- include: nginx_site.yml state={{nginx_cfg.sites_enabled.basic_auth}} site_name=basic-auth
+# Default configuration that is common across all roles
+- include: nginx_site.yml state=link site_name=edx-release
 
 - name: nginx | Write out default htpasswd file
   copy: content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd owner=www-data group=www-data mode=0600
@@ -38,7 +35,7 @@
 # removing default link
 - name: nginx | Removing default nginx config and restart (enabled)
   file: path=/etc/nginx/sites-enabled/default state=absent
-  notify: nginx | restart nginx
+  notify: nginx | reload nginx
   tags:
   - nginx
   - update
@@ -47,29 +44,25 @@
 
 - name: nginx | Set up nginx access log rotation
   template: dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2 owner=root group=root mode=644
+  notify: common | restart logrotate
   tags:
   - logging
   - update
 
 - name: nginx | Set up nginx access log rotation
   template: dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2 owner=root group=root mode=644
+  notify: common | restart logrotate
   tags:
   - logging
   - update
 
 - name: nginx | Removing default nginx config (available)
   file: path=/etc/nginx/sites-available/default state=absent
+  notify: nginx | reload nginx
   tags:
   - nginx
   - update
   
-- name: nginx | Register the fact that nginx has run
-  command: echo True
-  register: nginx_role_run
-  tags:
-  - nginx
-  - update
-
 # If tasks that notify restart nginx don't change the state of the remote system
 # their corresponding notifications don't get run.  If nginx has been stopped for
 # any reason, this will ensure that it is started up again.
