@@ -29,6 +29,34 @@
   - ora
   - deploy
 
+- name: ora | create ora application config
+  template: src=ora.env.json.j2 dest={{ora_code_dir}}/../ora.env.json mode=0640 owner={{ ora_user }} group=adm
+  tags:
+  - ora
+  - deploy
+
+- name: ora | create ora auth file
+  template: src=ora.auth.json.j2 dest={{ora_code_dir}}/../ora.auth.json mode=0640 owner={{ ora_user }} group=adm
+  tags:
+  - ora
+  - deploy
+
+- name: ora | create ora upstart script
+  template: src=edx-ora.conf.j2 dest=/etc/init/edx-ora.conf mode=0640 owner=root group=adm
+  tags:
+  - ora
+  - deploy
+
+- name: ora | create ora-celery upstart script
+  template: src=edx-ora-celery.conf.j2 dest=/etc/init/edx-ora-celery.conf mode=0640 owner=root group=adm
+  tags:
+  - ora
+  - deploy
+
+# Install nginx site
+- include: ../../nginx/tasks/nginx_site.yml state=link site_name=ora
+
+
 # Do A Checkout
 - name: ora | git checkout ora repo into $app_base_dir
   git: dest={{ora_code_dir}} repo={{ora_source_repo}} version={{ora_version}}
