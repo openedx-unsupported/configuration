@@ -18,9 +18,12 @@
 
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
-dir=$(dirname $0)
-source "${dir}/ascii-convert.sh"
-
+if [[ -z $WORKSPACE ]]; then
+    dir=$(dirname $0)
+    source "$dir/ascii-convert.sh"
+else
+    source "$WORKSPACE/util/jenkins/ascii-convert.sh"
+fi
 
 if [[ -z $dns_name ]]; then
   echo "The hostname is required to know what machine to configure"
