@@ -27,6 +27,7 @@
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edx_platform_code_dir}}
   git: dest={{edx_platform_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
+  register: edx_platform_checkout
   tags:
   - lms
   - cms
@@ -35,6 +36,7 @@
 
 - name: git clean after checking out edx-platform
   shell: cd {{edx_platform_code_dir}} && git clean -xdf
+  when: edx_platform_checkout.changed
   tags:
   - lms
   - cms
@@ -68,6 +70,7 @@
   file: path={{edx_platform_code_dir}} state=directory owner=www-data group=www-data recurse=yes
   # Post Checkout tasks will get run as handlers when the {{ edx_platform_code_dir }} is ready.
   # Look at the handlers/main.yml in this role for a description of the tasks stated below.
+  when: edx_platform_checkout.changed
   tags:
   - lms
   - cms
@@ -76,14 +79,18 @@
 
 # Ruby plays that need to be run after platform updates.
 - name: gem | gem install bundler
-  shell: RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle chdir={{ edx_platform_code_dir }}
+  shell: >
+    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle 
+      chdir={{ edx_platform_code_dir }}
   tags:
   - ruby
   - deploy
   - install
 
 - name: bundle | bundle install
-  shell: RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs chdir={{ edx_platform_code_dir }}
+  shell: >
+    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs 
+      chdir={{ edx_platform_code_dir }}
   tags:
   - ruby
   - deploy
