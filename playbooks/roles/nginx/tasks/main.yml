@@ -17,7 +17,7 @@
   - install
 
 - name: nginx | Creating common nginx configuration
-  template: src={{ item }} dest=/etc/nginx/sites-available/edx-release.j2 owner=root group=root mode=0600
+  template: src=edx-release.j2 dest=/etc/nginx/sites-available/edx-release owner=root group=root mode=0600
   notify: nginx | reload nginx
   tags:
   - nginx
@@ -28,15 +28,15 @@
   tags:
   - nginx
 
-- name: nginx | Copying nginx config {{ site_name }}
-  template: src={{ item }} dest=/etc/nginx/sites-available/{{ site_name }} owner=root group=root mode=0600
+- name: nginx | Copying nginx configs for {{ nginx_sites }}
+  template: src={{ item }}.j2 dest=/etc/nginx/sites-available/{{ item }} owner=root group=root mode=0600
   notify: nginx | reload nginx
   with_items: nginx_sites
   tags:
   - nginx
 
-- name: nginx | Creating nginx config link {{ site_name }}
-  file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state=link owner=root group=root
+- name: nginx | Creating nginx config links for {{ nginx_sites }}
+  file: src=/etc/nginx/sites-available/{{ item  }} dest=/etc/nginx/sites-enabled/{{ item }} state=link owner=root group=root
   notify: nginx | reload nginx
   with_items: nginx_sites
   tags:
