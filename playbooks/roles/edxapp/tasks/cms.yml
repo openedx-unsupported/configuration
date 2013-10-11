@@ -5,19 +5,19 @@
 ---
 - name: create cms application config
   template: src=cms.env.json.j2 dest=$app_base_dir/cms.env.json mode=640 owner=www-data group=adm
-  notify: restart edxapp
   tags:
   - cms-env
   - cms
   - update
+  - deploy
 
 - name: create cms auth file
   template: src=cms.auth.json.j2 dest=$app_base_dir/cms.auth.json mode=640 owner=www-data group=adm
-  notify: restart edxapp
   tags:
   - cms-env
   - cms
   - update
+  - deploy
 
 - include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms
   when: celery_worker is not defined
@@ -32,6 +32,7 @@
   - cms-env
   - logging
   - update
+  - deploy
 
 # Creates CMS upstart file
 - include: upstart.yml basename=cms
