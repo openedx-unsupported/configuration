@@ -19,8 +19,13 @@
 # - name_tag
 
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
-dir=$(dirname $0)
-source "${dir}/ascii-convert.sh"
+
+if [[ -z $WORKSPACE ]]; then
+    dir=$(dirname $0)
+    source "$dir/ascii-convert.sh"
+else
+    source "$WORKSPACE/util/jenkins/ascii-convert.sh"
+fi
 
 if [[ -z $github_username  ]]; then
   github_username=$BUILD_USER_ID
@@ -43,7 +48,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-c97727a0"
+    ami="ami-65db8b0c"
   elif [[ $server_type == "ubuntu_12.04" ]]; then
     ami="ami-d0f89fb9"
   fi
