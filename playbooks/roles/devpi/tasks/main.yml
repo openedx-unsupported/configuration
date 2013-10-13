@@ -1,0 +1,34 @@
+---
+- name: devpi | create devpi user
+  user: >
+    name={{ devpi_user }}
+    state=present
+
+- name: devpi | create virtualenv directory
+  file: >
+    path={{ devpi_venv_dir }}
+    state=directory
+    owner={{ devpi_user }}
+    group={{ devpi_group }}
+  notify: devpi | restart devpi
+
+  name: devpi | create the devpi data directory
+  file: >
+    path={{ devpi_data_dir }}
+    state=directory
+    owner={{ devpi_user }}
+    group={{ devpi_group }}
+
+- name: devpi | install devpi pip pkgs
+  pip: >
+    name={{ item }}
+    state=present 
+    virtualenv={{ devpi_venv_dir }}
+  with_items: devpi_pip_pkgs
+  notify: devpi | restart devpi
+
+- name: devpi | ensure devpi is running
+  supervisorctl: >
+    state=started
+    config={{ supervisor_cfg }}
+    name=devpi-server
