@@ -17,8 +17,11 @@ for repo_url in $(cat /var/tmp/repos.txt); do
     repo_name=${repo_url##*/}
     if [[ ! -d $data_dir/$repo_name ]]; then
         git clone --mirror $repo_url $data_dir/$repo_name
+        cd $data_dir/$repo_name
+        git update-server-info
     else
         cd $data_dir/$repo_name
         git remote update
+        git update-server-info
     fi
 done
