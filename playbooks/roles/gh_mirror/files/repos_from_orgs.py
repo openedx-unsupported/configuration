@@ -43,7 +43,7 @@ def refresh_cache():
     repos = []
 
     for org in orgs:
-        r = requests.get('https://api.github.com/orgs/{}/repos'.format(org))
+        r = requests.get('https://api.github.com/users/{}/repos'.format(org))
         org_data = r.json()
         for repo_data in org_data:
             if 'html_url' in repo_data:
