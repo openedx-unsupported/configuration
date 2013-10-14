@@ -43,14 +43,19 @@ def refresh_cache():
     repos = []
 
     for org in orgs:
-        r = requests.get('https://api.github.com/users/{}/repos'.format(org))
-        org_data = r.json()
-        for repo_data in org_data:
-            if 'html_url' in repo_data:
-                repos.append({'html_url': repo_data['html_url'],
-                              'name': repo_data['name'],
-                              'org': repo_data['owner']['login']})
-
+        page = 1
+        while True:
+            r = requests.get('https://api.github.com/users/{}/repos?page={}'.format(org, page))
+            org_data = r.json()
+            # request pages until we get zero results
+            if not isinstance(org_data, list) or len(org_data) == 0:
+                break
+            for repo_data in org_data:
+                if 'html_url' in repo_data:
+                    repos.append({'html_url': repo_data['html_url'],
+                                  'name': repo_data['name'],
+                                  'org': repo_data['owner']['login']})
+            page += 1
     with open('/var/tmp/repos.json', 'wb') as f:
         f.write(json.dumps(repos))
 
