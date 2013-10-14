@@ -10,6 +10,7 @@ import json
 import subprocess
 import os
 import logging
+import fcntl
 from os.path import dirname, abspath, join
 from argparse import ArgumentParser
 
