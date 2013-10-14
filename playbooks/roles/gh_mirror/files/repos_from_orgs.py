@@ -85,6 +85,8 @@ def update_repos():
 
 if __name__ == '__main__':
     args = parse_args()
+    logging.basicConfig(filename='/var/log/repos-from-orgs.log',
+                        level=logging.DEBUG)
     if args.refresh:
         check_running('refresh')
         refresh_cache()
@@ -94,3 +96,5 @@ if __name__ == '__main__':
             print "Please specificy a repository directory"
             sys.exit(1)
         if not os.path.exists('/var/tmp/repos.json'):
+            refresh_cache()
+        update_repos()
