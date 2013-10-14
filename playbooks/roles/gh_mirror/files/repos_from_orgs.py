@@ -59,7 +59,7 @@ def update_repos():
     with open('/var/tmp/repos.json') as f:
         repos = json.load(f)
     for repo in repos:
-        repo_path = os.path.join(args.datadir, repo['org'], repo['name'])
+        repo_path = os.path.join(args.datadir, repo['org'], repo['name'] + '.git')
         if not os.path.exists(repo_path):
             run_cmd('mkdir -p {}'.format(repo_path))
             run_cmd('git clone --mirror {} {}'.format(repo['html_url'], repo_path))
