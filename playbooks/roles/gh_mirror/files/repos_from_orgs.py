@@ -1,7 +1,10 @@
 #!/usr/bin/python
-# Generates /var/tmp/repos.json from
-# a yaml file containing a list of
-# github organizations
+#   Given a list of repos in a yaml
+#   file will create or update mirrors
+#
+#   Generates /var/tmp/repos.json from
+#   a yaml file containing a list of
+#   github organizations
 
 import yaml
 import sys
