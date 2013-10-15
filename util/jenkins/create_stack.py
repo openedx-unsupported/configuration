@@ -58,32 +58,3 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True):
 create_stack(stack_name, template, region)
 
 print('Stack({}) created.'.format(stack_name))
-#  
-## Create DNS for edxapp and xqueue.
-#dns_settings = {
-#  'edxapp'  : [ 'courses', 'studio' ],
-#  'xqueue'  : [ 'xqueue' ],
-#  'rabbit'  : [ 'rabbit' ],
-#  'xserver' : [ 'xserver' ],
-#  'worker'  : [ 'worker' ],
-#}
-#
-## Create a zone for the stack.
-#zone_name = "{}.vpc.edx.org".format(stack_name)
-#
-##TODO Make this a function instead of a class method.
-#zone = get_or_create_hosted_zone(zone_name)
-#
-#elbs = boto.connect_elb()
-#
-##TODO Implement this.
-#stack_elbs = elbs_for_stack_name(stack_name)
-#for elb in stack_elbs:
-#  for service, dns_prefixes in dns_settings.items():
-#    if service in elb.dns_name.lower():
-#      for prefix in dns_prefixes:
-#        # TODO: Make this function.
-#        create_service_dns(elb, prefix, zone_name)
-#
-#
-#
