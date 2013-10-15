@@ -1,5 +1,5 @@
 server {
-    listen {{nginx_listen_port}};
+    listen {{ DISCERN_NGINX_PORT }};
     server_name localhost;
 
     set $my_host $http_host;
@@ -9,7 +9,7 @@ server {
 
     # https://docs.djangoproject.com/en/dev/howto/static-files/#serving-static-files-in-production
     location /static/ { # STATIC_URL
-        alias {{discern_dir}}/staticfiles/;
+        alias {{ discern_dir }}/staticfiles/;
         expires 1m;
 	autoindex on;
     }
@@ -20,6 +20,9 @@ server {
     }
 
     location / {
+        {% if  DISCERN_BASIC_AUTH %}
+            {% include "basic-auth.j2" %}
+        {% endif %}
         proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
         proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
         proxy_set_header X-Forwarded-For $http_x_forwarded_for;
