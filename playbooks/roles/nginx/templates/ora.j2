@@ -1,13 +1,17 @@
 upstream app_server {
-    # For a TCP configuration:
-    server 127.0.0.1:{{ ora_gunicorn_port }} fail_timeout=0;
+    {% for host in nginx_ora_gunicorn_hosts %}
+        server {{ host }}:{{ ora_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
 }
 
 server {
-  listen {{ ora_nginx_port}} default_server;
+  listen {{ ORA_NGINX_PORT }} default_server;
 
   location / {
 
+    {% if  ORA_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_app;
   }
 

@@ -1,7 +1,6 @@
 # requires:
 #  - group_vars/all
 #  - common/tasks/main.yml
-#  - nginx/tasks/main.yml
 ---
 - name: create cms application config
   template: src=cms.env.json.j2 dest=$app_base_dir/cms.env.json mode=640 owner=www-data group=adm
@@ -18,12 +17,6 @@
   - cms
   - update
   - deploy
-
-- include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms
-  when: celery_worker is not defined
-  
-- include: ../../nginx/tasks/nginx_site.yml state=link site_name=cms-backend
-  when: celery_worker is not defined
 
 - name: Create CMS log target directory
   file: path={{log_base_dir}}/cms state=directory owner=syslog group=syslog mode=2750
