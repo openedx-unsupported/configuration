@@ -128,9 +128,10 @@ def main():
     for res in ec2.get_all_instances(filters={'tag:' + tag: value
                                      for tag, value in tags.iteritems()}):
         for inst in res.instances:
-            instances.append({k: v for k, v in inst.__dict__.iteritems()
-                              if isinstance(v, (basestring))})
-            instance_ids.append(inst.id)
+            if inst.state == "running":
+                instances.append({k: v for k, v in inst.__dict__.iteritems()
+                                  if isinstance(v, (basestring))})
+                instance_ids.append(inst.id)
     module.exit_json(changed=False, instances=instances,
                      instance_ids=instance_ids)
 
