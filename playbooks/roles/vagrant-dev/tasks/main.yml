@@ -1,0 +1,55 @@
+---
+# Vagrant dev specific configuration
+
+# Set the environment DISPLAY automatically
+- name: vagrant_dev | Configure DISPLAY
+  lineinfile: dest={{ vagrant_home }}/.bashrc
+              regexp='^export DISPLAY=(.+)'
+              line='export DISPLAY=:1'
+              state=present
+              create=yes
+              owner=vagrant
+              group=vagrant
+
+# Set the environment to activate the virtualenv
+- name: vagrant_dev | Activate virtualenv
+  lineinfile: dest={{ vagrant_home }}/.bashrc
+              regexp="^. {{ venv_dir }}/bin/activate"
+              line=". {{ venv_dir }}/bin/activate"
+              state=present
+              create=yes
+              owner=vagrant
+              group=vagrant
+  when: venv_dir is defined
+
+# Set the environment to activate rbenv
+- name: vagrant_dev | Configure rbenv
+  template: src=rbenv_env.j2 dest={{ vagrant_home }}/rbenv_env
+            owner=vagrant group=vagrant
+  when: rbenv_root is defined
+
+- name: vagrant_dev | Configure rbenv in bashrc
+  lineinfile: dest={{ vagrant_home }}/.bashrc
+              regexp="^. {{ vagrant_home }}/rbenv_env"
+              line=". {{ vagrant_home }}/rbenv_env"
+              state=present
+              create=yes
+              owner=vagrant
+              group=vagrant
+  when: rbenv_root is defined
+
+# Go straight to /opt/wwc
+- name: vagrant_dev | Default directory
+  lineinfile: dest={{ vagrant_home }}/.bashrc
+              regexp="^cd {{ app_base_dir }}"
+              line="cd {{ app_base_dir }}"
+              state=present
+              create=yes
+              owner=vagrant
+              group=vagrant
+  when: app_base_dir is defined
+
+# Ensure that we have access to everything in the repo
+- name: vagrant_dev | Set app directory permissions
+  file: path="{{ app_base_dir }}" state=directory
+        mode=777 recurse=yes
