@@ -2,6 +2,16 @@
   hosts: localhost
   connection: local
   gather_facts: False
+  pre_tasks:
+    - ec2_lookup:
+      tags:
+        Name: "{{ name_tag }}"
+      register: tag_lookup
+    - fail: 'Too many results returned, not terminating!'
+      when: tag_lookup.instance_ids|length > 1
+    - ec2:
+        state: 'absent'
+        instance_ids: ${tag_lookup.instance_ids}
   roles:
     - role: launch_ec2
       keypair: "{{ keypair }}"
