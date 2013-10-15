@@ -3,18 +3,6 @@
   connection: local
   gather_facts: False
   pre_tasks:
-    - ec2_lookup:
-        region: "{{ region }}"
-        tags:
-          Name: "{{ name_tag }}"
-      register: tag_lookup
-    - debug: msg="Too many results returned, not terminating!"
-      when: tag_lookup.instance_ids|length > 1
-    - ec2:
-        state: 'absent'
-        region: "{{ region }}"
-        instance_ids: ${tag_lookup.instance_ids}
-      when: tag_lookup.instance_ids|length == 1
   roles:
     - role: launch_ec2
       keypair: "{{ keypair }}"
@@ -26,6 +14,7 @@
       root_ebs_size: "{{ root_ebs_size }}"
       dns_name: "{{ dns_name }}"
       dns_zone: "{{ dns_zone }}"
+      terminate_instance: true
 
 - name: Configure instance(s)
   hosts: launched
