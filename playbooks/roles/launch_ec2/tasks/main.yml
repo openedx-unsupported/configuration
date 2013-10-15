@@ -1,5 +1,27 @@
 # Launches an ec2 instance and blocks until the instance is up
 # adds it to the host group 
+# Will terminate an instance if one and only one already exists
+# with the same name
+
+- name: lookup tags for terminating existing instance
+  local_action:
+    module: ec2_lookup
+    region: "{{ region }}"
+    tags:
+      Name: "{{ name_tag }}"
+  register: tag_lookup
+  when: terminate_instance == true
+
+- debug: msg="Too many results returned, not terminating!"
+  when: terminate_instance == true and tag_lookup.instance_ids|length > 1
+
+- name: terminating single instance
+  local_action:
+    module: ec2
+    state: 'absent'
+    region: "{{ region }}"
+    instance_ids: ${tag_lookup.instance_ids}
+  when: terminate_instance == true and tag_lookup.instance_ids|length == 1
 
 - name: launch_ec2 | Launch ec2 instance 
   local_action: 
