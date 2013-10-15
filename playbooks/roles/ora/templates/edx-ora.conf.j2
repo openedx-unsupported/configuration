@@ -12,6 +12,7 @@ respawn limit 3 30
 env PID=/var/run/gunicorn/edx-ora.pid
 env WORKERS={{ ora_gunicorn_workers }}
 env PORT={{ ora_gunicorn_port }}
+env ADDRESS={{ ora_gunicorn_host }}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=edx_ora.aws
 env SERVICE_VARIANT=ora
@@ -22,4 +23,4 @@ end script
 chdir {{ ora_code_dir }}
 setuid {{ ora_user }}
 
-exec {{ ora_venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=90 --pythonpath={{ ora_code_dir}} edx_ora.wsgi
+exec {{ ora_venv_dir}}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=90 --pythonpath={{ ora_code_dir}} edx_ora.wsgi
