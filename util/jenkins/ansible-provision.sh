@@ -80,6 +80,7 @@ instance_tags: '{"environment": "$environment", "github_username": "$github_user
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
+GIT_MIRROR: 'git.edx.org'
 gh_users:
   - user: jarv
     groups:
