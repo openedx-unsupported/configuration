@@ -1,0 +1,26 @@
+---
+- fail: supervisor_servers is a required parameter for this role
+  when: supervisor_servers is not defined
+
+- name: supervisor | install supervisor at the system level
+  pip: name=supervisor state=present
+
+- name: supervisor | create supervisor directories
+  file: name={{ item }} state=directory
+  with_items:
+    - /etc/supervisor
+    - /etc/supervisor/conf.d
+    - "{{ supervisor_log_dir }}"
+
+- name: supervisor | create supervisor upstart job
+  template: src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+
+- name: supervisor | create supervisor master config
+  template: src=supervisord.conf.j2 dest={{ supervisor_cfg }}
+
+- name: supervisor | create supervisor configs
+  template: src={{ item }}.conf.j2 dest=/etc/supervisor/conf.d/{{ item }}.conf
+  with_items: supervisor_servers
+
+- name: supervisor | ensure supervisor is started
+  service: name=supervisor state=started

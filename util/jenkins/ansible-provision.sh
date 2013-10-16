@@ -78,6 +78,8 @@ ami: $ami
 region: $region
 instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
 root_ebs_size: $root_ebs_size
+name_tag: $name_tag
+pip_index_url: 'https://pypi.edx.org/root/pypi/+simple/'
 gh_users:
   - user: jarv
     groups:
