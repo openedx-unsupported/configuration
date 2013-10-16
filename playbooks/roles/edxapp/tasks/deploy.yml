@@ -106,13 +106,27 @@
 
 # Python plays that need to be run after platform updates.
 
+# Substitute github mirror in all requirements files
+#
+- name: Updating requirements files for git mirror
+  lineinfile: >
+    dest={{ item }}
+    regexp='^(.*)github\.com(.*)$'
+    line='\1{{ GIT_MIRROR }}\2'
+    backrefs=yes
+  with_items:
+    - "{{ pre_prequirements_file }}"
+    - "{{ post_prequirements_file }}"
+    - "{{ repo_requirements_file }}"
+    - "{{ github_requirements_file }}"
+    - "{{ local_requirements_file }}"
 # Install the python pre requirements into {{ venv_dir }}
 - name : install python pre-requirements
   pip: >
     requirements="{{pre_requirements_file}}" 
     virtualenv="{{venv_dir}}" 
     state=present
-    extra_args="-i {{ pip_index_url }}"
+    extra_args="-i {{ PYPI_MIRROR }}"
   tags:
   - lms
   - cms
@@ -124,7 +138,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ pip_index_url }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
   tags:
   - lms
   - cms
@@ -137,7 +151,7 @@
     requirements="{{post_requirements_file}}" 
     virtualenv="{{venv_dir}}" 
     state=present
-    extra_args="-i {{ pip_index_url }}"
+    extra_args="-i {{ PYPI_MIRROR }}"
   tags:
   - lms
   - cms
@@ -149,7 +163,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ pip_index_url }} --exists-action w --use-mirrors -r {{ item }}
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR }} --exists-action w --use-mirrors -r {{ item }}
   with_items:
   - "{{ repo_requirements_file }}"
   - "{{ github_requirements_file }}"
@@ -166,7 +180,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ pip_index_url }} --exists-action w --use-mirrors -r {{ item }}
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR }} --exists-action w --use-mirrors -r {{ item }}
   with_items:
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
