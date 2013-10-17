@@ -1,10 +1,6 @@
 ---
-- include: create_users.yml
-- include: create_github_users.yml
-  when: GITHUB_USERS is defined
-
 - name: common | Add user www-data
-  # This user should be created on the system by default
+  # This is the default user for nginx and gunicorn
   user: name=www-data
   tags:
   - pre_install
@@ -12,7 +8,7 @@
 
 - name: common | Create the base directory for storage
   file: >
-    path={{ storage_base_dir }}
+    path={{ data_base_dir }}
       state=directory
       owner=root
       group=root
@@ -20,7 +16,7 @@
 
 - name: common | Create application root
   # In the future consider making group edx r/t adm
-  file: path={{ app_base_dir }} state=directory owner=root group=adm mode=2775 
+  file: path={{ app_base_dir }} state=directory owner=root group=adm mode=2775
   tags:
   - pre_install
   - update
@@ -36,13 +32,13 @@
   tags:
   - pre_install
   - update
-  
+
 - name: common | Create staticfiles dir
-  file: path={{ app_base_dir }}/staticfiles state=directory owner=www-data group=adm mode=2775 
+  file: path={{ app_base_dir }}/staticfiles state=directory owner=www-data group=adm mode=2775
   tags:
   - pre_install
   - update
-  
+
 - name: common | Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
   apt: pkg={{','.join(common_debian_pkgs)}} install_recommends=yes state=present update_cache=yes
@@ -70,7 +66,7 @@
   - logging
   - update
 
-- name: common | Touch edx log file into place 
+- name: common | Touch edx log file into place
   # This is done for the benefit of the rake commands, which expect it
   command: touch -a {{log_base_dir}}/edx.log creates={{log_base_dir}}/edx.log
   tags:
