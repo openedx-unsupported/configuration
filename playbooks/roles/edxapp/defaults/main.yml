@@ -92,8 +92,11 @@ EDXAPP_LMS_PREVIEW_BASIC_AUTH: False
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
 
-edxapp_data_dir:
-edxapp_app_dir:
+edxapp_data_dir: "{{ data_dir }}/edxapp"
+edxapp_app_dir: "{{ app_dir }}/edxapp"
+edxapp_log_dir: "{{ log_dir }}/edxapp"
+edxapp_user: edxapp
+
 edxapp_generic_auth_config:  &edxapp_generic_auth
   AWS_ACCESS_KEY_ID:  $EDXAPP_AWS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY: $EDXAPP_AWS_SECRET_ACCESS_KEY
@@ -129,7 +132,6 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       OPTIONS:  *generic_modulestore_default_options
   DATABASES:
     default:
-      ENGINE: 'django.db.backends.mysql'
       NAME: $EDXAPP_MYSQL_DB_NAME
       USER: $EDXAPP_MYSQL_USER
       PASSWORD: $EDXAPP_MYSQL_PASSWORD
@@ -296,6 +298,7 @@ sandbox_post_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbo
 install_sandbox_reqs_into_regular_venv: true
 
 lms_debian_pkgs:
+  - npm
   # for compiling the virtualenv
   # (only needed if wheel files aren't available)
   - build-essential

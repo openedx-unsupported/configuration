@@ -2,54 +2,41 @@
 #  - group_vars/all
 #  - common/tasks/main.yml
 ---
-- name: Change permissions on datadir
-  file: path={{ app_dir }}/data state=directory owner=www-data group=www-data
-  tags:
-  - cms
-  - lms
-  - lms-env
-  - update
+- name: edxapp | create application user
+  user: name="{{ edxapp_user }}"
 
-- name: Change owner on staticfiles
-  file: path={{ app_dir }}/staticfiles state=directory owner=www-data group=adm
-  tags:
-  - cms
-  - lms
-  - lms-env
-  - update
+- name: edxapp | create edxapp app dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner=root
+    group="{{ edxapp_user }}"
+  with_items:
+    - "{{ edxapp_app_dir }}"
+    - "{{ edxapp_app_dir }}/venvs"
 
-- name: Create theming directory
-  file: path={{ app_dir }}/themes state=directory mode=2775 group=adm owner=www-data
-  tags:
-  - cms
-  - lms
-  - cms-env
-  - lms-env
-  - update
+- name: edxapp | create edxapp data dirs
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ edxapp_user }}"
+  with_items:
+    - "{{ edxapp_log_dir }}"
+    - "{{ edxapp_data_dir }}/staticfiles"
+    - "{{ edxapp_data_dir }}/data"
+    - "{{ edxapp_data_dir }}/uploads"
+    - "{{ edxapp_data_dir }}/themes"
 
-- name: install a bunch of system packages on which LMS and CMS rely
+- name: edxapp | install system packages on which LMS and CMS rely
   apt: pkg={{','.join(lms_debian_pkgs)}} state=present
-  tags:
-  - lms
-  - cms
-  - install
 
-- name: creating edxapp upstart script
+- name: edxapp | creating edxapp upstart script
   sudo: True
   template: src=edxapp.conf.j2 dest=/etc/init/edxapp.conf owner=root group=root
   when: "celery_worker is not defined"
-  tags:
-  - upstart
-  - gunicorn
-  - update
 
-- name: create edx-workers upstart script
+- name: edxapp | create edx-workers upstart script
   template: src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf owner=root group=root
   when: "celery_worker is defined"
-  tags:
-  - upstart
-  - update
 
-- include: npm.yml
-- include: ruby.yml
 - include: deploy.yml

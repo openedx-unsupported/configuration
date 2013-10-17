@@ -3,36 +3,17 @@
   # This is the default user for nginx
   user: name=www-data
 
-- name: common | Create the base directory for storage
+- name: common | Create common directories
   file: >
     path={{ data_dir }}
     state=directory
     owner=root
     group=root
     mode=0755
-
-- name: common | Create the base directory for the app
-  file: >
-    path={{ app_dir }}
-    state=directory
-    owner=root
-    group=root
-    mode=0755
-
-- name: common | Create upload directory
-  file: path={{ app_dir }}/uploads mode=2775 state=directory owner=root group=adm
-
-- name: common | Create data dir
-  file: path={{ app_dir }}/data state=directory owner=www-data group=root
-  tags:
-  - pre_install
-  - update
-
-- name: common | Create staticfiles dir
-  file: path={{ app_dir }}/staticfiles state=directory owner=www-data group=adm mode=2775
-  tags:
-  - pre_install
-  - update
+  with_items:
+    - "{{ data_dir }}"
+    - "{{ app_dir }}"
+    - "{{ log_dir }}"
 
 - name: common | Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -40,45 +21,37 @@
   tags:
   - pre_install
   - update
-
-- name: common | Create log directory
-  file: path={{log_base_dir}} state=directory mode=2755 group=adm owner=syslog
-  tags:
-  - pre_install
-  - update
-
-- name: common | Create alias from app_dir to the log_base_dir
-  file: state=link src={{log_base_dir}} path={{app_dir}}/log
-  tags:
-  - pre_install
-  - logging
-  - update
-
-- name: common | Create convenience link from log_base_dir to system logs
-  file: state=link src=/var/log path=$log_base_dir/system
-  tags:
-  - pre_install
-  - logging
-  - update
-
-- name: common | Touch edx log file into place
-  # This is done for the benefit of the rake commands, which expect it
-  command: touch -a {{log_base_dir}}/edx.log creates={{log_base_dir}}/edx.log
-  tags:
-  - pre_install
-  - logging
-  - install
-
-- name: common | Set permissions on edx log file
-  # This is done for the benefit of the rake commands, which expect it
-  file: path={{log_base_dir}}/edx.log owner=syslog group=adm mode=640
-  tags:
-  - pre_install
-  - logging
   - update
 
 - name: common | upload sudo config for key forwarding as root
   copy: src=ssh_key_forward dest=/etc/sudoers.d/ssh_key_forward validate='visudo -c -f %s' owner=root group=root mode=0440
 
-- include: create_venv.yml
-- include: edx_logging_base.yml
+- name: common | pip install virtualenv
+  pip: >
+    name="{{ item }}"
+    state=present
+    extra_args="-i {{ PYPI_MIRROR_URL }}"
+  with_items: common_pip_pkgs
+
+- name: common | Install rsyslog configuration for edX
+  template: dest=/etc/rsyslog.d/99-edx.conf src=edx_rsyslog.j2 owner=root group=root mode=644
+  notify: common | restart rsyslogd
+  tags:
+  - logging
+  - update
+  notify: common | restart rsyslogd
+
+- name: common | Install logrotate configuration for edX
+  template: dest=/etc/logrotate.d/edx-services src=edx_logrotate.j2 owner=root group=root mode=644
+  tags:
+  - logging
+  - update
+  notify: common | restart logrotate
+
+
+- name: common | Install logrotate configuration for tracking file
+  template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
+  tags:
+  - logging
+  - update
+  notify: common | restart logrotate
