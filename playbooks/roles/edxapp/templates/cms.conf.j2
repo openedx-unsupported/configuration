@@ -10,7 +10,7 @@ respawn limit 3 30
  
 env PID=/var/tmp/cms.pid
 #env NEW_RELIC_CONFIG_FILE={{app_dir}}/newrelic.ini
-#env NEWRELIC={{venv_dir}}/bin/newrelic-admin
+#env NEWRELIC={{edxapp_venv_dir}}/bin/newrelic-admin
 {% if ansible_processor|length > 0 %}
 env WORKERS={{ ansible_processor|length * worker_core_mult.cms }}
 {% else %}
@@ -22,7 +22,7 @@ env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE=cms.envs.aws
 env SERVICE_VARIANT="cms"
  
-chdir {{edx_platform_code_dir}}
+chdir {{edxapp_code_dir}}
 setuid www-data
 
-exec {{venv_dir}}/bin/gunicorn_django -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{edx_platform_code_dir}} --settings=cms.envs.aws
+exec {{edxapp_venv_dir}}/bin/gunicorn_django -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{edxapp_code_dir}} --settings=cms.envs.aws

@@ -25,83 +25,50 @@
 
 
 # Do A Checkout
-- name: edxapp | checkout edx-platform repo into {{edx_platform_code_dir}}
-  git: dest={{edx_platform_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
+- name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
+  git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
   register: edx_platform_checkout
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
 
 - name: git clean after checking out edx-platform
-  shell: cd {{edx_platform_code_dir}} && git clean -xdf
+  shell: cd {{edxapp_code_dir}} && git clean -xdf
   when: edx_platform_checkout.changed
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
 
-# Do Post Checkout Tasks.
-- name: create platform code dir
-  file: path={{edx_platform_code_dir}} state=directory owner=www-data group=www-data mode=755
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
 
 - name: checkout theme
   git: dest={{app_dir}}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
   when: edxapp_theme_name != ''
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - cms
-  - lms-preview
-  - lms
-  - update
-  - deploy
-
-
-# TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
-# portions of the deploy needs to be incorporated here.
-
-- name: sets permissions on platform code dir and contents
-  file: path={{edx_platform_code_dir}} state=directory owner=www-data group=www-data recurse=yes
-  # Post Checkout tasks will get run as handlers when the {{ edx_platform_code_dir }} is ready.
-  # Look at the handlers/main.yml in this role for a description of the tasks stated below.
-  when: edx_platform_checkout.changed
-  tags:
-  - lms
-  - cms
-  - install
   - deploy
 
 # Ruby plays that need to be run after platform updates.
-- name: gem | gem install bundler
+- name: edxapp | gem install bundler
   shell: >
-    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle 
-      chdir={{ edx_platform_code_dir }}
+    RBENV_ROOT={{ edxapp_rbenv_root }} GEM_HOME={{ edxapp_gem_root }} {{ edxapp_rbenv_root }}/shims/gem install bundle
+      chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - ruby
   - deploy
-  - install
 
-- name: bundle | bundle install
+- name: edxapp | bundle install
   shell: >
-    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs 
-      chdir={{ edx_platform_code_dir }}
+    RBENV_ROOT={{ edxapp_rbenv_root }} GEM_HOME={{ edxapp_gem_root }} {{ edxapp_gem_root }}/bin/bundle install --binstubs
+      chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - ruby
   - deploy
-  - install
 
 # Node play that need to be run after platform updates.
 - name: Install edx-platform npm dependencies
-  shell: npm install chdir={{ edx_platform_code_dir }}
+  shell: npm install chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - npm
-  - update
   - deploy
 
 # Python plays that need to be run after platform updates.
@@ -120,113 +87,92 @@
     - "{{ sandbox_base_requirements }}"
     - "{{ sandbox_local_requirements }}"
     - "{{ sandbox_post_requirements }}"
+  sudo_user: "{{ edxapp_user }}"
   tags:
-    - lms
-    - cms
-    - install
     - deploy
 
-# Install the python pre requirements into {{ venv_dir }}
+# Install the python pre requirements into {{ edxapp_venv_dir }}
 - name : install python pre-requirements
   pip: >
-    requirements="{{pre_requirements_file}}" 
-    virtualenv="{{venv_dir}}" 
+    requirements="{{pre_requirements_file}}"
+    virtualenv="{{edxapp_venv_dir}}"
     state=present
     extra_args="-i {{ PYPI_MIRROR_URL }}"
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
 
-# Install the python modules into {{ venv_dir }}
+# Install the python modules into {{ edxapp_venv_dir }}
 - name : install python base-requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
+  shell: cd {{ edxapp_code_dir }} && {{ edxapp_venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
 
-# Install the python post requirements into {{ venv_dir }}
+# Install the python post requirements into {{ edxapp_venv_dir }}
 - name : install python post-requirements
   pip: >
-    requirements="{{post_requirements_file}}" 
-    virtualenv="{{venv_dir}}" 
+    requirements="{{post_requirements_file}}"
+    virtualenv="{{edxapp_venv_dir}}"
     state=present
     extra_args="-i {{ PYPI_MIRROR_URL }}"
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
 
-# Install the final python modules into {{ venv_dir }}
+# Install the final python modules into {{ edxapp_venv_dir }}
 - name : install python post-post requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
+  shell: cd {{ edxapp_code_dir }} && {{ edxapp_venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
   with_items:
   - "{{ repo_requirements_file }}"
   - "{{ github_requirements_file }}"
   - "{{ local_requirements_file }}"
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
 
 
-# Install the sandbox python modules into {{ venv_dir }}
+# Install the sandbox python modules into {{ edxapp_venv_dir }}
 - name : install sandbox requirements into regular venv
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
+  shell: cd {{ edxapp_code_dir }} && {{ edxapp_venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
   with_items:
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
   when: install_sandbox_reqs_into_regular_venv
+  sudo_user: "{{ edxapp_user }}"
   tags:
-  - lms
-  - cms
-  - install
   - deploy
-
-- name: changing group ownership to www-data for everything in the venv (workaround)
-  shell: chgrp -R www-data {{ venv_dir }}
-
 
 # Gather lms assets using rake if possible
 - name: gather lms static assets with rake
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
+  shell: executable=/bin/bash chdir={{ edxapp_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
   notify:
   - restart edxapp
-  sudo: yes
-  sudo_user: www-data
+  sudo_user: "{{ edxapp_user }}"
   when: celery_worker is not defined
   environment: "{{ deploy_environment }}"
   tags:
-  - lms
-  - lms-preview
   - deploy
 
 # Gather cms assets using rake if possible
 - name: gather cms static assets with rake
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
+  shell: executable=/bin/bash chdir={{ edxapp_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
   notify:
   - restart edxapp
-  sudo: yes
-  sudo_user: www-data
+  sudo_user: "{{ edxapp_user }}"
   when: celery_worker is not defined
   environment: "{{ deploy_environment }}"
   tags:
-  - cms
   - deploy
 
 
@@ -235,42 +181,27 @@
 # not sure if this fix will ever get merged
 # We should never do this in production
 - name: openid workaround - NOT FOR PRODUCTION
-  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
+  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
   tags:
   - deploy
-  - lms
-  - lms-preview
-  - cms
-  - syncdb
 
 - name: syncdb and migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
   - deploy
-  - lms
-  - lms-preview
-  - cms
-  - syncdb
 
 - name: db migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_only is defined and migrate_only|lower == "yes"
   tags:
   - deploy
-  - lms
-  - lms-preview
-  - cms
-  - migrate 
 
 - name: restart edxapp
   service: name=edxapp state=restarted
   when: celery_worker is not defined
   tags:
-  - lms
-  - lms-preview
-  - cms
   - deploy
 
 - name: restart workers

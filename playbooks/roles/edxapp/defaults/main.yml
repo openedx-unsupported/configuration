@@ -96,8 +96,12 @@ edxapp_data_dir: "{{ data_dir }}/edxapp"
 edxapp_app_dir: "{{ app_dir }}/edxapp"
 edxapp_log_dir: "{{ log_dir }}/edxapp"
 edxapp_venvs_dir: "{{ app_dir }}/venvs"
+edxapp_venv_dir: "{{ edxapp_venvs_dir }}/edxapp"
 edxapp_rbenvs_dir: "{{ app_dir }}/rbenvs"
+edxapp_rbenv_dir: "{{ edxapp_rbenvs_dir }}/edxapp"
 edxapp_user: edxapp
+edxapp_rbenv_root: "{{ edxapp_rbenv_dir }}/.rbenv"
+edxapp_gem_root: "{{ edxapp_rbenv_dir }}/.gem"
 
 edxapp_generic_auth_config:  &edxapp_generic_auth
   AWS_ACCESS_KEY_ID:  $EDXAPP_AWS_ACCESS_KEY_ID
@@ -242,7 +246,7 @@ lms_preview_env_config:
 
 
 # install dir for the edx-platform repo
-edx_platform_code_dir: "{{ app_dir }}/edx-platform"
+edxapp_code_dir: "{{ app_dir }}/edx-platform"
 
 
 # gunicorn ports/hosts, these shouldn't need to be overridden
@@ -285,16 +289,16 @@ edx_platform_repo: "https://{{ GIT_MIRROR }}/edx/edx-platform.git"
 # `edx_platform_commit` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
 edx_platform_commit: 'release'
-local_requirements_file:  "{{ edx_platform_code_dir }}/requirements/edx/local.txt"
-pre_requirements_file:    "{{ edx_platform_code_dir }}/requirements/edx/pre.txt"
-post_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/post.txt"
-base_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/base.txt"
-github_requirements_file: "{{ edx_platform_code_dir }}/requirements/edx/github.txt"
-repo_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/repo.txt"
+local_requirements_file:  "{{ edxapp_code_dir }}/requirements/edx/local.txt"
+pre_requirements_file:    "{{ edxapp_code_dir }}/requirements/edx/pre.txt"
+post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
+base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
+github_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/github.txt"
+repo_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/repo.txt"
 
-sandbox_base_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/base.txt"
-sandbox_local_requirements: "{{ edx_platform_code_dir }}/requirements/edx-sandbox/local.txt"
-sandbox_post_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/post.txt"
+sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
+sandbox_local_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/local.txt"
+sandbox_post_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/post.txt"
 
 #do we want to install the sandbox requirements into the regular virtual env
 install_sandbox_reqs_into_regular_venv: true
@@ -339,9 +343,9 @@ deploy_environment:
   LANG: "en_US.UTF-8"
   NO_PREREQ_INSTALL: 1
   SKIP_WS_MIGRATIONS: 1
-  RBENV_ROOT: "{{ rbenv_root }}"
-  GEM_HOME: "{{ gem_home }}"
-  PATH: "{{ venv_dir }}/bin:{{ edx_platform_code_dir }}/bin:{{ rbenv_root }}/bin:{{ rbenv_root }}/shims:{{ gem_home }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  RBENV_ROOT: "{{ edxapp_rbenv_root }}"
+  GEM_HOME: "{{ edxapp_gem_root }}"
+  PATH: "{{ edxapp_venv_dir }}/bin:{{ edxapp_code_dir }}/bin:{{ edxapp_rbenv_root }}/bin:{{ edxapp_rbenv_root }}/shims:{{ edxapp_gem_home }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Worker Settings
 worker_django_settings_module: 'aws'

@@ -1,11 +1,11 @@
 ---
 
 # rbenv
-# 
+#
 # Dependencies:
 #
 #   * common
-# 
+#
 # Example play:
 #
 #   roles:
@@ -16,7 +16,7 @@
 #     rbenv_ruby_version: "{{ forum_ruby_version }}"
 #
 # Parameters:
-#  
+#
 #   * rbenv_user
 #   * rbenv_user_home
 #   * rbenv_ruby_version
@@ -38,14 +38,14 @@
   # workaround for the case where the parent
   # directory doesn't exist
   file: >
-    path={{ rbenv_user_home }} 
+    path={{ rbenv_user_home }}
     state=directory
 
 - name: rbenv | create rbenv user {{ rbenv_user }}
   user: >
-    name={{ rbenv_user }} 
-    state=present 
-    shell=/bin/bash 
+    name={{ rbenv_user }}
+    state=present
+    shell=/bin/bash
     home={{ rbenv_user_home }}
     createhome=yes
   tags:
@@ -56,7 +56,7 @@
   # workaround for the case where the parent
   # directory doesn't exist
   file: >
-    path={{ rbenv_user_home }} 
+    path={{ rbenv_user_home }}
     owner={{ rbenv_user }}
     group={{ rbenv_user }}
     state=directory
@@ -80,10 +80,10 @@
 
 - name: rbenv | update rbenv repo
   git: >
-    repo=https://github.com/sstephenson/rbenv.git 
-    dest={{ rbenv_user_home }}/.rbenv 
+    repo=https://github.com/sstephenson/rbenv.git
+    dest={{ rbenv_user_home }}/.rbenv
     version={{ rbenv_version }}
-  sudo: true  
+  sudo: true
   sudo_user: "{{ rbenv_user }}"
   tags:
   - ruby
@@ -91,7 +91,7 @@
 
 - name: rbenv | ensure .bashrc exists
   shell: touch {{ rbenv_user_home }}/.bashrc
-  sudo: true  
+  sudo: true
   sudo_user: "{{ rbenv_user }}"
   tags:
   - ruby
@@ -99,17 +99,17 @@
 
 - name: rbenv | drop a bash_profile
   copy: >
-    src=../../common/files/bash_profile 
-    dest={{ rbenv_user_home }}/.bash_profile 
-    owner={{ rbenv_user }} 
+    src=../../common/files/bash_profile
+    dest={{ rbenv_user_home }}/.bash_profile
+    owner={{ rbenv_user }}
     group={{ rbenv_user }}
 
 
 - name: rbenv | ensure ruby_env exists
   template: >
-    src=ruby_env.j2 
-    dest={{ rbenv_user_home }}/ruby_env 
-    owner={{ rbenv_user }} 
+    src=ruby_env.j2
+    dest={{ rbenv_user_home }}/ruby_env
+    owner={{ rbenv_user }}
     group={{ rbenv_user }}
   tags:
   - ruby
@@ -118,14 +118,14 @@
 - name: rebenv | add source of ruby_env to .bashrc
   lineinfile:
     dest="{{ rbenv_user_home }}/.bashrc"
-    regexp='. {{ rbenv_user_home }}/ruby_env'    
+    regexp='. {{ rbenv_user_home }}/ruby_env'
     line='. {{ rbenv_user_home }}/ruby_env'
 
 - name: rbenv | drop a bash_profile
   copy: >
-    src=../../common/files/bash_profile 
-    dest={{ rbenv_user_home }}/.bash_profile 
-    owner={{ rbenv_user }} 
+    src=../../common/files/bash_profile
+    dest={{ rbenv_user_home }}/.bash_profile
+    owner={{ rbenv_user }}
     group={{ rbenv_user }}
 
 - name: rbenv | check ruby-build installed
@@ -149,7 +149,7 @@
 - name: rbenv | create temporary directory
   command: mktemp -d
   register: tempdir
-  sudo: true  
+  sudo: true
   sudo_user: "{{ rbenv_user }}"
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
@@ -160,7 +160,7 @@
   git: repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   sudo: true
-  sudo_user: "{{ rbenv_user }}" 
+  sudo_user: "{{ rbenv_user }}"
   tags:
   - ruby
   - install
@@ -183,7 +183,7 @@
   shell: "{{ rbenv_user_home }}/.rbenv/bin/rbenv versions | grep {{ rbenv_ruby_version }}"
   register: ruby_installed
   sudo: true
-  sudo_user: "{{ rbenv_user }}" 
+  sudo_user: "{{ rbenv_user }}"
   ignore_errors: yes
   tags:
   - ruby
@@ -193,7 +193,7 @@
   shell: "{{ rbenv_user_home }}/.rbenv/bin/rbenv install {{ rbenv_ruby_version }} creates={{rbenv_user_home}}/.rbenv/versions/{{rbenv_ruby_version}}"
   when: ruby_installed|failed
   sudo: true
-  sudo_user: "{{ rbenv_user }}" 
+  sudo_user: "{{ rbenv_user }}"
   tags:
   - ruby
   - install
@@ -209,7 +209,7 @@
 - name: rbenv | install bundler
   shell: "{{ rbenv_user_home }}/.rbenv/shims/gem install bundler -v {{ rbenv_bundler_version }}"
   sudo: true
-  sudo_user: "{{ rbenv_user }}" 
+  sudo_user: "{{ rbenv_user }}"
   tags:
   - ruby
   - install
@@ -217,7 +217,7 @@
 - name: rbenv | rehash
   shell: "{{rbenv_user_home}}/.rbenv/bin/rbenv rehash"
   sudo: true
-  sudo_user: "{{ rbenv_user }}" 
+  sudo_user: "{{ rbenv_user }}"
   tags:
   - ruby
   - install
