@@ -48,7 +48,8 @@ ora_version: $ora_version
 ease_version: $ease_version
 
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
-
+PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
+GIT_MIRROR: 'git.edx.org'
 EOF
 
 cat $extra_vars
