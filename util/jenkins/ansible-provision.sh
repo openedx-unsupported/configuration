@@ -82,18 +82,10 @@ name_tag: $name_tag
 PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
 GIT_MIRROR: 'git.edx.org'
 gh_users:
-  - user: jarv
-    groups:
-    - adm
-  - user: feanil
-    groups:
-    - adm
-  - user: e0d
-    groups:
-    - adm
-  - user: ${github_username}
-    groups:
-    - adm
+  - jarv
+  - feanil
+  - e0d
+  - ${github_username}
 dns_zone: $dns_zone
 EOF
 
