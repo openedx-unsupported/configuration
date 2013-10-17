@@ -13,7 +13,14 @@
     group="{{ edxapp_user }}"
   with_items:
     - "{{ edxapp_app_dir }}"
-    - "{{ edxapp_app_dir }}/venvs"
+    - "{{ edxapp_venvs_dir }}"
+
+- name: edxapp | create edxapp log dir
+  file: >
+    path="{{ edxapp_log_dir }}"
+    state=directory
+    owner=syslog
+  notify: common | restart logrotate
 
 - name: edxapp | create edxapp data dirs
   file: >
@@ -21,7 +28,6 @@
     state=directory
     owner="{{ edxapp_user }}"
   with_items:
-    - "{{ edxapp_log_dir }}"
     - "{{ edxapp_data_dir }}/staticfiles"
     - "{{ edxapp_data_dir }}/data"
     - "{{ edxapp_data_dir }}/uploads"
