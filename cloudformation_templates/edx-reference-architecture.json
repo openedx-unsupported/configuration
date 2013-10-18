@@ -1740,7 +1740,7 @@
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"WorkerSubnet01"
+          "Ref":"ForumSubnet01"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -1751,7 +1751,7 @@
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"WorkerSubnet02"
+          "Ref":"ForumSubnet02"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -1762,7 +1762,7 @@
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"WorkerSubnet01"
+          "Ref":"MongoSubnet01"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -1773,7 +1773,7 @@
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"WorkerSubnet02"
+          "Ref":"MongoSubnet02"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -4725,7 +4725,7 @@
           }
         ],
         "HealthCheck":{
-          "Target":"HTTP:80",
+          "Target":"TCP:80",
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
@@ -4887,7 +4887,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -4927,22 +4927,25 @@
                 " || error_exit 'Failed to run cfn-init'\n",
                 "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
 
+                "#Install lvm2 so we can create logical volumes.\n",
+                "apt-get -y install lvm2 mdadm\n",
+
                 "## Waiting for EBS mounts to become available\n",
-                "while [ ! -e /dev/sdh1 ]; do echo waiting for /dev/sdh1 to attach; sleep 10; done\n",
-                "while [ ! -e /dev/sdh2 ]; do echo waiting for /dev/sdh2 to attach; sleep 10; done\n",
-                "while [ ! -e /dev/sdh3 ]; do echo waiting for /dev/sdh3 to attach; sleep 10; done\n",
-                "while [ ! -e /dev/sdh4 ]; do echo waiting for /dev/sdh4 to attach; sleep 10; done\n",
+                "while [ ! -e /dev/xvdh ]; do echo waiting for /dev/xvdh to attach; sleep 10; done\n",
+                "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 10; done\n",
+                "while [ ! -e /dev/xvdj ]; do echo waiting for /dev/xvdj to attach; sleep 10; done\n",
+                "while [ ! -e /dev/xvdk ]; do echo waiting for /dev/xvdk to attach; sleep 10; done\n",
 
                 "## Create RAID10 and persist configuration\n",
-                "mdadm --verbose --create /dev/md0 --level=10 --chunk=256 --raid-devices=4 /dev/sdh1 /dev/sdh2 /dev/sdh3 /dev/sdh4 > /tmp/mdadm.log 2>&1\n",
+                "mdadm --verbose --create /dev/md0 --level=10 --chunk=256 --raid-devices=4 /dev/xvdh /dev/xvdi /dev/xvdj /dev/xvdk | tee /tmp/mdadm.log 2>&1\n",
                 "echo '`mdadm --detail --scan`' | tee -a /etc/mdadm.conf\n",
 
                 "## Set read-ahead on each device\n",
                 "blockdev --setra 128 /dev/md0\n",
-                "blockdev --setra 128 /dev/sdh1\n",
-                "blockdev --setra 128 /dev/sdh2\n",
-                "blockdev --setra 128 /dev/sdh3\n",
-                "blockdev --setra 128 /dev/sdh4\n",
+                "blockdev --setra 128 /dev/xvdh\n",
+                "blockdev --setra 128 /dev/xvdi\n",
+                "blockdev --setra 128 /dev/xvdj\n",
+                "blockdev --setra 128 /dev/xvdk\n",
 
                 "## Create physical and logical volumes\n",
                 "dd if=/dev/zero of=/dev/md0 bs=512 count=1\n",
@@ -4957,10 +4960,9 @@
                 "mke2fs -t ext4 -F /dev/vg0/log > /tmp/mke2fs2.log 2>&1\n",
                 "mke2fs -t ext4 -F /dev/vg0/journal > /tmp/mke2fs3.log 2>&1\n",
 
-                "mkdir -p /edx/var/mongo/\n",
-                "mkdir /edx/var/mongo/data\n",
-                "mkdir /edx/var/log/mongo\n",
-                "mkdir /edx/var/mongo/journal\n",
+                "mkdir -p /edx/var/mongo/data\n",
+                "mkdir -p /edx/var/log/mongo\n",
+                "mkdir -p /edx/var/mongo/journal\n",
 
                 "echo '/dev/vg0/data /edx/var/mongo/data ext4 defaults,auto,noatime,noexec 0 0' | tee -a /etc/fstab\n",
                 "echo '/dev/vg0/log /edx/var/log/mongo ext4 defaults,auto,noatime,noexec 0 0' | tee -a /etc/fstab\n",
@@ -4971,8 +4973,9 @@
 
                 "ln -s /edx/var/mongo/journal /edx/var/mongo/data/journal\n",
 
+                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
                 "# If all went well, signal success\n",
-                "cfn-signal -e $? -r 'Edx Server configuration' '",
+                "cfn-signal -e $? -r 'Edx Mongo configuration' '",
                 {
                   "Ref":"MongoServerWaitHandle"
                 },
@@ -4989,25 +4992,25 @@
         },
         "BlockDeviceMappings":[
           {
-            "DeviceName":"/dev/sdh1",
+            "DeviceName":"/dev/xvdh",
             "Ebs":{
               "VolumeSize": { "Ref":"MongoVolumeSize" }
             }
           },
           {
-            "DeviceName":"/dev/sdh2",
+            "DeviceName":"/dev/xvdi",
             "Ebs":{
               "VolumeSize": { "Ref":"MongoVolumeSize" }
             }
           },
           {
-            "DeviceName":"/dev/sdh3",
+            "DeviceName":"/dev/xvdj",
             "Ebs":{
               "VolumeSize": { "Ref":"MongoVolumeSize" }
             }
           },
           {
-            "DeviceName":"/dev/sdh4",
+            "DeviceName":"/dev/xvdk",
             "Ebs":{
               "VolumeSize": { "Ref":"MongoVolumeSize" }
             }
@@ -5191,7 +5194,7 @@
         "Handle":{
           "Ref":"MongoServerWaitHandle"
         },
-        "Timeout":"1200"
+        "Timeout":"2400"
       }
     }
   },
