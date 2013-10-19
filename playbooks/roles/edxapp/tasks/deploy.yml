@@ -201,6 +201,26 @@
 - name: changing group ownership to www-data for everything in the venv (workaround)
   shell: chgrp -R www-data {{ venv_dir }}
 
+- name: syncdb and migrate
+  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+  - deploy
+  - lms
+  - lms-preview
+  - cms
+  - syncdb
+
+- name: db migrate
+  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  when: migrate_only is defined and migrate_only|lower == "yes"
+  tags:
+  - deploy
+  - lms
+  - lms-preview
+  - cms
+  - migrate 
+
 
 # Gather lms assets using rake if possible
 - name: gather lms static assets with rake
@@ -243,26 +263,6 @@
   - lms-preview
   - cms
   - syncdb
-
-- name: syncdb and migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_db is defined and migrate_db|lower == "yes"
-  tags:
-  - deploy
-  - lms
-  - lms-preview
-  - cms
-  - syncdb
-
-- name: db migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_only is defined and migrate_only|lower == "yes"
-  tags:
-  - deploy
-  - lms
-  - lms-preview
-  - cms
-  - migrate 
 
 - name: restart edxapp
   service: name=edxapp state=restarted
