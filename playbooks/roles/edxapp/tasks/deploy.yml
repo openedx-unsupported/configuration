@@ -157,13 +157,25 @@
   tags:
   - deploy
 
+- name: syncdb and migrate
+  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+  - deploy
+
+- name: db migrate
+  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  when: migrate_only is defined and migrate_only|lower == "yes"
+  tags:
+  - deploy
+
 # Gather lms assets using rake if possible
 - name: gather lms static assets with rake
   shell: SERVICE_VARIANT={{ edxapp_lms_variant }} rake lms:gather_assets:aws
     executable=/bin/bash
     chdir={{ edxapp_code_dir }}
   notify:
-  - restart edxapp
+  - edxapp | restart edxapp
   sudo_user: "{{ edxapp_user }}"
   when: celery_worker is not defined
   environment: "{{ edxapp_deploy_environment }}"
@@ -174,7 +186,7 @@
 - name: gather cms static assets with rake
   shell: executable=/bin/bash chdir={{ edxapp_code_dir }} SERVICE_VARIANT={{ edxapp_cms_variant }} rake cms:gather_assets:aws
   notify:
-  - restart edxapp
+  - edxapp | restart edxapp
   sudo_user: "{{ edxapp_user }}"
   when: celery_worker is not defined
   environment: "{{ edxapp_deploy_environment }}"
@@ -189,18 +201,6 @@
 - name: openid workaround - NOT FOR PRODUCTION
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
-  tags:
-  - deploy
-
-- name: syncdb and migrate
-  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_db is defined and migrate_db|lower == "yes"
-  tags:
-  - deploy
-
-- name: db migrate
-  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_only is defined and migrate_only|lower == "yes"
   tags:
   - deploy
 
