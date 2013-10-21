@@ -113,7 +113,17 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
     url: $EDXAPP_XQUEUE_URL
   CONTENTSTORE:
     ENGINE:  'xmodule.contentstore.mongo.MongoContentStore'
+    #
+    # connection strings are duplicated temporarily for
+    # backward compatibility
+    #
     OPTIONS:
+      db: $EDXAPP_MONGO_DB_NAME
+      host: $EDXAPP_MONGO_HOSTS
+      password: $EDXAPP_MONGO_PASSWORD
+      port: $EDXAPP_MONGO_PORT
+      user: $EDXAPP_MONGO_USER
+    DOC_STORE_CONFIG:
       db: $EDXAPP_MONGO_DB_NAME
       host: $EDXAPP_MONGO_HOSTS
       password: $EDXAPP_MONGO_PASSWORD
@@ -131,11 +141,19 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         password:  $EDXAPP_MONGO_PASSWORD
         port: $EDXAPP_MONGO_PORT
         render_template:  'mitxmako.shortcuts.render_to_string'
+        # Needed for the CMS to be able to run update_templates
         user: $EDXAPP_MONGO_USER
-    # Needed for the CMS to be able to run update_templates
+      DOC_STORE_CONFIG: &edxapp_generic_default_docstore
+        db: $EDXAPP_MONGO_DB_NAME
+        host: $EDXAPP_MONGO_HOSTS
+        password: $EDXAPP_MONGO_PASSWORD
+        port: $EDXAPP_MONGO_PORT
+        user: $EDXAPP_MONGO_USER
+        collection:  'modulestore'
     direct: &edxapp_generic_direct_modulestore
       ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
       OPTIONS:  *generic_modulestore_default_options
+      DOC_STORE_CONFIG: *edxapp_generic_default_docstore
   DATABASES:
     default:
       NAME: $EDXAPP_MYSQL_DB_NAME
@@ -229,6 +247,7 @@ lms_auth_config:
               port: $EDXAPP_MONGO_PORT
               fs_root: '/opt/wwc/data'
             ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+            DOC_STORE_CONFIG: *edxapp_generic_default_docstore
 
 lms_env_config:
   <<: *edxapp_generic_env
