@@ -46,38 +46,48 @@
   sudo_user: jenkins
   shell: mkdir -p {{ jenkins_home }}/plugins
 
-- name: jenkins_master | Install Jenkins plugins
-  sudo_user: jenkins
+# We first download the plugins to a temp directory and include
+# the version in the file name.  That way, if we increment
+# the version, the plugin will be updated in Jenkins
+- name: jenkins_master | Download Jenkins plugins
   get_url: url=http://updates.jenkins-ci.org/download/plugins/${item.name}/${item.version}/${item.name}.hpi
-           dest={{ jenkins_home }}/plugins/${item.name}.hpi
+           dest=/tmp/${item.name}_${item.version}
+  with_items: "{{ jenkins_plugins }}"
+
+- name: jenkins_master | Install Jenkins plugins
+  command: cp /tmp/${item.name}_${item.version} {{ jenkins_home }}/plugins/${item.name}.hpi
+  with_items: "{{ jenkins_plugins }}"
+
+- name: jenkins_master | Set Jenkins plugin permissions
+  file: path={{ jenkins_home }}/plugins/${item.name}.hpi
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
   with_items: "{{ jenkins_plugins }}"
   notify:
     - jenkins_master | restart Jenkins
 
-# We had to fork the git-client plugin repo
-# to fix an obscure bug.  If and when the PR gets
-# merged into the main repo and released,
-# we can use the regular plugin install process.
-# Until then, we need to compile and install it ourselves.
-- name: jenkins_master | Checkout custom git-client plugin repo
-  git: repo=https://github.com/edx/git-client-plugin.git
-       dest=/tmp/git-client-plugin
+# We had to fork some plugins to workaround
+# certain issues.  If these changes get merged
+# upstream, we may be able to use the regular plugin install process.
+# Until then, we compile and install the forks ourselves.
+- name: jenkins_master | Checkout custom plugin repo
+  git: repo=${item.repo_url} dest=/tmp/${item.repo_name} version=${item.version}
+  with_items: "{{ jenkins_custom_plugins }}"
 
-- name: jenkins_master | Compile custom git-client plugin
-  command: mvn install chdir=/tmp/git-client-plugin
-           creates=/tmp/git-client-plugin/target/git-client.hpi
+- name: jenkins_master | Compile custom plugins
+  command: mvn -Dmaven.test.skip=true install chdir=/tmp/${item.repo_name}
+  with_items: "{{ jenkins_custom_plugins }}"
 
-- name: jenkins_master | Install custom git-client
-  command: mv /tmp/git-client-plugin/target/git-client.hpi
-           {{ jenkins_home }}/plugins/git-client.hpi
-           creates={{ jenkins_home }}/plugins/git-client.hpi
+- name: jenkins_master | Install custom plugins
+  command: mv /tmp/${item.repo_name}/target/${item.package}
+           {{ jenkins_home }}/plugins/${item.package}
+  with_items: "{{ jenkins_custom_plugins }}"
   notify:
     - jenkins_master | restart Jenkins
 
-- name: jenkins_master | Set git-client plugin permissions
-  file: path={{ jenkins_home }}/plugins/git-client.hpi
-        owner={{ jenkins_user }} group={{ jenkins_group }}
-        mode=700
+- name: jenkins_master | Set custom plugin permissions
+  file: path={{ jenkins_home }}/plugins/${item.package}
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  with_items: "{{ jenkins_custom_plugins }}"
 
 - name: jenkins_master | Setup nginix vhost
   template:
