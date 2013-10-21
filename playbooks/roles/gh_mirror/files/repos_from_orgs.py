@@ -84,7 +84,7 @@ def update_repos():
             run_cmd('git clone --mirror {} {}'.format(repo['html_url'], repo_path))
             run_cmd('cd {} && git update-server-info'.format(repo_path))
         else:
-            run_cmd('cd {} && git remote-update'.format(repo_path))
+            run_cmd('cd {} && git fetch --all --tags'.format(repo_path))
             run_cmd('cd {} && git update-server-info'.format(repo_path))
 
 if __name__ == '__main__':
