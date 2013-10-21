@@ -4930,22 +4930,18 @@
                 "#Install lvm2 so we can create logical volumes.\n",
                 "apt-get -y install lvm2 mdadm\n",
 
-                "## Waiting for EBS mounts to become available\n",
-                "while [ ! -e /dev/xvdh ]; do echo waiting for /dev/xvdh to attach; sleep 10; done\n",
-                "while [ ! -e /dev/xvdi ]; do echo waiting for /dev/xvdi to attach; sleep 10; done\n",
-                "while [ ! -e /dev/xvdj ]; do echo waiting for /dev/xvdj to attach; sleep 10; done\n",
-                "while [ ! -e /dev/xvdk ]; do echo waiting for /dev/xvdk to attach; sleep 10; done\n",
+                "## Waiting for EBS mounts to become available and set their read ahead.\n",
+                "for device in xvdh xvdi xvdj xvdk; do\n",
+                "  while [ ! -e /dev/$device ]; do echo waiting for /dev/$device to attach; sleep 10; done\n",
+                "  blockdev --setra 128 /dev/$device\n",
+                "done\n",
 
                 "## Create RAID10 and persist configuration\n",
                 "mdadm --verbose --create /dev/md0 --level=10 --chunk=256 --raid-devices=4 /dev/xvdh /dev/xvdi /dev/xvdj /dev/xvdk | tee /tmp/mdadm.log 2>&1\n",
                 "echo '`mdadm --detail --scan`' | tee -a /etc/mdadm.conf\n",
 
-                "## Set read-ahead on each device\n",
+                "## Set read-ahead on the new device\n",
                 "blockdev --setra 128 /dev/md0\n",
-                "blockdev --setra 128 /dev/xvdh\n",
-                "blockdev --setra 128 /dev/xvdi\n",
-                "blockdev --setra 128 /dev/xvdj\n",
-                "blockdev --setra 128 /dev/xvdk\n",
 
                 "## Create physical and logical volumes\n",
                 "dd if=/dev/zero of=/dev/md0 bs=512 count=1\n",
