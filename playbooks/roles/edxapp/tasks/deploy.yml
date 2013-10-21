@@ -157,6 +157,17 @@
   tags:
   - deploy
 
+# https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
+# This is necessary for when syncdb is run and the django_openid_auth module is installed,
+# not sure if this fix will ever get merged
+# We should never do this in production
+- name: openid workaround - NOT FOR PRODUCTION
+  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
+  when: openid_workaround is defined
+  tags:
+  - deploy
+
+
 - name: syncdb and migrate
   shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -193,16 +204,6 @@
   tags:
   - deploy
 
-
-# https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
-# This is necessary for when syncdb is run and the django_openid_auth module is installed,
-# not sure if this fix will ever get merged
-# We should never do this in production
-- name: openid workaround - NOT FOR PRODUCTION
-  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
-  when: openid_workaround is defined
-  tags:
-  - deploy
 
 - name: restart edxapp
   service: name=edxapp state=restarted
