@@ -1,5 +1,5 @@
 # Stop all services.
-- name: stop edxapp services
+- name: edxapp | stop edxapp services
   service: name=edxapp state=stopped
   when: celery_worker is not defined
   tags:
@@ -8,7 +8,7 @@
   - cms
   - deploy
 
-- name: stop edx workers
+- name: edxapp | stop edx workers
   service: name=edx-workers state=stopped
   when: celery_worker is defined
   tags:
@@ -32,7 +32,7 @@
   tags:
   - deploy
 
-- name: git clean after checking out edx-platform
+- name: edxapp | git clean after checking out edx-platform
   shell: cd {{edxapp_code_dir}} && git clean -xdf
   when: edx_platform_checkout.changed
   sudo_user: "{{ edxapp_user }}"
@@ -40,7 +40,7 @@
   - deploy
 
 
-- name: checkout theme
+- name: edxapp | checkout theme
   git: dest={{app_dir}}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
   when: edxapp_theme_name != ''
   sudo_user: "{{ edxapp_user }}"
@@ -69,7 +69,7 @@
   - deploy
 
 # Node play that need to be run after platform updates.
-- name: Install edx-platform npm dependencies
+- name: edxapp | Install edx-platform npm dependencies
   shell: npm install chdir={{ edxapp_code_dir }}
   sudo_user: "{{ edxapp_user }}"
   tags:
@@ -79,7 +79,7 @@
 
 # Substitute github mirror in all requirements files
 #
-- name: Updating requirement files for git mirror
+- name: edxapp | Updating requirement files for git mirror
   command: |
     /bin/sed -i -e 's/github\.com/{{ GIT_MIRROR }}/g' {{ item }}
   with_items:
@@ -96,7 +96,7 @@
     - deploy
 
 # Install the python pre requirements into {{ edxapp_venv_dir }}
-- name : install python pre-requirements
+- name : edxapp | install python pre-requirements
   pip: >
     requirements="{{pre_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
@@ -107,7 +107,7 @@
   - deploy
 
 # Install the python modules into {{ edxapp_venv_dir }}
-- name : install python base-requirements
+- name : edxapp | install python base-requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -117,7 +117,7 @@
   - deploy
 
 # Install the python post requirements into {{ edxapp_venv_dir }}
-- name : install python post-requirements
+- name : edxapp | install python post-requirements
   pip: >
     requirements="{{post_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
@@ -128,7 +128,7 @@
   - deploy
 
 # Install the final python modules into {{ edxapp_venv_dir }}
-- name : install python post-post requirements
+- name : edxapp | install python post-post requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -143,7 +143,7 @@
 
 
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
-- name : install sandbox requirements into regular venv
+- name : edxapp | install sandbox requirements into regular venv
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -161,14 +161,14 @@
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
 # not sure if this fix will ever get merged
 # We should never do this in production
-- name: openid workaround - NOT FOR PRODUCTION
+- name: edxapp | openid workaround - NOT FOR PRODUCTION
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
   tags:
   - deploy
 
 
-- name: syncdb and migrate
+- name: edxapp | syncdb and migrate
   shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
@@ -181,7 +181,7 @@
   - deploy
 
 # Gather lms assets using rake if possible
-- name: gather lms static assets with rake
+- name: edxapp | gather lms static assets with rake
   shell: SERVICE_VARIANT={{ edxapp_lms_variant }} rake lms:gather_assets:aws
     executable=/bin/bash
     chdir={{ edxapp_code_dir }}
@@ -194,7 +194,7 @@
   - deploy
 
 # Gather cms assets using rake if possible
-- name: gather cms static assets with rake
+- name: edxapp | gather cms static assets with rake
   shell: executable=/bin/bash chdir={{ edxapp_code_dir }} SERVICE_VARIANT={{ edxapp_cms_variant }} rake cms:gather_assets:aws
   notify:
   - edxapp | restart edxapp
@@ -205,13 +205,13 @@
   - deploy
 
 
-- name: restart edxapp
+- name: edxapp | restart edxapp
   service: name=edxapp state=restarted
   when: celery_worker is not defined
   tags:
   - deploy
 
-- name: restart workers
+- name: edxapp | restart workers
   service: name=edx-workers state=restarted
   when: celery_worker is defined
   tags:
