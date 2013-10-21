@@ -22,16 +22,26 @@
     owner="{{ common_log_user }}"
   notify: common | restart logrotate
 
-- name: edxapp | create edxapp data dirs
+- name: edxapp | create edxapp writable dirs
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ edxapp_user }}"
+  with_items:
+    - "{{ edxapp_staticfile_dir }}"
+    - "{{ edxapp_theme_dir }}"
+
+
+- name: edxapp | create web-writable edxapp data dirs
   file: >
     path="{{ item }}"
     state=directory
     owner="{{ common_web_user }}"
+    group="{{ edxapp_user }}"
+    mode="0775"
   with_items:
-    - "{{ edxapp_staticfile_dir }}"
     - "{{ edxapp_course_data_dir }}"
     - "{{ edxapp_upload_dir }}"
-    - "{{ edxapp_theme_dir }}"
 
 - name: edxapp | install system packages on which LMS and CMS rely
   apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
