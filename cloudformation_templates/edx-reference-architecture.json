@@ -399,9 +399,9 @@
   "Resources":{
     "EdxVPC":{
       "Type":"AWS::EC2::VPC",
-      "EnableDnsSupport" : "true",
-      "EnableDnsHostnames" : "true",
       "Properties":{
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
         "CidrBlock":"10.0.0.0/16",
         "InstanceTenancy":"default"
       }
@@ -5194,27 +5194,27 @@
         "Type" : "AWS::ElastiCache::SubnetGroup",
         "Properties" : {
             "Description" : "Cache Subnet Group",
-            "SubnetIds" : [ { "Ref" : "PublicSubnet01" }, { "Ref" : "PublicSubnet02" }  ]
+            "SubnetIds" : [ { "Ref" : "CacheSubnet01" }, { "Ref" : "CacheSubnet02" }  ]
         }
-    },
-    "CacheParameters" : {
-      "Type" : "AWS::ElastiCache::ParameterGroup",
-      "Properties" : {
-        "CacheParameterGroupFamily" : "memcached1.4",
-        "Description" : "Parameter group",
-        "Properties" : {
-          "cas_disabled" : "1"
-        }
-      }
     },
     "CacheCluster" : {
       "Type": "AWS::ElastiCache::CacheCluster",
       "Properties": {
-        "CacheSubnetGroupName" : { "Ref" : "CacheSubnetGroup" },
-        "CacheNodeType"        : { "Ref" : "CacheNodeType" },
-        "VpcSecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup" } ],
-        "Engine"               : "memcached",
         "NumCacheNodes"        : { "Ref" : "NumberOfCacheNodes" }
+        "CacheNodeType"        : { "Ref" : "CacheNodeType" },
+        "Engine"               : "memcached",
+        "EngineVersion": "1.4.5",
+        "Port": { "Ref": "CacheNodePort" },
+        "PreferredAvailabilityZone": { "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "CacheParameterGroupName": "default.memcached1.4",
+        "AutoMinorVersionUpgrade": true
+        "CacheSubnetGroupName" : { "Ref" : "CacheSubnetGroup" },
+        "VpcSecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup" } ],
       }
     }
   },
