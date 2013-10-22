@@ -8,22 +8,22 @@
 #   * elasticsearch
 #   * oraclejdk
 #   * rbenv
-# 
-# 
+#
+#
 # Example play:
 #   roles:
 #   - common
 #   - oraclejdk
-#   - elasticsearch 
+#   - elasticsearch
 #   - role: rbenv
 #     rbenv_user: "{{ forum_user }}"
-#     rbenv_user_home: "{{ forum_rbenv_dir }}"
+#     rbenv_dir: "{{ forum_rbenv_dir }}"
 #     rbenv_ruby_version: "{{ forum_ruby_version }}"
 #   - forum
 
 - name: forum | setup the forum env
   template: src=forum_env.j2 dest={{ forum_home }}/forum_env owner={{ forum_user }} group={{ forum_user }}
-  notify: 
+  notify:
     - forum | restart the forum service
   tags:
   - forum
@@ -31,7 +31,7 @@
 
 - name: forum | ensure .bashrc exists
   shell: touch {{ forum_home }}/.bashrc
-  sudo: true  
+  sudo: true
   sudo_user: "{{ forum_user }}"
   tags:
   - forum
@@ -40,9 +40,9 @@
 - name: forum | add source of ruby_env to .bashrc
   lineinfile:
     dest="{{ forum_home }}/.bashrc"
-    regexp='. {{ forum_home }}/forum_env'    
+    regexp='. {{ forum_home }}/forum_env'
     line='. {{ forum_home }}/forum_env'
-  notify: 
+  notify:
     - forum | restart the forum service
   tags:
   - forum
@@ -51,7 +51,7 @@
 
 - name: forum | copy cs_comments_service SysVunit script
   template: src=cs_comments_service.j2 dest=/etc/init.d/cs_comments_service owner=root group=root mode=750
-  notify: 
+  notify:
     - forum | restart the forum service
   tags:
   - forum
@@ -61,7 +61,7 @@
 
 - name: forum | copy cs_comments_service upstart script
   template: src=cs_comments_service.conf.j2 dest=/etc/init/cs_comments_service.conf owner=root group=root mode=644
-  notify: 
+  notify:
     - forum | restart the forum service
   tags:
   - forum
