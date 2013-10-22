@@ -13,13 +13,6 @@
 - name: edxlocal| install packages needed for single server 
   apt: pkg={{','.join(edxlocal_debian_pkgs)}} install_recommends=yes state=present
 
-- name: edxlocal | install python pymongo for mongo_user ansible module
-  pip: >
-    name=pymongo 
-    state=present 
-    version=2.6.3
-    extra_args="-i {{ PYPI_MIRROR_URL }}"
-
 - name: edxlocal | create a database for edxapp
   mysql_db: >
     db=edxapp
@@ -37,53 +30,6 @@
     db=ora
     state=present
     encoding=utf8
-
-- name: edxlocal | add the mongodb signing key
-  apt_key: >
-    id=7F0CEB10
-    url=http://docs.mongodb.org/10gen-gpg-key.asc 
-    state=present
-
-- name: edxlocal | add the mongodb repo to the sources list
-  apt_repository: >
-    repo='deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen'
-    state=present
-
-- name: edxlocal | install mongo server and recommends
-  apt: >
-    pkg=mongodb-10gen 
-    state=present 
-    install_recommends=yes
-    update_cache=yes
-
-- name: edxlocal | stop mongo service
-  service: name=mongodb state=stopped
-
-- name: edxlocal | move mongodb to {{ storage_base_dir }}
-  command: mv /var/lib/mongodb  {{ storage_base_dir }}/.  creates={{ storage_base_dir }}/mongodb
-
-- name: edxlocal | create mongodb symlink
-  file: src={{ storage_base_dir }}/mongodb dest=/var/lib/mongodb state=link
-
-- name: edxlocal | start mongo service
-  service: name=mongodb state=started
-
-- name: edxlocal | wait for mongo server to start
-  wait_for: port=27017 delay=2
-
-- name: edxlocal | create a mongodb user for edxapp
-  mongodb_user: >
-    database=edxapp
-    name=edxapp
-    password=password
-    state=present
-
-- name: edxlocal | create a mongodb user for forums
-  mongodb_user: >
-    database=cs_comments_service
-    name=cs_comments_service
-    password=password
-    state=present
 
 - name: edxlocal | install memcached
   apt: pkg=memcached state=present
