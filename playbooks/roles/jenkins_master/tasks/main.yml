@@ -13,14 +13,11 @@
 - name: jenkins_master | Add the jenkins user to the group
   user: name={{ jenkins_user }} append=yes groups={{ jenkins_group }}
 
-- name: jenkins_master | Install Jenkins apt key
-  apt_key: url=http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key state=present
+- name: jenkins_master | Download Jenkins package
+  get_url: url="{{ jenkins_deb_url }}" dest="/tmp/{{ jenkins_deb }}"
 
-- name: jenkins_master | Add apt repository
-  apt_repository: repo='deb http://pkg.jenkins-ci.org/debian binary/' state=present
-
-- name: jenkins_master | Install jenkins package
-  apt: pkg=jenkins state=present update_cache=yes
+- name: jenkins_master | Install Jenkins package
+  command: dpkg -i --force-depends "/tmp/{{ jenkins_deb }}"
 
 - name: jenkins_master | Stop Jenkins
   service: name=jenkins state=stopped
