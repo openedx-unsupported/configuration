@@ -2328,40 +2328,6 @@
             } ]
         }
     },
-    "EdxServerUser":{
-      "Type":"AWS::IAM::User",
-      "Properties":{
-        "Path":"/",
-        "Policies":[
-          {
-            "PolicyName":"root",
-            "PolicyDocument":{
-              "Statement":[
-                {
-                  "Effect":"Allow",
-                  "Action":[
-                    "cloudformation:DescribeStackResource",
-                    "s3:Put",
-                    "ses:SendEmail",
-                    "ses:SendRawEmail",
-                    "ses:GetSendQuota"
-                  ],
-                  "Resource":"*"
-                }
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "HostKeys":{
-      "Type":"AWS::IAM::AccessKey",
-      "Properties":{
-        "UserName":{
-          "Ref":"EdxServerUser"
-        }
-      }
-    },
     "AdminSecurityGroup":{
       "Type":"AWS::EC2::SecurityGroup",
       "Properties":{
@@ -2383,41 +2349,6 @@
     },
     "EdxappServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
 				"IamInstanceProfile":{ "Ref":"EdxappInstanceProfile" },
         "SecurityGroups":[
@@ -2447,7 +2378,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -2465,31 +2396,9 @@
                 "sudo mount /dev/xvdd /opt\n",
                 "apt-get -y update\n",
                 "apt-get -y install python-setuptools\n",
-                "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
+                "echo \"Python Tools installed\" - `date`\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r EdxappServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
+                "echo \"Cloudformation Boostrap installed \" - `date`\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
@@ -2789,41 +2698,6 @@
     },
     "XqueueServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
 				"IamInstanceProfile":{ "Ref":"XqueueInstanceProfile" },
         "SecurityGroups":[
@@ -2853,7 +2727,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -2867,31 +2741,9 @@
                 "}\n",
                 "apt-get -y update\n",
                 "apt-get -y install python-setuptools\n",
-                "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
+                "echo \"Python Tools installed\" - `date`\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r EdxappServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
+                "echo \"Cloudformation Boostrap installed \" - `date`\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
@@ -3179,41 +3031,6 @@
     },
     "RabbitMQServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
         "SecurityGroups":[
           {
@@ -3242,7 +3059,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -3259,28 +3076,6 @@
                 "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
                 "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r RabbitMQServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
@@ -3601,41 +3396,6 @@
     },
     "XServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
 				"IamInstanceProfile":{ "Ref":"XServerInstanceProfile" },
         "SecurityGroups":[
@@ -3665,7 +3425,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -3682,28 +3442,6 @@
                 "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
                 "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r XServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
@@ -4086,41 +3824,6 @@
     },
     "WorkerServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
         "SecurityGroups":[
           {
@@ -4149,7 +3852,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -4170,28 +3873,6 @@
                 "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
                 "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r WorkerServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
@@ -4487,41 +4168,6 @@
     },
     "ForumServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
         "SecurityGroups":[
           {
@@ -4550,7 +4196,7 @@
             "Fn::Join":[
               "",
               [
-                "#!/bin/bash\n",
+                "#!/bin/bash -x\n",
                 "exec >> /home/ubuntu/cflog.log\n",
                 "exec 2>> /home/ubuntu/cflog.log\n",
                 "function error_exit\n",
@@ -4571,28 +4217,6 @@
                 "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
                 "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r ForumServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
@@ -4888,41 +4512,6 @@
     },
     "MongoServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Metadata":{
-        "AWS::CloudFormation::Init":{
-          "config":{
-            "files":{
-              "/home/ubuntu/.s3cfg":{
-                "content":{
-                  "Fn::Join":[
-                    "",
-                    [
-                      "[default]\n",
-                      "access_key = ",
-                      {
-                        "Ref":"HostKeys"
-                      },
-                      "\n",
-                      "secret_key = ",
-                      {
-                        "Fn::GetAtt":[
-                          "HostKeys",
-                          "SecretAccessKey"
-                        ]
-                      },
-                      "\n",
-                      "use_https = True\n"
-                    ]
-                  ]
-                },
-                "mode":"000644",
-                "owner":"ubuntu",
-                "group":"ubuntu"
-              }
-            }
-          }
-        }
-      },
       "Properties":{
         "SecurityGroups":[
           {
@@ -4968,28 +4557,6 @@
                 "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
                 "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
                 "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
-                "cfn-init --region ",
-                {
-                  "Ref":"AWS::Region"
-                },
-                "    -s ",
-                {
-                  "Ref":"AWS::StackName"
-                },
-                " -r MongoServer ",
-                "         --access-key ",
-                {
-                  "Ref":"HostKeys"
-                },
-                "         --secret-key ",
-                {
-                  "Fn::GetAtt":[
-                    "HostKeys",
-                    "SecretAccessKey"
-                  ]
-                },
-                " || error_exit 'Failed to run cfn-init'\n",
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
 
                 "#Install lvm2 so we can create logical volumes.\n",
                 "apt-get -y install lvm2 mdadm\n",
@@ -5033,7 +4600,6 @@
 
                 "ln -s /edx/var/mongo/journal /edx/var/mongo/data/journal\n",
 
-                "echo \"cfn-init run \" - `date` >> /home/ubuntu/cflog.txt\n",
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Mongo configuration' '",
                 {
