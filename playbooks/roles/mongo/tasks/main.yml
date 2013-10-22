@@ -1,12 +1,30 @@
 
 ---
-- name: mongo | install python-pymongo (req for ansible)
-  pip: name=pymongo
+- name: mongo | install python pymongo for mongo_user ansible module
+  pip: >
+    name=pymongo
+    state=present
+    version=2.6.3
+    extra_args="-i {{ PYPI_MIRROR_URL }}"
   tags: mongo
 
-- name: mongo | install mongo server and recommends  
-  apt: pkg=mongodb-server state=present install_recommends=yes
-  tags: mongo
+- name: mongo | add the mongodb signing key
+  apt_key: >
+    id=7F0CEB10
+    url=http://docs.mongodb.org/10gen-gpg-key.asc
+    state=present
+
+- name: mongo | add the mongodb repo to the sources list
+  apt_repository: >
+    repo='deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen'
+    state=present
+
+- name: mongo | install mongo server and recommends
+  apt: >
+    pkg=mongodb-10gen
+    state=present
+    install_recommends=yes
+    update_cache=yes
 
 - name: mongo | stop mongo service
   service: name=mongodb state=stopped
@@ -35,8 +53,9 @@
 
 - name: mongo | create a mongodb user
   mongodb_user: >
-    database={{ cs_comments_database }}
-    name={{ cs_comments_mongo_user }}
-    password={{ cs_comments_mongo_password }}
+    database={{ database }}
+    name={{ user }}
+    password={{ password }}
     state=present
+  with_items: {{MONGO_USERS}}
   tags: mongo
