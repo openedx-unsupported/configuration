@@ -31,12 +31,12 @@ def upload_file(file_path, bucket_name, key_name):
     url = 'https://s3.amazonaws.com/{}/{}'.format(bucket_name, key_name)
     return url
 
-def create_stack(stack_name, template, region='us-east-1', blocking=True):
+def create_stack(stack_name, template, region='us-east-1', blocking=True, temp_bucket='edx-sandbox-devops'):
     cfn = boto.connect_cloudformation()
 
     # Upload the template to s3
     key_name = 'cloudformation/auto/{}_{}'.format(stack_name, basename(template))
-    template_url = upload_file(template, bucket_name, key_name)
+    template_url = upload_file(template, temp_bucket, key_name)
 
     # Reference the stack.
     try:
@@ -88,6 +88,7 @@ if __name__ == '__main__':
         stack_name = args.stackname
         template = args.template
         region = args.region
+        bucket_name = args.bucketname
 
-        create_stack(stack_name, template, region)
+        create_stack(stack_name, template, region, bucket_name)
         print('Stack({}) created.'.format(stack_name))
