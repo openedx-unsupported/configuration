@@ -60,7 +60,7 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True, temp_b
             break
 
     if status in FAILURE_STATES:
-        raise Excoption('Creation Failed. Stack Status: {}, ID:{}'.format(
+        raise Exception('Creation Failed. Stack Status: {}, ID:{}'.format(
             status, stack_id))
 
     return stack_id
