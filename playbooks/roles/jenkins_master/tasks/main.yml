@@ -86,6 +86,16 @@
         owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
   with_items: "{{ jenkins_custom_plugins }}"
 
+
+# Plugins that are bundled with Jenkins are "pinned".
+# Jenkins will overwrite updated plugins with its built-in version
+# unless we create a ".pinned" file for the plugin.
+# See https://issues.jenkins-ci.org/browse/JENKINS-13129
+- name: jenkins_master | Create plugin pin files
+  command: touch {{ jenkins_home }}/plugins/${item}.jpi.pinned
+           creates={{ jenkins_home }}/plugins/${item}.jpi.pinned
+  with_items: "{{ jenkins_bundled_plugins }}"
+
 - name: jenkins_master | Setup nginix vhost
   template:
     src=etc/nginx/sites-available/jenkins.j2
