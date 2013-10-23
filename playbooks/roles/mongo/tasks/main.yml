@@ -1,12 +1,12 @@
 
 ---
+
 - name: mongo | install python pymongo for mongo_user ansible module
   pip: >
     name=pymongo
     state=present
     version=2.6.3
     extra_args="-i {{ PYPI_MIRROR_URL }}"
-  tags: mongo
 
 - name: mongo | add the mongodb signing key
   apt_key: >
@@ -26,30 +26,30 @@
     install_recommends=yes
     update_cache=yes
 
+- name: mongo | create mongo data dir
+  file: >
+    path="{{ mongo_data_dir }}"
+    state=directory
+    owner="{{ mongo_user  }}"
+
 - name: mongo | stop mongo service
   service: name=mongodb state=stopped
-  tags: mongo
 
-- name: mongo | move mongodb to {{ data_dir }}
-  command: mv /var/lib/mongodb  {{ data_dir}}/.  creates={{ data_dir }}/mongodb
-  tags: mongo
+- name: mongo | move mongodb to {{ mongo_data_dir }}
+  command: mv /var/lib/mongodb  {{ mongo_data_dir}}/.  creates={{ mongo_data_dir }}/mongodb
 
 - name: mongo | create mongodb symlink
   file: src={{ data_dir }}/mongodb dest=/var/lib/mongodb state=link
-  tags: mongo
 
 - name: mongo | copy configuration template
   template: src=mongodb.conf.j2 dest=/etc/mongodb.conf backup=yes
   notify: restart mongo
-  tags: mongo
 
 - name: mongo | start mongo service
   service: name=mongodb state=started
-  tags: mongo
 
 - name: mongo | wait for mongo server to start
   wait_for: port=27017 delay=2
-  tags: mongo
 
 - name: mongo | create a mongodb user
   mongodb_user: >
@@ -58,4 +58,3 @@
     password={{ item.password }}
     state=present
   with_items: MONGO_USERS
-  tags: mongo
