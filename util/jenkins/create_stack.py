@@ -68,7 +68,8 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True):
 
 if __name__ == '__main__':
         description = 'Create a cloudformation stack from a template.'
-        parser = argparse.ArgumentParser(description)
+        parser = argparse.ArgumentParser(description=description)
+
         msg = 'Name for the cloudformation stack.'
         parser.add_argument('-n', '--stackname', required=True, help=msg)
 
