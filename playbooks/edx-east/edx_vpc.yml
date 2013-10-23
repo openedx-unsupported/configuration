@@ -1,0 +1,129 @@
+---
+- hosts: first_in_tag_group_edxapp
+  sudo: True
+  serial: 1
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - datadog
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      edx_platform_commit: 'release'
+    - splunkforwarder
+- hosts: tag_group_edxapp:!first_in_tag_group_edxapp
+  sudo: True
+  serial: 1
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - datadog
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      edx_platform_commit: 'release'
+    - splunkforwarder
+- hosts: tag_group_worker
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - datadog
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      celery_worker: True
+      edx_platform_commit: 'release'
+    - splunkforwarder
+- hosts: tag_group_xserver
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - role: nginx
+      nginx_sites:
+      - xserver
+    - xserver
+    - splunkforwarder
+- hosts: tag_group_rabbitmq
+  serial: 1
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - rabbitmq
+    - splunkforwarder
+- hosts: first_in_tag_group_xqueue
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - xqueue
+    - splunkforwarder
+- hosts: tag_group_xqueue:!first_in_tag_group_xqueue
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - xqueue
+    - splunkforwarder
+- hosts: tag_group_forum[0]
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - role: virtualenv
+      virtualenv_user: "notifier"
+      virtualenv_user_home: "/opt/wwc/notifier"
+      virtualenv_name: "notifier"
+    - notifier
+    - mongo
+    - role: rbenv
+      rbenv_user: "{{ forum_user }}"
+      rbenv_user_home: "{{ forum_home }}"
+      rbenv_ruby_version: "{{ forum_ruby_version }}"
+    - oraclejdk
+    - elasticsearch
+    - forum
