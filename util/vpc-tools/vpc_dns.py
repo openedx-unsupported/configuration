@@ -1,19 +1,54 @@
+import argparse
 import boto
 from vpcutil import vpc_for_stack_name
+from pprint import pprint
 
-stack_name = 'testforumstack9'
 r53 = boto.connect_route53()
 
 
 # Utility Functions
+def add_or_update_record(zone, record_name, record_type, record_ttl, record_values):
+    zone_id = zone.Id.replace("/hostedzone/","")
+
+    records = r53.get_all_rrsets(zone_id)
+
+    old_records = { r.name[:-1] : r for r in records }
+    pprint(old_records)
+
+    change_set = boto.route53.record.ResourceRecordSets()
+
+    # If the record name already points to something.
+    # Delete the existing connection.
+    if record_name in old_records.keys():
+        print "adding delete"
+        change = change_set.add_change(
+            'DELETE',
+            record_name,
+            record_type,
+            record_ttl)
+
+        for value in old_records[record_name].resource_records:
+            change.add_value(value)
+
+    change = change_set.add_change(
+        'CREATE',
+        record_name,
+        record_type,
+        record_ttl)
+
+    for value in record_values:
+        change.add_value(value)
+     
+    print(change_set.to_xml())
+    r53.change_rrsets(zone_id, change_set.to_xml())
+
+
 def add_zone_to_parent(zone, parent):
     #Add a reference for the new zone to its parent zone.
     parent_name = parent.Name[:-1]
     zone_name = zone.Name[:-1]
 
-    change_set = boto.route53.record.ResourceRecordSets()
-    change = change_set.add_change('CREATE', zone_name, 'NS', 900)
-    change.add_value(zone.NameServers)
+    add_or_update_record(parent, zone_name, 'NS', 900, zone.NameServers)
 
 
 def get_or_create_hosted_zone(zone_name):
@@ -44,15 +79,7 @@ def elbs_for_stack_name(stack_name):
             yield elb
 
 
-def create_service_dns(elb, prefix, zone):
-    # Get all record sets in zone
-
-    zone_id = zone.Id.replace("/hostedzone/", "")
-    records = r53.get_all_rrsets(zone_id)
-
-    old_names = [r.name[:-1] for r in records]
-    print(old_names)
-
+def ensure_service_dns(elb, prefix, zone):
     dns_template = "{prefix}.{zone_name}"
 
     # Have to remove the trailing period that is on zone names.
@@ -60,34 +87,19 @@ def create_service_dns(elb, prefix, zone):
     dns_name = dns_template.format(prefix=prefix,
                                    zone_name=zone_name)
 
-    change_set = boto.route53.record.ResourceRecordSets()
+    add_or_update_record(zone, dns_name, 'CNAME', 600, [elb.dns_name])
 
-    # If the dns name already points to something.
-    # Delete the existing connection.
-    print(dns_name)
-    if dns_name in old_names:
-        print "adding delete"
-        change = change_set.add_change(
-            'DELETE',
-            dns_name,
-            'CNAME',
-            600)
-
-        change.add_value(elb.dns_name)
-
-    change = change_set.add_change(
-        'CREATE',
-        dns_name,
-        'CNAME',
-        600)
-
-    change.add_value(elb.dns_name)
-
-    print change_set.to_xml()
-
-    r53.change_rrsets(zone_id, change_set.to_xml())
 
 if __name__ == "__main__":
+    description = "Give a cloudformation stack name, for an edx stack, setup \
+        DNS names for the ELBs in the stack."
+
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-n', '--stackname',
+        help="The name of the cloudformation stack.",
+        required=True)
+    args = parser.parse_args()
+    stack_name = args.stackname
 
     # Create DNS for edxapp and xqueue.
     dns_settings = {
@@ -106,8 +118,9 @@ if __name__ == "__main__":
 
     stack_elbs = elbs_for_stack_name(stack_name)
     for elb in stack_elbs:
-        for service, dns_prefixes in dns_settings.items():
+        for role, dns_prefixes in dns_settings.items():
             #FIXME this breaks when the service name is in the stack name ie. testforumstack.
-            if service in elb.dns_name.lower():
+            # Get the tags for the instances in this elb and compare the service against the role tag.
+            if role in elb.dns_name.lower():
                 for prefix in dns_prefixes:
-                    create_service_dns(elb, prefix, zone)
+                    ensure_service_dns(elb, prefix, zone)
