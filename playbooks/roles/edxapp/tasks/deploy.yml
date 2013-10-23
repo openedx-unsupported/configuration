@@ -80,7 +80,7 @@
 # Ruby plays that need to be run after platform updates.
 - name: gem | gem install bundler
   shell: >
-    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle 
+    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle
       chdir={{ edx_platform_code_dir }}
   tags:
   - ruby
@@ -89,7 +89,7 @@
 
 - name: bundle | bundle install
   shell: >
-    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs 
+    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs
       chdir={{ edx_platform_code_dir }}
   tags:
   - ruby
@@ -129,8 +129,8 @@
 # Install the python pre requirements into {{ venv_dir }}
 - name : install python pre-requirements
   pip: >
-    requirements="{{pre_requirements_file}}" 
-    virtualenv="{{venv_dir}}" 
+    requirements="{{pre_requirements_file}}"
+    virtualenv="{{venv_dir}}"
     state=present
     extra_args="-i {{ PYPI_MIRROR_URL }}"
   tags:
@@ -154,8 +154,8 @@
 # Install the python post requirements into {{ venv_dir }}
 - name : install python post-requirements
   pip: >
-    requirements="{{post_requirements_file}}" 
-    virtualenv="{{venv_dir}}" 
+    requirements="{{post_requirements_file}}"
+    virtualenv="{{venv_dir}}"
     state=present
     extra_args="-i {{ PYPI_MIRROR_URL }}"
   tags:
@@ -201,6 +201,20 @@
 - name: changing group ownership to www-data for everything in the venv (workaround)
   shell: chgrp -R www-data {{ venv_dir }}
 
+# https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
+# This is necessary for when syncdb is run and the django_openid_auth module is installed,
+# not sure if this fix will ever get merged
+# We should never do this in production
+- name: openid workaround - NOT FOR PRODUCTION
+  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
+  when: openid_workaround is defined
+  tags:
+  - deploy
+  - lms
+  - lms-preview
+  - cms
+  - syncdb
+
 - name: syncdb and migrate
   shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -219,7 +233,7 @@
   - lms
   - lms-preview
   - cms
-  - migrate 
+  - migrate
 
 
 # Gather lms assets using rake if possible
@@ -249,20 +263,6 @@
   - cms
   - deploy
 
-
-# https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
-# This is necessary for when syncdb is run and the django_openid_auth module is installed,
-# not sure if this fix will ever get merged
-# We should never do this in production
-- name: openid workaround - NOT FOR PRODUCTION
-  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
-  when: openid_workaround is defined
-  tags:
-  - deploy
-  - lms
-  - lms-preview
-  - cms
-  - syncdb
 
 - name: restart edxapp
   service: name=edxapp state=restarted
