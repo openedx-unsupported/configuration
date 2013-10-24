@@ -5,20 +5,35 @@
   tags:
   - deploy
 
+- name: forum | create the supervisor wrapper
+  template: >
+    src={{ forum_supervisor_wrapper|basename }}.j2
+    dest={{ forum_supervisor_wrapper }}
+    mode=0755
+  sudo_user: "{{ forum_user }}"
+  notify:
+    - forum | restart the forum service
+
+
 - name:  forum | git checkout forum repo into {{ forum_code_dir }}
   git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
   sudo_user: "{{ forum_user }}"
   tags:
   - deploy
 
+# TODO: This is done as the common_web_user
+# since the process owner needs write access
+# to the rbenv
 - name: forum | install comments service bundle
   shell: bundle install chdir={{ forum_code_dir }}
-  sudo_user: "{{ forum_user }}"
+  sudo_user: "{{ common_web_user }}"
   environment: "{{ forum_environment }}"
   tags:
   - deploy
 
 - name: forum | restart the forum service
-  service: name=cs_comments_service state=restarted
-  tags:
-  - deploy
+  supervisorctl: >
+    name=forum
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted

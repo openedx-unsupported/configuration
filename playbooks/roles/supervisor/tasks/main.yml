@@ -29,32 +29,50 @@
 - fail: supervisor_servers is a required parameter for this role
   when: supervisor_servers is not defined
 
+- name: supervisor | create application user
+  user: >
+    name="{{ supervisor_user }}"
+    home="{{ supervisor_app_dir }}"
+    createhome=no
+    shell=/bin/false
+
 - name: supervisor | create supervisor directories
   file: >
     name={{ item }}
     state=directory
     owner={{ supervisor_user }}
-    group={{ supervisor_user }}
+    group={{ common_web_user }}
   with_items:
     - "{{ supervisor_app_dir }}"
     - "{{ supervisor_cfg_dir }}"
-    - "{{ superivsor_data_dir }}"
     - "{{ supervisor_venvs_dir }}"
+
+- name: supervisor | create supervisor directories
+  file: >
+    name={{ item }}
+    state=directory
+    owner={{ common_web_user }}
+    group={{ supervisor_user }}
+  with_items:
+    - "{{ supervisor_data_dir }}"
     - "{{ supervisor_log_dir }}"
 
 
 - name: supervisor | install supervisor in its venv
   pip: name=supervisor virtualenv="{{supervisor_venv_dir}}" state=present
+  sudo_user: "{{ supervisor_user }}"
 
 - name: supervisor | create supervisor upstart job
-  template: src=supervisor-upstart.conf.j2 dest={{ supervisor_cfg }}
+  template: src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
 
 - name: supervisor | create supervisor master config
   template: src=supervisord.conf.j2 dest={{ supervisor_cfg }}
+  sudo_user: "{{ supervisor_user }}"
 
 - name: supervisor | create supervisor configs
   template: src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
   with_items: supervisor_servers
+  sudo_user: "{{ supervisor_user }}"
 
 - name: supervisor | ensure supervisor is started
   service: name=supervisor state=started
