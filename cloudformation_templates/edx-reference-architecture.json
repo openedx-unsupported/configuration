@@ -9,8 +9,7 @@
     },
     "DeploymentTag":{
       "Type":"String",
-      "Description":"A tag value applied to the hosts in the VPC indicating which deployment this is, e.g., edx, edge, <university>, <org>",
-      "Default":"edx"
+      "Description":"A tag value applied to the hosts in the VPC indicating which deployment this is, e.g., edx, edge, <university>, <org>"
     },
     "KeyName":{
       "Type":"String",
@@ -383,7 +382,8 @@
       "Forum01":        { "CIDR":"10.0.80.0/24" },
       "Forum02":        { "CIDR":"10.0.81.0/24" },
       "Mongo01":        { "CIDR":"10.0.90.0/24" },
-      "Mongo02":        { "CIDR":"10.0.91.0/24" }
+      "Mongo02":        { "CIDR":"10.0.91.0/24" },
+      "Mongo03":        { "CIDR":"10.0.92.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1a",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -1026,6 +1026,38 @@
         ]
       }
     },
+    "MongoSubnet03":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Mongo03",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone2"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"mongo"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
     "InternetGateway":{
       "Type":"AWS::EC2::InternetGateway",
       "Properties":{
@@ -1535,6 +1567,17 @@
         }
       }
     },
+    "PrivateSubnetRouteTableAssociationMongo03":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"MongoSubnet03"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
     "PrivateNetworkAcl":{
       "Type":"AWS::EC2::NetworkAcl",
       "Properties":{
@@ -1781,6 +1824,17 @@
       "Properties":{
         "SubnetId":{
           "Ref":"MongoSubnet02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationMongo03":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"MongoSubnet03"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -4659,6 +4713,12 @@
               "MongoSubnet02",
               "AvailabilityZone"
             ]
+          },
+          {
+            "Fn::GetAtt":[
+              "MongoSubnet03",
+              "AvailabilityZone"
+            ]
           }
         ],
         "VPCZoneIdentifier":[
@@ -4667,6 +4727,9 @@
           },
           {
             "Ref":"MongoSubnet02"
+          },
+          {
+            "Ref":"MongoSubnet03"
           }
         ],
         "Tags":[
