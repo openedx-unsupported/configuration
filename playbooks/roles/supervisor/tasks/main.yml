@@ -14,7 +14,7 @@
 #   Parameterized role for supervisord
 #   Supervisor templates must exist in the
 #   templates/ dir for each server
-# 
+#
 # Dependencies:
 #   - common
 #
@@ -29,24 +29,31 @@
 - fail: supervisor_servers is a required parameter for this role
   when: supervisor_servers is not defined
 
-- name: supervisor | install supervisor at the system level
-  pip: name=supervisor state=present
-
 - name: supervisor | create supervisor directories
-  file: name={{ item }} state=directory
+  file: >
+    name={{ item }}
+    state=directory
+    owner={{ supervisor_user }}
+    group={{ supervisor_user }}
   with_items:
-    - /etc/supervisor
-    - /etc/supervisor/conf.d
+    - "{{ supervisor_app_dir }}"
+    - "{{ supervisor_cfg_dir }}"
+    - "{{ superivsor_data_dir }}"
+    - "{{ supervisor_venvs_dir }}"
     - "{{ supervisor_log_dir }}"
 
+
+- name: supervisor | install supervisor in its venv
+  pip: name=supervisor virtualenv="{{supervisor_venv_dir}}" state=present
+
 - name: supervisor | create supervisor upstart job
-  template: src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+  template: src=supervisor-upstart.conf.j2 dest={{ supervisor_cfg }}
 
 - name: supervisor | create supervisor master config
   template: src=supervisord.conf.j2 dest={{ supervisor_cfg }}
 
 - name: supervisor | create supervisor configs
-  template: src={{ item }}.conf.j2 dest=/etc/supervisor/conf.d/{{ item }}.conf
+  template: src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
   with_items: supervisor_servers
 
 - name: supervisor | ensure supervisor is started
