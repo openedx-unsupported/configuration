@@ -1,0 +1,10 @@
+config = {_id: '{{ mongo_repl_set }}', members: [
+	   {% for host in mongo_cluster_members %}
+	   {_id: {{ loop.index }}, host: '{{ host }}'}{% if not loop.last %},{% endif %}
+	   {% endfor %}
+           ]};
+rs.initiate(config)
+
+sleep(30000)
+rs.slaveOk()
+printjson(rs.status())
