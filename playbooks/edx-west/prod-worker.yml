@@ -4,10 +4,10 @@
 #- hosts: ~tag_Name_util20_prod
   sudo: True
   vars:
-    secure_dir: '../../../configuration-secure/ansible'
     # this indicates the path to site-specific (with precedence)
     # things like nginx template files
-    local_dir:  '../../../configuration-secure/ansible/local'
+    secure_dir: '../../../configuration-secure/ansible'
+    local_dir:  '{{secure_dir}}/local'
     migrate_db: "no"
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
@@ -20,6 +20,23 @@
     - { role: 'edxapp', celery_worker: True }
     - datadog
     #- splunkforwarder
+
+# run the certificate agent on the first util machine only
+- hosts: ~tag_Name_util10_prod
+  sudo: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    migrate_db: "no"
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/certifier_prod_vars.yml"
+  roles:
+    - common
+    - role: virtualenv
+      virtualenv_user: "certifier"
+      virtualenv_name: "certifier"
+      virtualenv_user_home: "/opt/wwc/certifier"
+    - certificates
 
 #
 # COMMENT OUT THE NOTIFIER UNTIL IT IS READY

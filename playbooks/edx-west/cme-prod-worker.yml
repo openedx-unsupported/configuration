@@ -19,3 +19,20 @@
     - { role: 'edxapp', celery_worker: True }
     - datadog
     #- splunkforwarder
+
+# run the certificate agent on the first util machine only
+- hosts: ~tag_Name_util10_cme
+  sudo: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    migrate_db: "no"
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/certifier_prod_vars.yml"
+  roles:
+    - common
+    - role: virtualenv
+      virtualenv_user: "certifier"
+      virtualenv_name: "certifier"
+      virtualenv_user_home: "/opt/wwc/certifier"
+    - certificates
