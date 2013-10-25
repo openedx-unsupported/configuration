@@ -1,7 +1,7 @@
 ---
 #Upload config files for django (auth and env)
 - name: discern | create discern application config env.json file
-  template: src=env.json.j2 dest={{app_dir}}/env.json
+  template: src=env.json.j2 dest={{ discern_app_dir }}/env.json
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart celery
@@ -10,7 +10,7 @@
     - deploy
 
 - name: discern | create discern auth file auth.json
-  template: src=auth.json.j2 dest={{app_dir}}/auth.json
+  template: src=auth.json.j2 dest={{ discern_app_dir }}/auth.json
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart celery
@@ -18,19 +18,8 @@
   tags:
     - deploy
 
-#Needed if using redis to prevent memory issues
-- name: discern | change memory commit settings -- needed for redis
-  command: sysctl vm.overcommit_memory=1
-
-- name: discern | set permissions on app_dir sgid for edx
-  file: path={{app_dir}} owner=root group=edx mode=2775 state=directory
-  file: path={{venv_dir}} owner=root group=edx mode=2775 state=directory
-  tags:
-    - deploy
-
-#Grab both repos or update
-- name: discern | git checkout discern repo into discern_dir
-  git: dest={{discern_dir}} repo={{discern_source_repo}} version={{discern_branch}}
+- name: discern | git checkout discern repo into discern_code_dir
+  git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_branch }}
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart celery
@@ -38,8 +27,8 @@
   tags:
     - deploy
 
-- name: discern | git checkout ease repo into ease_dir
-  git: dest={{ease_dir}} repo={{ease_source_repo}} version={{ease_branch}}
+- name: discern | git checkout ease repo into discern_ease_code_dir
+  git: dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart celery
@@ -49,7 +38,7 @@
 
 #Numpy has to be a pre-requirement in order for scipy to build
 - name : install python pre-requirements for discern and ease
-  pip: requirements="{{item}}/pre-requirements.txt" virtualenv="{{ discern_venv_dir }}" state=present
+  pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
   sudo_user: "{{ discern_user }}"
   with_items:
     - "{{ discern_pre_requirements_file }}"
@@ -58,7 +47,7 @@
     - deploy
 
 - name : install python requirements for discern and ease
-  pip: requirements="{{item}}/requirements.txt" virtualenv="{{ discern_venv_dir }}" state=present
+  pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
   sudo_user: "{{ discern_user }}"
   with_items:
     - "{{ discern_post_requirements_file }}"

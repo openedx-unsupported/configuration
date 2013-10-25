@@ -17,7 +17,7 @@
     shell=/bin/false
 
 
-- name: xserver | create xserver app and data dir
+- name: xserver | create xserver app and data dirs
   file: >
     path="{{ item }}"
     state=directory
@@ -25,6 +25,7 @@
     group="{{ common_web_group }}"
   with_items:
     - "{{ xserver_app_dir }}"
+    - "{{ xserver_venvs_dir }}"
     - "{{ xserver_data_dir }}"
 
 - name: xserver | create sandbox sudoers file
@@ -53,9 +54,6 @@
   - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
   - "usr.bin.python-sandbox.j2"
 
-- name: xserver | enforce app-armor rules
-  command: aa-enforce {{ xserver_sandbox_venv_dir }}
-
 - name: xserver | setup upstart script
   template: src=xserver.conf.j2 dest=/etc/init/xserver.conf owner=root group=root
 
@@ -63,3 +61,13 @@
   copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=adm mode=750
 
 - include: deploy.yml
+
+- name: xserver | enforce app-armor rules
+  command: aa-enforce {{ xserver_venv_sandbox_dir }}
+
+- name: xserver | create a symlink for venv python
+  file: >
+    src="{{ xserver_venv_bin }}/python"
+    dest={{ cfg_dir }}/python.xserver
+    state=link
+

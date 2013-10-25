@@ -64,4 +64,22 @@
   template: src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf owner=root group=root
   when: "celery_worker is defined"
 
+- name: edxapp | create log directories for service variants
+  file: >
+    path={{ edxapp_log_dir }}/{{ item }}
+    state=directory
+    owner={{ common_log_user }}
+    group={{ common_log_user }}
+    mode=0750
+  with_items:
+    - lms
+    - cms
+    - lms-preview
+
 - include: deploy.yml
+
+- name: edxapp | create a symlink for venv python
+  file: >
+    src="{{ edxapp_venv_bin }}/python"
+    dest={{ cfg_dir }}/python.edxapp
+    state=link

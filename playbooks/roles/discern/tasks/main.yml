@@ -15,6 +15,7 @@
   with_items:
     - "{{ discern_app_dir }}"
     - "{{ discern_data_dir }}"
+    - "{{ discern_venvs_dir }}"
 
 - name: discern | install debian packages that discern needs
   apt: pkg={{ item }} state=present
@@ -24,19 +25,29 @@
   apt: pkg={{ item }} state=present
   with_items: discern_ease_debian_pkgs
 
-#Create the templates for upstart services
 - name: discern | render celery service from template
-  template: src=celery.conf.j2 dest=/etc/init/celery.conf owner=root group=edx mode=0664
+  template: src=celery.conf.j2 dest=/etc/init/celery.conf
   notify: discern | restart celery
 
 - name: discern | render discern service from template
-  template: src=discern.conf.j2 dest=/etc/init/discern.conf owner=root group=edx mode=0664
+  template: src=discern.conf.j2 dest=/etc/init/discern.conf
   notify: discern | restart discern
 
 - name: discern | copy sudoers file for discern
   copy: >
     src=sudoers-discern
-    dest=/etc/sudoers.d/{{ site_name }}
+    dest=/etc/sudoers.d/discern
+    mode=0440
     validate='visudo -cf %s'
 
+#Needed if using redis to prevent memory issues
+- name: discern | change memory commit settings -- needed for redis
+  command: sysctl vm.overcommit_memory=1
+
 - include: deploy.yml
+
+- name: discern | create a symlink for venv python
+  file: >
+    src="{{ discern_venv_bin }}/python"
+    dest={{ cfg_dir }}/python.discern
+    state=link
