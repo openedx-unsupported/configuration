@@ -36,16 +36,13 @@
 
 - name: rbenv | create rbenv user {{ rbenv_user }}
   user: >
-    name={{ rbenv_user }}
-    home={{ rbenv_dir }}
-    shell=/bin/false
-    createhome=no
+    name={{ rbenv_user }} home={{ rbenv_dir }}
+    shell=/bin/false createhome=no
   when: rbenv_user != common_web_user
 
 - name: rbenv | create rbenv dir if it does not exist
   file: >
-    path="{{ rbenv_dir }}"
-    owner="{{ rbenv_user }}"
+    path="{{ rbenv_dir }}" owner="{{ rbenv_user }}"
     state=directory
 
 - name: rbenv | install build depends
@@ -55,14 +52,12 @@
 - name: rbenv | update rbenv repo
   git: >
     repo=https://github.com/sstephenson/rbenv.git
-    dest={{ rbenv_dir }}/.rbenv
-    version={{ rbenv_version }}
+    dest={{ rbenv_dir }}/.rbenv version={{ rbenv_version }}
   sudo_user: "{{ rbenv_user }}"
 
 - name: rbenv | ensure ruby_env exists
   template: >
-    src=ruby_env.j2
-    dest={{ rbenv_dir }}/ruby_env
+    src=ruby_env.j2 dest={{ rbenv_dir }}/ruby_env
   sudo_user: "{{ rbenv_user }}"
 
 - name: rbenv | check ruby-build installed

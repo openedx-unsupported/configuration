@@ -26,19 +26,21 @@
   with_items: discern_ease_debian_pkgs
 
 - name: discern | render celery service from template
-  template: src=celery.conf.j2 dest=/etc/init/celery.conf
+  template: >
+    src=celery.conf.j2 dest=/etc/init/celery.conf
+    owner=root group=root
   notify: discern | restart celery
 
 - name: discern | render discern service from template
-  template: src=discern.conf.j2 dest=/etc/init/discern.conf
+  template: >
+    src=discern.conf.j2 dest=/etc/init/discern.conf
+    owner=root group=root
   notify: discern | restart discern
 
 - name: discern | copy sudoers file for discern
   copy: >
-    src=sudoers-discern
-    dest=/etc/sudoers.d/discern
-    mode=0440
-    validate='visudo -cf %s'
+    src=sudoers-discern dest=/etc/sudoers.d/discern
+    mode=0440 validate='visudo -cf %s' owner=root group=root
 
 #Needed if using redis to prevent memory issues
 - name: discern | change memory commit settings -- needed for redis

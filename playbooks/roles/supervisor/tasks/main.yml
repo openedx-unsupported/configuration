@@ -38,7 +38,6 @@
     group={{ common_web_user }}
   with_items:
     - "{{ supervisor_app_dir }}"
-    - "{{ supervisor_cfg_dir }}"
     - "{{ supervisor_venvs_dir }}"
 
 - name: supervisor | create supervisor directories
@@ -48,6 +47,7 @@
     owner={{ common_web_user }}
     group={{ supervisor_user }}
   with_items:
+    - "{{ supervisor_cfg_dir }}"
     - "{{ supervisor_data_dir }}"
     - "{{ supervisor_log_dir }}"
 
@@ -58,12 +58,15 @@
   notify: supervisor | restart supervisor
 
 - name: supervisor | create supervisor upstart job
-  template: src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+  template: >
+    src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+    owner=root group=root
   notify: supervisor | restart supervisor
 
 - name: supervisor | create supervisor master config
-  template: src=supervisord.conf.j2 dest={{ supervisor_cfg }}
-  sudo_user: "{{ supervisor_user }}"
+  template: >
+    src=supervisord.conf.j2 dest={{ supervisor_cfg }}
+    owner={{ supervisor_user }}
   notify: supervisor | restart supervisor
 
 - name: supervisor | create a symlink for supervisortctl
@@ -77,6 +80,13 @@
     src={{ supervisor_cfg }}
     dest={{ cfg_dir }}/{{ supervisor_cfg|basename }}
     state=link
+
+- name: supervisor | create a symlink for supervisor cfg
+  file: >
+    src={{ supervisor_cfg_dir }}
+    dest={{ cfg_dir }}/supervisor.{{ supervisor_cfg_dir|basename }}
+    state=link
+
 
 - name: supervisor | ensure supervisor is started
   service: name=supervisor state=started

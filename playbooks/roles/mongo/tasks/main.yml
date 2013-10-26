@@ -3,10 +3,8 @@
 
 - name: mongo | install python pymongo for mongo_user ansible module
   pip: >
-    name=pymongo
-    state=present
-    version=2.6.3
-    extra_args="-i {{ PYPI_MIRROR_URL }}"
+    name=pymongo state=present
+    version=2.6.3 extra_args="-i {{ PYPI_MIRROR_URL }}"
 
 - name: mongo | add the mongodb signing key
   apt_key: >
@@ -22,15 +20,18 @@
 - name: mongo | install mongo server and recommends
   apt: >
     pkg=mongodb-10gen={{ mongo_version }}
-    state=present
-    install_recommends=yes
+    state=present install_recommends=yes
     update_cache=yes
 
-- name: mongo | create mongo data dir
+- name: mongo | create mongo dirs
   file: >
-    path="{{ mongo_data_dir }}"
-    state=directory
+    path="{{ item }}" state=directory
     owner="{{ mongo_user  }}"
+    group="{{ mongo_user }}"
+  with_items:
+    - "{{ mongo_data_dir }}"
+    - "{{ mongo_dbpath }}"
+    - "{{ mongo_app_dir }}"
 
 - name: mongo | stop mongo service
   service: name=mongodb state=stopped

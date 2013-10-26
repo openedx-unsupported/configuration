@@ -4,85 +4,70 @@
 - name: nginx | Install nginx
   apt: pkg=nginx state={{ pkgs.nginx.state }}
   notify: nginx | restart nginx
-  tags:
-  - nginx
-  - install
 
 - name: nginx | Server configuration file
-  copy: src={{secure_dir}}/files/nginx.conf dest=/etc/nginx/nginx.conf owner=root group=root mode=0644
+  copy: >
+    src={{secure_dir}}/files/nginx.conf dest=/etc/nginx/nginx.conf
+    owner=root group=root mode=0644
   when: nginx_conf is defined
   notify: nginx | reload nginx
-  tags:
-  - nginx
-  - install
 
 - name: nginx | Creating common nginx configuration
-  template: src=edx-release.j2 dest=/etc/nginx/sites-available/edx-release owner=root group=root mode=0600
+  template: >
+    src=edx-release.j2 dest=/etc/nginx/sites-available/edx-release
+    owner=root group=root mode=0600
   notify: nginx | reload nginx
-  tags:
-  - nginx
 
 - name: nginx | Creating link for common nginx configuration
-  file: src=/etc/nginx/sites-available/edx-release dest=/etc/nginx/sites-enabled/edx-release state=link owner=root group=root
+  file: >
+    src=/etc/nginx/sites-available/edx-release dest=/etc/nginx/sites-enabled/edx-release
+    state=link owner=root group=root
   notify: nginx | reload nginx
-  tags:
-  - nginx
 
 - name: nginx | Copying nginx configs for {{ nginx_sites }}
-  template: src={{ item }}.j2 dest=/etc/nginx/sites-available/{{ item }} owner=root group=root mode=0600
+  template: >
+    src={{ item }}.j2 dest=/etc/nginx/sites-available/{{ item }}
+    owner=root group=root mode=0600
   notify: nginx | reload nginx
   with_items: nginx_sites
-  tags:
-  - nginx
 
 - name: nginx | Creating nginx config links for {{ nginx_sites }}
-  file: src=/etc/nginx/sites-available/{{ item  }} dest=/etc/nginx/sites-enabled/{{ item }} state=link owner=root group=root
+  file: >
+    src=/etc/nginx/sites-available/{{ item  }}
+    dest=/etc/nginx/sites-enabled/{{ item }} state=link owner=root group=root
   notify: nginx | reload nginx
   with_items: nginx_sites
-  tags:
-  - nginx
 
 - name: nginx | Write out default htpasswd file
-  copy: content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd owner=www-data group=www-data mode=0600
-  tags:
-  - nginx
-  - update
+  copy: >
+    content={{ nginx_cfg.htpasswd }} dest=/etc/nginx/nginx.htpasswd
+    owner=www-data group=www-data mode=0600
 
 - name: nginx | Create nginx log file location (just in case)
-  file: path={{log_dir}}/nginx state=directory owner=syslog group=syslog mode=2770 recurse=yes
-  tags:
-  - nginx
-  - logging
-  - update
+  file: >
+    path={{log_dir}}/nginx state=directory
+    owner=syslog group=syslog mode=2770 recurse=yes
 
 # removing default link
 - name: nginx | Removing default nginx config and restart (enabled)
   file: path=/etc/nginx/sites-enabled/default state=absent
   notify: nginx | reload nginx
-  tags:
-  - nginx
-  - update
 
 # Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
 
 - name: nginx | Set up nginx access log rotation
-  template: dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2 owner=root group=root mode=644
-  tags:
-  - logging
-  - update
+  template: >
+    dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2
+    owner=root group=root mode=644
 
 - name: nginx | Set up nginx access log rotation
-  template: dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2 owner=root group=root mode=644
-  tags:
-  - logging
-  - update
+  template: >
+    dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2
+    owner=root group=root mode=644
 
 - name: nginx | Removing default nginx config (available)
   file: path=/etc/nginx/sites-available/default state=absent
   notify: nginx | reload nginx
-  tags:
-  - nginx
-  - update
 
 # If tasks that notify restart nginx don't change the state of the remote system
 # their corresponding notifications don't get run.  If nginx has been stopped for

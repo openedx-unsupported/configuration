@@ -23,28 +23,37 @@
 
 - name: forum | create application user
   user: >
-    name="{{ forum_user }}"
-    home="{{ forum_app_dir }}"
+    name="{{ forum_user }}" home="{{ forum_app_dir }}"
     createhome=no
     shell=/bin/false
 
 - name: forum | create forum app dir
   file: >
-    path="{{ forum_app_dir }}"
-    state=directory
-    owner="{{ forum_user }}"
-    group="{{ common_web_group }}"
+    path="{{ forum_app_dir }}" state=directory
+    owner="{{ forum_user }}" group="{{ common_web_group }}"
 
 - name: forum | setup the forum env
-  template: src=forum_env.j2 dest={{ forum_app_dir }}/forum_env
-  sudo_user: "{{ forum_user }}"
+  template: >
+    src=forum_env.j2 dest={{ forum_app_dir }}/forum_env
+    owner={{ forum_user }}  group={{ forum_user }}
   notify:
     - forum | restart the forum service
+
+- name: forum | create the supervisor config
+  template: >
+    src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
+    owner={{ common_web_user }} group={{ supervisor_user }}
+  register: forum_supervisor
 
 - include: deploy.yml
 
-- name: forum | create the supervisor config
-  template: src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
-  notify:
-    - forum | restart the forum service
+# Reload supervisor right away when the configuration
+# changes, this happens after deploy.yml tasks so
+# that the application is installed
+
+- name: forum | reload supervisor
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
+  when: forum_supervisor.changed
+
 - include: test.yml
+

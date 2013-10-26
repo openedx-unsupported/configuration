@@ -9,33 +9,26 @@
 
 - name: edxapp | create application user
   user: >
-    name="{{ edxapp_user }}"
-    home="{{ edxapp_app_dir }}"
-    createhome=no
-    shell=/bin/false
+    name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
+    createhome=no shell=/bin/false
 
 - name: edxapp | create edxapp app dir
   file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ edxapp_user }}"
-    group="{{ common_web_group }}"
+    path="{{ item }}" state=directory
+    owner="{{ edxapp_user }}" group="{{ common_web_group }}"
   with_items:
     - "{{ edxapp_app_dir }}"
     - "{{ edxapp_venvs_dir }}"
 
 - name: edxapp | create edxapp log dir
   file: >
-    path="{{ edxapp_log_dir }}"
-    state=directory
-    owner="{{ common_log_user }}"
-    group="{{ common_log_user }}"
+    path="{{ edxapp_log_dir }}" state=directory
+    owner="{{ common_log_user }}" group="{{ common_log_user }}"
 
 - name: edxapp | create edxapp writable dirs
   file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ edxapp_user }}"
+    path="{{ item }}" state=directory
+    owner="{{ edxapp_user }}" group="{{ edxapp_user }}"
   with_items:
     - "{{ edxapp_staticfile_dir }}"
     - "{{ edxapp_theme_dir }}"
@@ -43,10 +36,8 @@
 
 - name: edxapp | create web-writable edxapp data dirs
   file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ common_web_user }}"
-    group="{{ edxapp_user }}"
+    path="{{ item }}" state=directory
+    owner="{{ common_web_user }}" group="{{ edxapp_user }}"
     mode="0775"
   with_items:
     - "{{ edxapp_course_data_dir }}"
@@ -57,19 +48,21 @@
 
 - name: edxapp | creating edxapp upstart script
   sudo: True
-  template: src=edxapp.conf.j2 dest=/etc/init/edxapp.conf owner=root group=root
+  template: >
+    src=edxapp.conf.j2 dest=/etc/init/edxapp.conf
+    owner=root group=root
   when: "celery_worker is not defined"
 
 - name: edxapp | create edx-workers upstart script
-  template: src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf owner=root group=root
+  template: >
+    src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf
+    owner=root group=root
   when: "celery_worker is defined"
 
 - name: edxapp | create log directories for service variants
   file: >
-    path={{ edxapp_log_dir }}/{{ item }}
-    state=directory
-    owner={{ common_log_user }}
-    group={{ common_log_user }}
+    path={{ edxapp_log_dir }}/{{ item }} state=directory
+    owner={{ common_log_user }} group={{ common_log_user }}
     mode=0750
   with_items:
     - lms
