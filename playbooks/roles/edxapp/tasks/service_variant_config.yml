@@ -1,0 +1,88 @@
+- name: edxapp | create edx-workers upstart script
+  template: >
+    src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf
+    owner=root group=root
+  when: celery_worker is defined
+
+
+- name: "create {{ item }} application config"
+  template: >
+    src={{ item }}.env.json.j2
+    dest={{ edxapp_app_dir }}/{{ item }}.env.json
+  sudo_user: "{{ edxapp_user }}"
+  with_items: service_variants_enabled
+  tags:
+  - deploy
+
+- name: "create {{ item }} auth file"
+  template: >
+    src={{ item }}.auth.json.j2
+    dest={{ edxapp_app_dir }}/{{ item }}.auth.json
+  sudo_user: "{{ edxapp_user }}"
+  with_items: service_variants_enabled
+  tags:
+  - deploy
+
+# write the supervisor script for {{ service_variant }}
+# for non-celery servers
+
+- name: "writing {{ item }} supervisor script"
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: service_variants_enabled
+  when: celery_worker is not defined
+  notify: supervisor | reload supervisor
+  tags:
+  - deploy
+
+- name: "writing edxapp supervisor script"
+  template: >
+    src=edxapp.conf.j2 dest={{ supervisor_cfg_dir }}/edxapp.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  when: celery_worker is not defined
+  tags:
+  - deploy
+
+
+# write the supervisor script for celery workers
+
+- name: writing celery worker supervisor script
+  template: >
+    src=workers.conf.j2 dest={{ supervisor_cfg_dir }}/workers.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  when: celery_worker is defined
+  tags:
+  - deploy
+
+- name: supervisor | reload supervisor
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
+
+# Gather assets using rake if possible
+
+- name: edxapp | gather {{ item }} static assets with rake
+  shell: >
+    command=SERVICE_VARIANT={{ item }} rake {{ item }}:gather_assets:aws
+    executable=/bin/bash
+    chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ edxapp_user }}"
+  when: celery_worker is not defined
+  with_items: service_variants_enabled
+  environment: "{{ edxapp_deploy_environment }}"
+  tags:
+  - deploy
+
+
+- name: edxapp | syncdb and migrate
+  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+  - deploy
+
+- name: edxapp | db migrate
+  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  when: migrate_only is defined and migrate_only|lower == "yes"
+  tags:
+  - deploy
+
+

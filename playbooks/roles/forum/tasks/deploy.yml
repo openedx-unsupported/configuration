@@ -1,7 +1,11 @@
 ---
 
 - name: forum | stop the forum service
-  service: name=cs_comments_service state=stopped
+  supervisorctl: >
+    name=forum
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
@@ -11,9 +15,8 @@
     dest={{ forum_supervisor_wrapper }}
     mode=0755
   sudo_user: "{{ forum_user }}"
-  notify:
-    - forum | restart the forum service
-
+  tags:
+  - deploy
 
 - name:  forum | git checkout forum repo into {{ forum_code_dir }}
   git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}

@@ -69,8 +69,10 @@
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
-- name: discern | django syncdb, migrate, and collectstatic for discern
-  shell: "{{ discern_venv_dir }}/bin/python {{discern_code_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_code_dir}}"
+- name: discern | django syncdb migrate and collectstatic for discern
+  shell: >
+    command="{{ discern_venv_dir }}/bin/python {{discern_code_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_code_dir}}"
+      chdir={{ discern_code_dir }}
   sudo_user: "{{ discern_user }}"
   with_items:
     - syncdb
@@ -78,10 +80,11 @@
     - collectstatic
   tags:
     - deploy
-
 #Have this separate from the other three because it doesn't take the noinput flag
 - name: discern | django update_index for discern
-  shell: "{{ discern_venv_dir}}/bin/python {{discern_code_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_code_dir}}"
+  shell: >
+    command="{{ discern_venv_dir}}/bin/python {{discern_code_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_code_dir}}"
+      chdir={{ discern_code_dir }}
   sudo_user: "{{ discern_user }}"
   tags:
     - deploy

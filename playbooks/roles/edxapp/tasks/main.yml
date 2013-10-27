@@ -46,33 +46,17 @@
 - name: edxapp | install system packages on which LMS and CMS rely
   apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
 
-- name: edxapp | creating edxapp upstart script
-  sudo: True
-  template: >
-    src=edxapp.conf.j2 dest=/etc/init/edxapp.conf
-    owner=root group=root
-  when: "celery_worker is not defined"
-
-- name: edxapp | create edx-workers upstart script
-  template: >
-    src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf
-    owner=root group=root
-  when: "celery_worker is defined"
-
 - name: edxapp | create log directories for service variants
   file: >
     path={{ edxapp_log_dir }}/{{ item }} state=directory
     owner={{ common_log_user }} group={{ common_log_user }}
     mode=0750
-  with_items:
-    - lms
-    - cms
-    - lms-preview
+  with_items: service_variants_enabled
 
 - include: deploy.yml
 
 - name: edxapp | create a symlink for venv python
   file: >
     src="{{ edxapp_venv_bin }}/python"
-    dest={{ cfg_dir }}/python.edxapp
+    dest={{ bin_dir }}/python.edxapp
     state=link

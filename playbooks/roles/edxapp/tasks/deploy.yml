@@ -1,11 +1,14 @@
 # Stop all services.
-- name: edxapp | stop edxapp services
-  service: name=edxapp state=stopped
+#
+
+- name: edxapp | stop the edxapp services (supervisor)
+  supervisorctl: >
+    name=edxapp
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   when: celery_worker is not defined
   tags:
-  - lms
-  - lms-preview
-  - cms
   - deploy
 
 - name: edxapp | stop edx workers
@@ -13,15 +16,6 @@
   when: celery_worker is defined
   tags:
   - deploy
-
-# update json configs for the application
-
-- include: lms.yml
-  when: "'lms' in service_variants_enabled"
-- include: cms.yml
-  when: "'cms' in service_variants_enabled"
-- include: lms-preview.yml
-  when: "'lms-preview' in service_variants_enabled"
 
 
 # Do A Checkout
@@ -31,6 +25,7 @@
   sudo_user: "{{ edxapp_user }}"
   tags:
   - deploy
+
 
 - name: edxapp | git clean after checking out edx-platform
   shell: cd {{edxapp_code_dir}} && git clean -xdf
@@ -168,54 +163,19 @@
   tags:
   - deploy
 
+# creates the supervisor jobs for the
+# service variants configured, runs
+# gather_assets and db migrations
+- include: service_variant_config.yml
 
-- name: edxapp | syncdb and migrate
-  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_db is defined and migrate_db|lower == "yes"
-  tags:
-  - deploy
-
-- name: edxapp | db migrate
-  shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_only is defined and migrate_only|lower == "yes"
-  tags:
-  - deploy
-
-# Gather lms assets using rake if possible
-- name: edxapp | gather lms static assets with rake
-  shell: SERVICE_VARIANT={{ edxapp_lms_variant }} rake lms:gather_assets:aws
-    executable=/bin/bash
-    chdir={{ edxapp_code_dir }}
-  notify:
-  - edxapp | restart edxapp
-  sudo_user: "{{ edxapp_user }}"
-  when: celery_worker is not defined
-  environment: "{{ edxapp_deploy_environment }}"
-  tags:
-  - deploy
-
-# Gather cms assets using rake if possible
-- name: edxapp | gather cms static assets with rake
-  shell: SERVICE_VARIANT={{ edxapp_cms_variant }} rake cms:gather_assets:aws
-    executable=/bin/bash
-    chdir={{ edxapp_code_dir }}
-  notify:
-  - edxapp | restart edxapp
-  sudo_user: "{{ edxapp_user }}"
-  when: celery_worker is not defined
-  environment: "{{ edxapp_deploy_environment }}"
-  tags:
-  - deploy
-
-
-- name: edxapp | restart edxapp
-  service: name=edxapp state=restarted
+- name: edxapp | restart the edxapp services (supervisor)
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} restart edxapp"
   when: celery_worker is not defined
   tags:
-  - deploy
+    - deploy
 
-- name: edxapp | restart workers
-  service: name=edx-workers state=restarted
+- name: edxapp | restart the celery worker services (supervisor)
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} restart edxapp_worker"
   when: celery_worker is defined
   tags:
-  - deploy
+    - deploy
