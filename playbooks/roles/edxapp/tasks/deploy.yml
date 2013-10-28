@@ -1,22 +1,34 @@
 # Stop all services.
 #
+#
+
+# TODO: the supervisor ansible module does not support
+# stopping and starting services by group.
+# Ignoring errors for initial install use-case
 
 - name: edxapp | stop the edxapp services (supervisor)
   supervisorctl: >
-    name=edxapp
+    name="edxapp:{{ item }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=stopped
   when: celery_worker is not defined
+  with_items: service_variants_enabled
+  ignore_errors: true
   tags:
-  - deploy
+    - deploy
 
-- name: edxapp | stop edx workers
-  service: name=edx-workers state=stopped
+- name: edxapp | stop the celery worker services (supervisor)
+  supervisorctl: >
+    name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   when: celery_worker is defined
+  with_items: edxapp_workers
+  ignore_errors: true
   tags:
-  - deploy
-
+    - deploy
 
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
@@ -169,13 +181,25 @@
 - include: service_variant_config.yml
 
 - name: edxapp | restart the edxapp services (supervisor)
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} restart edxapp"
+  supervisorctl: >
+    name="edxapp:{{ item }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
   when: celery_worker is not defined
+  with_items: service_variants_enabled
+  ignore_errors: true
   tags:
     - deploy
 
 - name: edxapp | restart the celery worker services (supervisor)
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} restart edxapp_worker"
+  supervisorctl: >
+    name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
   when: celery_worker is defined
+  with_items: edxapp_workers
+  ignore_errors: true
   tags:
     - deploy
