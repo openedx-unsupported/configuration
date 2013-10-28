@@ -1,13 +1,13 @@
 ; supervisor config file
 
 [unix_http_server]
-file=/var/run//supervisor.sock   ; (the path to the socket file)
+file={{ supervisor_data_dir }}/supervisor.sock   ; (the path to the socket file)
 chmod=0700                       ; sockef file mode (default 0700)
 
 [supervisord]
-logfile=/var/log/supervisor/supervisord.log ; (main log file;default $CWD/supervisord.log)
-pidfile=/var/run/supervisord.pid ; (supervisord pidfile;default supervisord.pid)
-childlogdir=/var/log/supervisor            ; ('AUTO' child log dir, default $TEMP)
+logfile={{ supervisor_log_dir }}/supervisord.log ; (main log file;default $CWD/supervisord.log)
+pidfile={{ supervisor_data_dir }}/supervisord.pid ; (supervisord pidfile;default supervisord.pid)
+childlogdir={{ supervisor_log_dir }}            ; ('AUTO' child log dir, default $TEMP)
 
 ; the below section must remain in the config file for RPC
 ; (supervisorctl/web interface) to work, additional interfaces may be
@@ -16,7 +16,7 @@ childlogdir=/var/log/supervisor            ; ('AUTO' child log dir, default $TEM
 supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 
 [supervisorctl]
-serverurl=unix:///var/run//supervisor.sock ; use a unix:// URL  for a unix socket
+serverurl=unix://{{ supervisor_data_dir }}/supervisor.sock ; use a unix:// URL  for a unix socket
 
 ; The [include] section can just contain the "files" setting.  This
 ; setting can list multiple files (separated by whitespace or
@@ -25,5 +25,5 @@ serverurl=unix:///var/run//supervisor.sock ; use a unix:// URL  for a unix socke
 ; include files themselves.
 
 [include]
-files = /etc/supervisor/conf.d/*.conf
+files = {{ supervisor_cfg_dir }}/*.conf
 

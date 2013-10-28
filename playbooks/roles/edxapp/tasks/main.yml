@@ -2,54 +2,61 @@
 #  - group_vars/all
 #  - common/tasks/main.yml
 ---
-- name: Change permissions on datadir
-  file: path={{ app_base_dir }}/data state=directory owner=www-data group=www-data
-  tags:
-  - cms
-  - lms
-  - lms-env
-  - update
 
-- name: Change owner on staticfiles
-  file: path={{ app_base_dir }}/staticfiles state=directory owner=www-data group=adm
-  tags:
-  - cms
-  - lms
-  - lms-env
-  - update
 
-- name: Create theming directory
-  file: path={{ app_base_dir }}/themes state=directory mode=2775 group=adm owner=www-data
-  tags:
-  - cms
-  - lms
-  - cms-env
-  - lms-env
-  - update
+- name: edxapp | Install logrotate configuration for tracking file
+  template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
 
-- name: install a bunch of system packages on which LMS and CMS rely
-  apt: pkg={{','.join(lms_debian_pkgs)}} state=present
-  tags:
-  - lms
-  - cms
-  - install
+- name: edxapp | create application user
+  user: >
+    name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
+    createhome=no shell=/bin/false
 
-- name: creating edxapp upstart script
-  sudo: True
-  template: src=edxapp.conf.j2 dest=/etc/init/edxapp.conf owner=root group=root
-  when: "celery_worker is not defined"
-  tags:
-  - upstart
-  - gunicorn
-  - update
+- name: edxapp | create edxapp app dir
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ edxapp_user }}" group="{{ common_web_group }}"
+  with_items:
+    - "{{ edxapp_app_dir }}"
+    - "{{ edxapp_venvs_dir }}"
 
-- name: create edx-workers upstart script
-  template: src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf owner=root group=root
-  when: "celery_worker is defined"
-  tags:
-  - upstart
-  - update
+- name: edxapp | create edxapp log dir
+  file: >
+    path="{{ edxapp_log_dir }}" state=directory
+    owner="{{ common_log_user }}" group="{{ common_log_user }}"
 
-- include: npm.yml
-- include: ruby.yml
+- name: edxapp | create edxapp writable dirs
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ edxapp_user }}" group="{{ edxapp_user }}"
+  with_items:
+    - "{{ edxapp_staticfile_dir }}"
+    - "{{ edxapp_theme_dir }}"
+
+
+- name: edxapp | create web-writable edxapp data dirs
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ common_web_user }}" group="{{ edxapp_user }}"
+    mode="0775"
+  with_items:
+    - "{{ edxapp_course_data_dir }}"
+    - "{{ edxapp_upload_dir }}"
+
+- name: edxapp | install system packages on which LMS and CMS rely
+  apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
+
+- name: edxapp | create log directories for service variants
+  file: >
+    path={{ edxapp_log_dir }}/{{ item }} state=directory
+    owner={{ common_log_user }} group={{ common_log_user }}
+    mode=0750
+  with_items: service_variants_enabled
+
 - include: deploy.yml
+
+- name: edxapp | create a symlink for venv python
+  file: >
+    src="{{ edxapp_venv_bin }}/python"
+    dest={{ COMMON_BIN_DIR }}/python.edxapp
+    state=link

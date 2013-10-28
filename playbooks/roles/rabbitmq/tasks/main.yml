@@ -20,26 +20,35 @@
 
 # Defaulting to /var/lib/rabbitmq
 - name: rabbitmq | create cookie directory
-  file: path={{rabbitmq_cookie_dir}} owner=rabbitmq group=rabbitmq mode=0755 state=directory
-
+  file: >
+    path={{rabbitmq_cookie_dir}}
+    owner=rabbitmq group=rabbitmq mode=0755 state=directory
 
 - name: rabbitmq | add rabbitmq erlang cookie
-  template: src=erlang.cookie.j2 dest={{rabbitmq_cookie_location}} owner=rabbitmq group=rabbitmq mode=0400
+  template: >
+    src=erlang.cookie.j2 dest={{rabbitmq_cookie_location}}
+    owner=rabbitmq group=rabbitmq mode=0400
   register: erlang_cookie
 
 # Defaulting to /etc/rabbitmq
 - name: rabbitmq | create rabbitmq config directory
-  file: path={{rabbitmq_config_dir}} owner=root group=root mode=0755 state=directory
- 
+  file: >
+    path={{rabbitmq_config_dir}}
+    owner=root group=root mode=0755 state=directory
+
 - name: rabbitmq | add rabbitmq environment configuration
-  template: src=rabbitmq-env.conf.j2 dest={{rabbitmq_config_dir}}/rabbitmq-env.conf owner=root group=root mode=0644
+  template: >
+    src=rabbitmq-env.conf.j2 dest={{rabbitmq_config_dir}}/rabbitmq-env.conf
+    owner=root group=root mode=0644
 
 - name: rabbitmq | add rabbitmq cluster configuration
-  template: src=rabbitmq.config.j2 dest={{rabbitmq_config_dir}}/rabbitmq.config owner=root group=root mode=0644
+  template: >
+    src=rabbitmq.config.j2 dest={{rabbitmq_config_dir}}/rabbitmq.config
+    owner=root group=root mode=0644
   register: cluster_configuration
 
 - name: rabbitmq | install plugins
-  rabbitmq_plugin: 
+  rabbitmq_plugin:
     names={{",".join(rabbitmq_plugins)}} state=enabled
 
 # When rabbitmq starts up it creates a folder of metadata at '/var/lib/rabbitmq/mnesia'.
@@ -60,13 +69,9 @@
 
 - name: rabbitmq | add admin users
   rabbitmq_user: >
-    user='{{item.name}}'
-    password='{{item.password}}'
-    read_priv='.*'
-    write_priv='.*'
-    configure_priv='.*'
-    tags="administrator"
-    state=present
+    user='{{item.name}}' password='{{item.password}}'
+    read_priv='.*' write_priv='.*'
+    configure_priv='.*' tags="administrator" state=present
   with_items: rabbitmq_auth_config.admins
   when: "'admins' in rabbitmq_auth_config"
 
@@ -74,11 +79,11 @@
 # Depends upon the management plugin
 #
 - name: rabbitmq | install admin tools
-  get_url: 
+  get_url: >
     url=http://localhost:{{ rabbitmq_management_port }}/cli/rabbitmqadmin
     dest=/usr/local/bin/rabbitmqadmin
 
 - name: rabbitmq | ensure rabbitmqadmin attributes
-  file: 
-    path=/usr/local/bin/rabbitmqadmin owner=root 
+  file: >
+    path=/usr/local/bin/rabbitmqadmin owner=root
     group=root mode=0655

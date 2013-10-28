@@ -1,15 +1,16 @@
+
+- include: ease.yml
+
 - name: ora | See if edx-ora.conf is installed
   shell: "[ -f /etc/init/edx-ora.conf ] && echo 'Found' || echo ''"
   register: edx_ora_installed
   tags:
-  - ora
   - deploy
 
 - name: ora | See if edx-ora-celery.conf is installed
   shell: "[ -f /etc/init/edx-ora-celery.conf ] && echo 'Found' || echo ''"
   register: edx_ora_celery_installed
   tags:
-  - ora
   - deploy
 
 # Stop ora service.
@@ -18,7 +19,6 @@
   when: edx_ora_installed.stdout == 'Found'
   notify: ora | restart edx-ora
   tags:
-  - ora
   - deploy
 
 - name: ora | stop edx-ora-celery service
@@ -26,53 +26,39 @@
   when: edx_ora_celery_installed.stdout == 'Found'
   notify: ora | restart edx-ora-celery
   tags:
-  - ora
   - deploy
 
 - name: ora | create ora application config
-  template: src=ora.env.json.j2 dest={{ora_code_dir}}/../ora.env.json mode=0640 owner={{ ora_user }} group=adm
+  template: src=ora.env.json.j2 dest={{ora_app_dir}}/ora.env.json
+  sudo_user: "{{ ora_user }}"
   tags:
-  - ora
   - deploy
 
 - name: ora | create ora auth file
-  template: src=ora.auth.json.j2 dest={{ora_code_dir}}/../ora.auth.json mode=0640 owner={{ ora_user }} group=adm
+  template: src=ora.auth.json.j2 dest={{ora_app_dir}}/ora.auth.json
+  sudo_user: "{{ ora_user }}"
   tags:
-  - ora
   - deploy
 
 - name: ora | create ora upstart script
-  template: src=edx-ora.conf.j2 dest=/etc/init/edx-ora.conf mode=0640 owner=root group=adm
+  template: src=edx-ora.conf.j2 dest=/etc/init/edx-ora.conf
   tags:
-  - ora
   - deploy
 
 - name: ora | create ora-celery upstart script
-  template: src=edx-ora-celery.conf.j2 dest=/etc/init/edx-ora-celery.conf mode=0640 owner=root group=adm
+  template: src=edx-ora-celery.conf.j2 dest=/etc/init/edx-ora-celery.conf
   tags:
-  - ora
   - deploy
 
 # Do A Checkout
-- name: ora | git checkout ora repo into $app_base_dir
-  git: dest={{ora_code_dir}} repo={{ora_source_repo}} version={{ora_version}}
+- name: ora | git checkout ora repo into {{ ora_app_dir }}
+  git: dest={{ ora_code_dir }} repo={{ ora_source_repo }} version={{ ora_version }}
+  sudo_user: "{{ ora_user }}"
   notify:
     - ora | restart edx-ora
     - ora | restart edx-ora-celery
   tags:
-  - ora
   - deploy
-
-# Do Post Checkout Tasks.
-- name: ora | change permissions on ora code dir
-  file: path={{ora_code_dir}} state=directory owner={{ ora_user }} group={{ ora_user }} mode=755 recurse=yes
-  notify:
-    - ora | restart edx-ora
-    - ora | restart edx-ora-celery
-  tags:
-  - ora
-  - deploy
-
 
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
@@ -80,22 +66,22 @@
 
 # Install the python pre requirements into {{ ora_venv_dir }}
 - name: ora | install python pre-requirements
-  pip: requirements="{{ora_pre_requirements_file}}" virtualenv="{{ora_venv_dir}}" state=present
+  pip: requirements="{{ ora_pre_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
+  sudo_user: "{{ ora_user }}"
   notify:
     - ora | restart edx-ora
     - ora | restart edx-ora-celery
   tags:
-  - ora
   - deploy
 
 # Install the python post requirements into {{ ora_venv_dir }}
 - name: ora | install python post-requirements
-  pip: requirements="{{ora_post_requirements_file}}" virtualenv="{{ora_venv_dir}}" state=present
+  pip: requirements="{{ ora_post_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
+  sudo_user: "{{ ora_user }}"
   notify:
     - ora | restart edx-ora
     - ora | restart edx-ora-celery
   tags:
-  - ora
   - deploy
 
   #Needed if using redis to prevent memory issues
@@ -105,26 +91,23 @@
     - ora | restart edx-ora
     - ora | restart edx-ora-celery
   tags:
-  - ora
   - deploy
 
 - name: ora | syncdb and migrate
-  shell: sudo -u {{ ora_user }} SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
   when: migrate_db is defined and migrate_db|lower == "yes"
+  sudo_user: "{{ ora_user }}"
   notify:
     - ora | restart edx-ora
     - ora | restart edx-ora-celery
   tags:
-  - ora
-  - syncdb
   - deploy
 
 - name: ora | create users
-  shell: sudo -u {{ ora_user }} SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  sudo_user: "{{ ora_user }}"
   notify:
     - ora | restart edx-ora
     - ora | restart edx-ora-celery
   tags:
-  - ora
-  - syncdb
   - deploy

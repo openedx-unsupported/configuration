@@ -11,10 +11,9 @@
 # Tasks for role supervisor
 #
 # Overview:
-#   Parameterized role for supervisord
-#   Supervisor templates must exist in the
-#   templates/ dir for each server
-# 
+#   Role for supervisord
+#   Installs supervisor in its own venv.
+#
 # Dependencies:
 #   - common
 #
@@ -22,32 +21,73 @@
 #   roles:
 #     - common
 #     - role: supervisor
-#       supervisor_servers:
-#       - ...
 
 ---
-- fail: supervisor_servers is a required parameter for this role
-  when: supervisor_servers is not defined
-
-- name: supervisor | install supervisor at the system level
-  pip: name=supervisor state=present
+- name: supervisor | create application user
+  user: >
+    name="{{ supervisor_user }}"
+    home="{{ supervisor_app_dir }}"
+    createhome=no
+    shell=/bin/false
 
 - name: supervisor | create supervisor directories
-  file: name={{ item }} state=directory
+  file: >
+    name={{ item }}
+    state=directory
+    owner={{ supervisor_user }}
+    group={{ common_web_user }}
   with_items:
-    - /etc/supervisor
-    - /etc/supervisor/conf.d
+    - "{{ supervisor_app_dir }}"
+    - "{{ supervisor_venvs_dir }}"
+
+- name: supervisor | create supervisor directories
+  file: >
+    name={{ item }}
+    state=directory
+    owner={{ common_web_user }}
+    group={{ supervisor_user }}
+  with_items:
+    - "{{ supervisor_cfg_dir }}"
+    - "{{ supervisor_data_dir }}"
     - "{{ supervisor_log_dir }}"
 
+
+- name: supervisor | install supervisor in its venv
+  pip: name=supervisor virtualenv="{{supervisor_venv_dir}}" state=present
+  sudo_user: "{{ supervisor_user }}"
+  notify: supervisor | restart supervisor
+
 - name: supervisor | create supervisor upstart job
-  template: src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+  template: >
+    src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+    owner=root group=root
+  notify: supervisor | restart supervisor
 
 - name: supervisor | create supervisor master config
-  template: src=supervisord.conf.j2 dest={{ supervisor_cfg }}
+  template: >
+    src=supervisord.conf.j2 dest={{ supervisor_cfg }}
+    owner={{ supervisor_user }} group={{ common_web_user }}
+    mode=0644
+  notify: supervisor | restart supervisor
 
-- name: supervisor | create supervisor configs
-  template: src={{ item }}.conf.j2 dest=/etc/supervisor/conf.d/{{ item }}.conf
-  with_items: supervisor_servers
+- name: supervisor | create a symlink for supervisortctl
+  file: >
+    src={{ supervisor_ctl }}
+    dest={{ COMMON_BIN_DIR }}/{{ supervisor_ctl|basename }}
+    state=link
+
+- name: supervisor | create a symlink for supervisor cfg
+  file: >
+    src={{ supervisor_cfg }}
+    dest={{ COMMON_CFG_DIR }}/{{ supervisor_cfg|basename }}
+    state=link
+
+- name: supervisor | create a symlink for supervisor cfg
+  file: >
+    src={{ supervisor_cfg_dir }}
+    dest={{ COMMON_BIN_DIR }}/supervisor.{{ supervisor_cfg_dir|basename }}
+    state=link
+
 
 - name: supervisor | ensure supervisor is started
   service: name=supervisor state=started
