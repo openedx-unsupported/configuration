@@ -51,13 +51,13 @@
 - name: nginx | Copying nginx configs for {{ nginx_sites }}
   template: >
     src={{ item }}.j2 dest={{ nginx_sites_available_dir }}/{{ item }}
-    owner=root group=root mode=0600
+    owner=root group={{ common_web_user }} mode=0640
   notify: nginx | reload nginx
   with_items: nginx_sites
 
 - name: nginx | Creating nginx config links for {{ nginx_sites }}
   file: >
-    src=/etc/nginx/sites-available/{{ item  }}
+    src={{ nginx_sites_available_dir }}/{{ item  }}
     dest={{ nginx_sites_enabled_dir }}/{{ item }}
     state=link owner=root group=root
   notify: nginx | reload nginx
