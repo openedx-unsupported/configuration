@@ -1,0 +1,15 @@
+---
+
+- name: demo | check out the demo course
+  git: dest={{ demo_code_dir }}  repo={{ demo_repo }} version={{ demo_version }}
+  sudo_user: "{{ edxapp_user }}"
+  register: demo_checkout
+  tags: deploy
+
+- name: demo | import demo course
+  shell: >
+    {{ edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ edxapp_course_data_dir }} {{ demo_code_dir }}
+    chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ common_web_user }}"
+  tags: deploy
+  when: demo_checkout.changed
