@@ -34,9 +34,11 @@
     src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
-  notify: supervisor | restart supervisor
   tags:
   - deploy
+
+- name: xqueue | reload supervisor to allow to start the new services
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
 
 # Do A Checkout
 - name: xqueue | git checkout xqueue repo into xqueue_code_dir
