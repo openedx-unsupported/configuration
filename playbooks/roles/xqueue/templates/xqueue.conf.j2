@@ -1,25 +1,16 @@
-#/etc/init/xqueue.conf
+[program:xqueue]
 
-description "xqueue server"
-author "edX <info@edx.org>"
-
-respawn
-respawn limit 3 30
-
-env PID=/var/tmp/xqueue.pid
 {% if ansible_processor|length > 0 %}
-env WORKERS={{ ansible_processor|length * 2 }}
+command={{ xqueue_venv_bin }}/gunicorn --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ ansible_processor|length * 2 }} --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
 {% else %}
-env WORKERS=2
+command={{ xqueue_venv_bin }}/gunicorn --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w 2 --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
 {% endif %}
-env PORT={{ xqueue_gunicorn_port }}
-env ADDRESS={{ xqueue_gunicorn_host }}
-env LANG=en_US.UTF-8
-env DJANGO_SETTINGS_MODULE=xqueue.aws_settings
-env SERVICE_VARIANT="xqueue"
 
+user={{ common_web_user }}
+directory={{ xqueue_code_dir }}
 
-chdir {{ xqueue_code_dir }}
-setuid {{ xqueue_user }}
+environment=PID=/var/tmp/xqueue.pid,PORT={{ xqueue_gunicorn_port }},ADDRESS={{ xqueue_gunicorn_host }},LANG={{ XQUEUE_LANG }},DJANGO_SETTINGS_MODULE=xqueue.aws_settings,SERVICE_VARIANT="xqueue"
 
-exec {{ xqueue_venv_dir }}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
+

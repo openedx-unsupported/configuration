@@ -1,11 +1,19 @@
 # Stop xqueue service.
 - name: xqueue | stop xqueue service
-  service: name=xqueue state=stopped
+  supervisorctl: >
+    name=xqueue
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
 - name: xqueue | stop xqueue consumer service
-  service: name=xqueue_consumer state=stopped
+  supervisorctl: >
+    name=xqueue_consumer
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
@@ -20,6 +28,17 @@
   sudo_user: "{{ xqueue_user }}"
   tags:
   - deploy
+
+- name: "xqueue | writing supervisor scripts - xqueue, xqueue consumer"
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['xqueue', 'xqueue_consumer']
+  tags:
+  - deploy
+
+- name: xqueue | reload supervisor to allow to start the new services
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
 
 # Do A Checkout
 - name: xqueue | git checkout xqueue repo into xqueue_code_dir
@@ -58,17 +77,20 @@
   tags:
   - deploy
 
-- name: xqueue | stop xqueue
-  service: name=xqueue state=stopped
-  tags:
-  - deploy
-
 - name: xqueue | start xqueue
-  service: name=xqueue state=started
+  supervisorctl: >
+    name=xqueue
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
   tags:
   - deploy
 
 - name: xqueue | start xqueue consumer
-  service: name=xqueue_consumer state=started
+  supervisorctl: >
+    name=xqueue_consumer
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
   tags:
   - deploy
