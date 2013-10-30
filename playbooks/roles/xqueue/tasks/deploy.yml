@@ -1,11 +1,19 @@
 # Stop xqueue service.
 - name: xqueue | stop xqueue service
-  service: name=xqueue state=stopped
+  supervisorctl: >
+    name=xqueue
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
 - name: xqueue | stop xqueue consumer service
-  service: name=xqueue_consumer state=stopped
+  supervisorctl: >
+    name=xqueue_consumer
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
@@ -18,6 +26,15 @@
 - name: xqueue | create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{ xqueue_app_dir }}/xqueue.auth.json mode=0644
   sudo_user: "{{ xqueue_user }}"
+  tags:
+  - deploy
+
+- name: "xqueue | writing supervisor scripts - xqueue, xqueue consumer"
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ xqueue_user }} mode=0644
+  with_items: ['xqueue', 'xqueue_consumer']
+  notify: supervisor | restart supervisor
   tags:
   - deploy
 
@@ -58,17 +75,20 @@
   tags:
   - deploy
 
-- name: xqueue | stop xqueue
-  service: name=xqueue state=stopped
-  tags:
-  - deploy
-
 - name: xqueue | start xqueue
-  service: name=xqueue state=started
+  supervisorctl: >
+    name=xqueue
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
   tags:
   - deploy
 
 - name: xqueue | start xqueue consumer
-  service: name=xqueue_consumer state=started
+  supervisorctl: >
+    name=xqueue_consumer
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
   tags:
   - deploy
