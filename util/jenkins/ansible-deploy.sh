@@ -52,6 +52,11 @@ COMMON_PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
 COMMON_GIT_MIRROR: 'git.edx.org'
 
 migrate_only: '$run_migration'
+
+XSERVER_GRADER_DIR: "{{ xserver_data_dir }}/data/content-mit-600x~2012_Fall"
+XSERVER_GRADER_SOURCE: "git@github.com:/MITx/6.00x.git"
+XSERVER_LOCAL_GIT_IDENTITY: /var/lib/jenkins/git-identity-edx-pull
+
 EOF
 
 cat $extra_vars
@@ -69,6 +74,13 @@ deploy[ora]=$ora
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
 cd playbooks/edx-east
+
+# If reconfigure was selected run non-deploy tasks for all roles
+if [[ $reconfigure == "true" ]]; then
+    ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
+fi
+
+# Run deploy tasks for the roles selected
 for i in "${!deploy[@]}"; do
     if [[ ${deploy[$i]} == "true" ]]; then
         ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
