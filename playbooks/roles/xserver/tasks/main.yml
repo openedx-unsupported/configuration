@@ -5,7 +5,11 @@
 
 - name: xserver | checking for grader info
   fail: msg="You must define XSERVER_GRADER_DIR and XSERVER_GRADER_SOURCE to use this role!"
-  when: XSERVER_GRADER_DIR == "" or XSERVER_GRADER_SOURCE == ""
+  when: not XSERVER_GRADER_DIR or not XSERVER_GRADER_SOURCE
+
+- name: xserver | checking for git identity
+  fail: msg="You must define XSERVER_LOCAL_GIT_IDENTITY to use this role"
+  when: not XSERVER_LOCAL_GIT_IDENTITY
 
 - name: xserver | create application user
   user: >
@@ -61,9 +65,6 @@
 
 - name: xserver | setup upstart script
   template: src=xserver.conf.j2 dest=/etc/init/xserver.conf owner=root group=root
-
-- name: xserver | upload ssh script
-  copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=adm mode=750
 
 - include: deploy.yml
 

@@ -28,12 +28,16 @@
   - deploy
 
 - name: xserver | install read-only ssh key for the content repo that is required for grading
-  copy: src={{ item }} dest=/etc/git-identity force=yes owner=ubuntu group=adm mode=60
-  first_available_file:
-    - "{{ secure_dir }}/files/git-identity"
-    - "git-identity-example"
+  copy: >
+    src={{ XSERVER_LOCAL_GIT_IDENTITY }} dest={{ xserver_git_identity }}
+    owner={{ xserver_user }} group={{ xserver_user }} mode=0600
   tags:
   - deploy
+
+- name: xserver | upload ssh script
+  template: >
+    src=git_ssh.sh.j2 dest=/tmp/git_ssh.sh
+    owner={{ xserver_user }} mode=750
 
 - name: xserver | checkout grader code
   git: dest={{ XSERVER_GRADER_DIR }} repo={{ XSERVER_GRADER_SOURCE }} version={{ xserver_grader_version }}
@@ -44,7 +48,7 @@
   - deploy
 
 - name: xserver | remove read-only ssh key for the content repo
-  file: path=/etc/git-identity state=absent
+  file: path={{ xserver_git_identity }}
   tags:
   - deploy
 
