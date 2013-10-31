@@ -1,7 +1,13 @@
+upstream lms-preview-backend {
+    {% for host in nginx_lms_preview_gunicorn_hosts %}
+        server {{ host }}:{{ edxapp_lms_preview_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
 server {
   # LMS-preview configuration file for nginx, templated by ansible
 
-  listen {{lms_preview_nginx_port}};
+  listen {{EDXAPP_LMS_PREVIEW_NGINX_PORT}};
 
   server_name preview.*;
 
@@ -23,6 +29,10 @@ server {
   }
 
   location / {
+
+    {% if  EDXAPP_LMS_PREVIEW_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_lms-preview_app;
   }
 

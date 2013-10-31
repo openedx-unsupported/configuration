@@ -12,7 +12,7 @@
 #   lms listening on port 80 - example.com
 #   lms-preview listening on port 80 - preview.example.com
 #
-#   ansible-playbook -c local --limit "localhost:127.0.0.1" path/to/configuration/playbooks/edx_sandbox.yml -i "localhost," -e "cms_nginx_port=80 lms_preview_nginx_port=80 c_lms_base=example.com  c_preview_lms_base=preview.example.com"
+#   ansible-playbook -c local --limit "localhost:127.0.0.1" path/to/configuration/playbooks/edx_sandbox.yml -i "localhost," -e "EDXAPP_CMS_NGINX_PORT=80 EDXAPP_LMS_PREVIEW_NGINX_PORT=80 EDXAPP_LMS_BASE=example.com  EDXAPP_PREVIEW_LMS_BASE=preview.example.com"
 #
 - name: Configure instance(s)
   hosts: localhost
@@ -23,8 +23,14 @@
     openid_workaround: True
   roles:
     - common
-    - nginx
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+      - ora
     - edxlocal
+    - mongo
     - edxapp
     - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - { role: 'edxapp', celery_worker: True }

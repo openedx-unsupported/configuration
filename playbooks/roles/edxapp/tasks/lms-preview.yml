@@ -1,33 +1,29 @@
 # requires:
 #  - group_vars/all
 #  - common/tasks/main.yml
-#  - nginx/tasks/main.yml
 ---
 - name: create lms application config
   template: src=lms-preview.env.json.j2 dest=$app_base_dir/lms-preview.env.json mode=640 owner=www-data group=adm
   tags:
   - lms-preview
   - lms-preview-env
+  - deploy
 
 - name: create lms auth file
   template: src=lms-preview.auth.json.j2 dest=$app_base_dir/lms-preview.auth.json mode=640 owner=www-data group=adm
   tags:
   - lms-preview
   - lms-preview-env
+  - deploy
 
 - name: Create lms-preview log target directory
-  file: path={{log_base_dir}}/lms-preview state=directory owner=syslog group=adm mode=2770
+  file: path={{log_base_dir}}/lms-preview state=directory owner=syslog group=syslog mode=2750
   tags:
   - lms-preview
   - lms-preview-env
   - logging
   - update
-
-- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-preview
-  when: celery_worker is not defined
-
-- include: ../../nginx/tasks/nginx_site.yml state=link site_name=lms-preview-backend
-  when: celery_worker is not defined
+  - deploy
 
 # Creates LMS Preview upstart file
 - include: upstart.yml basename=lms-preview

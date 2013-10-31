@@ -1,7 +1,13 @@
+upstream cms-backend {
+    {% for host in nginx_cms_gunicorn_hosts %}
+        server {{ host }}:{{ edxapp_cms_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
 server {
   # CMS configuration file for nginx, templated by ansible
       
-  listen {{cms_nginx_port}};
+  listen {{EDXAPP_CMS_NGINX_PORT}};
 
   server_name studio.*;
 
@@ -26,6 +32,9 @@ server {
   }
 
   location / {
+    {% if  EDXAPP_CMS_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_cms_app;
   }
 

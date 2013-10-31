@@ -1,7 +1,13 @@
+upstream lms-backend {
+    {% for host in nginx_lms_gunicorn_hosts %}
+        server {{ host }}:{{ edxapp_lms_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
 server {
   # LMS configuration file for nginx, templated by ansible
 
-  listen {{lms_nginx_port}} default;
+  listen {{EDXAPP_LMS_NGINX_PORT}} default;
 
   access_log {{log_base_dir}}/nginx/access.log;
   error_log {{log_base_dir}}/nginx/error.log error;
@@ -25,6 +31,10 @@ server {
   }
 
   location / {
+
+    {% if  EDXAPP_LMS_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_lms_app;
   }
 

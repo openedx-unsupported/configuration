@@ -109,20 +109,3 @@
 #Have this separate from the other three because it doesn't take the noinput flag
 - name: discern | django update_index for discern
   shell: ${venv_dir}/bin/python {{discern_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_dir}}
-
-- name: discern | create nginx directory and set perms
-  file: path=/etc/nginx/sites-available owner=root group=edx mode=2775 state=directory
-
-#Install nginx sites available
-#remove default link, render template, link template to sites-enabled to activate
-- name: discern | Removing default nginx config
-  file: path=/etc/nginx/sites-enabled/default state=absent
-  notify: discern | restart nginx
-
-- name: discern | render nginx sites available
-  template: src=nginx-discern.j2 dest=/etc/nginx/sites-available/{{ site_name }}
-  notify: discern | restart nginx
-
-- name: discern | Creating nginx config link {{ site_name }}
-  file: src=/etc/nginx/sites-available/{{ site_name }} dest=/etc/nginx/sites-enabled/{{ site_name }} state=link owner=root group=root
-  notify: discern | restart nginx

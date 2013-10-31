@@ -1,7 +1,7 @@
 ---
 - include: create_users.yml
 - include: create_github_users.yml
-  when: github_users is defined
+  when: GITHUB_USERS is defined
 
 - name: common | Add user www-data
   # This user should be created on the system by default
@@ -9,6 +9,14 @@
   tags:
   - pre_install
   - update
+
+- name: common | Create the base directory for storage
+  file: >
+    path={{ storage_base_dir }}
+      state=directory
+      owner=root
+      group=root
+      mode=0755
 
 - name: common | Create application root
   # In the future consider making group edx r/t adm
@@ -43,13 +51,13 @@
   - update
 
 - name: common | Create log directory
-  file: path=$log_base_dir state=directory mode=2770 group=adm owner=syslog
+  file: path={{log_base_dir}} state=directory mode=2755 group=adm owner=syslog
   tags:
   - pre_install
   - update
 
 - name: common | Create alias from app_base_dir to the log_base_dir
-  file: state=link src=$log_base_dir path=$app_base_dir/log
+  file: state=link src={{log_base_dir}} path={{app_base_dir}}/log
   tags:
   - pre_install
   - logging

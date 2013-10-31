@@ -1,15 +1,23 @@
 upstream xqueue_app_server {
-    # For a TCP configuration:
-    server 127.0.0.1:{{ xqueue_gunicorn_port }} fail_timeout=0;
+    {% for host in nginx_xqueue_gunicorn_hosts %}
+        server {{ host }}:{{ xqueue_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
 }
 
 server {
-  listen {{ xqueue_nginx_port }} default_server;
+  listen {{ XQUEUE_NGINX_PORT }} default_server;
 
   location / {
+    {% if  XQUEUE_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_app;
   }
 
+  # No basic auth security on the heartbeat url, so that ELB can use it
+  location /xqueue/status/{
+    try_files $uri @proxy_to_app;
+  }
 
 location @proxy_to_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;

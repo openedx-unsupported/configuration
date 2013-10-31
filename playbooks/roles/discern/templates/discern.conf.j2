@@ -11,11 +11,12 @@ respawn limit 3 30
 
 env PID=/var/run/gunicorn/discern.pid
 env WORKERS={{ ansible_processor_cores * 2 }}
-env PORT={{ gunicorn_port }}
+env PORT={{ discern_gunicorn_port }}
+env ADDRESS={{ discern_gunicorn_host }}
 env LANG=en_US.UTF-8
 env DJANGO_SETTINGS_MODULE={{discern_settings}}
 
 chdir {{discern_dir}}
 setuid {{discern_user}}
 
-exec {{venv_dir}}/bin/gunicorn --preload -b 127.0.0.1:$PORT -w $WORKERS --timeout=30 --pythonpath={{discern_dir}} discern.wsgi
+exec {{venv_dir}}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=30 --pythonpath={{discern_dir}} discern.wsgi

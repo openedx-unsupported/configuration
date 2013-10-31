@@ -4,7 +4,6 @@
   when: celery_worker is not defined
   tags:
   - lms
-  - lms-xml
   - lms-preview
   - cms
   - deploy
@@ -15,9 +14,20 @@
   tags:
   - deploy
 
+# update json configs for the application
+
+- include: lms.yml
+  when: "'lms' in service_variants_enabled"
+- include: cms.yml
+  when: "'cms' in service_variants_enabled"
+- include: lms-preview.yml
+  when: "'lms-preview' in service_variants_enabled"
+
+
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edx_platform_code_dir}}
   git: dest={{edx_platform_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
+  register: edx_platform_checkout
   tags:
   - lms
   - cms
@@ -26,6 +36,7 @@
 
 - name: git clean after checking out edx-platform
   shell: cd {{edx_platform_code_dir}} && git clean -xdf
+  when: edx_platform_checkout.changed
   tags:
   - lms
   - cms
@@ -46,7 +57,6 @@
   when: edxapp_theme_name != ''
   tags:
   - cms
-  - lms-xml
   - lms-preview
   - lms
   - update
@@ -60,6 +70,7 @@
   file: path={{edx_platform_code_dir}} state=directory owner=www-data group=www-data recurse=yes
   # Post Checkout tasks will get run as handlers when the {{ edx_platform_code_dir }} is ready.
   # Look at the handlers/main.yml in this role for a description of the tasks stated below.
+  when: edx_platform_checkout.changed
   tags:
   - lms
   - cms
@@ -68,14 +79,18 @@
 
 # Ruby plays that need to be run after platform updates.
 - name: gem | gem install bundler
-  shell: RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle chdir={{ edx_platform_code_dir }}
+  shell: >
+    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle
+      chdir={{ edx_platform_code_dir }}
   tags:
   - ruby
   - deploy
   - install
 
 - name: bundle | bundle install
-  shell: RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs chdir={{ edx_platform_code_dir }}
+  shell: >
+    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs
+      chdir={{ edx_platform_code_dir }}
   tags:
   - ruby
   - deploy
@@ -91,9 +106,33 @@
 
 # Python plays that need to be run after platform updates.
 
+# Substitute github mirror in all requirements files
+#
+- name: Updating requirement files for git mirror
+  command: |
+    /bin/sed -i -e 's/github\.com/{{ GIT_MIRROR }}/g' {{ item }}
+  with_items:
+    - "{{ pre_requirements_file }}"
+    - "{{ post_requirements_file }}"
+    - "{{ repo_requirements_file }}"
+    - "{{ github_requirements_file }}"
+    - "{{ local_requirements_file }}"
+    - "{{ sandbox_base_requirements }}"
+    - "{{ sandbox_local_requirements }}"
+    - "{{ sandbox_post_requirements }}"
+  tags:
+    - lms
+    - cms
+    - install
+    - deploy
+
 # Install the python pre requirements into {{ venv_dir }}
 - name : install python pre-requirements
-  pip: requirements="{{pre_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: >
+    requirements="{{pre_requirements_file}}"
+    virtualenv="{{venv_dir}}"
+    state=present
+    extra_args="-i {{ PYPI_MIRROR_URL }}"
   tags:
   - lms
   - cms
@@ -105,7 +144,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install --exists-action w --use-mirrors -r {{ base_requirements_file }}
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
   tags:
   - lms
   - cms
@@ -114,7 +153,11 @@
 
 # Install the python post requirements into {{ venv_dir }}
 - name : install python post-requirements
-  pip: requirements="{{post_requirements_file}}" virtualenv="{{venv_dir}}" state=present
+  pip: >
+    requirements="{{post_requirements_file}}"
+    virtualenv="{{venv_dir}}"
+    state=present
+    extra_args="-i {{ PYPI_MIRROR_URL }}"
   tags:
   - lms
   - cms
@@ -126,7 +169,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install --exists-action w --use-mirrors -r {{ item }}
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
   with_items:
   - "{{ repo_requirements_file }}"
   - "{{ github_requirements_file }}"
@@ -143,7 +186,7 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install --exists-action w --use-mirrors -r {{ item }}
+  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
   with_items:
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
@@ -158,6 +201,40 @@
 - name: changing group ownership to www-data for everything in the venv (workaround)
   shell: chgrp -R www-data {{ venv_dir }}
 
+# https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
+# This is necessary for when syncdb is run and the django_openid_auth module is installed,
+# not sure if this fix will ever get merged
+# We should never do this in production
+- name: openid workaround - NOT FOR PRODUCTION
+  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
+  when: openid_workaround is defined
+  tags:
+  - deploy
+  - lms
+  - lms-preview
+  - cms
+  - syncdb
+
+- name: syncdb and migrate
+  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+  - deploy
+  - lms
+  - lms-preview
+  - cms
+  - syncdb
+
+- name: db migrate
+  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
+  when: migrate_only is defined and migrate_only|lower == "yes"
+  tags:
+  - deploy
+  - lms
+  - lms-preview
+  - cms
+  - migrate
+
 
 # Gather lms assets using rake if possible
 - name: gather lms static assets with rake
@@ -171,7 +248,6 @@
   tags:
   - lms
   - lms-preview
-  - lms-xml
   - deploy
 
 # Gather cms assets using rake if possible
@@ -188,49 +264,11 @@
   - deploy
 
 
-# https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
-# This is necessary for when syncdb is run and the django_openid_auth module is installed,
-# not sure if this fix will ever get merged
-# We should never do this in production
-- name: openid workaround - NOT FOR PRODUCTION
-  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
-  when: openid_workaround is defined
-  tags:
-  - deploy
-  - lms
-  - lms-xml
-  - lms-preview
-  - cms
-  - syncdb
-
-- name: syncdb and migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_db is defined and migrate_db|lower == "yes"
-  tags:
-  - deploy
-  - lms
-  - lms-xml
-  - lms-preview
-  - cms
-  - syncdb
-
-- name: db migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_only is defined and migrate_only|lower == "yes"
-  tags:
-  - deploy
-  - lms
-  - lms-xml
-  - lms-preview
-  - cms
-  - syncdb
-
 - name: restart edxapp
   service: name=edxapp state=restarted
   when: celery_worker is not defined
   tags:
   - lms
-  - lms-xml
   - lms-preview
   - cms
   - deploy

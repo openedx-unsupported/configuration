@@ -1,0 +1,142 @@
+#!/usr/bin/python
+# This file is part of Ansible
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Ansible is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+
+DOCUMENTATION = '''
+---
+module: ec2_lookup
+short_description: returns a list of ec2 instances that meet search criteria
+description:
+     - Returns a list of ec2 instances that meet search criteria
+version_added: "1.4"
+options:
+  region:
+    description:
+      - The AWS region to use.  Must be specified if ec2_url
+        is not used.  If not specified then the value of the
+        EC2_REGION environment variable, if any, is used.
+    required: false
+    default: null
+    aliases: [ 'aws_region', 'ec2_region' ]
+  aws_secret_key:
+    description:
+      - AWS secret key. If not set then the value of
+        the AWS_SECRET_KEY environment variable is used.
+    required: false
+    default: null
+    aliases: [ 'ec2_secret_key', 'secret_key' ]
+  aws_access_key:
+    description:
+      - AWS access key. If not set then the value of the
+        AWS_ACCESS_KEY environment variable is used.
+    required: false
+    default: null
+    aliases: [ 'ec2_access_key', 'access_key' ]
+  tags:
+    desription:
+      - tags to lookup
+    required: false
+    default: null
+    type: dict
+    aliases: []
+
+requirements: [ "boto" ]
+author: John Jarvis
+'''
+
+EXAMPLES = '''
+# Note: None of these examples set aws_access_key, aws_secret_key, or region.
+# It is assumed that their matching environment variables are set.
+
+# Return all instances that match the tag "Name: foo"
+- local_action:
+    module: ec2_lookup
+    tags:
+        Name: foo
+'''
+
+import sys
+
+AWS_REGIONS = ['ap-northeast-1',
+               'ap-southeast-1',
+               'ap-southeast-2',
+               'eu-west-1',
+               'sa-east-1',
+               'us-east-1',
+               'us-west-1',
+               'us-west-2']
+
+try:
+    import boto.ec2
+    from boto.ec2 import connect_to_region
+except ImportError:
+    print "failed=True msg='boto required for this module'"
+    sys.exit(1)
+
+
+def main():
+
+    module=AnsibleModule(
+        argument_spec=dict(
+            ec2_url=dict(),
+            region=dict(aliases=['aws_region', 'ec2_region'],
+                        choices=AWS_REGIONS),
+            aws_secret_key=dict(aliases=['ec2_secret_key', 'secret_key'],
+                                no_log=True),
+            aws_access_key=dict(aliases=['ec2_access_key', 'access_key']),
+            tags=dict(default=None, type='dict'),
+        )
+    )
+
+    tags = module.params.get('tags')
+    aws_secret_key = module.params.get('aws_secret_key')
+    aws_access_key = module.params.get('aws_access_key')
+    region = module.params.get('region')
+    ec2_url = module.params.get('ec2_url')
+
+    # If we have a region specified, connect to its endpoint.
+    if region:
+        try:
+            ec2 = connect_to_region(region, aws_access_key_id=aws_access_key,
+                                    aws_secret_access_key=aws_secret_key)
+        except boto.exception.NoAuthHandlerFound, e:
+            module.fail_json(msg=str(e))
+    # If we specified an ec2_url then try connecting to it
+    elif ec2_url:
+        try:
+            ec2 = boto.connect_ec2_endpoint(ec2_url, aws_access_key,
+                                            aws_secret_key)
+        except boto.exception.NoAuthHandlerFound, e:
+            module.fail_json(msg=str(e))
+    else:
+        module.fail_json(msg="Either region or ec2_url must be specified")
+
+    instances = []
+    instance_ids = []
+    for res in ec2.get_all_instances(filters={'tag:' + tag: value
+                                     for tag, value in tags.iteritems()}):
+        for inst in res.instances:
+            if inst.state == "running":
+                instances.append({k: v for k, v in inst.__dict__.iteritems()
+                                  if isinstance(v, (basestring))})
+                instance_ids.append(inst.id)
+    module.exit_json(changed=False, instances=instances,
+                     instance_ids=instance_ids)
+
+
+# this is magic, see lib/ansible/module_common.py
+#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+
+main()

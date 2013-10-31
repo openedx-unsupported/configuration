@@ -8,12 +8,15 @@
   roles:
     - common
     - datadog
-    - nginx
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview 
     - role: 'edxapp'
-      lms_nginx_port: 80
-      cms_nginx_port: 80
       edxapp_lms_env: 'lms.envs.load_test'
-      edx_platform_commit: 'master'
+      edx_platform_commit: 'release'
+    - splunkforwarder
 - hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_worker
   sudo: True
   vars_files:
@@ -23,11 +26,16 @@
   roles:
     - common
     - datadog
-    - nginx
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview 
     - role: 'edxapp'
       edxapp_lms_env: 'lms.envs.load_test'
       celery_worker: True
-      edx_platform_commit: 'master'
+      edx_platform_commit: 'release'
+    - splunkforwarder
 - hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_xserver
   sudo: True
   vars_files:
@@ -35,8 +43,11 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
-    - nginx
+    - role: nginx
+      nginx_sites:
+      - xserver 
     - xserver
+    - splunkforwarder
 - hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_rabbitmq
   serial: 1
   sudo: True
@@ -46,6 +57,7 @@
   roles:
     - common
     - rabbitmq
+    - splunkforwarder
 - hosts: tag_aws_cloudformation_stack-name_feanilsandbox:&tag_group_xqueue
   sudo: True
   vars_files:
@@ -53,5 +65,8 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
-    - nginx
+    - role: nginx
+      nginx_sites:
+      - xqueue
     - xqueue
+    - splunkforwarder

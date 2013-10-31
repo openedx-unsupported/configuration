@@ -1,0 +1,21 @@
+---
+
+# Configure Mongo to use {{ storage_base_dir }} so we don't
+# run out of disk space
+- name: jenkins_worker | Stop mongo service
+  service: name=mongodb state=stopped
+
+- name: jenkins_worker | Configure Mongo
+  template: src=mongodb_conf.j2
+    dest=/etc/mongodb.conf
+    owner=root
+    group=root
+
+- name: jenkins_worker | Configure Mongo upstart script
+  template: src=mongodb_upstart.j2
+    dest=/etc/init/mongodb.conf
+    owner=root
+    group=root
+
+- name: jenkins_worker | Start the mongo service
+  service: name=mongodb state=stopped

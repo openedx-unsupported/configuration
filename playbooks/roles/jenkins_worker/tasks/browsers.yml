@@ -1,0 +1,47 @@
+---
+- name: jenkins_worker | Install Firefox
+  apt: pkg=firefox
+
+- name: jenkins_worker | Install dbus-x11 (FF requirement)
+  apt: pkg=dbus-x11
+
+- name: jenkins_worker | Download PhantomJS
+  get_url: url={{ jenkins_phantomjs_url }}
+           dest=/var/tmp/{{ jenkins_phantomjs_archive }}
+
+- name: jenkins_worker | Untar PhantomJS
+  command: tar -xjf /var/tmp/{{ jenkins_phantomjs_archive }} -C /var/tmp/
+           creates=/var/tmp/{{ jenkins_phantomjs_folder }}
+
+- name: jenkins_worker | Install PhantomJS
+  command: mv /var/tmp/{{ jenkins_phantomjs_folder }} /usr/local/bin/phantomjs
+           creates=/usr/local/bin/phantomjs
+
+- name: jenkins_worker | Set PhantomJS permissions
+  file: path=/usr/local/bin/phantomjs mode=0755 state=directory
+
+- name: jenkins_worker | Install Chrome dependencies
+  apt: pkg=libgconf2-4,libxss1,libnss3-1d,libcurl3,xdg-utils
+
+- name: jenkins_worker | Google Chrome apt key
+  apt_key: url={{ chrome_apt_key }} state=present
+
+- name: jenkins_worker | Google Chrome apt repo
+  apt_repository: repo='deb {{ chrome_apt_repo }} stable main'
+
+- name: jenkins_worker | Install Google Chrome
+  apt: pkg=google-chrome-stable state=present update_cache=yes
+
+- name: jenkins_worker | Install ChromeDriver
+  get_url: url={{ chromedriver_url }}
+           dest=/var/tmp/chromedriver_{{ chromedriver_version }}.zip
+
+- name: jenkins_worker | Install ChromeDriver 2
+  shell: unzip /var/tmp/chromedriver_{{ chromedriver_version }}.zip
+         chdir=/var/tmp
+
+- name: jenkins_worker | Install ChromeDriver 3
+  shell: mv /var/tmp/chromedriver /usr/local/bin/chromedriver
+
+- name: jenkins_worker | Install Chromedriver 4
+  file: path=/usr/local/bin/chromedriver mode=0755
