@@ -32,16 +32,16 @@
   git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
   register: chkout
   sudo_user: "{{ edxapp_user }}"
-  tags:
-  - deploy
+  tags: deploy
 
 - name: edxapp | git clean after checking out edx-platform
   shell: cd {{edxapp_code_dir}} && git clean -xdf
-  when: chkout.changed
   sudo_user: "{{ edxapp_user }}"
-  tags:
-  - deploy
+  tags: deploy
 
+- name: edxapp | compiling all py files in the edx-platform repo
+  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
+  tags: deploy
 
 - name: edxapp | checkout theme
   git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
@@ -55,7 +55,6 @@
     /usr/bin/md5sum {{ " ".join(edxapp_all_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
   sudo_user: "{{ edxapp_user }}"
   ignore_errors: true
-  when: chkout.changed
   tags:
   - deploy
 
@@ -73,7 +72,7 @@
     /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ item }}
   with_items: edxapp_all_req_files
   sudo_user: "{{ edxapp_user }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 
@@ -85,7 +84,6 @@
       executable=/bin/bash
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 - name: edxapp | bundle install
@@ -95,7 +93,6 @@
       executable=/bin/bash
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 # Node play that need to be run after platform updates.
@@ -103,7 +100,6 @@
   shell: npm install chdir={{ edxapp_code_dir }}
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 
@@ -116,7 +112,7 @@
     extra_args="-i {{ edxapp_pypi_local_mirror }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 # Install the python modules into {{ edxapp_venv_dir }}
@@ -129,7 +125,7 @@
     chdir={{ edxapp_code_dir }}
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 # Install the python post requirements into {{ edxapp_venv_dir }}
@@ -141,7 +137,7 @@
     extra_args="-i {{ edxapp_pypi_local_mirror }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 # Install the final python modules into {{ edxapp_venv_dir }}
@@ -155,7 +151,6 @@
   - "{{ github_requirements_file }}"
   - "{{ local_requirements_file }}"
   sudo_user: "{{ edxapp_user }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 
@@ -171,13 +166,12 @@
   - "{{ sandbox_post_requirements }}"
   when: install_sandbox_reqs_into_regular_venv
   sudo_user: "{{ edxapp_user }}"
-  when: chkout.changed and not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
 - name: edxapp | create checksum for installed requirements
   shell: cp /var/tmp/edxapp.req.new /var/tmp/edxapp.req.installed
   sudo_user: "{{ edxapp_user }}"
-  when: chkout.changed
   tags: deploy
 
 
