@@ -44,3 +44,9 @@
 - name: jenkins_worker | Add script to set up environment variables
   template: src=jenkins_env.sh.j2 dest=/usr/local/bin/jenkins_env.sh
             owner=root group=root mode=0555
+
+# Need to add Github to known_hosts to avoid
+# being prompted when using git through ssh
+- name: jenkins_worker | Add github.com to known_hosts if it does not exist
+  shell: >
+     ssh-keygen -f {{ jenkins_user_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_user_home }}/.ssh/known_hosts
