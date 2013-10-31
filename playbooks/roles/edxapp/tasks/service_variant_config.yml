@@ -34,6 +34,7 @@
     src=edxapp.conf.j2 dest={{ supervisor_cfg_dir }}/edxapp.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   when: celery_worker is not defined
+  notify: supervisor | reload supervisor
   tags:
   - deploy
 
@@ -45,11 +46,9 @@
     src=workers.conf.j2 dest={{ supervisor_cfg_dir }}/workers.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   when: celery_worker is defined
+  notify: supervisor | reload supervisor
   tags:
   - deploy
-
-- name: supervisor | reload supervisor
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
 
 # Gather assets using rake if possible
 
