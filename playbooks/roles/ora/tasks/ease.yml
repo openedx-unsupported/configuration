@@ -1,29 +1,3 @@
-- name: ora | See if edx-ora.conf is installed
-  shell: "[ -f /etc/init/edx-ora.conf ] && echo 'Found' || echo ''"
-  register: edx_ora_installed
-  tags:
-  - deploy
-
-- name: ora | See if edx-ora-celery.conf is installed
-  shell: "[ -f /etc/init/edx-ora-celery.conf ] && echo 'Found' || echo ''"
-  register: edx_ora_celery_installed
-  tags:
-  - deploy
-
-# Stop ora service.
-- name: ora | stop edx-ora service
-  service: name=edx-ora state=stopped
-  when: edx_ora_installed.stdout == 'Found'
-  tags:
-  - deploy
-
-- name: ora | stop edx-ora-celery service
-  service: name=edx-ora-celery state=stopped
-  when: edx_ora_celery_installed.stdout == 'Found'
-  tags:
-  - deploy
-
-
 # Do A Checkout
 - name: ora | git checkout ease repo into its base dir
   git: dest={{ora_ease_code_dir}} repo={{ora_ease_source_repo}} version={{ora_ease_version}}
@@ -70,6 +44,6 @@
 - name: ora | install nltk data using rendered shell script
   command: "{{ora_ease_venv_dir}}/bin/python -m nltk.downloader -d {{ ora_nltk_data_dir }} all"
   when: ora_nltk_data_installed.stdout  != "Found"
-  sudo_user: "{{ ora_user }}"
+  sudo_user: "{{ common_web_user }}"
   tags:
   - deploy
