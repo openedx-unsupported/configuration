@@ -33,23 +33,29 @@
 - name: devpi | create devpi user
   user: >
     name={{ devpi_user }}
-    home={{ devpi_app_dir }}
     shell=/bin/false createhome=no
 
-- name: devpi | create virtualenv directory
+- name: devpi | create devpi application directories
   file: >
-    path={{ devpi_venv_dir }}
+    path={{ item }}
     state=directory
     owner={{ devpi_user }}
-    group={{ devpi_group }}
-  notify: devpi | restart devpi
+    group={{ devpi_supervisor_user }}
+  notify: supervisor | restart supervisor
+  with_items:
+  - "{{ devpi_app_dir }}"
+  - "{{ devpi_venv_dir }}"
 
-- name: devpi | create the devpi data directory
+
+- name: devpi | create the devpi data directory, needs write access by the service user
   file: >
-    path={{ devpi_data_dir }}
+    path={{ item }}
     state=directory
-    owner={{ common_web_user }}
-    group={{ devpi_group }}
+    owner={{ devpi_supervisor_user }}
+    group={{ devpi_user }}
+  with_items:
+  - "{{ devpi_data_dir }}"
+  - "{{ devpi_mirror_dir }}"
 
 - name: devpi | install devpi pip pkgs
   pip: >
@@ -58,15 +64,15 @@
     virtualenv={{ devpi_venv_dir }}
   sudo_user: "{{ devpi_user }}"
   with_items: devpi_pip_pkgs
-  notify: devpi | restart devpi
+  notify: supervisor | restart supervisor
 
 - name: devpi | writing supervisor script
   template: >
-    src=devpi.conf.j2 dest={{ supervisor_cfg_dir }}/devpi.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-  notify: devpi | restart devpi
+    src=devpi.conf.j2 dest={{ devpi_supervisor_cfg_dir }}/devpi.conf
+    owner={{ devpi_user }} group={{ devpi_user }} mode=0644
+  notify: supervisor | restart supervisor
 
-- name: devpi | create a symlink for venv python
+- name: devpi | create a symlink for venv python, pip and supervisor
   file: >
     src="{{ devpi_venv_bin }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item }}.devpi
@@ -74,6 +80,13 @@
   with_items:
   - python
   - pip
+  - supervisorctl
+
+- name: devpi | create a symlink for supervisor config
+  file: >
+    src="{{ devpi_supervisor_app_dir }}/supervisord.conf"
+    dest={{ COMMON_CFG_DIR }}/supervisord.conf.devpi
+    state=link
 
 # flush queued up handlers so that devpi
 # is restarted since downstream roles

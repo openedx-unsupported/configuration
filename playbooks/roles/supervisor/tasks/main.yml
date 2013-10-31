@@ -11,22 +11,53 @@
 # Tasks for role supervisor
 #
 # Overview:
-#   Role for supervisord
-#   Installs supervisor in its own venv.
+#   Role for supervisord, a parameterized role for installing supervisord
+#
+#   By default supervisor will be installed into {{ COMMON_APP_DIR }}/supervisor
+#   and log to {{ COMMON_LOG_DIR }}/supervisor and run as the
+#   {{ common_web_user }}
+#
+#   The including supervisor with the following parameters
+#   will install it into a different location:
+#
+#    - supervisor_app_dir
+#    - supervisor_data_dir
+#    - supervisor_log_dir
+#    - supervisor_venv_dir
+#    - supervisor_service_user
 #
 # Dependencies:
 #   - common
 #
 # Example play:
+#
+#   # Install in the default location,
+#   # run as the default user
+#
 #   roles:
 #     - common
 #     - role: supervisor
-
+#
+#   # Install in an alternate directory
+#   # and run as user "foo"
+#  - role: supervisor
+#    supervisor_app_dir: /path/to/supervisor/dir/for/configs
+#    supervisor_data_dir: /path/to/supervisor/data/dir (for pid and sock files)
+#    supervisor_log_dir: /path/to/supervisor/log/dir
+#    supervisor_venv_dir: /path/to/supervisor/venv/dir
+#    supervisor_service_user: user to run supervisor as
+#    supervisor_service_name: upstart-service-name
+#
 ---
 - name: supervisor | create application user
   user: >
     name="{{ supervisor_user }}"
-    home="{{ supervisor_app_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: supervisor | create supervisor service user
+  user: >
+    name="{{ supervisor_service_user }}"
     createhome=no
     shell=/bin/false
 
@@ -35,19 +66,19 @@
     name={{ item }}
     state=directory
     owner={{ supervisor_user }}
-    group={{ common_web_user }}
+    group={{ supervisor_service_user }}
   with_items:
     - "{{ supervisor_app_dir }}"
-    - "{{ supervisor_venvs_dir }}"
+    - "{{ supervisor_venv_dir }}"
+    - "{{ supervisor_cfg_dir }}"
 
 - name: supervisor | create supervisor directories
   file: >
     name={{ item }}
     state=directory
-    owner={{ common_web_user }}
+    owner={{ supervisor_service_user }}
     group={{ supervisor_user }}
   with_items:
-    - "{{ supervisor_cfg_dir }}"
     - "{{ supervisor_data_dir }}"
     - "{{ supervisor_log_dir }}"
 
@@ -59,14 +90,14 @@
 
 - name: supervisor | create supervisor upstart job
   template: >
-    src=supervisor-upstart.conf.j2 dest=/etc/init/supervisor.conf
+    src=supervisor-upstart.conf.j2 dest=/etc/init/{{ supervisor_service }}.conf
     owner=root group=root
   notify: supervisor | restart supervisor
 
 - name: supervisor | create supervisor master config
   template: >
     src=supervisord.conf.j2 dest={{ supervisor_cfg }}
-    owner={{ supervisor_user }} group={{ common_web_user }}
+    owner={{ supervisor_user }} group={{ supervisor_service_user }}
     mode=0644
   notify: supervisor | restart supervisor
 
@@ -75,19 +106,16 @@
     src={{ supervisor_ctl }}
     dest={{ COMMON_BIN_DIR }}/{{ supervisor_ctl|basename }}
     state=link
+  when: supervisor_service == "supervisor"
+  notify: supervisor | restart supervisor
 
 - name: supervisor | create a symlink for supervisor cfg
   file: >
-    src={{ supervisor_cfg }}
-    dest={{ COMMON_CFG_DIR }}/{{ supervisor_cfg|basename }}
+    src={{ item }}
+    dest={{ COMMON_CFG_DIR }}/{{ item|basename }}
     state=link
-
-- name: supervisor | create a symlink for supervisor cfg dir
-  file: >
-    src={{ supervisor_cfg_dir }}
-    dest={{ COMMON_CFG_DIR }}/supervisor.{{ supervisor_cfg_dir|basename }}
-    state=link
-
-
-- name: supervisor | ensure supervisor is started
-  service: name=supervisor state=started
+  when: supervisor_service == "supervisor"
+  with_items:
+  - "{{ supervisor_cfg }}"
+  - "{{ supervisor_cfg_dir }}"
+  notify: supervisor | restart supervisor
