@@ -13,14 +13,22 @@
 
 # Stop ora service.
 - name: ora | stop ora service
-  service: name=edx-ora state=stopped
+  supervisorctl: >
+    name=ora
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   when: ora_installed.stdout == 'Found'
   notify: ora | restart ora
   tags:
   - deploy
 
 - name: ora | stop ora_celery service
-  service: name=ora_celery state=stopped
+  supervisorctl: >
+    name=ora_celery
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   when: ora_celery_installed.stdout == 'Found'
   notify: ora | restart ora_celery
   tags:
@@ -40,15 +48,16 @@
   tags:
   - deploy
 
-- name: ora | create ora upstart script
-  template: src=ora.conf.j2 dest=/etc/init/ora.conf
+- name: ora | create supervisor scripts - ora, ora_celery
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['ora', 'ora_celery']
   tags:
   - deploy
 
-- name: ora | create ora_celery upstart script
-  template: src=ora_celery.conf.j2 dest=/etc/init/ora_celery.conf
-  tags:
-  - deploy
+- name: ora | reload supervisor to allow to start the new services
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
 
 # Do A Checkout
 - name: ora | git checkout ora repo into {{ ora_app_dir }}
