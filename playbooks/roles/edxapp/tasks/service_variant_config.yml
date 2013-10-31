@@ -59,22 +59,22 @@
     executable=/bin/bash
     chdir={{ edxapp_code_dir }}
   sudo_user: "{{ edxapp_user }}"
-  when: celery_worker is not defined
+  when: chkout.changed and celery_worker is not defined
   with_items: service_variants_enabled
-  environment: "{{ edxapp_deploy_environment }}"
+  environment: "{{ edxapp_environment }}"
   tags:
   - deploy
 
 
 - name: edxapp | syncdb and migrate
   shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_db is defined and migrate_db|lower == "yes"
+  when: chkout and migrate_db is defined and migrate_db|lower == "yes"
   tags:
   - deploy
 
 - name: edxapp | db migrate
   shell: sudo -u {{ edxapp_user }} SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_only is defined and migrate_only|lower == "yes"
+  when: chkout.changed and migrate_only is defined and migrate_only|lower == "yes"
   tags:
   - deploy
 
