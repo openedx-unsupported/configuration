@@ -46,7 +46,6 @@
   - "{{ devpi_app_dir }}"
   - "{{ devpi_venv_dir }}"
 
-
 - name: devpi | create the devpi data directory, needs write access by the service user
   file: >
     path={{ item }}
@@ -72,7 +71,7 @@
     owner={{ devpi_user }} group={{ devpi_user }} mode=0644
   notify: supervisor | restart supervisor
 
-- name: devpi | create a symlink for venv python, pip and supervisor
+- name: devpi | create a symlink for venv python, pip
   file: >
     src="{{ devpi_venv_bin }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item }}.devpi
@@ -80,7 +79,12 @@
   with_items:
   - python
   - pip
-  - supervisorctl
+
+- name: devpi | create a symlink for venv supervisor
+  file: >
+    src="{{ devpi_supervisor_venv_bin }}/supervisorctl"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.devpi
+    state=link
 
 - name: devpi | create a symlink for supervisor config
   file: >
