@@ -1,11 +1,27 @@
 - name: xserver | stop xserver
-  service: name=xserver state=stopped
+  supervisorctl: >
+    name=xserver
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
 - name: xserver | checkout code
   git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
   sudo_user: "{{ xserver_user }}"
+  tags:
+  - deploy
+
+- name: "xserver | writing supervisor script"
+  template: >
+    src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+  - deploy
+
+- name: xserver | reload supervisor to allow to start the new services
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
   tags:
   - deploy
 
@@ -55,6 +71,10 @@
   - deploy
 
 - name: xserver | start xserver
-  service: name=xserver state=started
+  supervisorctl: >
+    name=xserver
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
   tags:
   - deploy
