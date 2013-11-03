@@ -1,24 +1,19 @@
 ---
+- name: jenkins_worker | install xvfb
+  apt: pkg=xvfb state=present
+
+- name: jenkins_worker | create xvfb upstart script
+  template: src=xvfb.conf.j2 dest=/etc/init/xvfb.conf owner=root group=root
+
+- name: jenkins_worker | start xvfb
+  shell: start xvfb
+  ignore_errors: yes
+
 - name: jenkins_worker | Install Firefox
   apt: pkg=firefox
 
 - name: jenkins_worker | Install dbus-x11 (FF requirement)
   apt: pkg=dbus-x11
-
-- name: jenkins_worker | Download PhantomJS
-  get_url: url={{ jenkins_phantomjs_url }}
-           dest=/var/tmp/{{ jenkins_phantomjs_archive }}
-
-- name: jenkins_worker | Untar PhantomJS
-  command: tar -xjf /var/tmp/{{ jenkins_phantomjs_archive }} -C /var/tmp/
-           creates=/var/tmp/{{ jenkins_phantomjs_folder }}
-
-- name: jenkins_worker | Install PhantomJS
-  command: mv /var/tmp/{{ jenkins_phantomjs_folder }} /usr/local/bin/phantomjs
-           creates=/usr/local/bin/phantomjs
-
-- name: jenkins_worker | Set PhantomJS permissions
-  file: path=/usr/local/bin/phantomjs mode=0755 state=directory
 
 - name: jenkins_worker | Install Chrome dependencies
   apt: pkg=libgconf2-4,libxss1,libnss3-1d,libcurl3,xdg-utils
