@@ -56,8 +56,15 @@
   tags:
   - deploy
 
-- name: ora | reload supervisor to allow to start the new services
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
+- name: ora | ensuring ora and ora_celery are activated in supervisor
+  supervisorctl: >
+    name="{{ item }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=present
+  with_items: ['ora', 'ora_celery']
+  tags:
+    - deploy
 
 # Do A Checkout
 - name: ora | git checkout ora repo into {{ ora_app_dir }}
