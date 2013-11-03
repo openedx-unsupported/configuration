@@ -39,10 +39,6 @@
   sudo_user: "{{ edxapp_user }}"
   tags: deploy
 
-- name: edxapp | compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
-  tags: deploy
-
 - name: edxapp | checkout theme
   git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
   when: edxapp_theme_name != ''
@@ -169,11 +165,20 @@
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
+# For pip packages which create group-restricted venv files (httplib2)
+- name: edxapp | ensure all files are readable by any user
+  shell: chmod -R go+r {{ edxapp_venv_dir }}
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  tags: deploy
+
 - name: edxapp | create checksum for installed requirements
   shell: cp /var/tmp/edxapp.req.new /var/tmp/edxapp.req.installed
   sudo_user: "{{ edxapp_user }}"
   tags: deploy
 
+- name: edxapp | compiling all py files in the edx-platform repo
+  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
+  tags: deploy
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
@@ -190,23 +195,23 @@
 # gather_assets and db migrations
 - include: service_variant_config.yml
 
-- name: edxapp | restart the edxapp services (supervisor)
+- name: edxapp | start the edxapp services (supervisor)
   supervisorctl: >
     name="edxapp:{{ item }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
+    state=started
   when: celery_worker is not defined
   with_items: service_variants_enabled
   tags:
     - deploy
 
-- name: edxapp | restart the celery worker services (supervisor)
+- name: edxapp | start the celery worker services (supervisor)
   supervisorctl: >
     name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
+    state=started
   when: celery_worker is defined
   with_items: edxapp_workers
   tags:
