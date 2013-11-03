@@ -1,5 +1,9 @@
 - name: xserver | stop xserver
-  service: name=xserver state=stopped
+  supervisorctl: >
+    name=xserver
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
   tags:
   - deploy
 
@@ -8,6 +12,22 @@
   sudo_user: "{{ xserver_user }}"
   tags:
   - deploy
+
+- name: "xserver | writing supervisor script"
+  template: >
+    src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+  - deploy
+
+- name: xserver | ensuring xserver is activated in supervisor
+  supervisorctl: >
+    name="xserver"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=present
+  tags:
+    - deploy
 
 - name: xserver | install requirements
   pip: requirements="{{xserver_requirements_file}}" virtualenv="{{ xserver_venv_dir }}" state=present
@@ -55,6 +75,10 @@
   - deploy
 
 - name: xserver | start xserver
-  service: name=xserver state=started
+  supervisorctl: >
+    name=xserver
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
   tags:
   - deploy

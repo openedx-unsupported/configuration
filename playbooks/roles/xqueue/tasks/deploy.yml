@@ -37,8 +37,15 @@
   tags:
   - deploy
 
-- name: xqueue | reload supervisor to allow to start the new services
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} reload"
+- name: xqueue | ensuring xqueue and xqueue_consumer are activated in supervisor
+  supervisorctl: >
+    name="{{ item }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=present
+  with_items: ['xqueue', 'xqueue_consumer']
+  tags:
+    - deploy
 
 # Do A Checkout
 - name: xqueue | git checkout xqueue repo into xqueue_code_dir
