@@ -11,5 +11,31 @@
     {{ edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ edxapp_course_data_dir }} {{ demo_code_dir }}
     chdir={{ edxapp_code_dir }}
   sudo_user: "{{ common_web_user }}"
-  tags: deploy
   when: demo_checkout.changed
+  tags: deploy
+
+- name: demo | create some test users and enroll them in the course
+  shell: >
+    {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e {{ item.email }} -p {{ item.password }} -m {{ item.mode }} -c {{ demo_course_id }}
+    chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ common_web_user }}"
+  with_items: demo_test_users
+  when: demo_checkout.changed
+  tags: deploy
+
+- name: demo | create staff user
+  shell: >
+    {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e staff@example.com -p edx -s -c {{ demo_course_id }}
+    chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ common_web_user }}"
+  when: demo_checkout.changed
+  tags: deploy
+
+- name: demo | add test users to the certificate whitelist
+  shell: >
+    {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms cert_whitelist -a {{ item.email }} -c {{ demo_course_id }}
+    chdir={{ edxapp_code_dir }}
+  with_items: demo_test_users
+  when: demo_checkout.changed
+  tags: deploy
+
