@@ -1,10 +1,55 @@
 ---
+
+
+- name: discern | See if supervisord config file `discern.conf` is installed
+  shell: "[ -f {{ supervisor_cfg_dir }}/discern.conf ] && echo 'Found' || echo ''"
+  register: discern_installed
+  tags:
+  - deploy
+
+- name: discern | See if supervisord `discern_celery.conf` is installed
+  shell: "[ -f {{ supervisor_cfg_dir }}/discern_celery.conf ] && echo 'Found' || echo ''"
+  register: discern_celery_installed
+  tags:
+  - deploy
+
+# Stop discern service.
+- name: discern | stop discern service
+  supervisorctl: >
+    name=discern
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
+  when: discern_installed.stdout == 'Found'
+  notify: discern | restart discern
+  tags:
+  - deploy
+
+- name: discern | stop discern_celery service
+  supervisorctl: >
+    name=discern_celery
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=stopped
+  when: discern_celery_installed.stdout == 'Found'
+  notify: discern | restart discern_celery
+  tags:
+  - deploy
+
+- name: discern | create supervisor scripts - discern, discern_celery
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['discern', 'discern_celery']
+  tags:
+  - deploy
+
 #Upload config files for django (auth and env)
 - name: discern | create discern application config env.json file
   template: src=env.json.j2 dest={{ discern_app_dir }}/env.json
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart celery
+    - discern | restart discern_celery
     - discern | restart discern
   tags:
     - deploy
@@ -13,7 +58,7 @@
   template: src=auth.json.j2 dest={{ discern_app_dir }}/auth.json
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart celery
+    - discern | restart discern_celery
     - discern | restart discern
   tags:
     - deploy
@@ -22,7 +67,7 @@
   git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_branch }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart celery
+    - discern | restart discern_celery
     - discern | restart discern
   tags:
     - deploy
@@ -31,7 +76,7 @@
   git: dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart celery
+    - discern | restart discern_celery
     - discern | restart discern
   tags:
     - deploy

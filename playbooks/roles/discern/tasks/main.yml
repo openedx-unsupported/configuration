@@ -6,7 +6,7 @@
     createhome=no
     shell=/bin/false
 
-- name: discern | create discern app and data dir
+- name: discern | create discern app dirs owned by discern
   file: >
     path="{{ item }}"
     state=directory
@@ -14,8 +14,12 @@
     group="{{ common_web_group }}"
   with_items:
     - "{{ discern_app_dir }}"
-    - "{{ discern_data_dir }}"
     - "{{ discern_venvs_dir }}"
+
+- name: discern | create discern data dir, owned by {{ common_web_user }}
+  file: >
+    path="{{ discern_data_dir }}" state=directory
+    owner="{{ common_web_user }}"
 
 - name: discern | install debian packages that discern needs
   apt: pkg={{ item }} state=present
