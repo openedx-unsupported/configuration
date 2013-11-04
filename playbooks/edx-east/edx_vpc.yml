@@ -8,14 +8,14 @@
     - common
     - role: 'mongo'
       mongo_create_users: yes
-- hosts: tag_role_mongo:!first_in_tag_role_mongo
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
-    - "{{ secure_dir }}/vars/users.yml"
-  roles:
-    - common
-    - mongo
+#- hosts: tag_role_mongo:!first_in_tag_role_mongo
+#  sudo: True
+#  vars_files:
+#    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
+#    - "{{ secure_dir }}/vars/users.yml"
+#  roles:
+#    - common
+#    - mongo
 - hosts: first_in_tag_role_edxapp
   sudo: True
   serial: 1
@@ -26,6 +26,7 @@
   roles:
     - common
     - datadog
+    - supervisor
     - role: nginx
       nginx_sites:
       - lms
@@ -33,6 +34,8 @@
       - lms-preview
     - role: 'edxapp'
       edxapp_lms_env: 'lms.envs.load_test'
+      migrate_db: 'yes'
+      openid_workaround: 'yes'
     - splunkforwarder
 - hosts: tag_role_edxapp:!first_in_tag_role_edxapp
   sudo: True
@@ -44,6 +47,7 @@
   roles:
     - common
     - datadog
+    - supervisor
     - role: nginx
       nginx_sites:
       - lms
@@ -61,6 +65,7 @@
   roles:
     - common
     - datadog
+    - supervisor
     - role: nginx
       nginx_sites:
       - lms
@@ -69,7 +74,6 @@
     - role: 'edxapp'
       edxapp_lms_env: 'lms.envs.load_test'
       celery_worker: True
-      edx_platform_commit: 'release'
     - splunkforwarder
 - hosts: tag_role_xserver
   sudo: True
@@ -79,6 +83,7 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
+    - supervisor
     - role: nginx
       nginx_sites:
       - xserver
@@ -93,6 +98,7 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
+    - supervisor
     - rabbitmq
     - splunkforwarder
 - hosts: first_in_tag_role_xqueue
@@ -103,10 +109,12 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
+    - supervisor
     - role: nginx
       nginx_sites:
       - xqueue
-    - xqueue
+    - role: xqueue
+      migrate_db: 'yes'
     - splunkforwarder
 - hosts: tag_role_xqueue:!first_in_tag_role_xqueue
   sudo: True
@@ -116,6 +124,7 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
+    - supervisor
     - role: nginx
       nginx_sites:
       - xqueue
@@ -129,6 +138,7 @@
     - "{{ secure_dir }}/vars/users.yml"
   roles:
     - common
+    - supervisor
     - oraclejdk
     - elasticsearch
     - forum
