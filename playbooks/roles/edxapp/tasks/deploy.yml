@@ -13,6 +13,7 @@
     state=stopped
   when: celery_worker is not defined
   with_items: service_variants_enabled
+  sudo_user: "{{ common_web_user }}"
   tags:
     - deploy
 
@@ -24,6 +25,7 @@
     state=stopped
   when: celery_worker is defined
   with_items: edxapp_workers
+  sudo_user: "{{ common_web_user }}"
   tags:
     - deploy
 
@@ -48,7 +50,7 @@
 
 - name: edxapp | create checksum for requirements, package.json and Gemfile
   shell: >
-    /usr/bin/md5sum {{ " ".join(edxapp_all_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
+    /usr/bin/md5sum {{ " ".join(edxapp_chksum_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
   sudo_user: "{{ edxapp_user }}"
   ignore_errors: true
   tags:
@@ -56,21 +58,21 @@
 
 - stat: path=/var/tmp/edxapp.req.new
   register: new
+  sudo_user: "{{ edxapp_user }}"
   tags: deploy
 
 - stat: path=/var/tmp/edxapp.req.installed
   register: inst
+  sudo_user: "{{ edxapp_user }}"
   tags: deploy
 
 # Substitute github mirror in all requirements files
+# This is run on every single deploy
 - name: edxapp | Updating requirement files for git mirror
   command: |
-    /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ item }}
-  with_items: edxapp_all_req_files
+    /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ " ".join(edxapp_all_req_files) }}
   sudo_user: "{{ edxapp_user }}"
-  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
-
 
 # Ruby plays that need to be run after platform updates.
 - name: edxapp | gem install bundler
@@ -165,10 +167,17 @@
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
-# For pip packages which create group-restricted venv files (httplib2)
-- name: edxapp | ensure all files are readable by any user
-  shell: chmod -R go+r {{ edxapp_venv_dir }}
-  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+- name: edxapp | compiling all py files in the edx-platform repo
+  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
+  sudo_user: "{{ edxapp_user }}"
+  tags: deploy
+
+  # alternative would be to give {{ common_web_user }} read access
+  # to the virtualenv but that permission change will require
+  # root access.
+- name: edxapp | give other read permissions to the virtualenv
+  command: chmod -R o+r "{{ edxapp_venv_dir }}"
+  sudo_user: "{{ edxapp_user }}"
   tags: deploy
 
 - name: edxapp | create checksum for installed requirements
@@ -176,9 +185,6 @@
   sudo_user: "{{ edxapp_user }}"
   tags: deploy
 
-- name: edxapp | compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
-  tags: deploy
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
@@ -187,6 +193,7 @@
 - name: edxapp | openid workaround - NOT FOR PRODUCTION
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
+  sudo_user: "{{ edxapp_user }}"
   tags:
   - deploy
 
@@ -203,6 +210,7 @@
     state=started
   when: celery_worker is not defined
   with_items: service_variants_enabled
+  sudo_user: "{{ common_web_user }}"
   tags:
     - deploy
 
@@ -214,5 +222,6 @@
     state=started
   when: celery_worker is defined
   with_items: edxapp_workers
+  sudo_user: "{{ common_web_user }}"
   tags:
     - deploy
