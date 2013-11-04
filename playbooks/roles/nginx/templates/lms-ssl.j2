@@ -1,16 +1,14 @@
-upstream lms-backend {
-    {% for host in nginx_lms_gunicorn_hosts %}
-        server {{ host }}:{{ edxapp_lms_gunicorn_port }} fail_timeout=0;
-    {% endfor %}
-}
-
 server {
-  # LMS configuration file for nginx, templated by ansible
+  # LMS configuration file for nginx to serve SSL, templated by ansible
 
-  listen {{EDXAPP_LMS_NGINX_PORT}} default;
+  listen {{ EDXAPP_LMS_NGINX_SSL_PORT }} default;
 
-  access_log {{ nginx_log_dir }}/access.log;
-  error_log {{ nginx_log_dir }}/error.log error;
+  ssl on;
+  ssl_certificate /etc/ssl/certs/lms.crt;
+  ssl_certificate_key /etc/ssl/private/lms.key;
+
+  access_log {{ nginx_log_dir }}/lms-ssl.access.log;
+  error_log {{ nginx_log_dir }}/lms-ssl.error.log error;
 
   # CS184 requires uploads of up to 4MB for submitting screenshots.
   # CMS requires larger value for course assest, values provided
@@ -68,19 +66,5 @@ server {
 
     # Expire other static files immediately (there should be very few / none of these)
     expires epoch;
-  }
-
-  # Forward to HTTPS if we're an HTTP request...
-  {% if 'lms-ssl' in nginx_sites %}
-  set $do_redirect "true";
-  {% else %}
-  if ($http_x_forwarded_proto = "http") {
-    set $do_redirect "true";
-  }
-  {% endif %}
-
-  # Run our actual redirect...
-  if ($do_redirect = "true") {
-    rewrite ^ https://$host$request_uri? permanent;
   }
 }
