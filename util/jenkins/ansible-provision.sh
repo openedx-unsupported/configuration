@@ -63,13 +63,13 @@ if [[ -z $instance_type ]]; then
 
 fi
 
-cat << EOF > $extra_vars
----
-EDXAPP_PREVIEW_LMS_BASE: preview.${dns_name}.${dns_zone}
-EDXAPP_LMS_BASE: ${dns_name}.${dns_zone}
-EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
-EDXAPP_CMS_NGINX_PORT: 80
-ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
+deploy_host="${dns_name}.${dns_zone}"
+
+# creates a var file 
+source "$dir/create-var-file.sh"
+
+# vars specific to provisioning added to $extra-vars
+cat << EOF >> $extra_vars
 dns_name: $dns_name
 keypair: $keypair
 instance_type: $instance_type
@@ -79,8 +79,6 @@ region: $region
 instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
-COMMON_PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
-COMMON_GIT_MIRROR: 'git.edx.org'
 gh_users:
   - jarv
   - feanil
