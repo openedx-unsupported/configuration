@@ -1,16 +1,16 @@
 ---
 
-- name: notifier | stop notifier-celery-beat
-  supervisorctl: >
-    name="{{ item }}"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=present
-  ignore_errors: yes
-  sudo_user: "{{ common_web_user }}"
-  with_items: ['notifier-scheduler','notifier-celery-workers']
-  tags:
-    - deploy
+# - name: notifier | stop notifier-celery-beat
+#   supervisorctl: >
+#     name="{{ item }}"
+#     supervisorctl_path={{ supervisor_ctl }}
+#     config={{ supervisor_cfg }}
+#     state=present
+#   ignore_errors: yes
+#   sudo_user: "{{ common_web_user }}"
+#   with_items: ['notifier-scheduler','notifier-celery-workers']
+#   tags:
+#     - deploy
   
 - name: notifier | checkout code
   git: 
@@ -19,7 +19,8 @@
   sudo: true  
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
-    - notifier | restart notifier
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
   tags:
     - deploy
 
