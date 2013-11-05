@@ -1,3 +1,5 @@
+# creates a var file with common values for
+# both deployment and provisioning
 cat << EOF > $extra_vars
 ---
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
