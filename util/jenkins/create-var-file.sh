@@ -19,4 +19,11 @@ CERTS_AWS_ID: $(cat /var/lib/jenkins/certs-aws-id)
 CERTS_BUCKET: "verify-test.edx.org"
 migrate_db: "yes"
 openid_workaround: True
+edx_platform_commit: $edxapp_version
+forum_version: $forum_version
+xqueue_version: $xqueue_version
+xserver_version: $xserver_version
+ora_version: $ora_version
+ease_version: $ease_version
+
 EOF
