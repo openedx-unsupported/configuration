@@ -42,6 +42,7 @@ xserver_version: $xserver_version
 ora_version: $ora_version
 ease_version: $ease_version
 EOF
+cat $extra_vars
 
 
 echo "Deploying to $deploy_host"

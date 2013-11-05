@@ -86,6 +86,7 @@ gh_users:
   - ${github_username}
 dns_zone: $dns_zone
 EOF
+cat $extra_vars
 
 
 cat $extra_vars

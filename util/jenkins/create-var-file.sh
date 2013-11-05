@@ -18,7 +18,3 @@ CERTS_BUCKET: "verify-test.edx.org"
 migrate_db: "yes"
 openid_workaround: True
 EOF
-
-cat $extra_vars
-
-
