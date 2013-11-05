@@ -1,16 +1,23 @@
 ---
+
 - name: notifier | stop notifier-celery-beat
-  supervisorctl: name=notifier-celery-beat state=restarted
+  supervisorctl: >
+    name="{{ item }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=present
   ignore_errors: yes
-
-- name: notifier | stop notifier-celery-workers
-  supervisorctl: name=notifier-celery-workers state=restarted
-  ignore_errors: yes
-
+  sudo_user: "{{ common_web_user }}"
+  with_items: ['notifier-scheduler','notifier-celery-workers']
+  tags:
+    - deploy
+  
 - name: notifier | checkout code
   git: 
     dest={{ NOTIFIER_CODE_DIR }} repo={{ NOTIFIER_SOURCE_REPO }} 
     version={{ NOTIFIER_VERSION }}
+  sudo: true  
+  sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier
   tags:
@@ -35,20 +42,25 @@
   sudo: true  
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
-    - notifier | restart notifier
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
   tags:
   - notifier
   - deploy
   - install
   - update
 
+- name: notifier | debug
+  debug: msg="supervisorctl is defined as {{ supervisor_ctl }}"
+  
 - name: notifier | syncdb
   shell: >
     cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
   sudo: true  
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
-    - notifier | restart notifier
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
   tags:
   - notifier
   - deploy
