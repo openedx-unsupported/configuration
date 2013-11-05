@@ -65,8 +65,12 @@ fi
 
 deploy_host="${dns_name}.${dns_zone}"
 
-# creates a var file 
-source "$dir/create-var-file.sh"
+if [[ -z $WORKSPACE ]]; then
+    dir=$(dirname $0)
+    source "$dir/ascii-convert.sh"
+else
+    source "$WORKSPACE/util/jenkins/create-var-file.sh"
+fi
 
 # vars specific to provisioning added to $extra-vars
 cat << EOF >> $extra_vars

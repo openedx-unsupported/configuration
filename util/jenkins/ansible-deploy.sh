@@ -31,7 +31,13 @@ if [[ -z $deploy_host ]]; then
   deploy_host="${github_username}.m.sandbox.edx.org"
 fi
 
-source "$dir/create-var-file.sh"
+if [[ -z $WORKSPACE ]]; then
+    dir=$(dirname $0)
+    source "$dir/ascii-convert.sh"
+else
+    source "$WORKSPACE/util/jenkins/create-var-file.sh"
+fi
+
 
 # vars specific to deploy added to $extra-vars
 cat << EOF >> $extra_vars
