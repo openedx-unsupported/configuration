@@ -85,21 +85,17 @@
   file:
     path="{{ NOTIFIER_HOME }}/bin" mode=2775 state=directory
 
-- name: common | create supervisor log directoy
-  file:
-    path={{NOTIFIER_SUPERVISOR_LOG_DEST }} mode=2750 state=directory
-
 - name: notifier | supervisord config for celery workers
   template: >
     src=edx/app/supervisor/conf.d/notifier-celery-workers.conf.j2
-    dest=/edx/app/supervisor/conf.d/notifier-celery-workers.conf
+    dest="{{ supervisor_cfg_dir }}/notifier-celery-workers.conf"
   sudo_user: "{{ supervisor_user }}"
   notify: notifier | restart notifier-celery-workers
 
 - name: notifier | supervisord config for scheduler
   template: >
     src=edx/app/supervisor/conf.d/notifier-scheduler.conf.j2
-    dest=/edx/app/supervisor/conf.d/notifier-scheduler.conf
+    dest="{{ supervisor_cfg_dir }}/notifier-scheduler.conf"
   sudo_user: "{{ supervisor_user }}"
   notify: notifier | restart notifier-scheduler
 
