@@ -114,8 +114,6 @@ deploy[certs]=$certs
 
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
-cd playbooks/edx-east
-
 # If reconfigure was selected run non-deploy tasks for all roles
 if [[ $reconfigure == "true" ]]; then
     ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
