@@ -48,7 +48,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-65db8b0c"
+    ami="ami-27fda54e"
   elif [[ $server_type == "ubuntu_12.04" ]]; then
     ami="ami-d0f89fb9"
   fi
@@ -97,11 +97,34 @@ cat $extra_vars
 
 
 cd playbooks/edx-east
-# run the tasks to launch an ec2 instance from AMI
-ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
-# run tasks to update application config files for the sandbox hostname
-if [[ $server_type == "full_edx_installation" ]]; then
-    ansible-playbook -vvvv edx_continuous_integration.yml  -i "${dns_name}.${dns_zone}," -e "@${extra_vars}" --user ubuntu --tags "lms-env,cms-env,lms-preview-env"
+if [[ $recreate == "true" ]]; then
+    # run the tasks to launch an ec2 instance from AMI
+    ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
 fi
-rm -f "$extra_vars"
 
+declare -A deploy
+
+deploy[edxapp]=$edxapp
+deploy[forum]=$forum
+deploy[xqueue]=$xqueue
+deploy[xserver]=$xserver
+deploy[ora]=$ora
+deploy[discern]=$discern
+deploy[certs]=$certs
+
+ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
+
+cd playbooks/edx-east
+
+# If reconfigure was selected run non-deploy tasks for all roles
+if [[ $reconfigure == "true" ]]; then
+    ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
+fi
+
+# Run deploy tasks for the roles selected
+for i in "${!deploy[@]}"; do
+    if [[ ${deploy[$i]} == "true" ]]; then
+        ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
+    fi
+done
+rm -f "$extra_vars"
