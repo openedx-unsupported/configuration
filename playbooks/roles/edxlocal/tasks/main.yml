@@ -40,3 +40,17 @@
 
 - name: edxlocal | install memcached
   apt: pkg=memcached state=present
+
+- name: edxlocal | set the hostname to edx-server (single instance only)
+  template: src=hosts.j2 dest=/etc/hosts
+  register: etc_hosts
+
+- name: edxlocal | set the hostname to edx-server (single instance only)
+  template: src=hostname.j2 dest=/etc/hostname
+  register: etc_hostname
+
+- name: edxlocal | update hostname
+  shell: >
+    hostname -F /etc/hostname
+  when: etc_hosts.changed or etc_hostname.changed
+
