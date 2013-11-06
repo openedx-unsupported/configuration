@@ -72,8 +72,11 @@ else
     source "$WORKSPACE/util/jenkins/create-var-file.sh"
 fi
 
-# vars specific to provisioning added to $extra-vars
-cat << EOF >> $extra_vars
+cd playbooks/edx-east
+
+if [[ $recreate == "true" ]]; then
+    # vars specific to provisioning added to $extra-vars
+    cat << EOF >> $extra_vars
 dns_name: $dns_name
 keypair: $keypair
 instance_type: $instance_type
@@ -89,17 +92,15 @@ gh_users:
   - e0d
   - ${github_username}
 dns_zone: $dns_zone
+rabbitmq_refresh: True
 EOF
-cat $extra_vars
-
-
-cat $extra_vars
-
-
-cd playbooks/edx-east
-if [[ $recreate == "true" ]]; then
+    cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
     ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
+
+    if [[ $server_type == "full_edx_installation" ]]; then
+        ansible-playbook -vvvv deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+    fi
 fi
 
 declare -A deploy
@@ -119,16 +120,12 @@ if [[ $reconfigure == "true" ]]; then
     ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
 fi
 
-if [[ $server_type == "full_edx_installation" ]]; then
-    ansible-playbook -vvvv deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+# Run deploy tasks for the roles selected
+for i in "${!deploy[@]}"; do
+    if [[ ${deploy[$i]} == "true" ]]; then
+        ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
+    fi
+done
 
-    # Run deploy tasks for the roles selected
-    for i in "${!deploy[@]}"; do
-        if [[ ${deploy[$i]} == "true" ]]; then
-            ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
-        fi
-    done
-
-fi
 
 rm -f "$extra_vars"
