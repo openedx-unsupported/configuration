@@ -99,6 +99,8 @@ EOF
     ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
+        # additional tasks that need to be run if the
+        # entire edx stack is brought up from an AMI
         ansible-playbook -vvvv deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
         ansible-playbook -vvvv restart_supervisor.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
     fi
