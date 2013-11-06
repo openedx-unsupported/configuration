@@ -17,11 +17,17 @@
     - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
     - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
+    - "{{ secure_dir }}/vars/datadog_stage.yml"
   roles:
     - common
-    - {'role': 'nginx', 'nginx_conf': true}
-    - {'role': 'edxapp', 'openid_workaround': true, 'template_subdir': 'carnegie'}
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+      nginx_template_directory: "{{local_dir}}/nginx/templates/carnegie/"
+    - {'role': 'edxapp', 'openid_workaround': true}
     - datadog
-    - splunkforwarder
+    #- splunkforwarder
     # run this role last
     # - in_production
