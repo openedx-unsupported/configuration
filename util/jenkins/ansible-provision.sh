@@ -64,6 +64,7 @@ if [[ -z $instance_type ]]; then
 fi
 
 deploy_host="${dns_name}.${dns_zone}"
+ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
@@ -116,7 +117,6 @@ deploy[ora]=$ora
 deploy[discern]=$discern
 deploy[certs]=$certs
 
-ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
 # If reconfigure was selected run non-deploy tasks for all roles
 if [[ $reconfigure == "true" ]]; then
