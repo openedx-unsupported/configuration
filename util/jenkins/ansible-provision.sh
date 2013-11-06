@@ -119,10 +119,16 @@ if [[ $reconfigure == "true" ]]; then
     ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
 fi
 
-# Run deploy tasks for the roles selected
-for i in "${!deploy[@]}"; do
-    if [[ ${deploy[$i]} == "true" ]]; then
-        ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
-    fi
-done
+if [[ $server_type == "full_edx_installation" ]]; then
+    ansible-playbook -vvvv deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+
+    # Run deploy tasks for the roles selected
+    for i in "${!deploy[@]}"; do
+        if [[ ${deploy[$i]} == "true" ]]; then
+            ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
+        fi
+    done
+
+fi
+
 rm -f "$extra_vars"
