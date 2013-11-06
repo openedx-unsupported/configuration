@@ -12,7 +12,8 @@
 #      - mark
 
 
-- fail: gh_users list must be defined for this parameterized role
+- name: gh_users | checking for gh_users list
+  fail: msg="gh_users list must be defined for this parameterized role"
   when: not gh_users
 
 - name: gh_users | create gh group
@@ -21,26 +22,26 @@
 # TODO: give limited sudo access to this group
 - name: gh_users | grant full sudo access to gh group
   copy: >
-    content="%adm ALL=(ALL) NOPASSWD:ALL"
+    content="%gh ALL=(ALL) NOPASSWD:ALL"
     dest=/etc/sudoers.d/gh owner=root group=root
     mode=0440 validate='visudo -cf %s'
 
 - name: gh_users | create github users
   user:
-    name={{ item }} group=gh
+    name={{ item }} groups=gh
     shell=/bin/bash
   with_items: gh_users
 
 - name: gh_users | create .ssh directory
   file:
     path=/home/{{ item }}/.ssh state=directory mode=0700
-    owner={{ item }} group={{ item }}
+    owner={{ item }}
   with_items: gh_users
 
 - name: gh_users | copy github key[s] to .ssh/authorized_keys
   get_url:
-    url=https://github.com/{{ item.user }}.keys
-    dest=/home/{{ item.user }}/.ssh/authorized_keys mode=0600
-    owner={{ item.user }} group={{ item.user }}
+    url=https://github.com/{{ item }}.keys
+    dest=/home/{{ item }}/.ssh/authorized_keys mode=0600
+    owner={{ item }}
   with_items: gh_users
 

@@ -1,0 +1,17 @@
+---
+# Simple role to change a hostname on an ubuntu server
+
+- name: hostname | update /etc/hosts
+  template: src=hosts.j2 dest=/etc/hosts
+  register: etc_hosts
+
+- name: hostname | update /etc/hostname
+  template: src=hostname.j2 dest=/etc/hostname
+  register: etc_hostname
+
+- name: hostname | run hostname
+  shell: >
+    hostname -F /etc/hostname
+  when: etc_hosts.changed or etc_hostname.changed
+
+
