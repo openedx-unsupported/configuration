@@ -1,0 +1,315 @@
+# requires:
+#   - vpc/tasks/main.yml
+# This will build all the needed instances
+# for the stack
+
+---
+
+- name: provision | Create Backup Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_backup_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ ssh_only.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_admin }}"
+    private_ip: "{{ vpc_cidr_top}}{{ provision_backup_ip }}"
+    id: backupsv{{ provision_backup_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "backup-launched", "env": "{{ env }}",  "group": "backup", "status": "launched", "metagroup": "infrastructure", "org": "{{ provision_org }}" }'
+  when: provision_create_backup is defined
+  register: ec2b
+  tags: backup
+
+- name: provision | Create Selenium Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_selenium_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ ssh_only.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_admin }}"
+    private_ip: "{{ provision_selenium_ip }}"
+    count: 1
+    id: seleniumsv{{ provision_selenium_ver }}
+    wait: yes
+    instance_tags: '{"Name": "selenium-launched", "env": "{{ env }}", "group": "selenium", "status": "launched", "metagroup": "infrastructure", "org": "{{ provision_org }}" }'
+  when: provision_create_selenium is defined
+  register: ec2s
+  tags: selenium      
+
+- name: provision | Create AZ1 Mongo1 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_mongo_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ mongo_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ intra_mongo_group.group_id }}"
+      - "{{ rabbitmq_group.group_id }}"
+      - "{{ intra_mongo_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_data_1 }}"
+    private_ip: "{{ provision_mongo1_az1_ip }}"
+    id: mongo1-az1v{{ provision_mongo1_az1_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "mongo1-az1-launched", "env": "{{ env }}", "group": "mongo", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}" }'
+  register: ec2m1az1
+  tags: mongo
+
+- name: provision | Create AZ2 Mongo1 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_mongo_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ mongo_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ intra_mongo_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+      - "{{ rabbitmq_group.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_data_2 }}"
+    private_ip: "{{ provision_mongo1_az2_ip }}"
+    id: mongo1-az2v{{ provision_mongo1_az2_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "mongo1-az2-launched", "env": "staging", "group": "mongo", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}" }'
+  when: provision_ha is defined and provision_ha
+  register: ec2m1az2
+  tags: mongo
+
+- name: provision | Create AZ3 Mongo1 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_mongo_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ mongo_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ intra_mongo_group.group_id }}"
+      - "{{ rabbitmq_group.group_id }}"
+      - "{{ intra_mongo_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_data_3 }}"
+    private_ip: "{{ provision_mongo1_az3_ip }}"
+    id: mongo1-az3v{{ provision_mongo1_az3_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "mongo1-az3-launched", "env": "staging", "group": "mongo", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}" }'
+  when: provision_ha is defined and provision_ha
+  register: ec2m1az3
+  tags: mongo
+
+- name: provision | Create AZ1 Apps1 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_apps_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ apps_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ gluster_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_apps_1 }}"
+    private_ip: "{{ provision_apps1_az1_ip }}"
+    id: apps1-az1v{{ provision_apps1_az1_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "apps1-az1-launched", "env": "staging", "group": "apps", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}"}'
+  register: ec2a1az1
+  tags: apps
+
+- name: provision | Create AZ2 Apps1 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_apps_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id:
+      - "{{ apps_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ gluster_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_apps_2 }}"
+    private_ip: "{{ provision_apps1_az2_ip }}"
+    id: apps1-az2v{{ provision_apps1_az2_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "apps1-az2-launched", "env": "staging", "group": "apps", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}"}'
+  when: provision_ha is defined and provision_ha
+  register: ec2a1az2
+  tags: apps
+
+- name: provision | Create AZ1 LB1 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_lb_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ load_balancer_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ gluster_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_lb_1 }}"
+    private_ip: "{{ provision_lb1_az1_ip }}"
+    id: lb-az1v{{ provision_lb1_az1_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "lb1-az1-launched", "env": "staging", "group": "lb", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}"}'
+  register: ec2lb1az1
+  tags: load_balancer
+
+- name: provision | Create AZ1 LB2 Instance
+  local_action:
+    module: ec2
+    keypair: "{{ provision_ec2_keypair }}"
+    instance_type: "{{ provision_lb_type }}"
+    image: "{{ provision_ec2_image }}"
+    group_id: 
+      - "{{ load_balancer_group.group_id }}"
+      - "{{ ssh_only.group_id }}"
+      - "{{ gluster_group.group_id }}"
+      - "{{ snmpd_monitor.group_id }}"
+    region: "{{ vpc_ec2_region }}"
+    vpc_subnet_id: "{{ vpc_subnet_lb_2 }}"
+    private_ip: "{{ provision_lb1_az2_ip }}"
+    id: lb-az2v{{ provision_lb1_az2_ver }}
+    count: 1
+    wait: yes
+    instance_tags: '{"Name": "lb1-az2-launched", "env": "staging", "group": "lb", "status": "launched", "metagroup": "app", "org": "{{ provision_org }}"}'
+  when: provision_ha is defined and provision_ha  
+  register: ec2lb1az2
+  tags: load_balancer
+
+- name: provision | Create backup volume
+  local_action: ec2_vol volume_size=100 instance={{ item.id }} device_name=sdf region={{ vpc_ec2_region }}
+  with_items: ec2b.instances
+  when: provision_create_backup is defined
+  register: backup_vol
+  tags: backup
+
+# Start adding all the hosts to a dynamic inventory group to configure them now that they are provisioned
+- name: provision | Add new backup instance to staging group
+  local_action: add_host hostname={{ item.public_ip }} groupname=backup_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items: ec2b.instances
+  when: provision_create_backup is defined
+  tags: backup
+
+- name: provision | Add new selenium instance to staging group
+  local_action: add_host hostname={{ item.public_ip }} groupname=selenium_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items: ec2s.instances
+  when: provision_create_selenium is defined
+  tags: selenium
+
+- name: provision | Add first new mongo instance to staging group
+  local_action: add_host hostname={{ item }} groupname=mongo_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items:
+    - "{{ ec2m1az1.instances[0].public_ip }}"
+  tags: mongo
+
+- name: provision | Add other mongo instance(s) to staging group
+  local_action: add_host hostname={{ item }} groupname=mongo_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items:
+    - "{{ ec2m1az2.instances[0].public_ip }}"
+    - "{{ ec2m1az3.instances[0].public_ip }}"
+  when: provision_ha is defined and provision_ha
+  tags: mongo
+
+- name: provision | Add first new apps instance to staging group
+  local_action: add_host hostname={{ item }} groupname=apps_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items: 
+    - "{{ ec2a1az1.instances[0].public_ip }}"
+  when: item is defined
+  tags: apps
+
+- name: provision | Add other new apps instance(s) to staging group
+  local_action: add_host hostname={{ item }} groupname=apps_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items: 
+    - "{{ ec2a1az2.instances[0].public_ip }}"
+  when: provision_ha is defined and provision_ha
+  tags: apps
+
+- name: provision | Add first new lb instance to staging group
+  local_action: add_host hostname={{ item }} groupname=lb_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items: 
+    - "{{ ec2lb1az1.instances[0].public_ip }}"
+  tags: load_balancer
+
+- name: provision | Add other new lb instance(s) to staging group
+  local_action: add_host hostname={{ item }} groupname=lb_launched ansible_ssh_private_key_file={{ secure_dir }}/keys/{{ provision_ec2_keypair }} ansible_ssh_user=ubuntu
+  with_items: 
+    - "{{ ec2lb1az2.instances[0].public_ip }}"
+  when: provision_ha is defined and provision_ha
+  tags: load_balancer
+
+- name: provision | Wait for SSH to come up on backup
+  local_action: wait_for host={{ item.public_ip }} port=22 delay=10 timeout=320 state=started
+  with_items: ec2b.instances
+  when: provision_create_backup is defined
+  tags: backup
+
+- name: provision | Wait for SSH to come up on selenium
+  local_action: wait_for host={{ item.public_ip }} port=22 delay=10 timeout=320 state=started
+  with_items: ec2s.instances
+  when: provision_create_selenium is defined
+  tags: selenium
+
+- name: provision | Wait for SSH to come up on first mongo instance
+  local_action: wait_for host={{ item }} port=22 delay=10 timeout=320 state=started
+  with_items: 
+    - "{{ ec2m1az1.instances[0].public_ip }}"
+  tags: mongo
+
+- name: provision | Wait for SSH to come up on other mongo instances
+  local_action: wait_for host={{ item }} port=22 delay=10 timeout=320 state=started
+  with_items: 
+    - "{{ ec2m1az2.instances[0].public_ip }}"
+    - "{{ ec2m1az3.instances[0].public_ip }}"
+  when: provision_ha is defined and provision_ha
+  tags: mongo
+
+- name: provision | Wait for SSH to come up on first app instances
+  local_action: wait_for host={{ item }} port=22 delay=10 timeout=320 state=started
+  with_items: 
+    - "{{ ec2a1az1.instances[0].public_ip }}"
+  tags: apps
+
+- name: provision | Wait for SSH to come up on other apps instances
+  local_action: wait_for host={{ item }} port=22 delay=10 timeout=320 state=started
+  with_items: 
+    - "{{ ec2a1az2.instances[0].public_ip }}"
+  when: provision_ha is defined and provision_ha
+  tags: apps
+
+- name: provision | Wait for SSH to come up on first lb instance
+  local_action: wait_for host={{ item }} port=22 delay=10 timeout=320 state=started
+  with_items: 
+    - "{{ ec2lb1az1.instances[0].public_ip }}"
+  tags: load_balancer
+
+- name: provision | Wait for SSH to come up on other lb instances
+  local_action: wait_for host={{ item }} port=22 delay=10 timeout=320 state=started
+  with_items: 
+    - "{{ ec2lb1az2.instances[0].public_ip }}"
+  when: provision_ha is defined and provision_ha
+  tags: load_balancer

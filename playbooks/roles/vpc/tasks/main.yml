@@ -1,0 +1,288 @@
+# Creates VPC, Security Groups, and RDS instance for building an HA EdX Stack
+---
+- name: vpc | create vpc
+  local_action:
+    module: vpc
+    state: present
+    cidr_block: "{{ vpc_cidr_top }}0.0/16"
+    subnets: 
+      - cidr: "{{ vpc_cidr_top }}254.0/24"   # Admin network
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[0] }}"
+      - cidr: "{{ vpc_cidr_top }}0.0/24"     # LB AZ 1
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[0] }}"
+      - cidr: "{{ vpc_cidr_top }}1.0/24"     # LB AZ 2
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[1] }}"
+      - cidr: "{{ vpc_cidr_top }}16.0/24"    # App AZ 1
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[0] }}"
+      - cidr: "{{ vpc_cidr_top }}17.0/24"    # App AZ 2
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[1] }}"
+      - cidr: "{{ vpc_cidr_top }}128.0/24"   # Data AZ 1
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[0] }}"
+      - cidr: "{{ vpc_cidr_top }}129.0/24"   # Data AZ 2
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[1] }}"
+      - cidr: "{{ vpc_cidr_top }}130.0/24"   # Data AZ 3
+        az: "{{ vpc_ec2_region }}{{ vpc_azs[2] }}"
+    internet_gateway: True
+    route_tables:
+      - subnets: 
+          - "{{ vpc_cidr_top }}254.0/24"
+          - "{{ vpc_cidr_top }}0.0/24"
+          - "{{ vpc_cidr_top }}1.0/24"
+          - "{{ vpc_cidr_top }}16.0/24"
+          - "{{ vpc_cidr_top }}17.0/24"
+          - "{{ vpc_cidr_top }}128.0/24"
+          - "{{ vpc_cidr_top }}129.0/24"
+          - "{{ vpc_cidr_top }}130.0/24"
+        routes: 
+          - dest: 0.0.0.0/0
+            gw: igw
+    region: "{{ vpc_ec2_region }}"
+  register: vpc
+  tags: vpc
+
+- name: vpc | Create sshonly group
+  local_action:
+    module: ec2_group
+    name: ssh_only
+    description: Allows SSH from everywhere only
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp # ansible accelerate port
+        from_port: 5099
+        to_port: 5099
+        cidr_ip: 0.0.0.0/0
+  register: ssh_only
+  tags: sec_groups
+
+- name: vpc | Create snmpd group
+  local_action:
+    module: ec2_group
+    name: snmpd_monitor
+    description: Allows SNMP and ICMP from monitoring machine
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: udp
+        from_port: 161
+        to_port: 161
+        cidr_ip: "{{ vpc_monitor_server }}"
+      - proto: icmp
+        from_port: -1
+        to_port: -1
+        cidr_ip: "{{ vpc_monitor_server }}"
+  register: snmpd_monitor
+  tags: sec_groups
+
+- name: vpc | Create RDS Group
+  local_action:
+    module: ec2_group
+    name: rds_access
+    description: Allows Access to RDS
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        cidr_ip: "{{ vpc_cidr_top }}16.0/23"
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+  register: rds_access
+  ignore_errors: true
+  tags: sec_groups
+
+- name: vpc | load balancer group
+  local_action:
+    module: ec2_group
+    name: load_balancer
+    description: Allows Web from everywhere
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+  register: load_balancer_group
+  tags: sec_groups
+
+- name: vpc | Create mongo group
+  local_action:
+    module: ec2_group
+    name: mongo
+    description: Allows access to mongo from data, app, and admin
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 27017
+        to_port: 27017
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+      - proto: tcp
+        from_port: 28017
+        to_port: 28017
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+      - proto: tcp
+        from_port: 27017
+        to_port: 27017
+        cidr_ip: "{{ vpc_cidr_top }}16.0/23"
+      - proto: tcp
+        from_port: 28017
+        to_port: 28017
+        cidr_ip: "{{ vpc_cidr_top }}16.0/23"
+      - proto: tcp
+        from_port: 27017
+        to_port: 27017
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+      - proto: tcp
+        from_port: 28017
+        to_port: 28017
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+  register: mongo_group
+  ignore_errors: True
+  tags: sec_groups
+
+- name: vpc | rabbit mq group
+  local_action:
+    module: ec2_group
+    name: rabbitmq
+    description: Allows access to rabbit from data, app, and admin
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 5672
+        to_port: 5672
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+      - proto: tcp
+        from_port: 5672
+        to_port: 5672
+        cidr_ip: "{{ vpc_cidr_top }}16.0/23"
+      - proto: tcp
+        from_port: 5672
+        to_port: 5672
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+      - proto: tcp
+        from_port: 15672
+        to_port: 15672
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+      - proto: tcp
+        from_port: 4369
+        to_port: 4369
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+      - proto: tcp
+        from_port: 4369
+        to_port: 4369
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+      - proto: tcp
+        from_port: 35197
+        to_port: 35197
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+  register: rabbitmq_group
+  tags: sec_groups
+
+- name: vpc | Create app group
+  local_action:
+    module: ec2_group
+    name: apps
+    description: Allows access from the load balancers to app servers
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      # cms_app_port, lms_app_port, lms_xml_app_port lms_preview_app_port
+      - proto: tcp
+        from_port: 8000
+        to_port: 8100
+        cidr_ip: "{{ vpc_cidr_top }}0.0/23"
+      - proto: tcp
+        from_port: 8000
+        to_port: 8100
+        cidr_ip: "{{ vpc_cidr_top }}254.0/24"
+  register: apps_group
+  ignore_errors: True
+  tags: sec_groups
+
+- name: vpc | Create intra mongo group
+  local_action:
+    module: ec2_group
+    name: intra_mongo
+    description: Allows access across AZs for mongo instances
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 0
+        to_port: 65535
+        cidr_ip: "{{ vpc_cidr_top }}128.0/22"
+  register: intra_mongo_group
+  ignore_errors: True
+  tags: sec_groups
+
+- name: vpc | Create gluster group
+  local_action:
+    module: ec2_group
+    name: gluster
+    description: Gluster port access among members
+    vpc_id: "{{ vpc.vpc_id }}"
+    region: "{{ vpc_ec2_region }}"
+    rules:
+      - proto: tcp
+        from_port: 24007
+        to_port: 24100
+        cidr_ip: "{{ vpc_cidr_top }}0.0/19"
+      - proto: tcp
+        from_port: 34865
+        to_port: 34867
+        cidr_ip: "{{ vpc_cidr_top }}0.0/19"
+      - proto: udp
+        from_port: 111
+        to_port: 111
+        cidr_ip: "{{ vpc_cidr_top }}0.0/19"
+      - proto: tcp
+        from_port: 111
+        to_port: 111
+        cidr_ip: "{{ vpc_cidr_top }}0.0/19"
+  register: gluster_group
+  ignore_errors: True
+  tags: sec_groups
+
+
+# This will need to be run after initial VPC creation since ansible can't
+# do DB subnet groups. So you will have to make one or this will go in the
+# default subnet group (likely the default vpc)
+# Ignores errors because it will only create it once
+- name: vpc | create RDS instance
+  local_action:
+    module: rds
+    command: create
+    db_engine: "{{ rds.db_engine }}"
+    engine_version: "{{ rds.engine_version }}"
+    backup_window: "{{ rds.backup_window }}"
+    backup_retention: "{{ rds.backup_retention }}"
+    instance_name: "{{ rds.instance_name }}"
+    instance_type: "{{ rds.instance_type }}"
+    multi_zone: "{{ rds.multi_zone }}"
+    size: "{{ rds.size }}"
+    region: "{{ vpc_ec2_region }}"
+    username: "{{ rds_secure.username }}"
+    password: "{{ rds_secure.password }}"
+    subnet: "{{ rds_subnet }}"
+    security_groups: "{{ rds_access.group_id }}"
+  register: rds_info
+  tags: rds
+  ignore_errors: yes

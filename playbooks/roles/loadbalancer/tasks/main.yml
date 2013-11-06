@@ -1,0 +1,25 @@
+---
+# This adds nginx sites for each app server, enables them, and configures any
+# high level load balancer needs. 
+
+- name: loadbalancer | copy over key
+  copy: src={{ item }} dest="~/.ssh/" mode="0600"
+  with_first_found:
+    - '~/.ssh/id_dsa'
+    - '~/.ssh/id_rsa'
+  tags: 
+    - loadbalancer
+    - deploy
+
+- name: loadbalancer | rsync static files from app server
+  command: rsync -r -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" ubuntu@{{ provision_apps1_az1_ip }}:/{{ app_base_dir }}/staticfiles/ {{ app_base_dir }}/staticfiles/
+  tags: 
+    - loadbalancer
+    - deploy
+
+- name: loadbalancer | delete key
+  file: dest={{ item }} state="absent"
+  with_items:
+    - '~/.ssh/id_dsa'
+    - '~/.ssh/id_rsa'
+

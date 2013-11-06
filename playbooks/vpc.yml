@@ -1,0 +1,150 @@
+---
+# This will build and run an entire VPC environment.
+# requires:
+# python-boto >=2.13
+# ansible
+# github.com:carsongee/ansible/feature-merge (unless they merge my pulls)
+# AWS ID environment variables
+#
+# Ansible is unable currently to create DB Subnet Groups so you have
+# to create one before the RDS creation will work, and you will have
+# to create the VPC before then. Running with --tags vpc first
+# should solve that.
+
+- name: vpc site | Build entire MITx Stack
+  hosts: localhost
+  gather_facts: False
+  vars_files:
+    - $playbook_dir/environments/{{ env }}.yml
+    - $secure_dir/vars/{{ env }}_vpc.yml
+  roles:
+    - vpc
+    - provision
+
+- name: vpc site | Configure instance storage
+  hosts: "*_launched"
+  sudo: True
+  tasks:
+    - name: vpc site | Mount instance store
+      mount: name=/mnt src=/dev/xvdb fstype=ext3 state=mounted
+      ignore_errors: yes
+      register: instance_store
+    
+    - name: vpc site | Unmount non-existent instance store
+      mount: name=/mnt src=/dev/xvdb fstype=ext3 state=absent
+      when: instance_store|failed
+      ignore_errors: yes
+
+
+- name: provision | Configure backup instance(s)
+  hosts: backup_launched
+  sudo: True
+  gather_facts: True
+  vars_files: 
+    - $secure_dir/vars/{{ env }}_backup.yml
+    - $secure_dir/vars/smtp.yml
+  pre_tasks:
+    - name: provision | Partition backup volume
+      shell: /sbin/parted /dev/xvdf -s -- mklabel gpt; /sbin/parted /dev/xvdf -s  -- mkpart primary 0 -1; /sbin/parted /dev/xvdf --s -- name 1 backup; mkfs.ext4 /dev/xvdf1; touch /etc/ansible_xvdf_formated creates=/etc/ansible_xvdf_formated
+
+    - name: provision | Mount backup volume
+      mount: name=/opt/ops/backup src=/dev/xvdf1 fstype=ext4 state=mounted
+  roles:
+    - common
+    - backup
+    - smtp
+  tags: backup
+
+- name: provision | Configure selenium instance(s)
+  hosts: selenium_launched
+  sudo: True
+  gather_facts: True
+  vars_files: 
+    - $secure_dir/vars/smtp.yml
+  roles:
+    - common
+    - selenium
+    - mitxmon
+    - smtp
+  tags: selenium
+
+- name: provision | Configure mongo instance(s)
+  hosts: mongo_launched
+  sudo: True
+  gather_facts: True
+  vars_files: 
+    - $secure_dir/vars/smtp.yml
+    - $secure_dir/vars/mongo.yml
+    - $secure_dir/vars/rabbitmq.yml
+    - $secure_dir/vars/mitx-edx.yml
+    - $playbook_dir/environments/{{ env }}.yml
+  roles:
+    - common
+    - mongo
+    - rabbitmq
+    - smtp
+  tags: mongo
+
+- name: provision | Configure apps instance(s)
+  hosts: apps_launched
+  sudo: True
+  gather_facts: True
+  vars_files: 
+    - $secure_dir/vars/smtp.yml
+    - $secure_dir/vars/{{ env }}_edxapp.yml
+    - $secure_dir/vars/{{ env }}_forum.yml
+    - $secure_dir/vars/{{ env }}_xqueue.yml
+    - $secure_dir/vars/{{ env }}_xserver.yml
+    - $secure_dir/vars/{{ env }}_ora.yml
+    - $playbook_dir/environments/{{ env }}.yml
+  vars:
+    migrate_db: "yes"
+    sync_db: "yes"
+    openid_workaround: True
+    service_variants_enabled:
+      - lms
+      - lms-preview
+      - cms
+  roles:
+    - common
+    - edxapp  # edxapp, so nice we run it twice
+    - { role: 'edxapp', celery_worker: True }
+    - oraclejdk
+    - edx-elasticsearch
+    - role: rbenv
+      rbenv_user: "{{ forum_user }}"
+      rbenv_user_home: "{{ forum_home }}"
+      rbenv_ruby_version: "{{ forum_ruby_version }}"
+    - forum
+    - role: virtualenv
+      virtualenv_user: "{{ xqueue_user }}"
+      virtualenv_user_home: "{{ xqueue_user_home }}"
+      virtualenv_name: "{{ xqueue_user }}"
+    - role: xqueue
+      update_users: True
+    - role: virtualenv
+      virtualenv_user: "{{ ora_user }}"
+      virtualenv_user_home: "{{ ora_user_home }}"
+      virtualenv_name: "{{ ora_user }}"
+    - ora
+    - xserver
+    - smtp
+  tags: apps
+
+- name: provision | Configure load balancer instance(s)
+  hosts: lb_launched
+  sudo: True
+  gather_facts: True
+  vars_files: 
+    - $secure_dir/vars/smtp.yml
+    - $secure_dir/vars/nginx.yml
+    - $playbook_dir/environments/{{ env }}.yml
+  roles:
+    - common
+    - role: nginx
+      nginx_sites:
+        - lms
+        - cms
+        - lms-preview
+    - loadbalancer
+  tags: lb_servers
