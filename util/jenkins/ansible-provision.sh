@@ -97,13 +97,13 @@ rabbitmq_refresh: True
 EOF
     cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
-    ansible-playbook -vvvv edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
+    ansible-playbook edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        ansible-playbook -vvvv deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
-        ansible-playbook -vvvv restart_supervisor.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+        ansible-playbook deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+        ansible-playbook restart_supervisor.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
     fi
 fi
 
@@ -120,13 +120,13 @@ deploy[certs]=$certs
 
 # If reconfigure was selected run non-deploy tasks for all roles
 if [[ $reconfigure == "true" ]]; then
-    ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
 fi
 
 # Run deploy tasks for the roles selected
 for i in "${!deploy[@]}"; do
     if [[ ${deploy[$i]} == "true" ]]; then
-        ansible-playbook -vvvv deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
+        ansible-playbook deploy_${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
     fi
 done
 
