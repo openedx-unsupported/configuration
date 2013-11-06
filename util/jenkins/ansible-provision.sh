@@ -100,6 +100,7 @@ EOF
 
     if [[ $server_type == "full_edx_installation" ]]; then
         ansible-playbook -vvvv deploy_rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+        ansible-playbook -vvvv restart_supervisor.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
     fi
 fi
 
