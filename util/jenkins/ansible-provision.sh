@@ -94,6 +94,8 @@ gh_users:
   - ${github_username}
 dns_zone: $dns_zone
 rabbitmq_refresh: True
+common_update_bashrc: true
+COMMON_PROMPT: '[$name_tag] '
 EOF
     cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
