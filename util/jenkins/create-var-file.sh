@@ -28,4 +28,5 @@ ease_version: $ease_version
 
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
+COMMON_HOSTNAME: edx-server
 EOF

@@ -55,3 +55,18 @@
 - name: common | Install logrotate configuration for edX
   template: dest=/etc/logrotate.d/edx-services src=edx_logrotate.j2 owner=root group=root mode=644
 
+
+- name: common | update /etc/hosts
+  template: src=hosts.j2 dest=/etc/hosts
+  when: COMMON_HOSTNAME
+  register: etc_hosts
+
+- name: common | update /etc/hostname
+  template: src=hostname.j2 dest=/etc/hostname
+  when: COMMON_HOSTNAME
+  register: etc_hostname
+
+- name: common | run hostname
+  shell: >
+    hostname -F /etc/hostname
+  when: COMMON_HOSTNAME and (etc_hosts.changed or etc_hostname.changed)
