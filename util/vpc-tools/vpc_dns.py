@@ -78,8 +78,14 @@ def elbs_for_stack_name(stack_name):
         if elb.vpc_id == vpc_id:
             yield elb
 
+def rdss_for_stack_name(stack_name):
+    vpc_id = vpc_for_stack_name(stack_name)
+    rds = boto.connect_rds()
+    for instance in rds.get_all_dbinstances():
+        if hasattr(instance, 'VpcId') and instance.VpcId == vpc_id:
+            yield instance
 
-def ensure_service_dns(elb, prefix, zone):
+def ensure_service_dns(generated_dns_name, prefix, zone):
     dns_template = "{prefix}.{zone_name}"
 
     # Have to remove the trailing period that is on zone names.
@@ -87,7 +93,7 @@ def ensure_service_dns(elb, prefix, zone):
     dns_name = dns_template.format(prefix=prefix,
                                    zone_name=zone_name)
 
-    add_or_update_record(zone, dns_name, 'CNAME', 600, [elb.dns_name])
+    add_or_update_record(zone, dns_name, 'CNAME', 600, [generated_dns_name])
 
 
 if __name__ == "__main__":
@@ -102,7 +108,7 @@ if __name__ == "__main__":
     stack_name = args.stackname
 
     # Create DNS for edxapp and xqueue.
-    dns_settings = {
+    elb_dns_settings = {
         'edxapp': ['courses', 'studio'],
         'xqueue': ['xqueue'],
         'rabbit': ['rabbit'],
@@ -118,9 +124,18 @@ if __name__ == "__main__":
 
     stack_elbs = elbs_for_stack_name(stack_name)
     for elb in stack_elbs:
-        for role, dns_prefixes in dns_settings.items():
+        for role, dns_prefixes in elb_dns_settings.items():
             #FIXME this breaks when the service name is in the stack name ie. testforumstack.
             # Get the tags for the instances in this elb and compare the service against the role tag.
             if role in elb.dns_name.lower():
                 for prefix in dns_prefixes:
-                    ensure_service_dns(elb, prefix, zone)
+                    ensure_service_dns(elb.dns_name, prefix, zone)
+
+
+    # Add a DNS name for the RDS
+    stack_rdss = list(rdss_for_stack_name(stack_name))
+    if len(stack_rdss) != 1:
+        msg = "Didn't find exactly one RDS in this VPC(Found {})"
+        raise Exception(msg.format(len(stack_rdss)))
+    else:
+        ensure_service_dns(stack_rdss[0].endpoint[0], 'rds', zone)

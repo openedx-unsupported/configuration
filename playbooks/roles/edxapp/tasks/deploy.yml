@@ -5,30 +5,6 @@
 # TODO: the supervisor ansible module does not support
 # stopping and starting services by group.
 
-- name: edxapp | stop the edxapp services (supervisor)
-  supervisorctl: >
-    name="edxapp:{{ item }}"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  when: celery_worker is not defined
-  with_items: service_variants_enabled
-  sudo_user: "{{ common_web_user }}"
-  tags:
-    - deploy
-
-- name: edxapp | stop the celery worker services (supervisor)
-  supervisorctl: >
-    name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  when: celery_worker is defined
-  with_items: edxapp_workers
-  sudo_user: "{{ common_web_user }}"
-  tags:
-    - deploy
-
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
   git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
@@ -202,24 +178,24 @@
 # gather_assets and db migrations
 - include: service_variant_config.yml
 
-- name: edxapp | start the edxapp services (supervisor)
+- name: edxapp | restart the edxapp services (supervisor)
   supervisorctl: >
     name="edxapp:{{ item }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=started
+    state=restarted
   when: celery_worker is not defined
   with_items: service_variants_enabled
   sudo_user: "{{ common_web_user }}"
   tags:
     - deploy
 
-- name: edxapp | start the celery worker services (supervisor)
+- name: edxapp | restart the celery worker services (supervisor)
   supervisorctl: >
     name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=started
+    state=restarted
   when: celery_worker is defined
   with_items: edxapp_workers
   sudo_user: "{{ common_web_user }}"

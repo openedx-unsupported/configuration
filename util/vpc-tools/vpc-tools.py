@@ -84,7 +84,9 @@ def _ssh_config(args):
     for reservation in reservations:
         for instance in reservation.instances:
 
-            if 'group' in instance.tags:
+            if 'role' in instance.tags:
+                logical_id = instance.tags['role']
+            elif 'group' in instance.tags:
                 logical_id = instance.tags['group']
             else:
                 logical_id = instance.tags['aws:cloudformation:logical-id']

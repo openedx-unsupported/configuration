@@ -1,0 +1,147 @@
+---
+- hosts: first_in_tag_role_mongo
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - role: 'mongo'
+      mongo_create_users: yes
+#- hosts: tag_role_mongo:!first_in_tag_role_mongo
+#  sudo: True
+#  vars_files:
+#    - "{{ secure_dir }}/vars/dev/feanilsandbox.yml"
+#    - "{{ secure_dir }}/vars/users.yml"
+#  roles:
+#    - common
+#    - mongo
+- hosts: first_in_tag_role_edxapp
+  sudo: True
+  serial: 1
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - datadog
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      migrate_db: 'yes'
+      openid_workaround: 'yes'
+      edx_platform_commit: 'HEAD'
+    - splunkforwarder
+- hosts: tag_role_edxapp:!first_in_tag_role_edxapp
+  sudo: True
+  serial: 1
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - datadog
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      edx_platform_commit: 'HEAD'
+    - splunkforwarder
+- hosts: tag_role_worker
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - datadog
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      - lms-preview
+    - role: 'edxapp'
+      edxapp_lms_env: 'lms.envs.load_test'
+      celery_worker: True
+      edx_platform_commit: 'HEAD'
+    - splunkforwarder
+- hosts: tag_role_xserver
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - xserver
+    - xserver
+    - splunkforwarder
+- hosts: tag_role_rabbitmq
+  serial: 1
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - supervisor
+    - rabbitmq
+    - splunkforwarder
+- hosts: first_in_tag_role_xqueue
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - role: xqueue
+      migrate_db: 'yes'
+    - splunkforwarder
+- hosts: tag_role_xqueue:!first_in_tag_role_xqueue
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - xqueue
+    - splunkforwarder
+- hosts: tag_role_forum
+  sudo: True
+  vars_files:
+    - "{{ secure_dir }}/vars/dev/{{CLOUDFORMATION_STACK_NAME}}.yml"
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/users.yml"
+  roles:
+    - common
+    - supervisor
+    - oraclejdk
+    - elasticsearch
+    - forum
