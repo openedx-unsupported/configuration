@@ -29,3 +29,22 @@ rs.initiate(config)
 sleep(30000)
 rs.slaveOk()
 printjson(rs.status())
+
+// Check that the cluster is ok
+if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
+
+// Check that the cluster has the right number of members
+// and add them if we are the master
+if(rs.isMaster().ismaster) {
+    if(rs.status().members.length!={{ hosts|length }}) {
+        {% for host in mongo_cluster_members %}
+        rs.add({_id: {{ loop.index }}, host: '{{ host }}'});
+        {% endfor %}
+        sleep(30000);
+        // Check status and member account, throw exception if not
+        if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
+        if(rs.status().members.length!={{ hosts|length }}) {
+            throw 'Could not add all members to cluster'
+        }
+    }
+}
