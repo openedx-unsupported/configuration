@@ -227,23 +227,25 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
+  tags: deploy
 
 - name: edxapp | ensure edxapp has started
   supervisorctl: >
-    state=restarted
+    state=started
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
   with_items: service_variants_enabled
+  tags: deploy
 
 - name: edxapp | ensure edxapp_workers has started
   supervisorctl: >
     name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
+    state=started
   when: celery_worker is defined
   with_items: edxapp_workers
   sudo_user: "{{ supervisor_service_user }}"
-  tags:
+  tags: deploy
