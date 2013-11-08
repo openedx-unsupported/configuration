@@ -1,3 +1,10 @@
+- name: "xserver | writing supervisor script"
+  template: >
+    src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+  - deploy
+
 - name: xserver | checkout code
   git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
   sudo_user: "{{ xserver_user }}"
@@ -56,3 +63,23 @@
   notify: xserver | restart xserver
   tags:
   - deploy
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: xserver | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  tags: deploy
+
+- name: xserver | ensure xserver is started
+  supervisorctl: >
+    name=xserver
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  tags: deploy
+

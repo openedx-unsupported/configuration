@@ -1,9 +1,17 @@
+- name: "xqueue | writing supervisor scripts - xqueue, xqueue consumer"
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['xqueue', 'xqueue_consumer']
+  tags:
+  - deploy
+
+
 - name: xqueue | create xqueue application config
   template: src=xqueue.env.json.j2 dest={{ xqueue_app_dir }}/xqueue.env.json mode=0644
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
 
@@ -12,7 +20,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
 
@@ -22,7 +29,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
 
@@ -33,7 +39,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
 
@@ -43,7 +48,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
 
@@ -54,7 +58,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
 
@@ -64,6 +67,28 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-    - xqueue | restart xqueue consumer
   tags:
   - deploy
+
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: xqueue | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  tags: deploy
+
+- name: xqueue | ensure xqueue, consumer is running
+  supervisorctl: >
+    name={{ item }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  with_items:
+  - xqueue
+  - xqueue_consumer
+  tags: deploy

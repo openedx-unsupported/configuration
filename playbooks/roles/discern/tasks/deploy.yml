@@ -1,5 +1,12 @@
 ---
 
+- name: discern | create supervisor scripts - discern, discern_celery
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} mode=0644
+  sudo_user: "{{ supervisor_user }}"
+  with_items: ['discern', 'discern_celery']
+
 #Upload config files for django (auth and env)
 - name: discern | create discern application config env.json file
   template: src=env.json.j2 dest={{ discern_app_dir }}/env.json
@@ -109,3 +116,61 @@
     - discern | restart discern
   tags:
     - deploy
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+  # we don't use notifications for supervisor because
+  # they don't work well with parameterized roles.
+  # See https://github.com/ansible/ansible/issues/4853
+- name: discern | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  sudo_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout != ""
+
+- name: discern | ensure discern has started
+  supervisorctl: >
+    name=discern
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  sudo_user: "{{ supervisor_service_user }}"
+
+- name: discern_celery | ensure discern_celery has started
+  supervisorctl: >
+    name=discern_celery
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  sudo_user: "{{ supervisor_service_user }}"
+
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: discern | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  sudo_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout != ""
+
+- name: discern | ensure discern, discern_celery has started
+  supervisorctl: >
+    name={{ item }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  with_items:
+  - discern
+  - discern_celery
+
+- name: discern | create a symlink for venv python
+  file: >
+    src="{{ discern_venv_bin }}/python"
+    dest={{ COMMON_BIN_DIR }}/python.discern
+    state=link

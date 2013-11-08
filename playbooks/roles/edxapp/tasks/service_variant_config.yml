@@ -4,7 +4,9 @@
     dest={{ edxapp_app_dir }}/{{ item }}.env.json
   sudo_user: "{{ edxapp_user }}"
   with_items: service_variants_enabled
-  notify: "edxapp | restart edxapp:{{ item }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - deploy
 
@@ -13,7 +15,9 @@
     src={{ item }}.auth.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
-  notify: "edxapp | restart edxapp:{{ item }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   with_items: service_variants_enabled
   tags:
   - deploy
@@ -50,19 +54,6 @@
   tags:
   - deploy
 
-  # call supervisorctl update. this reloads
-  # the supervisorctl config and restarts
-  # the services if any of the configurations
-  # have changed.
-  #
-  # we don't use notifications for supervisor because
-  # they don't work well with parameterized roles.
-  # See https://github.com/ansible/ansible/issues/4853
-- name: edxapp | update supervisor configuration
-  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
-  register: supervisor_update
-  changed_when: supervisor_update.stdout != ""
-
 
 # Gather assets using rake if possible
 
@@ -74,6 +65,9 @@
   sudo_user: "{{ edxapp_user }}"
   when: celery_worker is not defined
   with_items: service_variants_enabled
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   environment: "{{ edxapp_environment }}"
   tags:
   - deploy
@@ -83,14 +77,18 @@
   shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - deploy
 
 - name: edxapp | db migrate
   shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_only is defined and migrate_only|lower == "yes"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   sudo_user: "{{ edxapp_user }}"
   tags:
   - deploy
-
-

@@ -42,27 +42,6 @@
   notify:
     - forum | restart the forum service
 
-- name: forum | create the supervisor config
-  template: >
-    src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
-    owner={{ common_web_user }} group={{ supervisor_user }}
-    mode=0644
-  register: forum_supervisor
-
 - include: deploy.yml
-
-  # call supervisorctl update. this reloads
-  # the supervisorctl config and restarts
-  # the services if any of the configurations
-  # have changed.
-  #
-  # we don't use notifications for supervisor because
-  # they don't work well with parameterized roles.
-  # See https://github.com/ansible/ansible/issues/4853
-- name: forum | update supervisor configuration
-  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
-  register: supervisor_update
-  changed_when: supervisor_update.stdout != ""
-
 - include: test.yml
 

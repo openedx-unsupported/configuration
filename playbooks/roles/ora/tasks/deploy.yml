@@ -1,3 +1,14 @@
+- name: ora | create supervisor scripts - ora, ora_celery
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
+  with_items: ['ora', 'ora_celery']
+  tags:
+  - deploy
+
 - include: ease.yml
 
 - name: ora | create ora application config
@@ -73,3 +84,31 @@
     - ora | restart ora_celery
   tags:
   - deploy
+
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: ora | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  tags: deploy
+
+- name: ora | ensure ora is started
+  supervisorctl: >
+    name=ora
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  tags: deploy
+
+- name: ora | ensure ora_celery is started
+  supervisorctl: >
+    name=ora_celery
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  tags: deploy

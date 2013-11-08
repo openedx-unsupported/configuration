@@ -19,7 +19,7 @@
 - name: certs | writing supervisor script for certificates
   template: >
     src=certs.conf.j2 dest={{ supervisor_cfg_dir }}/certs.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+    owner={{ supervisor_user }} mode=0644
   notify: certs | restart certs
   tags: deploy
 
@@ -55,3 +55,22 @@
   sudo_user: "{{ certs_user }}"
   notify: certs | restart certs
   tags: deploy
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: certs | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  sudo_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout != ""
+
+- name: certs | ensure certs has started
+  supervisorctl: >
+    name=certs
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  sudo_user: "{{ supervisor_service_user }}"
