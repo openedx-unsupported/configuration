@@ -6,12 +6,14 @@
     dest={{ forum_supervisor_wrapper }}
     mode=0755
   sudo_user: "{{ forum_user }}"
+  notify: forum | restart the forum service
   tags:
   - deploy
 
 - name:  forum | git checkout forum repo into {{ forum_code_dir }}
   git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
   sudo_user: "{{ forum_user }}"
+  notify: forum | restart the forum service
   tags:
   - deploy
 
@@ -22,6 +24,7 @@
   shell: bundle install chdir={{ forum_code_dir }}
   sudo_user: "{{ common_web_user }}"
   environment: "{{ forum_environment }}"
+  notify: forum | restart the forum service
   tags:
   - deploy
 
@@ -31,14 +34,6 @@
     owner={{ common_web_user }} group={{ supervisor_user }}
     mode=0644
   register: forum_supervisor
-  tags:
-  - deploy
-
-- name: forum | restart the forum service
-  supervisorctl: >
-    name=forum
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=restarted
+  notify: forum | restart the forum service
   tags:
   - deploy

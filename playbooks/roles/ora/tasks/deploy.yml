@@ -1,39 +1,3 @@
-
-- name: ora | See if supervisord config file `ora.conf` is installed
-  shell: "[ -f {{ supervisor_cfg_dir }}/ora.conf ] && echo 'Found' || echo ''"
-  register: ora_installed
-  tags:
-  - deploy
-
-- name: ora | See if supervisord `ora_celery.conf` is installed
-  shell: "[ -f {{ supervisor_cfg_dir }}/ora_celery.conf ] && echo 'Found' || echo ''"
-  register: ora_celery_installed
-  tags:
-  - deploy
-
-# Stop ora service.
-- name: ora | stop ora service
-  supervisorctl: >
-    name=ora
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  when: ora_installed.stdout == 'Found'
-  notify: ora | restart ora
-  tags:
-  - deploy
-
-- name: ora | stop ora_celery service
-  supervisorctl: >
-    name=ora_celery
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  when: ora_celery_installed.stdout == 'Found'
-  notify: ora | restart ora_celery
-  tags:
-  - deploy
-
 - include: ease.yml
 
 - name: ora | create ora application config
@@ -47,24 +11,6 @@
   sudo_user: "{{ ora_user }}"
   tags:
   - deploy
-
-- name: ora | create supervisor scripts - ora, ora_celery
-  template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-  with_items: ['ora', 'ora_celery']
-  tags:
-  - deploy
-
-- name: ora | ensuring ora and ora_celery are activated in supervisor
-  supervisorctl: >
-    name="{{ item }}"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=present
-  with_items: ['ora', 'ora_celery']
-  tags:
-    - deploy
 
 # Do A Checkout
 - name: ora | git checkout ora repo into {{ ora_app_dir }}

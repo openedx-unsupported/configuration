@@ -2,12 +2,18 @@
 - name: ora | git checkout ease repo into its base dir
   git: dest={{ora_ease_code_dir}} repo={{ora_ease_source_repo}} version={{ora_ease_version}}
   sudo_user: "{{ ora_user }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy
 
 - name: ora | install ease system packages
   apt: pkg={{item}} state=present
   with_items: ora_ease_debian_pkgs
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy
 
@@ -16,6 +22,9 @@
 - name: ora | install ease python pre-requirements
   pip: requirements="{{ora_ease_pre_requirements_file}}" virtualenv="{{ora_ease_venv_dir}}" state=present
   sudo_user: "{{ ora_user }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy
 
@@ -23,6 +32,9 @@
 - name: ora | install ease python post-requirements
   pip: requirements="{{ora_ease_post_requirements_file}}" virtualenv="{{ora_ease_venv_dir}}" state=present
   sudo_user: "{{ ora_user }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy
 
@@ -30,6 +42,9 @@
   shell: >
     . {{ ora_ease_venv_dir }}/bin/activate; cd {{ ora_ease_code_dir }}; python setup.py install
   sudo_user: "{{ ora_user }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy
 
@@ -37,6 +52,9 @@
 - name: ora | check for the existence of nltk data taggers/maxent_treebank_pos_tagger/english.pickle
   shell: "[ -f {{ ora_nltk_data_dir }}/taggers/maxent_treebank_pos_tagger/english.pickle ] && echo 'Found' || echo ''"
   register: ora_nltk_data_installed
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy
 
@@ -45,5 +63,8 @@
   command: "{{ora_ease_venv_dir}}/bin/python -m nltk.downloader -d {{ ora_nltk_data_dir }} all"
   when: ora_nltk_data_installed.stdout  != "Found"
   sudo_user: "{{ common_web_user }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   tags:
   - deploy

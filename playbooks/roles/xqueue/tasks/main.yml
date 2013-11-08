@@ -40,7 +40,28 @@
     encoding=utf8
   when: xqueue_create_db is defined and xqueue_create_db|lower == "yes"
 
+- name: "xqueue | writing supervisor scripts - xqueue, xqueue consumer"
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['xqueue', 'xqueue_consumer']
+  tags:
+  - deploy
+
 - include: deploy.yml
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+  # we don't use notifications for supervisor because
+  # they don't work well with parameterized roles.
+  # See https://github.com/ansible/ansible/issues/4853
+- name: xqueue | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
 
 - name: xqueue | create a symlink for venv python
   file: >
@@ -50,3 +71,6 @@
   with_items:
   - python
   - pip
+
+
+

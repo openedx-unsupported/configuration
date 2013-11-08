@@ -4,6 +4,7 @@
     dest={{ edxapp_app_dir }}/{{ item }}.env.json
   sudo_user: "{{ edxapp_user }}"
   with_items: service_variants_enabled
+  notify: "edxapp | restart edxapp:{{ item }}"
   tags:
   - deploy
 
@@ -12,12 +13,12 @@
     src={{ item }}.auth.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
+  notify: "edxapp | restart edxapp:{{ item }}"
   with_items: service_variants_enabled
   tags:
   - deploy
 
-# write the supervisor script for {{ service_variant }}
-# for non-celery servers
+# write the supervisor scripts for the service variants
 
 - name: "writing {{ item }} supervisor script"
   template: >
@@ -25,7 +26,6 @@
     owner={{ supervisor_user }}
   with_items: service_variants_enabled
   when: celery_worker is not defined
-  notify: supervisor | reload supervisor
   sudo_user: "{{ supervisor_user }}"
   tags:
   - deploy
@@ -35,20 +35,9 @@
     src=edxapp.conf.j2 dest={{ supervisor_cfg_dir }}/edxapp.conf
     owner={{ supervisor_user }}
   when: celery_worker is not defined
-  notify: supervisor | reload supervisor
   sudo_user: "{{ supervisor_user }}"
   tags:
   - deploy
-
-- name: "edxapp | ensuring edxapp is activated in supervisor"
-  supervisorctl: >
-    name="edxapp"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=present
-  when: celery_worker is not defined
-  tags:
-    - deploy
 
 # write the supervisor script for celery workers
 
@@ -57,20 +46,23 @@
     src=workers.conf.j2 dest={{ supervisor_cfg_dir }}/workers.conf
     owner={{ supervisor_user }}
   when: celery_worker is defined
-  notify: supervisor | reload supervisor
   sudo_user: "{{ supervisor_user }}"
   tags:
   - deploy
 
-- name: edxapp | ensuring edxapp_worker is activated in supervisor
-  supervisorctl: >
-    name="edxapp_worker"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=present
-  when: celery_worker is defined
-  tags:
-    - deploy
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+  # we don't use notifications for supervisor because
+  # they don't work well with parameterized roles.
+  # See https://github.com/ansible/ansible/issues/4853
+- name: edxapp | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+
 
 # Gather assets using rake if possible
 

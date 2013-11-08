@@ -26,11 +26,13 @@
     name="{{ forum_user }}" home="{{ forum_app_dir }}"
     createhome=no
     shell=/bin/false
+  notify: forum | restart the forum service
 
 - name: forum | create forum app dir
   file: >
     path="{{ forum_app_dir }}" state=directory
     owner="{{ forum_user }}" group="{{ common_web_group }}"
+  notify: forum | restart the forum service
 
 - name: forum | setup the forum env
   template: >
@@ -48,5 +50,19 @@
   register: forum_supervisor
 
 - include: deploy.yml
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+  # we don't use notifications for supervisor because
+  # they don't work well with parameterized roles.
+  # See https://github.com/ansible/ansible/issues/4853
+- name: forum | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+
 - include: test.yml
 

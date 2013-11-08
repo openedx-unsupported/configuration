@@ -62,6 +62,14 @@
   - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
   - "usr.bin.python-sandbox.j2"
 
+- name: "xserver | writing supervisor script"
+  template: >
+    src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+  - deploy
+
+
 - include: deploy.yml
 
 - name: xserver | enforce app-armor rules
@@ -76,3 +84,15 @@
   - python
   - pip
 
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+  # we don't use notifications for supervisor because
+  # they don't work well with parameterized roles.
+  # See https://github.com/ansible/ansible/issues/4853
+- name: xserver | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""

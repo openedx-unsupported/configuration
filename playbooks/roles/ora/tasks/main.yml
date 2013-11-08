@@ -7,11 +7,17 @@
   user: >
     name="{{ ora_user }}" home="{{ ora_app_dir }}"
     createhome=no shell=/bin/false
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
 
 - name: ora | create ora app dir
   file: >
     path="{{ item }}" state=directory
     owner="{{ ora_user }}" group="{{ common_web_group }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items:
     - "{{ ora_venvs_dir }}"
     - "{{ ora_app_dir }}"
@@ -20,17 +26,37 @@
   file: >
     path="{{ item }}" state=directory
     owner="{{ common_web_user }}" group="{{ common_web_group }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items:
     - "{{ ora_data_dir }}"
     - "{{ ora_app_dir }}/ml_models"
 
 - name: ora | install debian packages that ora needs
   apt: pkg={{item}} state=present
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items: ora_debian_pkgs
 
 - name: ora | install debian packages for ease that ora needs
   apt: pkg={{item}} state=present
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items: ora_ease_debian_pkgs
+
+- name: ora | create supervisor scripts - ora, ora_celery
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
+  with_items: ['ora', 'ora_celery']
+  tags:
+  - deploy
 
 - include: deploy.yml
 
@@ -41,3 +67,16 @@
   with_items:
   - python
   - pip
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+  # we don't use notifications for supervisor because
+  # they don't work well with parameterized roles.
+  # See https://github.com/ansible/ansible/issues/4853
+- name: ora | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
