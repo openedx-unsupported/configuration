@@ -1,7 +1,10 @@
 import argparse
 import boto
+import yaml
 from os.path import basename
 from time import sleep
+from pprint import pprint
+
 
 FAILURE_STATES = [
     'CREATE_FAILED',
@@ -25,17 +28,21 @@ def upload_file(file_path, bucket_name, key_name):
         bucket = conn.get_bucket(bucket_name, validate=False)
 
     key = boto.s3.key.Key(bucket)
-    key.key = key_name 
+    key.key = key_name
     key.set_contents_from_filename(file_path)
 
-    url = 'https://s3.amazonaws.com/{}/{}'.format(bucket_name, key_name)
+    key.set_acl('public-read')
+    url = key.generate_url(300, query_auth=False)
     return url
 
-def create_stack(stack_name, template, region='us-east-1', blocking=True, temp_bucket='edx-sandbox-devops'):
+def create_stack(stack_name, template, region='us-east-1', blocking=True,
+                 temp_bucket='edx-sandbox-devops', parameters=[]):
+
     cfn = boto.connect_cloudformation()
 
     # Upload the template to s3
-    key_name = 'cloudformation/auto/{}_{}'.format(stack_name, basename(template))
+    key_pattern = 'devops/cloudformation/auto/{}_{}'
+    key_name = key_pattern.format(stack_name, basename(template))
     template_url = upload_file(template, temp_bucket, key_name)
 
     # Reference the stack.
@@ -44,13 +51,14 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True, temp_b
             template_url=template_url,
             capabilities=['CAPABILITY_IAM'],
             tags={'autostack':'true'},
-            parameters=[('KeyName', 'continuous-integration')])
+            parameters=parameters)
     except Exception as e:
         print(e.message)
         raise e
 
-   
-    status = None 
+    remove_file(temp_bucket, key_name)
+
+    status = None
     while blocking:
         sleep(5)
         stack_instance = cfn.describe_stacks(stack_id)[0]
@@ -65,6 +73,9 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True, temp_b
 
     return stack_id
 
+def cfn_params_from(filename):
+    params_dict = yaml.safe_load(open(filename))
+    return [ (key,value) for key,value in params_dict.items() ]
 
 if __name__ == '__main__':
         description = 'Create a cloudformation stack from a template.'
@@ -80,15 +91,19 @@ if __name__ == '__main__':
 
         msg = 'The path to the cloudformation template.'
         parser.add_argument('-t', '--template', required=True, help=msg)
-       
+
         msg = 'The AWS region to build this stack in.'
         parser.add_argument('-r', '--region', default='us-east-1', help=msg)
-       
-        args = parser.parse_args() 
+
+        msg = 'YAML file containing stack build parameters'
+        parser.add_argument('-p', '--parameters', help=msg)
+
+        args = parser.parse_args()
         stack_name = args.stackname
         template = args.template
         region = args.region
         bucket_name = args.bucketname
+        parameters = cfn_params_from(args.parameters)
 
-        create_stack(stack_name, template, region, bucket_name)
+        create_stack(stack_name, template, region, temp_bucket=bucket_name, parameters=parameters)
         print('Stack({}) created.'.format(stack_name))
