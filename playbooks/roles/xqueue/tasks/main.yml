@@ -12,6 +12,8 @@
     home="{{ xqueue_app_dir }}"
     createhome=no
     shell=/bin/false
+  notify:
+    - xqueue | restart xqueue
 
 - name: xqueue | create xqueue app and venv dir
   file: >
@@ -19,6 +21,8 @@
     state=directory
     owner="{{ xqueue_user }}"
     group="{{ common_web_group }}"
+  notify:
+    - xqueue | restart xqueue
   with_items:
     - "{{ xqueue_app_dir }}"
     - "{{ xqueue_venvs_dir }}"
@@ -27,8 +31,6 @@
   apt: pkg={{','.join(xqueue_debian_pkgs)}} state=present
   notify:
   - xqueue | restart xqueue
-  - xqueue | restart xqueue consumer
-
 
 - name: xqueue | create xqueue db
   mysql_db: >
@@ -38,6 +40,8 @@
     login_password={{xqueue_auth_config.DATABASES.default.PASSWORD}}
     state=present
     encoding=utf8
+  notify:
+  - xqueue | restart xqueue
   when: xqueue_create_db is defined and xqueue_create_db|lower == "yes"
 
 - include: deploy.yml
@@ -50,3 +54,6 @@
   with_items:
   - python
   - pip
+
+
+

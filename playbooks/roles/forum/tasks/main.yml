@@ -26,11 +26,13 @@
     name="{{ forum_user }}" home="{{ forum_app_dir }}"
     createhome=no
     shell=/bin/false
+  notify: forum | restart the forum service
 
 - name: forum | create forum app dir
   file: >
     path="{{ forum_app_dir }}" state=directory
     owner="{{ forum_user }}" group="{{ common_web_group }}"
+  notify: forum | restart the forum service
 
 - name: forum | setup the forum env
   template: >
@@ -39,13 +41,6 @@
     mode=0644
   notify:
     - forum | restart the forum service
-
-- name: forum | create the supervisor config
-  template: >
-    src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
-    owner={{ common_web_user }} group={{ supervisor_user }}
-    mode=0644
-  register: forum_supervisor
 
 - include: deploy.yml
 - include: test.yml

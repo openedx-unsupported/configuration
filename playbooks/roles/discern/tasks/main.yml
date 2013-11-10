@@ -5,6 +5,8 @@
     home="{{ discern_app_dir }}"
     createhome=no
     shell=/bin/false
+  notify:
+    - discern | restart discern
 
 - name: discern | create discern app dirs owned by discern
   file: >
@@ -12,6 +14,8 @@
     state=directory
     owner="{{ discern_user }}"
     group="{{ common_web_group }}"
+  notify:
+    - discern | restart discern
   with_items:
     - "{{ discern_app_dir }}"
     - "{{ discern_venvs_dir }}"
@@ -21,35 +25,33 @@
     path="{{ discern_data_dir }}" state=directory
     owner="{{ common_web_user }}" group="{{ discern_user  }}"
     mode=0775
+  notify:
+    - discern | restart discern
 
 - name: discern | install debian packages that discern needs
   apt: pkg={{ item }} state=present
+  notify:
+    - discern | restart discern
   with_items: discern_debian_pkgs
 
 - name: discern | install debian packages for ease that discern needs
   apt: pkg={{ item }} state=present
+  notify:
+    - discern | restart discern
   with_items: discern_ease_debian_pkgs
-
-- name: discern | render celery service from template
-  template: >
-    src=celery.conf.j2 dest=/etc/init/celery.conf
-    owner=root group=root
-  notify: discern | restart discern_celery
-
-- name: discern | render discern service from template
-  template: >
-    src=discern.conf.j2 dest=/etc/init/discern.conf
-    owner=root group=root
-  notify: discern | restart discern
 
 - name: discern | copy sudoers file for discern
   copy: >
     src=sudoers-discern dest=/etc/sudoers.d/discern
     mode=0440 validate='visudo -cf %s' owner=root group=root
+  notify:
+    - discern | restart discern
 
 #Needed if using redis to prevent memory issues
 - name: discern | change memory commit settings -- needed for redis
   command: sysctl vm.overcommit_memory=1
+  notify:
+    - discern | restart discern
 
 - include: deploy.yml
 

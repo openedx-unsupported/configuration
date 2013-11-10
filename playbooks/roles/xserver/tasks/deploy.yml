@@ -1,9 +1,3 @@
-- name: xserver | checkout code
-  git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
-  sudo_user: "{{ xserver_user }}"
-  tags:
-  - deploy
-
 - name: "xserver | writing supervisor script"
   template: >
     src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
@@ -11,21 +5,31 @@
   tags:
   - deploy
 
+- name: xserver | checkout code
+  git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
+  sudo_user: "{{ xserver_user }}"
+  notify: xserver | restart xserver
+  tags:
+  - deploy
+
 - name: xserver | install requirements
   pip: requirements="{{xserver_requirements_file}}" virtualenv="{{ xserver_venv_dir }}" state=present
   sudo_user: "{{ xserver_user }}"
+  notify: xserver | restart xserver
   tags:
   - deploy
 
 - name: xserver | install sandbox requirements
   pip: requirements="{{xserver_requirements_file}}" virtualenv="{{xserver_venv_sandbox_dir}}" state=present
   sudo_user: "{{ xserver_user }}"
+  notify: xserver | restart xserver
   tags:
   - deploy
 
 - name: xserver | create xserver application config
   template: src=xserver.env.json.j2 dest={{ xserver_app_dir }}/env.json
   sudo_user: "{{ xserver_user }}"
+  notify: xserver | restart xserver
   tags:
   - deploy
 
@@ -33,6 +37,7 @@
   copy: >
     src={{ XSERVER_LOCAL_GIT_IDENTITY }} dest={{ xserver_git_identity }}
     owner={{ xserver_user }} group={{ xserver_user }} mode=0600
+  notify: xserver | restart xserver
   tags:
   - deploy
 
@@ -40,6 +45,7 @@
   template: >
     src=git_ssh.sh.j2 dest=/tmp/git_ssh.sh
     owner={{ xserver_user }} mode=750
+  notify: xserver | restart xserver
   tags:
   - deploy
 
@@ -47,20 +53,33 @@
   git: dest={{ XSERVER_GRADER_DIR }} repo={{ XSERVER_GRADER_SOURCE }} version={{ xserver_grader_version }}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
+  notify: xserver | restart xserver
   sudo_user: "{{ xserver_user }}"
   tags:
   - deploy
 
 - name: xserver | remove read-only ssh key for the content repo
   file: path={{ xserver_git_identity }} state=absent
+  notify: xserver | restart xserver
   tags:
   - deploy
 
-- name: xserver | restart xserver
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: xserver | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  tags: deploy
+
+- name: xserver | ensure xserver is started
   supervisorctl: >
     name=xserver
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
-  tags:
-  - deploy
+    state=started
+  tags: deploy
+

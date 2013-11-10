@@ -1,18 +1,11 @@
 ---
 
-- name: certs | stop the certificates service
-  supervisorctl: >
-    name="certs"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  tags: deploy
-
 - name: certs | create certificate application config
   template: >
     src=certs.env.json.j2
     dest={{ certs_app_dir }}/env.json
   sudo_user: "{{ certs_user }}"
+  notify: certs | restart certs
   tags: deploy
 
 - name: certs | create certificate auth file
@@ -20,25 +13,28 @@
     src=certs.auth.json.j2
     dest={{ certs_app_dir }}/auth.json
   sudo_user: "{{ certs_user }}"
+  notify: certs | restart certs
   tags: deploy
 
 - name: certs | writing supervisor script for certificates
   template: >
     src=certs.conf.j2 dest={{ supervisor_cfg_dir }}/certs.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-  notify: supervisor | reload supervisor
+    owner={{ supervisor_user }} mode=0644
+  notify: certs | restart certs
   tags: deploy
 
 - name: certs | create ssh script for git
   template: >
     src={{ certs_git_ssh|basename }}.j2 dest={{ certs_git_ssh }}
     owner={{ certs_user }} mode=750
+  notify: certs | restart certs
   tags: deploy
 
 - name: certs | install read-only ssh key for the certs repo
   copy: >
     src={{ CERTS_LOCAL_GIT_IDENTITY }} dest={{ certs_git_identity }}
     force=yes owner={{ certs_user }} mode=0600
+  notify: certs | restart certs
   tags: deploy
 
 - name: certs | checkout certificates repo into {{ certs_code_dir }}
@@ -46,21 +42,35 @@
   sudo_user: "{{ certs_user }}"
   environment:
     GIT_SSH: "{{ certs_git_ssh }}"
+  notify: certs | restart certs
   tags: deploy
 
 - name: certs | remove read-only ssh key for the certs repo
   file: path={{ certs_git_identity }} state=absent
+  notify: certs | restart certs
   tags: deploy
 
 - name : install python requirements
   pip: requirements="{{ certs_requirements_file }}" virtualenv="{{ certs_venv_dir }}" state=present
   sudo_user: "{{ certs_user }}"
+  notify: certs | restart certs
   tags: deploy
 
-- name: certs | restart the certificate service
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: certs | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  sudo_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout != ""
+
+- name: certs | ensure certs has started
   supervisorctl: >
     name=certs
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
-  tags: deploy
+    state=started
+  sudo_user: "{{ supervisor_service_user }}"

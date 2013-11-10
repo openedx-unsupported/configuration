@@ -1,24 +1,21 @@
 ---
-- name: edxapp | start edxapp
-  service: name=edxapp state=started
-  tags:
-  - lms
-  - lms-preview
-  - cms
-  - deploy
-
-- name: edxapp | stop edxapp
-  service: name=edxapp state=stopped
-  tags:
-  - lms
-  - lms-preview
-  - cms
-  - deploy
-
 - name: edxapp | restart edxapp
-  service: name=edxapp state=restarted
-  tags:
-  - lms
-  - lms-preview
-  - cms
-  - deploy
+  supervisorctl: >
+    state=restarted
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name="edxapp:{{ item }}"
+  sudo_user: "{{ supervisor_service_user }}"
+  with_items: service_variants_enabled
+  tags: deploy
+
+- name: edxapp | restart edxapp_workers
+  supervisorctl: >
+    name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
+  when: celery_worker is defined
+  with_items: edxapp_workers
+  sudo_user: "{{ common_web_user }}"
+  tags: deploy

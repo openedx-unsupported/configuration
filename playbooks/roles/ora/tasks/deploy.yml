@@ -1,36 +1,11 @@
-
-- name: ora | See if supervisord config file `ora.conf` is installed
-  shell: "[ -f {{ supervisor_cfg_dir }}/ora.conf ] && echo 'Found' || echo ''"
-  register: ora_installed
-  tags:
-  - deploy
-
-- name: ora | See if supervisord `ora_celery.conf` is installed
-  shell: "[ -f {{ supervisor_cfg_dir }}/ora_celery.conf ] && echo 'Found' || echo ''"
-  register: ora_celery_installed
-  tags:
-  - deploy
-
-# Stop ora service.
-- name: ora | stop ora service
-  supervisorctl: >
-    name=ora
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  when: ora_installed.stdout == 'Found'
-  notify: ora | restart ora
-  tags:
-  - deploy
-
-- name: ora | stop ora_celery service
-  supervisorctl: >
-    name=ora_celery
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=stopped
-  when: ora_celery_installed.stdout == 'Found'
-  notify: ora | restart ora_celery
+- name: ora | create supervisor scripts - ora, ora_celery
+  template: >
+    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
+  with_items: ['ora', 'ora_celery']
   tags:
   - deploy
 
@@ -47,24 +22,6 @@
   sudo_user: "{{ ora_user }}"
   tags:
   - deploy
-
-- name: ora | create supervisor scripts - ora, ora_celery
-  template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-  with_items: ['ora', 'ora_celery']
-  tags:
-  - deploy
-
-- name: ora | ensuring ora and ora_celery are activated in supervisor
-  supervisorctl: >
-    name="{{ item }}"
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=present
-  with_items: ['ora', 'ora_celery']
-  tags:
-    - deploy
 
 # Do A Checkout
 - name: ora | git checkout ora repo into {{ ora_app_dir }}
@@ -127,3 +84,31 @@
     - ora | restart ora_celery
   tags:
   - deploy
+
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: ora | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  tags: deploy
+
+- name: ora | ensure ora is started
+  supervisorctl: >
+    name=ora
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  tags: deploy
+
+- name: ora | ensure ora_celery is started
+  supervisorctl: >
+    name=ora_celery
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  tags: deploy

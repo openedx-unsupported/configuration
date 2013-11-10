@@ -1,26 +1,28 @@
-# Stop all services.
-#
-#
-
-# TODO: the supervisor ansible module does not support
-# stopping and starting services by group.
-
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
   git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
   register: chkout
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 - name: edxapp | git clean after checking out edx-platform
   shell: cd {{edxapp_code_dir}} && git clean -xdf
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 - name: edxapp | checkout theme
   git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
   when: edxapp_theme_name != ''
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - deploy
 
@@ -48,6 +50,9 @@
   command: |
     /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ " ".join(edxapp_all_req_files) }}
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 # Ruby plays that need to be run after platform updates.
@@ -58,6 +63,9 @@
       executable=/bin/bash
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 - name: edxapp | bundle install
@@ -67,6 +75,9 @@
       executable=/bin/bash
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 # Node play that need to be run after platform updates.
@@ -74,6 +85,9 @@
   shell: npm install chdir={{ edxapp_code_dir }}
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 
@@ -86,6 +100,9 @@
     extra_args="-i {{ edxapp_pypi_local_mirror }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
@@ -99,6 +116,9 @@
     chdir={{ edxapp_code_dir }}
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
@@ -111,6 +131,9 @@
     extra_args="-i {{ edxapp_pypi_local_mirror }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   tags: deploy
 
@@ -125,6 +148,9 @@
   - "{{ github_requirements_file }}"
   - "{{ local_requirements_file }}"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 
@@ -141,11 +167,17 @@
   when: install_sandbox_reqs_into_regular_venv
   sudo_user: "{{ edxapp_user }}"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 - name: edxapp | compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
   # alternative would be to give {{ common_web_user }} read access
@@ -154,11 +186,15 @@
 - name: edxapp | give other read permissions to the virtualenv
   command: chmod -R o+r "{{ edxapp_venv_dir }}"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags: deploy
 
 - name: edxapp | create checksum for installed requirements
   shell: cp /var/tmp/edxapp.req.new /var/tmp/edxapp.req.installed
   sudo_user: "{{ edxapp_user }}"
+  notify: "edxapp | restart edxapp"
   tags: deploy
 
 
@@ -170,6 +206,9 @@
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - deploy
 
@@ -178,26 +217,35 @@
 # gather_assets and db migrations
 - include: service_variant_config.yml
 
-- name: edxapp | restart the edxapp services (supervisor)
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+
+- name: edxapp | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  sudo_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout != ""
+  tags: deploy
+
+- name: edxapp | ensure edxapp has started
   supervisorctl: >
-    name="edxapp:{{ item }}"
+    state=started
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
-  when: celery_worker is not defined
+    name="edxapp:{{ item }}"
+  sudo_user: "{{ supervisor_service_user }}"
   with_items: service_variants_enabled
-  sudo_user: "{{ common_web_user }}"
-  tags:
-    - deploy
+  tags: deploy
 
-- name: edxapp | restart the celery worker services (supervisor)
+- name: edxapp | ensure edxapp_workers has started
   supervisorctl: >
     name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
-    state=restarted
+    state=started
   when: celery_worker is defined
   with_items: edxapp_workers
-  sudo_user: "{{ common_web_user }}"
-  tags:
-    - deploy
+  sudo_user: "{{ supervisor_service_user }}"
+  tags: deploy
