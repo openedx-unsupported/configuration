@@ -86,6 +86,16 @@ EDXAPP_LMS_BASIC_AUTH: False
 EDXAPP_CMS_BASIC_AUTH: False
 EDXAPP_LMS_PREVIEW_BASIC_AUTH: False
 
+# whether to setup the python sandbox or not
+EDXAPP_PYTHON_SANDBOX: false
+EDXAPP_SANDBOX_VENV_DIR:  '/opt/edx-sandbox'
+EDXAPP_SANDBOX_USER: 'sandbox'
+EDXAPP_SANDBOX_GROUP: 'sandbox'
+# this next setting, if true, turns on actual sandbox enforcement.  If not true,
+# it puts the sandbox in 'complain' mode, for reporting but not enforcement
+EDXAPP_SANDBOX_ENFORCE: true
+EDXAPP_USER: 'www-data'
+COMMON_WEB_GROUP: 'www-data'
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -252,6 +262,8 @@ lms_preview_env_config:
 # install dir for the edx-platform repo
 edx_platform_code_dir: "{{ app_base_dir }}/edx-platform"
 
+# sandbox command
+edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
 
 # gunicorn ports/hosts, these shouldn't need to be overridden
 edxapp_cms_gunicorn_port: 8010
@@ -274,6 +286,8 @@ service_variants_enabled:
 
 edxapp_lms_env: 'lms.envs.aws'
 
+edxapp_user: '{{ EDXAPP_USER }}'
+common_web_group: '{{ COMMON_WEB_GROUP }}'
 
 #Number of gunicorn worker processes to spawn, as a multiplier to number of virtual cores
 worker_core_mult:
@@ -303,9 +317,6 @@ repo_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/repo.txt
 sandbox_base_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/base.txt"
 sandbox_local_requirements: "{{ edx_platform_code_dir }}/requirements/edx-sandbox/local.txt"
 sandbox_post_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/post.txt"
-
-#do we want to install the sandbox requirements into the regular virtual env
-install_sandbox_reqs_into_regular_venv: true
 
 lms_debian_pkgs:
   # for compiling the virtualenv

@@ -50,6 +50,74 @@
   - upstart
   - update
 
+- name: Create edxapp sandbox group
+  group: name={{ EDXAPP_SANDBOX_GROUP }}
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: Create edxapp sandbox user
+  user: name={{ EDXAPP_SANDBOX_USER }} group={{ EDXAPP_SANDBOX_GROUP }} shell=/bin/false home={{ EDXAPP_SANDBOX_VENV_DIR }}
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: Create edxapp sandbox virtual env directory
+  file: >
+    path="{{ EDXAPP_SANDBOX_VENV_DIR }}"
+    state=directory
+    owner=root
+    group=root
+    mode=0755
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: Create edxapp sandbox virtualenv
+  command: /usr/local/bin/virtualenv {{ EDXAPP_SANDBOX_VENV_DIR }} --distribute creates={{ EDXAPP_SANDBOX_VENV_DIR }}/bin/activate
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: Install apparmor system pkg
+  apt: pkg=apparmor-utils state=present
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: write out apparmor code sandbox config
+  template: src=code.sandbox.j2 dest=/etc/apparmor.d/code.sandbox mode=0644 owner=root group=root
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: write out sandbox user sudoers config
+  template: src=95-sandbox-sudoer.j2 dest=/etc/sudoers.d/95-{{ EDXAPP_SANDBOX_USER }} mode=0440 owner=root group=root
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+# we boostrap and enable the apparmor service here.  in deploy.yml we disable, deploy, then re-enable
+# so we need to enable it in main.yml
+- name: start apparmor service
+  service: name=apparmor state=started
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: (bootstrap) load code sandbox profile
+  command: apparmor_parser -r /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
+  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+
 - include: npm.yml
 - include: ruby.yml
 - include: deploy.yml

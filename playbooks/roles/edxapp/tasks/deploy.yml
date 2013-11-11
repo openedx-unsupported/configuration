@@ -112,6 +112,7 @@
   command: |
     /bin/sed -i -e 's/github\.com/{{ GIT_MIRROR }}/g' {{ item }}
   with_items:
+    - "{{ base_requirements_file }}"
     - "{{ pre_requirements_file }}"
     - "{{ post_requirements_file }}"
     - "{{ repo_requirements_file }}"
@@ -191,7 +192,7 @@
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
-  when: install_sandbox_reqs_into_regular_venv
+  when: not EDXAPP_PYTHON_SANDBOX
   tags:
   - lms
   - cms
@@ -200,6 +201,51 @@
 
 - name: changing group ownership to www-data for everything in the venv (workaround)
   shell: chgrp -R www-data {{ venv_dir }}
+  tags:
+  - deploy
+
+# need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
+# to install anything
+- name: disable apparmor profile for code sandbox
+  shell: "{{ item }}"
+  with_items:
+    - "ln -s /etc/apparmor.d/code.sandbox /etc/apparmor.d/disable/"
+    - "apparmor_parser -R /etc/apparmor.d/code.sandbox"
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: Install sandbox requirements into sandbox venv
+  shell: >
+    cd {{ edx_platform_code_dir }} &&
+    {{ EDXAPP_SANDBOX_VENV_DIR }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors
+    --upgrade --no-deps -r {{ item }}
+  with_items:
+  - "{{ sandbox_base_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_post_requirements }}"
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: re-enable apparmor profile for code sandbox
+  shell: "{{ item }}"
+  with_items:
+    - "unlink /etc/apparmor.d/disable/code.sandbox"
+    - "apparmor_parser -r /etc/apparmor.d/code.sandbox"
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
+  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - deploy
+  - edxapp-sandbox
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
