@@ -97,11 +97,26 @@
   tags:
   - edxapp-sandbox
 
+# we boostrap and enable the apparmor service here.  in deploy.yml we disable, deploy, then re-enable
+# so we need to enable it in main.yml
 - name: start apparmor service
   service: name=apparmor state=started
   when: EDXAPP_PYTHON_SANDBOX
   tags:
   - edxapp-sandbox
+
+- name: (bootstrap) load code sandbox profile
+  command: apparmor_parser -r /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
+- name: (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
+  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+  - edxapp-sandbox
+
 
 - include: npm.yml
 - include: ruby.yml
