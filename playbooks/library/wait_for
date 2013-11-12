@@ -75,7 +75,7 @@ EXAMPLES = '''
 - wait_for: path=/tmp/foo state=present
 
 # wait until the string "completed" is in the file /tmp/foo before continuing
-- wait_for: path=/tmp/foo search_string=completed state=present
+- wait_for: path=/tmp/foo search_regex=completed state=present
 
 '''
 
@@ -89,7 +89,7 @@ def main():
             delay=dict(default=0),
             port=dict(default=None),
             path=dict(default=None),
-            search_string=dict(default=None),
+            search_regex=dict(default=None),
             state=dict(default='started', choices=['started', 'stopped', 'present']),
         ),
     )
@@ -106,7 +106,7 @@ def main():
         port = None
     state = params['state']
     path = params['path']
-    search_string = params['search_string']
+    search_regex = params['search_regex']
     
     if port and path:
         module.fail_json(msg="port and path parameter can not both be passed to wait_for")
@@ -143,8 +143,8 @@ def main():
             if path:
                 try:
                     with open(path) as f:
-                        if search_string:
-                            if search_string in f.read():
+                        if search_regex:
+                            if re.search(search_regex, f.read(), re.MULTILINE):
                                 break
                             else:
                                 time.sleep(1)
@@ -169,14 +169,14 @@ def main():
             if port:
                 module.fail_json(msg="Timeout when waiting for %s:%s" % (host, port), elapsed=elapsed.seconds)
             elif path:
-                if search_string:
-                    module.fail_json(msg="Timeout when waiting for search string %s in %s" % (search_string, path), elapsed=elapsed.seconds)
+                if search_regex:
+                    module.fail_json(msg="Timeout when waiting for search string %s in %s" % (search_regex, path), elapsed=elapsed.seconds)
                 else:
                     module.fail_json(msg="Timeout when waiting for file %s" % (path), elapsed=elapsed.seconds)
 
 
     elapsed = datetime.datetime.now() - start
-    module.exit_json(state=state, port=port, search_string=search_string, path=path, elapsed=elapsed.seconds)
+    module.exit_json(state=state, port=port, search_regex=search_regex, path=path, elapsed=elapsed.seconds)
 
 # this is magic, see lib/ansible/module_common.py
 #<<INCLUDE_ANSIBLE_MODULE_COMMON>>
