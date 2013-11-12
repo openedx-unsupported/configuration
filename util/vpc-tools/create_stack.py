@@ -56,8 +56,6 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True,
         print(e.message)
         raise e
 
-    remove_file(temp_bucket, key_name)
-
     status = None
     while blocking:
         sleep(5)
