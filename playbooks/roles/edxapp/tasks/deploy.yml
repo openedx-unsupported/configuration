@@ -227,7 +227,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
-  when: not edxapp_skip_supervisor
+  when: not devstack
   tags: deploy
 
 - name: edxapp | ensure edxapp has started
@@ -237,7 +237,7 @@
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
-  when: not edxapp_skip_supervisor
+  when: not devstack
   with_items: service_variants_enabled
   tags: deploy
 
@@ -247,7 +247,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: celery_worker is defined and not edxapp_skip_supervisor
+  when: celery_worker is defined and not devstack
   with_items: edxapp_workers
   sudo_user: "{{ supervisor_service_user }}"
   tags: deploy
