@@ -88,9 +88,6 @@ instance_tags: '{"environment": "$environment", "github_username": "$github_user
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 gh_users:
-  - jarv
-  - feanil
-  - e0d
   - ${github_username}
 dns_zone: $dns_zone
 rabbitmq_refresh: True
