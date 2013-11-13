@@ -235,40 +235,6 @@ __ https://github.com/edx/edx-platform/blob/master/docs/internal/testing.md
 
 
 
-Enabling Asset Pipeline for LMS/Studio
---------------------------------------
-
-By default, Django's ``runserver`` serves static assets (CSS and JavaScript) directly from the source files in the ``edx-platform`` repo.  This allows you to make changes and quickly see the results.
-
-In production, however, we process static assets using `django-pipeline`__  To verify that your changes will work in production, you can run LMS and Studio with the pipeline enabled:
-
-1. Switch to the ``edxapp`` account:
-
-.. code:: bash
-
-    sudo su edxapp
-
-2. Gather static assets:
-
-.. code:: bash
-
-    rake lms:gather_assets:devstack
-    rake cms:gather_assets:devstack
-
-3. Start the server with ``--nostatic``:
-
-.. code:: bash
-
-    # To start the LMS
-    ./manage.py lms runserver --settings=devstack --nostatic 0.0.0.0:8000
-
-    # To start Studio
-    ./manage.py cms runserver --settings=devstack --nostatic 0.0.0.0:8001
-
-
-__ http://django-pipeline.readthedocs.org/en/latest/
-
-
 Updating the Environment
 ------------------------
 
