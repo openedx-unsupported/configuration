@@ -1,0 +1,29 @@
+MEMORY = 2048
+CPU_COUNT = 2
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box    = "edx-devstack"
+  config.vm.box_url = "http://edx-static.s3.amazonaws.com/vagrant-images/20131113-dosa-devstack.box"
+
+  config.vm.network :private_network, ip: "192.168.33.10"
+  config.vm.network :forwarded_port, guest: 8000, host: 8000
+  config.vm.network :forwarded_port, guest: 8001, host: 8001
+  config.vm.network :forwarded_port, guest: 4567, host: 4567
+
+  config.vm.synced_folder "edx-platform", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
+  config.vm.synced_folder "cs_comments_service", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
+
+  config.hostsupdater.aliases = ["preview.localhost"]
+
+  config.vm.provider :virtualbox do |vb|
+    vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
+    vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
+  end
+
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "../../../../playbooks/vagrant-devstack.yml"
+    ansible.inventory_path = "../../../../playbooks/vagrant/inventory.ini"
+    ansible.verbose = "extra"
+  end
+end
