@@ -18,5 +18,4 @@ The ``devstack`` instance is designed to run code and tests, but you can do most
 - You can load pages served by the running Vagrant instance.
 
 
-Installation instructions - https://github.com/edx/configuration/wiki#installing-edx-using-a-pre-built-vagrant-devstack-image
-Using the devstack - https://github.com/edx/configuration/wiki/Using-the-edX-devstack
+Wiki documation - https://github.com/edx/configuration/wiki/edX-Developer-Stack
