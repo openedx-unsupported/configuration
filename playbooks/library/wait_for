@@ -22,16 +22,20 @@ import socket
 import datetime
 import time
 import sys
+import re
 
 DOCUMENTATION = '''
 ---
 module: wait_for
-short_description: Waits for a given port to become accessible on a server.
+short_description: Waits for a condition before continuing.
 description:
-     - This is useful for when services are not immediately available after
-       their init scripts return - which is true of certain Java application
-       servers. It is also useful when starting guests with the M(virt) module and
-       needing to pause until they are ready.
+     - Waiting for a port to become available is useful for when services 
+       are not immediately available after their init scripts return - 
+       which is true of certain Java application servers. It is also 
+       useful when starting guests with the M(virt) module and
+       needing to pause until they are ready. This module can 
+       also be used to wait for a file to be available on the filesystem
+       or with a regex match a string to be present in a file.
 version_added: "0.7"
 options:
   host:
@@ -53,14 +57,25 @@ options:
   port:
     description:
       - port number to poll
-    required: true
+    required: false
   state:
     description:
       - either C(present), C(started), or C(stopped) 
       - When checking a port C(started) will ensure the port is open, C(stopped) will check that it is closed
-      - When checking for a file or a search string C(present) will ensure that the file or string is present before continuing
+      - When checking for a file or a search string C(present) or C(started) will ensure that the file or string is present before continuing
     choices: [ "present", "started", "stopped" ]
     default: "started"
+  path:
+    version_added: "1.4"
+    required: false
+    description:
+      - path to a file on the filesytem that must exist before continuing
+  search_regex:
+    version_added: "1.4"
+    required: false
+    description:
+      - with the path option can be used match a string in the file that must match before continuing.  Defaults to a multiline regex.
+   
 notes: []
 requirements: []
 author: Jeroen Hoekx, John Jarvis
@@ -72,10 +87,10 @@ EXAMPLES = '''
 - wait_for: port=8000 delay=10"
 
 # wait until the file /tmp/foo is present before continuing
-- wait_for: path=/tmp/foo state=present
+- wait_for: path=/tmp/foo
 
 # wait until the string "completed" is in the file /tmp/foo before continuing
-- wait_for: path=/tmp/foo search_regex=completed state=present
+- wait_for: path=/tmp/foo search_regex=completed
 
 '''
 
