@@ -36,7 +36,8 @@ def upload_file(file_path, bucket_name, key_name):
     return url
 
 def create_stack(stack_name, template, region='us-east-1', blocking=True,
-                 temp_bucket='edx-sandbox-devops', parameters=[]):
+                 temp_bucket='edx-sandbox-devops', parameters=[],
+                 update=False):
 
     cfn = boto.connect_cloudformation()
 
@@ -47,11 +48,18 @@ def create_stack(stack_name, template, region='us-east-1', blocking=True,
 
     # Reference the stack.
     try:
-        stack_id = cfn.create_stack(stack_name,
-            template_url=template_url,
-            capabilities=['CAPABILITY_IAM'],
-            tags={'autostack':'true'},
-            parameters=parameters)
+        if update:
+            stack_id = cfn.update_stack(stack_name,
+                template_url=template_url,
+                capabilities=['CAPABILITY_IAM'],
+                tags={'autostack':'true'},
+                parameters=parameters)
+        else:
+            stack_id = cfn.create_stack(stack_name,
+                template_url=template_url,
+                capabilities=['CAPABILITY_IAM'],
+                tags={'autostack':'true'},
+                parameters=parameters)
     except Exception as e:
         print(e.message)
         raise e
@@ -82,6 +90,9 @@ if __name__ == '__main__':
         msg = 'Name for the cloudformation stack.'
         parser.add_argument('-n', '--stackname', required=True, help=msg)
 
+        msg = 'Pass this argument if we are updating an existing stack.'
+        parser.add_argument('-u', '--update', action='store_true')
+
         msg = 'Name of the bucket to use for temporarily uploading the \
             template.'
         parser.add_argument('-b', '--bucketname', default="edx-sandbox-devops",
@@ -102,6 +113,7 @@ if __name__ == '__main__':
         region = args.region
         bucket_name = args.bucketname
         parameters = cfn_params_from(args.parameters)
+        update = args.update
 
-        create_stack(stack_name, template, region, temp_bucket=bucket_name, parameters=parameters)
+        create_stack(stack_name, template, region, temp_bucket=bucket_name, parameters=parameters, update=update)
         print('Stack({}) created.'.format(stack_name))
