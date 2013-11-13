@@ -6,7 +6,7 @@
     owner={{ supervisor_user }}
     mode=0644
   sudo_user: "{{ supervisor_user }}"
-  when: not forum_skip_supervisor
+  when: not devstack
   register: forum_supervisor
   tags: deploy
 
@@ -16,7 +16,7 @@
     dest={{ forum_supervisor_wrapper }}
     mode=0755
   sudo_user: "{{ forum_user }}"
-  when: not forum_skip_supervisor
+  when: not devstack
   notify: forum | restart the forum service
   tags: deploy
 
@@ -45,7 +45,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
-  when: not forum_skip_supervisor
+  when: not devstack
   tags: deploy
 
 - name: forum | ensure forum is started
@@ -54,5 +54,5 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not forum_skip_supervisor
+  when: not devstack
   tags: deploy
