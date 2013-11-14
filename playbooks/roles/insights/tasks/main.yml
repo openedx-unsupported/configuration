@@ -1,0 +1,71 @@
+---
+
+- name: insights | system packages
+  apt: pkg={{item}}
+  with_items:
+    - git
+    - python-pip
+    - python-virtualenv
+    - redis-server
+    - mongodb
+    - nginx
+  tags:
+    - insights
+    - deploy
+
+- name: insights | create directories
+  file: >
+    path="{{item}}" state=directory
+    owner="{{ edxapp_user }}" group="{{ common_web_group }}"
+  with_items:
+    - "{{insights_app_dir}}"
+    - "{{insights_venv_dir}}"
+  tags:
+    - insights
+    - deploy
+
+- name: insights | create code directories
+  file: >
+    path="{{item}}" state=directory
+    owner="{{ edxapp_user }}" group="{{ common_web_group }}"
+  with_items:
+    - "{{insights_repos.djeventstream.code_dir}}"
+    - "{{insights_repos.loghandlersplus.code_dir}}"
+  tags:
+    - insights
+    - deploy
+
+- name: insights | checked out insights repo into {{insights_code_dir}}
+  git: dest={{item.code_dir}} repo={{item.repo}} version={{item.version}}
+  sudo_user: "{{ edxapp_user }}"
+  with_items: insights_repos.values()
+  tags:
+    - insights
+    - deploy
+
+- name : insights | install python requirements
+  pip: >
+    requirements="{{insights_requirements_file}}"
+    virtualenv="{{insights_venv_dir}}"
+    state=present
+  sudo_user: "{{ edxapp_user }}"
+  tags:
+    - insights
+    - deploy
+
+- name: insights | install projects
+  shell: >
+     . {{insights_venv_dir}}/bin/activate && cd {{item.code_dir}} && python setup.py install && deactivate
+  sudo_user: "{{ edxapp_user }}"
+  with_items: insights_repos.values()
+  tags:
+    - insights
+    - deploy
+
+- name: insights | database setup
+  shell: >
+     . {{insights_venv_dir}}/bin/activate && cd {{insights_repos.insights.code_dir}}/src && python manage.py syncdb --migrate --noinput && deactivate
+  sudo_user: "{{ edxapp_user }}"
+  tags:
+    - insights
+    - deploy
