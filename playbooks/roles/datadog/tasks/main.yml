@@ -45,8 +45,70 @@
     - ubuntu
   when: ansible_distribution in common_debian_variants
 
+- name: datadog | datadog user to syslog group for log reading
+  user: append=yes groups=syslog name=dd-agent state=present
+  tags:
+    - datadog
+    - ubuntu
+
+- name: datadog | install dogstatsd library
+  pip: name=dogstatsd-python state=present 
+  tags:
+    - datadog
+
+- name: datadog | install log watcher scripts
+  copy:
+    src=usr/share/datadog/agent/nginx_log_http_response_counter.py
+    dest=/usr/share/datadog/agent/nginx_log_http_response_counter.py
+    owner=root group=root mode=0644
+  tags:
+    - datadog
+
 - name: datadog | bootstrap config
   shell: cp /etc/dd-agent/datadog.conf.example /etc/dd-agent/datadog.conf creates=/etc/dd-agent/datadog.conf
+  tags:
+    - datadog
+
+- name: datadog | set config permissions
+  file: path=/etc/dd-agent/datadog.conf state=file owner=dd-agent group=root mode=0640
+  tags:
+    - datadog
+
+- name: datadog | enable nginx module
+  template: dest=/etc/dd-agent/conf.d/nginx.yaml src=nginx.yaml.j2 owner=root group=root mode=0644
+  notify:
+    - datadog | restart the datadog service
+  when: nginx_sites is defined
+  tags:
+    - datadog
+
+# quoting intentional, missing space after line=api_key: also
+# ansible wasn't handling the double quoted yaml properly 
+# otherwise.
+- name: datadog | set hostname if unset
+  lineinfile:
+    dest="/etc/dd-agent/datadog.conf" 
+    "line=hostname:{{ansible_hostname}}.{{environment_tag}}"
+    state=present 
+    "regexp=^\#?\s*hostname:.+$"
+  notify:
+    - datadog | restart the datadog service
+  tags:
+    - datadog
+
+# quoting intentional, missing space after line=api_key: also
+# ansible wasn't handling the double quoted yaml properly 
+# otherwise.
+- name: datadog | update dogstreams
+  lineinfile:
+    dest="/etc/dd-agent/datadog.conf" 
+    "line=dogstreams:{{log_base_dir}}/nginx/access.log:nginx_log_http_response_counter:count"
+    state=present 
+    insertafter=EOF 
+    "regexp=^\#?\s*dogstreams:.+$"
+  when: nginx_sites is defined
+  notify:
+    - datadog | restart the datadog service
   tags:
     - datadog
 
@@ -62,3 +124,4 @@
     - datadog | restart the datadog service
   tags:
     - datadog
+
