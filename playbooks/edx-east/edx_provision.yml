@@ -32,3 +32,13 @@
     # gh_users hash must be passed
     # in as a -e variable
     - gh_users
+  post_tasks:
+    - name: register instance into an elb if one was provided
+      local_action:
+        module: ec2_elb
+        region: "{{ region }}"
+        instance_id: "{{ item }}"
+        ec2_elbs:
+          - "{{ elb }}"
+      with_items: "{{ ec2.instances }}"
+      when: elb

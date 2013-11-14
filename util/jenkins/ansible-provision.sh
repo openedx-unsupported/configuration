@@ -38,6 +38,18 @@ fi
 
 extra_vars="/var/tmp/extra-vars-$$.yml"
 
+if [[ -z $region ]]; then
+  region="us-east1"
+fi
+
+if [[ -z $zone ]]; then
+  zone="us-east-1b"
+fi
+
+if [[ -z $elb ]]; then
+  elb="!!null"
+fi
+
 if [[ -z $dns_name ]]; then
   dns_name=$github_username
 fi
@@ -83,7 +95,8 @@ keypair: $keypair
 instance_type: $instance_type
 security_group: $security_group
 ami: $ami
-region: $region
+region: $region 
+zone: $zone
 instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
@@ -92,6 +105,7 @@ gh_users:
 dns_zone: $dns_zone
 rabbitmq_refresh: True
 GH_USERS_PROMPT: '[$name_tag] '
+elb: "$elb"
 EOF
     cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
