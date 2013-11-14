@@ -16,6 +16,11 @@
   debug: msg="Too many results returned, not terminating!"
   when: terminate_instance == true and tag_lookup.instance_ids|length > 1
 
+- name: launch_ec2 | remember the instance id of the terminated instance
+  set_fact:
+    termination_ids: ${tag_lookup.instance_ids}
+  when: terminate_instance == true
+
 - name: terminating single instance
   local_action:
     module: ec2
@@ -37,6 +42,10 @@
     root_ebs_size: "{{ root_ebs_size }}"
     zone: "{{ zone }}"
   register: ec2
+
+- name: launch_ec2 | remember the instance id of the launched instances
+  set_fact:
+    launch_ids: ${ec2.instances}
 
 - name: launch_ec2 | Add DNS name
   local_action:
