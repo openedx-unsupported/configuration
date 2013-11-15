@@ -18,6 +18,7 @@
 # - environment
 # - name_tag
 
+export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 if [[ -z $WORKSPACE ]]; then
