@@ -61,6 +61,8 @@
     src=usr/share/datadog/agent/nginx_log_http_response_counter.py
     dest=/usr/share/datadog/agent/nginx_log_http_response_counter.py
     owner=root group=root mode=0644
+  notify:
+    - datadog | restart the datadog service
   tags:
     - datadog
 
@@ -80,6 +82,12 @@
     - datadog | restart the datadog service
   when: nginx_sites is defined
   tags:
+    - datadog
+
+- name: datadog | Install logrotate configuration for datadog
+  template: dest=/etc/logrotate.d/datadog src=datadog_logrotate.j2 owner=root group=root mode=644
+  tags:
+    - logging
     - datadog
 
 # quoting intentional, missing space after line=api_key: also
