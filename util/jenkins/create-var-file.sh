@@ -25,6 +25,8 @@ xqueue_version: $xqueue_version
 xserver_version: $xserver_version
 ora_version: $ora_version
 ease_version: $ease_version
+certs_version: $certs_version
+discern_version: $discern_version
 
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
