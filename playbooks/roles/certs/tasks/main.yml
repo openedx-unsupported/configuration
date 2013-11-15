@@ -65,7 +65,7 @@
   copy: >
     src={{ CERTS_LOCAL_PRIVATE_KEY }}
     dest={{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
-    owner={{ certs_user }} group={{ common_web_user }} mode=0640
+    owner={{ certs_user }} mode=0640
   notify: certs | restart certs
   register: certs_gpg_key
 
@@ -75,6 +75,15 @@
     /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
   sudo_user: "{{ certs_user }}"
   when: certs_gpg_key.changed
+  notify: certs | restart certs
+
+- name: certs | set permission to the certs_gpg_dir so that it can be read by the web user
+  file: >
+    path={{ certs_gpg_dir }}
+    owner={{ certs_user }}
+    group={{ common_web_user }}
+    mode=0640 recurse=yes
+  sudo_user: "{{ certs_user }}"
   notify: certs | restart certs
 
 - include: deploy.yml
