@@ -1,16 +1,30 @@
 ---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role insights
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
 
 - name: insights | system packages
   apt: pkg={{item}}
-  with_items:
-    - git
-    - python-pip
-    - python-virtualenv
-    - redis-server
-    - mongodb
-    - nginx
+  with_items: insights_debian_pkgs
   tags:
-    - insights
     - deploy
 
 - name: insights | create directories
@@ -20,19 +34,9 @@
   with_items:
     - "{{insights_app_dir}}"
     - "{{insights_venv_dir}}"
-  tags:
-    - insights
-    - deploy
-
-- name: insights | create code directories
-  file: >
-    path="{{item}}" state=directory
-    owner="{{ edxapp_user }}" group="{{ common_web_group }}"
-  with_items:
     - "{{insights_repos.djeventstream.code_dir}}"
     - "{{insights_repos.loghandlersplus.code_dir}}"
   tags:
-    - insights
     - deploy
 
 - name: insights | checked out insights repo into {{insights_code_dir}}
@@ -40,7 +44,6 @@
   sudo_user: "{{ edxapp_user }}"
   with_items: insights_repos.values()
   tags:
-    - insights
     - deploy
 
 - name : insights | install python requirements
@@ -50,7 +53,6 @@
     state=present
   sudo_user: "{{ edxapp_user }}"
   tags:
-    - insights
     - deploy
 
 - name: insights | install projects
@@ -59,7 +61,6 @@
   sudo_user: "{{ edxapp_user }}"
   with_items: insights_repos.values()
   tags:
-    - insights
     - deploy
 
 - name: insights | database setup
@@ -67,5 +68,4 @@
      . {{insights_venv_dir}}/bin/activate && cd {{insights_repos.insights.code_dir}}/src && python manage.py syncdb --migrate --noinput && deactivate
   sudo_user: "{{ edxapp_user }}"
   tags:
-    - insights
     - deploy
