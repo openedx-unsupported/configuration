@@ -106,7 +106,7 @@ gh_users:
 dns_zone: $dns_zone
 rabbitmq_refresh: True
 GH_USERS_PROMPT: '[$name_tag] '
-elb: "$elb"
+elb: $elb
 EOF
     cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
