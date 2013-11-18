@@ -48,7 +48,7 @@ if [[ -z $zone ]]; then
 fi
 
 if [[ -z $elb ]]; then
-  elb="!!null"
+  elb="false"
 fi
 
 if [[ -z $dns_name ]]; then
