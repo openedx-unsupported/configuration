@@ -32,4 +32,10 @@ rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
 COMMON_HOSTNAME: edx-server
 EDXAPP_STATIC_URL_BASE: $static_url_base
+
+# Settings for Grade downloads
+EDXAPP_GRADE_STORAGE_TYPE: 's3'
+EDXAPP_GRADE_BUCKET: 'edx-grades'
+EDXAPP_GRADE_ROOT_PATH: 'sandbox'
+
 EOF
