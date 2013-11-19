@@ -28,8 +28,8 @@ else
     source "$WORKSPACE/util/jenkins/ascii-convert.sh"
 fi
 
-if [[ -z $static_url ]]; then
-  static_url="/static/"
+if [[ -z $static_url_base ]]; then
+  static_url_base="/static"
 fi
 
 if [[ -z $github_username  ]]; then
