@@ -28,6 +28,10 @@ else
     source "$WORKSPACE/util/jenkins/ascii-convert.sh"
 fi
 
+if [[ -z $static_url ]]; then
+  static_url="/static/"
+fi
+
 if [[ -z $github_username  ]]; then
   github_username=$BUILD_USER_ID
 fi

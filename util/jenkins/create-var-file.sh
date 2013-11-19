@@ -31,4 +31,5 @@ discern_version: $discern_version
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
 COMMON_HOSTNAME: edx-server
+EDXAPP_STATIC_URL: $static_url
 EOF
