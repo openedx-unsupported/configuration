@@ -1,0 +1,85 @@
+# Installs PHPMYADMIN
+---
+- name: installs phpmyadmin (and python-mysqldb for later ansible tasks)
+  apt: pkg=phpmyadmin,python-mysqldb state=present
+  tags:
+  - php
+  - phpmyadmin
+
+- name: delete setup directories
+  file: path=/usr/share/phpmyadmin/{{ item }} state=absent
+  with_items:
+    - setup
+    - config
+  tags:
+  - php
+  - phpmyadmin
+
+- name: link phpmyadmin
+  file: state=link src=/usr/share/phpmyadmin dest={{ PHP_WEB_ROOT }}/{{ PHPMYADMIN_REL_PATH }} owner=www-data group=www-data mode=0750
+  tags:
+  - php
+  - phpmyadmin
+
+- name: set correct perms in phpmyadmin install
+  file: path=/usr/share/phpmyadmin state=directory recurse=true owner=www-data group=www-data mode=0750
+  tags:
+  - php
+  - phpmyadmin
+
+- name: configure phpmyadmin
+  template: src=config.inc.php.j2 dest=/etc/phpmyadmin/config.inc.php owner=root group=www-data mode=0640
+  tags:
+  - php
+  - phpmyadmin
+
+- name: create phpmyadmin mysql conf user
+  mysql_user: >
+    login_host={{ MYSQL_SERVER_HOST }}
+    login_user={{ MYSQL_SERVER_USER }} login_password={{ MYSQL_SERVER_PASS }}
+    name={{ PHPMYADMIN_CONTROLUSER }} password={{ PHPMYADMIN_CONTROLPASS }}
+    state=present
+  tags:
+  - php
+  - phpmyadmin
+
+- name: unzip db creation script that creates phpmyadmin db (so we can manipulate it)
+  command: gunzip /usr/share/doc/phpmyadmin/examples/create_tables.sql.gz
+  ignore_errors: true
+  tags:
+  - php
+  - phpmyadmin
+
+- name: write desired phpmyadmin db to script
+  lineinfile: >
+    dest=/usr/share/doc/phpmyadmin/examples/create_tables.sql
+    regexp="^CREATE DATABASE IF NOT EXISTS.*$"
+    line="CREATE DATABASE IF NOT EXISTS `{{ PHPMYADIN_PMADB }}`"
+  tags:
+  - php
+  - phpmyadmin
+
+- name: use desired phpmyadmin db in script
+  lineinfile: >
+    dest=/usr/share/doc/phpmyadmin/examples/create_tables.sql
+    regexp="^USE.*$"
+    line="USE `{{ PHPMYADIN_PMADB }}`;"
+  tags:
+  - php
+  - phpmyadmin
+
+- name: run db creation script (creates phpmyadmin db)
+  shell: "mysql -h {{ MYSQL_SERVER_HOST }} -P {{ MYSQL_SERVER_PORT }} -u{{ MYSQL_SERVER_USER }} -p{{ MYSQL_SERVER_PASS }} < /usr/share/doc/phpmyadmin/examples/create_tables.sql"
+  tags:
+  - php
+  - phpmyadmin
+
+- name: grant all on phpmyadin database to control user
+  mysql_user: >
+    login_host={{ MYSQL_SERVER_HOST }}
+    login_user={{ MYSQL_SERVER_USER }} login_password={{ MYSQL_SERVER_PASS }}
+    name={{ PHPMYADMIN_CONTROLUSER }}
+    priv={{ PHPMYADIN_PMADB }}.*:ALL
+  tags:
+  - php
+  - phpmyadmin

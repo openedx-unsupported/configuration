@@ -1,0 +1,21 @@
+# installs PHP running on php5-fpm and nginx
+
+---
+- name: install php5 apt packages
+  apt: pkg=php5-cli,php5-fpm state=present
+  tags:
+  - php
+
+- name: change php5-fpm listen
+  lineinfile: dest=/etc/php5/fpm/pool.d/www.conf regexp="^listen=.*$" line="listen={{ FPM_LISTENER }}" state=present
+  notify: restart php5-fpm
+  tags:
+  - php
+
+- name: create php web root dir
+  file: path={{ PHP_WEB_ROOT }} state=directory owner=www-data group=www-data mode=0750
+  tags:
+  - php
+
+- include: phpmyadmin.yml
+  when: INSTALL_PHPMYADMIN
