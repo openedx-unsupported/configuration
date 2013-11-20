@@ -1,0 +1,23 @@
+---
+
+- name: jenkins_worker | Install requests Python library
+  pip: name=requests state=present
+
+- fail: jenkins_worker | OAuth token not defined
+  when: github_oauth_token is not defined
+
+- name: jenkins_worker | Install GitHub API scripts
+  template:
+    src={{ item }}.j2 dest=/usr/local/bin/{{ item }}
+    owner=root group=root mode=755
+  with_items:
+    - github_pr_auth.py
+    - github_post_status.py
+
+- name: jenkins_worker | Install edx-platform test scripts
+  template:
+    src={{ item }}.j2 dest={{ jenkins_home }}/{{ item }}
+    owner={{ jenkins_user }} group={{ jenkins_group }} mode=500
+  with_items:
+    - edx-acceptance.sh
+    - edx-all-tests.sh
