@@ -1,0 +1,35 @@
+# Installs PHPMYADMIN
+---
+- name: installs phpmyadmin
+  apt: pkg=phpmyadmin state=present
+  tags:
+  - php
+  - phpmyadmin
+
+- name: delete setup directories
+  file: path=/usr/share/phpmyadmin/{{ item }} state=absent
+  with_items:
+    - setup
+    - config
+  tags:
+  - php
+  - phpmyadmin
+
+- name: link phpmyadmin
+  file: state=link src=/usr/share/phpmyadmin dest={{ PHP_WEB_ROOT }}/{{ PHPMYADMIN_REL_PATH }} owner=www-data group=www-data mode=0750
+  tags:
+  - php
+  - phpmyadmin
+
+- name: set correct perms in phpmyadmin install
+  file: path=/usr/share/phpmyadmin state=directory recurse=true owner=www-data group=www-data mode=0750
+  tags:
+  - php
+  - phpmyadmin
+
+- name: configure phpmyadmin
+  template: src=config.inc.php.j2 dest=/etc/phpmyadmin/config.inc.php owner=root group=www-data mode=0640
+  tags:
+  - php
+  - phpmyadmin
+

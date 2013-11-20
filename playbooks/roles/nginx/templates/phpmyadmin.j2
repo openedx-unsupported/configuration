@@ -1,0 +1,41 @@
+upstream php {
+    server {{ FPM_LISTENER }};
+}
+
+server {
+    listen {{ PHP_SERVER_PORT }} default; ## listen for ipv4; this line is default and implied
+    listen [::]:{{ PHP_SERVER_PORT }} default ipv6only=on; ## listen for ipv6
+
+    charset utf-8;
+
+    access_log {{log_base_dir}}/nginx/phpmyadmin_access.log;
+    error_log {{log_base_dir}}/nginx/phpmyadmin_error.log;
+
+    root {{ PHP_WEB_ROOT }};
+    index index.php index.html index.htm;
+
+    location / {
+        # First attempt to serve request as file, then
+        # as directory, then trigger 404
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        # NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+
+        fastcgi_pass php;
+
+        fastcgi_index index.php;
+
+        fastcgi_param SCRIPT_FILENAME {{ PHP_WEB_ROOT }}$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT {{ PHP_WEB_ROOT }};
+
+        # send bad requests to 404
+        fastcgi_intercept_errors on;
+
+        include fastcgi_params;
+    }
+}

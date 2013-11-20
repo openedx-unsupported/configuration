@@ -1,11 +1,6 @@
 - hosts: ~tag_Name_app(10|20)_carn
 #- hosts: ~tag_Name_app20_carn
   sudo: True
-  vars_prompt:
-    - name: "migrate_db"
-      prompt: "Should this playbook run database migrations? (Type 'yes' to run, anything else to skip migrations)"
-      default: "no"
-      private: no
   vars:
     secure_dir: '../../../configuration-secure/ansible'
     # this indicates the path to site-specific (with precedence)
@@ -18,19 +13,9 @@
     - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
     - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
-    - "{{ secure_dir }}/vars/datadog_stage.yml"
+    - "{{ secure_dir }}/vars/datadog_prod.yml"
   roles:
-    - common
     - php
     - role: nginx
       nginx_sites:
-      - lms
-      - cms
-      - lms-preview
       - phpmyadmin
-      nginx_template_directory: "{{local_dir}}/nginx/templates/carnegie/"
-    - {'role': 'edxapp', 'openid_workaround': true}
-    - datadog
-    #- splunkforwarder
-    # run this role last
-    # - in_production
