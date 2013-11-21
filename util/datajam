@@ -1,0 +1,82 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import subprocess
+import argparse
+
+
+class DatajamExecutor(object):
+
+    def parse_arguments(self, args):
+        self.root = args.root
+        self.configuration_root = os.path.join(self.root, 'configuration')
+        self.datajam_root = os.path.join(self.configuration_root, 'vagrant', 'datajam')
+
+        self.environment = os.environ.copy()
+        self.environment['VAGRANT_MOUNT_BASE'] = self.root
+
+    def execute(self, command):
+        return subprocess.check_call(['/bin/bash', '-c', 'source /etc/bash_completion.d/virtualenvwrapper && ' + command], env=self.environment)
+
+    def create(self, args):
+        self.parse_arguments(args)
+
+        if not os.path.exists(self.root):
+            sys.stderr.write('Root directory "{}" does not exist, please create it before running this script.\n'.format(self.root))
+            sys.exit(1)
+
+        os.chdir(self.root)
+        if not os.path.exists(self.configuration_root):
+            self.execute('git clone git@github.com:edx/configuration.git')
+
+        os.chdir(self.configuration_root)
+        self.execute('git fetch --all')
+        self.execute('git checkout datajam')
+
+        try:
+            self.execute('workon edx-configuration')
+        except subprocess.CalledProcessError:
+            self.execute('mkvirtualenv edx-configuration')
+
+        self.execute('workon edx-configuration && pip install -r requirements.txt')
+        os.chdir(self.datajam_root)
+        self.execute('workon edx-configuration && vagrant up')
+
+
+    def destroy(self, args):
+        self.parse_arguments(args)
+        os.chdir(self.datajam_root)
+        self.execute('vagrant destroy')
+        os.chdir('/')
+        self.execute('rm -rf {}/*'.format(self.root))
+        self.execute('rmvirtualenv edx-configuration')
+
+
+    def ssh(self, args):
+        self.parse_arguments(args)
+        os.chdir(self.datajam_root)
+        self.execute('vagrant ssh')
+
+
+if __name__ == '__main__':
+    executor = DatajamExecutor()
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    create_parser = subparsers.add_parser('create', help='Create a datajam virtual environment.')
+    create_parser.add_argument('root', action='store', help='Root directory for your virtual environment.')
+    create_parser.set_defaults(action=executor.create)
+
+    ssh_parser = subparsers.add_parser('ssh', help='Login to the datajam virtual environment')
+    ssh_parser.add_argument('root', action='store', help='Root directory for your virtual environment.')
+    ssh_parser.set_defaults(action=executor.ssh)
+
+    destroy_parser = subparsers.add_parser('destroy', help='Remove a datajam virtual environment.  This will remove everything, use with care!')
+    destroy_parser.add_argument('root', action='store', help='Root directory for your virtual environment.')
+    destroy_parser.set_defaults(action=executor.destroy)
+
+    args = parser.parse_args()
+    args.action(args)
+    print 'OK'
