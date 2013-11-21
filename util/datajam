@@ -9,9 +9,9 @@ import argparse
 class DatajamExecutor(object):
 
     def parse_arguments(self, args):
-        self.root = args.root
+        self.root = os.path.abspath(args.root)
         self.configuration_root = os.path.join(self.root, 'configuration')
-        self.datajam_root = os.path.join(self.configuration_root, 'vagrant', 'datajam')
+        self.datajam_root = os.path.join(self.configuration_root, 'vagrant', 'release', 'datajam')
 
         self.environment = os.environ.copy()
         self.environment['VAGRANT_MOUNT_BASE'] = self.root
@@ -66,15 +66,15 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers()
 
     create_parser = subparsers.add_parser('create', help='Create a datajam virtual environment.')
-    create_parser.add_argument('root', action='store', help='Root directory for your virtual environment.')
+    create_parser.add_argument('--root', action='store', default='.', help='Root directory for your virtual environment.')
     create_parser.set_defaults(action=executor.create)
 
     ssh_parser = subparsers.add_parser('ssh', help='Login to the datajam virtual environment')
-    ssh_parser.add_argument('root', action='store', help='Root directory for your virtual environment.')
+    ssh_parser.add_argument('--root', action='store', default='.', help='Root directory for your virtual environment.')
     ssh_parser.set_defaults(action=executor.ssh)
 
     destroy_parser = subparsers.add_parser('destroy', help='Remove a datajam virtual environment.  This will remove everything, use with care!')
-    destroy_parser.add_argument('root', action='store', help='Root directory for your virtual environment.')
+    destroy_parser.add_argument('--root', action='store', default='.', help='Root directory for your virtual environment.')
     destroy_parser.set_defaults(action=executor.destroy)
 
     args = parser.parse_args()
