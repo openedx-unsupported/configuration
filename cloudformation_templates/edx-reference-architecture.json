@@ -393,7 +393,8 @@
       "Forum02":        { "CIDR":"10.0.81.0/24" },
       "Mongo01":        { "CIDR":"10.0.90.0/24" },
       "Mongo02":        { "CIDR":"10.0.91.0/24" },
-      "Mongo03":        { "CIDR":"10.0.92.0/24" }
+      "Mongo03":        { "CIDR":"10.0.92.0/24" },
+      "Admin":          { "CIDR":"10.0.200.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1d",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -458,6 +459,38 @@
             "AZone1"
           ]
         }
+      }
+    },
+    "AdminSubnet":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Admin",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"admin"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
       }
     },
     "EdxappSubnet01":{
