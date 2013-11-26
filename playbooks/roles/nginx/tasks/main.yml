@@ -25,8 +25,8 @@
     - "{{ nginx_log_dir }}"
   notify: nginx | restart nginx
 
-- name: nginx | Install nginx
-  apt: pkg=nginx state={{ pkgs.nginx.state }}
+- name: nginx | Install nginx packages
+  apt: pkg={{','.join(nginx_debian_pkgs)}} state=present
   notify: nginx | restart nginx
 
 - name: nginx | Server configuration file
@@ -63,10 +63,12 @@
   notify: nginx | reload nginx
   with_items: nginx_sites
 
-- name: nginx | Write out default htpasswd file
-  copy: >
-    content={{ nginx_cfg.htpasswd }} dest={{ nginx_app_dir }}/nginx.htpasswd
-    owner=www-data group=www-data mode=0600
+- name: nginx | Write out htpasswd file
+  htpasswd: >
+    name={{ NGINX_HTPASSWD_USER }}
+    password={{ NGINX_HTPASSWD_PASS }}
+    path={{ nginx_htpasswd_file }}
+  when: NGINX_HTPASSWD_USER and NGINX_HTPASSWD_PASS
 
 - name: nginx | Create nginx log file location (just in case)
   file: >
