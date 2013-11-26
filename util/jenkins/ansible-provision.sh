@@ -92,6 +92,15 @@ fi
 
 cd playbooks/edx-east
 
+if [[ $basic_auth == "true" ]]; then
+    # vars specific to provisioning added to $extra-vars
+    cat << EOF_AUTH >> $extra_vars
+NGINX_HTPASSWD_USER: $auth_user
+NGINX_HTPASSWD_PASS: $auth_pass
+EOF_AUTH
+fi
+
+
 if [[ $recreate == "true" ]]; then
     # vars specific to provisioning added to $extra-vars
     cat << EOF >> $extra_vars
@@ -112,6 +121,7 @@ rabbitmq_refresh: True
 GH_USERS_PROMPT: '[$name_tag] '
 elb: $elb
 EOF
+
     cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
     ansible-playbook edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
