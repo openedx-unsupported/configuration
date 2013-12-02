@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import subprocess
+import argparse
+from collections import namedtuple
+
+
+VENV_WRAPPER_SETUP_PATHS = [
+    '/usr/local/bin/virtualenvwrapper.sh',
+    '/etc/bash_completion.d/virtualenvwrapper'
+]
+
+Dependency = namedtuple('Dependency', ['name', 'command'])
+DEPENDENCIES = [
+    Dependency('virtualenvwrapper', 'declare -f -F workon'),
+    Dependency('vagrant', 'vagrant --version'),
+    Dependency('git', 'git --version')
+]
+TESTED_WITH_VERSIONS = [
+    'virtualbox 4.2.18',
+    'vagrant 1.3.4',
+    'git 1.7.10.4',
+    'virtualenv 1.7.1.2',
+    'virtualenvwrapper 3.4'
+]
+
+DEFAULT_ACTION = 'create'
+
+
+class DatajamExecutor(object):
+
+    def main(self):
+        self.parser = argparse.ArgumentParser()
+        self.parser.add_argument('--root', action='store', default='.', help='Root directory for your virtual environment.  Will be created along with any missing parent directories if it does not exist. Defaults to "."')
+
+        self.subparsers = self.parser.add_subparsers()
+
+        self.add_action('create', self.create, 'Create a datajam virtual environment.')
+        self.add_action('ssh', self.ssh, 'Login to the datajam virtual environment')
+        self.add_action('halt', self.halt, 'Shutdown an existing datajam virtual environment')
+        self.add_action('start', self.start, 'Start up an existing datajam virtual environment')
+        self.add_action('destroy', self.destroy, 'Remove a datajam virtual environment.  This will remove everything, use with care!')
+
+        if len(sys.argv) == 1:
+            args = self.parser.parse_args([DEFAULT_ACTION])
+        else:
+            args = self.parser.parse_args()
+
+        self.root = os.path.abspath(args.root)
+
+        self.venv_setup_path = VENV_WRAPPER_SETUP_PATHS[0]
+        for venv_setup_path in VENV_WRAPPER_SETUP_PATHS:
+            if os.path.exists(venv_setup_path):
+                self.venv_setup_path = venv_setup_path
+
+        self.check_environment()
+
+        self.configuration_root = os.path.join(self.root, 'configuration')
+        self.datajam_root = os.path.join(self.configuration_root, 'vagrant', 'release', 'datajam')
+
+        if os.path.exists(self.datajam_root):
+            os.chdir(self.datajam_root)
+
+        args.action()
+        print 'OK'
+
+    def add_action(self, action_name, func, help=None):
+        parser = self.subparsers.add_parser(action_name, help=help)
+        parser.set_defaults(action=func)
+
+    def check_environment(self):
+        self.environment = os.environ.copy()
+        self.environment['VAGRANT_MOUNT_BASE'] = self.root
+
+        if not os.path.exists(self.root):
+            os.makedirs(self.root)
+
+        for dep in DEPENDENCIES:
+            try:
+                self.execute(dep.command + ' 2>/dev/null >/dev/null')
+            except subprocess.CalledProcessError:
+                sys.stderr.write('Unable to find {name}.  Please install {name} and try again.\n'.format(name=dep.name))
+                sys.stderr.write('This script has been tested with:\n  {}\n'.format('\n  '.join(TESTED_WITH_VERSIONS)))
+                sys.exit(1)
+
+    def execute(self, command):
+        return subprocess.check_call(['/bin/bash', '-c', 'source {venv_path} && {cmd}'.format(venv_path=self.venv_setup_path, cmd=command)], env=self.environment)
+
+    def create(self):
+        os.chdir(self.root)
+        if not os.path.exists(self.configuration_root):
+            self.execute('git clone git@github.com:edx/configuration.git')
+
+        os.chdir(self.configuration_root)
+        self.execute('git fetch --all')
+        self.execute('git checkout datajam')
+        self.execute('git merge --ff-only origin/datajam')
+
+        try:
+            self.execute('workon edx-configuration')
+        except subprocess.CalledProcessError:
+            self.execute('mkvirtualenv edx-configuration')
+
+        self.execute('workon edx-configuration && pip install -r requirements.txt')
+        os.chdir(self.datajam_root)
+        self.execute('workon edx-configuration && vagrant up')
+
+
+    def destroy(self):
+        self.execute('vagrant destroy')
+        self.execute('rmvirtualenv edx-configuration')
+
+    def ssh(self):
+        self.execute('vagrant ssh')
+
+    def halt(self):
+        self.execute('vagrant halt')
+
+    def start(self):
+        self.execute('vagrant up --no-provision')
+
+
+if __name__ == '__main__':
+    DatajamExecutor().main()
