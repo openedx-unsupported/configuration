@@ -4,10 +4,10 @@
 #- hosts: ~tag_Name_util(1|2)_stage
   sudo: True
   vars:
-    secure_dir: ../../../edx-secret/ansible
     # this indicates the path to site-specific (with precedence)
     # things like nginx template files
-    local_dir: ../../../edx-secret/ansible/local
+    secure_dir: ../../../edx-secret/ansible
+    local_dir: {{secure_dir}}/local
     migrate_db: "no"
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
@@ -35,3 +35,20 @@
       virtualenv_user_home: "/opt/wwc/notifier"
       virtualenv_name: "notifier"
     - notifier
+
+# run the certificate agent on the first util machine only
+- hosts: ~tag_Name_util10_stage
+  sudo: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    migrate_db: "no"
+  vars_files:
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/certifier_stage_vars.yml"
+  roles:
+    - common
+    - role: virtualenv
+      virtualenv_user: "certifier"
+      virtualenv_name: "certifier"
+      virtualenv_user_home: "/opt/wwc/certifier"
+    - certificates

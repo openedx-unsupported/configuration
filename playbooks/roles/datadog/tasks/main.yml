@@ -61,6 +61,8 @@
     src=usr/share/datadog/agent/nginx_log_http_response_counter.py
     dest=/usr/share/datadog/agent/nginx_log_http_response_counter.py
     owner=root group=root mode=0644
+  notify:
+    - datadog | restart the datadog service
   tags:
     - datadog
 
@@ -82,9 +84,16 @@
   tags:
     - datadog
 
-# quoting intentional, missing space after line=api_key: also
+- name: datadog | Install logrotate configuration for datadog
+  template: dest=/etc/logrotate.d/datadog src=datadog_logrotate.j2 owner=root group=root mode=644
+  tags:
+    - logging
+    - datadog
+
+################# Datadog config file lines
+# quoting intentional, missing spaces also
 # ansible wasn't handling the double quoted yaml properly 
-# otherwise.
+# without some weirdness.
 - name: datadog | set hostname if unset
   lineinfile:
     dest="/etc/dd-agent/datadog.conf" 
@@ -96,9 +105,17 @@
   tags:
     - datadog
 
-# quoting intentional, missing space after line=api_key: also
-# ansible wasn't handling the double quoted yaml properly 
-# otherwise.
+- name: datadog | set dogstats update interval
+  lineinfile:
+    dest="/etc/dd-agent/datadog.conf" 
+    "line=dogstatsd_interval:10"
+    state=present 
+    "regexp=^\#?\s*dogstatsd_interval:.+$"
+  notify:
+    - datadog | restart the datadog service
+  tags:
+    - datadog
+
 - name: datadog | update dogstreams
   lineinfile:
     dest="/etc/dd-agent/datadog.conf" 
@@ -112,9 +129,6 @@
   tags:
     - datadog
 
-# quoting intentional, missing space after line=api_key: also
-# ansible wasn't handling the double quoted yaml properly 
-# otherwise.
 - name: datadog | update api-key
   lineinfile: 
     dest="/etc/dd-agent/datadog.conf" 
@@ -125,3 +139,4 @@
   tags:
     - datadog
 
+################# END Datadog config file lines
