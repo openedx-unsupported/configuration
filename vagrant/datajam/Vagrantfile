@@ -3,12 +3,14 @@ CPU_COUNT = 2
 edx_platform_mount_dir = "edx-platform"
 forum_mount_dir = "cs_comments_service"
 insights_mount_dir = "insights"
+datajam_mount_dir = "datajam"
 
 if ENV['VAGRANT_MOUNT_BASE']
 
   edx_platform_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_platform_mount_dir
   forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
   insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
+  datajam_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + datajam_mount_dir
 
 end
 
@@ -21,11 +23,13 @@ Vagrant.configure("2") do |config|
   config.vm.network :forwarded_port, guest: 8000, host: 8000
   config.vm.network :forwarded_port, guest: 8001, host: 8001
   config.vm.network :forwarded_port, guest: 8002, host: 8002
+  config.vm.network :forwarded_port, guest: 8003, host: 8003
   config.vm.network :forwarded_port, guest: 4567, host: 4567
 
   config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
   config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
   config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/insights", :create => true, nfs: true
+  config.vm.synced_folder "#{datajam_mount_dir}", "/edx/app/datajam", :create => true, nfs: true
 
   config.hostsupdater.aliases = ["preview.localhost"]
 
@@ -34,6 +38,8 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
   end
 
+  edxapp_version = "datajam"
+  forum_version = "master"
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "../../playbooks/vagrant-datajam.yml"
     ansible.inventory_path = "../../playbooks/vagrant/inventory.ini"
