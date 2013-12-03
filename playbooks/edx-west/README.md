@@ -1,6 +1,20 @@
-This doc is a useful place to keep commands in a handy place.  Keep
-in mind that this is a public repo so we shouldn't store anything
-confidential in here.
+Readme
+------
+
+This directory has the live playbooks that we use here at Stanford to
+maintain our instance of OpenEdX at [class.stanford.edu][c].  We check
+it in to this public repo since we think that others might benefit from
+seeing how we are configured.
+
+  [c]: https://class.stanford.edu/
+
+That said, we haven't documented things in here well, so we have no
+expectation that others will be able to make enough sense of this to
+give us useful contributions back.  Generally a PR affecting files in
+here will be ignored / rejected.
+
+This README is a useful proximate place to keep commands.  But it is 
+a public repo so we shouldn't store anything confidential in here.
 
 Other install docs:
 
