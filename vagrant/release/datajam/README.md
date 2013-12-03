@@ -22,7 +22,6 @@ The datajam configuration has the following components:
 
     vagrant plugin install vagrant-hostsupdater
 
-* Install [virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/install.html)
 * Install [git](http://git-scm.com/book/en/Getting-Started-Installing-Git)
 * Create a directory to store the image
 
@@ -110,19 +109,6 @@ Login to the LMS and CMS with the user "datajam@edx.org" with password "datajam.
 # Issues / Workarounds
 
 * All Platforms
-    * If you see an error message that looks something like
-
-        /path/to/some/bin/python: No module named virtualenvwrapper
-        virtualenvwrapper.sh: There was a problem running the initialization hooks. 
-
-        If Python could not import the module virtualenvwrapper.hook_loader,
-        check that virtualenv has been installed for
-        VIRTUALENVWRAPPER_PYTHON=/path/to/some/bin/python and that PATH is
-        set properly.
-        /path/to/some/bin/python: No module named virtualenvwrapper
-        virtualenvwrapper.sh: There was a problem running the initialization hooks.
-
-      then another virtualenv was active when you started the `datajam` script.  Run `deactivate` and try again.
     * If you see an error message that looks like
         [default] Mounting NFS shared folders...
         The following SSH command responded with a non-zero exit status.
