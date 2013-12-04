@@ -13,6 +13,7 @@ The datajam configuration has the following components:
 * Studio (course authoring)
 * Forums / elasticsearch / ruby (discussion forums)
 * Insights (streaming analytics)
+* XBlocks Workbench (courseware preview)
 
 # Installing the edX Datajam Stack
 
@@ -25,23 +26,23 @@ The datajam configuration has the following components:
 * Install [git](http://git-scm.com/book/en/Getting-Started-Installing-Git)
 * Create a directory to store the image
 
-    mkdir /opt/edx-datajam
+    mkdir ~/edx-datajam-root
 
-    cd /opt/edx-datajam
+    cd ~/edx-datajam-root
 
 * Download the installation script
 
-    wget https://raw.github.com/edx/configuration/datajam/util/datajam
+    curl -O https://raw.github.com/edx/configuration/datajam/util/edx-datajam
 
-    chmod a+x datajam
+    chmod a+x edx-datajam
 
 * Run the installation script to setup the environment
 
-    ./datajam create
+    ./edx-datajam create
 
 * Once it completes, you should be able to log in to the virtual machine
 
-    ./datajam ssh
+    ./edx-datajam ssh
 
 
 # Using the edX Datajam Stack
@@ -88,6 +89,19 @@ It is recommended you open up a separate terminal for each application and and r
 * Start the server
 
     edx-insights-devserver
+
+
+## XBlock Workbench Workflow
+
+* Within the Vagrant instance, switch to the edxapp account:
+
+    sudo su edxapp
+
+*This will source the edxapp environment (`/edx/app/edxapp/edxapp_env`) so that the venv python, rbenv ruby and rake are in your search path.  It will also set the current working directory to the edx-platform repository (`/edx/app/edxapp/edx-platform`).*
+
+* Start the server
+
+    edx-workbench-devserver
 
 
 ## Forum Workflow
