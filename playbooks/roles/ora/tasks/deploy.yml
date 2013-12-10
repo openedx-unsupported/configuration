@@ -6,6 +6,7 @@
     - ora | restart ora
     - ora | restart ora_celery
   with_items: ['ora', 'ora_celery']
+  when: not devstack
   tags:
   - deploy
 
@@ -22,6 +23,17 @@
   sudo_user: "{{ ora_user }}"
   tags:
   - deploy
+
+- name: ora | setup the ora env
+  notify:
+  - "ora | restart ora"
+  - "ora | restart ora_celery"
+  template: >
+    src=ora_env.j2 dest={{ ora_app_dir }}/ora_env
+    owner={{ ora_user }} group={{ common_web_user }}
+    mode=0644
+  tags:
+    - deploy
 
 # Do A Checkout
 - name: ora | git checkout ora repo into {{ ora_app_dir }}
@@ -94,6 +106,7 @@
 - name: ora | update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
+  when: not devstack
   changed_when: supervisor_update.stdout != ""
   tags: deploy
 
@@ -103,6 +116,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
+  when: not devstack
   tags: deploy
 
 - name: ora | ensure ora_celery is started
@@ -111,4 +125,5 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
+  when: not devstack
   tags: deploy
