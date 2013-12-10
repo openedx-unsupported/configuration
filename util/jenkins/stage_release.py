@@ -179,6 +179,10 @@ def notify_abby(abby_url, abby_token, deployment, all_plays):
                 log.info("Need ami for {}".format(pformat(build_params)))
                 r = requests.post(abby_url, data={"token": abby_token}, params={"json": json.dumps(build_params)})
                 log.info("Sent request got {}".format(r))
+                if r.status_code != 201:
+                    # Something went wrong.
+                    msg = "Failed to submit request with params: {}"
+                    raise Exception(msg.format(pformat(build_params)))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare a new release.")
