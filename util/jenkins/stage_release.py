@@ -153,12 +153,36 @@ def prepare_release(args):
             # Set amis to None for all envs of this deployment
             all_plays[play]['amis'] = {}
             for env in config['deployments'][args.deployment]:
-                all_plays[play]['amis'][env] = None
+                # Check the AMIs collection to see if an ami already exist
+                # for this configuration.
+                potential_ami = ami_for(db, env,
+                                        args.deployment,
+                                        play, config_repo_ver,
+                                        config_secure_ver,
+                                        ref)
+                if potential_ami:
+                    all_plays[play]['amis'][env] = potential_ami['_id']
+                else:
+                    all_plays[play]['amis'][env] = None
 
     release['plays'] = all_plays
     release_coll.insert(release)
     # All plays that need new AMIs have been updated.
     notify_abby(config['abby_url'], config['abby_token'], args.deployment, all_plays)
+
+def ami_for(db, env, deployment, play, configuration,
+    configuration_secure, ansible_vars):
+
+    ami_signature = {
+        'env': env,
+        'deployment': deployment,
+        'play': play,
+        'configuration_ref': configuration,
+        'configuration_secure_ref': configuration_secure,
+        'vars': ansible_vars,
+    }
+
+    return db.amis.find_one(ami_signature)
 
 import requests
 def notify_abby(abby_url, abby_token, deployment, all_plays):
@@ -166,9 +190,6 @@ def notify_abby(abby_url, abby_token, deployment, all_plays):
         for env, ami in play['amis'].items():
             log.info("{}:{}".format(env,ami))
             if ami is None:
-                log.info("No AMI for {} {} {}.".format(
-                    play_name, env, deployment))
-                # TODO: Check if an ami exists for this configuration.
                 params = []
                 params.append({ 'name': 'play', 'value': play_name})
                 params.append({ 'name': 'deployment', 'value': deployment})
@@ -177,7 +198,10 @@ def notify_abby(abby_url, abby_token, deployment, all_plays):
                 build_params = {'parameter': params}
 
                 log.info("Need ami for {}".format(pformat(build_params)))
-                r = requests.post(abby_url, data={"token": abby_token}, params={"json": json.dumps(build_params)})
+                r = requests.post(abby_url,
+                                  data={"token": abby_token},
+                                  params={"json": json.dumps(build_params)})
+
                 log.info("Sent request got {}".format(r))
                 if r.status_code != 201:
                     # Something went wrong.
