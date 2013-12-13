@@ -168,7 +168,7 @@ def prepare_release(args):
     release['plays'] = all_plays
     release_coll.insert(release)
     # All plays that need new AMIs have been updated.
-    notify_abby(config['abby_url'], config['abby_token'], args.deployment, all_plays)
+    notify_abby(config['abby_url'], config['abby_token'], args.deployment, all_plays, args.release_id)
 
 def ami_for(db, env, deployment, play, configuration,
     configuration_secure, ansible_vars):
@@ -185,7 +185,7 @@ def ami_for(db, env, deployment, play, configuration,
     return db.amis.find_one(ami_signature)
 
 import requests
-def notify_abby(abby_url, abby_token, deployment, all_plays):
+def notify_abby(abby_url, abby_token, deployment, all_plays, release_id):
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             log.info("{}:{}".format(env,ami))
@@ -195,6 +195,7 @@ def notify_abby(abby_url, abby_token, deployment, all_plays):
                 params.append({ 'name': 'deployment', 'value': deployment})
                 params.append({ 'name': 'environment', 'value': env})
                 params.append({ 'name': 'vars', 'value': json.dumps(play['vars'])})
+                params.append({ 'name': 'release_id', 'value': release_id})
                 build_params = {'parameter': params}
 
                 log.info("Need ami for {}".format(pformat(build_params)))
