@@ -12,18 +12,29 @@ from pymongo import MongoClient, DESCENDING
 from stage_release import flip_repos, uri_from
 
 def releases(repo):
+    """
+    Yield a list of all release candidates from the origin.
+    """
     for ref in repo.refs:
         if ref.name.startswith('origin/rc/'):
             yield ref
 
 def candidates_since(repo, time):
+    """
+    Given a repo yield a list of release candidate refs that have a
+    commit on them after the passed in time
+    """
     for rc in releases(repo):
         last_update = datetime.utcfromtimestamp(rc.commit.committed_date)
         if last_update > time:
-            # New RC or updated RC
+            # New or updated RC
             yield rc
 
 def stage_release(url, token, repo, rc):
+    """
+    Submit a job to stage a new release for the new rc of the repo.
+    """
+    # Setup the Jenkins params.
     params = []
     params.append({'name': "{}_REF".format(repo), 'value': True})
     params.append({'name': repo, 'value': rc.commit.hexsha})
@@ -53,6 +64,7 @@ if __name__ == "__main__":
     else:
         data = {}
 
+    # Presist the last time we made this check.
     if 'last_check' not in data:
         last_check = datetime.utcnow()
     else:
