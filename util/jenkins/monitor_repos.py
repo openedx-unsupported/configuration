@@ -9,7 +9,7 @@ from git import Repo
 from os import path
 from pprint import pformat
 from pymongo import MongoClient, DESCENDING
-from stage_release import flip_repos, uri_from
+from stage_release import uri_from
 
 def releases(repo):
     """
@@ -72,7 +72,6 @@ if __name__ == "__main__":
 
     data['last_check'] = datetime.utcnow()
 
-    all_plays = flip_repos(config['repos'])
     # Find plays that are affected by this repo.
     repos_with_changes = {}
     for repo in config['repos']:

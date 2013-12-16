@@ -81,20 +81,6 @@ def uri_from(doc_store_config):
         hosts=",".join(host_uris),
         db=doc_store_config['db'])
 
-def flip_repos(repos):
-    """ Take a dict mapping repos to plays and give a dict mapping plays to repos. """
-    all_plays = {}
-    for repo in repos:
-        plays = repos[repo]['plays']
-        for play in plays:
-            if play in all_plays:
-                all_plays[play]['repos'].append(repo)
-            else:
-                all_plays[play] = {}
-                all_plays[play]['repos'] = [repo]
-
-    return all_plays
-
 def prepare_release(args):
     config = yaml.safe_load(open(args.config))
     client = MongoClient(uri_from(config['DOC_STORE_CONFIG']))
@@ -108,8 +94,6 @@ def prepare_release(args):
     var_array = map(lambda key_value: key_value.split('='), args.REPOS)
     update_repos = { item[0]:item[1] for item in var_array }
     log.info("Update repos: {}".format(pformat(update_repos)))
-
-    all_plays = flip_repos(config['repos'])
 
     release = {}
     now = datetime.utcnow()
@@ -188,7 +172,6 @@ import requests
 def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id):
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
-            log.info("{}:{}".format(env,ami))
             if ami is None:
                 params = []
                 params.append({ 'name': 'play', 'value': play_name})
