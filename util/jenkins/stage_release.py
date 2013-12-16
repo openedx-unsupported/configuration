@@ -41,8 +41,8 @@ deployments:
     - stage
 
 # A jenkins URL to post requests for building AMIs
-abby_url: "http://...."
-abby_token: "API_TOKEN"
+abbey_url: "http://...."
+abbey_token: "API_TOKEN"
 ---
 """
 import argparse
@@ -168,7 +168,7 @@ def prepare_release(args):
     release['plays'] = all_plays
     release_coll.insert(release)
     # All plays that need new AMIs have been updated.
-    notify_abby(config['abby_url'], config['abby_token'], args.deployment, all_plays, args.release_id)
+    notify_abbey(config['abbey_url'], config['abbey_token'], args.deployment, all_plays, args.release_id)
 
 def ami_for(db, env, deployment, play, configuration,
     configuration_secure, ansible_vars):
@@ -185,7 +185,7 @@ def ami_for(db, env, deployment, play, configuration,
     return db.amis.find_one(ami_signature)
 
 import requests
-def notify_abby(abby_url, abby_token, deployment, all_plays, release_id):
+def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id):
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             log.info("{}:{}".format(env,ami))
@@ -199,8 +199,8 @@ def notify_abby(abby_url, abby_token, deployment, all_plays, release_id):
                 build_params = {'parameter': params}
 
                 log.info("Need ami for {}".format(pformat(build_params)))
-                r = requests.post(abby_url,
-                                  data={"token": abby_token},
+                r = requests.post(abbey_url,
+                                  data={"token": abbey_token},
                                   params={"json": json.dumps(build_params)})
 
                 log.info("Sent request got {}".format(r))

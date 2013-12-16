@@ -79,6 +79,6 @@ if __name__ == "__main__":
         # Check for new rc candidates.
         for rc in candidates_since(Repo(repo), last_check):
             # Notify stage-release to build for the new repo.
-            stage_release(config['abby_url'], config['abby_token'], repo, rc)
+            stage_release(config['abbey_url'], config['abbey_token'], repo, rc)
 
     pickle.dump(data, open(args.pickle, 'w'))
