@@ -1,0 +1,63 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Tasks for role ansible
+#
+# Overview:
+#
+# This is an ansible role that installs ansible :)
+# The purpose is to install ansible on a server so
+# that it can be updated locally.
+#
+# This role will also drop some helper scripts that
+# for running ansible tasks
+#
+# Example play:
+#
+#
+#
+- name: ansible | create application user
+  user: >
+    name="{{ ansible_user }}"
+    home="{{ ansible_app_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: ansible | create ansible app and venv dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ ansible_user }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ ansible_app_dir }}"
+    - "{{ ansible_venvs_dir }}"
+
+- name: ansible | install a bunch of system packages on which ansible relies
+  apt: pkg={{','.join(ansible_debian_pkgs)}} state=present
+
+- name: ansible | git checkout ansible repo into ansible_code_dir
+  git: dest={{ ansible_code_dir }} repo={{ ansible_source_repo }} version={{ ansible_version }}
+  sudo_user: "{{ ansible_user }}"
+
+- name : ansible | install ansible venv requirements
+  pip: requirements="{{ ansible_requirements_file }}" virtualenv="{{ ansible_venv_dir }}" state=present
+  sudo_user: "{{ ansible_user }}"
+
+- name: ansible | create update script
+  template: >
+    dest={{ ansible_app_dir}}/update
+    src=update owner=ansible group=ansible mode=755
+
+- name: edxapp | create a symlink for update.sh
+  file: >
+    src={{ ansible_app_dir }}/update
+    dest={{ COMMON_BIN_DIR }}/update
+    state=link
