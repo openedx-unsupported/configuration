@@ -20,7 +20,7 @@ IFS=$SAVE_IFS
 }
 
 declare -A repos_to_cmd
-edx_ansible_cmd="edx_ansible-playbook -c local -vvvv --tags deploy"
+edx_ansible_cmd="{{ edx_ansible_venv_bin}}/ansible-playbook -i localhost, -c local -vvvv --tags deploy"
 repos_to_cmd["edx-platform"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2'"
 repos_to_cmd["xqueue"]="$edx_ansible_cmd xqueue.yml -e 'xqueue_version=$2'"
 repos_to_cmd["forums"]="$edx_ansible_cmd forums.yml -e 'forum_version=$2'"
@@ -43,16 +43,17 @@ while getopts "vh" opt; do
   esac
 done
 
-if [[ -z ${repos_to_cmd[$1]} ]]; then
+
+if [[ -z $1 || -z $2 ]]; then
     echo
-    echo "ERROR: Invalid repo name"
+    echo "ERROR: You must specify a repo and commit"
     usage
     exit 1
 fi
 
-if [[ -z $2 ]]; then
+if [[ -z ${repos_to_cmd[$1]} ]]; then
     echo
-    echo "ERROR: You must specify a commit or tag"
+    echo "ERROR: Invalid repo name"
     usage
     exit 1
 fi
