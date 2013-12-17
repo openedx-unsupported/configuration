@@ -117,7 +117,7 @@ def prepare_release(args):
 
     # For all repos that were updated
     for repo, ref in update_repos.items():
-        var_name = "{}_version".format(repo)
+        var_name = "{}_version".format(repo.replace('-','_'))
         if repo not in config['repos']:
             raise Exception("No info for repo with name '{}'".format(repo))
 
