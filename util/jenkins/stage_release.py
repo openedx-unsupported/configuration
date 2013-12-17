@@ -177,7 +177,7 @@ def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id):
                 params.append({ 'name': 'play', 'value': play_name})
                 params.append({ 'name': 'deployment', 'value': deployment})
                 params.append({ 'name': 'environment', 'value': env})
-                params.append({ 'name': 'vars', 'value': json.dumps(play['vars'])})
+                params.append({ 'name': 'vars', 'value': yaml.dump(play['vars'], default_flow_style=False)})
                 params.append({ 'name': 'release_id', 'value': release_id})
                 build_params = {'parameter': params}
 
