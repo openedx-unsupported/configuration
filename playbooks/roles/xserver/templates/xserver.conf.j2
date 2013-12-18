@@ -1,27 +1,13 @@
-# gunicorn
+[program:xserver]
 
-description "gunicorn server"
-author "Calen Pennington <cpennington@mitx.mit.edu>"
+command={{ xserver_venv_bin }}/gunicorn --preload -b {{ xserver_gunicorn_host }}:{{ xserver_gunicorn_port }} -w {{ xserver_gunicorn_workers }} --timeout=30 --pythonpath={{ xserver_code_dir }} pyxserver_wsgi:application
 
-start on started edxapp
-stop on stopped edxapp
+user={{ common_web_user }}
+directory={{ xserver_code_dir }}
 
-respawn
-respawn limit 3 30
+environment=PID=/var/tmp/xserver.pid,NEW_RELIC_CONFIG_FILE={{ xserver_app_dir }}/newrelic.ini,NEWRELIC={{ xserver_venv_dir }}/bin/newrelic-admin,PORT={{ xserver_gunicorn_port }},ADDRESS={{ xserver_gunicorn_host }},LANG={{ XSERVER_LANG }},DJANGO_SETTINGS_MODULE=xserver_aws_settings,SERVICE_VARIANT="xserver"
 
-env PID=/var/tmp/xserver.pid
-env NEW_RELIC_CONFIG_FILE={{ app_base_dir }}/newrelic.ini
-env NEWRELIC={{ venv_dir }}/bin/newrelic-admin
-env WORKERS={{ ansible_processor|length }}
-env PORT={{ xserver_gunicorn_port }}
-env ADDRESS={{ xserver_gunicorn_host }}
-env LANG=en_US.UTF-8
-env DJANGO_SETTINGS_MODULE=xserver_aws_settings
-env SERVICE_VARIANT="xserver"
-
-
-chdir {{ xserver_code_dir }}
-setuid www-data
-
-exec {{ venv_dir }}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=30 --pythonpath={{ xserver_code_dir }} pyxserver_wsgi:application
-
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
+killasgroup=true
+stopasgroup=true

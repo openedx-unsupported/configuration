@@ -21,6 +21,7 @@ EDXAPP_XQUEUE_BASIC_AUTH: [ 'edx', 'edx' ]
 EDXAPP_XQUEUE_DJANGO_AUTH:
   username: 'lms'
   password: 'password'
+EDXAPP_XQUEUE_URL: 'http://localhost:18040'
 
 EDXAPP_MONGO_HOSTS: ['localhost']
 EDXAPP_MONGO_PASSWORD: 'password'
@@ -46,7 +47,7 @@ EDXAPP_EDXAPP_SECRET_KEY: ''
 
 EDXAPP_PEARSON_TEST_PASWORD: ''
 
-EDXAPP_OEE_URL: 'http://localhost:18091/'
+EDXAPP_OEE_URL: 'http://localhost:18060/'
 EDXAPP_OEE_USER: 'lms'
 EDXAPP_OEE_PASSWORD: 'password'
 
@@ -54,7 +55,9 @@ EDXAPP_ANALYTICS_API_KEY:  ''
 EDXAPP_ZENDESK_USER: ''
 EDXAPP_ZENDESK_API_KEY: ''
 EDXAPP_CELERY_USER: 'celery'
-EDXAPP_CELERY_PASSWORD: ''
+EDXAPP_CELERY_PASSWORD: 'celery'
+
+EDXAPP_PLATFORM_NAME: 'edX'
 
 EDXAPP_MITX_FEATURES:
   AUTH_USE_OPENID_PROVIDER: true
@@ -67,7 +70,10 @@ EDXAPP_MITX_FEATURES:
   PREVIEW_LMS_BASE: $EDXAPP_PREVIEW_LMS_BASE
 
 EDXAPP_BOOK_URL: ''
-EDXAPP_SITE_NAME: 'example.com'
+# This needs to be set to localhost
+# if xqueue is run on the same server
+# as the lms (it's sent in the request)
+EDXAPP_SITE_NAME: 'localhost'
 EDXAPP_MEDIA_URL:  ''
 EDXAPP_ANALYTICS_SERVER_URL:  ''
 EDXAPP_FEEDBACK_SUBMISSION_EMAIL: ''
@@ -75,16 +81,30 @@ EDXAPP_CELERY_BROKER_HOSTNAME: ''
 EDXAPP_LOGGING_ENV:  'sandbox'
 
 EDXAPP_SYSLOG_SERVER: ''
-EDXAPP_RABBIT_HOSTNAME: 'rabbit.{{ENV_NAME}}.vpc.edx.org'
+EDXAPP_RABBIT_HOSTNAME: 'localhost'
 EDXAPP_XML_MAPPINGS: {}
 
-EDXAPP_LMS_NGINX_PORT: 80
+EDXAPP_LMS_NGINX_PORT: 18000
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 18020
 EDXAPP_CMS_NGINX_PORT: 18010
 
 EDXAPP_LMS_BASIC_AUTH: False
 EDXAPP_CMS_BASIC_AUTH: False
 EDXAPP_LMS_PREVIEW_BASIC_AUTH: False
+EDXAPP_LANG: 'en_US.UTF-8'
+EDXAPP_TIME_ZONE: 'America/New_York'
+
+EDXAPP_TECH_SUPPORT_EMAIL: ''
+EDXAPP_CONTACT_EMAIL: ''
+EDXAPP_BUGS_EMAIL: ''
+EDXAPP_DEFAULT_FROM_EMAIL: ''
+EDXAPP_DEFAULT_FEEDBACK_EMAIL: ''
+EDXAPP_SERVER_EMAIL: ''
+EDXAPP_BULK_EMAIL_DEFAULT_FROM_EMAIL: ''
+
+EDXAPP_ENV_EXTRA: {}
+EDXAPP_AUTH_EXTRA: {}
+EDXAPP_MKTG_URL_LINK_MAP: {}
 
 # whether to setup the python sandbox or not
 EDXAPP_PYTHON_SANDBOX: false
@@ -101,6 +121,83 @@ COMMON_WEB_GROUP: 'www-data'
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
 #see http://atechie.net/2009/07/merging-hashes-in-yaml-conf-files/
+
+edxapp_data_dir: "{{ COMMON_DATA_DIR }}/edxapp"
+edxapp_app_dir: "{{ COMMON_APP_DIR }}/edxapp"
+edxapp_log_dir: "{{ COMMON_LOG_DIR }}/edxapp"
+edxapp_venvs_dir: "{{ edxapp_app_dir }}/venvs"
+edxapp_venv_dir: "{{ edxapp_venvs_dir }}/edxapp"
+edxapp_venv_bin: "{{ edxapp_venv_dir }}/bin"
+edxapp_rbenv_dir: "{{ edxapp_app_dir }}"
+edxapp_rbenv_root: "{{ edxapp_rbenv_dir }}/.rbenv"
+edxapp_rbenv_shims: "{{ edxapp_rbenv_root }}/shims"
+edxapp_rbenv_bin: "{{ edxapp_rbenv_root }}/bin"
+edxapp_gem_root: "{{ edxapp_rbenv_dir }}/.gem"
+edxapp_gem_bin: "{{ edxapp_gem_root }}/bin"
+edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_rbenv_bin }}:{{ edxapp_rbenv_shims }}:{{ edxapp_gem_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
+edxapp_course_data_dir: "{{ edxapp_data_dir }}/data"
+edxapp_upload_dir: "{{ edxapp_data_dir }}/uploads"
+edxapp_theme_dir: "{{ edxapp_data_dir }}/themes"
+edxapp_pypi_local_mirror: "http://localhost:{{ devpi_port }}/root/pypi/+simple"
+edxapp_workers:
+  - queue: low
+    service_variant: cms
+    concurrency: 3
+  - queue: default
+    service_variant: cms
+    concurrency: 4
+  - queue: high
+    service_variant: cms
+    concurrency: 1
+  - queue: low
+    service_variant: lms
+    concurrency: 1
+  - queue: default
+    service_variant: lms
+    concurrency: 3
+  - queue: high
+    service_variant: lms
+    concurrency: 4
+  - queue: high_mem
+    service_variant: lms
+    concurrency: 2
+
+# Requirement files we explicitely
+# check for changes before attempting
+# to update the venv
+edxapp_chksum_req_files:
+  - "{{ pre_requirements_file }}"
+  - "{{ post_requirements_file }}"
+  - "{{ base_requirements_file }}"
+  - "{{ sandbox_post_requirements }}"
+  - "{{ sandbox_base_requirements }}"
+
+# all edxapp requirements files
+edxapp_all_req_files:
+  - "{{ pre_requirements_file }}"
+  - "{{ post_requirements_file }}"
+  - "{{ base_requirements_file }}"
+  - "{{ repo_requirements_file }}"
+  - "{{ github_requirements_file }}"
+  - "{{ sandbox_post_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_base_requirements }}"
+
+
+# TODO: old style variable syntax is necessary
+# for lists and dictionaries
+
+edxapp_environment:
+  LANG: $EDXAPP_LANG
+  NO_PREREQ_INSTALL: 1
+  SKIP_WS_MIGRATIONS: 1
+  RBENV_ROOT: $edxapp_rbenv_root
+  GEM_HOME: $edxapp_gem_root
+  GEM_PATH: $edxapp_gem_root
+  PATH: $edxapp_deploy_path
+
+
 edxapp_generic_auth_config:  &edxapp_generic_auth
   AWS_ACCESS_KEY_ID:  $EDXAPP_AWS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY: $EDXAPP_AWS_SECRET_ACCESS_KEY
@@ -136,7 +233,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         collection:  'modulestore'
         db:  $EDXAPP_MONGO_DB_NAME
         default_class:  'xmodule.hidden_module.HiddenDescriptor'
-        fs_root:  '/opt/wwc/data'
+        fs_root:  $edxapp_course_data_dir
         host: $EDXAPP_MONGO_HOSTS
         password:  $EDXAPP_MONGO_PASSWORD
         port: $EDXAPP_MONGO_PORT
@@ -171,9 +268,11 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   CELERY_BROKER_PASSWORD: $EDXAPP_CELERY_PASSWORD
 
 generic_env_config:  &edxapp_generic_env
+  STATIC_ROOT_BASE: $edxapp_staticfile_dir
   LMS_BASE: $EDXAPP_LMS_BASE
   CMS_BASE: $EDXAPP_CMS_BASE
   BOOK_URL:  $EDXAPP_BOOK_URL
+  PLATFORM_NAME: $EDXAPP_PLATFORM_NAME
   CERT_QUEUE:  'certificates'
   LOCAL_LOGLEVEL: $EDXAPP_LOG_LEVEL
   # default email backed set to local SMTP
@@ -182,11 +281,12 @@ generic_env_config:  &edxapp_generic_env
   WIKI_ENABLED: true
   SYSLOG_SERVER:  $EDXAPP_SYSLOG_SERVER
   SITE_NAME:  $EDXAPP_SITE_NAME
-  LOG_DIR:  "{{ storage_base_dir }}/logs/edx"
+  LOG_DIR:  "{{ COMMON_DATA_DIR }}/logs/edx"
   MEDIA_URL:  $EDXAPP_MEDIA_URL
   ANALYTICS_SERVER_URL:  $EDXAPP_ANALYTICS_SERVER_URL
   FEEDBACK_SUBMISSION_EMAIL: $EDXAPP_FEEDBACK_SUBMISSION_EMAIL
-  TIME_ZONE: 'America/New_York'
+  TIME_ZONE: $EDXAPP_TIME_ZONE
+  MKTG_URL_LINK_MAP: $EDXAPP_MKTG_URL_LINK_MAP
   CACHES:
     default: &default_generic_cache
       BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
@@ -212,10 +312,19 @@ generic_env_config:  &edxapp_generic_env
   SESSION_COOKIE_DOMAIN:  !!null
   COMMENTS_SERVICE_KEY: $EDXAPP_COMMENTS_SERVICE_KEY
   SEGMENT_IO_LMS: true
+  THEME_NAME: $edxapp_theme_name
+  TECH_SUPPORT_EMAIL: $EDXAPP_TECH_SUPPORT_EMAIL
+  CONTACT_EMAIL: $EDXAPP_CONTACT_EMAIL
+  BUGS_EMAIL: $EDXAPP_BUGS_EMAIL
   CODE_JAIL:
     limits:
       VMEM: 0
       REALTIME: 3
+  DEFAULT_FROM_EMAIL: $EDXAPP_DEFAULT_FROM_EMAIL
+  DEFAULT_FEEDBACK_EMAIL: $EDXAPP_DEFAULT_FEEDBACK_EMAIL
+  SERVER_EMAIL: $EDXAPP_DEFAULT_SERVER_EMAIL
+  BULK_EMAIL_DEFAULT_FROM_EMAIL: $EDXAPP_BULK_EMAIL_DEFAULT_FROM_EMAIL
+
 
 lms_auth_config:
   <<: *edxapp_generic_auth
@@ -228,7 +337,7 @@ lms_auth_config:
           xml:
             ENGINE: 'xmodule.modulestore.xml.XMLModuleStore'
             OPTIONS:
-              data_dir: '/opt/wwc/data'
+              data_dir: $edxapp_course_data_dir
               default_class: 'xmodule.hidden_module.HiddenDescriptor'
           default:
             OPTIONS:
@@ -240,7 +349,7 @@ lms_auth_config:
               user: $EDXAPP_MONGO_USER
               password: $EDXAPP_MONGO_PASSWORD
               port: $EDXAPP_MONGO_PORT
-              fs_root: '/opt/wwc/data'
+              fs_root: $edxapp_course_data_dir
             ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
             DOC_STORE_CONFIG: *edxapp_generic_default_docstore
 
@@ -260,7 +369,7 @@ lms_preview_env_config:
 
 
 # install dir for the edx-platform repo
-edx_platform_code_dir: "{{ app_base_dir }}/edx-platform"
+edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
 
 # sandbox command
 edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
@@ -285,6 +394,7 @@ service_variants_enabled:
   - cms
 
 edxapp_lms_env: 'lms.envs.aws'
+edxapp_cms_env: 'cms.envs.aws'
 
 edxapp_user: '{{ EDXAPP_USER }}'
 common_web_group: '{{ COMMON_WEB_GROUP }}'
@@ -295,30 +405,35 @@ worker_core_mult:
   lms_preview: 2
   cms: 2
 
-#Theming
-#To turn off theming, specify edxapp_theme_name: ''
-#Stanford, for example, uses edxapp_theme_name: 'stanford'
-edxapp_theme_name: ''
-edxapp_theme_source_repo: 'https://{{ GIT_MIRROR }}/Stanford-Online/edx-theme.git'
+# Theming
+# To turn off theming, specify edxapp_theme_name: ""
+# Stanford, for example, uses edxapp_theme_name: 'stanford'
+#
+edxapp_theme_name: ""
+edxapp_theme_source_repo: 'https://{{ COMMON_GIT_MIRROR }}/Stanford-Online/edx-theme.git'
 edxapp_theme_version: 'HEAD'
 
 # make this the public URL instead of writable
-edx_platform_repo: "https://{{ GIT_MIRROR }}/edx/edx-platform.git"
+edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
 # `edx_platform_commit` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
 edx_platform_commit: 'release'
-local_requirements_file:  "{{ edx_platform_code_dir }}/requirements/edx/local.txt"
-pre_requirements_file:    "{{ edx_platform_code_dir }}/requirements/edx/pre.txt"
-post_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/post.txt"
-base_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/base.txt"
-github_requirements_file: "{{ edx_platform_code_dir }}/requirements/edx/github.txt"
-repo_requirements_file:   "{{ edx_platform_code_dir }}/requirements/edx/repo.txt"
+local_requirements_file:  "{{ edxapp_code_dir }}/requirements/edx/local.txt"
+pre_requirements_file:    "{{ edxapp_code_dir }}/requirements/edx/pre.txt"
+post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
+base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
+github_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/github.txt"
+repo_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/repo.txt"
 
-sandbox_base_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/base.txt"
-sandbox_local_requirements: "{{ edx_platform_code_dir }}/requirements/edx-sandbox/local.txt"
-sandbox_post_requirements:  "{{ edx_platform_code_dir }}/requirements/edx-sandbox/post.txt"
+sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
+sandbox_local_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/local.txt"
+sandbox_post_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/post.txt"
 
-lms_debian_pkgs:
+#do we want to install the sandbox requirements into the regular virtual env
+install_sandbox_reqs_into_regular_venv: true
+
+edxapp_debian_pkgs:
+  - npm
   # for compiling the virtualenv
   # (only needed if wheel files aren't available)
   - build-essential
@@ -347,22 +462,15 @@ lms_debian_pkgs:
   - libgeos-dev
 
 # Ruby Specific Vars
-ruby_base: /opt/www
-rbenv_root: "{{ ruby_base }}/.rbenv"
-ruby_version: "1.9.3-p374"
-gem_home: "{{ ruby_base }}/.gem"
+edxapp_ruby_version: "1.9.3-p374"
 
 # Deploy Specific Vars
-lms_variant: lms
-cms_variant: cms
-
-deploy_environment:
-  LANG: "en_US.UTF-8"
-  NO_PREREQ_INSTALL: 1
-  SKIP_WS_MIGRATIONS: 1
-  RBENV_ROOT: "{{ rbenv_root }}"
-  GEM_HOME: "{{ gem_home }}"
-  PATH: "{{ venv_dir }}/bin:{{ edx_platform_code_dir }}/bin:{{ rbenv_root }}/bin:{{ rbenv_root }}/shims:{{ gem_home }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+edxapp_lms_variant: lms
+edxapp_cms_variant: cms
 
 # Worker Settings
 worker_django_settings_module: 'aws'
+
+# Skip supervisor tasks
+# Useful when supervisor is not installed (local dev)
+devstack: False

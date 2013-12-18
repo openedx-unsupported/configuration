@@ -1,29 +1,58 @@
 ---
 
-- name: forum | stop the forum service
-  service: name=cs_comments_service state=stopped
-  tags:
-  - deploy
+- name: forum | create the supervisor config
+  template: >
+    src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
+    owner={{ supervisor_user }}
+    mode=0644
+  sudo_user: "{{ supervisor_user }}"
+  when: not devstack
+  register: forum_supervisor
+  tags: deploy
+
+- name: forum | create the supervisor wrapper
+  template: >
+    src={{ forum_supervisor_wrapper|basename }}.j2
+    dest={{ forum_supervisor_wrapper }}
+    mode=0755
+  sudo_user: "{{ forum_user }}"
+  when: not devstack
+  notify: forum | restart the forum service
+  tags: deploy
 
 - name:  forum | git checkout forum repo into {{ forum_code_dir }}
   git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
-  sudo: yes
   sudo_user: "{{ forum_user }}"
-  notify: 
-    - forum | restart the forum service
-  tags:
-  - forum
-  - deploy
+  notify: forum | restart the forum service
+  tags: deploy
 
+# TODO: This is done as the common_web_user
+# since the process owner needs write access
+# to the rbenv
 - name: forum | install comments service bundle
-  shell: executable=/bin/bash {{ forum_home }}/.rbenv/shims/bundle install chdir={{ forum_code_dir }}
-  sudo: yes
-  sudo_user: "{{ forum_user }}"
-  tags:
-  - forum
-  - deploy
+  shell: bundle install chdir={{ forum_code_dir }}
+  sudo_user: "{{ common_web_user }}"
+  environment: "{{ forum_environment }}"
+  notify: forum | restart the forum service
+  tags: deploy
 
-- name: forum | restart the forum service
-  service: name=cs_comments_service state=restarted
-  tags:
-  - deploy
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: forum | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  when: not devstack
+  tags: deploy
+
+- name: forum | ensure forum is started
+  supervisorctl: >
+    name=forum
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  when: not devstack
+  tags: deploy

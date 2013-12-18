@@ -4,22 +4,23 @@
 XQUEUE_NGINX_PORT: 18040
 XQUEUE_BASIC_AUTH: False
 
-xqueue_code_dir: "{{ app_base_dir }}/xqueue"
+xqueue_app_dir: "{{ COMMON_APP_DIR }}/xqueue"
+xqueue_code_dir: "{{ xqueue_app_dir }}/xqueue"
+xqueue_data_dir: "{{ COMMON_DATA_DIR }}/xqueue"
+xqueue_venvs_dir: "{{ xqueue_app_dir }}/venvs"
+xqueue_venv_dir: "{{ xqueue_venvs_dir }}/xqueue"
+xqueue_venv_bin: "{{ xqueue_venv_dir }}/bin"
+xqueue_user: "xqueue"
 
 # Default nginx listen port
 # These should be overrided if you want
 # to serve all content on port 80
-xqueue_code_dir: "{{ app_base_dir }}/xqueue"
 xqueue_gunicorn_port: 8040
 xqueue_gunicorn_host: 127.0.0.1
 
-xqueue_user: "xqueue"
-xqueue_user_home: "/opt/xqueue"
-xqueue_venv_dir: "{{ xqueue_user_home }}/virtualenvs/{{ xqueue_user }}"
-
 XQUEUE_QUEUES:
   # push queue
-  'edX-DemoX': 'http://localhost:18050'
+  'edX-Open_DemoX': 'http://localhost:18050'
   # pull queues
   'test-pull': !!null
   'certificates': !!null
@@ -31,12 +32,14 @@ XQUEUE_S3_PATH_PREFIX: 'sandbox-xqueue'
 XQUEUE_LOCAL_LOGLEVEL: 'INFO'
 XQUEUE_AWS_ACCESS_KEY_ID : ''
 XQUEUE_AWS_SECRET_ACCESS_KEY : ''
-XQUEUE_BASIC_AUTH: ['edx', 'edx']
+XQUEUE_BASIC_AUTH_USER: 'edx'
+XQUEUE_BASIC_AUTH_PASSWORD: 'edx'
 XQUEUE_DJANGO_USER: 'lms'
 XQUEUE_DJANGO_PASSWORD: 'password'
 XQUEUE_RABBITMQ_USER: 'edx'
 XQUEUE_RABBITMQ_PASS: 'edx'
 XQUEUE_RABBITMQ_HOSTNAME: 'localhost'
+XQUEUE_LANG: 'en_US.UTF-8'
 
 XQUEUE_MYSQL_DB_NAME: 'xqueue'
 XQUEUE_MYSQL_USER: 'root'
@@ -47,18 +50,18 @@ XQUEUE_MYSQL_PORT: '3306'
 xqueue_env_config:
   XQUEUES: $XQUEUE_QUEUES
   XQUEUE_WORKERS_PER_QUEUE: 12
-  LOGGING_ENV: $XQUEUE_LOGGING_ENV
+  LOGGING_ENV : $XQUEUE_LOGGING_ENV
   SYSLOG_SERVER: $XQUEUE_SYSLOG_SERVER
-  LOG_DIR: "{{ storage_base_dir }}/logs/xqueue"
-  RABBIT_HOST: $XQUEUE_RABBITMQ_HOSTNAME
-  S3_BUCKET: $XQUEUE_S3_BUCKET
+  LOG_DIR : "{{ COMMON_DATA_DIR }}/logs/xqueue"
+  RABBIT_HOST : $XQUEUE_RABBITMQ_HOSTNAME
+  S3_BUCKET : $XQUEUE_S3_BUCKET
   S3_PATH_PREFIX: $XQUEUE_S3_PATH_PREFIX
   LOCAL_LOGLEVEL: $XQUEUE_LOCAL_LOGLEVEL
 
 xqueue_auth_config:
   AWS_ACCESS_KEY_ID:  $XQUEUE_AWS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY: $XQUEUE_AWS_SECRET_ACCESS_KEY
-  REQUESTS_BASIC_AUTH: $XQUEUE_BASIC_AUTH
+  REQUESTS_BASIC_AUTH: [$XQUEUE_BASIC_AUTH_USER, $XQUEUE_BASIC_AUTH_PASSWORD]
   USERS: { '{{XQUEUE_DJANGO_USER}}' : $XQUEUE_DJANGO_PASSWORD }
   DATABASES:
     default:

@@ -3,47 +3,34 @@
 #  - common/tasks/main.yml
 ---
 # Check out xqueue repo to {{xqueue_code_dir}}
-- name: xqueue | install git and its recommends
-  apt: pkg=git state=present install_recommends=yes 
-  tags:
-  - xqueue
+#
+#
+
+- name: xqueue | create application user
+  user: >
+    name="{{ xqueue_user }}"
+    home="{{ xqueue_app_dir }}"
+    createhome=no
+    shell=/bin/false
+  notify:
+    - xqueue | restart xqueue
+
+- name: xqueue | create xqueue app and venv dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ xqueue_user }}"
+    group="{{ common_web_group }}"
+  notify:
+    - xqueue | restart xqueue
+  with_items:
+    - "{{ xqueue_app_dir }}"
+    - "{{ xqueue_venvs_dir }}"
 
 - name: xqueue | install a bunch of system packages on which xqueue relies
   apt: pkg={{','.join(xqueue_debian_pkgs)}} state=present
   notify:
   - xqueue | restart xqueue
-  - xqueue | restart xqueue consumer
-  tags:
-  - xqueue
-
-- name: xqueue | create {{ xqueue_user_home }}
-  # workaround for the case where the parent
-  # directory doesn't exist
-  file: >
-    path={{ xqueue_user_home }}
-    state=directory
-
-- name: xqueue | create xqueue user {{ xqueue_user }}
-  user: >
-    name={{ xqueue_user }}
-    state=present
-    shell=/bin/bash
-    home={{ xqueue_user_home }}
-    createhome=yes
-  ignore_errors: true
-  tags:
-  - forum
-  - update
-
-- name: xqueue | ensure homedir permissions {{ xqueue_user_home }}
-  # workaround for the case where the parent
-  # directory doesn't exist
-  file: >
-    path={{ xqueue_user_home }}
-    owner={{ xqueue_user }}
-    group={{ xqueue_user }}
-    state=directory
-    recurse=yes
 
 - name: xqueue | create xqueue db
   mysql_db: >
@@ -53,21 +40,20 @@
     login_password={{xqueue_auth_config.DATABASES.default.PASSWORD}}
     state=present
     encoding=utf8
+  notify:
+  - xqueue | restart xqueue
   when: xqueue_create_db is defined and xqueue_create_db|lower == "yes"
 
-- name: xqueue | creating xqueue upstart script
-  template: src=xqueue.conf.j2 dest=/etc/init/xqueue.conf mode=0640 owner=root group=adm
-  tags:
-  - xqueue
-  - deploy
-
-- name: xqueue | create xqueue consumer upstart script
-  template: src=xqueue_consumer.conf.j2 dest=/etc/init/xqueue_consumer.conf mode=0640 owner=root group=adm
-  tags:
-  - xqueue
-  - deploy
-
-
-
-
 - include: deploy.yml
+
+- name: xqueue | create a symlink for venv python
+  file: >
+    src="{{ xqueue_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.xqueue
+    state=link
+  with_items:
+  - python
+  - pip
+
+
+

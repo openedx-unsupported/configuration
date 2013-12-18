@@ -19,8 +19,16 @@
 - name: Configure instance(s)
   hosts: launched
   sudo: True
-  gather_facts: True
+  gather_facts: False
+  pre_tasks:
+    - name: Wait for cloud-init to finish
+      wait_for: >
+        path=/var/log/cloud-init.log
+        timeout=15
+        search_regex="final-message"
   roles:
+    # rerun common to set the hostname
+    - common
     # gh_users hash must be passed
     # in as a -e variable
     - gh_users

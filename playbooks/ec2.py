@@ -269,7 +269,8 @@ class Ec2Inventory(object):
  
             reservations = conn.get_all_instances()
             for reservation in reservations:
-                for instance in reservation.instances:
+                instances = sorted(reservation.instances)
+                for instance in instances:
                     self.add_instance(instance, region)
         
         except boto.exception.BotoServerError as e:
@@ -363,6 +364,7 @@ class Ec2Inventory(object):
         for k, v in instance.tags.iteritems():
             key = self.to_safe("tag_" + k + "=" + v)
             self.push(self.inventory, key, dest)
+            self.keep_first(self.inventory, 'first_in_' + key, dest)
 
         # Inventory: Group by Route53 domain names if enabled
         if self.route53_enabled:
@@ -532,6 +534,9 @@ class Ec2Inventory(object):
         else:
             my_dict[key] = [element]
 
+    def keep_first(self, my_dict, key, element):
+        if key not in my_dict:
+            my_dict[key] = [element]
 
     def get_inventory_from_cache(self):
         ''' Reads the inventory from the cache file and returns it as a JSON

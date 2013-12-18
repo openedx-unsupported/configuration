@@ -5,40 +5,53 @@ XSERVER_NGINX_PORT: 18050
 XSERVER_BASIC_AUTH: False
 
 XSERVER_RUN_URL: ''
-XSERVER_GRADER_ROOT: ''
 XSERVER_LOGGING_ENV: 'sandbox'
 XSERVER_SYSLOG_SERVER: ''
-# by default do not check out the content
-# repo needed on the xserver for grading
-# python submissions, TODO: replace with an open
-# source repo
-XSERVER_GRADER_CHECKOUT: False
+# For 6.00x use "{{ xserver_data_dir }}/data/content-mit-600x~2012_Fall"
+XSERVER_GRADER_DIR: !!null
+# For 6.00x use "git@github.com:/MITx/6.00x.git"
+XSERVER_GRADER_SOURCE: !!null
+# This must be set to run this role
+# Example: "{{ secure_dir }}/files/git-identity"
+XSERVER_LOCAL_GIT_IDENTITY: !!null
+
+XSERVER_LANG: "en_US.UTF-8"
+
+# Internal role vars below this line
+
+xserver_app_dir: "{{ COMMON_APP_DIR }}/xserver"
+xserver_code_dir: "{{ xserver_app_dir }}/xserver"
+xserver_data_dir: "{{ COMMON_DATA_DIR }}/xserver"
+xserver_venvs_dir: "{{ xserver_app_dir }}/venvs"
+xserver_venv_dir: "{{ xserver_venvs_dir }}/xserver"
+xserver_venv_sandbox_dir: "{{ xserver_venv_dir }}-sandbox"
+xserver_venv_bin: "{{ xserver_venv_dir }}/bin"
+xserver_user: "xserver"
+xserver_sandbox_user: "xserver-sandbox"
+xserver_log_dir: "{{ COMMON_LOG_DIR }}/xserver"
+xserver_grader_root: "{{ XSERVER_GRADER_DIR }}/graders"
+xserver_git_identity: "{{ xserver_app_dir }}/{{ XSERVER_LOCAL_GIT_IDENTITY|basename }}"
 
 xserver_env_config:
   RUN_URL: $XSERVER_RUN_URL
-  GRADER_ROOT: $XSERVER_GRADER_ROOT
+  GRADER_ROOT: $xserver_grader_root
   LOGGING_ENV: $XSERVER_LOGGING_ENV
-  LOG_DIR: "{{ storage_base_dir }}/logs/xserver"
+  LOG_DIR: "{{ xserver_log_dir }}"
   SYSLOG_SERVER: $XSERVER_SYSLOG_SERVER
-  SANDBOX_PYTHON: '/opt/edx_apparmor_sandbox/bin/python'
+  SANDBOX_PYTHON: '{{ xserver_venv_sandbox_dir }}/bin/python'
 
-xserver_git_identity_path: "{{ secure_dir }}/files/git-identity"
-xserver_code_dir: "{{ app_base_dir }}/xserver"
 xserver_source_repo: "git://github.com/edx/xserver.git"
 # This should probably be overridden in the playbook or groupvars
 # with the default pointing to the head of master.
-xserver_version: HEAD
+xserver_version: master
+xserver_grader_version: master
 
-xserver_grader_dir: "{{ app_base_dir }}/data/content-mit-600x~2012_Fall"
-xserver_grader_source: "git@github.com:/MITx/6.00x.git"
-xserver_grader_version: HEAD
-
-xserver_sandbox_venv_dir: "{{ venv_dir }}_apparmor_sandbox"
 
 xserver_requirements_file: "{{ xserver_code_dir }}/requirements.txt"
 
 xserver_gunicorn_port: 8050
 xserver_gunicorn_host: 'localhost'
+xserver_gunicorn_workers: "{{ ansible_processor|length }}"
 
 xserver_debian_pkgs:
   - build-essential
@@ -50,3 +63,4 @@ xserver_debian_pkgs:
   - libxml2-utils
   - libxslt1-dev
   - python-dev
+  - apparmor-utils

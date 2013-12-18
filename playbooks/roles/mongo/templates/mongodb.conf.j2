@@ -9,11 +9,22 @@ logpath={{ mongo_logpath }}
 
 logappend={{ mongo_logappend }}
 
-bind_ip = {{ mongo_bind_ip }}
-#port = 27017
+{# Bind to all ips(default) if in clustered mode, 
+   otherwise only to the specified local ip.
+#}
+{% if mongo_clustered is not defined %}
+bind_ip = {{ MONGO_BIND_IP }}
+{% endif %}
+
+port = {{ mongo_port }}
 
 # Enable journaling, http://www.mongodb.org/display/DOCS/Journaling
 journal=true
+
+{% if MONGO_CLUSTERED %}
+keyFile = {{ mongo_key_file }}
+replSet = {{ mongo_repl_set }}
+{% endif %}
 
 # Enables periodic logging of CPU utilization and I/O wait
 #cpu = true

@@ -1,18 +1,13 @@
-# gunicorn
+[program:xqueue_consumer]
 
-description "xqueue server"
-author "devops <devops@edx.org>"
+command={{xqueue_venv_bin}}/django-admin.py run_consumer --pythonpath={{xqueue_code_dir}} --settings=xqueue.aws_settings $WORKERS_PER_QUEUE
 
-start on runlevel [2345]
-stop on runlevel [!2345]
+user={{ common_web_user }}
+directory={{ xqueue_code_dir }}
 
-respawn
-respawn limit 3 30
+environment=LANG={{ XQUEUE_LANG }},WORKERS_PER_QUEUE={{xqueue_env_config.XQUEUE_WORKERS_PER_QUEUE}},SERVICE_VARIANT="xqueue"
 
-env LANG=en_US.UTF-8
-env WORKERS_PER_QUEUE={{xqueue_env_config.XQUEUE_WORKERS_PER_QUEUE}}
-env SERVICE_VARIANT="xqueue"
-chdir {{xqueue_code_dir}}
-setuid {{ xqueue_user }}
-
-exec {{xqueue_venv_dir}}/bin/django-admin.py run_consumer --pythonpath={{xqueue_code_dir}} --settings=xqueue.aws_settings $WORKERS_PER_QUEUE
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
+killasgroup=true
+stopasgroup=true

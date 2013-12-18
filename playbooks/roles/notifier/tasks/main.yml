@@ -2,16 +2,16 @@
 
 #
 # notifier
-# 
+#
 # Overview:
-# 
-# Provides the edX notifier service, a service for sending 
+#
+# Provides the edX notifier service, a service for sending
 # notifications over messaging protocols.
 #
 # Dependencies:
 #
 #   * common
-# 
+#
 # Example play:
 #   roles:
 #   - common
@@ -19,153 +19,84 @@
 #
 - name: notifier | install notifier specific system packages
   apt: pkg={{','.join(notifier_debian_pkgs)}} state=present
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | check if incommon ca is installed
   command: test -e /usr/share/ca-certificates/incommon/InCommonServerCA.crt
   register: incommon_present
   ignore_errors: yes
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: common | create incommon ca directory
-  file: 
+  file:
     path="/usr/share/ca-certificates/incommon" mode=2775 state=directory
   when: incommon_present|failed
-  tags:
-  - notifier
-  - install
-  - update
-  - ubuntu
 
 - name: common | retrieve incommon server CA
   shell: curl https://www.incommon.org/cert/repository/InCommonServerCA.txt -o /usr/share/ca-certificates/incommon/InCommonServerCA.crt
   when: incommon_present|failed
-  tags:
-  - notifier
-  - install
-  - update
-  - ubuntu
 
 - name: common | add InCommon ca cert
   lineinfile:
     dest=/etc/ca-certificates.conf
-    regexp='incommon/InCommonServerCA.crt'    
+    regexp='incommon/InCommonServerCA.crt'
     line='incommon/InCommonServerCA.crt'
-  tags:
-  - notifier
-  - install
-  - update
-  - ubuntu
 
 - name: common | update ca certs globally
   shell: update-ca-certificates
-  tags:
-  - notifier
-  - install
-  - update
-  - ubuntu
 
 - name: notifier | create notifier user {{ NOTIFIER_USER }}
-  user: 
-    name={{ NOTIFIER_USER }} state=present shell=/bin/bash 
+  user:
+    name={{ NOTIFIER_USER }} state=present shell=/bin/bash
     home={{ NOTIFIER_HOME }} createhome=yes
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | setup the notifier env
-  template: 
-    src=notifier_env.j2 dest={{ NOTIFIER_HOME }}/notifier_env 
+  template:
+    src=notifier_env.j2 dest={{ NOTIFIER_HOME }}/notifier_env
     owner="{{ NOTIFIER_USER }}" group="{{ NOTIFIER_USER }}"
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | drop a bash_profile
   copy: >
-    src=../../common/files/bash_profile 
-    dest={{ NOTIFIER_HOME }}/.bash_profile 
-    owner={{ NOTIFIER_USER }} 
+    src=../../common/files/bash_profile
+    dest={{ NOTIFIER_HOME }}/.bash_profile
+    owner={{ NOTIFIER_USER }}
     group={{ NOTIFIER_USER }}
 
 - name: notifier | ensure .bashrc exists
   shell: touch {{ NOTIFIER_HOME }}/.bashrc
-  sudo: true  
+  sudo: true
   sudo_user: "{{ NOTIFIER_USER }}"
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | add source of notifier_env to .bashrc
   lineinfile:
     dest={{ NOTIFIER_HOME }}/.bashrc
-    regexp='. {{ NOTIFIER_HOME }}/notifier_env'    
+    regexp='. {{ NOTIFIER_HOME }}/notifier_env'
     line='. {{ NOTIFIER_HOME }}/notifier_env'
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | add source venv to .bashrc
   lineinfile:
     dest={{ NOTIFIER_HOME }}/.bashrc
-    regexp='. {{ NOTIFIER_VENV_DIR }}/bin/activate'    
+    regexp='. {{ NOTIFIER_VENV_DIR }}/bin/activate'
     line='. {{ NOTIFIER_VENV_DIR }}/bin/activate'
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | create notifier DB directory
   file:
     path="{{ NOTIFIER_DB_DIR }}" mode=2775 state=directory
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | create notifier/bin directory
-  file: 
+  file:
     path="{{ NOTIFIER_HOME }}/bin" mode=2775 state=directory
-  tags:
-  - notifier
-  - install
-  - update
-
-- name: common | create supervisor log directoy
-  file: 
-    path={{NOTIFIER_SUPERVISOR_LOG_DEST }} mode=2750 state=directory
-  tags:
-  - notifier
-  - install
-  - update
-  - ubuntu
 
 - name: notifier | supervisord config for celery workers
-  template: 
-    src=etc/supervisor/conf.d/notifier-celery-workers.conf.j2 dest=/etc/supervisor/conf.d/notifier-celery-workers.conf 
+  template: >
+    src=edx/app/supervisor/conf.d/notifier-celery-workers.conf.j2
+    dest="{{ supervisor_cfg_dir }}/notifier-celery-workers.conf"
+  sudo_user: "{{ supervisor_user }}"
   notify: notifier | restart notifier-celery-workers
-  tags:
-  - notifier
-  - install
-  - update
 
 - name: notifier | supervisord config for scheduler
-  template: 
-    src=etc/supervisor/conf.d/notifier-scheduler.conf.j2 dest=/etc/supervisor/conf.d/notifier-scheduler.conf 
+  template: >
+    src=edx/app/supervisor/conf.d/notifier-scheduler.conf.j2
+    dest="{{ supervisor_cfg_dir }}/notifier-scheduler.conf"
+  sudo_user: "{{ supervisor_user }}"
   notify: notifier | restart notifier-scheduler
-  tags:
-  - notifier
-  - install
-  - update
 
 - include: deploy.yml

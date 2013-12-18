@@ -3,20 +3,41 @@
 # access to the edX 6.00x repo which is not public
 ---
 
-- name: xserver | ensure sandbox group exists
-  group: name=sandbox
+- name: xserver | checking for grader info
+  fail: msg="You must define XSERVER_GRADER_DIR and XSERVER_GRADER_SOURCE to use this role!"
+  when: not XSERVER_GRADER_DIR or not XSERVER_GRADER_SOURCE
 
-- name: xserver | ensure sandbox user exists
-  user: name=sandbox group=sandbox
+- name: xserver | checking for git identity
+  fail: msg="You must define XSERVER_LOCAL_GIT_IDENTITY to use this role"
+  when: not XSERVER_LOCAL_GIT_IDENTITY
 
-- name: xserver | create sandbox python directory
-  file: path={{ xserver_sandbox_venv_dir }} owner=ubuntu group=adm mode=2775 state=directory
+- name: xserver | create application user
+  user: >
+    name="{{ xserver_user }}"
+    home="{{ xserver_app_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: xserver | create application sandbox user
+  user: >
+    name="{{ xserver_sandbox_user }}"
+    createhome=no
+    shell=/bin/false
+
+- name: xserver | create xserver app and data dirs
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ xserver_user }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ xserver_app_dir }}"
+    - "{{ xserver_venvs_dir }}"
+    - "{{ xserver_data_dir }}"
+    - "{{ xserver_data_dir }}/data"
 
 - name: xserver | create sandbox sudoers file
   template: src=99-sandbox.j2 dest=/etc/sudoers.d/99-sandbox owner=root group=root mode=0440
-
-- name: xserver | create sandbox python
-  command: /usr/local/bin/virtualenv {{ xserver_sandbox_venv_dir }} --distribute creates={{ xserver_sandbox_venv_dir }}/bin/activate
 
 # Make sure this line is in the common-session file.
 - name: xserver | ensure pam-limits module is loaded
@@ -26,13 +47,14 @@
     line="session required pam_limits.so"
 
 - name: xserver | set sandbox limits
-  copy: src={{ item }} dest=/etc/security/limits.d/sandbox.conf
+  template: src={{ item }} dest=/etc/security/limits.d/sandbox.conf
   first_available_file:
-  - "{{ secure_dir }}/sandbox.conf"
-  - "sandbox.conf"
+  - "{{ secure_dir }}/sandbox.conf.j2"
+  - "sandbox.conf.j2"
 
-- name: xserver | ensure apparmor package
-  apt: pkg=apparmor-utils state=present
+- name: xserver | install system dependencies of xserver
+  apt: pkg={{ item }} state=present
+  with_items: xserver_debian_pkgs
 
 - name: xserver | load python-sandbox apparmor profile
   template: src={{ item }} dest=/etc/apparmor.d/edx_apparmor_sandbox
@@ -40,17 +62,17 @@
   - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
   - "usr.bin.python-sandbox.j2"
 
-- name: xserver | enforce app-armor rules
-  command: aa-enforce {{ xserver_sandbox_venv_dir }}
-
-- name: xserver | setup upstart script
-  template: src=xserver.conf.j2 dest=/etc/init/xserver.conf owner=root group=root
-
-- name: xserver | install system dependencies of xserver
-  apt: pkg={{ item }} state=present
-  with_items: xserver_debian_pkgs
-
-- name: xserver | upload ssh script
-  copy: src=git_ssh.sh dest=/tmp/git_ssh.sh force=yes owner=root group=adm mode=750
-
 - include: deploy.yml
+
+- name: xserver | enforce app-armor rules
+  command: aa-enforce {{ xserver_venv_sandbox_dir }}
+
+- name: xserver | create a symlink for venv python
+  file: >
+    src="{{ xserver_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.xserver
+    state=link
+  with_items:
+  - python
+  - pip
+

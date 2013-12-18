@@ -1,25 +1,9 @@
 ---
 
-- name: jenkins_worker | Install virtualenv
-  pip: name=virtualenv state=present
-
-- name: jenkins_worker | Install virtualenv wrapper
-  pip: name=virtualenvwrapper state=present
-
-- name: jenkins_worker | Install requests
+# Install scripts requiring a GitHub OAuth token
+- name: jenkins_worker | Install requests Python library
   pip: name=requests state=present
 
-# Install bash scripts
-- name: jenkins_worker | Install Python packages scripts
-  copy: src="${item}" dest="/usr/local/bin/${item}"
-        force=yes
-        owner=root group=root
-        mode=755
-  with_items:
-    - download_python_pkgs.sh
-    - install_python_pkgs.sh
-
-# Install scripts requiring a GitHub OAuth token
 - fail: jenkins_worker | OAuth token not defined
   when: github_oauth_token is not defined
 
@@ -33,6 +17,30 @@
             owner=root group=root
             mode=755
 
-# Install upstart script to download Python packages from S3
-- name: jenkins_worker | Install Python packages upstart script
-  template: src="python_pkgs.conf.j2" dest="/etc/init/python_pkgs.conf"
+# Create wheelhouse to enable fast virtualenv creation
+- name: jenkins_worker | Create wheel virtualenv
+  command: /usr/local/bin/virtualenv {{ jenkins_venv }} creates={{ jenkins_venv }}
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins_worker | Install wheel
+  pip: name=wheel virtualenv={{ jenkins_venv }} virtualenv_command=/usr/local/bin/virtualenv
+  sudo_user: "{{ jenkins_user }}"
+
+- name: jenkins_worker | Create wheelhouse dir
+  file:
+    path={{ jenkins_wheel_dir }} state=directory
+    owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+
+# (need to install each one in the venv to satisfy dependencies)
+- name: jenkins_worker | Create wheel archives
+  shell:
+    "{{ jenkins_pip }} wheel --wheel-dir={{ jenkins_wheel_dir }} \"${item.pkg}\" &&
+    {{ jenkins_pip }} install --use-wheel --no-index --find-links={{ jenkins_wheel_dir }} \"${item.pkg}\"
+    creates={{ jenkins_wheel_dir }}/${item.wheel}"
+  sudo_user: "{{ jenkins_user }}"
+  with_items: "{{ jenkins_wheels }}"
+
+- name: jenkins_worker | Add wheel_venv.sh script
+  template:
+    src=wheel_venv.sh.j2 dest={{ jenkins_home }}/wheel_venv.sh
+    owner={{ jenkins_user }} group={{ jenkins_group }} mode=700

@@ -1,0 +1,17 @@
+#! /usr/bin/env bash
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 VENV_DIR"
+    exit 1
+fi
+
+# Create and activate the new virtualenv
+VENV=$1
+mkdir -p $VENV
+/usr/local/bin/virtualenv $VENV
+. $VENV/bin/activate
+
+# Install each available wheel archive
+ls {{ jenkins_wheel_dir }} | cut -d- -f1 | while read line ; do
+    pip install --use-wheel --no-index --find-links={{ jenkins_wheel_dir }} $line ;
+done

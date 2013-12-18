@@ -1,0 +1,90 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role certs
+#
+# Overview:
+#
+# Installs the edX certificate server.
+#
+# The certificates repo is currently *not* public
+# due to sensitive information in it, it may be made
+# public in the future.
+#
+# Dependencies:
+#   - common
+#   - supervisor
+#
+#
+# Example play:
+#
+#   - roles:
+#     - common
+#     - supervisor
+#     - certs
+#
+- name: Checking to see if git identity is set
+  fail: msg="You must set CERTS_LOCAL_GIT_IDENTITY var for this role!"
+  when: not CERTS_LOCAL_GIT_IDENTITY
+
+- name: certs | create application user
+  user: >
+    name="{{ certs_user }}"
+    home="{{ certs_app_dir }}"
+    createhome=no
+    shell=/bin/false
+  notify: certs | restart certs
+
+- name: certs | create certs app and data dirs
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ certs_user }}"
+    group="{{ common_web_group }}"
+  notify: certs | restart certs
+  with_items:
+    - "{{ certs_app_dir }}"
+    - "{{ certs_venvs_dir }}"
+
+- name: certs | create certs gpg dir
+  file: >
+    path="{{ certs_gpg_dir }}" state=directory
+    owner="{{ certs_user }}" group="{{ certs_user }}"
+    mode=0700
+  notify: certs | restart certs
+
+- name: certs | copy the private gpg signing key
+  copy: >
+    src={{ CERTS_LOCAL_PRIVATE_KEY }}
+    dest={{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
+    owner={{ certs_user }} mode=0600
+  notify: certs | restart certs
+  register: certs_gpg_key
+
+
+- name: certs | load the gpg key
+  shell: >
+    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
+  sudo_user: "{{ certs_user }}"
+  when: certs_gpg_key.changed
+  notify: certs | restart certs
+
+- include: deploy.yml
+
+- name: certs | create a symlink for venv python
+  file: >
+    src="{{ certs_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.certs
+    state=link
+  notify: certs | restart certs
+  with_items:
+  - python
+  - pip
