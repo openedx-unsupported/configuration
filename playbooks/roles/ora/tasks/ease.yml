@@ -48,10 +48,15 @@
   tags:
   - deploy
 
-- name: ora | install nltk data using rendered shell script
-  command: >
-    "{{ora_ease_venv_dir}}/bin/python -m nltk.downloader -d {{ ora_nltk_data_dir }} all"
-      creates={{ ora_nltk_data_dir }}/taggers/maxent_treebank_pos_tagger/english.pickle
+- name: ora | download and install nltk
+  shell: |
+      set -e
+      curl -o {{ ora_nltk_tmp_file }} {{ ora_nltk_download_url }}
+      tar zxf {{ ora_nltk_tmp_file }}
+      rm -f {{ ora_nltk_tmp_file }}
+      touch {{ ora_nltk_download_url|basename }}-installed
+        creates={{ ora_data_dir }}/{{ ora_nltk_download_url|basename }}-installed
+        chdir={{ ora_data_dir }}
   sudo_user: "{{ common_web_user }}"
   notify:
     - ora | restart ora
