@@ -16,7 +16,7 @@ end
 
 Vagrant.configure("2") do |config|
 
-# Creates a devstack from a base Ubuntu 12.04 image
+  # Creates a devstack from a base Ubuntu 12.04 image
   config.vm.box     = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
@@ -30,6 +30,11 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
 
   config.hostsupdater.aliases = ["preview.localhost"]
+
+  # Enable X11 forwarding so we can interact with GUI applications
+  if ENV['VAGRANT_X11']
+      config.ssh.forward_x11 = true
+  end
 
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
