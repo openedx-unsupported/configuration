@@ -9,18 +9,28 @@
     migrate_db: "no"
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
-    - "{{ secure_dir }}/vars/users.yml"
-    - "{{ secure_dir }}/vars/edxapp_stage_users.yml"
+    - "{{ secure_dir }}/vars/xqueue_stage_vars.yml"
+    #- "{{ secure_dir }}/vars/users.yml"
+    #- "{{ secure_dir }}/vars/edxapp_stage_users.yml"
     - "{{ secure_dir }}/vars/datadog_stage.yml"
   roles:
-    - common
-    - supervisor
+    - role: 'common'
+      tags: common
+    - role: 'supervisor'
+      tags: supervisor
     - role: 'edxapp'
       celery_worker: True 
       tags: celery
+    - role: nginx
+      nginx_sites:
+      - xqueue
+      - basic-auth
+      tags: nginx
     - role: xqueue
+      xqueue_create_db: "no"
       tags: xqueue
-    - datadog
+    - role: 'datadog'
+      tags: datadog
 
 - name: Deploy certs, notifier only to first util machine
   hosts: ~tag_Name_util1_stage
@@ -35,10 +45,10 @@
     - "{{ secure_dir }}/vars/notifier_stage_vars.yml"
   roles:
     - certs
-    - role: virtualenv
-      virtualenv_user: "notifier"
-      virtualenv_user_home: "/opt/wwc/notifier"
-      virtualenv_name: "notifier"
+#    - role: virtualenv
+#      virtualenv_user: "notifier"
+#      virtualenv_user_home: "/opt/wwc/notifier"
+#      virtualenv_name: "notifier"
     - notifier
 
 #- name: Deploy certs to first util machine

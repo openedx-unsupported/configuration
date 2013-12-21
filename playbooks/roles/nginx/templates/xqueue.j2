@@ -7,10 +7,13 @@ upstream xqueue_app_server {
 server {
   listen {{ XQUEUE_NGINX_PORT }} default_server;
 
-  access_log {{log_base_dir}}/nginx/access.log;
-  error_log {{log_base_dir}}/nginx/error.log error;
+  access_log {{nginx_log_dir}}/access.log;
+  error_log {{nginx_log_dir}}/error.log error;
 
   location / {
+    {% if  XQUEUE_BASIC_AUTH %}
+        {% include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_app;
   }
 
