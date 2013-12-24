@@ -1,0 +1,37 @@
+#
+# Update config for a legacy ora installation.
+#
+# This role requires that ora_app_dir and ora_user both be defined.
+# There is no default for them.
+#
+
+- name: legacy_ora | create ora application config
+  file:
+    src={{secure_dir}}/files/{{COMMON_ENV_TYPE}}/legacy_ora/ora.env.json 
+    dest={{ora_app_dir}}/env.json
+  sudo_user: "{{ ora_user }}"
+  register: env_state
+  tags:
+  - deploy
+
+- name: legacy_ora | create ora auth file
+  file: 
+    src={{secure_dir}}/files/{{COMMON_ENV_TYPE}}/legacy_ora/ora.auth.json 
+    dest={{ora_app_dir}}/auth.json
+  sudo_user: "{{ ora_user }}"
+  register: auth_state
+  tags:
+  - deploy
+
+# Restart ORA Services
+- name: legacy_ora | restart edx-ora
+  service:
+    name=edx-ora
+    state=restarted
+  when: env_state.changed and auth_state.changed
+
+- name: legacy_ora | restart edx-ora-celery
+  service:
+    name=edx-ora-celery
+    state=restarted
+  when: env_state.changed and auth_state.changed
