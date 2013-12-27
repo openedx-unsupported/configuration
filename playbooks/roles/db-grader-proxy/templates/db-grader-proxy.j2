@@ -1,0 +1,14 @@
+<VirtualHost *:{{db_grader_proxy_port}}>
+    WSGIScriptAlias / {{db_grader_proxy_dir}}/db_grader_proxy/wsgi.py
+    ErrorLog ${APACHE_LOG_DIR}/django-proxy-error.log
+    CustomLog ${APACHE_LOG_DIR}/django-proxy-access.log combined
+    <Directory {{db_grader_proxy_dir}}/db_grader_proxy>
+    <Files wsgi.py>
+        Order deny,allow
+        Allow from all
+    </Files>
+    </Directory>
+
+    WSGIDaemonProcess grader threads=10 maximum-requests=10000 python-path={{db_grader_proxy_dir}}
+    WSGIProcessGroup grader
+</VirtualHost>
