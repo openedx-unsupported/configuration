@@ -104,6 +104,9 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--stackname',
         help="The name of the cloudformation stack.",
         required=True)
+
+    parser.add_argument('-z', '--parent-zone',
+        help="The parent zone under which the dns for this vpc resides.")
     args = parser.parse_args()
     stack_name = args.stackname
 
@@ -118,7 +121,10 @@ if __name__ == "__main__":
     }
 
     # Create a zone for the stack.
-    zone_name = "{}.vpc.edx.org".format(stack_name)
+    parent_zone = 'vpc.edx.org'
+    if args.parent_zone:
+        parent_zone = args.parent_zone
+    zone_name = "{}.{}".format(stack_name, parent_zone)
 
     zone = get_or_create_hosted_zone(zone_name)
 

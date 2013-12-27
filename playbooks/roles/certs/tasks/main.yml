@@ -57,7 +57,7 @@
 - name: certs | create certs gpg dir
   file: >
     path="{{ certs_gpg_dir }}" state=directory
-    owner="{{ certs_user }}" group="{{ certs_user }}"
+    owner="{{ common_web_user }}"
     mode=0700
   notify: certs | restart certs
 
@@ -65,7 +65,7 @@
   copy: >
     src={{ CERTS_LOCAL_PRIVATE_KEY }}
     dest={{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
-    owner={{ certs_user }} mode=0600
+    owner={{ common_web_user }} mode=0600
   notify: certs | restart certs
   register: certs_gpg_key
 
@@ -73,7 +73,7 @@
 - name: certs | load the gpg key
   shell: >
     /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
-  sudo_user: "{{ certs_user }}"
+  sudo_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
   notify: certs | restart certs
 

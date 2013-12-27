@@ -25,7 +25,7 @@
     - deploy
 
 - name: discern | git checkout discern repo into discern_code_dir
-  git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_branch }}
+  git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_version }}
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart discern
@@ -41,7 +41,7 @@
     - deploy
 
 #Numpy has to be a pre-requirement in order for scipy to build
-- name : install python pre-requirements for discern and ease
+- name : discern | install python pre-requirements for discern and ease
   pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
   sudo_user: "{{ discern_user }}"
   notify:
@@ -52,7 +52,7 @@
   tags:
     - deploy
 
-- name : install python requirements for discern and ease
+- name : discern | install python requirements for discern and ease
   pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
   sudo_user: "{{ discern_user }}"
   notify:
@@ -71,15 +71,21 @@
   tags:
     - deploy
 
-#Needed for the ease package to work
-- name: discern | install nltk data using rendered shell script
-  shell: >
-    {{ discern_venv_dir }}/bin/python -m nltk.downloader -d {{ discern_nltk_data_dir }} all
+- name: discern | download and install nltk
+  shell: |
+      set -e
+      curl -o {{ discern_nltk_tmp_file }} {{ discern_nltk_download_url }}
+      tar zxf {{ discern_nltk_tmp_file }}
+      rm -f {{ discern_nltk_tmp_file }}
+      touch {{ discern_nltk_download_url|basename }}-installed
+        creates={{ discern_data_dir }}/{{ discern_nltk_download_url|basename }}-installed
+        chdir={{ discern_data_dir }}
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart discern
   tags:
     - deploy
+
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
@@ -121,7 +127,7 @@
   tags: deploy
 
 - name: discern | ensure discern, discern_celery has started
-  supervisorctl: >
+  supervisorctl_local: >
     name={{ item }}
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}

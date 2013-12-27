@@ -7,12 +7,14 @@
 - name: local_dev | set login shell for app accounts
   user: name={{ item.user }} shell="/bin/bash"
   with_items: "{{ localdev_accounts }}"
+  tags: deploy
 
 # Ensure forum user has permissions to access .gem and .rbenv
 # This is a little twisty: the forum role sets the owner and group to www-data
 # So we add the forum user to the www-data group and give group write permissions
 - name: local_dev | add forum user to www-data group
   user: name={{ forum_user }} groups={{ common_web_group }} append=yes
+  tags: deploy
 
 - name: local_dev | set forum rbenv and gem permissions
   file:
@@ -20,11 +22,12 @@
   with_items:
     - "{{ forum_app_dir }}/.gem"
     - "{{ forum_app_dir }}/.rbenv"
+  tags: deploy
 
 # Create scripts to configure environment
 - name: local_dev | create login scripts
   template:
-    src={{ item.user }}_bashrc.j2 dest={{ item.home }}/.bashrc
+    src=app_bashrc.j2 dest={{ item.home }}/.bashrc
     owner={{ item.user }} mode=755
   with_items: "{{ localdev_accounts }}"
 
@@ -35,3 +38,21 @@
     src=gitconfig dest={{ item.home }}/.gitconfig
     owner={{ item.user }} mode=700
   with_items: "{{ localdev_accounts }}"
+
+# Configure X11 for application users
+- name: local_dev | preserve DISPLAY for sudo
+  copy:
+    src=x11_display dest=/etc/sudoers.d/x11_display
+    owner=root group=root mode=0440
+
+- name: local_dev | login share X11 auth to app users
+  template:
+    src=share_x11.j2 dest={{ localdev_home }}/share_x11
+    owner={{ localdev_user }} mode=0700
+
+- name: local_dev | update bashrc with X11 share script
+  lineinfile:
+    dest={{ localdev_home }}/.bashrc
+    regexp=". {{ localdev_home }}/share_x11"
+    line=". {{ localdev_home }}/share_x11"
+    state=present

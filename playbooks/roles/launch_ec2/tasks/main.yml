@@ -18,15 +18,25 @@
 
 - name: terminating single instance
   local_action:
-    module: ec2
+    module: ec2_local
     state: 'absent'
     region: "{{ region }}"
     instance_ids: ${tag_lookup.instance_ids}
   when: terminate_instance == true and tag_lookup.instance_ids|length == 1
 
+- name: deregister instance from an an elb if it was in one
+  local_action:
+    module: ec2_elb
+    region: "{{ region }}"
+    instance_id: "{{ tag_lookup.instance_ids[0] }}"
+    ec2_elbs:
+      - "{{ elb }}"
+    state: absent
+  when: terminate_instance == true and elb and tag_lookup.instance_ids|length == 1
+
 - name: launch_ec2 | Launch ec2 instance
   local_action:
-    module: ec2
+    module: ec2_local
     keypair: "{{ keypair }}"
     group: "{{ security_group }}"
     instance_type: "{{ instance_type }}"
@@ -35,6 +45,8 @@
     region: "{{ region }}"
     instance_tags: "{{instance_tags}}"
     root_ebs_size: "{{ root_ebs_size }}"
+    zone: "{{ zone }}"
+    instance_profile_name: "{{ instance_profile_name }}"
   register: ec2
 
 - name: launch_ec2 | Add DNS name
@@ -90,5 +102,3 @@
       delay=60
       timeout=320
   with_items: "{{ ec2.instances }}"
-
-

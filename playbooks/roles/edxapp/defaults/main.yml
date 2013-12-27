@@ -45,8 +45,6 @@ EDXAPP_COMMENTS_SERVICE_KEY:  'password'
 
 EDXAPP_EDXAPP_SECRET_KEY: ''
 
-EDXAPP_PEARSON_TEST_PASWORD: ''
-
 EDXAPP_OEE_URL: 'http://localhost:18060/'
 EDXAPP_OEE_USER: 'lms'
 EDXAPP_OEE_PASSWORD: 'password'
@@ -59,15 +57,15 @@ EDXAPP_CELERY_PASSWORD: 'celery'
 
 EDXAPP_PLATFORM_NAME: 'edX'
 
-EDXAPP_MITX_FEATURES:
+EDXAPP_FEATURES:
   AUTH_USE_OPENID_PROVIDER: true
   CERTIFICATES_ENABLED: true
   ENABLE_DISCUSSION_SERVICE: true
   ENABLE_INSTRUCTOR_ANALYTICS: true
-  ENABLE_PEARSON_HACK_TEST: false
   SUBDOMAIN_BRANDING: false
   SUBDOMAIN_COURSE_LISTINGS: false
   PREVIEW_LMS_BASE: $EDXAPP_PREVIEW_LMS_BASE
+  ENABLE_S3_GRADE_DOWNLOADS: true
 
 EDXAPP_BOOK_URL: ''
 # This needs to be set to localhost
@@ -88,24 +86,32 @@ EDXAPP_LMS_NGINX_PORT: 18000
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 18020
 EDXAPP_CMS_NGINX_PORT: 18010
 
-EDXAPP_LMS_BASIC_AUTH: False
-EDXAPP_CMS_BASIC_AUTH: False
-EDXAPP_LMS_PREVIEW_BASIC_AUTH: False
 EDXAPP_LANG: 'en_US.UTF-8'
 EDXAPP_TIME_ZONE: 'America/New_York'
 
-EDXAPP_TECH_SUPPORT_EMAIL: ''
-EDXAPP_CONTACT_EMAIL: ''
-EDXAPP_BUGS_EMAIL: ''
-EDXAPP_DEFAULT_FROM_EMAIL: ''
-EDXAPP_DEFAULT_FEEDBACK_EMAIL: ''
-EDXAPP_SERVER_EMAIL: ''
-EDXAPP_BULK_EMAIL_DEFAULT_FROM_EMAIL: ''
+EDXAPP_TECH_SUPPORT_EMAIL: 'technical@example.com'
+EDXAPP_CONTACT_EMAIL: 'info@example.com'
+EDXAPP_BUGS_EMAIL: 'bugs@example.com'
+EDXAPP_DEFAULT_FROM_EMAIL: 'registration@example.com'
+EDXAPP_DEFAULT_FEEDBACK_EMAIL: 'feedback@example.com'
+EDXAPP_DEFAULT_SERVER_EMAIL: 'devops@example.com'
+EDXAPP_BULK_EMAIL_DEFAULT_FROM_EMAIL: 'no-reply@example.com'
 
 EDXAPP_ENV_EXTRA: {}
 EDXAPP_AUTH_EXTRA: {}
 EDXAPP_MKTG_URL_LINK_MAP: {}
+# Set this sets the url for static files
+# Override this var to use a CDN
+# Example: xxxxx.cloudfront.net/static/
+EDXAPP_STATIC_URL_BASE: "/static/"
 
+# Settings for Grade downloads
+EDXAPP_GRADE_STORAGE_TYPE: 'localfs'
+EDXAPP_GRADE_BUCKET: 'edx-grades'
+EDXAPP_GRADE_ROOT_PATH: '/tmp/edx-s3/grades'
+
+# Configure rake tasks in edx-platform to skip Python/Ruby/Node installation
+EDXAPP_NO_PREREQ_INSTALL: 1
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -181,7 +187,7 @@ edxapp_all_req_files:
 
 edxapp_environment:
   LANG: $EDXAPP_LANG
-  NO_PREREQ_INSTALL: 1
+  NO_PREREQ_INSTALL: $EDXAPP_NO_PREREQ_INSTALL
   SKIP_WS_MIGRATIONS: 1
   RBENV_ROOT: $edxapp_rbenv_root
   GEM_HOME: $edxapp_gem_root
@@ -228,7 +234,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         host: $EDXAPP_MONGO_HOSTS
         password:  $EDXAPP_MONGO_PASSWORD
         port: $EDXAPP_MONGO_PORT
-        render_template:  'mitxmako.shortcuts.render_to_string'
+        render_template:  'edxmako.shortcuts.render_to_string'
         # Needed for the CMS to be able to run update_templates
         user: $EDXAPP_MONGO_USER
       DOC_STORE_CONFIG: *edxapp_generic_default_docstore
@@ -244,7 +250,6 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       PASSWORD: $EDXAPP_MYSQL_PASSWORD
       HOST: $EDXAPP_MYSQL_HOST
       PORT: $EDXAPP_MYSQL_PORT
-  PEARSON_TEST_PASSWORD:  $EDXAPP_PEARSON_TEST_PASSWORD
   OPEN_ENDED_GRADING_INTERFACE:
     url: $EDXAPP_OEE_URL
     password: $EDXAPP_OEE_PASSWORD
@@ -259,6 +264,11 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   CELERY_BROKER_PASSWORD: $EDXAPP_CELERY_PASSWORD
 
 generic_env_config:  &edxapp_generic_env
+  GRADES_DOWNLOAD:
+    STORAGE_TYPE: $EDXAPP_GRADE_STORAGE_TYPE
+    BUCKET: $EDXAPP_GRADE_BUCKET
+    ROOT_PATH: $EDXAPP_GRADE_ROOT_PATH
+  STATIC_URL_BASE: $EDXAPP_STATIC_URL_BASE
   STATIC_ROOT_BASE: $edxapp_staticfile_dir
   LMS_BASE: $EDXAPP_LMS_BASE
   CMS_BASE: $EDXAPP_CMS_BASE
@@ -268,7 +278,7 @@ generic_env_config:  &edxapp_generic_env
   LOCAL_LOGLEVEL: $EDXAPP_LOG_LEVEL
   # default email backed set to local SMTP
   EMAIL_BACKEND: $EDXAPP_EMAIL_BACKEND
-  MITX_FEATURES: $EDXAPP_MITX_FEATURES
+  FEATURES: $EDXAPP_FEATURES
   WIKI_ENABLED: true
   SYSLOG_SERVER:  $EDXAPP_SYSLOG_SERVER
   SITE_NAME:  $EDXAPP_SITE_NAME
@@ -278,6 +288,8 @@ generic_env_config:  &edxapp_generic_env
   FEEDBACK_SUBMISSION_EMAIL: $EDXAPP_FEEDBACK_SUBMISSION_EMAIL
   TIME_ZONE: $EDXAPP_TIME_ZONE
   MKTG_URL_LINK_MAP: $EDXAPP_MKTG_URL_LINK_MAP
+  # repo root for courses
+  GITHUB_REPO_ROOT: $edxapp_course_data_dir
   CACHES:
     default: &default_generic_cache
       BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
@@ -336,7 +348,7 @@ lms_auth_config:
               host: $EDXAPP_MONGO_HOSTS
               db: $EDXAPP_MONGO_DB_NAME
               collection: 'modulestore'
-              render_template: 'mitxmako.shortcuts.render_to_string'
+              render_template: 'edxmako.shortcuts.render_to_string'
               user: $EDXAPP_MONGO_USER
               password: $EDXAPP_MONGO_PASSWORD
               port: $EDXAPP_MONGO_PORT
@@ -401,9 +413,9 @@ edxapp_theme_version: 'HEAD'
 
 # make this the public URL instead of writable
 edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
-# `edx_platform_commit` can be anything that git recognizes as a commit
+# `edx_platform_version` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
-edx_platform_commit: 'release'
+edx_platform_version: 'release'
 local_requirements_file:  "{{ edxapp_code_dir }}/requirements/edx/local.txt"
 pre_requirements_file:    "{{ edxapp_code_dir }}/requirements/edx/pre.txt"
 post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
@@ -446,6 +458,8 @@ edxapp_debian_pkgs:
   - ntp
   # for shapely
   - libgeos-dev
+  # i18n
+  - gettext
 
 # Ruby Specific Vars
 edxapp_ruby_version: "1.9.3-p374"
@@ -457,6 +471,3 @@ edxapp_cms_variant: cms
 # Worker Settings
 worker_django_settings_module: 'aws'
 
-# Skip supervisor tasks
-# Useful when supervisor is not installed (local dev)
-devstack: False

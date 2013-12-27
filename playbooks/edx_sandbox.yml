@@ -1,39 +1,29 @@
-# This playbook is to configure
-# the official edX sandbox instance
-# sandbox.edx.org
-#
-# On the machine you want to configure run the following
-# command from the configuration/playbooks directory:
-#   ansible-playbook -c local --limit "localhost:127.0.0.1" /path/to/configuration/playbooks/edx_sandbox.yml -i "localhost,"
-# 
-# To use different default ports for lms-preview, cms and to set the lms_base and lms_preview_base,
-# for the following configuration:
-#   studio listening on port 80 - studio.example.com
-#   lms listening on port 80 - example.com
-#   lms-preview listening on port 80 - preview.example.com
-#
-#   ansible-playbook -c local --limit "localhost:127.0.0.1" path/to/configuration/playbooks/edx_sandbox.yml -i "localhost," -e "EDXAPP_CMS_NGINX_PORT=80 EDXAPP_LMS_PREVIEW_NGINX_PORT=80 EDXAPP_LMS_BASE=example.com  EDXAPP_PREVIEW_LMS_BASE=preview.example.com"
-#
+---
+
+# Example sandbox configuration
+# for single server community
+# installs
+
 - name: Configure instance(s)
-  hosts: localhost
+  hosts: all
   sudo: True
   gather_facts: True
   vars:
     migrate_db: "yes"
     openid_workaround: True
+    EDXAPP_LMS_NGINX_PORT: '80'
+    edx_platform_version: 'master'
   roles:
-    - common
-    - supervisor
     - role: nginx
       nginx_sites:
-      - lms
       - cms
-      - lms-preview
-      - xqueue
+      - lms
       - ora
+      - xqueue
     - edxlocal
     - mongo
     - edxapp
+    - demo
     - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - { role: 'edxapp', celery_worker: True }
     - oraclejdk
@@ -41,3 +31,5 @@
     - forum
     - { role: "xqueue", update_users: True }
     - ora
+    - discern
+    - edx_ansible

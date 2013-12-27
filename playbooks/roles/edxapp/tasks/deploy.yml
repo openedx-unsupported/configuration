@@ -1,6 +1,16 @@
+- name: edxapp | setup the edxapp env
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  template: >
+    src=edxapp_env.j2 dest={{ edxapp_app_dir }}/edxapp_env
+    owner={{ edxapp_user }}  group={{ common_web_user }}
+    mode=0644
+  tags: deploy
+
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
-  git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
+  git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
   register: chkout
   sudo_user: "{{ edxapp_user }}"
   notify:
@@ -201,8 +211,7 @@
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
 # not sure if this fix will ever get merged
-# We should never do this in production
-- name: edxapp | openid workaround - NOT FOR PRODUCTION
+- name: edxapp | openid workaround
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
   sudo_user: "{{ edxapp_user }}"
@@ -231,18 +240,18 @@
   tags: deploy
 
 - name: edxapp | ensure edxapp has started
-  supervisorctl: >
+  supervisorctl_local: >
     state=started
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
-  when: not devstack
+  when: celery_worker is not defined and not devstack
   with_items: service_variants_enabled
   tags: deploy
 
 - name: edxapp | ensure edxapp_workers has started
-  supervisorctl: >
+  supervisorctl_local: >
     name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}

@@ -1,39 +1,14 @@
-# gunicorn
-
-description "gunicorn server"
-author "Calen Pennington <cpennington@mitx.mit.edu>"
-
-start on started edxapp
-stop on stopped edxapp
-
-respawn
-respawn limit 3 30
-
-env PID=/var/tmp/lms.pid
+[program:lms-preview]
 {% if ansible_processor|length > 0 %}
-env WORKERS={{ ansible_processor|length * worker_core_mult.lms_preview }}
+command={{ edxapp_venv_dir }}/bin/gunicorn --preload -b {{ edxapp_lms_preview_gunicorn_host }}:{{ edxapp_lms_preview_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms_preview }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
 {% else %}
-env WORKERS={{ worker_core_mult.lms_preview }}
+command={{ edxapp_venv_dir }}/bin/gunicorn --preload -b {{ edxapp_lms_preview_gunicorn_host }}:{{ edxapp_lms_preview_gunicorn_port }} -w {{ worker_core_mult.lms_preview }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
 {% endif %}
-env PORT={{edxapp_lms_preview_gunicorn_port}}
-env ADDRESS={{edxapp_lms_preview_gunicorn_host}}
-env LANG=en_US.UTF-8
-env DJANGO_SETTINGS_MODULE=lms.envs.aws
-env SERVICE_VARIANT="lms-preview"
-  
-chdir {{edxapp_code_dir}}
-setuid www-data
 
-exec {{edxapp_venv_dir}}/bin/gunicorn --preload -b $ADDRESS:$PORT -w $WORKERS --timeout=300 --pythonpath={{edxapp_code_dir}} lms.wsgi
-
-post-start script
-  while true
-  do
-    if $(curl -s -i localhost:$PORT/heartbeat | egrep -q '200 OK'); then
-      break;
-    else
-      sleep 1;
-    fi
-  done
-end script
-
+user={{ common_web_user }}
+directory={{ edxapp_code_dir }}
+environment=PORT={{edxapp_lms_gunicorn_port}},ADDRESS={{edxapp_lms_gunicorn_host}},LANG={{ EDXAPP_LANG }},DJANGO_SETTINGS_MODULE={{ edxapp_lms_env }},SERVICE_VARIANT="lms-preview"
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
+killasgroup=true
+stopasgroup=true

@@ -16,7 +16,7 @@
       "Description":"Name of an existing EC2 KeyPair to enable SSH access to the web server",
       "Default":"deployment"
     },
-    "InstanceType":{
+    "EdxappInstanceType":{
       "Description":"WebServer EC2 instance type",
       "Type":"String",
       "Default":"m1.small",
@@ -109,6 +109,52 @@
       "ConstraintDescription":"must be a valid EC2 instance type."
     },
     "RabbitInstanceType":{
+      "Description":"RabbitMQ server EC2 instance type",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "XserverInstanceType":{
+      "Description":"RabbitMQ server EC2 instance type",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "XqueueInstanceType":{
       "Description":"RabbitMQ server EC2 instance type",
       "Type":"String",
       "Default":"m1.small",
@@ -393,7 +439,8 @@
       "Forum02":        { "CIDR":"10.0.81.0/24" },
       "Mongo01":        { "CIDR":"10.0.90.0/24" },
       "Mongo02":        { "CIDR":"10.0.91.0/24" },
-      "Mongo03":        { "CIDR":"10.0.92.0/24" }
+      "Mongo03":        { "CIDR":"10.0.92.0/24" },
+      "Admin":          { "CIDR":"10.0.200.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1d",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -458,6 +505,38 @@
             "AZone1"
           ]
         }
+      }
+    },
+    "AdminSubnet":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Admin",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"admin"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
       }
     },
     "EdxappSubnet01":{
@@ -1974,6 +2053,12 @@
             "CidrIp":"0.0.0.0/0"
           },
           {
+            "IpProtocol":"tcp",
+            "FromPort":"11371",
+            "ToPort":"11371",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
             "IpProtocol":"icmp",
             "FromPort":"-1",
             "ToPort":"-1",
@@ -2017,6 +2102,12 @@
             "IpProtocol":"tcp",
             "FromPort":"10016",
             "ToPort":"10016",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"11371",
+            "ToPort":"11371",
             "CidrIp":"0.0.0.0/0"
           }
         ]
@@ -2430,7 +2521,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"InstanceType"
+                  "Ref":"EdxappInstanceType"
                 },
                 "Arch"
               ]
@@ -2477,7 +2568,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"EdxappInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -2544,8 +2635,12 @@
         "LaunchConfigurationName":{
           "Ref":"EdxappServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"EdxappDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"EdxappDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"EdxappDesiredCapacity"
         },
@@ -2781,7 +2876,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"InstanceType"
+                  "Ref":"XqueueInstanceType"
                 },
                 "Arch"
               ]
@@ -2824,7 +2919,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"XqueueInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -2891,8 +2986,12 @@
         "LaunchConfigurationName":{
           "Ref":"XqueueServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"XqueueDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"XqueueDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"XqueueDesiredCapacity"
         },
@@ -3154,7 +3253,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"RabbitInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -3221,8 +3320,12 @@
         "LaunchConfigurationName":{
           "Ref":"RabbitMQServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"RabbitMQDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"RabbitMQDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"RabbitMQDesiredCapacity"
         },
@@ -3477,7 +3580,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"InstanceType"
+                  "Ref":"XserverInstanceType"
                 },
                 "Arch"
               ]
@@ -3520,7 +3623,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"XserverInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -3587,8 +3690,12 @@
         "LaunchConfigurationName":{
           "Ref":"XServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"XServerDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"XServerDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"XServerDesiredCapacity"
         },
@@ -3979,7 +4086,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"WorkerInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -4046,8 +4153,12 @@
         "LaunchConfigurationName":{
           "Ref":"WorkerServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"WorkerDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"WorkerDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"WorkerDesiredCapacity"
         }
@@ -4224,7 +4335,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"ForumInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -4291,8 +4402,12 @@
         "LaunchConfigurationName":{
           "Ref":"ForumServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"ForumDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"ForumDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"ForumDesiredCapacity"
         },
@@ -4595,7 +4710,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"MongoInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -4683,8 +4798,12 @@
         "LaunchConfigurationName":{
           "Ref":"MongoServer"
         },
-        "MinSize":"3",
-        "MaxSize":"3",
+        "MinSize":{
+          "Ref":"MongoDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"MongoDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"MongoDesiredCapacity"
         }
@@ -4864,52 +4983,6 @@
       "Value":{
         "Ref":"EdxappServerSecurityGroup"
       }
-    },
-    "DatabaseConfigurationString":{
-      "Description":"JDBC connection string for database",
-      "Value":{
-        "Fn::Join":[
-          "",
-          [
-            "'DATABASES': {\n",
-            "    'default': {\n",
-            "        'ENGINE': 'django.db.backends.mysql',\n",
-            "        'NAME': '",
-            {
-              "Ref":"DBName"
-            },
-            "',\n",
-            "        'USER': '",
-            {
-              "Ref":"DBUsername"
-            },
-            "',\n",
-            "        'PASSWORD': '",
-            {
-              "Ref":"DBPassword"
-            },
-            "',\n",
-            "        'HOST': '",
-            {
-              "Fn::GetAtt":[
-                "EdxDB",
-                "Endpoint.Address"
-              ]
-            },
-            "',\n",
-            "        'PORT': '",
-            {
-              "Fn::GetAtt":[
-                "EdxDB",
-                "Endpoint.Port"
-              ]
-            },
-            "'\n",
-            "    }\n",
-            "}\n"
-          ]
-        ]
-      }
-    }    
+    }
   }
 }

@@ -1,0 +1,83 @@
+---
+# Install and configure simple glusterFS shared storage
+
+- name: gluster | all | Install common packages
+  apt: name={{ item }} state=present
+  with_items:
+    - glusterfs-client
+    - glusterfs-common
+    - nfs-common
+  tags: gluster
+
+- name: gluster | all | Install server packages
+  apt: name=glusterfs-server state=present
+  when: >
+    "{{ ansible_default_ipv4.address }}" "{{ gluster_peers|join(' ') }}"
+  tags: gluster
+
+- name: gluster | all | enable server
+  service: name=glusterfs-server state=started enabled=yes
+  when: >
+    "{{ ansible_default_ipv4.address }}" in "{{ gluster_peers|join(' ') }}"
+  tags: gluster
+
+# Ignoring error below so that we can move the data folder and have it be a link
+- name: gluster | all | create folders
+  file: path={{ item.path }} state=directory
+  with_items: gluster_volumes
+  when: >
+    "{{ ansible_default_ipv4.address }}" in "{{ gluster_peers|join(' ') }}"  
+  ignore_errors: yes
+  tags: gluster
+
+- name: gluster | primary | create peers
+  command: gluster peer probe {{ item }}
+  with_items: gluster_peers
+  when: ansible_default_ipv4.address == gluster_primary_ip
+  tags: gluster
+
+- name: gluster | primary | create volumes
+  command: gluster volume create {{ item.name }} replica {{ item.replicas }} transport tcp {% for server in gluster_peers %}{{ server }}:{{ item.path }} {% endfor %}
+  with_items: gluster_volumes
+  when: ansible_default_ipv4.address == gluster_primary_ip
+  ignore_errors: yes # There should be better error checking here
+  tags: gluster
+
+- name: gluster | primary | start volumes
+  command: gluster volume start {{ item.name }}
+  with_items: gluster_volumes
+  when: ansible_default_ipv4.address == gluster_primary_ip
+  ignore_errors: yes # There should be better error checking here
+  tags: gluster
+  
+- name: gluster | primary | set security
+  command: gluster volume set {{ item.name }} auth.allow {{ item.security }}
+  with_items: gluster_volumes
+  when: ansible_default_ipv4.address == gluster_primary_ip
+  tags: gluster
+
+- name: gluster | primary | set performance cache
+  command: gluster volume set {{ item.name }} performance.cache-size {{ item.cache_size }}
+  with_items: gluster_volumes
+  when: ansible_default_ipv4.address == gluster_primary_ip
+  tags: gluster
+  
+- name: gluster | all | mount volume
+  mount: >
+    name={{ item.mount_location }}
+    src={{ gluster_primary_ip }}:{{ item.name }}
+    fstype=glusterfs
+    state=mounted
+    opts=defaults,_netdev
+  with_items: gluster_volumes
+  tags: gluster
+  
+# This required due to an annoying bug in Ubuntu and gluster where it tries to mount the system
+# before the network stack is up and can't lookup 127.0.0.1
+- name: gluster | all | sleep mount
+  lineinfile: >
+    dest=/etc/rc.local
+    line='sleep 5; /bin/mount -a'
+    regexp='sleep 5; /bin/mount -a'
+    insertbefore='exit 0'
+  tags: gluster
