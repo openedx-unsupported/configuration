@@ -71,16 +71,21 @@
   tags:
     - deploy
 
-#Needed for the ease package to work
-- name: discern | install nltk data using rendered shell script
-  shell: >
-    {{ discern_venv_dir }}/bin/python -m nltk.downloader -d {{ discern_nltk_data_dir }} all
-      creates={{ discern_nltk_data_dir }}/taggers/maxent_treebank_pos_tagger/english.pickle
+- name: discern | download and install nltk
+  shell: |
+      set -e
+      curl -o {{ discern_nltk_tmp_file }} {{ discern_nltk_download_url }}
+      tar zxf {{ discern_nltk_tmp_file }}
+      rm -f {{ discern_nltk_tmp_file }}
+      touch {{ discern_nltk_download_url|basename }}-installed
+        creates={{ discern_data_dir }}/{{ discern_nltk_download_url|basename }}-installed
+        chdir={{ discern_data_dir }}
   sudo_user: "{{ discern_user }}"
   notify:
     - discern | restart discern
   tags:
     - deploy
+
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment

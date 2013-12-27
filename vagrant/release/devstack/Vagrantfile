@@ -1,6 +1,24 @@
 MEMORY = 2048
 CPU_COUNT = 2
 
+$script = <<SCRIPT
+if [ ! -d /edx/app/edx_ansible ]; then
+    echo "Error: Base box is missing provisioning scripts." 1>&2
+    exit 1
+fi
+export PYTHONUNBUFFERED=1
+source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
+cd /edx/app/edx_ansible/edx_ansible/playbooks
+
+# Need to ensure that the configuration repo is updated
+# The vagrant-devstack.yml playbook will also do this, but only
+# after loading the playbooks into memory.  If these are out of date,
+# this can cause problems (e.g. looking for templates that no longer exist).
+/edx/bin/update configuration master
+
+ansible-playbook -i localhost, -c local vagrant-devstack.yml
+SCRIPT
+
 edx_platform_mount_dir = "edx-platform"
 forum_mount_dir = "cs_comments_service"
 ora_mount_dir = "ora"
@@ -13,12 +31,11 @@ if ENV['VAGRANT_MOUNT_BASE']
 
 end
 
-
 Vagrant.configure("2") do |config|
 
-# Creates a devstack from a base Ubuntu 12.04 image
-  config.vm.box     = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  # Creates an edX devstack VM from an official release
+  config.vm.box     = "empanada-devstack"
+  config.vm.box_url = "http://edx-static.s3.amazonaws.com/vagrant-images/20131219-empanada-devstack.box"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -29,8 +46,6 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
   config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
 
-  config.hostsupdater.aliases = ["preview.localhost"]
-
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
     vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
@@ -40,9 +55,8 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
-  config.vm.provision :ansible do |ansible|
-    ansible.playbook = "../../playbooks/vagrant-devstack.yml"
-    ansible.inventory_path = "../../playbooks/vagrant/inventory.ini"
-    ansible.verbose = "extra"
-  end
+  # Assume that the base box has the edx_ansible role installed
+  # We can then tell the Vagrant instance to update itself.
+  config.vm.provision "shell", inline: $script
+
 end
