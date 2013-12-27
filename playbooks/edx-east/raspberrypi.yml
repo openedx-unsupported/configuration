@@ -1,0 +1,24 @@
+- name: Configure instance(s)
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    raspberry_pi: True
+    # One gunicorn worker for the lms and cms
+    worker_core_mult:
+      lms: 1
+      cms: 1
+  roles:
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+    - edxlocal
+    - role: edxapp
+      tags: ['edxapp']
+    - role: demo
+      tags: ['demo']
+    - role: edx_ansible
+      tags: ['edx_ansible']
