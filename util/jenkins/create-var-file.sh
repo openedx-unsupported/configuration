@@ -8,6 +8,7 @@ EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
+EDXAPP_SITE_NAME: ${deploy_host}
 COMMON_PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
 XSERVER_GRADER_DIR: "{{ xserver_data_dir }}/data/content-mit-600x~2012_Fall"
 XSERVER_GRADER_SOURCE: "git@github.com:/MITx/6.00x.git"
