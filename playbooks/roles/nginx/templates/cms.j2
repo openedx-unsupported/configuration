@@ -7,7 +7,18 @@ upstream cms-backend {
 server {
   # CMS configuration file for nginx, templated by ansible
       
+  {% if NGINX_ENABLE_SSL %}
+
   listen {{EDXAPP_CMS_NGINX_PORT}};
+  listen {{EDXAPP_CMS_SSL_NGINX_PORT}} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+
+  {% else %}
+  listen {{EDXAPP_CMS_NGINX_PORT}} default;
+  {% endif %}
+
 
   server_name studio.*;
 

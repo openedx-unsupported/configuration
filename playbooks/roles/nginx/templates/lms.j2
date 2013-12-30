@@ -7,7 +7,17 @@ upstream lms-backend {
 server {
   # LMS configuration file for nginx, templated by ansible
 
+  {% if NGINX_ENABLE_SSL %}
+
   listen {{EDXAPP_LMS_NGINX_PORT}} default;
+  listen {{EDXAPP_LMS_SSL_NGINX_PORT}} default ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+
+  {% else %}
+  listen {{EDXAPP_LMS_NGINX_PORT}} default;
+  {% endif %}
 
   access_log {{ nginx_log_dir }}/access.log;
   error_log {{ nginx_log_dir }}/error.log error;

@@ -75,6 +75,21 @@
     path={{ nginx_log_dir}} state=directory
     owner={{ common_web_user }} group={{ common_web_user }}
 
+- name: nginx | copy ssl cert
+  copy: >
+    src={{ NGINX_SSL_CERTIFICATE }}
+    dest=/etc/ssl/certs/{{ item|basename }}
+    owner=root group=root mode=0644
+  when: NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
+
+- name: nginx | copy ssl key
+  copy: >
+    src={{ NGINX_SSL_KEY }}
+    dest=/etc/ssl/private/{{ item|basename }}
+    owner=root group=ssl-cert mode=0640
+  when: NGINX_ENABLE_SSL and NGINX_SSL_KEY != 'ssl-cert-snakeoil.key'
+
+
 # removing default link
 - name: nginx | Removing default nginx config and restart (enabled)
   file: path={{ nginx_sites_enabled_dir }}/default state=absent
