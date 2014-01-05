@@ -1,0 +1,36 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gerrit_github_api_source
+# 
+# Overview: Installs a version of the Java github API into the local maven repository.
+# 
+#
+# Dependencies: None
+#
+# 
+
+- name: gerrit_github_api_source | system packages
+  apt: pkg={{ item }}
+  with_items: gerrit_github_api_source_debian_pkgs
+
+- name: gerrit_github_api_source | source checked out
+  git: repo={{ gerrit_github_api_source_repo }} dest={{ GERRIT_GITHUB_API_SOURCE_HOME }} version={{ gerrit_github_api_source_version }}
+
+# The tests for this project fail.  The maintainer of the gerrit github plugin has not bothered
+# to fix them, so we just skip them.
+#
+# We have to override JAVA_HOME because sudo does not run a login shell, so scripts in /etc/profile.d
+# are not sourced.
+- name: gerrit_github_api_source | built
+  command: mvn install -Dmaven.test.skip=true chdir={{ GERRIT_GITHUB_API_SOURCE_HOME }}
+  environment:
+    JAVA_HOME: "{{ oraclejdk_link }}"
