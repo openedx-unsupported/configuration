@@ -21,7 +21,7 @@ fi
 sudo apt-get install -y python-pip python-apt git-core build-essential python-dev libxml2-dev libxslt-dev curl
 sudo apt-get install -y software-properties-common python-software-properties
 sudo apt-get install -y python-pip python-dev build-essential
-
+wget https://bitbucket.org/pypa/setuptools/raw/0.8/ez_setup.py -O - | sudo python
 sudo pip install --upgrade pip
 sudo pip install --upgrade virtualenv
 
