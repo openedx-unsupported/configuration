@@ -4,6 +4,8 @@ cat << EOF > $extra_vars
 ---
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 NGINX_ENABLE_SSL: True
+NGINX_SSL_CERTIFICATE: '/var/lib/jenkins/star.sandbox.edx.org.crt'
+NGINX_SSL_KEY: '/var/lib/jenkins/star.sandbox.edx.org.key'
 EDXAPP_LMS_SSL_NGINX_PORT: 443
 EDXAPP_CMS_SSL_NGINX_PORT: 443
 EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
