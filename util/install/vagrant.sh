@@ -6,6 +6,18 @@
 ## Note that this script requires that you have the ability to run 
 ## commands as root via sudo.  Caveat Emptor!
 ##
+
+##
+## Sanity check
+##
+if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
+   echo "This script is only know to work on Ubuntu 12.04, exiting...";
+   exit;
+fi
+
+##
+## Install system pre-requisites
+##
 sudo apt-get install -y python-pip python-apt git-core build-essential python-dev libxml2-dev libxslt-dev curl
 sudo apt-get install -y software-properties-common python-software-properties
 sudo apt-get install -y python-pip python-dev build-essential
