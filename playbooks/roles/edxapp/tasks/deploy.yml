@@ -214,15 +214,29 @@
   - deploy
   - edxapp-sandbox
 
+- name: edxapp | code sandbox | Install base sandbox requirements and create sandbox virtualenv
+  pip: >
+    requirements="{{sandbox_base_requirements}}"
+    virtualenv="{{edxapp_sandbox_venv_dir}}"
+    state=present
+    extra_args="-i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors"
+  sudo_user: "{{ edxapp_sandbox_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags:
+  - deploy
+  - edxapp-sandbox
+
 - name: edxapp | code sandbox | Install sandbox requirements into sandbox venv
   shell: >
     cd {{ edxapp_code_dir }} &&
     {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors
     -r {{ item }}
   with_items:
-  - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
+  sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   notify:
   - "edxapp | restart edxapp"
