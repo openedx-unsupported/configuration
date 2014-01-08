@@ -9,14 +9,14 @@
       private: no
   vars:
     not_prod: true
-    secure_dir: ../../../edx-secret/ansible
-    local_dir: ../../../edx-secret/ansible/local
+    secure_dir: "../../../edx-secret/ansible"
+    local_dir: "{{secure_dir}}/local"
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
     - "{{ secure_dir }}/vars/edxapp_stage_users.yml"
     - "{{ secure_dir }}/vars/shib_stage_vars.yml"
-    - "{{ secure_dir }}/vars/datadog_stage.yml"
+    #- "{{ secure_dir }}/vars/datadog_stage.yml"
   roles:
     - common
     - supervisor
@@ -25,8 +25,11 @@
       - lms
       - cms
       - lms-preview
+      - verify
       nginx_template_directory: "{{local_dir}}/nginx/templates/"
-    - edxapp
+    - role: edxapp
+      devstack: False
+      celery_worker: False
     - apache
     - shibboleth
     #- datadog
