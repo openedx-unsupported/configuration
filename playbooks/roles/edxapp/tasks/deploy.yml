@@ -8,6 +8,9 @@
     mode=0644
   tags: deploy
 
+# Set up the python sandbox execution environment
+- include: python_sandbox_env.yml
+
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
   git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
@@ -186,13 +189,70 @@
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
-  when: install_sandbox_reqs_into_regular_venv
+  when: not EDXAPP_PYTHON_SANDBOX
   sudo_user: "{{ edxapp_user }}"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
   tags: deploy
+
+# The next few tasks set up the python code sandbox
+
+# need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
+# to install anything
+- name: edxapp | code sandbox | disable apparmor profile for code sandbox
+  shell: "{{ item }}"
+  with_items:
+    - "ln -s /etc/apparmor.d/code.sandbox /etc/apparmor.d/disable/"
+    - "apparmor_parser -R /etc/apparmor.d/code.sandbox"
+  when: EDXAPP_PYTHON_SANDBOX
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: edxapp | code sandbox | Install sandbox requirements into sandbox venv
+  shell: >
+    cd {{ edxapp_code_dir }} &&
+    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors
+    -r {{ item }}
+  with_items:
+  - "{{ sandbox_base_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_post_requirements }}"
+  when: EDXAPP_PYTHON_SANDBOX
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: edxapp | code sandbox | re-enable apparmor profile for code sandbox
+  shell: "{{ item }}"
+  with_items:
+    - "unlink /etc/apparmor.d/disable/code.sandbox"
+    - "apparmor_parser -r /etc/apparmor.d/code.sandbox"
+  when: EDXAPP_PYTHON_SANDBOX
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: edxapp | code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
+  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags:
+  - deploy
+  - edxapp-sandbox
 
 - name: edxapp | compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
