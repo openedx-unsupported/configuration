@@ -116,6 +116,13 @@ EDXAPP_GRADE_ROOT_PATH: '/tmp/edx-s3/grades'
 # Configure rake tasks in edx-platform to skip Python/Ruby/Node installation
 EDXAPP_NO_PREREQ_INSTALL: 1
 
+# whether to setup the python codejail or not
+EDXAPP_PYTHON_SANDBOX: false
+# this next setting, if true, turns on actual sandbox enforcement.  If not true,
+# it puts the sandbox in 'complain' mode, for reporting but not enforcement
+EDXAPP_SANDBOX_ENFORCE: true
+
+
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -162,6 +169,13 @@ edxapp_workers:
   - queue: high_mem
     service_variant: lms
     concurrency: 2
+
+# setup for python codejail
+edxapp_sandbox_venv_dir:  '{{ edxapp_venvs_dir }}/edxapp-sandbox'
+edxapp_sandbox_user: 'sandbox'  # I think something about the codejail requires hardcoding this to sandbox:sandbox
+
+# apparmor command
+edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
 
 # Requirement files we explicitely
 # check for changes before attempting
@@ -361,6 +375,14 @@ lms_auth_config:
 
 lms_env_config:
   <<: *edxapp_generic_env
+  'CODE_JAIL':
+    # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
+    'python_bin': '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
+    'limits':
+      'VMEM': 0
+      'REALTIME': 5
+    'user': '{{ edxapp_sandbox_user }}'
+
 cms_auth_config:
   <<: *edxapp_generic_auth
 cms_env_config:
@@ -429,9 +451,6 @@ repo_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/repo.txt"
 sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
 sandbox_local_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/local.txt"
 sandbox_post_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/post.txt"
-
-#do we want to install the sandbox requirements into the regular virtual env
-install_sandbox_reqs_into_regular_venv: true
 
 edxapp_debian_pkgs:
   - npm
