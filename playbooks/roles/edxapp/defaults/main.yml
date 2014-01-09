@@ -106,14 +106,12 @@ EDXAPP_ENV_EXTRA: {}
 EDXAPP_AUTH_EXTRA: {}
 EDXAPP_MKTG_URL_LINK_MAP: {}
 
-# whether to setup the python sandbox or not
+# whether to setup the python codejail or not
 EDXAPP_PYTHON_SANDBOX: false
-EDXAPP_SANDBOX_VENV_DIR:  '{{ edxapp_venvs_dir }}/edxapp-sandbox'
-EDXAPP_SANDBOX_USER: 'sandbox'
-EDXAPP_SANDBOX_GROUP: 'sandbox'
 # this next setting, if true, turns on actual sandbox enforcement.  If not true,
 # it puts the sandbox in 'complain' mode, for reporting but not enforcement
 EDXAPP_SANDBOX_ENFORCE: true
+
 EDXAPP_USER: 'www-data'
 COMMON_WEB_GROUP: 'www-data'
 
@@ -162,6 +160,13 @@ edxapp_workers:
   - queue: high_mem
     service_variant: lms
     concurrency: 2
+
+# setup for python codejail
+edxapp_sandbox_venv_dir:  '{{ edxapp_venvs_dir }}/edxapp-sandbox'
+edxapp_sandbox_user: 'sandbox'  # I think something about the codejail requires hardcoding this to sandbox:sandbox
+
+# apparmor command
+edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
 
 # Requirement files we explicitely
 # check for changes before attempting
@@ -355,6 +360,14 @@ lms_auth_config:
 
 lms_env_config:
   <<: *edxapp_generic_env
+  'CODE_JAIL':
+    # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
+    'python_bin': '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
+    'limits':
+      'VMEM': 0
+      'REALTIME': 5
+    'user': '{{ edxapp_sandbox_user }}'
+
 cms_auth_config:
   <<: *edxapp_generic_auth
 cms_env_config:
@@ -371,8 +384,6 @@ lms_preview_env_config:
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
 
-# sandbox command
-edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
 
 # gunicorn ports/hosts, these shouldn't need to be overridden
 edxapp_cms_gunicorn_port: 8010
@@ -428,9 +439,6 @@ repo_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/repo.txt"
 sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
 sandbox_local_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/local.txt"
 sandbox_post_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/post.txt"
-
-#do we want to install the sandbox requirements into the regular virtual env
-install_sandbox_reqs_into_regular_venv: true
 
 edxapp_debian_pkgs:
   - npm
