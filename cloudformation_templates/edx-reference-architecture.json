@@ -62,6 +62,29 @@
       ],
       "ConstraintDescription":"must be a valid EC2 instance type."
     },
+    "ElasticsearchInstanceType":{
+      "Description":"Worker EC2 instance type",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
     "ForumInstanceType":{
       "Description":"Worker EC2 instance type",
       "Type":"String",
@@ -287,6 +310,11 @@
       "Type":"Number",
       "Default":"2"
     },
+    "ElasticsearchDesiredCapacity":{
+      "Description":"The Auto-scaling group desired capacity for the forums hosts",
+      "Type":"Number",
+      "Default":"2"
+    },
     "ForumDesiredCapacity":{
       "Description":"The Auto-scaling group desired capacity for the forums hosts",
       "Type":"Number",
@@ -440,6 +468,8 @@
       "Mongo01":        { "CIDR":"10.0.90.0/24" },
       "Mongo02":        { "CIDR":"10.0.91.0/24" },
       "Mongo03":        { "CIDR":"10.0.92.0/24" },
+      "Elasticsearch01":        { "CIDR":"10.0.100.0/24" },
+      "Elasticsearch02":        { "CIDR":"10.0.101.0/24" },
       "Admin":          { "CIDR":"10.0.200.0/24" }
     },
     "MapRegionsToAvailZones":{
@@ -979,6 +1009,70 @@
           {
             "Key":"Application",
             "Value":"worker"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
+    "ElasticsearchSubnet01":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Elasticsearch01",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"forum"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
+    "ElasticsearchSubnet02":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Elasticsearch02",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"forum"
           },
           {
             "Key":"Network",
@@ -1612,6 +1706,28 @@
         }
       }
     },
+    "PrivateSubnetRouteTableAssociationElasticsearch01":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"ElasticsearchSubnet01"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
+    "PrivateSubnetRouteTableAssociationElasticsearch02":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"ElasticsearchSubnet02"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
     "PrivateSubnetRouteTableAssociationForum01":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
@@ -1869,6 +1985,28 @@
       "Properties":{
         "SubnetId":{
           "Ref":"WorkerSubnet02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationElasticsearch01":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"ElasticsearchSubnet01"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationElasticsearch02":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"ElasticsearchSubnet02"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -4266,6 +4404,267 @@
       "Properties":{
         "Handle":{
           "Ref":"WorkerServerWaitHandle"
+        },
+        "Timeout":"1200"
+      }
+    },
+    "ElasticsearchServer":{
+      "Type":"AWS::AutoScaling::LaunchConfiguration",
+      "Properties":{
+        "SecurityGroups":[
+          {
+            "Ref":"ElasticsearchServerSecurityGroup"
+          }
+        ],
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSRegionArch2AMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            {
+              "Fn::FindInMap":[
+                "AWSInstanceType2Arch",
+                {
+                  "Ref":"ElasticsearchInstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "UserData":{
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash -x\n",
+                "exec >> /home/ubuntu/cflog.log\n",
+                "exec 2>> /home/ubuntu/cflog.log\n",
+                "function error_exit\n",
+                "{\n",
+                "  cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref":"ElasticsearchServerWaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "for dev in /dev/xvdc /dev/xvdd; do sudo echo w | fdisk $dev; sudo mkfs -t ext4 $dev;done;\n",
+                "sudo mkdir /mnt/logs\n",
+                "sudo mount /dev/xvdc /mnt/logs\n",
+                "sudo mount /dev/xvdd /opt\n",
+                "apt-get -y update\n",
+                "apt-get -y install python-setuptools\n",
+                "echo \"Python Tools installed\" - `date` >> /home/ubuntu/cflog.txt\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "echo \"Cloudformation Boostrap installed \" - `date` >> /home/ubuntu/cflog.txt\n",
+                "# If all went well, signal success\n",
+                "cfn-signal -e $? -r 'Edx Server configuration' '",
+                {
+                  "Ref":"ElasticsearchServerWaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "InstanceType":{
+          "Ref":"ElasticsearchInstanceType"
+        },
+        "BlockDeviceMappings":[
+          {
+            "DeviceName":"/dev/xvdc",
+            "Ebs":{
+              "VolumeSize":"50"
+            }
+          },
+          {
+            "DeviceName":"/dev/xvdd",
+            "Ebs":{
+              "VolumeSize":"50"
+            }
+          }
+        ]
+      }
+    },
+    "ElasticsearchServerASGroup":{
+      "Type":"AWS::AutoScaling::AutoScalingGroup",
+      "Properties":{
+        "AvailabilityZones":[
+          {
+            "Fn::GetAtt":[
+              "ElasticsearchSubnet01",
+              "AvailabilityZone"
+            ]
+          },
+          {
+            "Fn::GetAtt":[
+              "ElasticsearchSubnet02",
+              "AvailabilityZone"
+            ]
+          }
+        ],
+        "VPCZoneIdentifier":[
+          {
+            "Ref":"ElasticsearchSubnet01"
+          },
+          {
+            "Ref":"ElasticsearchSubnet02"
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"role",
+            "Value":"elasticsearch",
+            "PropagateAtLaunch":true
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            },
+            "PropagateAtLaunch":true
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            },
+            "PropagateAtLaunch":true
+          }
+        ],
+        "LaunchConfigurationName":{
+          "Ref":"ElasticsearchServer"
+        },
+        "MinSize":{
+          "Ref":"ElasticsearchDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"ElasticsearchDesiredCapacity"
+        },
+        "DesiredCapacity":{
+          "Ref":"ElasticsearchDesiredCapacity"
+        }
+      }
+    },
+    "ElasticsearchServerScaleUpPolicy":{
+      "Type":"AWS::AutoScaling::ScalingPolicy",
+      "Properties":{
+        "AdjustmentType":"ChangeInCapacity",
+        "AutoScalingGroupName":{
+          "Ref":"ElasticsearchServerASGroup"
+        },
+        "Cooldown":"60",
+        "ScalingAdjustment":"1"
+      }
+    },
+    "ElasticsearchServerScaleDownPolicy":{
+      "Type":"AWS::AutoScaling::ScalingPolicy",
+      "Properties":{
+        "AdjustmentType":"ChangeInCapacity",
+        "AutoScalingGroupName":{
+          "Ref":"ElasticsearchServerASGroup"
+        },
+        "Cooldown":"60",
+        "ScalingAdjustment":"-1"
+      }
+    },
+    "ElasticsearchCPUAlarmHigh":{
+      "Type":"AWS::CloudWatch::Alarm",
+      "Properties":{
+        "AlarmDescription":"Scale-up if CPU > 90% for 10 minutes",
+        "MetricName":"CPUUtilization",
+        "Namespace":"AWS/EC2",
+        "Statistic":"Average",
+        "Period":"300",
+        "EvaluationPeriods":"2",
+        "Threshold":"90",
+        "AlarmActions":[
+          {
+            "Ref":"ElasticsearchServerScaleUpPolicy"
+          }
+        ],
+        "Dimensions":[
+          {
+            "Name":"AutoScalingGroupName",
+            "Value":{
+              "Ref":"ElasticsearchServerASGroup"
+            }
+          }
+        ],
+        "ComparisonOperator":"GreaterThanThreshold"
+      }
+    },
+    "ElasticsearchCPUAlarmLow":{
+      "Type":"AWS::CloudWatch::Alarm",
+      "Properties":{
+        "AlarmDescription":"Scale-down if CPU < 70% for 10 minutes",
+        "MetricName":"CPUUtilization",
+        "Namespace":"AWS/EC2",
+        "Statistic":"Average",
+        "Period":"300",
+        "EvaluationPeriods":"2",
+        "Threshold":"70",
+        "AlarmActions":[
+          {
+            "Ref":"ElasticsearchServerScaleDownPolicy"
+          }
+        ],
+        "Dimensions":[
+          {
+            "Name":"AutoScalingGroupName",
+            "Value":{
+              "Ref":"ElasticsearchServerASGroup"
+            }
+          }
+        ],
+        "ComparisonOperator":"LessThanThreshold"
+      }
+    },
+    "ElasticsearchServerSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Open up SSH access plus Edx Server required ports",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort": 9200,
+            "ToPort": 9200,
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort": 9300,
+            "ToPort": 9300,
+            "CidrIp":"0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ElasticsearchServerWaitHandle":{
+      "Type":"AWS::CloudFormation::WaitConditionHandle"
+    },
+    "ElasticsearchServerWaitCondition":{
+      "Type":"AWS::CloudFormation::WaitCondition",
+      "DependsOn":"ElasticsearchServer",
+      "Properties":{
+        "Handle":{
+          "Ref":"ElasticsearchServerWaitHandle"
         },
         "Timeout":"1200"
       }
