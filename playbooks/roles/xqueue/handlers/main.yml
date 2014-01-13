@@ -1,20 +1,10 @@
-- name: xqueue | stop xqueue
-  service: name=xqueue state=stopped
-  tags:
-  - xqueue
-  - deploy
-
-- name: xqueue | start xqueue
-  service: name=xqueue state=started
-  tags:
-  - xqueue
-  - deploy
-
 - name: xqueue | restart xqueue
-  service: name=xqueue state=restarted
-  tags:
+  supervisorctl: >
+    name={{ item }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
+  with_items:
   - xqueue
-  - deploy
-
-- name: xqueue | restart xqueue consumer
-  service: name=xqueue_consumer state=restarted
+  - xqueue_consumer
+  tags: deploy

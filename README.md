@@ -8,14 +8,14 @@ The goal of the edx/configuration project is to provide a simple, but
 flexible, way for anyone to stand up an instance of Open edX that is
 fully configured and ready-to-go.
 
-Building the platform takes place to two phases:
+Building the platform takes place in two phases:
 
-* Infrastruce provisioning
+* Infrastructure provisioning
 * Service configuration
 
 As much as possible, we have tried to keep a clean distinction between
 provisioning and configuration.  You are not obliged to use our tools
-and are free to use one, but not the other.  The provisioing phase 
+and are free to use one, but not the other.  The provisioning phase 
 stands-up the required resources and tags them with role identifiers
 so that the configuration tool can come in and complete the job.
 

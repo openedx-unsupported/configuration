@@ -1,11 +1,11 @@
 # this gets all running prod webservers
 #- hosts: tag_environment_prod:&tag_function_webserver
 # or we can get subsets of them by name
-#- hosts: ~tag_Name_app(4|11|21|10|20)_prod
-#- hosts: ~tag_Name_app(10|20)_prod
-#- hosts: ~tag_Name_app(11|21)_prod
+#- hosts: ~tag_Name_app1_prod
+- hosts: ~tag_Name_app2_prod
 ## this is the test box
-- hosts: ~tag_Name_app4_prod
+#- hosts: ~tag_Name_app4_prod
+#- hosts: ~tag_Name_app(4|1|2)_prod
 ## you can also do security group, but don't do that
 #- hosts: security_group_edx-prod-EdxappServerSecurityGroup-NSKCQTMZIPQB
   sudo: True
@@ -27,17 +27,25 @@
     - "{{ secure_dir }}/vars/shib_prod_vars.yml"
     - "{{ secure_dir }}/vars/datadog_prod.yml"
   roles:
+    - role: gh_users
+      gh_users:
+        - sefk
+        - jbau
+        - jrbl
+      tags: users
     - common
+    - supervisor
     - role: nginx
       nginx_sites:
       - lms
       - cms
-      - lms-preview
+      - verify
       nginx_template_directory: "{{local_dir}}/nginx/templates/"
+      tags: nginx
     - edxapp
     - apache
     - shibboleth
     - datadog
     #- splunkforwarder
     # run this role last
-    - in_production
+    #- in_production

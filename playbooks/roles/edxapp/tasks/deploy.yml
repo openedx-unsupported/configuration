@@ -1,116 +1,99 @@
-# Stop all services.
-- name: stop edxapp services
-  service: name=edxapp state=stopped
-  when: celery_worker is not defined
-  tags:
-  - lms
-  - lms-preview
-  - cms
-  - deploy
-
-- name: stop edx workers
-  service: name=edx-workers state=stopped
-  when: celery_worker is defined
-  tags:
-  - deploy
-
-# update json configs for the application
-
-- include: lms.yml
-  when: "'lms' in service_variants_enabled"
-- include: cms.yml
-  when: "'cms' in service_variants_enabled"
-- include: lms-preview.yml
-  when: "'lms-preview' in service_variants_enabled"
-
-
 # Do A Checkout
-- name: edxapp | checkout edx-platform repo into {{edx_platform_code_dir}}
-  git: dest={{edx_platform_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
-  register: edx_platform_checkout
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+- name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
+  git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_commit}}
+  register: chkout
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
 
-- name: git clean after checking out edx-platform
-  shell: cd {{edx_platform_code_dir}} && git clean -xdf
-  when: edx_platform_checkout.changed
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+- name: edxapp | git clean after checking out edx-platform
+  shell: cd {{edxapp_code_dir}} && git clean -xdf
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
 
-# Do Post Checkout Tasks.
-- name: create platform code dir
-  file: path={{edx_platform_code_dir}} state=directory owner=www-data group=www-data mode=755
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
-
-- name: checkout theme
-  git: dest={{app_base_dir}}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+- name: edxapp | checkout theme
+  git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
   when: edxapp_theme_name != ''
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
-  - cms
-  - lms-preview
-  - lms
-  - update
   - deploy
 
-
-# TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
-# portions of the deploy needs to be incorporated here.
-
-- name: sets permissions on platform code dir and contents
-  file: path={{edx_platform_code_dir}} state=directory owner=www-data group=www-data recurse=yes
-  # Post Checkout tasks will get run as handlers when the {{ edx_platform_code_dir }} is ready.
-  # Look at the handlers/main.yml in this role for a description of the tasks stated below.
-  when: edx_platform_checkout.changed
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
-
-# Ruby plays that need to be run after platform updates.
-- name: gem | gem install bundler
+- name: edxapp | create checksum for requirements, package.json and Gemfile
   shell: >
-    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ rbenv_root }}/shims/gem install bundle
-      chdir={{ edx_platform_code_dir }}
+    /usr/bin/md5sum {{ " ".join(edxapp_chksum_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
+  sudo_user: "{{ edxapp_user }}"
+  ignore_errors: true
   tags:
-  - ruby
-  - deploy
-  - install
-
-- name: bundle | bundle install
-  shell: >
-    RBENV_ROOT={{ rbenv_root }} GEM_HOME={{ gem_home }} {{ gem_home }}/bin/bundle install --binstubs
-      chdir={{ edx_platform_code_dir }}
-  tags:
-  - ruby
-  - deploy
-  - install
-
-# Node play that need to be run after platform updates.
-- name: Install edx-platform npm dependencies
-  shell: npm install chdir={{ edx_platform_code_dir }}
-  tags:
-  - npm
-  - update
   - deploy
 
-# Python plays that need to be run after platform updates.
+- stat: path=/var/tmp/edxapp.req.new
+  register: new
+  sudo_user: "{{ edxapp_user }}"
+  tags: deploy
+
+- stat: path=/var/tmp/edxapp.req.installed
+  register: inst
+  sudo_user: "{{ edxapp_user }}"
+  tags: deploy
 
 # Substitute github mirror in all requirements files
-#
+# This is run on every single deploy
+- name: edxapp | Updating requirement files for git mirror
+  command: |
+    /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ " ".join(edxapp_all_req_files) }}
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
+
+# Ruby plays that need to be run after platform updates.
+- name: edxapp | gem install bundler
+  shell: >
+    gem install bundle
+      chdir={{ edxapp_code_dir }}
+      executable=/bin/bash
+  environment: "{{ edxapp_environment }}"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
+
+- name: edxapp | bundle install
+  shell: >
+    bundle install --binstubs
+      chdir={{ edxapp_code_dir }}
+      executable=/bin/bash
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
+
+# Node play that need to be run after platform updates.
+- name: edxapp | Install edx-platform npm dependencies
+  shell: npm install chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
+
+# Substitute github mirror in all requirements files
 - name: Updating requirement files for git mirror
   command: |
-    /bin/sed -i -e 's/github\.com/{{ GIT_MIRROR }}/g' {{ item }}
+    /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ item }}
   with_items:
     - "{{ base_requirements_file }}"
     - "{{ pre_requirements_file }}"
@@ -127,200 +110,216 @@
     - install
     - deploy
 
-# Install the python pre requirements into {{ venv_dir }}
-- name : install python pre-requirements
+# Install the python pre requirements into {{ edxapp_venv_dir }}
+- name : edxapp | install python pre-requirements
   pip: >
     requirements="{{pre_requirements_file}}"
-    virtualenv="{{venv_dir}}"
+    virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ PYPI_MIRROR_URL }}"
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  tags: deploy
 
-# Install the python modules into {{ venv_dir }}
-- name : install python base-requirements
+# Install the python modules into {{ edxapp_venv_dir }}
+- name : edxapp | install python base-requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+  shell: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
+    chdir={{ edxapp_code_dir }}
+  environment: "{{ edxapp_environment }}"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  tags: deploy
 
-# Install the python post requirements into {{ venv_dir }}
-- name : install python post-requirements
+# Install the python post requirements into {{ edxapp_venv_dir }}
+- name : edxapp | install python post-requirements
   pip: >
     requirements="{{post_requirements_file}}"
-    virtualenv="{{venv_dir}}"
+    virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ PYPI_MIRROR_URL }}"
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+  tags: deploy
 
-# Install the final python modules into {{ venv_dir }}
-- name : install python post-post requirements
+# Install the final python modules into {{ edxapp_venv_dir }}
+- name : edxapp | install python post-post requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
+  shell: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ repo_requirements_file }}"
   - "{{ github_requirements_file }}"
   - "{{ local_requirements_file }}"
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
 
 
-# Install the sandbox python modules into {{ venv_dir }}
-- name : install sandbox requirements into regular venv
+# Install the sandbox python modules into {{ edxapp_venv_dir }}
+- name : edxapp | install sandbox requirements into regular venv
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: cd {{ edx_platform_code_dir }} && {{ venv_dir }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
+  shell: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
-  when: not EDXAPP_PYTHON_SANDBOX
-  tags:
-  - lms
-  - cms
-  - install
-  - deploy
+  sudo_user: "{{ edxapp_user }}"
+  when: "not EDXAPP_PYTHON_SANDBOX and (not inst.stat.exists or new.stat.md5 != inst.stat.md5)"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
 
-- name: changing group ownership to www-data for everything in the venv (workaround)
-  shell: chgrp -R www-data {{ venv_dir }}
-  tags:
-  - deploy
+# The next few tasks set up the python code sandbox
 
 # need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
 # to install anything
-- name: disable apparmor profile for code sandbox
-  shell: "{{ item }}"
-  with_items:
-    - "ln -s /etc/apparmor.d/code.sandbox /etc/apparmor.d/disable/"
-    - "apparmor_parser -R /etc/apparmor.d/code.sandbox"
+- name: edxapp | code sandbox | put sandbox apparmor profile in complain mode
+  command: /usr/sbin/aa-complain /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
   - deploy
   - edxapp-sandbox
 
-- name: Install sandbox requirements into sandbox venv
+- name: edxapp | code sandbox | Install base sandbox requirements and create sandbox virtualenv
+  pip: >
+    requirements="{{sandbox_base_requirements}}"
+    virtualenv="{{edxapp_sandbox_venv_dir}}"
+    state=present
+    extra_args="-i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors"
+  sudo_user: "{{ edxapp_sandbox_user }}"
+  when: EDXAPP_PYTHON_SANDBOX
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags:
+  - deploy
+  - edxapp-sandbox
+
+- name: edxapp | code sandbox | Install sandbox requirements into sandbox venv
   shell: >
-    cd {{ edx_platform_code_dir }} &&
-    {{ EDXAPP_SANDBOX_VENV_DIR }}/bin/pip install -i {{ PYPI_MIRROR_URL }} --exists-action w --use-mirrors
-    --upgrade --no-deps -r {{ item }}
+    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    chdir={{ edxapp_code_dir }}
   with_items:
-  - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
+  sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
+  register: sandbox_install_output
+  changed_when: "'installed' in sandbox_install_output"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - deploy
   - edxapp-sandbox
 
-- name: re-enable apparmor profile for code sandbox
-  shell: "{{ item }}"
-  with_items:
-    - "unlink /etc/apparmor.d/disable/code.sandbox"
-    - "apparmor_parser -r /etc/apparmor.d/code.sandbox"
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - deploy
-  - edxapp-sandbox
-
-- name: put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
+- name: edxapp | code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
   - deploy
   - edxapp-sandbox
 
+- name: edxapp | compiling all py files in the edx-platform repo
+  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
+
+  # alternative would be to give {{ common_web_user }} read access
+  # to the virtualenv but that permission change will require
+  # root access.
+- name: edxapp | give other read permissions to the virtualenv
+  command: chmod -R o+r "{{ edxapp_venv_dir }}"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  tags: deploy
+
+- name: edxapp | create checksum for installed requirements
+  shell: cp /var/tmp/edxapp.req.new /var/tmp/edxapp.req.installed
+  sudo_user: "{{ edxapp_user }}"
+  notify: "edxapp | restart edxapp"
+  tags: deploy
+
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
 # not sure if this fix will ever get merged
 # We should never do this in production
-- name: openid workaround - NOT FOR PRODUCTION
-  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' /opt/edx/lib/python2.7/site-packages/django_openid_auth/models.py
+- name: edxapp | openid workaround - NOT FOR PRODUCTION
+  shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
-  tags:
-  - deploy
-  - lms
-  - lms-preview
-  - cms
-  - syncdb
-
-- name: syncdb and migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_db is defined and migrate_db|lower == "yes"
-  tags:
-  - deploy
-  - lms
-  - lms-preview
-  - cms
-  - syncdb
-
-- name: db migrate
-  shell: sudo -u www-data SERVICE_VARIANT=lms /opt/edx/bin/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath=/opt/wwc/edx-platform
-  when: migrate_only is defined and migrate_only|lower == "yes"
-  tags:
-  - deploy
-  - lms
-  - lms-preview
-  - cms
-  - migrate
-
-
-# Gather lms assets using rake if possible
-- name: gather lms static assets with rake
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ lms_variant }} rake lms:gather_assets:aws
+  sudo_user: "{{ edxapp_user }}"
   notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  when: celery_worker is not defined
-  environment: "{{ deploy_environment }}"
-  tags:
-  - lms
-  - lms-preview
-  - deploy
-
-# Gather cms assets using rake if possible
-- name: gather cms static assets with rake
-  shell: executable=/bin/bash chdir={{ edx_platform_code_dir }} SERVICE_VARIANT={{ cms_variant }} rake cms:gather_assets:aws
-  notify:
-  - restart edxapp
-  sudo: yes
-  sudo_user: www-data
-  when: celery_worker is not defined
-  environment: "{{ deploy_environment }}"
-  tags:
-  - cms
-  - deploy
-
-
-- name: restart edxapp
-  service: name=edxapp state=restarted
-  when: celery_worker is not defined
-  tags:
-  - lms
-  - lms-preview
-  - cms
-  - deploy
-
-- name: restart workers
-  service: name=edx-workers state=restarted
-  when: celery_worker is defined
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - deploy
+
+# creates the supervisor jobs for the
+# service variants configured, runs
+# gather_assets and db migrations
+- include: service_variant_config.yml
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+
+- name: edxapp | update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  sudo_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout != ""
+  when: not devstack
+  tags: deploy
+
+- name: edxapp | ensure edxapp has started
+  supervisorctl: >
+    state=started
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name="edxapp:{{ item }}"
+  sudo_user: "{{ supervisor_service_user }}"
+  when: not devstack and celery_worker is not defined
+  with_items: service_variants_enabled
+  tags: deploy
+
+- name: edxapp | ensure edxapp_workers has started
+  supervisorctl: >
+    name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  when: celery_worker is defined and not devstack
+  with_items: edxapp_workers
+  sudo_user: "{{ supervisor_service_user }}"
+  tags: deploy

@@ -2,11 +2,14 @@
    and also a rabbitmq machine.
 #}
 
-{%- if rabbitmq_clustered_hosts|length == 0 -%}
+{%- if RABBITMQ_CLUSTERED -%}
 {%- set hosts= [] -%}
+{%- set all_rabbit_hosts = [] -%}
+{%- do all_rabbit_hosts.extend(groups.tag_role_rabbitmq) -%}
+{%- do all_rabbit_hosts.extend(groups.tag_group_rabbitmq) -%}
 {%- for name in  group_names -%}
   {%- if name.startswith(rabbitmq_aws_stack_name) -%}
-    {%- for host in groups.tag_group_rabbitmq -%}
+    {%- for host in all_rabbit_hosts -%}
       {%- if host in groups[name] -%}
         {% do hosts.append("rabbit@ip-" + host.replace('.','-')) %}
       {%- endif -%}

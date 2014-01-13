@@ -2,122 +2,93 @@
 #  - group_vars/all
 #  - common/tasks/main.yml
 ---
-- name: Change permissions on datadir
-  file: path={{ app_base_dir }}/data state=directory owner=www-data group=www-data
-  tags:
-  - cms
-  - lms
-  - lms-env
-  - update
 
-- name: Change owner on staticfiles
-  file: path={{ app_base_dir }}/staticfiles state=directory owner=www-data group=adm
-  tags:
-  - cms
-  - lms
-  - lms-env
-  - update
+- name: edxapp | Install logrotate configuration for tracking file
+  template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: Create theming directory
-  file: path={{ app_base_dir }}/themes state=directory mode=2775 group=adm owner=www-data
-  tags:
-  - cms
-  - lms
-  - cms-env
-  - lms-env
-  - update
+- name: edxapp | create application user
+  user: >
+    name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
+    createhome=no shell=/bin/false
+  ignore_errors: True
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: install a bunch of system packages on which LMS and CMS rely
-  apt: pkg={{','.join(lms_debian_pkgs)}} state=present
-  tags:
-  - lms
-  - cms
-  - install
-
-- name: creating edxapp upstart script
-  sudo: True
-  template: src=edxapp.conf.j2 dest=/etc/init/edxapp.conf owner=root group=root
-  when: "celery_worker is not defined"
-  tags:
-  - upstart
-  - gunicorn
-  - update
-
-- name: create edx-workers upstart script
-  template: src=edx-workers.conf.j2 dest=/etc/init/edx-workers.conf owner=root group=root
-  when: "celery_worker is defined"
-  tags:
-  - upstart
-  - update
-
-- name: Create edxapp sandbox group
-  group: name={{ EDXAPP_SANDBOX_GROUP }}
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: Create edxapp sandbox user
-  user: name={{ EDXAPP_SANDBOX_USER }} group={{ EDXAPP_SANDBOX_GROUP }} shell=/bin/false home={{ EDXAPP_SANDBOX_VENV_DIR }}
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: Create edxapp sandbox virtual env directory
+- name: edxapp | create edxapp user dirs
   file: >
-    path="{{ EDXAPP_SANDBOX_VENV_DIR }}"
-    state=directory
-    owner=root
-    group=root
-    mode=0755
+    path="{{ item }}" state=directory
+    owner="{{ edxapp_user }}" group="{{ common_web_group }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  with_items:
+    - "{{ edxapp_app_dir }}"
+    - "{{ edxapp_data_dir }}"
+    - "{{ edxapp_venvs_dir }}"
+    - "{{ edxapp_theme_dir }}"
+    - "{{ edxapp_staticfile_dir }}"
+
+- name: edxapp | create edxapp log dir
+  file: >
+    path="{{ edxapp_log_dir }}" state=directory
+    owner="{{ common_log_user }}" group="{{ common_log_user }}"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+
+- name: edxapp | create web-writable edxapp data dirs
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ common_web_user }}" group="{{ edxapp_user }}"
+    mode="0775"
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  with_items:
+    - "{{ edxapp_course_data_dir }}"
+    - "{{ edxapp_upload_dir }}"
+
+- name: edxapp | install system packages on which LMS and CMS rely
+  apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+
+- name: edxapp | create log directories for service variants
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  file: >
+    path={{ edxapp_log_dir }}/{{ item }} state=directory
+    owner={{ common_log_user }} group={{ common_log_user }}
+    mode=0750
+  with_items: service_variants_enabled
+
+- name: edxapp | setup the edxapp env
+  notify:
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
+  template: >
+    src=edxapp_env.j2 dest={{ edxapp_app_dir }}/edxapp_env
+    owner={{ edxapp_user }}  group={{ common_web_user }}
+    mode=0644
+
+# Set up the python sandbox execution environment
+- include: python_sandbox_env.yml
   when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
 
-- name: Create edxapp sandbox virtualenv
-  command: /usr/local/bin/virtualenv {{ EDXAPP_SANDBOX_VENV_DIR }} --distribute creates={{ EDXAPP_SANDBOX_VENV_DIR }}/bin/activate
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: Install apparmor system pkg
-  apt: pkg=apparmor-utils state=present
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: write out apparmor code sandbox config
-  template: src=code.sandbox.j2 dest=/etc/apparmor.d/code.sandbox mode=0644 owner=root group=root
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: write out sandbox user sudoers config
-  template: src=95-sandbox-sudoer.j2 dest=/etc/sudoers.d/95-{{ EDXAPP_SANDBOX_USER }} mode=0440 owner=root group=root
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-# we boostrap and enable the apparmor service here.  in deploy.yml we disable, deploy, then re-enable
-# so we need to enable it in main.yml
-- name: start apparmor service
-  service: name=apparmor state=started
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: (bootstrap) load code sandbox profile
-  command: apparmor_parser -r /etc/apparmor.d/code.sandbox
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-- name: (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
-  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
-  when: EDXAPP_PYTHON_SANDBOX
-  tags:
-  - edxapp-sandbox
-
-
-- include: npm.yml
-- include: ruby.yml
 - include: deploy.yml
+
+- name: edxapp | create a symlink for venv python
+  file: >
+    src="{{ edxapp_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.edxapp
+    state=link
+  with_items:
+  - python
+  - pip
+

@@ -1,0 +1,68 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role certs
+#
+
+CERTS_QUEUE_URL: "http://localhost:18040"
+CERTS_BUCKET: ""
+# basic auth credentials for connecting
+# to the xqueue server
+CERTS_XQUEUE_AUTH_USER: "edx"
+CERTS_XQUEUE_AUTH_PASS: "edx"
+# credentials for connecting to the xqueue server
+CERTS_QUEUE_USER: "lms"
+CERTS_QUEUE_PASS: "password"
+# AWS credentials for certificate upload
+CERTS_AWS_KEY: ""
+CERTS_AWS_ID: ""
+# GPG key ID, defaults to the dummy key
+CERTS_KEY_ID: "FEF8D954"
+# Path to git identity file for pull access to
+# the edX certificates repo - REQUIRED
+# Example - {{ secure_dir }}/files/git-identity
+CERTS_LOCAL_GIT_IDENTITY: !!null
+# Path to public and private gpg key for signing
+# the edX certificate. Default is a dummy key
+CERTS_LOCAL_PRIVATE_KEY: "example-private-key.txt"
+
+########## Internal role vars below
+
+certs_user: certs
+certs_app_dir: "{{ COMMON_APP_DIR }}/certs"
+certs_code_dir: "{{ certs_app_dir }}/certificates"
+certs_venvs_dir: "{{ certs_app_dir }}/venvs"
+certs_venv_dir: "{{ certs_venvs_dir }}/certs"
+certs_venv_bin: "{{ certs_venv_dir }}/bin"
+certs_git_ssh: /tmp/git_ssh.sh
+certs_git_identity: "{{ certs_app_dir }}/git-identity"
+certs_requirements_file: "{{ certs_code_dir }}/requirements.txt"
+certs_repo: "git@github.com:/edx/certificates"
+certs_version: 'master'
+certs_gpg_dir: "{{ certs_app_dir }}/gnupg"
+certs_env_config:
+  # CERTS_DATA is legacy, not used
+  CERT_DATA: {}
+  QUEUE_NAME: "certificates"
+  QUEUE_URL: $CERTS_QUEUE_URL
+  CERT_BUCKET: $CERTS_BUCKET
+  # gnupg signing key
+  CERT_KEY_ID: $CERTS_KEY_ID
+  LOGGING_ENV: ""
+  CERT_GPG_DIR: $certs_gpg_dir
+
+certs_auth_config:
+  QUEUE_USER: $CERTS_QUEUE_USER
+  QUEUE_PASS: $CERTS_QUEUE_PASS
+  QUEUE_AUTH_USER: $CERTS_XQUEUE_AUTH_USER
+  QUEUE_AUTH_PASS: $CERTS_XQUEUE_AUTH_PASS
+  CERT_KEY_ID: $CERTS_KEY_ID
+  CERT_AWS_ID: $CERTS_AWS_ID
+  CERT_AWS_KEY: $CERTS_AWS_KEY

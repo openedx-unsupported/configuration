@@ -2,27 +2,59 @@
 #  - group_vars/all
 #  - common/tasks/main.yml
 ---
-- name: ora | create the ora application user
-  user: name={{ ora_user }}
-  tags:
-  - ora
 
-- name: ora | Create ml_models directory
-  file: path={{ora_code_dir}}/../ml_models state=directory owner={{ ora_user }} group={{ ora_user }}
-  tags:
-  - ora
+- name: ora | create application user
+  user: >
+    name="{{ ora_user }}" home="{{ ora_app_dir }}"
+    createhome=no shell=/bin/false
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
 
-# Check out ora repo to {{ora_code_dir}}
-- name: ora | install git and its recommends
-  apt: pkg=git state=present install_recommends=yes
-  tags:
-  - ora
+- name: ora | create ora app dir
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ ora_user }}" group="{{ common_web_group }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
+  with_items:
+    - "{{ ora_venvs_dir }}"
+    - "{{ ora_app_dir }}"
+
+- name: ora | create ora data dir, owned by {{ common_web_user }}
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ common_web_user }}" group="{{ common_web_group }}"
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
+  with_items:
+    - "{{ ora_data_dir }}"
+    - "{{ ora_app_dir }}/ml_models"
 
 - name: ora | install debian packages that ora needs
   apt: pkg={{item}} state=present
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items: ora_debian_pkgs
-  tags:
-  - ora
 
-- include: ease.yml
+- name: ora | install debian packages for ease that ora needs
+  apt: pkg={{item}} state=present
+  notify:
+    - ora | restart ora
+    - ora | restart ora_celery
+  with_items: ora_ease_debian_pkgs
+
 - include: deploy.yml
+
+- name: ora | create a symlink for venv python
+  file: >
+    src="{{ ora_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.ora state=link
+  with_items:
+  - python
+  - pip
+
+

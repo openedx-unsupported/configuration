@@ -1,32 +1,22 @@
 ---
-- name: notifier | stop notifier-celery-beat
-  supervisorctl: name=notifier-celery-beat state=restarted
-  ignore_errors: yes
-
-- name: notifier | stop notifier-celery-workers
-  supervisorctl: name=notifier-celery-workers state=restarted
-  ignore_errors: yes
 
 - name: notifier | checkout code
   git: 
     dest={{ NOTIFIER_CODE_DIR }} repo={{ NOTIFIER_SOURCE_REPO }} 
     version={{ NOTIFIER_VERSION }}
+  sudo: true  
+  sudo_user: "{{ NOTIFIER_USER }}"
   notify:
-    - notifier | restart notifier
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
   tags:
-    - notifier
     - deploy
-    - install
-    - update
 
 - name: notifier | source repo group perms
   file: 
     path={{ NOTIFIER_SOURCE_REPO }} mode=2775 state=directory
   tags:
-    - notifier
     - deploy
-    - install
-    - update
 
 - name: notifier | install application requirements
   pip: 
@@ -35,12 +25,10 @@
   sudo: true  
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
-    - notifier | restart notifier
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
   tags:
-  - notifier
   - deploy
-  - install
-  - update
 
 - name: notifier | syncdb
   shell: >
@@ -48,9 +36,7 @@
   sudo: true  
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
-    - notifier | restart notifier
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
   tags:
-  - notifier
   - deploy
-  - install
-  - update

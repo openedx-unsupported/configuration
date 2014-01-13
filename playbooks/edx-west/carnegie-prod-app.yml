@@ -1,6 +1,7 @@
 #- hosts: ~tag_Name_app(10|20)_carn
-- hosts: ~tag_Name_app10_carn
+#- hosts: ~tag_Name_app10_carn
 #- hosts: ~tag_Name_app20_carn
+- hosts: ~tag_Name_app1_carn_test
   sudo: True
   vars_prompt:
     - name: "migrate_db"
@@ -21,16 +22,24 @@
     - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
     - "{{ secure_dir }}/vars/datadog_carn.yml"
   roles:
+    - role: gh_users
+      gh_users:
+        - sefk
+        - jbau
+        - jrbl
+      tags: users
     - common
-#    - php
+    - supervisor
+    - php
     - role: nginx
       nginx_sites:
       - lms
       - cms
       - lms-preview
-#      - phpmyadmin
+      - phpmyadminc
       nginx_template_directory: "{{local_dir}}/nginx/templates/carnegie/"
-    - {'role': 'edxapp', 'openid_workaround': true}
+      nginx_conf: true
+    - {'role': 'edxapp', 'openid_workaround': true, 'template_subdir': 'carnegie'}
     - datadog
     #- splunkforwarder
     # run this role last

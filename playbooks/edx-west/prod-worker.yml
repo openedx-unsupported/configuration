@@ -1,8 +1,10 @@
+- name: Basic util setup on all hosts
 # For all util machines
-- hosts: tag_environment_prod:&tag_function_util
+#  hosts: tag_environment_prod:&tag_function_util
 # or we can get subsets of them by name
-#- hosts: ~tag_Name_util10_prod
+  hosts: ~tag_Name_util(1|2)_prod
   sudo: True
+  gather_facts: True
   vars:
     # this indicates the path to site-specific (with precedence)
     # things like nginx template files
@@ -11,32 +13,54 @@
     migrate_db: "no"
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
+    - "{{ secure_dir }}/vars/xqueue_prod_vars.yml"
     - "{{ secure_dir }}/vars/users.yml"
-    - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
-    - "{{ secure_dir }}/vars/shib_prod_vars.yml"
+#    - "{{ secure_dir }}/vars/edxapp_prod_users.yml"
+#    - "{{ secure_dir }}/vars/shib_prod_vars.yml"
     - "{{ secure_dir }}/vars/datadog_prod.yml"
   roles:
-    - common
-    - { role: 'edxapp', celery_worker: True }
+    - role: gh_users
+      gh_users:
+        - sefk
+        - jbau
+        - jrbl
+      tags: users
+    - role: 'common'
+      tags: common
+    - role: 'supervisor'
+      tags: supervisor
+    - role: 'edxapp'
+      celery_worker: True
+      devstack: false
+      tags: celery
+    - role: nginx
+      nginx_sites:
+      - xqueue
+      - basic-auth
+      tags: nginx
+    - role: xqueue
+      xqueue_create_db: "no"
+      xqueue_create_users: false
+      tags: xqueue
     - datadog
     #- splunkforwarder
 
 # run the certificate agent on the first util machine only
-- hosts: ~tag_Name_util10_prod
-  sudo: True
-  vars:
-    secure_dir: '../../../configuration-secure/ansible'
-    migrate_db: "no"
-  vars_files:
-    - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
-    - "{{ secure_dir }}/vars/certifier_prod_vars.yml"
-  roles:
-    - common
-    - role: virtualenv
-      virtualenv_user: "certifier"
-      virtualenv_name: "certifier"
-      virtualenv_user_home: "/opt/wwc/certifier"
-    - certificates
+#- hosts: ~tag_Name_util10_prod
+#  sudo: True
+#  vars:
+#    secure_dir: '../../../configuration-secure/ansible'
+#    migrate_db: "no"
+#  vars_files:
+#    - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
+#    - "{{ secure_dir }}/vars/certifier_prod_vars.yml"
+#  roles:
+#    - common
+#    - role: virtualenv
+#      virtualenv_user: "certifier"
+#      virtualenv_name: "certifier"
+#      virtualenv_user_home: "/opt/wwc/certifier"
+#    - certificates
 
 #
 # COMMENT OUT THE NOTIFIER UNTIL IT IS READY
