@@ -15,7 +15,7 @@ except ImportError:
     sys.exit(1)
 
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, DuplicateKeyError
 from pprint import pprint
 
 AMI_TIMEOUT = 600  # time to wait for AMIs to complete
@@ -42,7 +42,15 @@ class MongoConnection:
         self.mongo_deployment = getattr(
             mongo_db, args.mongo_deployment_collection)
 
-        self.query = {
+    def update_ami(self, ami):
+        """
+        Creates a new document in the AMI
+        collection with the ami id as the
+        id
+        """
+
+        query = {
+            '_id': ami,
             'play': args.play,
             'env': args.environment,
             'deployment': args.deployment,
@@ -50,18 +58,12 @@ class MongoConnection:
             'configuration_secure_ref': args.configuration_secure_version,
             'vars': extra_vars,
         }
-
-    def update_ami(self, status, ami=None):
-        """
-        Creates a new document in the AMI
-        or updates an existing one with a status
-        """
-
-        update = self.query.copy()
-        update['status'] = status
-        if ami:
-            update['ami'] = ami
-        self.mongo_ami.update(self.query, update, True)
+        try:
+            self.mongo_ami.insert(query)
+        except DuplicateKeyError as e:
+            if not args.noop:
+                print "Entry already exists for {}".format(ami)
+                raise
 
     def update_deployment(self, ami):
         """
@@ -592,7 +594,6 @@ if __name__ == '__main__':
 
     if args.mongo_host:
         mongo_con = MongoConnection()
-        mongo_con.update_ami(status='Generating')
 
     try:
         sqs_queue = None
@@ -618,13 +619,8 @@ if __name__ == '__main__':
                     run[0], run[1] / 60, run[1] % 60)
             print "AMI: {}".format(ami)
         if args.mongo_host:
-            mongo_con.update_ami(status='Completed', ami=ami)
+            mongo_con.update_ami(ami)
             mongo_con.update_deployment(ami)
-
-    except Exception as e:
-        if args.mongo_host:
-            mongo_con.update_ami(status='Error: {}'.format(e.message))
-        raise
 
     finally:
         print
