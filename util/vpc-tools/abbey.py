@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python -u
 import sys
 from argparse import ArgumentParser
