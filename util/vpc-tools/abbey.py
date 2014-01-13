@@ -30,27 +30,27 @@ class MongoConnection:
     def __init__(self):
         try:
             mongo = MongoClient(host=args.mongo_host, port=args.mongo_port)
-            mongo_db = getattr(mongo, args.mongo_db)
-            if args.mongo_ami_collection not in mongo_db.collection_names():
-                mongo_db.create_collection(args.mongo_ami_collection)
-            if args.mongo_deployment_collection not in mongo_db.collection_names():
-                mongo_db.create_collection(args.mongo_deployment_collection)
-            self.mongo_ami = getattr(mongo_db, args.mongo_ami_collection)
-            self.mongo_deployment = getattr(
-                mongo_db, args.mongo_deployment_collection)
-
-            self.query = {
-                'play': args.play,
-                'env': args.environment,
-                'deployment': args.deployment,
-                'configuration_ref': args.configuration_version,
-                'configuration_secure_ref': args.configuration_secure_version,
-                'vars': extra_vars,
-            }
-
         except ConnectionFailure:
             print "Unable to connect to the mongo database specified"
             sys.exit(1)
+
+        mongo_db = getattr(mongo, args.mongo_db)
+        if args.mongo_ami_collection not in mongo_db.collection_names():
+            mongo_db.create_collection(args.mongo_ami_collection)
+        if args.mongo_deployment_collection not in mongo_db.collection_names():
+            mongo_db.create_collection(args.mongo_deployment_collection)
+        self.mongo_ami = getattr(mongo_db, args.mongo_ami_collection)
+        self.mongo_deployment = getattr(
+            mongo_db, args.mongo_deployment_collection)
+
+        self.query = {
+            'play': args.play,
+            'env': args.environment,
+            'deployment': args.deployment,
+            'configuration_ref': args.configuration_version,
+            'configuration_secure_ref': args.configuration_secure_version,
+            'vars': extra_vars,
+        }
 
     def update_ami(self, status, ami=None):
         """
