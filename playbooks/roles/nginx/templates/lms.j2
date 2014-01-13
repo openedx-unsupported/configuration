@@ -1,3 +1,7 @@
+{%- if "cms" in nginx_default_sites -%}
+  {%- set default_site = "default" -%}
+{%- endif -%}
+
 upstream lms-backend {
     {% for host in nginx_lms_gunicorn_hosts %}
         server {{ host }}:{{ edxapp_lms_gunicorn_port }} fail_timeout=0;
@@ -9,14 +13,14 @@ server {
 
   {% if NGINX_ENABLE_SSL %}
 
-  listen {{EDXAPP_LMS_NGINX_PORT}} default;
-  listen {{EDXAPP_LMS_SSL_NGINX_PORT}} default ssl;
+  listen {{EDXAPP_LMS_NGINX_PORT}} {{default_site}};
+  listen {{EDXAPP_LMS_SSL_NGINX_PORT}} {{default_site}} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
 
   {% else %}
-  listen {{EDXAPP_LMS_NGINX_PORT}} default;
+  listen {{EDXAPP_LMS_NGINX_PORT}} {{default_site}};
   {% endif %}
 
   access_log {{ nginx_log_dir }}/access.log;
