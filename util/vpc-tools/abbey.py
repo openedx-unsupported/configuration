@@ -4,6 +4,7 @@ import sys
 from argparse import ArgumentParser
 import time
 import json
+import yaml
 try:
     import boto.ec2
     import boto.sqs
@@ -23,6 +24,7 @@ EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
 
+
 class MongoConnection:
 
     def __init__(self):
@@ -34,7 +36,8 @@ class MongoConnection:
             if args.mongo_deployment_collection not in mongo_db.collection_names():
                 mongo_db.create_collection(args.mongo_deployment_collection)
             self.mongo_ami = getattr(mongo_db, args.mongo_ami_collection)
-            self.mongo_deployment = getattr(mongo_db, args.mongo_deployment_collection)
+            self.mongo_deployment = getattr(
+                mongo_db, args.mongo_deployment_collection)
 
             self.query = {
                 'play': args.play,
@@ -54,7 +57,6 @@ class MongoConnection:
         Creates a new document in the AMI
         or updates an existing one with a status
         """
-
 
         update = self.query.copy()
         update['status'] = status
@@ -79,7 +81,6 @@ class MongoConnection:
         pprint(update)
         update['plays'][args.play]['amis'][args.environment] = ami
         self.mongo_deployment.update(query, update, True)
-
 
 
 class Unbuffered:
@@ -469,6 +470,7 @@ def create_ami(instance_id, name, description):
 
     return image_id
 
+
 def launch_and_configure(ec2_args):
     """
     Creates an sqs queue, launches an ec2 instance,
@@ -483,7 +485,6 @@ def launch_and_configure(ec2_args):
         if k != 'user_data':
             print "    {:<25}{}".format(k, v)
     print
-
 
     sqs_queue = sqs.create_queue(run_id)
     sqs_queue.set_message_class(RawMessage)
@@ -524,14 +525,12 @@ def launch_and_configure(ec2_args):
     else:
         raise Exception("Timeout waiting for status checks: {} ".format(
             instance_id))
-    user_start = time.time()
 
     print
     print "{:<40}".format(
         "Waiting for user-data, polling sqs for Ansible events:")
 
     (ansible_delta, task_report) = poll_sqs_ansible()
-    user_pre_ansible = time.time() - user_start - ansible_delta
     run_summary.append(('Ansible run', ansible_delta))
     print
     print "{} longest Ansible tasks (seconds):".format(NUM_TASKS)
@@ -596,7 +595,6 @@ if __name__ == '__main__':
         mongo_con = MongoConnection()
         mongo_con.update_ami(status='Generating')
 
-
     try:
         sqs_queue = None
         instance_id = None
@@ -607,7 +605,8 @@ if __name__ == '__main__':
         ec2_args = create_instance_args()
 
         if args.noop:
-            print "Would have created sqs_queue with id: {}\nec2_args:".format(run_id)
+            print "Would have created sqs_queue with id: {}\nec2_args:".format(
+                run_id)
             pprint(ec2_args)
             ami = "ami-00000"
         else:
