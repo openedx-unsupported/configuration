@@ -8,7 +8,7 @@ try:
     import boto.ec2
     import boto.sqs
     from boto.vpc import VPCConnection
-    from boto.exception import NoAuthHandlerFound
+    from boto.exception import NoAuthHandlerFound, EC2ResponseError
     from boto.sqs.message import RawMessage
 except ImportError:
     print "boto required for script"
@@ -461,7 +461,7 @@ def create_ami(instance_id, name, description):
                 break
             else:
                 time.sleep(1)
-        except boto.exception.EC2ResponseError as e:
+        except EC2ResponseError as e:
             if e.error_code == 'InvalidAMIID.NotFound':
                 time.sleep(1)
             else:
@@ -489,6 +489,8 @@ def launch_and_configure(ec2_args):
             print "    {:<25}{}".format(k, v)
     print
 
+    global sqs_queue
+    global instance_id
     sqs_queue = sqs.create_queue(run_id)
     sqs_queue.set_message_class(RawMessage)
     res = ec2.run_instances(**ec2_args)
@@ -571,7 +573,7 @@ if __name__ == '__main__':
     if args.vars:
         with open(args.vars) as f:
             extra_vars_yml = f.read()
-            extra_vars = yaml.load(f.read)
+            extra_vars = yaml.load(extra_vars_yml)
     else:
         extra_vars_yml = "---\n"
         extra_vars = {}
@@ -623,7 +625,6 @@ if __name__ == '__main__':
         if args.mongo_host:
             mongo_con.update_ami(ami)
             mongo_con.update_deployment(ami)
-
     finally:
         print
         if not args.no_cleanup and not args.noop:
@@ -633,4 +634,6 @@ if __name__ == '__main__':
             if instance_id:
                 print "Cleaning up - Terminating instance ID - {}".format(
                     instance_id)
-            ec2.terminate_instances(instance_ids=[instance_id])
+            # Check to make sure we have an instance id.
+            if instance_id:
+                ec2.terminate_instances(instance_ids=[instance_id])
