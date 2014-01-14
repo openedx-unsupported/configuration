@@ -85,7 +85,7 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
-    source "$dir/ascii-convert.sh"
+    source "$dir/create-var-file.sh"
 else
     source "$WORKSPACE/util/jenkins/create-var-file.sh"
 fi
@@ -122,8 +122,8 @@ GH_USERS_PROMPT: '[$name_tag] '
 elb: $elb
 EOF
 
-    cat $extra_vars
     # run the tasks to launch an ec2 instance from AMI
+    cat $extra_vars
     ansible-playbook edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
@@ -147,12 +147,14 @@ deploy[certs]=$certs
 
 # If reconfigure was selected run non-deploy tasks for all roles
 if [[ $reconfigure == "true" ]]; then
+    cat $extra_vars
     ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
 fi
 
 # Run deploy tasks for the roles selected
 for i in "${!deploy[@]}"; do
     if [[ ${deploy[$i]} == "true" ]]; then
+        cat $extra_vars
         ansible-playbook ${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
     fi
 done
