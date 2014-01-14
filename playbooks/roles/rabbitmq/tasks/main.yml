@@ -72,13 +72,24 @@
 - name: rabbitmq | remove guest user
   rabbitmq_user: user="guest" state=absent
 
+- name: rabbitmq | add vhosts
+  rabbitmq_vhost: name={{ item }} state=present
+  with_items: RABBITMQ_VHOSTS
+
 - name: rabbitmq | add admin users
   rabbitmq_user: >
-    user='{{item.name}}' password='{{item.password}}'
+    user='{{item[0].name}}' password='{{item[0].password}}'
     read_priv='.*' write_priv='.*'
     configure_priv='.*' tags="administrator" state=present
-  with_items: rabbitmq_auth_config.admins
+    vhost={{ item[1] }}
+  with_nested:
+    - ${rabbitmq_auth_config.admins}
+    - RABBITMQ_VHOSTS
   when: "'admins' in rabbitmq_auth_config"
+
+- name: rabbitmq | make queues mirrored
+  shell: "/usr/sbin/rabbitmqctl set_policy HA '^(?!amq\\.).*' '{\"ha-mode\": \"all\"}'"
+  when: RABBITMQ_CLUSTERED or rabbitmq_clustered_hosts|length > 1
 
 #
 # Depends upon the management plugin
