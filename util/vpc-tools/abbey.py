@@ -315,6 +315,8 @@ sudo pip install -r requirements.txt
 cd $playbook_dir
 
 ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," datadog.yml -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," splunkforwarder.yml -e@$extra_vars
 
 rm -rf $base_dir
 
