@@ -22,6 +22,7 @@ AMI_TIMEOUT = 600  # time to wait for AMIs to complete
 EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
+NUM_PLAYBOOKS = 3
 
 
 class MongoConnection:
@@ -109,11 +110,11 @@ def parse_args():
                         default=False)
     parser.add_argument('--secure-vars', required=False,
                         metavar="SECURE_VAR_FILE",
-                        help="path to secure-vars, defaults to "
-                        "../../../configuration-secure/ansible/"
-                        "vars/DEPLOYMENT/ENVIRONMENT.yml")
+                        help="path to secure-vars from the root of "
+                        "configuration-secure, defaults to ansible/"
+                        "vars/DEPLOYMENT/ENVIRONMENT-DEPLOYMENT.yml")
     parser.add_argument('--stack-name',
-                        help="defaults to DEPLOYMENT-ENVIRONMENT",
+                        help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
                         required=False)
     parser.add_argument('-p', '--play',
@@ -133,10 +134,10 @@ def parse_args():
                         help="Application for subnet, defaults to admin",
                         default="admin")
     parser.add_argument('--configuration-version', required=False,
-                        help="configuration repo version",
+                        help="configuration repo branch(no hashes)",
                         default="master")
     parser.add_argument('--configuration-secure-version', required=False,
-                        help="configuration-secure repo version",
+                        help="configuration-secure repo branch(no hashes)",
                         default="master")
     parser.add_argument('-j', '--jenkins-build', required=False,
                         help="jenkins build number to update")
@@ -242,8 +243,8 @@ environment="{environment}"
 deployment="{deployment}"
 play="{play}"
 config_secure={config_secure}
-secure_vars_file="$base_dir/configuration-secure\\
-/ansible/vars/$environment/$environment-$deployment.yml"
+secure_vars_file="$base_dir/configuration-secure/{secure_vars}"
+common_vars_file="$base_dir/configuration-secure/ansible/vars/common/common.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -314,9 +315,9 @@ sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars
-ansible-playbook -vvvv -c local -i "localhost," datadog.yml -e@$extra_vars
-ansible-playbook -vvvv -c local -i "localhost," splunkforwarder.yml -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars -e@$common_vars_file
+ansible-playbook -vvvv -c local -i "localhost," datadog.yml -e@$extra_vars -e@$common_vars_file
+ansible-playbook -vvvv -c local -i "localhost," splunkforwarder.yml -e@$extra_vars -e@$common_vars_file
 
 rm -rf $base_dir
 
@@ -329,7 +330,8 @@ rm -rf $base_dir
                 config_secure=config_secure,
                 identity_file=identity_file,
                 queue_name=run_id,
-                extra_vars_yml=extra_vars_yml)
+                extra_vars_yml=extra_vars_yml,
+                secure_vars=secure_vars)
 
     ec2_args = {
         'security_group_ids': [security_group_id],
@@ -362,6 +364,7 @@ def poll_sqs_ansible():
     buf = []
     task_report = []  # list of tasks for reporting
     last_task = None
+    completed = 0
     while True:
         messages = []
         while True:
@@ -438,7 +441,10 @@ def poll_sqs_ansible():
                         to_disp['msg']['TS'] / 60,
                         to_disp['msg']['TS'] % 60,
                         to_disp['msg']['PREFIX'])
-                    return (to_disp['msg']['TS'], task_report)
+
+                    completed += 1
+                    if completed >= 3:
+                        return (to_disp['msg']['TS'], task_report)
 
         if not messages:
             # wait 1 second between sqs polls
@@ -581,9 +587,8 @@ if __name__ == '__main__':
     if args.secure_vars:
         secure_vars = args.secure_vars
     else:
-        secure_vars = "../../../configuration-secure/" \
-                      "ansible/vars/{}/{}.yml".format(
-                      args.deployment, args.environment)
+        secure_vars = "ansible/vars/{}/{}-{}.yml".format(
+                      args.environment, args.environment, args.deployment)
     if args.stack_name:
         stack_name = args.stack_name
     else:
