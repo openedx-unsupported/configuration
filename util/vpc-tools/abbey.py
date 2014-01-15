@@ -443,7 +443,7 @@ def poll_sqs_ansible():
                         to_disp['msg']['PREFIX'])
 
                     completed += 1
-                    if completed >= 3:
+                    if completed >= NUM_PLAYBOOKS:
                         return (to_disp['msg']['TS'], task_report)
 
         if not messages:
