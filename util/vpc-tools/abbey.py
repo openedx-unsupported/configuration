@@ -174,7 +174,7 @@ def parse_args():
                         default="test",
                         help="Mongo database")
     parser.add_argument("--mongo-ami-collection", required=False,
-                        default="ami",
+                        default="amis",
                         help="Mongo ami collection")
     parser.add_argument("--mongo-deployment-collection", required=False,
                         default="deployment",
