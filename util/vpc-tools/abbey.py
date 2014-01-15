@@ -600,7 +600,7 @@ if __name__ == '__main__':
         print 'You must be able to connect to sqs and ec2 to use this script'
         sys.exit(1)
 
-    if args.mongo_host:
+    if args.mongo_uri:
         mongo_con = MongoConnection()
 
     try:
@@ -626,7 +626,7 @@ if __name__ == '__main__':
                 print "{:<30} {:0>2.0f}:{:0>5.2f}".format(
                     run[0], run[1] / 60, run[1] % 60)
             print "AMI: {}".format(ami)
-        if args.mongo_host:
+        if args.mongo_uri:
             mongo_con.update_ami(ami)
             mongo_con.update_deployment(ami)
     finally:
