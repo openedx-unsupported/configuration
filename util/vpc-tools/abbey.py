@@ -29,7 +29,7 @@ class MongoConnection:
 
     def __init__(self):
         try:
-            mongo = MongoClient(host=args.mongo_host, port=args.mongo_port)
+            mongo = MongoClient(host=args.mongo_uri)
         except ConnectionFailure:
             print "Unable to connect to the mongo database specified"
             sys.exit(1)
@@ -166,15 +166,10 @@ def parse_args():
                         default=5,
                         help="How long to delay message display from sqs "
                              "to ensure ordering")
-    parser.add_argument("--mongo-host", required=False,
+    parser.add_argument("--mongo-uri", required=False,
                         default=None,
-                        help="Mongo host that contains the AMI collection")
-    parser.add_argument("--mongo-pass", required=False,
-                        default=None,
-                        help="Mongo password")
-    parser.add_argument("--mongo-port", required=False,
-                        default=27017,
-                        help="Mongo port")
+                        help="Mongo uri for the host that contains"
+                             "the AMI collection")
     parser.add_argument("--mongo-db", required=False,
                         default="test",
                         help="Mongo database")
