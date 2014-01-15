@@ -18,6 +18,17 @@
       tags: common
     - role: 'supervisor'
       tags: supervisor
+    - role: gh_users
+      gh_users:
+      - sefk
+      - jbau
+      - jrbl
+      - ali123
+      - dcadams
+      - caesar2164
+      - jinpa
+      - gbruhns
+      tags: users
     - role: 'edxapp'
       celery_worker: True
       devstack: false
@@ -33,23 +44,23 @@
       tags: xqueue
 
 #- name: Deploy certs, notifier only to first util machine
-#  hosts: ~tag_Name_util1_stage
-#  sudo: True
-#  gather_facts: True
-#  vars:
-#    secure_dir: '../../../configuration-secure/ansible'
-#    local_dir: "{{secure_dir}}/local"
-#    migrate_db: "no"
-#  vars_files:
-#    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
-#    - "{{ secure_dir }}/vars/notifier_stage_vars.yml"
-#  roles:
-#    - certs
-#    - role: virtualenv
-#      virtualenv_user: "notifier"
-#      virtualenv_user_home: "/opt/wwc/notifier"
-#      virtualenv_name: "notifier"
-#    - notifier
+  hosts: ~tag_Name_util1_stage
+  sudo: True
+  gather_facts: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/certs_stage_vars.yml"
+  roles:
+    - role: gh_users # gh_users var intentionally unspecified
+      tags: users 
+    - role: certs
+      tags: certs
 
 #- name: Deploy certs to first util machine
 #  hosts: ~tag_Name_util1_stage
