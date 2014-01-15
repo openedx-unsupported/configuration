@@ -437,6 +437,10 @@ def poll_sqs_ansible():
                         to_disp['msg']['TS'] % 60,
                         to_disp['msg']['PREFIX'])
 
+                    # Since 3 ansible plays get run.
+                    # We see the COMPLETE message 3 times
+                    # wait till the last one to end listening
+                    # for new messages.
                     completed += 1
                     if completed >= NUM_PLAYBOOKS:
                         return (to_disp['msg']['TS'], task_report)
