@@ -1,0 +1,35 @@
+- name: Configure instance(s)
+  hosts: all
+  sudo: True
+  gather_facts: False
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    raspberry_pi: True
+    # One gunicorn worker for the lms and cms
+    worker_core_mult:
+      lms: 1
+      cms: 1
+    # Less logging so we go easy on the pi
+    EDXAPP_LOG_LEVEL: 'CRITICAL'
+    EDXAPP_FEATURES:
+      AUTH_USE_OPENID_PROVIDER: false
+      CERTIFICATES_ENABLED: false
+      ENABLE_DISCUSSION_SERVICE: false
+      ENABLE_INSTRUCTOR_ANALYTICS: true
+      SUBDOMAIN_BRANDING: false
+      SUBDOMAIN_COURSE_LISTINGS: false
+      PREVIEW_LMS_BASE: ''
+      ENABLE_S3_GRADE_DOWNLOADS: false
+  roles:
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+    - edxlocal
+    - role: edxapp
+      tags: ['edxapp']
+    - role: demo
+      tags: ['demo']
+    - role: edx_ansible
+      tags: ['edx_ansible']
