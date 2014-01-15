@@ -1,0 +1,32 @@
+{%- if "forum" in nginx_default_sites -%}
+  {%- set default_site = "default" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+upstream forum_app_server {
+
+    	 server localhost:{{ forum_unicorn_port }} fail_timeout=0;
+}
+
+server {
+
+  server_name forum.*;
+  listen {{ FORUM_NGINX_PORT }} {{default_site}};
+  client_max_body_size 1M;
+  keepalive_timeout 5;
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://forum_app_server;
+  }
+}
