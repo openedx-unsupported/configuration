@@ -28,6 +28,7 @@
       - caesar2164
       - jinpa
       - gbruhns
+      - nparlante
       tags: users
     - role: 'edxapp'
       celery_worker: True
@@ -43,7 +44,7 @@
       xqueue_create_users: false
       tags: xqueue
 
-#- name: Deploy certs, notifier only to first util machine
+# deploy certs to first util machine only
   hosts: ~tag_Name_util1_stage
   sudo: True
   gather_facts: True
@@ -62,19 +63,21 @@
     - role: certs
       tags: certs
 
-#- name: Deploy certs to first util machine
-#  hosts: ~tag_Name_util1_stage
-#  sudo: True
-#  vars:
-#    secure_dir: '../../../configuration-secure/ansible'
-#    migrate_db: "no"
-#  vars_files:
-#    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
-#    - "{{ secure_dir }}/vars/certifier_stage_vars.yml"
-#  roles:
-#    - common
-#    - role: virtualenv
-#      virtualenv_user: "certifier"
-#      virtualenv_name: "certifier"
-#      virtualenv_user_home: "/opt/wwc/certifier"
-#    - certificates
+# run the notifier on the first util machine only
+  - hosts: ~tag_Name_util1_stage
+    sudo: True
+    vars:
+      secure_dir: '../../../configuration-secure/ansible'
+      local_dir: "{{secure_dir}}/local"
+      migrate_db: "no"
+    vars_files:
+      - "roles/common/defaults/main.yml"
+      - "roles/supervisor/defaults/main.yml"
+      - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
+      - "{{ secure_dir }}/vars/notifier_prod_vars.yml"
+    roles:
+      - role: virtualenv
+        virtualenv_user: "notifier"
+        virtualenv_user_home: "/opt/wwc/notifier"
+        virtualenv_name: "notifier"
+      - notifier
