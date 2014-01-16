@@ -32,7 +32,8 @@ def upload_file(file_path, bucket_name, key_name):
     key.set_contents_from_filename(file_path)
 
     key.set_acl('public-read')
-    url = key.generate_url(300, query_auth=False)
+    url = "https://s3.amazonaws.com/{}/{}".format(bucket.name, key.name)
+    print( "URL: {}".format(url))
     return url
 
 def create_stack(stack_name, template, region='us-east-1', blocking=True,
