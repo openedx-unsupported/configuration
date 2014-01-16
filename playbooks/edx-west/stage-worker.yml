@@ -1,3 +1,4 @@
+---
 - name: Basic util setup on all hosts
 #- hosts: tag_environment_stage:&tag_function_util
   hosts: ~tag_Name_util1_stage
@@ -14,9 +15,9 @@
     #- "{{ secure_dir }}/vars/edxapp_stage_users.yml"
     - "{{ secure_dir }}/vars/datadog_stage.yml"
   roles:
-    - role: 'common'
+    - role: common
       tags: common
-    - role: 'supervisor'
+    - role: supervisor
       tags: supervisor
     - role: gh_users
       gh_users:
@@ -30,7 +31,7 @@
       - gbruhns
       - nparlante
       tags: users
-    - role: 'edxapp'
+    - role: edxapp
       celery_worker: True
       devstack: false
       tags: celery
@@ -44,12 +45,12 @@
       xqueue_create_users: false
       tags: xqueue
 
-# deploy certs to first util machine only
+- name: deploy certs to first util machine only
   hosts: ~tag_Name_util1_stage
   sudo: True
   gather_facts: True
   vars:
-    secure_dir: '../../../configuration-secure/ansible'
+    secure_dir: "../../../configuration-secure/ansible"
     local_dir: "{{secure_dir}}/local"
     migrate_db: "no"
   vars_files:
@@ -63,21 +64,17 @@
     - role: certs
       tags: certs
 
-# run the notifier on the first util machine only
-  - hosts: ~tag_Name_util1_stage
-    sudo: True
-    vars:
-      secure_dir: '../../../configuration-secure/ansible'
-      local_dir: "{{secure_dir}}/local"
-      migrate_db: "no"
-    vars_files:
-      - "roles/common/defaults/main.yml"
-      - "roles/supervisor/defaults/main.yml"
-      - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
-      - "{{ secure_dir }}/vars/notifier_prod_vars.yml"
-    roles:
-      - role: virtualenv
-        virtualenv_user: "notifier"
-        virtualenv_user_home: "/opt/wwc/notifier"
-        virtualenv_name: "notifier"
-      - notifier
+- name: run the notifier on the first util machine only
+  hosts: ~tag_Name_util1_stage
+  sudo: True
+  vars:
+    secure_dir: "../../../configuration-secure/ansible"
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/notifier_stage_vars.yml"
+  roles:
+    - role: notifier
+      tags: notifier
