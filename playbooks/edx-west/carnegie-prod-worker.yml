@@ -15,6 +15,7 @@
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
     - "{{ secure_dir }}/vars/datadog_carn.yml"
+    - "{{ secure_dir }}/vars/xqueue_carnegie_vars.yml"
   roles:
     - role: gh_users
       gh_users:
@@ -30,6 +31,15 @@
       celery_worker: True
       devstack: false
       tags: celery
+    - role: nginx
+      nginx_sites:
+      - xqueue
+      - basic-auth
+      tags: nginx
+    - role: xqueue
+      xqueue_create_db: "no"
+      xqueue_create_users: false
+      tags: xqueue
     - datadog
 
 ## run the certificate agent on the first util machine only
