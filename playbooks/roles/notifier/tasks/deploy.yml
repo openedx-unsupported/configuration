@@ -30,11 +30,26 @@
   tags:
   - deploy
 
+# Syncdb for whatever reason always creates the file owned by www-data:www-data, and then
+# complains it can't write because it's running as notifier.  So this is to touch the file into
+# place with proper perms first.
+- name: notifier | fix permissions on notifer db file
+  file: >
+    path={{ NOTIFIER_DB_DIR }}/notifier.db state=touch owner={{ NOTIFIER_USER }} group={{ NOTIFIER_WEB_USER }}
+    mode=0664
+  sudo: true
+  notify:
+    - notifier | restart notifier-scheduler
+    - notifier | restart notifier-celery-workers
+  tags:
+  - deploy
+
 - name: notifier | syncdb
   shell: >
     cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
-  sudo: true  
+  sudo: true
   sudo_user: "{{ NOTIFIER_USER }}"
+  environment: notifier_env_vars
   notify:
     - notifier | restart notifier-scheduler
     - notifier | restart notifier-celery-workers
