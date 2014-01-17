@@ -246,8 +246,10 @@ $(curl http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
 instance_type=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null)
 playbook_dir="$base_dir/configuration/playbooks/edx-east"
-git_repo="https://github.com/edx/configuration"
-git_repo_secure="git@github.com:edx/configuration-secure"
+git_repo_name="configuration"
+git_repo_secure_name="configuration-secure"
+git_repo="https://github.com/edx/$git_repo_name"
+git_repo_secure="git@github.com:edx/$git_repo_secure_name"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
@@ -297,14 +299,19 @@ EOF
 
 chmod 400 $secure_identity
 
-$git_cmd clone -b $configuration_version $git_repo
+$git_cmd clone $git_repo $git_repo_name
+cd $git_repo_name
+$git_cmd checkout $configuration_version
+cd $base_dir
 
 if $config_secure; then
-    $git_cmd clone -b $configuration_secure_version \\
-        $git_repo_secure
+    $git_cmd clone $git_repo_secure $git_repo_secure_name
+    cd $git_repo_secure_name
+    $git_cmd checkout $configuration_secure_version
+    cd $base_dir
 fi
 
-cd $base_dir/configuration
+cd $base_dir/$git_repo_name
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
