@@ -71,7 +71,7 @@ class MongoConnection:
         Adds the built AMI to the deployment
         collection
         """
-        query = {
+        update = {
             '_id': args.jenkins_build,
             'plays': {
                 args.play: {
@@ -79,9 +79,9 @@ class MongoConnection:
                 },
             },
         }
-        update = query.copy()
-        pprint(update)
+        query = { '_id': args.jenkins_build }
         update['plays'][args.play]['amis'][args.environment] = ami
+        pprint(update)
         self.mongo_deployment.update(query, update, True)
 
 
