@@ -3,8 +3,6 @@
     src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
-  tags:
-  - deploy
 
 
 - name: xqueue | create xqueue application config
@@ -12,16 +10,12 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
 
 - name: xqueue | create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{ xqueue_app_dir }}/xqueue.auth.json mode=0644
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
 
 # Do A Checkout
 - name: xqueue | git checkout xqueue repo into xqueue_code_dir
@@ -29,8 +23,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
 
 
 # Install the python pre requirements into {{ xqueue_venv_dir }}
@@ -39,8 +31,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
 
 # Install the python post requirements into {{ xqueue_venv_dir }}
 - name : xqueue | install python post-requirements
@@ -48,8 +38,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
 
 - name: xqueue | syncdb and migrate
   shell: >
@@ -58,8 +46,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
 
 - name: xqueue | create users
   shell: >
@@ -67,9 +53,6 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - xqueue | restart xqueue
-  tags:
-  - deploy
-
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -80,7 +63,6 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
-  tags: deploy
 
 - name: xqueue | ensure xqueue, consumer is running
   supervisorctl_local: >
@@ -91,14 +73,3 @@
   with_items:
   - xqueue
   - xqueue_consumer
-  tags: deploy
-
-- name: xqueue | create a symlink for venv python
-  file: >
-    src="{{ xqueue_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.xqueue
-    state=link
-  with_items:
-  - python
-  - pip
-  tags: deploy

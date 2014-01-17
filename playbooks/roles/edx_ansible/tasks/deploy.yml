@@ -2,29 +2,24 @@
 - name: edx_ansible | git checkout edx_ansible repo into edx_ansible_code_dir
   git: dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
   sudo_user: "{{ edx_ansible_user }}"
-  tags: deploy
 
 - name : edx_ansible | install edx_ansible venv requirements
   pip: requirements="{{ edx_ansible_requirements_file }}" virtualenv="{{ edx_ansible_venv_dir }}" state=present
   sudo_user: "{{ edx_ansible_user }}"
-  tags: deploy
 
 - name: edx_ansible | create update script
   template: >
     dest={{ edx_ansible_app_dir}}/update
     src=update.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
-  tags: deploy
 
 - name: edx_ansible | create a symlink for update.sh
   file: >
     src={{ edx_ansible_app_dir }}/update
     dest={{ COMMON_BIN_DIR }}/update
     state=link
-  tags: deploy
 
 - name: edx_ansible | dump all vars to yaml
   template: src=dumpall.yml.j2 dest={{ edx_ansible_var_file }} mode=0600
-  tags: deploy
 
 - name: edx_ansible | clean up var file, removing all version vars
   shell: sed -i -e "/{{item}}/d" {{ edx_ansible_var_file }}
@@ -41,15 +36,12 @@
     - configuration_version
     - ease_version
     - certs_version
-  tags: deploy
 
 - name: edx_ansible | remove the special _original_file var
   shell: sed -i -e "/_original_file/d" {{ edx_ansible_var_file }}
-  tags: deploy
 
 - name: edxapp | create a symlink for var file
   file: >
     src={{ edx_ansible_var_file }}
     dest={{ COMMON_CFG_DIR }}/{{ edx_ansible_var_file|basename }}
     state=link
-  tags: deploy

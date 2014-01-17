@@ -7,22 +7,16 @@
     - ora | restart ora_celery
   with_items: ['ora', 'ora_celery']
   when: not devstack
-  tags:
-  - deploy
 
 - include: ease.yml
 
 - name: ora | create ora application config
   template: src=ora.env.json.j2 dest={{ora_app_dir}}/ora.env.json
   sudo_user: "{{ ora_user }}"
-  tags:
-  - deploy
 
 - name: ora | create ora auth file
   template: src=ora.auth.json.j2 dest={{ora_app_dir}}/ora.auth.json
   sudo_user: "{{ ora_user }}"
-  tags:
-  - deploy
 
 - name: ora | setup the ora env
   notify:
@@ -32,8 +26,6 @@
     src=ora_env.j2 dest={{ ora_app_dir }}/ora_env
     owner={{ ora_user }} group={{ common_web_user }}
     mode=0644
-  tags:
-    - deploy
 
 # Do A Checkout
 - name: ora | git checkout ora repo into {{ ora_app_dir }}
@@ -42,8 +34,6 @@
   notify:
     - ora | restart ora
     - ora | restart ora_celery
-  tags:
-  - deploy
 
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
@@ -56,8 +46,6 @@
   notify:
     - ora | restart ora
     - ora | restart ora_celery
-  tags:
-  - deploy
 
 # Install the python post requirements into {{ ora_venv_dir }}
 - name: ora | install python post-requirements
@@ -66,8 +54,6 @@
   notify:
     - ora | restart ora
     - ora | restart ora_celery
-  tags:
-  - deploy
 
   #Needed if using redis to prevent memory issues
 - name: ora | change memory commit settings -- needed for redis
@@ -75,8 +61,6 @@
   notify:
     - ora | restart ora
     - ora | restart ora_celery
-  tags:
-  - deploy
 
 - name: ora | syncdb and migrate
   shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
@@ -85,8 +69,6 @@
   notify:
     - ora | restart ora
     - ora | restart ora_celery
-  tags:
-  - deploy
 
 - name: ora | create users
   shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
@@ -94,8 +76,6 @@
   notify:
     - ora | restart ora
     - ora | restart ora_celery
-  tags:
-  - deploy
 
 
   # call supervisorctl update. this reloads
@@ -108,7 +88,6 @@
   register: supervisor_update
   when: not devstack
   changed_when: supervisor_update.stdout != ""
-  tags: deploy
 
 - name: ora | ensure ora is started
   supervisorctl_local: >
@@ -117,7 +96,6 @@
     config={{ supervisor_cfg }}
     state=started
   when: not devstack
-  tags: deploy
 
 - name: ora | ensure ora_celery is started
   supervisorctl_local: >
@@ -126,13 +104,3 @@
     config={{ supervisor_cfg }}
     state=started
   when: not devstack
-  tags: deploy
-
-- name: ora | create a symlink for venv python
-  file: >
-    src="{{ ora_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.ora state=link
-  with_items:
-  - python
-  - pip
-  tags: deploy

@@ -6,7 +6,6 @@
     src=edxapp_env.j2 dest={{ edxapp_app_dir }}/edxapp_env
     owner={{ edxapp_user }}  group={{ common_web_user }}
     mode=0644
-  tags: deploy
 
 # Do A Checkout
 - name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
@@ -16,7 +15,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 - name: edxapp | git clean after checking out edx-platform
   shell: cd {{edxapp_code_dir}} && git clean -xdf
@@ -24,7 +22,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 - name: edxapp | checkout theme
   git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
@@ -33,26 +30,20 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags:
-  - deploy
 
 - name: edxapp | create checksum for requirements, package.json and Gemfile
   shell: >
     /usr/bin/md5sum {{ " ".join(edxapp_chksum_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
   sudo_user: "{{ edxapp_user }}"
   ignore_errors: true
-  tags:
-  - deploy
 
 - stat: path=/var/tmp/edxapp.req.new
   register: new
   sudo_user: "{{ edxapp_user }}"
-  tags: deploy
 
 - stat: path=/var/tmp/edxapp.req.installed
   register: inst
   sudo_user: "{{ edxapp_user }}"
-  tags: deploy
 
 # Substitute github mirror in all requirements files
 # This is run on every single deploy
@@ -63,7 +54,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 # Ruby plays that need to be run after platform updates.
 - name: edxapp | gem install bundler
@@ -76,7 +66,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 - name: edxapp | bundle install
   shell: >
@@ -88,7 +77,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 # Set the npm registry
 - name: edxapp | Set the npm registry
@@ -100,7 +88,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 # Node play that need to be run after platform updates.
 - name: edxapp | Install edx-platform npm dependencies
@@ -110,7 +97,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 
 # Install the python pre requirements into {{ edxapp_venv_dir }}
@@ -126,7 +112,6 @@
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
-  tags: deploy
 
 # Install the python modules into {{ edxapp_venv_dir }}
 - name : edxapp | install python base-requirements
@@ -142,7 +127,6 @@
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
-  tags: deploy
 
 # Install the python post requirements into {{ edxapp_venv_dir }}
 - name : edxapp | install python post-requirements
@@ -157,7 +141,6 @@
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
-  tags: deploy
 
 # Install the final python modules into {{ edxapp_venv_dir }}
 - name : edxapp | install python post-post requirements
@@ -175,7 +158,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
@@ -195,7 +177,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 # The next few tasks set up the python code sandbox
 
@@ -205,7 +186,6 @@
   command: /usr/sbin/aa-complain /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
-  - deploy
   - edxapp-sandbox
 
 - name: edxapp | code sandbox | Install base sandbox requirements and create sandbox virtualenv
@@ -220,7 +200,6 @@
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
   tags:
-  - deploy
   - edxapp-sandbox
 
 - name: edxapp | code sandbox | Install sandbox requirements into sandbox venv
@@ -238,14 +217,12 @@
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
   tags:
-  - deploy
   - edxapp-sandbox
 
 - name: edxapp | code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
-  - deploy
   - edxapp-sandbox
 
 - name: edxapp | compiling all py files in the edx-platform repo
@@ -254,7 +231,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
   # alternative would be to give {{ common_web_user }} read access
   # to the virtualenv but that permission change will require
@@ -265,13 +241,11 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags: deploy
 
 - name: edxapp | create checksum for installed requirements
   shell: cp /var/tmp/edxapp.req.new /var/tmp/edxapp.req.installed
   sudo_user: "{{ edxapp_user }}"
   notify: "edxapp | restart edxapp"
-  tags: deploy
 
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
@@ -284,8 +258,6 @@
   notify:
   - "edxapp | restart edxapp"
   - "edxapp | restart edxapp_workers"
-  tags:
-  - deploy
 
 # creates the supervisor jobs for the
 # service variants configured, runs
@@ -303,7 +275,6 @@
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
   when: not devstack
-  tags: deploy
 
 - name: edxapp | ensure edxapp has started
   supervisorctl_local: >
@@ -314,7 +285,6 @@
   sudo_user: "{{ supervisor_service_user }}"
   when: celery_worker is not defined and not devstack
   with_items: service_variants_enabled
-  tags: deploy
 
 - name: edxapp | ensure edxapp_workers has started
   supervisorctl_local: >
@@ -325,14 +295,3 @@
   when: celery_worker is defined and not devstack
   with_items: edxapp_workers
   sudo_user: "{{ supervisor_service_user }}"
-  tags: deploy
-
-- name: edxapp | create a symlink for venv python
-  file: >
-    src="{{ edxapp_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.edxapp
-    state=link
-  with_items:
-  - python
-  - pip
-  tags: deploy

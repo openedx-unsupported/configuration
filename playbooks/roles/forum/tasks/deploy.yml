@@ -8,7 +8,6 @@
   sudo_user: "{{ supervisor_user }}"
   when: not devstack
   register: forum_supervisor
-  tags: deploy
 
 - name: forum | create the supervisor wrapper
   template: >
@@ -18,13 +17,11 @@
   sudo_user: "{{ forum_user }}"
   when: not devstack
   notify: forum | restart the forum service
-  tags: deploy
 
 - name:  forum | git checkout forum repo into {{ forum_code_dir }}
   git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
   sudo_user: "{{ forum_user }}"
   notify: forum | restart the forum service
-  tags: deploy
 
 # TODO: This is done as the common_web_user
 # since the process owner needs write access
@@ -34,7 +31,6 @@
   sudo_user: "{{ common_web_user }}"
   environment: "{{ forum_environment }}"
   notify: forum | restart the forum service
-  tags: deploy
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -46,7 +42,6 @@
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
   when: not devstack
-  tags: deploy
 
 - name: forum | ensure forum is started
   supervisorctl_local: >
@@ -55,6 +50,3 @@
     config={{ supervisor_cfg }}
     state=started
   when: not devstack
-  tags: deploy
-
-- include: test.yml tags=deploy

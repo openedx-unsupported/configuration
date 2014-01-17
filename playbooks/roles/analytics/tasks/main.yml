@@ -11,7 +11,7 @@
 #
 #
 # Tasks for role analytics
-# 
+#
 # Overview:
 #
 # Installs the edX analytics Django application which provides
@@ -22,7 +22,7 @@
 # common role
 #
 # Depends upon the automated role
-# 
+#
 # Example play:
 #
 # - name: Configure analytics instance(s)
@@ -45,8 +45,8 @@
   - update
 
 - name: analytics | create analytics user {{ analytics_user }}
-  user: 
-    name={{ analytics_user }} state=present shell=/bin/bash 
+  user:
+    name={{ analytics_user }} state=present shell=/bin/bash
     home={{ analytics_home }} createhome=yes
   tags:
   - analytics
@@ -54,9 +54,9 @@
   - update
 
 - name: analytics | setup the analytics env
-  template: 
+  template:
     src=opt/wwc/analytics/{{ analytics_env }}.j2
-    dest={{ analytics_home }}/{{ analytics_env }} 
+    dest={{ analytics_home }}/{{ analytics_env }}
     owner="{{ analytics_user }}" group="{{ analytics_user }}"
   tags:
   - analytics
@@ -65,15 +65,15 @@
 
 - name: analytics | drop a bash_profile
   copy: >
-    src=../../common/files/bash_profile 
-    dest={{ analytics_home }}/.bash_profile 
-    owner={{ analytics_user }} 
+    src=../../common/files/bash_profile
+    dest={{ analytics_home }}/.bash_profile
+    owner={{ analytics_user }}
     group={{ analytics_user }}
 
 # Awaiting next ansible release.
 #- name: analytics | ensure .bashrc exists
 # file: path={{ analytics_home }}/.bashrc state=touch
-# sudo: true  
+# sudo: true
 # sudo_user: "{{ analytics_user }}"
 # tags:
 # - analytics
@@ -82,7 +82,7 @@
 
 - name: analytics | ensure .bashrc exists
   shell: touch {{ analytics_home }}/.bashrc
-  sudo: true  
+  sudo: true
   sudo_user: "{{ analytics_user }}"
   tags:
   - analytics
@@ -92,7 +92,7 @@
 - name: analytics | add source of analytics_env to .bashrc
   lineinfile:
     dest={{ analytics_home }}/.bashrc
-    regexp='. {{ analytics_home }}/analytics_env'    
+    regexp='. {{ analytics_home }}/analytics_env'
     line='. {{ analytics_home }}/analytics_env'
   tags:
   - analytics
@@ -102,7 +102,7 @@
 - name: analytics | add source venv to .bashrc
   lineinfile:
     dest={{ analytics_home }}/.bashrc
-    regexp='. {{ analytics_venv_dir }}/bin/activate'    
+    regexp='. {{ analytics_venv_dir }}/bin/activate'
     line='. {{ analytics_venv_dir }}/bin/activate'
   tags:
   - analytics
@@ -118,7 +118,7 @@
   - update
 
 - name: analytics | create config
-  template: 
+  template:
     src=opt/wwc/analytics.auth.json.j2
     dest=/opt/wwc/analytics.auth.json
     mode=0600
@@ -127,10 +127,10 @@
   - analytics
   - install
   - update
-  
+
 - name: analytics | install service
   template:
     src=etc/init/analytics.conf.j2 dest=/etc/init/analytics.conf
     owner=root group=root
 
-- include: deploy.yml    
+- include: deploy.yml tags=deploy
