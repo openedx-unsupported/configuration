@@ -159,5 +159,7 @@ for i in "${!deploy[@]}"; do
     fi
 done
 
+# deploy the edx_ansible role
+ansible-playbook edx_ansible.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
 
 rm -f "$extra_vars"
