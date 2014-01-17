@@ -30,21 +30,21 @@
   tags:
   - deploy
 
-- name: notifier | syncdb
+- name: notifier | fix permissions on notifer db file
   shell: >
-    cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
-  sudo: true  
-  sudo_user: "{{ NOTIFIER_USER }}"
+    chmod 0664 {{ NOTIFIER_DB_DIR }}/*
+  sudo: true
   notify:
     - notifier | restart notifier-scheduler
     - notifier | restart notifier-celery-workers
   tags:
   - deploy
 
-- name: notifier | fix permissions on notifer db file
+- name: notifier | syncdb
   shell: >
-    chmod 0664 {{ NOTIFIER_DB_DIR }}/*
-  sudo: true
+    cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
+  sudo: true  
+  sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier-scheduler
     - notifier | restart notifier-celery-workers
