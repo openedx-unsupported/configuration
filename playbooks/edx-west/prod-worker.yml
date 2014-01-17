@@ -51,8 +51,8 @@
     - datadog
     #- splunkforwarder
 
-# run the certificate agent on the first util machine only
-- hosts: ~tag_Name_util1_prod
+- name: run the certificate agent on the first util machine only
+  hosts: ~tag_Name_util1_prod
   sudo: True
   vars:
     secure_dir: '../../../configuration-secure/ansible'
@@ -63,25 +63,20 @@
     - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
     - "{{ secure_dir }}/vars/certs_prod_vars.yml"
   roles:
-    - role: gh_users # gh_users var intentionally unspecified
-      tags: users
     - role: certs
       tags: certs
 
-# run the notifier on the first util machine only
-#- hosts: ~tag_Name_util1_prod
-#  sudo: True
-#  vars:
-#    secure_dir: '../../../configuration-secure/ansible'
-#    migrate_db: "no"
-#  vars_files:
-#    - "roles/common/defaults/main.yml"
-#    - "roles/supervisor/defaults/main.yml"
-#    - "{{ secure_dir }}/vars/edxapp_prod_vars.yml"
-#    - "{{ secure_dir }}/vars/notifier_prod_vars.yml"
-#  roles:
-#    - role: virtualenv
-#      virtualenv_user: "notifier"
-#      virtualenv_user_home: "/opt/wwc/notifier"
-#      virtualenv_name: "notifier"
-#    - notifier
+- name: run the notifier on the second util machine only
+  hosts: ~tag_Name_util2_prod
+  sudo: True
+  vars:
+    secure_dir: "../../../configuration-secure/ansible"
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/notifier_prod_vars.yml"
+  roles:
+    - role: notifier
+      tags: notifier
