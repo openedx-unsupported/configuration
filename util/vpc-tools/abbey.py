@@ -71,19 +71,18 @@ class MongoConnection:
         Adds the built AMI to the deployment
         collection
         """
-        update = {
-            '_id': args.jenkins_build,
-            'plays': {
-                args.play: {
-                    'amis': {},
-                },
-            },
-        }
         query = { '_id': args.jenkins_build }
-        update['plays'][args.play]['amis'][args.environment] = ami
-        pprint(update)
-        self.mongo_deployment.update(query, update, True)
+        deployment = self.mongo_deployment.find_one(query)
+        try:
+            deployment['plays'][args.play]['amis'][args.environment] = ami
+        except KeyError as e:
+            msg = "Unexpected document structure, couldn't write " +\
+                  "to path deployment['plays']['{}']['amis']['{}']"
+            print msg.format(args.play, args.environment)
+            pprint(deployment)
+            raise
 
+        self.mongo_deployment.save(deployment)
 
 class Unbuffered:
     """
