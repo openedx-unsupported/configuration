@@ -1,42 +1,34 @@
 ---
 
 - name: notifier | checkout code
-  git: 
-    dest={{ NOTIFIER_CODE_DIR }} repo={{ NOTIFIER_SOURCE_REPO }} 
+  git:
+    dest={{ NOTIFIER_CODE_DIR }} repo={{ NOTIFIER_SOURCE_REPO }}
     version={{ NOTIFIER_VERSION }}
-  sudo: true  
+  sudo: true
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier-scheduler
     - notifier | restart notifier-celery-workers
-  tags:
-    - deploy
 
 - name: notifier | source repo group perms
-  file: 
+  file:
     path={{ NOTIFIER_SOURCE_REPO }} mode=2775 state=directory
-  tags:
-    - deploy
 
 - name: notifier | install application requirements
-  pip: 
-    requirements="{{ NOTIFIER_REQUIREMENTS_FILE }}" 
+  pip:
+    requirements="{{ NOTIFIER_REQUIREMENTS_FILE }}"
     virtualenv="{{ NOTIFIER_VENV_DIR }}" state=present
-  sudo: true  
+  sudo: true
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier-scheduler
     - notifier | restart notifier-celery-workers
-  tags:
-  - deploy
 
 - name: notifier | syncdb
   shell: >
     cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
-  sudo: true  
+  sudo: true
   sudo_user: "{{ NOTIFIER_USER }}"
   notify:
     - notifier | restart notifier-scheduler
     - notifier | restart notifier-celery-workers
-  tags:
-  - deploy
