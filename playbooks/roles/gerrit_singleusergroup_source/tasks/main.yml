@@ -30,7 +30,7 @@
   when: already_registered|failed
 
 - name: gerrit_singleusergroup_source | patch uploaded
-  copy: src=singleusergroup.patch dest=/tmp/singleusergroup.patch
+  template: src=singleusergroup.patch.j2 dest=/tmp/singleusergroup.patch
 
 - name: gerrit_singleusergroup_source | repository cleaned
   command: git clean -xfd chdir={{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }}
@@ -49,7 +49,7 @@
 - name: gerrit_singleusergroup_source | artifacts uploaded
   s3: >
     bucket={{ gerrit_artifact_s3_bucket.name }}
-    object=singleusergroup-1.0-SNAPSHOT.jar
+    object=singleusergroup-{{ gerrit_release }}.jar
     src="{{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }}/target/singleusergroup-1.0-SNAPSHOT.jar"
     mode=put
     overwrite=yes

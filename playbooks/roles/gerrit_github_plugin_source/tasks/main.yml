@@ -41,7 +41,7 @@
   when: already_registered|failed
 
 - name: gerrit_github_plugin_source | patch uploaded
-  copy: src=github.patch dest=/tmp/github.patch
+  template: src=github.patch.j2 dest=/tmp/github.patch
 
 - name: gerrit_github_plugin_source | repository cleaned
   command: git clean -xfd chdir={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}
@@ -60,8 +60,8 @@
 - name: gerrit_github_plugin_source | artifacts uploaded
   s3: >
     bucket={{ gerrit_artifact_s3_bucket.name }}
-    object=github-{{ item }}-2.8.jar
-    src="{{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}/github-{{ item }}/target/github-{{ item }}-2.8.jar"
+    object=github-{{ item }}-{{ gerrit_release }}.jar
+    src="{{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}/github-{{ item }}/target/github-{{ item }}-{{ gerrit_release }}.jar"
     mode=put
     overwrite=yes
     aws_access_key="{{ gerrit_artifact_s3_bucket.aws_access_key_id }}"

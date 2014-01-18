@@ -32,6 +32,24 @@
 - name: gerrit_source | submodules checked out
   command: git submodule update --recursive --init chdir={{ GERRIT_SOURCE_HOME }}
 
+# For some reason maven cannot reliably resolve this module, so we manually resolve the dependency
+- name: gerrit_source | gs maven wagon workaround
+  file: path=/root/.m2/repository/com/googlesource/gerrit/gs-maven-wagon/3.3 state=directory
+
+- name: gerrit_source | gs maven wagon workaround artifacts
+  get_url: >
+    url=https://gerrit-maven.storage.googleapis.com/com/googlesource/gerrit/gs-maven-wagon/3.3/gs-maven-wagon-3.3.{{ item }}
+    dest=/root/.m2/repository/com/googlesource/gerrit/gs-maven-wagon/3.3/gs-maven-wagon-3.3.{{ item }}
+  with_items:
+    - pom
+    - jar
+
+# For some reason the way that the release build generates the docs throws an error, so we have to pre-build them
+- name: gerrit_source | docs generated
+  shell: buck build :withdocs chdir={{ GERRIT_SOURCE_HOME }}
+  environment:
+    PATH: "{{oraclejdk_link}}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games"
+
 # Note that maven is required for the api_install target.  Since it makes the API jar available
 # to other builds using the local maven repository.  Also note that buck will use whatever JDK toolchain
 # appears first on the path, which forces us to override the path when running this task.
@@ -43,7 +61,7 @@
 - name: gerrit_source | artifacts uploaded
   s3: >
     bucket={{ gerrit_artifact_s3_bucket.name }}
-    object=gerrit-{{ gerrit_source_version }}.war
+    object=gerrit-{{ gerrit_release }}.war
     src={{ GERRIT_SOURCE_HOME }}/buck-out/gen/release.war
     mode=put
     overwrite=yes
