@@ -85,7 +85,7 @@ class MongoConnection:
                     'plays': {
                         args.play: {
                             'amis': {
-                                args.environment = ami
+                                args.environment: ami,
                             },
                         },
                     },
