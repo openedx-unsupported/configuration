@@ -83,7 +83,8 @@ def uri_from(doc_store_config):
 
 def prepare_release(args):
     config = yaml.safe_load(open(args.config))
-    client = MongoClient(uri_from(config['DOC_STORE_CONFIG']))
+    mongo_uri = uri_from(config['DOC_STORE_CONFIG'])
+    client = MongoClient(mongo_uri)
     db = client[config['DOC_STORE_CONFIG']['db']]
 
     # Get configuration repo versions
@@ -152,7 +153,9 @@ def prepare_release(args):
     release['plays'] = all_plays
     release_coll.insert(release)
     # All plays that need new AMIs have been updated.
-    notify_abbey(config['abbey_url'], config['abbey_token'], args.deployment, all_plays, args.release_id)
+    notify_abbey(config['abbey_url'], config['abbey_token'], args.deployment,
+                 all_plays, args.release_id, mongo_uri, config_repo_ver,
+                 config_secure_ver)
 
 def ami_for(db, env, deployment, play, configuration,
     configuration_secure, ansible_vars):
@@ -169,7 +172,8 @@ def ami_for(db, env, deployment, play, configuration,
     return db.amis.find_one(ami_signature)
 
 import requests
-def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id):
+def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id,
+                 mongo_uri, configuration_ref, configuration_secure_ref):
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             if ami is None:
@@ -179,6 +183,9 @@ def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id):
                 params.append({ 'name': 'environment', 'value': env})
                 params.append({ 'name': 'vars', 'value': yaml.dump(play['vars'], default_flow_style=False)})
                 params.append({ 'name': 'release_id', 'value': release_id})
+                params.append({ 'name': 'mongo_uri', 'value': mongo_uri})
+                params.append({ 'name': 'configuration', 'value': configuration_ref})
+                params.append({ 'name': 'configuration_secure', 'value': configuration_secure_ref})
                 build_params = {'parameter': params}
 
                 log.info("Need ami for {}".format(pformat(build_params)))

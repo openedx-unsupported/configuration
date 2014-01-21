@@ -71,19 +71,29 @@ class MongoConnection:
         Adds the built AMI to the deployment
         collection
         """
-        query = {
-            '_id': args.jenkins_build,
-            'plays': {
-                args.play: {
-                    'amis': {},
-                },
-            },
-        }
-        update = query.copy()
-        pprint(update)
-        update['plays'][args.play]['amis'][args.environment] = ami
-        self.mongo_deployment.update(query, update, True)
+        query = { '_id': args.jenkins_build }
+        deployment = self.mongo_deployment.find_one(query)
+        try:
+            deployment['plays'][args.play]['amis'][args.environment] = ami
+        except KeyError as e:
+            msg = "Unexpected document structure, couldn't write " +\
+                  "to path deployment['plays']['{}']['amis']['{}']"
+            print msg.format(args.play, args.environment)
+            pprint(deployment)
+            if args.noop:
+                deployment = {
+                    'plays': {
+                        args.play: {
+                            'amis': {
+                                args.environment: ami,
+                            },
+                        },
+                    },
+                }
+            else:
+                raise
 
+        self.mongo_deployment.save(deployment)
 
 class Unbuffered:
     """
@@ -174,7 +184,7 @@ def parse_args():
                         default="test",
                         help="Mongo database")
     parser.add_argument("--mongo-ami-collection", required=False,
-                        default="ami",
+                        default="amis",
                         help="Mongo ami collection")
     parser.add_argument("--mongo-deployment-collection", required=False,
                         default="deployment",
@@ -247,8 +257,10 @@ $(curl http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
 instance_type=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null)
 playbook_dir="$base_dir/configuration/playbooks/edx-east"
-git_repo="https://github.com/edx/configuration"
-git_repo_secure="git@github.com:edx/configuration-secure"
+git_repo_name="configuration"
+git_repo_secure_name="configuration-secure"
+git_repo="https://github.com/edx/$git_repo_name"
+git_repo_secure="git@github.com:edx/$git_repo_secure_name"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
@@ -298,14 +310,19 @@ EOF
 
 chmod 400 $secure_identity
 
-$git_cmd clone -b $configuration_version $git_repo
+$git_cmd clone $git_repo $git_repo_name
+cd $git_repo_name
+$git_cmd checkout $configuration_version
+cd $base_dir
 
 if $config_secure; then
-    $git_cmd clone -b $configuration_secure_version \\
-        $git_repo_secure
+    $git_cmd clone $git_repo_secure $git_repo_secure_name
+    cd $git_repo_secure_name
+    $git_cmd checkout $configuration_secure_version
+    cd $base_dir
 fi
 
-cd $base_dir/configuration
+cd $base_dir/$git_repo_name
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
