@@ -80,7 +80,18 @@ class MongoConnection:
                   "to path deployment['plays']['{}']['amis']['{}']"
             print msg.format(args.play, args.environment)
             pprint(deployment)
-            raise
+            if args.noop:
+                deployment = {
+                    'plays': {
+                        args.play: {
+                            'amis': {
+                                args.environment = ami
+                            },
+                        },
+                    },
+                }
+            else:
+                raise
 
         self.mongo_deployment.save(deployment)
 
