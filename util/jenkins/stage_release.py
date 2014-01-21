@@ -151,11 +151,12 @@ def prepare_release(args):
                     all_plays[play]['amis'][env] = None
 
     release['plays'] = all_plays
-    release_coll.insert(release)
+    if not args.noop:
+        release_coll.insert(release)
     # All plays that need new AMIs have been updated.
     notify_abbey(config['abbey_url'], config['abbey_token'], args.deployment,
                  all_plays, args.release_id, mongo_uri, config_repo_ver,
-                 config_secure_ver)
+                 config_secure_ver, args.noop)
 
 def ami_for(db, env, deployment, play, configuration,
     configuration_secure, ansible_vars):
@@ -173,7 +174,7 @@ def ami_for(db, env, deployment, play, configuration,
 
 import requests
 def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id,
-                 mongo_uri, configuration_ref, configuration_secure_ref):
+                 mongo_uri, configuration_ref, configuration_secure_ref, noop=False):
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             if ami is None:
@@ -181,7 +182,7 @@ def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id,
                 params.append({ 'name': 'play', 'value': play_name})
                 params.append({ 'name': 'deployment', 'value': deployment})
                 params.append({ 'name': 'environment', 'value': env})
-                params.append({ 'name': 'vars', 'value': yaml.dump(play['vars'], default_flow_style=False)})
+                params.append({ 'name': 'vars', 'value': yaml.safe_dump(play['vars'], default_flow_style=False)})
                 params.append({ 'name': 'release_id', 'value': release_id})
                 params.append({ 'name': 'mongo_uri', 'value': mongo_uri})
                 params.append({ 'name': 'configuration', 'value': configuration_ref})
@@ -189,15 +190,16 @@ def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id,
                 build_params = {'parameter': params}
 
                 log.info("Need ami for {}".format(pformat(build_params)))
-                r = requests.post(abbey_url,
-                                  data={"token": abbey_token},
-                                  params={"json": json.dumps(build_params)})
+                if not noop:
+                    r = requests.post(abbey_url,
+                                      data={"token": abbey_token},
+                                      params={"json": json.dumps(build_params)})
 
-                log.info("Sent request got {}".format(r))
-                if r.status_code != 201:
-                    # Something went wrong.
-                    msg = "Failed to submit request with params: {}"
-                    raise Exception(msg.format(pformat(build_params)))
+                    log.info("Sent request got {}".format(r))
+                    if r.status_code != 201:
+                        # Something went wrong.
+                        msg = "Failed to submit request with params: {}"
+                        raise Exception(msg.format(pformat(build_params)))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare a new release.")
@@ -206,6 +208,7 @@ if __name__ == "__main__":
     msg = "The deployment to build for eg. edx, edge, loadtest"
     parser.add_argument('-d', '--deployment', required=True, help=msg)
     parser.add_argument('-r', '--release-id', required=True, help="Id of Release.")
+    parser.add_argument('-n', '--noop', required=True, help="Run without sending requests to abbey.")
     parser.add_argument('REPOS', nargs='+',
         help="Any number of var=value(no spcae around '='" + \
              " e.g. 'edxapp=3233bac xqueue=92832ab'")
