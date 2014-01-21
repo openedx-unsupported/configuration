@@ -86,7 +86,7 @@
 - name: ora | update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  when: not devstack
+  when: start_services and not devstack
   changed_when: supervisor_update.stdout != ""
 
 - name: ora | ensure ora is started
@@ -95,7 +95,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: start_services and not devstack
 
 - name: ora | ensure ora_celery is started
   supervisorctl_local: >
@@ -103,6 +103,6 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: start_services and not devstack
 
 - set_fact: ora_installed=true
