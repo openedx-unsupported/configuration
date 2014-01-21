@@ -72,12 +72,7 @@ if [[ -z $ami ]]; then
 fi
 
 if [[ -z $instance_type ]]; then
-  if [[ $server_type == "full_edx_installation" ]]; then
-    instance_type="m1.medium"
-  elif [[ $server_type == "ubuntu_12.04" ]]; then
-    instance_type="m1.small"
-  fi
-
+  instance_type="m1.medium"
 fi
 
 deploy_host="${dns_name}.${dns_zone}"
