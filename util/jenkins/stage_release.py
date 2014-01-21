@@ -208,7 +208,8 @@ if __name__ == "__main__":
     msg = "The deployment to build for eg. edx, edge, loadtest"
     parser.add_argument('-d', '--deployment', required=True, help=msg)
     parser.add_argument('-r', '--release-id', required=True, help="Id of Release.")
-    parser.add_argument('-n', '--noop', required=True, help="Run without sending requests to abbey.")
+    parser.add_argument('-n', '--noop', action='store_true',
+        help="Run without sending requests to abbey.")
     parser.add_argument('REPOS', nargs='+',
         help="Any number of var=value(no spcae around '='" + \
              " e.g. 'edxapp=3233bac xqueue=92832ab'")
