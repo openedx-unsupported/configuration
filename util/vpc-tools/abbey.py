@@ -434,7 +434,12 @@ def poll_sqs_ansible():
                             for key, value in to_disp['msg']['OK'].iteritems():
                                 print "    {:<15}{}".format(key, value)
                         else:
-                            if to_disp['msg']['OK']['changed']:
+                            invocation = to_disp['msg']['OK']['invocation']
+                            module = invocation['module_name']
+                            # 'set_fact' does not provide a changed value.
+                            if module == 'set_fact':
+                                changed = "OK"
+                            elif to_disp['msg']['OK']['changed']:
                                 changed = "*OK*"
                             else:
                                 changed = "OK"
