@@ -185,15 +185,10 @@ EOF
 fi
 
 declare -A deploy
-
-deploy[edxapp]=$edxapp
-deploy[forum]=$forum
-deploy[xqueue]=$xqueue
-deploy[xserver]=$xserver
-deploy[ora]=$ora
-deploy[discern]=$discern
-deploy[certs]=$certs
-
+roles="edxapp forum xqueue xserver ora discern certs"
+for role in $roles; do
+    deploy[$role]=${!role}
+done
 
 # If reconfigure was selected or if starting from an ubuntu 12.04 AMI
 # run non-deploy tasks for all roles
