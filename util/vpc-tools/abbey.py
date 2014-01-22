@@ -210,7 +210,7 @@ def get_instance_sec_group(vpc_id, security_group):
 
     if not security_group_id:
         print "Unable to lookup id for security group {}".format(
-            args.security_group)
+            security_group)
         sys.exit(1)
 
     return security_group_id
