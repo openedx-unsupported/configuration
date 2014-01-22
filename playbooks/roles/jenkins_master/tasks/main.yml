@@ -61,16 +61,16 @@
 - name: download Jenkins plugins
   get_url: url=http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
            dest=/tmp/{{ item.name }}_{{ item.version }}
-  with_items: "{{ jenkins_plugins }}"
+  with_items: jenkins_plugins
 
 - name: install Jenkins plugins
   command: cp /tmp/{{ item.name }}_{{ item.version }} {{ jenkins_home }}/plugins/{{ item.name }}.hpi
-  with_items: "{{ jenkins_plugins }}"
+  with_items: jenkins_plugins
 
 - name: set Jenkins plugin permissions
   file: path={{ jenkins_home }}/plugins/{{ item.name }}.hpi
         owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: "{{ jenkins_plugins }}"
+  with_items: jenkins_plugins
   notify:
     - jenkins_master | restart Jenkins
 
@@ -80,23 +80,23 @@
 # Until then, we compile and install the forks ourselves.
 - name: checkout custom plugin repo
   git: repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
 
 - name: compile custom plugins
   command: mvn -Dmaven.test.skip=true install chdir=/tmp/{{ item.repo_name }}
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
 
 - name: install custom plugins
   command: mv /tmp/{{ item.repo_name }}/target/{{ item.package }}
            {{ jenkins_home }}/plugins/{{ item.package }}
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
   notify:
     - jenkins_master | restart Jenkins
 
 - name: set custom plugin permissions
   file: path={{ jenkins_home }}/plugins/{{ item.package }}
         owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
 
 
 # Plugins that are bundled with Jenkins are "pinned".
@@ -106,7 +106,7 @@
 - name: create plugin pin files
   command: touch {{ jenkins_home }}/plugins/{{ item }}.jpi.pinned
            creates={{ jenkins_home }}/plugins/{{ item }}.jpi.pinned
-  with_items: "{{ jenkins_bundled_plugins }}"
+  with_items: jenkins_bundled_plugins
 
 - name: setup nginix vhost
   template:
