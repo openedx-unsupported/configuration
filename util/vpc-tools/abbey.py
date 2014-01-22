@@ -237,7 +237,7 @@ def create_instance_args():
     subnet_id = subnet[0].id
     vpc_id = subnet[0].vpc_id
 
-    security_group_id = get_instance_sec_group(vpc_id, security_group)
+    security_group_id = get_instance_sec_group(vpc_id, args.security_group)
 
     if args.identity:
         config_secure = 'true'
