@@ -193,6 +193,29 @@ def parse_args():
     return parser.parse_args()
 
 
+def get_instance_sec_group(vpc_id, security_group):
+
+    security_group_id = None
+
+    grp_details = ec2.get_all_security_groups(
+        filters={
+            'vpc_id':vpc_id
+        }
+    )
+
+    for grp in grp_details:
+        if grp.name == security_group:
+            security_group_id = grp.id
+            break
+
+    if not security_group_id:
+        print "Unable to lookup id for security group {}".format(
+            security_group)
+        sys.exit(1)
+
+    return security_group_id
+
+
 def create_instance_args():
     """
     Looks up security group, subnet
@@ -200,19 +223,6 @@ def create_instance_args():
     ec2.run_instances() including
     user data
     """
-
-    security_group_id = None
-
-    grp_details = ec2.get_all_security_groups()
-
-    for grp in grp_details:
-        if grp.name == args.security_group:
-            security_group_id = grp.id
-            break
-    if not security_group_id:
-        print "Unable to lookup id for security group {}".format(
-            args.security_group)
-        sys.exit(1)
 
     vpc = VPCConnection()
     subnet = vpc.get_all_subnets(
@@ -225,6 +235,9 @@ def create_instance_args():
             len(subnet)))
         sys.exit(1)
     subnet_id = subnet[0].id
+    vpc_id = subnet[0].vpc_id
+
+    security_group_id = get_instance_sec_group(vpc_id, security_group)
 
     if args.identity:
         config_secure = 'true'
