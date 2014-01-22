@@ -34,95 +34,95 @@
 - fail: rbenv_ruby_version required for role
   when: rbenv_ruby_version is not defined
 
-- name: rbenv | create rbenv user {{ rbenv_user }}
+- name: create rbenv user {{ rbenv_user }}
   user: >
     name={{ rbenv_user }} home={{ rbenv_dir }}
     shell=/bin/false createhome=no
   when: rbenv_user != common_web_user
 
-- name: rbenv | create rbenv dir if it does not exist
+- name: create rbenv dir if it does not exist
   file: >
     path="{{ rbenv_dir }}" owner="{{ rbenv_user }}"
     state=directory
 
-- name: rbenv | install build depends
+- name: install build depends
   apt: pkg={{ ",".join(rbenv_debian_pkgs) }} state=present install_recommends=no
   with_items: rbenv_debian_pkgs
 
-- name: rbenv | update rbenv repo
+- name: update rbenv repo
   git: >
     repo=https://github.com/sstephenson/rbenv.git
     dest={{ rbenv_dir }}/.rbenv version={{ rbenv_version }}
   sudo_user: "{{ rbenv_user }}"
 
-- name: rbenv | ensure ruby_env exists
+- name: ensure ruby_env exists
   template: >
     src=ruby_env.j2 dest={{ rbenv_dir }}/ruby_env
   sudo_user: "{{ rbenv_user }}"
 
-- name: rbenv | check ruby-build installed
+- name: check ruby-build installed
   command: test -x /usr/local/bin/ruby-build
   register: rbuild_present
   ignore_errors: yes
 
-- name: rbenv | if ruby-build exists, which versions we can install
+- name: if ruby-build exists, which versions we can install
   command: /usr/local/bin/ruby-build --definitions
   when: rbuild_present|success
   register: installable_ruby_vers
   ignore_errors: yes
 
 ### in this block, we (re)install ruby-build if it doesn't exist or if it can't install the requested version
-- name: rbenv | create temporary directory
+- name: create temporary directory
   command: mktemp -d
   register: tempdir
   sudo_user: "{{ rbenv_user }}"
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
 
-- name: rbenv | clone ruby-build repo
+- name: clone ruby-build repo
   git: repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   sudo_user: "{{ rbenv_user }}"
 
-- name: rbenv | install ruby-build
+- name: install ruby-build
   command: ./install.sh chdir={{ tempdir.stdout }}/ruby-build
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
 
-- name: rbenv | remove temporary directory
+- name: remove temporary directory
   file: path={{ tempdir.stdout }} state=absent
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
 
-- name: rbenv | check ruby {{ rbenv_ruby_version }} installed
+- name: check ruby {{ rbenv_ruby_version }} installed
   shell: "rbenv versions | grep {{ rbenv_ruby_version }}"
   register: ruby_installed
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   ignore_errors: yes
 
-- name: rbenv | install ruby {{ rbenv_ruby_version }}
+- name: install ruby {{ rbenv_ruby_version }}
   shell: "rbenv install {{ rbenv_ruby_version }} creates={{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}"
   when: ruby_installed|failed
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
 
-- name: rbenv | set global ruby {{ rbenv_ruby_version }}
+- name: set global ruby {{ rbenv_ruby_version }}
   shell: "rbenv global {{ rbenv_ruby_version }}"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
 
-- name: rbenv | install bundler
+- name: install bundler
   shell: "gem install bundler -v {{ rbenv_bundler_version }}"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
 
-- name: rbenv | remove rbenv version of rake
+- name: remove rbenv version of rake
   file: path="{{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}/bin/rake" state=absent
 
-- name: rbenv | install rake gem
+- name: install rake gem
   shell: "gem install rake -v {{ rbenv_rake_version }}"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
 
-- name: rbenv | rehash
+- name: rehash
   shell: "rbenv rehash"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"

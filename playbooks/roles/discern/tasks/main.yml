@@ -1,5 +1,5 @@
 ---
-- name: discern | create application user
+- name: create application user
   user: >
     name="{{ discern_user }}"
     home="{{ discern_app_dir }}"
@@ -8,7 +8,7 @@
   notify:
     - discern | restart discern
 
-- name: discern | create discern app dirs owned by discern
+- name: create discern app dirs owned by discern
   file: >
     path="{{ item }}"
     state=directory
@@ -20,7 +20,7 @@
     - "{{ discern_app_dir }}"
     - "{{ discern_venvs_dir }}"
 
-- name: discern | create discern data dir, owned by {{ common_web_user }}
+- name: create discern data dir, owned by {{ common_web_user }}
   file: >
     path="{{ discern_data_dir }}" state=directory
     owner="{{ common_web_user }}" group="{{ discern_user  }}"
@@ -28,19 +28,19 @@
   notify:
     - discern | restart discern
 
-- name: discern | install debian packages that discern needs
+- name: install debian packages that discern needs
   apt: pkg={{ item }} state=present
   notify:
     - discern | restart discern
   with_items: discern_debian_pkgs
 
-- name: discern | install debian packages for ease that discern needs
+- name: install debian packages for ease that discern needs
   apt: pkg={{ item }} state=present
   notify:
     - discern | restart discern
   with_items: discern_ease_debian_pkgs
 
-- name: discern | copy sudoers file for discern
+- name: copy sudoers file for discern
   copy: >
     src=sudoers-discern dest=/etc/sudoers.d/discern
     mode=0440 validate='visudo -cf %s' owner=root group=root
@@ -48,7 +48,7 @@
     - discern | restart discern
 
 #Needed if using redis to prevent memory issues
-- name: discern | change memory commit settings -- needed for redis
+- name: change memory commit settings -- needed for redis
   command: sysctl vm.overcommit_memory=1
   notify:
     - discern | restart discern
