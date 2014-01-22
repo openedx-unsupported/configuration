@@ -2,7 +2,7 @@
 #   - common/tasks/main.yml
 ---
 
-- name: create nginx app dirs
+- name: nginx | create nginx app dirs
   file: >
     path="{{ item }}"
     state=directory
@@ -12,9 +12,9 @@
     - "{{ nginx_app_dir }}"
     - "{{ nginx_sites_available_dir }}"
     - "{{ nginx_sites_enabled_dir }}"
-  notify: restart nginx
+  notify: nginx | restart nginx
 
-- name: create nginx data dirs
+- name: nginx | create nginx data dirs
   file: >
     path="{{ item }}"
     state=directory
@@ -23,66 +23,66 @@
   with_items:
     - "{{ nginx_data_dir }}"
     - "{{ nginx_log_dir }}"
-  notify: restart nginx
+  notify: nginx | restart nginx
 
-- name: Install nginx packages
+- name: nginx | Install nginx packages
   apt: pkg={{','.join(nginx_debian_pkgs)}} state=present
-  notify: restart nginx
+  notify: nginx | restart nginx
 
-- name: Server configuration file
+- name: nginx | Server configuration file
   template: >
     src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
     owner=root group={{ common_web_user }} mode=0644
-  notify: reload nginx
+  notify: nginx | reload nginx
 
-- name: Creating common nginx configuration
+- name: nginx | Creating common nginx configuration
   template: >
     src=edx-release.j2 dest={{ nginx_sites_available_dir }}/edx-release
     owner=root group=root mode=0600
-  notify: reload nginx
+  notify: nginx | reload nginx
 
-- name: Creating link for common nginx configuration
+- name: nginx | Creating link for common nginx configuration
   file: >
     src={{ nginx_sites_available_dir }}/edx-release
     dest={{ nginx_sites_enabled_dir }}/edx-release
     state=link owner=root group=root
-  notify: reload nginx
+  notify: nginx | reload nginx
 
-- name: Copying nginx configs for {{ nginx_sites }}
+- name: nginx | Copying nginx configs for {{ nginx_sites }}
   template: >
     src={{ item }}.j2 dest={{ nginx_sites_available_dir }}/{{ item }}
     owner=root group={{ common_web_user }} mode=0640
-  notify: reload nginx
+  notify: nginx | reload nginx
   with_items: nginx_sites
 
-- name: Creating nginx config links for {{ nginx_sites }}
+- name: nginx | Creating nginx config links for {{ nginx_sites }}
   file: >
     src={{ nginx_sites_available_dir }}/{{ item  }}
     dest={{ nginx_sites_enabled_dir }}/{{ item }}
     state=link owner=root group=root
-  notify: reload nginx
+  notify: nginx | reload nginx
   with_items: nginx_sites
 
-- name: Write out htpasswd file
+- name: nginx | Write out htpasswd file
   htpasswd: >
     name={{ NGINX_HTPASSWD_USER }}
     password={{ NGINX_HTPASSWD_PASS }}
     path={{ nginx_htpasswd_file }}
   when: NGINX_HTPASSWD_USER and NGINX_HTPASSWD_PASS
 
-- name: Create nginx log file location (just in case)
+- name: nginx | Create nginx log file location (just in case)
   file: >
     path={{ nginx_log_dir}} state=directory
     owner={{ common_web_user }} group={{ common_web_user }}
 
-- name: copy ssl cert
+- name: nginx | copy ssl cert
   copy: >
     src={{ NGINX_SSL_CERTIFICATE }}
     dest=/etc/ssl/certs/{{ item|basename }}
     owner=root group=root mode=0644
   when: NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
 
-- name: copy ssl key
+- name: nginx | copy ssl key
   copy: >
     src={{ NGINX_SSL_KEY }}
     dest=/etc/ssl/private/{{ item|basename }}
@@ -91,18 +91,18 @@
 
 
 # removing default link
-- name: Removing default nginx config and restart (enabled)
+- name: nginx | Removing default nginx config and restart (enabled)
   file: path={{ nginx_sites_enabled_dir }}/default state=absent
-  notify: reload nginx
+  notify: nginx | reload nginx
 
 # Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
 
-- name: Set up nginx access log rotation
+- name: nginx | Set up nginx access log rotation
   template: >
     dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2
     owner=root group=root mode=644
 
-- name: Set up nginx access log rotation
+- name: nginx | Set up nginx access log rotation
   template: >
     dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2
     owner=root group=root mode=644
@@ -110,10 +110,10 @@
 # If tasks that notify restart nginx don't change the state of the remote system
 # their corresponding notifications don't get run.  If nginx has been stopped for
 # any reason, this will ensure that it is started up again.
-- name: make sure nginx has started
+- name: nginx | make sure nginx has started
   service: name=nginx state=started
   when: start_services
 
-- name: make sure nginx has stopped
+- name: nginx | make sure nginx has stopped
   service: name=nginx state=stopped
   when: not start_services

@@ -1,27 +1,27 @@
 ---
-- name: git checkout edx_ansible repo into edx_ansible_code_dir
+- name: edx_ansible | git checkout edx_ansible repo into edx_ansible_code_dir
   git: dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
   sudo_user: "{{ edx_ansible_user }}"
 
-- name : install edx_ansible venv requirements
+- name : edx_ansible | install edx_ansible venv requirements
   pip: requirements="{{ edx_ansible_requirements_file }}" virtualenv="{{ edx_ansible_venv_dir }}" state=present
   sudo_user: "{{ edx_ansible_user }}"
 
-- name: create update script
+- name: edx_ansible | create update script
   template: >
     dest={{ edx_ansible_app_dir}}/update
     src=update.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
 
-- name: create a symlink for update.sh
+- name: edx_ansible | create a symlink for update.sh
   file: >
     src={{ edx_ansible_app_dir }}/update
     dest={{ COMMON_BIN_DIR }}/update
     state=link
 
-- name: dump all vars to yaml
+- name: edx_ansible | dump all vars to yaml
   template: src=dumpall.yml.j2 dest={{ edx_ansible_var_file }} mode=0600
 
-- name: clean up var file, removing all version vars
+- name: edx_ansible | clean up var file, removing all version vars
   shell: sed -i -e "/{{item}}/d" {{ edx_ansible_var_file }}
   with_items:
     - edx_platform_version
@@ -37,10 +37,10 @@
     - ease_version
     - certs_version
 
-- name: remove the special _original_file var
+- name: edx_ansible | remove the special _original_file var
   shell: sed -i -e "/_original_file/d" {{ edx_ansible_var_file }}
 
-- name: create a symlink for var file
+- name: edxapp | create a symlink for var file
   file: >
     src={{ edx_ansible_var_file }}
     dest={{ COMMON_CFG_DIR }}/{{ edx_ansible_var_file|basename }}

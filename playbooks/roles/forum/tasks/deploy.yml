@@ -1,6 +1,6 @@
 ---
 
-- name: create the supervisor config
+- name: forum | create the supervisor config
   template: >
     src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
     owner={{ supervisor_user }}
@@ -9,41 +9,41 @@
   when: not devstack
   register: forum_supervisor
 
-- name: create the supervisor wrapper
+- name: forum | create the supervisor wrapper
   template: >
     src={{ forum_supervisor_wrapper|basename }}.j2
     dest={{ forum_supervisor_wrapper }}
     mode=0755
   sudo_user: "{{ forum_user }}"
   when: not devstack
-  notify: restart the forum service
+  notify: forum | restart the forum service
 
-- name:  git checkout forum repo into {{ forum_code_dir }}
+- name:  forum | git checkout forum repo into {{ forum_code_dir }}
   git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
   sudo_user: "{{ forum_user }}"
-  notify: restart the forum service
+  notify: forum | restart the forum service
 
 # TODO: This is done as the common_web_user
 # since the process owner needs write access
 # to the rbenv
-- name: install comments service bundle
+- name: forum | install comments service bundle
   shell: bundle install chdir={{ forum_code_dir }}
   sudo_user: "{{ common_web_user }}"
   environment: "{{ forum_environment }}"
-  notify: restart the forum service
+  notify: forum | restart the forum service
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
   # the services if any of the configurations
   # have changed.
   #
-- name: update supervisor configuration
+- name: forum | update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
   when: start_services and not devstack
 
-- name: ensure forum is started
+- name: forum | ensure forum is started
   supervisorctl_local: >
     name=forum
     supervisorctl_path={{ supervisor_ctl }}

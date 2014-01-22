@@ -37,14 +37,14 @@
 #     - common
 #     - analytics-server
 #
-- name: install system packages
+- name: analytics-server | install system packages
   apt: pkg={{','.join(as_debian_pkgs)}} state=present
   tags:
   - analytics-server
   - install
   - update
 
-- name: create analytics-server user {{ as_user }}
+- name: analytics-server | create analytics-server user {{ as_user }}
   user:
     name={{ as_user }} state=present shell=/bin/bash
     home={{ as_home }} createhome=yes
@@ -53,7 +53,7 @@
   - install
   - update
 
-- name: setup the analytics-server env
+- name: analytics-server | setup the analytics-server env
   template:
     src=opt/wwc/analytics-server/{{ as_env }}.j2
     dest={{ as_home }}/{{ as_env }}
@@ -63,7 +63,7 @@
   - install
   - update
 
-- name: drop a bash_profile
+- name: analytics-server | drop a bash_profile
   copy: >
     src=../../common/files/bash_profile
     dest={{ as_home }}/.bash_profile
@@ -71,7 +71,7 @@
     group={{ as_user }}
 
 # Awaiting next ansible release.
-#- name: ensure .bashrc exists
+#- name: analytics-server | ensure .bashrc exists
 # file: path={{ as_home }}/.bashrc state=touch
 # sudo: true
 # sudo_user: "{{ as_user }}"
@@ -80,7 +80,7 @@
 # - install
 # - update
 
-- name: ensure .bashrc exists
+- name: analytics-server | ensure .bashrc exists
   shell: touch {{ as_home }}/.bashrc
   sudo: true
   sudo_user: "{{ as_user }}"
@@ -89,7 +89,7 @@
   - install
   - update
 
-- name: add source of analytics-server_env to .bashrc
+- name: analytics-server | add source of analytics-server_env to .bashrc
   lineinfile:
     dest={{ as_home }}/.bashrc
     regexp='. {{ as_home }}/analytics-server_env'
@@ -99,7 +99,7 @@
   - install
   - update
 
-- name: add source venv to .bashrc
+- name: analytics-server | add source venv to .bashrc
   lineinfile:
     dest={{ as_home }}/.bashrc
     regexp='. {{ as_venv_dir }}/bin/activate'
@@ -109,7 +109,7 @@
   - install
   - update
 
-- name: install global python requirements
+- name: analytics-server | install global python requirements
   pip: name={{ item }}
   with_items: as_pip_pkgs
   tags:
@@ -117,7 +117,7 @@
   - install
   - update
 
-- name: create config
+- name: analytics-server | create config
   template:
     src=opt/wwc/analytics.auth.json.j2
     dest=/opt/wwc/analytics.auth.json
@@ -128,7 +128,7 @@
   - install
   - update
 
-- name: install service
+- name: analytics-server | install service
   template:
     src=etc/init/analytics.conf.j2 dest=/etc/init/analytics.conf
     owner=root group=root

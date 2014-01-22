@@ -21,16 +21,6 @@
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
-if [[ -n $WORKSPACE ]]; then
-    # setup a virtualenv in jenkins
-    if [[ ! -d ".venv" ]]; then
-        virtualenv .venv
-    fi
-    source .venv/bin/activate
-    pip install -r requirements.txt
-fi
-
-
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
@@ -156,12 +146,7 @@ security_group: $security_group
 ami: $ami
 region: $region 
 zone: $zone
-instance_tags: 
-    environment: $environment
-    github_username: $github_username
-    Name: $name_tag
-    source: jenkins
-    owner: $BUILD_USER
+instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 gh_users:

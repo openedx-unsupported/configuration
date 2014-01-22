@@ -1,18 +1,18 @@
 ---
 
-- name: check out the demo course
+- name: demo | check out the demo course
   git: dest={{ demo_code_dir }}  repo={{ demo_repo }} version={{ demo_version }}
   sudo_user: "{{ edxapp_user }}"
   register: demo_checkout
 
-- name: import demo course
+- name: demo | import demo course
   shell: >
     {{ edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ edxapp_course_data_dir }} {{ demo_code_dir }}
     chdir={{ edxapp_code_dir }}
   sudo_user: "{{ common_web_user }}"
   when: demo_checkout.changed
 
-- name: create some test users and enroll them in the course
+- name: demo | create some test users and enroll them in the course
   shell: >
     {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e {{ item.email }} -p {{ item.password }} -m {{ item.mode }} -c {{ demo_course_id }}
     chdir={{ edxapp_code_dir }}
@@ -20,21 +20,21 @@
   with_items: demo_test_users
   when: demo_checkout.changed
 
-- name: create staff user
+- name: demo | create staff user
   shell: >
     {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e staff@example.com -p edx -s -c {{ demo_course_id }}
     chdir={{ edxapp_code_dir }}
   sudo_user: "{{ common_web_user }}"
   when: demo_checkout.changed
 
-- name: add test users to the certificate whitelist
+- name: demo | add test users to the certificate whitelist
   shell: >
     {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms cert_whitelist -a {{ item.email }} -c {{ demo_course_id }}
     chdir={{ edxapp_code_dir }}
   with_items: demo_test_users
   when: demo_checkout.changed
 
-- name: seed the forums for the demo course
+- name: demo | seed the forums for the demo course
   shell: >
     {{ edxapp_venv_bin }}/python ./manage.py lms --settings=aws seed_permissions_roles {{ demo_course_id }}
     chdir={{ edxapp_code_dir }}

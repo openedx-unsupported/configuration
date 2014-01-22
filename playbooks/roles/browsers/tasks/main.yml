@@ -1,39 +1,39 @@
 # Install browsers required to run the JavaScript
 # and acceptance test suite locally without a display
 ---
-- name: install system packages
+- name: browsers | install system packages
   apt: pkg={{','.join(browser_deb_pkgs)}}
        state=present update_cache=yes
 
-- name: download browser debian packages from S3
+- name: browsers | download browser debian packages from S3
   get_url: dest="/tmp/{{ item.name }}" url="{{ item.url }}"
   register: download_deb
-  with_items: browser_s3_deb_pkgs
+  with_items: "{{ browser_s3_deb_pkgs }}"
 
-- name: install browser debian packages
+- name: browsers | install browser debian packages
   shell: gdebi -nq /tmp/{{ item.name }}
   when: download_deb.changed
-  with_items: browser_s3_deb_pkgs
+  with_items: "{{ browser_s3_deb_pkgs }}"
 
-- name: Install ChromeDriver
+- name: browsers | Install ChromeDriver
   get_url:
     url={{ chromedriver_url }}
     dest=/var/tmp/chromedriver_{{ chromedriver_version }}.zip
 
-- name: Install ChromeDriver 2
+- name: browsers | Install ChromeDriver 2
   shell: unzip /var/tmp/chromedriver_{{ chromedriver_version }}.zip
          chdir=/var/tmp
 
-- name: Install ChromeDriver 3
+- name: browsers | Install ChromeDriver 3
   shell: mv /var/tmp/chromedriver /usr/local/bin/chromedriver
 
-- name: Install Chromedriver 4
+- name: browsers | Install Chromedriver 4
   file: path=/usr/local/bin/chromedriver mode=0755
 
-- name: create xvfb upstart script
+- name: browsers | create xvfb upstart script
   template: src=xvfb.conf.j2 dest=/etc/init/xvfb.conf owner=root group=root
 
-- name: start xvfb
+- name: browsers | start xvfb
   shell: start xvfb
   ignore_errors: yes
 

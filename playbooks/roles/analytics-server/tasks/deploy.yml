@@ -1,7 +1,7 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: upload ssh script
+- name: analytics-server | upload ssh script
   template:
     src=tmp/{{ as_role_name }}.git_ssh.sh.j2 dest={{ as_git_ssh }}
     force=yes owner=root group=adm mode=750
@@ -13,7 +13,7 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: install read-only ssh key required for checkout
+- name: analytics-server | install read-only ssh key required for checkout
   copy:
     src={{ as_git_identity_path }} dest={{ as_git_identity_dest }}
     force=yes owner=ubuntu group=adm mode=0600
@@ -22,14 +22,14 @@
   - install
   - update
 
-- name: checkout code
+- name: analytics-server | checkout code
   git:
     dest={{ as_code_dir }} repo={{ as_source_repo }}
     version={{ as_version }} force=true
   environment:
     GIT_SSH: $as_git_ssh
-    notify: restart the analytics service
-  notify: start the analytics service
+    notify: analytics-server | restart the analytics service
+  notify: analytics-server | start the analytics service
   tags:
     - analytics-server
     - install
@@ -38,7 +38,7 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: update src permissions
+- name: analytics-server | update src permissions
   file:
     path={{ as_code_dir }} state=directory owner={{ as_user }}
     group={{ as_web_user }} mode=2750 recurse=yes
@@ -50,7 +50,7 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: remove read-only ssh key for the content repo
+- name: analytics-server | remove read-only ssh key for the content repo
   file: path={{ as_git_identity_dest }} state=absent
   tags:
   - analytics-server
@@ -60,20 +60,20 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: remove ssh script
+- name: analytics-server | remove ssh script
   file: path={{ as_git_ssh }} state=absent
   tags:
   - analytics-server
   - install
   - update
 
-- name: install application requirements
+- name: analytics-server | install application requirements
   pip:
     requirements={{ as_requirements_file }}
     virtualenv={{ as_venv_dir }} state=present
   sudo: true
   sudo_user: "{{ as_user }}"
-  notify: start the analytics service
+  notify: analytics-server | start the analytics service
   tags:
   - analytics-server
   - install

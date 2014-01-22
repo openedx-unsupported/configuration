@@ -1,37 +1,37 @@
-- name: setup the edxapp env
+- name: edxapp | setup the edxapp env
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   template: >
     src=edxapp_env.j2 dest={{ edxapp_app_dir }}/edxapp_env
     owner={{ edxapp_user }}  group={{ common_web_user }}
     mode=0644
 
 # Do A Checkout
-- name: checkout edx-platform repo into {{edxapp_code_dir}}
+- name: edxapp | checkout edx-platform repo into {{edxapp_code_dir}}
   git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
   register: chkout
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: git clean after checking out edx-platform
+- name: edxapp | git clean after checking out edx-platform
   shell: cd {{edxapp_code_dir}} && git clean -xdf
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: checkout theme
+- name: edxapp | checkout theme
   git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
   when: edxapp_theme_name != ''
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: create checksum for requirements, package.json and Gemfile
+- name: edxapp | create checksum for requirements, package.json and Gemfile
   shell: >
     /usr/bin/md5sum {{ " ".join(edxapp_chksum_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
   sudo_user: "{{ edxapp_user }}"
@@ -47,16 +47,16 @@
 
 # Substitute github mirror in all requirements files
 # This is run on every single deploy
-- name: Updating requirement files for git mirror
+- name: edxapp | Updating requirement files for git mirror
   command: |
     /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ " ".join(edxapp_all_req_files) }}
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 # Ruby plays that need to be run after platform updates.
-- name: gem install bundler
+- name: edxapp | gem install bundler
   shell: >
     gem install bundle
       chdir={{ edxapp_code_dir }}
@@ -64,10 +64,10 @@
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: bundle install
+- name: edxapp | bundle install
   shell: >
     bundle install --binstubs
       chdir={{ edxapp_code_dir }}
@@ -75,32 +75,32 @@
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 # Set the npm registry
-- name: Set the npm registry
+- name: edxapp | Set the npm registry
   shell:
     npm config set registry 'http://registry.npmjs.org'
     creates="{{ edxapp_app_dir }}/.npmrc"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 # Node play that need to be run after platform updates.
-- name: Install edx-platform npm dependencies
+- name: edxapp | Install edx-platform npm dependencies
   shell: npm install chdir={{ edxapp_code_dir }}
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 
 # Install the python pre requirements into {{ edxapp_venv_dir }}
-- name : install python pre-requirements
+- name : edxapp | install python pre-requirements
   pip: >
     requirements="{{pre_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
@@ -109,12 +109,12 @@
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
 
 # Install the python modules into {{ edxapp_venv_dir }}
-- name : install python base-requirements
+- name : edxapp | install python base-requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -124,12 +124,12 @@
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
 
 # Install the python post requirements into {{ edxapp_venv_dir }}
-- name : install python post-requirements
+- name : edxapp | install python post-requirements
   pip: >
     requirements="{{post_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
@@ -138,12 +138,12 @@
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
 
 # Install the final python modules into {{ edxapp_venv_dir }}
-- name : install python post-post requirements
+- name : edxapp | install python post-post requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -156,12 +156,12 @@
   - "{{ local_requirements_file }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
-- name : install sandbox requirements into regular venv
+- name : edxapp | install sandbox requirements into regular venv
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -175,20 +175,20 @@
   sudo_user: "{{ edxapp_user }}"
   when: "not EDXAPP_PYTHON_SANDBOX and (not inst.stat.exists or new.stat.md5 != inst.stat.md5)"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 # The next few tasks set up the python code sandbox
 
 # need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
 # to install anything
-- name: code sandbox | put sandbox apparmor profile in complain mode
+- name: edxapp | code sandbox | put sandbox apparmor profile in complain mode
   command: /usr/sbin/aa-complain /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
   - edxapp-sandbox
 
-- name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
+- name: edxapp | code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip: >
     requirements="{{sandbox_base_requirements}}"
     virtualenv="{{edxapp_sandbox_venv_dir}}"
@@ -197,12 +197,12 @@
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: code sandbox | Install sandbox requirements into sandbox venv
+- name: edxapp | code sandbox | Install sandbox requirements into sandbox venv
   shell: >
     {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
@@ -214,50 +214,50 @@
   register: sandbox_install_output
   changed_when: "'installed' in sandbox_install_output"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
+- name: edxapp | code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
   - edxapp-sandbox
 
-- name: compiling all py files in the edx-platform repo
+- name: edxapp | compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
   # alternative would be to give {{ common_web_user }} read access
   # to the virtualenv but that permission change will require
   # root access.
-- name: give other read permissions to the virtualenv
+- name: edxapp | give other read permissions to the virtualenv
   command: chmod -R o+r "{{ edxapp_venv_dir }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: create checksum for installed requirements
+- name: edxapp | create checksum for installed requirements
   shell: cp /var/tmp/edxapp.req.new /var/tmp/edxapp.req.installed
   sudo_user: "{{ edxapp_user }}"
-  notify: "restart edxapp"
+  notify: "edxapp | restart edxapp"
 
 
 # https://code.launchpad.net/~wligtenberg/django-openid-auth/mysql_fix/+merge/22726
 # This is necessary for when syncdb is run and the django_openid_auth module is installed,
 # not sure if this fix will ever get merged
-- name: openid workaround
+- name: edxapp | openid workaround
   shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
   when: openid_workaround is defined
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 # creates the supervisor jobs for the
 # service variants configured, runs
@@ -269,14 +269,14 @@
   # the services if any of the configurations
   # have changed.
 
-- name: update supervisor configuration
+- name: edxapp | update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
   when: start_services and not devstack
 
-- name: ensure edxapp has started
+- name: edxapp | ensure edxapp has started
   supervisorctl_local: >
     state=started
     supervisorctl_path={{ supervisor_ctl }}
@@ -286,7 +286,7 @@
   when: start_services and celery_worker is not defined and not devstack
   with_items: service_variants_enabled
 
-- name: ensure edxapp_workers has started
+- name: edxapp | ensure edxapp_workers has started
   supervisorctl_local: >
     name="edxapp_worker:{{ item.service_variant }}_{{ item.queue }}_{{ item.concurrency }}"
     supervisorctl_path={{ supervisor_ctl }}

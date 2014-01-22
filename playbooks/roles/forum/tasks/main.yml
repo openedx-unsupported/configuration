@@ -21,26 +21,26 @@
 #     rbenv_ruby_version: "{{ forum_ruby_version }}"
 #   - forum
 
-- name: create application user
+- name: forum | create application user
   user: >
     name="{{ forum_user }}" home="{{ forum_app_dir }}"
     createhome=no
     shell=/bin/false
-  notify: restart the forum service
+  notify: forum | restart the forum service
 
-- name: create forum app dir
+- name: forum | create forum app dir
   file: >
     path="{{ forum_app_dir }}" state=directory
     owner="{{ forum_user }}" group="{{ common_web_group }}"
-  notify: restart the forum service
+  notify: forum | restart the forum service
 
-- name: setup the forum env
+- name: forum | setup the forum env
   template: >
     src=forum_env.j2 dest={{ forum_app_dir }}/forum_env
     owner={{ forum_user }}  group={{ common_web_user }}
     mode=0644
   notify:
-    - restart the forum service
+    - forum | restart the forum service
 
 - include: deploy.yml tags=deploy
 

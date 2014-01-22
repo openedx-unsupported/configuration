@@ -3,49 +3,49 @@
 #  - common/tasks/main.yml
 ---
 
-- name: create application user
+- name: ora | create application user
   user: >
     name="{{ ora_user }}" home="{{ ora_app_dir }}"
     createhome=no shell=/bin/false
   notify:
-    - restart ora
-    - restart ora_celery
+    - ora | restart ora
+    - ora | restart ora_celery
 
-- name: create ora app dir
+- name: ora | create ora app dir
   file: >
     path="{{ item }}" state=directory
     owner="{{ ora_user }}" group="{{ common_web_group }}"
   notify:
-    - restart ora
-    - restart ora_celery
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items:
     - "{{ ora_venvs_dir }}"
     - "{{ ora_app_dir }}"
 
-- name: create ora data dir, owned by {{ common_web_user }}
+- name: ora | create ora data dir, owned by {{ common_web_user }}
   file: >
     path="{{ item }}" state=directory
     owner="{{ common_web_user }}" group="{{ common_web_group }}"
   notify:
-    - restart ora
-    - restart ora_celery
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items:
     - "{{ ora_data_dir }}"
     - "{{ ora_data_course_dir }}"
     - "{{ ora_app_dir }}/ml_models"
 
-- name: install debian packages that ora needs
+- name: ora | install debian packages that ora needs
   apt: pkg={{item}} state=present
   notify:
-    - restart ora
-    - restart ora_celery
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items: ora_debian_pkgs
 
-- name: install debian packages for ease that ora needs
+- name: ora | install debian packages for ease that ora needs
   apt: pkg={{item}} state=present
   notify:
-    - restart ora
-    - restart ora_celery
+    - ora | restart ora
+    - ora | restart ora_celery
   with_items: ora_ease_debian_pkgs
 
 - include: deploy.yml tags=deploy

@@ -16,14 +16,14 @@
 - fail: msg="secure_dir not defined. This is a path to the secure ora config file."
   when: secure_dir is not defined
 
-- name: create ora application config
+- name: legacy_ora | create ora application config
   copy:
     src={{secure_dir}}/files/{{COMMON_ENV_TYPE}}/legacy_ora/ora.env.json
     dest={{ora_app_dir}}/env.json
   sudo_user: "{{ ora_user }}"
   register: env_state
 
-- name: create ora auth file
+- name: legacy_ora | create ora auth file
   copy:
     src={{secure_dir}}/files/{{COMMON_ENV_TYPE}}/legacy_ora/ora.auth.json
     dest={{ora_app_dir}}/auth.json
@@ -31,13 +31,13 @@
   register: auth_state
 
 # Restart ORA Services
-- name: restart edx-ora
+- name: legacy_ora | restart edx-ora
   service:
     name=edx-ora
     state=restarted
   when: env_state.changed or auth_state.changed
 
-- name: restart edx-ora-celery
+- name: legacy_ora | restart edx-ora-celery
   service:
     name=edx-ora-celery
     state=restarted

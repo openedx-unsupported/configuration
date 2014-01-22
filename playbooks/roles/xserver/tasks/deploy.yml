@@ -1,63 +1,63 @@
-- name: "writing supervisor script"
+- name: "xserver | writing supervisor script"
   template: >
     src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
 
-- name: checkout code
+- name: xserver | checkout code
   git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
   sudo_user: "{{ xserver_user }}"
-  notify: restart xserver
+  notify: xserver | restart xserver
 
-- name: install requirements
+- name: xserver | install requirements
   pip: requirements="{{xserver_requirements_file}}" virtualenv="{{ xserver_venv_dir }}" state=present
   sudo_user: "{{ xserver_user }}"
-  notify: restart xserver
+  notify: xserver | restart xserver
 
-- name: install sandbox requirements
+- name: xserver | install sandbox requirements
   pip: requirements="{{xserver_requirements_file}}" virtualenv="{{xserver_venv_sandbox_dir}}" state=present
   sudo_user: "{{ xserver_user }}"
-  notify: restart xserver
+  notify: xserver | restart xserver
 
-- name: create xserver application config
+- name: xserver | create xserver application config
   template: src=xserver.env.json.j2 dest={{ xserver_app_dir }}/env.json
   sudo_user: "{{ xserver_user }}"
-  notify: restart xserver
+  notify: xserver | restart xserver
 
-- name: install read-only ssh key for the content repo that is required for grading
+- name: xserver | install read-only ssh key for the content repo that is required for grading
   copy: >
     src={{ XSERVER_LOCAL_GIT_IDENTITY }} dest={{ xserver_git_identity }}
     owner={{ xserver_user }} group={{ xserver_user }} mode=0600
-  notify: restart xserver
+  notify: xserver | restart xserver
 
-- name: upload ssh script
+- name: xserver | upload ssh script
   template: >
     src=git_ssh.sh.j2 dest=/tmp/git_ssh.sh
     owner={{ xserver_user }} mode=750
-  notify: restart xserver
+  notify: xserver | restart xserver
 
-- name: checkout grader code
+- name: xserver | checkout grader code
   git: dest={{ XSERVER_GRADER_DIR }} repo={{ XSERVER_GRADER_SOURCE }} version={{ xserver_grader_version }}
   environment:
     GIT_SSH: /tmp/git_ssh.sh
-  notify: restart xserver
+  notify: xserver | restart xserver
   sudo_user: "{{ xserver_user }}"
 
-- name: remove read-only ssh key for the content repo
+- name: xserver | remove read-only ssh key for the content repo
   file: path={{ xserver_git_identity }} state=absent
-  notify: restart xserver
+  notify: xserver | restart xserver
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
   # the services if any of the configurations
   # have changed.
   #
-- name: update supervisor configuration
+- name: xserver | update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   when: start_services
   changed_when: supervisor_update.stdout != ""
 
-- name: ensure xserver is started
+- name: xserver | ensure xserver is started
   supervisorctl_local: >
     name=xserver
     supervisorctl_path={{ supervisor_ctl }}
@@ -65,7 +65,7 @@
     state=started
   when: start_services
 
-- name: create a symlink for venv python
+- name: xserver | create a symlink for venv python
   file: >
     src="{{ xserver_venv_bin }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item }}.xserver
@@ -74,5 +74,5 @@
   - python
   - pip
 
-- name: enforce app-armor rules
+- name: xserver | enforce app-armor rules
   command: aa-enforce {{ xserver_venv_sandbox_dir }}

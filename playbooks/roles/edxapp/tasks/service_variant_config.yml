@@ -5,8 +5,8 @@
   sudo_user: "{{ edxapp_user }}"
   with_items: service_variants_enabled
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
 - name: "create {{ item }} auth file"
   template: >
@@ -14,8 +14,8 @@
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   with_items: service_variants_enabled
 
 # write the supervisor scripts for the service variants
@@ -28,7 +28,7 @@
   when: celery_worker is not defined and not devstack
   sudo_user: "{{ supervisor_user }}"
 
-- name: writing edxapp supervisor script
+- name: edxapp | writing edxapp supervisor script
   template: >
     src=edxapp.conf.j2 dest={{ supervisor_cfg_dir }}/edxapp.conf
     owner={{ supervisor_user }}
@@ -37,7 +37,7 @@
 
 # write the supervisor script for celery workers
 
-- name: writing celery worker supervisor script
+- name: edxapp | writing celery worker supervisor script
   template: >
     src=workers.conf.j2 dest={{ supervisor_cfg_dir }}/workers.conf
     owner={{ supervisor_user }}
@@ -47,7 +47,7 @@
 
 # Gather assets using rake if possible
 
-- name: gather {{ item }} static assets with rake
+- name: edxapp | gather {{ item }} static assets with rake
   shell: >
     SERVICE_VARIANT={{ item }} rake {{ item }}:gather_assets:aws
     executable=/bin/bash
@@ -56,23 +56,23 @@
   when: celery_worker is not defined and not devstack and item != "lms-preview"
   with_items: service_variants_enabled
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   environment: "{{ edxapp_environment }}"
 
 
-- name: syncdb and migrate
+- name: edxapp | syncdb and migrate
   shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ edxapp_user }}"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
 
-- name: db migrate
+- name: edxapp | db migrate
   shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
   when: migrate_only is defined and migrate_only|lower == "yes"
   notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
+  - "edxapp | restart edxapp"
+  - "edxapp | restart edxapp_workers"
   sudo_user: "{{ edxapp_user }}"
