@@ -13,7 +13,7 @@
     createhome=no
     shell=/bin/false
   notify:
-    - xqueue | restart xqueue
+    - restart xqueue
 
 - name: create xqueue app and venv dir
   file: >
@@ -22,7 +22,7 @@
     owner="{{ xqueue_user }}"
     group="{{ common_web_group }}"
   notify:
-    - xqueue | restart xqueue
+    - restart xqueue
   with_items:
     - "{{ xqueue_app_dir }}"
     - "{{ xqueue_venvs_dir }}"
@@ -30,7 +30,7 @@
 - name: install a bunch of system packages on which xqueue relies
   apt: pkg={{','.join(xqueue_debian_pkgs)}} state=present
   notify:
-  - xqueue | restart xqueue
+  - restart xqueue
 
 - name: create xqueue db
   mysql_db: >
@@ -41,7 +41,7 @@
     state=present
     encoding=utf8
   notify:
-  - xqueue | restart xqueue
+  - restart xqueue
   when: xqueue_create_db is defined and xqueue_create_db|lower == "yes"
 
 - include: deploy.yml tags=deploy

@@ -7,24 +7,24 @@
 - name: Install logrotate configuration for tracking file
   template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
 - name: create application user
   user: >
     name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
     createhome=no shell=/bin/false
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
 - name: create edxapp user dirs
   file: >
     path="{{ item }}" state=directory
     owner="{{ edxapp_user }}" group="{{ common_web_group }}"
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_app_dir }}"
     - "{{ edxapp_data_dir }}"
@@ -37,8 +37,8 @@
     path="{{ edxapp_log_dir }}" state=directory
     owner="{{ common_log_user }}" group="{{ common_log_user }}"
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
 - name: create web-writable edxapp data dirs
   file: >
@@ -46,8 +46,8 @@
     owner="{{ common_web_user }}" group="{{ edxapp_user }}"
     mode="0775"
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_course_data_dir }}"
     - "{{ edxapp_upload_dir }}"
@@ -55,13 +55,13 @@
 - name: install system packages on which LMS and CMS rely
   apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
 - name: create log directories for service variants
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   file: >
     path={{ edxapp_log_dir }}/{{ item }} state=directory
     owner={{ common_log_user }} group={{ common_log_user }}

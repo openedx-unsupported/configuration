@@ -12,7 +12,7 @@
     - "{{ nginx_app_dir }}"
     - "{{ nginx_sites_available_dir }}"
     - "{{ nginx_sites_enabled_dir }}"
-  notify: nginx | restart nginx
+  notify: restart nginx
 
 - name: create nginx data dirs
   file: >
@@ -23,36 +23,36 @@
   with_items:
     - "{{ nginx_data_dir }}"
     - "{{ nginx_log_dir }}"
-  notify: nginx | restart nginx
+  notify: restart nginx
 
 - name: Install nginx packages
   apt: pkg={{','.join(nginx_debian_pkgs)}} state=present
-  notify: nginx | restart nginx
+  notify: restart nginx
 
 - name: Server configuration file
   template: >
     src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
     owner=root group={{ common_web_user }} mode=0644
-  notify: nginx | reload nginx
+  notify: reload nginx
 
 - name: Creating common nginx configuration
   template: >
     src=edx-release.j2 dest={{ nginx_sites_available_dir }}/edx-release
     owner=root group=root mode=0600
-  notify: nginx | reload nginx
+  notify: reload nginx
 
 - name: Creating link for common nginx configuration
   file: >
     src={{ nginx_sites_available_dir }}/edx-release
     dest={{ nginx_sites_enabled_dir }}/edx-release
     state=link owner=root group=root
-  notify: nginx | reload nginx
+  notify: reload nginx
 
 - name: Copying nginx configs for {{ nginx_sites }}
   template: >
     src={{ item }}.j2 dest={{ nginx_sites_available_dir }}/{{ item }}
     owner=root group={{ common_web_user }} mode=0640
-  notify: nginx | reload nginx
+  notify: reload nginx
   with_items: nginx_sites
 
 - name: Creating nginx config links for {{ nginx_sites }}
@@ -60,7 +60,7 @@
     src={{ nginx_sites_available_dir }}/{{ item  }}
     dest={{ nginx_sites_enabled_dir }}/{{ item }}
     state=link owner=root group=root
-  notify: nginx | reload nginx
+  notify: reload nginx
   with_items: nginx_sites
 
 - name: Write out htpasswd file
@@ -93,7 +93,7 @@
 # removing default link
 - name: Removing default nginx config and restart (enabled)
   file: path={{ nginx_sites_enabled_dir }}/default state=absent
-  notify: nginx | reload nginx
+  notify: reload nginx
 
 # Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
 

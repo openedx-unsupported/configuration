@@ -10,13 +10,13 @@
 #
 #
 # Tasks for role splunk
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
@@ -62,27 +62,27 @@
 - name: create boot script
   shell: >
     {{splunkforwarder_output_dir}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
-      creates=/etc/init.d/splunk 
+      creates=/etc/init.d/splunk
   register: create_boot_script
   when: download_deb.changed
-  notify: splunkforwarder | restart splunkforwarder
+  notify: restart splunkforwarder
 
 # Update credentials
 - name: update admin pasword
   shell: "{{splunkforwarder_output_dir}}/bin/splunk edit user admin -password {{SPLUNKFORWARDER_PASSWORD}} -auth admin:changeme --accept-license --answer-yes --no-prompt"
   when: download_deb.changed
-  notify: splunkforwarder | restart splunkforwarder
+  notify: restart splunkforwarder
 
 - name: add chkconfig to init script
   shell: 'sed -i -e "s/\/bin\/sh/\/bin\/sh\n# chkconfig: 235 98 55/" /etc/init.d/splunk'
   when: download_deb.changed and create_boot_script.changed
-  notify: splunkforwarder | restart splunkforwarder
+  notify: restart splunkforwarder
 
 # Ensure permissions on splunk content
 - name: ensure splunk forder permissions
   file: path={{splunkforwarder_output_dir}} state=directory recurse=yes owner=splunk group=splunk
   when: download_deb.changed
-  notify: splunkforwarder | restart splunkforwarder
+  notify: restart splunkforwarder
 
 # Drop template files.
 - name: drop input configuration
@@ -92,7 +92,7 @@
     owner=splunk
     group=splunk
     mode=644
-  notify: splunkforwarder | restart splunkforwarder
+  notify: restart splunkforwarder
 
 - name: create outputs config file
   template:
@@ -101,4 +101,4 @@
     owner=splunk
     group=splunk
     mode=644
-  notify: splunkforwarder | restart splunkforwarder
+  notify: restart splunkforwarder

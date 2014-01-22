@@ -34,7 +34,7 @@
   user: >
     name={{ devpi_user }}
     shell=/bin/false createhome=no
-  notify: devpi | restart devpi
+  notify: restart devpi
 
 - name: create devpi application directories
   file: >
@@ -45,7 +45,7 @@
   with_items:
   - "{{ devpi_app_dir }}"
   - "{{ devpi_venv_dir }}"
-  notify: devpi | restart devpi
+  notify: restart devpi
 
 - name: create the devpi data directory, needs write access by the service user
   file: >
@@ -56,7 +56,7 @@
   with_items:
   - "{{ devpi_data_dir }}"
   - "{{ devpi_mirror_dir }}"
-  notify: devpi | restart devpi
+  notify: restart devpi
 
 - name: install devpi pip pkgs
   pip: >
@@ -65,20 +65,20 @@
     virtualenv={{ devpi_venv_dir }}
   sudo_user: "{{ devpi_user }}"
   with_items: devpi_pip_pkgs
-  notify: devpi | restart devpi
+  notify: restart devpi
 
 - name: writing supervisor script
   template: >
     src=devpi.conf.j2 dest={{ devpi_supervisor_cfg_dir }}/devpi.conf
     owner={{ devpi_user }} group={{ devpi_user }} mode=0644
-  notify: devpi | restart devpi
+  notify: restart devpi
 
 - name: create a symlink for venv python, pip
   file: >
     src="{{ devpi_venv_bin }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item }}.devpi
     state=link
-  notify: devpi | restart devpi
+  notify: restart devpi
   with_items:
   - python
   - pip
