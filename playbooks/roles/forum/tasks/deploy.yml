@@ -41,7 +41,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
-  when: not devstack
+  when: start_services and not devstack
 
 - name: forum | ensure forum is started
   supervisorctl_local: >
@@ -49,6 +49,9 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: start_services and not devstack
+
+- include: test.yml tags=deploy
+  when: start_services
 
 - set_fact: forum_installed=true

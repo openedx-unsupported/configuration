@@ -58,6 +58,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
+  when: start_services
 
 - name: certs | ensure certs has started
   supervisorctl_local: >
@@ -66,6 +67,7 @@
     config={{ supervisor_cfg }}
     state=started
   sudo_user: "{{ supervisor_service_user }}"
+  when: start_services
 
 - name: certs | create a symlink for venv python
   file: >
@@ -76,3 +78,5 @@
   with_items:
   - python
   - pip
+
+- set_fact: certs_installed=true
