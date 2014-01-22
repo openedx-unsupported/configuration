@@ -21,6 +21,16 @@
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
+if [[ -n $WORKSPACE ]]; then
+    # setup a virtualenv in jenkins
+    if [[ ! -d ".venv" ]]; then
+        virtualenv .venv
+    fi
+    source .venv/bin/activate
+    pip install -r requirements.txt
+fi
+
+
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
