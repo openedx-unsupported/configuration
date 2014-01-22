@@ -156,7 +156,12 @@ security_group: $security_group
 ami: $ami
 region: $region 
 zone: $zone
-instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
+instance_tags: 
+    environment: $environment
+    github_username: $github_username
+    Name: $name_tag
+    source: jenkins
+    owner: $BUILD_USER
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 gh_users:
