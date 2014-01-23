@@ -1,7 +1,7 @@
 #Install shibboleth
 
 ---
-- name: shibboleth | Installs shib and dependencies from apt
+- name: Installs shib and dependencies from apt
   apt: pkg={{item}} install_recommends=no state=present update_cache=yes
   with_items:
     - shibboleth-sp2-schemas
@@ -9,47 +9,47 @@
     - libshibsp-doc
     - libapache2-mod-shib2
     - opensaml2-tools
-  notify: shibboleth | restart shibd
+  notify: restart shibd
   tags:
     - shib
     - install
 
-- name: shibboleth | Creates /etc/shibboleth/metadata directory
+- name: Creates /etc/shibboleth/metadata directory
   file: path=/etc/shibboleth/metadata state=directory mode=2774 group=_shibd owner=_shibd
   tags:
     - shib
     - install
 
-- name: shibboleth | Downloads metadata into metadata directory as backup
+- name: Downloads metadata into metadata directory as backup
   get_url: url=https://idp.stanford.edu/Stanford-metadata.xml dest=/etc/shibboleth/metadata/idp-metadata.xml mode=0640 group=_shibd owner=_shibd
   tags:
     - shib
     - install
 
-- name: shibboleth | writes out key and pem file
+- name: writes out key and pem file
   template: src=sp.{{item}}.j2 dest=/etc/shibboleth/sp.{{item}}  group=_shibd owner=_shibd mode=0600
   with_items:
     - key
     - pem
-  notify: shibboleth | restart shibd
+  notify: restart shibd
   tags:
     - shib
     - install
 
-- name: shibboleth | writes out configuration files
+- name: writes out configuration files
   template: src={{item}}.j2 dest=/etc/shibboleth/{{item}}  group=_shibd owner=_shibd mode=0644
   with_items:
     - attribute-map.xml
     - shibboleth2.xml
-  notify: shibboleth | restart shibd
+  notify: restart shibd
   tags:
     - shib
     - install
 
-- name: shibboleth | enables shib
+- name: enables shib
   command: a2enmod shib2
-  notify: shibboleth | restart shibd
+  notify: restart shibd
   tags:
     - shib
     - install
-    
+

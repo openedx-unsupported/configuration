@@ -121,7 +121,7 @@ options:
     required: False
     default: 1
     aliases: []
-  monitor:
+  monitoring:
     version_added: "1.1"
     description:
       - enable detailed monitoring (CloudWatch) for instance
@@ -185,7 +185,7 @@ options:
     default: 'present'
     aliases: []
   root_ebs_size:
-    version_added: "1.4"
+    version_added: "1.5"
     desription:
       - size of the root volume in gigabytes
       required: false
@@ -193,7 +193,7 @@ options:
       aliases: []
 
 requirements: [ "boto" ]
-author: Seth Vidal, Tim Gerla, Lester Wade, John Jarvis
+author: Seth Vidal, Tim Gerla, Lester Wade
 '''
 
 EXAMPLES = '''
@@ -210,17 +210,6 @@ EXAMPLES = '''
     group: webserver
     count: 3
 
-# Basic provisioning example with setting the root volume size to 50GB
-- local_action:
-    module: ec2
-    keypair: mykey
-    instance_type: c1.medium
-    image: emi-40603AD1
-    wait: yes
-    group: webserver
-    count: 3
-    root_ebs_size: 50
-
 # Advanced example with tagging and CloudWatch
 - local_action:
     module: ec2
@@ -231,7 +220,8 @@ EXAMPLES = '''
     wait: yes
     wait_timeout: 500
     count: 5
-    instance_tags: '{"db":"postgres"}' monitoring=yes'
+    instance_tags: '{"db":"postgres"}'
+    monitoring=yes
 
 # Multiple groups example
 local_action:
@@ -243,7 +233,8 @@ local_action:
     wait: yes
     wait_timeout: 500
     count: 5
-    instance_tags: '{"db":"postgres"}' monitoring=yes'
+    instance_tags: '{"db":"postgres"}'
+    monitoring=yes
 
 # VPC example
 - local_action:
@@ -406,6 +397,7 @@ def create_instances(module, ec2):
     else:
         bdm = None
 
+
     # group_id and group_name are exclusive of each other
     if group_id and group_name:
         module.fail_json(msg = str("Use only one type of parameter (group_name) or (group_id)"))
@@ -416,9 +408,7 @@ def create_instances(module, ec2):
         if group_name:
             grp_details = ec2.get_all_security_groups()
             if type(group_name) == list:
-                # FIXME: this should be a nice list comprehension
-                # also not py 2.4 compliant
-                group_id = list(filter(lambda grp: str(grp.id) if str(tmp) in str(grp) else None, grp_details) for tmp in group_name)
+                group_id = [ str(grp.id) for grp in grp_details if str(grp.name) in group_name ]
             elif type(group_name) == str:
                 for grp in grp_details:
                     if str(group_name) in str(grp):
@@ -501,7 +491,7 @@ def create_instances(module, ec2):
 
         if instance_tags:
             try:
-                ec2.create_tags(instids, module.from_json(instance_tags))
+                ec2.create_tags(instids, instance_tags)
             except boto.exception.EC2ResponseError as e:
                 module.fail_json(msg = "%s: %s" % (e.error_code, e.error_message))
 
@@ -558,6 +548,10 @@ def terminate_instances(module, ec2, instance_ids):
 
     """
 
+    # Whether to wait for termination to complete before returning
+    wait = module.params.get('wait')
+    wait_timeout = int(module.params.get('wait_timeout'))
+
     changed = False
     instance_dict_array = []
 
@@ -576,8 +570,30 @@ def terminate_instances(module, ec2, instance_ids):
                     module.fail_json(msg='Unable to terminate instance {0}, error: {1}'.format(inst.id, e))
                 changed = True
 
-    return (changed, instance_dict_array, terminated_instance_ids)
+    # wait here until the instances are 'terminated'
+    if wait:
+        num_terminated = 0
+        wait_timeout = time.time() + wait_timeout
+        while wait_timeout > time.time() and num_terminated < len(terminated_instance_ids):
+            response = ec2.get_all_instances( \
+                instance_ids=terminated_instance_ids, \
+                filters={'instance-state-name':'terminated'})
+            try:
+                num_terminated = len(response.pop().instances)
+            except Exception, e:
+                # got a bad response of some sort, possibly due to
+                # stale/cached data. Wait a second and then try again
+                time.sleep(1)
+                continue
 
+            if num_terminated < len(terminated_instance_ids):
+                time.sleep(5)
+
+        # waiting took too long
+        if wait_timeout < time.time() and num_terminated < len(terminated_instance_ids):
+            module.fail_json(msg = "wait for instance termination timeout on %s" % time.asctime())
+
+    return (changed, instance_dict_array, terminated_instance_ids)
 
 
 def main():
@@ -593,16 +609,16 @@ def main():
             image = dict(),
             kernel = dict(),
             count = dict(default='1'),
-            monitoring = dict(choices=BOOLEANS, default=False),
+            monitoring = dict(type='bool', default=False),
             ramdisk = dict(),
-            wait = dict(choices=BOOLEANS, default=False),
+            wait = dict(type='bool', default=False),
             wait_timeout = dict(default=300),
             ec2_url = dict(),
-            aws_secret_key = dict(aliases=['ec2_secret_key', 'secret_key'], no_log=True),
-            aws_access_key = dict(aliases=['ec2_access_key', 'access_key']),
+            ec2_secret_key = dict(aliases=['aws_secret_key', 'secret_key'], no_log=True),
+            ec2_access_key = dict(aliases=['aws_access_key', 'access_key']),
             placement_group = dict(),
             user_data = dict(),
-            instance_tags = dict(),
+            instance_tags = dict(type='dict'),
             vpc_subnet_id = dict(),
             private_ip = dict(),
             instance_profile_name = dict(),
@@ -612,33 +628,9 @@ def main():
         )
     )
 
-    ec2_url = module.params.get('ec2_url')
-    aws_secret_key = module.params.get('aws_secret_key')
-    aws_access_key = module.params.get('aws_access_key')
-    region = module.params.get('region')
-
-
-    # allow eucarc environment variables to be used if ansible vars aren't set
-    if not ec2_url and 'EC2_URL' in os.environ:
-        ec2_url = os.environ['EC2_URL']
-
-    if not aws_secret_key:
-        if  'AWS_SECRET_KEY' in os.environ:
-            aws_secret_key = os.environ['AWS_SECRET_KEY']
-        elif 'EC2_SECRET_KEY' in os.environ:
-            aws_secret_key = os.environ['EC2_SECRET_KEY']
-
-    if not aws_access_key:
-        if 'AWS_ACCESS_KEY' in os.environ:
-            aws_access_key = os.environ['AWS_ACCESS_KEY']
-        elif 'EC2_ACCESS_KEY' in os.environ:
-            aws_access_key = os.environ['EC2_ACCESS_KEY']
-
-    if not region:
-        if 'AWS_REGION' in os.environ:
-            region = os.environ['AWS_REGION']
-        elif 'EC2_REGION' in os.environ:
-            region = os.environ['EC2_REGION']
+    # def get_ec2_creds(module):
+    #   return ec2_url, ec2_access_key, ec2_secret_key, region
+    ec2_url, aws_access_key, aws_secret_key, region = get_ec2_creds(module)
 
     # If we have a region specified, connect to its endpoint.
     if region:
@@ -672,8 +664,8 @@ def main():
 
     module.exit_json(changed=changed, instance_ids=new_instance_ids, instances=instance_dict_array)
 
-
-# this is magic, see lib/ansible/module_common.py
-#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+# import module snippets
+from ansible.module_utils.basic import *
+from ansible.module_utils.ec2 import *
 
 main()

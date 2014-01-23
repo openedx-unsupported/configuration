@@ -10,33 +10,33 @@
 #
 #
 # Tasks for role haproxy
-# 
+#
 # Overview:
 # Installs and configures haproxy for load balancing.
 # HAProxy doesn't currently support included configuration
 # so it allows for a configuration template to be overriden
 # with a variable
 
-- name: haproxy | Install haproxy
+- name: Install haproxy
   apt: pkg=haproxy state={{ pkgs.haproxy.state }}
-  notify: haproxy | restart haproxy
+  notify: restart haproxy
 
-- name: haproxy | Server configuration file
+- name: Server configuration file
   template: >
     src={{ haproxy_template_dir }}/haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
     owner=root group=root mode=0644
-  notify: haproxy | reload haproxy
+  notify: reload haproxy
 
-- name: haproxy | Enabled in default
+- name: Enabled in default
   lineinfile: dest=/etc/default/haproxy regexp=^ENABLED=.$ line=ENABLED=1
-  notify: haproxy | restart haproxy
+  notify: restart haproxy
 
-- name: haproxy | install logrotate
+- name: install logrotate
   template: src=haproxy.logrotate.j2 dest=/etc/logrotate.d/haproxy mode=0644
 
-- name: haproxy | install rsyslog conf
+- name: install rsyslog conf
   template: src=haproxy.rsyslog.j2 dest=/etc/rsyslog.d/haproxy.conf mode=0644
-  notify: haproxy | restart rsyslog
+  notify: restart rsyslog
 
-- name: haproxy | make sure haproxy has started
+- name: make sure haproxy has started
   service: name=haproxy state=started
