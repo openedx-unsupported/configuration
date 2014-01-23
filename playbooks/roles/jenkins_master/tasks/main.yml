@@ -1,121 +1,121 @@
 ---
 
-- name: jenkins_master | install jenkins specific system packages
+- name: install jenkins specific system packages
   apt:
     pkg={{','.join(jenkins_debian_pkgs)}}
     state=present update_cache=yes
   tags:
   - jenkins
 
-- name: jenkins_master | install jenkins extra system packages
+- name: install jenkins extra system packages
   apt:
     pkg={{','.join(JENKINS_EXTRA_PKGS)}}
     state=present update_cache=yes
   tags:
   - jenkins
 
-- name: jenkins_master | create jenkins group
+- name: create jenkins group
   group: name={{ jenkins_group }} state=present
 
-- name: jenkins_master | add the jenkins user to the group
+- name: add the jenkins user to the group
   user: name={{ jenkins_user }} append=yes groups={{ jenkins_group }}
 
 # Should be resolved in the next release, but until then we need to do this
 # https://issues.jenkins-ci.org/browse/JENKINS-20407
-- name: jenkins_master | workaround for JENKINS-20407
+- name: workaround for JENKINS-20407
   command: "mkdir -p /var/run/jenkins"
 
-- name: jenkins_master | download Jenkins package
+- name: download Jenkins package
   get_url: url="{{ jenkins_deb_url }}" dest="/tmp/{{ jenkins_deb }}"
 
-- name: jenkins_master | install Jenkins package
+- name: install Jenkins package
   command: dpkg -i --force-depends "/tmp/{{ jenkins_deb }}"
 
-- name: jenkins_master | stop Jenkins
+- name: stop Jenkins
   service: name=jenkins state=stopped
 
 # Move /var/lib/jenkins to Jenkins home (on the EBS)
-- name: jenkins_master | move /var/lib/jenkins
+- name: move /var/lib/jenkins
   command: mv /var/lib/jenkins {{ jenkins_home }}
            creates={{ jenkins_home }}
 
-- name: jenkins_master | set owner for Jenkins home
+- name: set owner for Jenkins home
   file: path={{ jenkins_home }} recurse=yes state=directory
         owner={{ jenkins_user }} group={{ jenkins_group }}
 
 # Symlink /var/lib/jenkins to {{ COMMON_DATA_DIR }}/jenkins
 # since Jenkins will expect its files to be in /var/lib/jenkins
-- name: jenkins_master | symlink /var/lib/jenkins
+- name: symlink /var/lib/jenkins
   file: src={{ jenkins_home }} dest=/var/lib/jenkins state=link
         owner={{ jenkins_user }} group={{ jenkins_group }}
   notify:
-    - jenkins_master | restart Jenkins
+    - restart Jenkins
 
-- name: jenkins_master | make plugins directory
+- name: make plugins directory
   sudo_user: jenkins
   shell: mkdir -p {{ jenkins_home }}/plugins
 
 # We first download the plugins to a temp directory and include
 # the version in the file name.  That way, if we increment
 # the version, the plugin will be updated in Jenkins
-- name: jenkins_master | download Jenkins plugins
+- name: download Jenkins plugins
   get_url: url=http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
            dest=/tmp/{{ item.name }}_{{ item.version }}
-  with_items: "{{ jenkins_plugins }}"
+  with_items: jenkins_plugins
 
-- name: jenkins_master | install Jenkins plugins
+- name: install Jenkins plugins
   command: cp /tmp/{{ item.name }}_{{ item.version }} {{ jenkins_home }}/plugins/{{ item.name }}.hpi
-  with_items: "{{ jenkins_plugins }}"
+  with_items: jenkins_plugins
 
-- name: jenkins_master | set Jenkins plugin permissions
+- name: set Jenkins plugin permissions
   file: path={{ jenkins_home }}/plugins/{{ item.name }}.hpi
         owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: "{{ jenkins_plugins }}"
+  with_items: jenkins_plugins
   notify:
-    - jenkins_master | restart Jenkins
+    - restart Jenkins
 
 # We had to fork some plugins to workaround
 # certain issues.  If these changes get merged
 # upstream, we may be able to use the regular plugin install process.
 # Until then, we compile and install the forks ourselves.
-- name: jenkins_master | checkout custom plugin repo
+- name: checkout custom plugin repo
   git: repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
 
-- name: jenkins_master | compile custom plugins
+- name: compile custom plugins
   command: mvn -Dmaven.test.skip=true install chdir=/tmp/{{ item.repo_name }}
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
 
-- name: jenkins_master | install custom plugins
+- name: install custom plugins
   command: mv /tmp/{{ item.repo_name }}/target/{{ item.package }}
            {{ jenkins_home }}/plugins/{{ item.package }}
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
   notify:
-    - jenkins_master | restart Jenkins
+    - restart Jenkins
 
-- name: jenkins_master | set custom plugin permissions
+- name: set custom plugin permissions
   file: path={{ jenkins_home }}/plugins/{{ item.package }}
         owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: "{{ jenkins_custom_plugins }}"
+  with_items: jenkins_custom_plugins
 
 
 # Plugins that are bundled with Jenkins are "pinned".
 # Jenkins will overwrite updated plugins with its built-in version
 # unless we create a ".pinned" file for the plugin.
 # See https://issues.jenkins-ci.org/browse/JENKINS-13129
-- name: jenkins_master | create plugin pin files
+- name: create plugin pin files
   command: touch {{ jenkins_home }}/plugins/{{ item }}.jpi.pinned
            creates={{ jenkins_home }}/plugins/{{ item }}.jpi.pinned
-  with_items: "{{ jenkins_bundled_plugins }}"
+  with_items: jenkins_bundled_plugins
 
-- name: jenkins_master | setup nginix vhost
+- name: setup nginix vhost
   template:
     src=etc/nginx/sites-available/jenkins.j2
     dest=/etc/nginx/sites-available/jenkins
 
-- name: jenkins_master | enable jenkins vhost
+- name: enable jenkins vhost
   file:
     src=/etc/nginx/sites-available/jenkins
     dest=/etc/nginx/sites-enabled/jenkins
     state=link
-  notify: jenkins_master | start nginx
+  notify: start nginx

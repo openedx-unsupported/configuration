@@ -21,6 +21,16 @@
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
+if [[ -n $WORKSPACE ]]; then
+    # setup a virtualenv in jenkins
+    if [[ ! -d ".venv" ]]; then
+        virtualenv .venv
+    fi
+    source .venv/bin/activate
+    pip install -r requirements.txt
+fi
+
+
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
@@ -146,7 +156,12 @@ security_group: $security_group
 ami: $ami
 region: $region 
 zone: $zone
-instance_tags: '{"environment": "$environment", "github_username": "$github_username", "Name": "$name_tag", "source": "jenkins", "owner": "$BUILD_USER"}'
+instance_tags: 
+    environment: $environment
+    github_username: $github_username
+    Name: $name_tag
+    source: jenkins
+    owner: $BUILD_USER
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 gh_users:
@@ -170,15 +185,10 @@ EOF
 fi
 
 declare -A deploy
-
-deploy[edxapp]=$edxapp
-deploy[forum]=$forum
-deploy[xqueue]=$xqueue
-deploy[xserver]=$xserver
-deploy[ora]=$ora
-deploy[discern]=$discern
-deploy[certs]=$certs
-
+roles="edxapp forum xqueue xserver ora discern certs"
+for role in $roles; do
+    deploy[$role]=${!role}
+done
 
 # If reconfigure was selected or if starting from an ubuntu 12.04 AMI
 # run non-deploy tasks for all roles
@@ -188,7 +198,7 @@ if [[ $reconfigure == "true" || $server_type == "ubuntu_12.04" ]]; then
 fi
 
 # Run deploy tasks for the roles selected
-for i in "${!deploy[@]}"; do
+for i in $roles; do
     if [[ ${deploy[$i]} == "true" ]]; then
         cat $extra_vars
         ansible-playbook ${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
