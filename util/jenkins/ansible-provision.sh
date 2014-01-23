@@ -198,7 +198,7 @@ if [[ $reconfigure == "true" || $server_type == "ubuntu_12.04" ]]; then
 fi
 
 # Run deploy tasks for the roles selected
-for i in "${!deploy[@]}"; do
+for i in $roles; do
     if [[ ${deploy[$i]} == "true" ]]; then
         cat $extra_vars
         ansible-playbook ${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
