@@ -80,7 +80,6 @@
   template: dest=/etc/dd-agent/conf.d/nginx.yaml src=nginx.yaml.j2 owner=root group=root mode=0644
   notify:
     - datadog | restart the datadog service
-  when: nginx_sites is defined
   tags:
     - datadog
 
@@ -99,7 +98,7 @@
     dest="/etc/dd-agent/datadog.conf" 
     "line=hostname:{{ansible_hostname}}.{{environment_tag}}"
     state=present 
-    "regexp=^\#?\s*hostname:.+$"
+    "regexp=^\s*#?\s*hostname\s*:.+$"
   notify:
     - datadog | restart the datadog service
   tags:
@@ -110,20 +109,18 @@
     dest="/etc/dd-agent/datadog.conf" 
     "line=dogstatsd_interval:10"
     state=present 
-    "regexp=^\#?\s*dogstatsd_interval:.+$"
+    "regexp=^\s*#?\s*dogstatsd_interval\s*:.+$"
   notify:
     - datadog | restart the datadog service
   tags:
     - datadog
 
 - name: datadog | update dogstreams
-  lineinfile:
+  lineinfile: 
     dest="/etc/dd-agent/datadog.conf" 
-    "line=dogstreams:{{nginx_log_dir}}/access.log:nginx_log_http_response_counter:count"
+    line='dogstreams:{{nginx_log_dir}}/access.log:nginx_log_http_response_counter:count'
     state=present 
-    insertafter=EOF 
-    "regexp=^\#?\s*dogstreams:.+$"
-  when: nginx_sites is defined
+    regexp='^\s*#?\s*dogstreams\s*:.+$'
   notify:
     - datadog | restart the datadog service
   tags:
@@ -132,7 +129,7 @@
 - name: datadog | update api-key
   lineinfile: 
     dest="/etc/dd-agent/datadog.conf" 
-    "regexp=^api_key:.*"
+    "regexp=^api_key\s*:.*"
     "line=api_key:{{ common_dd_api_key }}"
   notify:
     - datadog | restart the datadog service
