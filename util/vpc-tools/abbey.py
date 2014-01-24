@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 import time
 import json
 import yaml
+import os
 try:
     import boto.ec2
     import boto.sqs
@@ -61,7 +62,7 @@ class MongoConnection:
         }
         try:
             self.mongo_ami.insert(query)
-        except DuplicateKeyError as e:
+        except DuplicateKeyError:
             if not args.noop:
                 print "Entry already exists for {}".format(ami)
                 raise
@@ -71,11 +72,11 @@ class MongoConnection:
         Adds the built AMI to the deployment
         collection
         """
-        query = { '_id': args.jenkins_build }
+        query = {'_id': args.jenkins_build}
         deployment = self.mongo_deployment.find_one(query)
         try:
             deployment['plays'][args.play]['amis'][args.environment] = ami
-        except KeyError as e:
+        except KeyError:
             msg = "Unexpected document structure, couldn't write " +\
                   "to path deployment['plays']['{}']['amis']['{}']"
             print msg.format(args.play, args.environment)
@@ -94,6 +95,7 @@ class MongoConnection:
                 raise
 
         self.mongo_deployment.save(deployment)
+
 
 class Unbuffered:
     """
@@ -121,8 +123,8 @@ def parse_args():
     parser.add_argument('--secure-vars', required=False,
                         metavar="SECURE_VAR_FILE",
                         help="path to secure-vars from the root of "
-                        "configuration-secure, defaults to ansible/"
-                        "vars/DEPLOYMENT/ENVIRONMENT-DEPLOYMENT.yml")
+                        "the secure repo (defaults to ansible/"
+                        "vars/DEPLOYMENT/ENVIRONMENT-DEPLOYMENT.yml)")
     parser.add_argument('--stack-name',
                         help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
@@ -149,6 +151,9 @@ def parse_args():
     parser.add_argument('--configuration-secure-version', required=False,
                         help="configuration-secure repo branch(no hashes)",
                         default="master")
+    parser.add_argument('--configuration-secure-repo', required=False,
+                        default="git@github.com:edx-ops/prod-secure",
+                        help="repo to use for the secure files")
     parser.add_argument('-j', '--jenkins-build', required=False,
                         help="jenkins build number to update")
     parser.add_argument('-b', '--base-ami', required=False,
@@ -261,8 +266,12 @@ environment="{environment}"
 deployment="{deployment}"
 play="{play}"
 config_secure={config_secure}
-secure_vars_file="$base_dir/configuration-secure/{secure_vars}"
-common_vars_file="$base_dir/configuration-secure/ansible/vars/common/common.yml"
+git_repo_name="configuration"
+git_repo="https://github.com/edx/$git_repo_name"
+git_repo_secure="{configuration_secure_repo}"
+git_repo_secure_name="{configuration_secure_repo_basename}"
+secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
+common_vars_file="$base_dir/$git_repo_secure_name/ansible/vars/common/common.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -270,10 +279,6 @@ $(curl http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
 instance_type=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null)
 playbook_dir="$base_dir/configuration/playbooks/edx-east"
-git_repo_name="configuration"
-git_repo_secure_name="configuration-secure"
-git_repo="https://github.com/edx/$git_repo_name"
-git_repo_secure="git@github.com:edx/$git_repo_secure_name"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
@@ -349,6 +354,9 @@ rm -rf $base_dir
     """.format(
                 configuration_version=args.configuration_version,
                 configuration_secure_version=args.configuration_secure_version,
+                configuration_secure_repo=args.configuration_secure_repo,
+                configuration_secure_repo_basename=os.path.basename(
+                    args.configuration_secure_repo),
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play,
@@ -433,7 +441,7 @@ def poll_sqs_ansible():
                             to_disp['msg']['TS'] % 60,
                             to_disp['msg']['PREFIX'],
                             to_disp['msg']['START']),
-    
+
                     elif 'TASK' in to_disp['msg']:
                         print "\n{:0>2.0f}:{:0>5.2f} {} : {}".format(
                             to_disp['msg']['TS'] / 60,
@@ -472,7 +480,7 @@ def poll_sqs_ansible():
                             to_disp['msg']['TS'] / 60,
                             to_disp['msg']['TS'] % 60,
                             to_disp['msg']['PREFIX'])
-    
+
                         # Since 3 ansible plays get run.
                         # We see the COMPLETE message 3 times
                         # wait till the last one to end listening
