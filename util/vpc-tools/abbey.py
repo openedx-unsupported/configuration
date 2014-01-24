@@ -539,8 +539,9 @@ def launch_and_configure(ec2_args):
     res = ec2.run_instances(**ec2_args)
     inst = res.instances[0]
     instance_id = inst.id
-
-    print "{:<40}".format("Waiting for running status:"),
+    
+    print "{:<40}".format(
+        "Waiting for instance {} to reach running status:".format(instance_id)),
     status_start = time.time()
     for _ in xrange(EC2_RUN_TIMEOUT):
         res = ec2.get_all_instances(instance_ids=[instance_id])
