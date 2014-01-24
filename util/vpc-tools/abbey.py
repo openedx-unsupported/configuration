@@ -266,8 +266,12 @@ environment="{environment}"
 deployment="{deployment}"
 play="{play}"
 config_secure={config_secure}
-secure_vars_file="$base_dir/configuration-secure/{secure_vars}"
-common_vars_file="$base_dir/configuration-secure/ansible/vars/common/common.yml"
+git_repo_name="configuration"
+git_repo="https://github.com/edx/$git_repo_name"
+git_repo_secure="{configuration_secure_repo}"
+git_repo_secure_name="{configuration_secure_repo_basename}"
+secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
+common_vars_file="$base_dir/$git_repo_secure_name/ansible/vars/common/common.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -275,10 +279,6 @@ $(curl http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
 instance_type=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null)
 playbook_dir="$base_dir/configuration/playbooks/edx-east"
-git_repo_name="configuration"
-git_repo="https://github.com/edx/$git_repo_name"
-git_repo_secure="{configuration_secure_repo}"
-git_repo_secure_name="{configuration_secure_repo_basename}"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
