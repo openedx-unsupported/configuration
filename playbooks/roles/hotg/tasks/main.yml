@@ -1,0 +1,53 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role hotg
+# 
+# Overview:
+#
+# Deploys an edX forked version of Netflix's Asgard
+# under the name Hammer of the gods.
+#
+# Dependencies:
+# 
+# Example play:
+#
+# - name: Configure instance(s)
+#   hosts: hotg
+#   sudo: True
+#   vars_files:
+#     - "{{ secure_dir }}/vars/common/common.yml"
+#     - "{{ secure_dir }}/vars/users.yml"
+#     - "{{ secure_dir }}/vars/env/hotg.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#     - gh_users
+#     - oraclejdk
+#     - splunkforwarder
+#     - hotg
+#
+
+- name: create asgard config dir
+  file: >
+    path="/edx/app/hotg/asgard"
+    state=directory
+    owner="{{ hotg_user }}"
+    group="{{ common_web_group }}"
+
+- name: create hotg application config
+  template: src=edx/hotg/asgard/Config.groovy.j2 dest=/edx/app/hotg/asgard/Config.groovy mode=0644
+  sudo_user: "{{ hotg_user }}"
+
+- name: customize tomcat7 defaults
+  template: src=etc/default/tomcat7.j2 dest=/etc/default/tomcat7 mode=0644
+  
+- include: deploy.yml tags=deploy
