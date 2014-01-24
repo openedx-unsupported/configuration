@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 import time
 import json
 import yaml
+import os
 try:
     import boto.ec2
     import boto.sqs
@@ -277,6 +278,7 @@ playbook_dir="$base_dir/configuration/playbooks/edx-east"
 git_repo_name="configuration"
 git_repo="https://github.com/edx/$git_repo_name"
 git_repo_secure="{configuration_secure_repo}"
+git_repo_secure_name="{configuration_secure_repo_basename}"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
@@ -353,6 +355,8 @@ rm -rf $base_dir
                 configuration_version=args.configuration_version,
                 configuration_secure_version=args.configuration_secure_version,
                 configuration_secure_repo=args.configuration_secure_repo,
+                configuration_secure_repo_basename=os.path.basename(
+                    args.configuration_secure_repo),
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play,
