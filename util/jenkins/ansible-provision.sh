@@ -92,7 +92,6 @@ cd playbooks/edx-east
 
 cat << EOF > $extra_vars
 ---
-start_services: $start_services
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 NGINX_ENABLE_SSL: True
 NGINX_SSL_CERTIFICATE: '/var/lib/jenkins/star.sandbox.edx.org.crt'
