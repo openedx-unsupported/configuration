@@ -35,11 +35,6 @@ server {
 
   rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
 
-  # http://www.red-team-design.com/firefox-doesnt-allow-cross-domain-fonts-by-default
-  location ~* \.(eot|otf|ttf|woff)$ {
-    add_header Access-Control-Allow-Origin *;
-  }
-
   location @proxy_to_lms_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
@@ -75,6 +70,14 @@ server {
     location ~ ^/static/(?:.*)(?:\.xml|\.json|README.TXT) {
         return 403;
     }
+
+    # http://www.red-team-design.com/firefox-doesnt-allow-cross-domain-fonts-by-default
+    location ~ "/static/(?P<collected>.*\.[0-9a-f]{12}\.(eot|otf|ttf|woff))" {
+        expires max;
+        add_header Access-Control-Allow-Origin *;
+        try_files /staticfiles/$collected /course_static/$collected =404;
+    }
+
     # Set django-pipelined files to maximum cache time
     location ~ "/static/(?P<collected>.*\.[0-9a-f]{12}\..*)" {
         expires max;
