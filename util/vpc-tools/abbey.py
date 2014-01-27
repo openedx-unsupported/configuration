@@ -23,7 +23,7 @@ AMI_TIMEOUT = 600  # time to wait for AMIs to complete
 EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
-NUM_PLAYBOOKS = 3
+NUM_PLAYBOOKS = 4
 
 
 class MongoConnection:
@@ -348,6 +348,7 @@ cd $playbook_dir
 ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars -e@$common_vars_file
 ansible-playbook -vvvv -c local -i "localhost," datadog.yml -e@$extra_vars -e@$common_vars_file
 ansible-playbook -vvvv -c local -i "localhost," splunkforwarder.yml -e@$extra_vars -e@$common_vars_file
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars -e@$common_vars_file
 
 rm -rf $base_dir
 
@@ -547,7 +548,7 @@ def launch_and_configure(ec2_args):
     res = ec2.run_instances(**ec2_args)
     inst = res.instances[0]
     instance_id = inst.id
-    
+
     print "{:<40}".format(
         "Waiting for instance {} to reach running status:".format(instance_id)),
     status_start = time.time()
