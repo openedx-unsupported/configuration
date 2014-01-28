@@ -23,7 +23,7 @@ AMI_TIMEOUT = 600  # time to wait for AMIs to complete
 EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
-NUM_PLAYBOOKS = 4
+NUM_PLAYBOOKS = 2
 
 
 class MongoConnection:
@@ -346,8 +346,6 @@ sudo pip install -r requirements.txt
 cd $playbook_dir
 
 ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars -e@$common_vars_file
-ansible-playbook -vvvv -c local -i "localhost," datadog.yml -e@$extra_vars -e@$common_vars_file
-ansible-playbook -vvvv -c local -i "localhost," splunkforwarder.yml -e@$extra_vars -e@$common_vars_file
 ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars -e@$common_vars_file
 
 rm -rf $base_dir
