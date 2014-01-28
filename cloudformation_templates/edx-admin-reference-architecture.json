@@ -88,6 +88,16 @@
         "cg1.4xlarge"
       ],
       "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "JenkinsServerPort":{
+      "Description":"The TCP port for the Jenkins server",
+      "Type":"Number",
+      "Default":"8080"
+    },
+    "AsgardServerPort":{
+      "Description":"The TCP port for the Asgard server",
+      "Type":"Number",
+      "Default":"8090"
     }
   },
   "Mappings":{
@@ -684,14 +694,14 @@
           },
           {
             "IpProtocol":"tcp",
-            "FromPort":"80",
-            "ToPort":"80",
+            "FromPort":{ "Ref": "JenkinsServerPort" },
+            "ToPort":{ "Ref": "JenkinsServerPort" },
             "CidrIp":"0.0.0.0/0"
           },
           {
             "IpProtocol":"tcp",
-            "FromPort":"443",
-            "ToPort":"443",
+            "FromPort":{ "Ref": "AsgardServerPort" },
+            "ToPort":{ "Ref": "AsgardServerPort" },
             "CidrIp":"0.0.0.0/0"
           }
         ]
@@ -709,7 +719,25 @@
                     "Action": [ "sts:AssumeRole" ]
                 } ]
             },
-            "Path": "/"
+            "Path": "/",
+            "Policies": [ {
+              "PolicyName": "AdminBasePolicy",
+              "PolicyDocument": {
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Action":[
+                      "s3:Get*",
+                      "s3:List*",
+                      "ses:SendEmail",
+                      "ses:SendRawEmail",
+                      "ses:GetSendQuota"
+                    ],
+                    "Resource":"*"
+                  }
+                ]
+              }
+            } ]
         }
     },
     "AdminInstanceProfile": {
@@ -770,7 +798,39 @@
             },
             "PropagateAtLaunch":true
           }
-        ]
+        ],
+        "UserData":{
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash -x\n",
+                "exec >> /home/ubuntu/cflog.log\n",
+                "exec 2>> /home/ubuntu/cflog.log\n",
+                "function error_exit\n",
+                "{\n",
+                "  cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref":"AdminServerWaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "apt-get -y update\n",
+                "apt-get -y install python-setuptools\n",
+                "echo \"Python Tools installed\" - `date`\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "echo \"Cloudformation Boostrap installed \" - `date`\n",
+                "# If all went well, signal success\n",
+                "cfn-signal -e $? -r 'Edx Server configuration' '",
+                {
+                  "Ref":"AdminServerWaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        }
       }
     },
     "AdminSecurityGroup":{
@@ -791,37 +851,30 @@
           },
           {
             "IpProtocol":"tcp",
-            "FromPort":"80",
-            "ToPort":"80",
+            "FromPort":{ "Ref": "JenkinsServerPort" },
+            "ToPort":{ "Ref": "JenkinsServerPort" },
             "CidrIp":"0.0.0.0/0"
           },
           {
             "IpProtocol":"tcp",
-            "FromPort":"443",
-            "ToPort":"443",
-            "CidrIp":"0.0.0.0/0"
-          }
-        ],
-        "SecurityGroupEgress":[
-          {
-            "IpProtocol":"tcp",
-            "FromPort":"22",
-            "ToPort":"22",
-            "CidrIp":"10.0.0.0/16"
-          },
-          {
-            "IpProtocol":"tcp",
-            "FromPort":"80",
-            "ToPort":"80",
-            "CidrIp":"0.0.0.0/0"
-          },
-          {
-            "IpProtocol":"tcp",
-            "FromPort":"443",
-            "ToPort":"443",
+            "FromPort":{ "Ref": "AsgardServerPort" },
+            "ToPort":{ "Ref": "AsgardServerPort" },
             "CidrIp":"0.0.0.0/0"
           }
         ]
+      }
+    },
+    "AdminServerWaitHandle":{
+      "Type":"AWS::CloudFormation::WaitConditionHandle"
+    },
+    "AdminServerWaitCondition":{
+      "Type":"AWS::CloudFormation::WaitCondition",
+      "DependsOn":"AdminHost",
+      "Properties":{
+        "Handle":{
+          "Ref":"AdminServerWaitHandle"
+        },
+        "Timeout":"1200"
       }
     }
   }
