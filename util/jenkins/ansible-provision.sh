@@ -93,7 +93,7 @@ cd playbooks/edx-east
 cat << EOF > $extra_vars
 ---
 enable_datadog: False
-enable_splunk: False
+enable_splunkforwarder: False
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 NGINX_ENABLE_SSL: True
 NGINX_SSL_CERTIFICATE: '/var/lib/jenkins/star.sandbox.edx.org.crt'
