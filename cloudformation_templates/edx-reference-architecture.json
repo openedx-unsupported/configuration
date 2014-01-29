@@ -227,7 +227,7 @@
     "ForumServerPort":{
       "Description":"The TCP port for the Forum Server",
       "Type":"Number",
-      "Default":"4567"
+      "Default":"18080"
     },
     "CacheNodePort":{
       "Description":"The TCP port for the nodes in the Elasticache cluster",
@@ -5174,13 +5174,6 @@
         ],
         "Listeners":[
           {
-            "LoadBalancerPort":"80",
-            "InstancePort":{
-              "Ref":"ForumServerPort"
-            },
-            "Protocol":"HTTP"
-          },
-          {
             "LoadBalancerPort":"443",
             "InstancePort":{
               "Ref":"ForumServerPort"
@@ -5193,7 +5186,12 @@
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:80",
+          "Target":{"Fn::Join":["",
+			       ["TCP:",
+				{"Ref":"ForumServerPort"}
+			       ]
+			      ]
+		   },
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
@@ -5212,17 +5210,11 @@
     "ForumELBSecurityGroup":{
       "Type":"AWS::EC2::SecurityGroup",
       "Properties":{
-        "GroupDescription":"Enable HTTP access on port 80",
+        "GroupDescription":"Enable HTTPS access",
         "VpcId":{
           "Ref":"EdxVPC"
         },
         "SecurityGroupIngress":[
-          {
-            "IpProtocol":"tcp",
-            "FromPort":"80",
-            "ToPort":"80",
-            "CidrIp":"0.0.0.0/0"
-          },
           {
             "IpProtocol":"tcp",
             "FromPort":"443",
@@ -5260,7 +5252,9 @@
             "IpProtocol":"tcp",
             "FromPort": { "Ref": "ForumServerPort" },
             "ToPort": { "Ref": "ForumServerPort" },
-            "CidrIp":"0.0.0.0/0"
+            "SourceSecurityGroupId" : {
+		"Ref" : "ForumELBSecurityGroup"
+	    }
           }
         ]
       }
