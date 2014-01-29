@@ -271,7 +271,6 @@ git_repo="https://github.com/edx/$git_repo_name"
 git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
-common_vars_file="$base_dir/$git_repo_secure_name/ansible/vars/common/common.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -345,8 +344,8 @@ sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars -e@$common_vars_file
-ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars -e@$common_vars_file
+ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars
 
 rm -rf $base_dir
 
