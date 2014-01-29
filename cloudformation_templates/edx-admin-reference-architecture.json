@@ -98,6 +98,11 @@
       "Description":"The TCP port for the Asgard server",
       "Type":"Number",
       "Default":"8090"
+    },
+    "MongoServicePort":{
+      "Description":"The TCP port for the deployment mongo server",
+      "Type":"Number",
+      "Default":"10001"
     }
   },
   "Mappings":{
@@ -567,6 +572,14 @@
         "SecurityGroupIngress":[
           {
             "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          },
+          {
+            "IpProtocol":"tcp",
             "FromPort":"80",
             "ToPort":"80",
             "CidrIp":"0.0.0.0/0"
@@ -579,16 +592,22 @@
           },
           {
             "IpProtocol":"tcp",
-            "FromPort":"22",
-            "ToPort":"22",
-            "CidrIp":{
-              "Ref":"SSHLocation"
-            }
+            "FromPort":{ "Ref": "MongoServicePort" },
+            "ToPort":{ "Ref": "MongoServicePort" },
+            "CidrIp":"0.0.0.0/0"
           }
         ],
         "SecurityGroupEgress":[
           {
             "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          },
+          {
+            "IpProtocol":"tcp",
             "FromPort":"80",
             "ToPort":"80",
             "CidrIp":"0.0.0.0/0"
@@ -601,11 +620,9 @@
           },
           {
             "IpProtocol":"tcp",
-            "FromPort":"22",
-            "ToPort":"22",
-            "CidrIp":{
-              "Ref":"SSHLocation"
-            }
+            "FromPort":{ "Ref": "MongoServicePort" },
+            "ToPort":{ "Ref": "MongoServicePort" },
+            "CidrIp":"0.0.0.0/0"
           }
         ]
       }
@@ -726,13 +743,7 @@
                 "Statement":[
                   {
                     "Effect":"Allow",
-                    "Action":[
-                      "s3:Get*",
-                      "s3:List*",
-                      "ses:SendEmail",
-                      "ses:SendRawEmail",
-                      "ses:GetSendQuota"
-                    ],
+                    "Action": "*",
                     "Resource":"*"
                   }
                 ]
