@@ -172,8 +172,6 @@ def parse_args():
     parser.add_argument('-t', '--instance-type', required=False,
                         default="m1.large",
                         help="instance type to launch")
-    parser.add_argument("--security-group", required=False,
-                        default="abbey", help="Security group to use")
     parser.add_argument("--role-name", required=False,
                         default="abbey",
                         help="IAM role name to use (must exist)")
@@ -198,27 +196,22 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_instance_sec_group(vpc_id, security_group):
+def get_instance_sec_group(vpc_id):
 
     security_group_id = None
 
     grp_details = ec2.get_all_security_groups(
         filters={
-            'vpc_id':vpc_id
+            'vpc_id':vpc_id,
+            'tag:play': args.play
         }
     )
 
-    for grp in grp_details:
-        if grp.name == security_group:
-            security_group_id = grp.id
-            break
+    if len(grp_details) < 1:
+        sys.stderr.write("ERROR: Expected atleast one security group, got {}\n".format(
+            len(grp_details)))
 
-    if not security_group_id:
-        print "Unable to lookup id for security group {}".format(
-            security_group)
-        sys.exit(1)
-
-    return security_group_id
+    return grp_details[0].id
 
 
 def create_instance_args():
@@ -233,16 +226,16 @@ def create_instance_args():
     subnet = vpc.get_all_subnets(
         filters={
             'tag:aws:cloudformation:stack-name': stack_name,
-            'tag:Application': args.application}
+            'tag:play': args.play}
     )
-    if len(subnet) != 1:
-        sys.stderr.write("ERROR: Expected 1 admin subnet, got {}\n".format(
+    if len(subnet) < 1:
+        sys.stderr.write("ERROR: Expected at least one subnet, got {}\n".format(
             len(subnet)))
         sys.exit(1)
     subnet_id = subnet[0].id
     vpc_id = subnet[0].vpc_id
 
-    security_group_id = get_instance_sec_group(vpc_id, args.security_group)
+    security_group_id = get_instance_sec_group(vpc_id)
 
     if args.identity:
         config_secure = 'true'
@@ -271,7 +264,6 @@ git_repo="https://github.com/edx/$git_repo_name"
 git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
-common_vars_file="$base_dir/$git_repo_secure_name/ansible/vars/common/common.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -345,8 +337,8 @@ sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars -e@$common_vars_file
-ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars -e@$common_vars_file
+ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars
 
 rm -rf $base_dir
 
