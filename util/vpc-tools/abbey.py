@@ -209,7 +209,7 @@ def get_instance_sec_group(vpc_id):
 
     if len(grp_details) < 1:
         sys.stderr.write("ERROR: Expected atleast one security group, got {}\n".format(
-            len(gry_details)))
+            len(grp_details)))
 
     return grp_details[0].id
 
