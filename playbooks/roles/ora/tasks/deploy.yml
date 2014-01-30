@@ -1,101 +1,81 @@
-- name: ora | create supervisor scripts - ora, ora_celery
+- name: create supervisor scripts - ora, ora_celery
   template: >
     src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
+    - restart ora
+    - restart ora_celery
   with_items: ['ora', 'ora_celery']
   when: not devstack
-  tags:
-  - deploy
 
 - include: ease.yml
 
-- name: ora | create ora application config
+- name: create ora application config
   template: src=ora.env.json.j2 dest={{ora_app_dir}}/ora.env.json
   sudo_user: "{{ ora_user }}"
-  tags:
-  - deploy
 
-- name: ora | create ora auth file
+- name: create ora auth file
   template: src=ora.auth.json.j2 dest={{ora_app_dir}}/ora.auth.json
   sudo_user: "{{ ora_user }}"
-  tags:
-  - deploy
 
-- name: ora | setup the ora env
+- name: setup the ora env
   notify:
-  - "ora | restart ora"
-  - "ora | restart ora_celery"
+  - "restart ora"
+  - "restart ora_celery"
   template: >
     src=ora_env.j2 dest={{ ora_app_dir }}/ora_env
     owner={{ ora_user }} group={{ common_web_user }}
     mode=0644
-  tags:
-    - deploy
 
 # Do A Checkout
-- name: ora | git checkout ora repo into {{ ora_app_dir }}
+- name: git checkout ora repo into {{ ora_app_dir }}
   git: dest={{ ora_code_dir }} repo={{ ora_source_repo }} version={{ ora_version }}
   sudo_user: "{{ ora_user }}"
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
-  tags:
-  - deploy
+    - restart ora
+    - restart ora_celery
 
 # TODO: Check git.py _run_if_changed() to see if the logic there to skip running certain
 # portions of the deploy needs to be incorporated here.
 
 
 # Install the python pre requirements into {{ ora_venv_dir }}
-- name: ora | install python pre-requirements
+- name: install python pre-requirements
   pip: requirements="{{ ora_pre_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
   sudo_user: "{{ ora_user }}"
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
-  tags:
-  - deploy
+    - restart ora
+    - restart ora_celery
 
 # Install the python post requirements into {{ ora_venv_dir }}
-- name: ora | install python post-requirements
+- name: install python post-requirements
   pip: requirements="{{ ora_post_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
   sudo_user: "{{ ora_user }}"
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
-  tags:
-  - deploy
+    - restart ora
+    - restart ora_celery
 
   #Needed if using redis to prevent memory issues
-- name: ora | change memory commit settings -- needed for redis
+- name: change memory commit settings -- needed for redis
   command: sysctl vm.overcommit_memory=1
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
-  tags:
-  - deploy
+    - restart ora
+    - restart ora_celery
 
-- name: ora | syncdb and migrate
+- name: syncdb and migrate
   shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
   when: migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ ora_user }}"
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
-  tags:
-  - deploy
+    - restart ora
+    - restart ora_celery
 
-- name: ora | create users
+- name: create users
   shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
   sudo_user: "{{ ora_user }}"
   notify:
-    - ora | restart ora
-    - ora | restart ora_celery
-  tags:
-  - deploy
+    - restart ora
+    - restart ora_celery
 
 
   # call supervisorctl update. this reloads
@@ -103,27 +83,35 @@
   # the services if any of the configurations
   # have changed.
   #
-- name: ora | update supervisor configuration
+- name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   when: not devstack
   changed_when: supervisor_update.stdout != ""
-  tags: deploy
 
-- name: ora | ensure ora is started
+- name: ensure ora is started
   supervisorctl_local: >
     name=ora
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
   when: not devstack
-  tags: deploy
 
-- name: ora | ensure ora_celery is started
+- name: ensure ora_celery is started
   supervisorctl_local: >
     name=ora_celery
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
   when: not devstack
-  tags: deploy
+
+- name: create a symlink for venv python
+  file: >
+    src="{{ ora_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.ora
+    state=link
+  with_items:
+  - python
+  - pip
+
+- set_fact: ora_installed=true

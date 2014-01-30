@@ -30,13 +30,13 @@
 #     - devpi
 
 ---
-- name: devpi | create devpi user
+- name: create devpi user
   user: >
     name={{ devpi_user }}
     shell=/bin/false createhome=no
-  notify: devpi | restart devpi
+  notify: restart devpi
 
-- name: devpi | create devpi application directories
+- name: create devpi application directories
   file: >
     path={{ item }}
     state=directory
@@ -45,9 +45,9 @@
   with_items:
   - "{{ devpi_app_dir }}"
   - "{{ devpi_venv_dir }}"
-  notify: devpi | restart devpi
+  notify: restart devpi
 
-- name: devpi | create the devpi data directory, needs write access by the service user
+- name: create the devpi data directory, needs write access by the service user
   file: >
     path={{ item }}
     state=directory
@@ -56,40 +56,40 @@
   with_items:
   - "{{ devpi_data_dir }}"
   - "{{ devpi_mirror_dir }}"
-  notify: devpi | restart devpi
+  notify: restart devpi
 
-- name: devpi | install devpi pip pkgs
+- name: install devpi pip pkgs
   pip: >
     name={{ item }}
     state=present
     virtualenv={{ devpi_venv_dir }}
   sudo_user: "{{ devpi_user }}"
   with_items: devpi_pip_pkgs
-  notify: devpi | restart devpi
+  notify: restart devpi
 
-- name: devpi | writing supervisor script
+- name: writing supervisor script
   template: >
     src=devpi.conf.j2 dest={{ devpi_supervisor_cfg_dir }}/devpi.conf
     owner={{ devpi_user }} group={{ devpi_user }} mode=0644
-  notify: devpi | restart devpi
+  notify: restart devpi
 
-- name: devpi | create a symlink for venv python, pip
+- name: create a symlink for venv python, pip
   file: >
     src="{{ devpi_venv_bin }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item }}.devpi
     state=link
-  notify: devpi | restart devpi
+  notify: restart devpi
   with_items:
   - python
   - pip
 
-- name: devpi | create a symlink for venv supervisor
+- name: create a symlink for venv supervisor
   file: >
     src="{{ devpi_supervisor_venv_bin }}/supervisorctl"
     dest={{ COMMON_BIN_DIR }}/{{ item }}.devpi
     state=link
 
-- name: devpi | create a symlink for supervisor config
+- name: create a symlink for supervisor config
   file: >
     src="{{ devpi_supervisor_app_dir }}/supervisord.conf"
     dest={{ COMMON_CFG_DIR }}/supervisord.conf.devpi
@@ -100,13 +100,12 @@
   # the services if any of the configurations
   # have changed.
   #
-- name: devpi | update devpi supervisor configuration
+- name: update devpi supervisor configuration
   shell:  "{{ devpi_supervisor_ctl }} -c {{ devpi_supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
-  tags: deploy
 
-- name: devpi | ensure devpi is started
+- name: ensure devpi is started
   supervisorctl_local: >
     state=started
     supervisorctl_path={{ devpi_supervisor_ctl }}

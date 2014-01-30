@@ -1,0 +1,55 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_service
+# 
+# Overview:
+#
+# This role performs the repetive tasks that most edX roles
+# require in our default configuration.
+#
+# Example play:
+#
+# Rather than being included in the play, this role
+# is included as a dependency by other roles in the meta/mail.yml
+# file.  The including role should add the following
+# depency definition.
+#
+# dependencies:
+#   - { role: edx_service, edx_service_name: "hotg" }
+#
+
+- name: create application user
+  user: >
+    name="{{ edx_service_name }}"
+    home="{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
+    createhome=no
+    shell=/bin/false
+
+- name: create edx_service app and venv dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ edx_service_name }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
+    - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}/venvs"
+
+- name: install a bunch of system packages on which edx_service relies
+  apt: pkg={{ item }} state=present
+  with_items: "{{ edx_service_name }}_debian_pkgs"
+  when: ansible_distribution in common_debian_variants
+
+- name: install a bunch of system packages on which edx_service relies
+  yum: pkg={{ item }} state=present
+  with_items: "{{ edx_service_name }}_redhat_pkgs"
+  when: ansible_distribution in common_redhat_variants

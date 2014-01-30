@@ -1,28 +1,28 @@
 
 ---
-- name: mongo | install python pymongo for mongo_user ansible module
+- name: install python pymongo for mongo_user ansible module
   pip: >
     name=pymongo state=present
     version=2.6.3 extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
 
-- name: mongo | add the mongodb signing key
+- name: add the mongodb signing key
   apt_key: >
     id=7F0CEB10
     url=http://docs.mongodb.org/10gen-gpg-key.asc
     state=present
 
-- name: mongo | add the mongodb repo to the sources list
+- name: add the mongodb repo to the sources list
   apt_repository: >
     repo='deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen'
     state=present
 
-- name: mongo | install mongo server and recommends
+- name: install mongo server and recommends
   apt: >
     pkg=mongodb-10gen={{ mongo_version }}
     state=present install_recommends=yes
     update_cache=yes
 
-- name: mongo | create mongo dirs
+- name: create mongo dirs
   file: >
     path="{{ item }}" state=directory
     owner="{{ mongo_user  }}"
@@ -32,14 +32,14 @@
     - "{{ mongo_dbpath }}"
     - "{{ mongo_log_dir }}"
 
-- name: mongo | stop mongo service
+- name: stop mongo service
   service: name=mongodb state=stopped
 
-- name: mongo | move mongodb to {{ mongo_data_dir }}
+- name: move mongodb to {{ mongo_data_dir }}
   command: mv /var/lib/mongodb  {{ mongo_data_dir}}/.  creates={{ mongo_data_dir }}/mongodb
 
 
-- name: mongo | copy mongodb key file
+- name: copy mongodb key file
   copy: >
     src={{ secure_dir }}/files/mongo_key
     dest={{ mongo_key_file }}
@@ -48,27 +48,27 @@
     group=mongodb
   when: MONGO_CLUSTERED
 
-- name: mongo | copy configuration template
+- name: copy configuration template
   template: src=mongodb.conf.j2 dest=/etc/mongodb.conf backup=yes
   notify: restart mongo
 
-- name: mongo | start mongo service
+- name: start mongo service
   service: name=mongodb state=started
 
-- name: mongo | wait for mongo server to start
+- name: wait for mongo server to start
   wait_for: port=27017 delay=2
 
-- name: mongo | Create the file to initialize the mongod replica set
+- name: Create the file to initialize the mongod replica set
   template: src=repset_init.j2 dest=/tmp/repset_init.js
   when: MONGO_CLUSTERED
 
-- name: mongo | Initialize the replication set
+- name: Initialize the replication set
   shell: /usr/bin/mongo  /tmp/repset_init.js
   when: MONGO_CLUSTERED
 
 # Ignore errors doesn't work because the module throws an exception
 # it doesn't catch.
-- name: mongo | create a mongodb user
+- name: create a mongodb user
   mongodb_user: >
     database={{ item.database }}
     name={{ item.user }}

@@ -35,56 +35,46 @@
   fail: msg="You must set CERTS_LOCAL_GIT_IDENTITY var for this role!"
   when: not CERTS_LOCAL_GIT_IDENTITY
 
-- name: certs | create application user
+- name: create application user
   user: >
     name="{{ certs_user }}"
     home="{{ certs_app_dir }}"
     createhome=no
     shell=/bin/false
-  notify: certs | restart certs
+  notify: restart certs
 
-- name: certs | create certs app and data dirs
+- name: create certs app and data dirs
   file: >
     path="{{ item }}"
     state=directory
     owner="{{ certs_user }}"
     group="{{ common_web_group }}"
-  notify: certs | restart certs
+  notify: restart certs
   with_items:
     - "{{ certs_app_dir }}"
     - "{{ certs_venvs_dir }}"
 
-- name: certs | create certs gpg dir
+- name: create certs gpg dir
   file: >
     path="{{ certs_gpg_dir }}" state=directory
     owner="{{ common_web_user }}"
     mode=0700
-  notify: certs | restart certs
+  notify: restart certs
 
-- name: certs | copy the private gpg signing key
+- name: copy the private gpg signing key
   copy: >
     src={{ CERTS_LOCAL_PRIVATE_KEY }}
     dest={{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
     owner={{ common_web_user }} mode=0600
-  notify: certs | restart certs
+  notify: restart certs
   register: certs_gpg_key
 
 
-- name: certs | load the gpg key
+- name: load the gpg key
   shell: >
     /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
   sudo_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
-  notify: certs | restart certs
+  notify: restart certs
 
-- include: deploy.yml
-
-- name: certs | create a symlink for venv python
-  file: >
-    src="{{ certs_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.certs
-    state=link
-  notify: certs | restart certs
-  with_items:
-  - python
-  - pip
+- include: deploy.yml tags=deploy

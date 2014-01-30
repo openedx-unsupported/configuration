@@ -12,23 +12,12 @@ IFS=","
             -v        add verbosity to edx_ansible run
             -h        this
 
-    <repo> - must be one of [${!repos_to_cmd[*]}]
+    <repo> - must be one of edx-platform, xqueue, cs_comments_service, xserver, ease, discern, edx-ora, configuration
     <version> - can be a commit or tag
 
 EO
 IFS=$SAVE_IFS
 }
-
-declare -A repos_to_cmd
-edx_ansible_cmd="{{ edx_ansible_venv_bin}}/ansible-playbook -i localhost, -c local --tags deploy"
-repos_to_cmd["edx-platform"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2'"
-repos_to_cmd["xqueue"]="$edx_ansible_cmd xqueue.yml -e 'xqueue_version=$2'"
-repos_to_cmd["forums"]="$edx_ansible_cmd forums.yml -e 'forum_version=$2'"
-repos_to_cmd["xserver"]="$edx_ansible_cmd forums.yml -e 'xserver_version=$2'"
-repos_to_cmd["ease"]="$edx_ansible_cmd discern.yml -e 'discern_ease_version=$2' && $edx_ansible_cmd ora.yml -e 'ora_ease_version=$2'"
-repos_to_cmd["discern"]="$edx_ansible_cmd discern.yml -e 'discern_version=$2'"
-repos_to_cmd["edx-ora"]="$edx_ansible_cmd ora.yml -e 'ora_version=$2'"
-repos_to_cmd["configuration"]="$edx_ansible_cmd edx_ansible.yml -e 'configuration_version=$2'"
 
 PROG=${0##*/}
 while getopts "vh" opt; do
@@ -43,6 +32,23 @@ while getopts "vh" opt; do
         ;;
   esac
 done
+
+
+if [[ -f {{ edx_ansible_var_file }} ]]; then
+    extra_args="-e@{{ edx_ansible_var_file }}"
+fi
+
+declare -A repos_to_cmd
+edx_ansible_cmd="{{ edx_ansible_venv_bin}}/ansible-playbook -i localhost, -c local --tags deploy $extra_args "
+
+repos_to_cmd["edx-platform"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2'"
+repos_to_cmd["xqueue"]="$edx_ansible_cmd xqueue.yml -e 'xqueue_version=$2'"
+repos_to_cmd["cs_comments_service"]="$edx_ansible_cmd forum.yml -e 'forum_version=$2'"
+repos_to_cmd["xserver"]="$edx_ansible_cmd forums.yml -e 'xserver_version=$2'"
+repos_to_cmd["ease"]="$edx_ansible_cmd discern.yml -e 'discern_ease_version=$2' && $edx_ansible_cmd ora.yml -e 'ora_ease_version=$2'"
+repos_to_cmd["discern"]="$edx_ansible_cmd discern.yml -e 'discern_version=$2'"
+repos_to_cmd["edx-ora"]="$edx_ansible_cmd ora.yml -e 'ora_version=$2'"
+repos_to_cmd["configuration"]="$edx_ansible_cmd edx_ansible.yml -e 'configuration_version=$2'"
 
 
 if [[ -z $1 || -z $2 ]]; then

@@ -1,88 +1,70 @@
-- name: "xqueue | writing supervisor scripts - xqueue, xqueue consumer"
+- name: "writing supervisor scripts - xqueue, xqueue consumer"
   template: >
     src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
-  tags:
-  - deploy
 
 
-- name: xqueue | create xqueue application config
+- name: create xqueue application config
   template: src=xqueue.env.json.j2 dest={{ xqueue_app_dir }}/xqueue.env.json mode=0644
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
+    - restart xqueue
 
-- name: xqueue | create xqueue auth file
+- name: create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{ xqueue_app_dir }}/xqueue.auth.json mode=0644
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
+    - restart xqueue
 
 # Do A Checkout
-- name: xqueue | git checkout xqueue repo into xqueue_code_dir
+- name: git checkout xqueue repo into xqueue_code_dir
   git: dest={{ xqueue_code_dir }} repo={{ xqueue_source_repo }} version={{ xqueue_version }}
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
+    - restart xqueue
 
 
 # Install the python pre requirements into {{ xqueue_venv_dir }}
-- name : xqueue | install python pre-requirements
+- name : install python pre-requirements
   pip: requirements="{{ xqueue_pre_requirements_file }}" virtualenv="{{ xqueue_venv_dir }}" state=present
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
+    - restart xqueue
 
 # Install the python post requirements into {{ xqueue_venv_dir }}
-- name : xqueue | install python post-requirements
+- name : install python post-requirements
   pip: requirements="{{ xqueue_post_requirements_file }}" virtualenv="{{ xqueue_venv_dir }}" state=present
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
+    - restart xqueue
 
-- name: xqueue | syncdb and migrate
+- name: syncdb and migrate
   shell: >
     SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings --pythonpath={{ xqueue_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
+    - restart xqueue
 
-- name: xqueue | create users
+- name: create users
   shell: >
     SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath={{ xqueue_code_dir }}
   sudo_user: "{{ xqueue_user }}"
   notify:
-    - xqueue | restart xqueue
-  tags:
-  - deploy
-
+    - restart xqueue
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
   # the services if any of the configurations
   # have changed.
   #
-- name: xqueue | update supervisor configuration
+- name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
-  tags: deploy
 
-- name: xqueue | ensure xqueue, consumer is running
+- name: ensure xqueue, consumer is running
   supervisorctl_local: >
     name={{ item }}
     supervisorctl_path={{ supervisor_ctl }}
@@ -91,4 +73,14 @@
   with_items:
   - xqueue
   - xqueue_consumer
-  tags: deploy
+
+- name: create a symlink for venv python
+  file: >
+    src="{{ xqueue_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.xqueue
+    state=link
+  with_items:
+  - python
+  - pip
+
+- set_fact: xqueue_installed=true

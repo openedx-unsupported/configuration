@@ -1,6 +1,6 @@
 ---
 
-- name: discern | create supervisor scripts - discern, discern_celery
+- name: create supervisor scripts - discern, discern_celery
   template: >
     src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} mode=0644
@@ -8,70 +8,56 @@
   with_items: ['discern', 'discern_celery']
 
 #Upload config files for django (auth and env)
-- name: discern | create discern application config env.json file
+- name: create discern application config env.json file
   template: src=env.json.j2 dest={{ discern_app_dir }}/env.json
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
-- name: discern | create discern auth file auth.json
+- name: create discern auth file auth.json
   template: src=auth.json.j2 dest={{ discern_app_dir }}/auth.json
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
-- name: discern | git checkout discern repo into discern_code_dir
+- name: git checkout discern repo into discern_code_dir
   git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_version }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
-- name: discern | git checkout ease repo into discern_ease_code_dir
+- name: git checkout ease repo into discern_ease_code_dir
   git: dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
 #Numpy has to be a pre-requirement in order for scipy to build
-- name : discern | install python pre-requirements for discern and ease
+- name : install python pre-requirements for discern and ease
   pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
+    - restart discern
   with_items:
     - "{{ discern_pre_requirements_file }}"
     - "{{ discern_ease_pre_requirements_file }}"
-  tags:
-    - deploy
 
-- name : discern | install python requirements for discern and ease
+- name : install python requirements for discern and ease
   pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
+    - restart discern
   with_items:
     - "{{ discern_post_requirements_file }}"
     - "{{ discern_ease_post_requirements_file }}"
-  tags:
-    - deploy
 
-- name: discern | install ease python package
+- name: install ease python package
   shell: >
     {{ discern_venv_dir }}/bin/activate; cd {{ discern_ease_code_dir }}; python setup.py install
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
-- name: discern | download and install nltk
+- name: download and install nltk
   shell: |
       set -e
       curl -o {{ discern_nltk_tmp_file }} {{ discern_nltk_download_url }}
@@ -82,36 +68,30 @@
         chdir={{ discern_data_dir }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
 
 #Run this instead of using the ansible module because the ansible module only support syncdb of these three, and does not
 #support virtualenvs as of this comment
-- name: discern | django syncdb migrate and collectstatic for discern
+- name: django syncdb migrate and collectstatic for discern
   shell: >
     {{ discern_venv_dir }}/bin/python {{discern_code_dir}}/manage.py {{item}} --noinput --settings={{discern_settings}} --pythonpath={{discern_code_dir}}
       chdir={{ discern_code_dir }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
+    - restart discern
   with_items:
     - syncdb
     - migrate
     - collectstatic
-  tags:
-    - deploy
 #Have this separate from the other three because it doesn't take the noinput flag
-- name: discern | django update_index for discern
+- name: django update_index for discern
   shell: >
     {{ discern_venv_dir}}/bin/python {{discern_code_dir}}/manage.py update_index --settings={{discern_settings}} --pythonpath={{discern_code_dir}}
       chdir={{ discern_code_dir }}
   sudo_user: "{{ discern_user }}"
   notify:
-    - discern | restart discern
-  tags:
-    - deploy
+    - restart discern
 
 
   # call supervisorctl update. this reloads
@@ -119,14 +99,13 @@
   # the services if any of the configurations
   # have changed.
   #
-- name: discern | update supervisor configuration
+- name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
-  tags: deploy
 
-- name: discern | ensure discern, discern_celery has started
+- name: ensure discern, discern_celery has started
   supervisorctl_local: >
     name={{ item }}
     supervisorctl_path={{ supervisor_ctl }}
@@ -135,4 +114,14 @@
   with_items:
   - discern
   - discern_celery
-  tags: deploy
+
+- name: create a symlink for venv python
+  file: >
+    src="{{ discern_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.discern
+    state=link
+  with_items:
+  - python
+  - pip
+
+- set_fact: discern_installed=true

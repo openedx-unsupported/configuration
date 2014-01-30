@@ -2,7 +2,20 @@
   hosts: all
   sudo: True
   gather_facts: True
+  vars:
+    enable_datadog: True
+    enable_splunkforwarder: True
   vars_files:
     - ["{{ secure_vars }}", "dummy.yml"]
   roles:
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      nginx_default_sites:
+      - lms
     - edxapp
+    - role: datadog
+      when: enable_datadog
+    - role: splunkforwarder
+      when: enable_splunkforwarder

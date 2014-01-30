@@ -4,27 +4,27 @@
 ---
 
 
-- name: edxapp | Install logrotate configuration for tracking file
+- name: Install logrotate configuration for tracking file
   template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
-- name: edxapp | create application user
+- name: create application user
   user: >
     name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
     createhome=no shell=/bin/false
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
-- name: edxapp | create edxapp user dirs
+- name: create edxapp user dirs
   file: >
     path="{{ item }}" state=directory
     owner="{{ edxapp_user }}" group="{{ common_web_group }}"
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_app_dir }}"
     - "{{ edxapp_data_dir }}"
@@ -32,50 +32,44 @@
     - "{{ edxapp_theme_dir }}"
     - "{{ edxapp_staticfile_dir }}"
 
-- name: edxapp | create edxapp log dir
+- name: create edxapp log dir
   file: >
     path="{{ edxapp_log_dir }}" state=directory
     owner="{{ common_log_user }}" group="{{ common_log_user }}"
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
-- name: edxapp | create web-writable edxapp data dirs
+- name: create web-writable edxapp data dirs
   file: >
     path="{{ item }}" state=directory
     owner="{{ common_web_user }}" group="{{ edxapp_user }}"
     mode="0775"
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_course_data_dir }}"
     - "{{ edxapp_upload_dir }}"
 
-- name: edxapp | install system packages on which LMS and CMS rely
+- name: install system packages on which LMS and CMS rely
   apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
 
-- name: edxapp | create log directories for service variants
+- name: create log directories for service variants
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   file: >
     path={{ edxapp_log_dir }}/{{ item }} state=directory
     owner={{ common_log_user }} group={{ common_log_user }}
     mode=0750
   with_items: service_variants_enabled
 
-- include: deploy.yml
+# Set up the python sandbox execution environment
+- include: python_sandbox_env.yml
+  when: EDXAPP_PYTHON_SANDBOX
 
-- name: edxapp | create a symlink for venv python
-  file: >
-    src="{{ edxapp_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.edxapp
-    state=link
-  with_items:
-  - python
-  - pip
-
+- include: deploy.yml tags=deploy

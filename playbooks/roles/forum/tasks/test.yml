@@ -1,9 +1,11 @@
 ---
 
-- name: forum | test that the required service are listening
+- name: test that the required service are listening
   wait_for: port={{ item.port }} host={{ item.host }} timeout=30
-  with_items: "{{ forum_services }}"
+  with_items: forum_services
   when: not devstack
-  tags:
-  - forum
-  - test
+
+- name: test that mongo replica set members are listing
+  wait_for: port={{ FORUM_MONGO_PORT }} host={{ item }} timeout=30
+  with_items: FORUM_MONGO_HOSTS
+  when: not devstack

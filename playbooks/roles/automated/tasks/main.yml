@@ -57,135 +57,87 @@
 - fail: automated_sudoers_dest required for role
   when: automated_sudoers_dest is not defined
   
-- name: automated | create automated user
+- name: create automated user
   user: 
     name={{ automated_user }} state=present shell=/bin/rbash 
     home={{ automated_home }} createhome=yes
-  tags:
-  - automated
-  - install
-  - update
 
-- name: automated | create sudoers file from file
+- name: create sudoers file from file
   copy:
     dest=/etc/sudoers.d/{{ automated_sudoers_dest }}
     src={{ automated_sudoers_file }} owner="root"
     group="root" mode=0440 validate='visudo -cf %s'
   when: automated_sudoers_file
-  tags:
-  - automated
-  - install
-  - update
 
-- name: automated | create sudoers file from template
+- name: create sudoers file from template
   template:
     dest=/etc/sudoers.d/{{ automated_sudoers_dest }}
     src={{ automated_sudoers_template }} owner="root"
     group="root" mode=0440 validate='visudo -cf %s'
   when: automated_sudoers_template
-  tags:
-  - automated
-  - install
-  - update
 
   #
   # Prevent user from updating their PATH and
   # environment.
   #
-- name: automated | update shell file mode
+- name: update shell file mode
   file:
     path={{ automated_home }}/{{ item }} mode=0640
     state=file owner="root" group={{ automated_user }}
-  tags:
-  - automated
-  - install
-  - update
   with_items:
     - .bashrc
     - .profile
     - .bash_logout
   
-- name: automated | change ~automated ownership
+- name: change ~automated ownership
   file: 
     path={{ automated_home }} mode=0750 state=directory 
     owner="root" group={{ automated_user }}
-  tags:
-  - automated
-  - install
-  - update
 
   #
   # This ensures that the links are updated with each run
   # and that links that were remove from the role are
   # removed.
   #
-- name: automated | remove ~automated/bin directory
+- name: remove ~automated/bin directory
   file: 
     path={{ automated_home }}/bin state=absent
   ignore_errors: yes
-  tags:
-  - automated
-  - install
-  - update
   
-- name: automated | create ~automated/bin directory
+- name: create ~automated/bin directory
   file: 
     path={{ automated_home }}/bin state=directory mode=0750 
     owner="root" group={{ automated_user }}
-  tags:
-  - automated
-  - install
-  - update
   
-- name: automated | re-write .profile
+- name: re-write .profile
   copy:
     src=home/automator/.profile 
     dest={{ automated_home }}/.profile 
     owner="root" 
     group={{ automated_user }}
     mode="0744"
-  tags:
-  - automated
-  - install
-  - update
   
-- name: automated | re-write .bashrc
+- name: re-write .bashrc
   copy:
     src=home/automator/.bashrc
     dest={{ automated_home }}/.bashrc 
     owner="root" 
     group={{ automated_user }}
     mode="0744"
-  tags:
-  - automated
-  - install
-  - update
   
-- name: automated | create .ssh directory
+- name: create .ssh directory
   file: 
     path={{ automated_home }}/.ssh state=directory mode=0700 
     owner={{ automated_user }} group={{ automated_user }}
-  tags:
-  - automated
-  - install
-  - update
-  
-- name: automated | copy key to .ssh/authorized_keys
-  copy: 
-    src=home/automator/.ssh/authorized_keys
+
+- name: build authorized_keys file
+  template:
+    src=home/automator/.ssh/authorized_keys.j2
     dest={{ automated_home }}/.ssh/authorized_keys mode=0600 
     owner={{ automated_user }} group={{ automated_user }}
-  tags:
-  - automated
-  - install
-  - update
-
-- name: automated | create allowed command links
+  
+- name: create allowed command links
   file:
     src={{ item }} dest={{ automated_home }}/bin/{{ item.split('/').pop() }}
     state=link
   with_items: automated_rbash_links
-  tags:
-  - automated
-  - install
-  - update  

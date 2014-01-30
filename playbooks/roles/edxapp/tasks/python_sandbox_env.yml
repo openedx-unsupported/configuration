@@ -1,0 +1,57 @@
+- name: code sandbox | Create edxapp sandbox user
+  user: name={{ edxapp_sandbox_user }} shell=/bin/false home={{ edxapp_sandbox_venv_dir }}
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox
+
+- name: code sandbox | Install apparmor utils system pkg
+  apt: pkg=apparmor-utils state=present
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox
+
+- name: code sandbox | write out apparmor code sandbox config
+  template: src=code.sandbox.j2 dest=/etc/apparmor.d/code.sandbox mode=0644 owner=root group=root
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox
+
+- name: code sandbox | write out sandbox user sudoers config
+  template: src=95-sandbox-sudoer.j2 dest=/etc/sudoers.d/95-{{ edxapp_sandbox_user }} mode=0440 owner=root group=root validate='visudo -c -f %s'
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox
+
+# we boostrap and enable the apparmor service here.  in deploy.yml we disable, deploy, then re-enable
+# so we need to enable it in main.yml
+- name: code sandbox | start apparmor service
+  service: name=apparmor state=started
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox
+
+- name: code sandbox | (bootstrap) load code sandbox profile
+  command: apparmor_parser -r /etc/apparmor.d/code.sandbox
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox
+
+- name: code sandbox | (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
+  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  tags:
+  - edxapp-sandbox

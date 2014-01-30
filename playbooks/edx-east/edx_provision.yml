@@ -2,18 +2,37 @@
   hosts: localhost
   connection: local
   gather_facts: False
-  pre_tasks:
+  vars:
+    keypair: continuous-integration
+    instance_type: m1.medium
+    security_group: sandbox
+    # ubuntu 12.04
+    ami: ami-d0f89fb9
+    region: us-east-1
+    zone: us-east-1b
+    instance_tags:
+      environment: sandbox
+      github_username: temp
+      Name: sandbox-temp
+      source: provisioning-script
+      owner: temp
+    root_ebs_size: 50
+    dns_name: temp
+    dns_zone: m.sandbox.edx.org
+    name_tag: sandbox-temp
+    elb: false
   roles:
     - role: launch_ec2
       keypair: "{{ keypair }}"
       instance_type: "{{ instance_type }}"
       security_group: "{{ security_group }}"
-      ami_image: "{{ ami }}"
+      ami: "{{ ami }}"
       region: "{{ region }}"
       instance_tags: "{{ instance_tags }}"
       root_ebs_size: "{{ root_ebs_size }}"
       dns_name: "{{ dns_name }}"
       dns_zone: "{{ dns_zone }}"
+      zone: "{{ zone }}"
       terminate_instance: true
       instance_profile_name: sandbox
 
@@ -21,6 +40,8 @@
   hosts: launched
   sudo: True
   gather_facts: False
+  vars:
+    elb: false
   pre_tasks:
     - name: Wait for cloud-init to finish
       wait_for: >
@@ -32,6 +53,7 @@
     - roles/ora/defaults/main.yml
     - roles/xqueue/defaults/main.yml
     - roles/xserver/defaults/main.yml
+    - roles/forum/defaults/main.yml
   roles:
     # rerun common to set the hostname, nginx to set basic auth
     - common
@@ -42,6 +64,9 @@
       - ora
       - xqueue
       - xserver
+      - forum
+      nginx_default_sites:
+      - lms
     # gh_users hash must be passed
     # in as a -e variable
     - gh_users
@@ -57,7 +82,7 @@
       sudo: False
     - name: register instance into an elb if one was provided
       local_action:
-        module: ec2_elb
+        module: ec2_elb_local_1.3
         region: "{{ region }}"
         instance_id: "{{ ec2_info.instance_ids[0] }}"
         state: present

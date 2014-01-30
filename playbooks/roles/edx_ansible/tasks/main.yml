@@ -23,14 +23,14 @@
 #
 #
 #
-- name: edx_ansible | create application user
+- name: create application user
   user: >
     name="{{ edx_ansible_user }}"
     home="{{ edx_ansible_app_dir }}"
     createhome=no
     shell=/bin/false
 
-- name: edx_ansible | create edx_ansible app and venv dir
+- name: create edx_ansible app and venv dir
   file: >
     path="{{ item }}"
     state=directory
@@ -38,20 +38,10 @@
     group="{{ common_web_group }}"
   with_items:
     - "{{ edx_ansible_app_dir }}"
+    - "{{ edx_ansible_data_dir }}"
     - "{{ edx_ansible_venvs_dir }}"
 
-- name: edx_ansible | install a bunch of system packages on which edx_ansible relies
+- name: install a bunch of system packages on which edx_ansible relies
   apt: pkg={{','.join(edx_ansible_debian_pkgs)}} state=present
 
-- include: deploy.yml
-
-- name: edx_ansible | create update script
-  template: >
-    dest={{ edx_ansible_app_dir}}/update
-    src=update.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
-
-- name: edxapp | create a symlink for update.sh
-  file: >
-    src={{ edx_ansible_app_dir }}/update
-    dest={{ COMMON_BIN_DIR }}/update
-    state=link
+- include: deploy.yml tags=deploy
