@@ -54,7 +54,7 @@ fi
 extra_vars="/var/tmp/extra-vars-$$.yml"
 
 if [[ -z $region ]]; then
-  region="us-east1"
+  region="us-east-1"
 fi
 
 if [[ -z $zone ]]; then
@@ -75,7 +75,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-73f2c51a"
+    ami="ami-0dd1ef64"
   elif [[ $server_type == "ubuntu_12.04" ]]; then
     ami="ami-d0f89fb9"
   fi
