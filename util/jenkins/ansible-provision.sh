@@ -54,7 +54,7 @@ fi
 extra_vars="/var/tmp/extra-vars-$$.yml"
 
 if [[ -z $region ]]; then
-  region="us-east1"
+  region="us-east-1"
 fi
 
 if [[ -z $zone ]]; then
