@@ -42,7 +42,6 @@ deployments:
 
 # A jenkins URL to post requests for building AMIs
 abbey_url: "http://...."
-abbey_token: "API_TOKEN"
 ---
 """
 import argparse
@@ -154,7 +153,7 @@ def prepare_release(args):
     if not args.noop:
         release_coll.insert(release)
     # All plays that need new AMIs have been updated.
-    notify_abbey(config['abbey_url'], config['abbey_token'], args.deployment,
+    notify_abbey(config['abbey_url'], args.deployment,
                  all_plays, args.release_id, mongo_uri, config_repo_ver,
                  config_secure_ver, args.noop)
 
@@ -173,33 +172,31 @@ def ami_for(db, env, deployment, play, configuration,
     return db.amis.find_one(ami_signature)
 
 import requests
-def notify_abbey(abbey_url, abbey_token, deployment, all_plays, release_id,
+def notify_abbey(abbey_url, deployment, all_plays, release_id,
                  mongo_uri, configuration_ref, configuration_secure_ref, noop=False):
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             if ami is None:
-                params = []
-                params.append({ 'name': 'play', 'value': play_name})
-                params.append({ 'name': 'deployment', 'value': deployment})
-                params.append({ 'name': 'environment', 'value': env})
-                params.append({ 'name': 'vars', 'value': yaml.safe_dump(play['vars'], default_flow_style=False)})
-                params.append({ 'name': 'release_id', 'value': release_id})
-                params.append({ 'name': 'mongo_uri', 'value': mongo_uri})
-                params.append({ 'name': 'configuration', 'value': configuration_ref})
-                params.append({ 'name': 'configuration_secure', 'value': configuration_secure_ref})
-                build_params = {'parameter': params}
+                params = {}
+                params['play'] = play_name
+                params['deployment'] = deployment
+                params['environment'] = env
+                params['vars'] = yaml.safe_dump(play['vars'], default_flow_style=False)
+                params['release_id'] = release_id
+                params['mongo_uri'] = mongo_uri
+                params['configuration'] = configuration_ref
+                params['configuration_secure'] = configuration_secure_ref
 
-                log.info("Need ami for {}".format(pformat(build_params)))
+                log.info("Need ami for {}".format(pformat(params)))
                 if not noop:
                     r = requests.post(abbey_url,
-                                      data={"token": abbey_token},
-                                      params={"json": json.dumps(build_params)})
+                                      params=params)
 
                     log.info("Sent request got {}".format(r))
-                    if r.status_code != 201:
+                    if r.status_code != 200:
                         # Something went wrong.
                         msg = "Failed to submit request with params: {}"
-                        raise Exception(msg.format(pformat(build_params)))
+                        raise Exception(msg.format(pformat(params)))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare a new release.")
