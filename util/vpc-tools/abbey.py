@@ -314,8 +314,23 @@ EOF
 fi
 
 cat << EOF >> $extra_vars
+# extra vars passed into
+# abbey.py including versions
+# of all the repositories
 {extra_vars_yml}
+
+# path to local checkout of
+# the secure repo
 secure_vars: $secure_vars_file
+
+# The private key used for pulling down
+# private edx-platform repos is the same
+# identity of the github huser that has
+# access to the secure vars repo.
+# EDXAPP_USE_GIT_IDENTITY needs to be set
+# to true in the extra vars for this
+# variable to be used.
+EDXAPP_LOCAL_GIT_IDENTITY: $secure_identity
 EOF
 
 chmod 400 $secure_identity
