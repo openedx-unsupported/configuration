@@ -1,15 +1,10 @@
-- name: Deploy edxapp
-  hosts: all
+- hosts: tag_role_elasticsearch:&tag_environment_stage
   sudo: True
-  gather_facts: True
-  vars:
-    enable_datadog: True
-    enable_splunkforwarder: True
   vars_files:
-    - ["{{ secure_vars }}", "dummy.yml"]
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/stage/stage-edx.yml"
   roles:
+    - common
+    - gh_users
+    - oraclejdk
     - elasticsearch
-    - role: datadog
-      when: enable_datadog
-    - role: splunkforwarder
-      when: enable_splunkforwarder
