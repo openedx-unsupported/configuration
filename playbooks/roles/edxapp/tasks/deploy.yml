@@ -12,19 +12,19 @@
   template: >
     src=git_ssh_noauth.sh.j2 dest={{ edxapp_git_ssh }}
     owner={{ edxapp_user }} mode=750
-  when: not EDXAPP_LOCAL_GIT_IDENTITY
+  when: not EDXAPP_USE_GIT_IDENTITY
 
 - name: create ssh script for git (authenticated)
   template: >
     src=git_ssh_auth.sh.j2 dest={{ edxapp_git_ssh }}
     owner={{ edxapp_user }} mode=750
-  when: EDXAPP_LOCAL_GIT_IDENTITY
+  when: EDXAPP_USE_GIT_IDENTITY
 
 - name: install read-only ssh key
   copy: >
     src={{ EDXAPP_LOCAL_GIT_IDENTITY }} dest={{ edxapp_git_identity }}
     force=yes owner={{ edxapp_user }} mode=0600
-  when: EDXAPP_LOCAL_GIT_IDENTITY
+  when: EDXAPP_USE_GIT_IDENTITY
 
 # Do A Checkout
 - name: checkout edx-platform repo into {{edxapp_code_dir}}
@@ -56,7 +56,7 @@
 
 - name: remove read-only ssh key
   file: path={{ edxapp_git_identity }} state=absent
-  when: EDXAPP_LOCAL_GIT_IDENTITY
+  when: EDXAPP_USE_GIT_IDENTITY
 
 - name: create checksum for requirements, package.json and Gemfile
   shell: >
