@@ -8,12 +8,25 @@
 #   * oraclejdk
 # 
 # Example play:
-#
-#   roles:
-#   - common
-#   - oraclejdk
-#   - elasticsearch 
+# This play can be used to do a single server or clustered
+# installation of the elasticsearch service.  When a cluster
+# is being installed, there are two important things that
+# you must know.
 
+# The ELASTICSEARCH_CLUSTERED var must by true.
+
+# All hosts targeted by your play will be cluster peers.
+# Elasticsearch will determine who that master should be.
+
+# Ansible provides handy set operators for use in the
+# plays host declaration, as seen in the following example.
+#
+# -  hosts: tag_role_elasticsearch:&tag_environment_stage
+#    roles:
+#    - common
+#    - oraclejdk
+#    - elasticsearch
+#
 - name: download elasticsearch
   get_url: >
     url={{ elasticsearch_url }}
@@ -22,15 +35,18 @@
 
 - name: install elasticsearch from local package
   shell: >
-    dpkg -i /var/tmp/elasticsearch-{{ elasticsearch_version }}.deb
+    dpkg -i  --force-confold /var/tmp/elasticsearch-{{ elasticsearch_version }}.deb
     executable=/bin/bash 
-    creates=/usr/share/elasticsearch/bin/elasticsearch
-  tags:
-    - elasticsearch
-    - install
-
+    
+- name: update elasticsearch defaults
+  template: >
+    src=etc/default/elasticsearch.j2 dest=/etc/default/elasticsearch
+  when: ELASTICSEARCH_CLUSTERED
+    
+- name: drop the elasticsearch config
+  template: >
+    src=etc/elasticsearch/elasticsearch.yml.j2 dest=/etc/elasticsearch/elasticsearch.yml
+  when: ELASTICSEARCH_CLUSTERED
+    
 - name: Ensure elasticsearch is enabled and started
   service: name=elasticsearch state=started enabled=yes
-  tags:
-    - elasticsearch
-    - install
