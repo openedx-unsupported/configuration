@@ -45,15 +45,20 @@
   sudo_user: "{{ supervisor_user }}"
 
 - name: syncdb and migrate
-  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
   when: migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_migrate_environment }}"
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
 
 - name: db migrate
-  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  shell:
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
   when: migrate_only is defined and migrate_only|lower == "yes"
   notify:
   - "restart edxapp"
@@ -74,5 +79,4 @@
   - "restart edxapp"
   - "restart edxapp_workers"
   environment: "{{ edxapp_environment }}"
-
 
