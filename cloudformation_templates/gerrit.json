@@ -1,0 +1,321 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "A simple VPC that holds a gerrit review server deployment.",
+
+  "Parameters" : {
+
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type" : "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+    },
+
+    "SSHLocation" : {
+      "Description" : "Lockdown SSH access to the bastion host (default can be accessed from anywhere)",
+      "Type" : "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default" : "0.0.0.0/0",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid CIDR range of the form x.x.x.x/x."
+    },
+
+    "SSLCertificateARN": {
+      "Description": "The ARN for an SSL certificate to use with gerrit.",
+      "Type": "String",
+      "Default": "arn:aws:iam::372153017832:server-certificate/dummy"
+    },
+
+    "GerritApplicationServerPort": {
+      "Description": "The port exposed by the gerrit application server.",
+      "Type": "Number",
+      "Default": "8080"
+    },
+
+    "GerritSSHPort": {
+      "Description": "The port exposed by the gerrit SSH server.",
+      "Type": "Number",
+      "Default": "29418"
+    },
+
+    "DBPassword": {
+      "Default": "password",
+      "NoEcho": "true",
+      "Description" : "The database admin account password",
+      "Type": "String"
+    }
+
+  },
+
+  "Mappings" : {
+    "SubnetConfig" : {
+      "VPC"      : { "CIDR" : "10.6.0.0/16" },
+      "Public"   : { "CIDR" : "10.6.0.0/24" },
+      "Private1" : { "CIDR" : "10.6.1.0/24" },
+      "Private2" : { "CIDR" : "10.6.2.0/24" }
+    }
+  },
+
+  "Resources" : {
+
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "VPC", "CIDR" ]},
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "PublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "AvailabilityZone": "us-east-1a",
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Public", "CIDR" ]},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "InternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "AttachGateway" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Properties" : {
+         "VpcId" : { "Ref" : "VPC" },
+         "InternetGatewayId" : { "Ref" : "InternetGateway" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "PublicRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : "AttachGateway",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "InternetGateway" }
+      }
+    },
+
+    "PublicSubnetRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+
+    "PrivateSubnet1" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "AvailabilityZone": "us-east-1a",
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Private1", "CIDR" ]},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Private" }
+        ]
+      }
+    },
+
+    "PrivateSubnet2" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "AvailabilityZone": "us-east-1c",
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Private2", "CIDR" ]},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Private" }
+        ]
+      }
+    },
+
+    "PrivateRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+          { "Key" : "Network", "Value" : "Private" }
+        ]
+      }
+    },
+
+    "PrivateSubnet1RouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateSubnet1" },
+        "RouteTableId" : { "Ref" : "PrivateRouteTable" }
+      }
+    },
+
+    "PrivateSubnet2RouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateSubnet2" },
+        "RouteTableId" : { "Ref" : "PrivateRouteTable" }
+      }
+    },
+
+    "GerritSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "GroupDescription" : "Enable TCP access to the gerrit HTTP and SSH services from sources within the VPC.",
+        "SecurityGroupIngress" : [
+           { "IpProtocol" : "tcp", "FromPort" : { "Ref": "GerritApplicationServerPort" },   "ToPort" : { "Ref": "GerritApplicationServerPort" },   "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "VPC", "CIDR" ]}},
+           { "IpProtocol" : "tcp", "FromPort" : { "Ref": "GerritSSHPort" },                 "ToPort" : { "Ref": "GerritSSHPort" },                 "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "VPC", "CIDR" ]}},
+           { "IpProtocol" : "tcp", "FromPort" : "22",                                       "ToPort" : "22",                                       "CidrIp" : { "Ref" : "SSHLocation" }}
+        ]
+      }
+    },
+
+    "GerritInstance" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "InstanceType" : "m1.small",
+        "KeyName" : { "Ref" : "KeyName" },
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "ImageId" : "ami-a73264ce",
+        "SecurityGroupIds" : [{ "Ref" : "GerritSecurityGroup" }],
+        "BlockDeviceMappings" : [
+          {
+            "DeviceName": "/dev/sdf",
+            "Ebs": {
+              "VolumeSize" : "30",
+              "DeleteOnTermination": "false"
+            }
+          }
+        ],
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          { "Key" : "Name", "Value" : "Gerrit" }
+        ]
+      }
+    },
+
+    "GerritIPAddress":{
+      "Type":"AWS::EC2::EIP",
+      "Properties":{
+        "Domain":"vpc",
+        "InstanceId":{
+          "Ref":"GerritInstance"
+        }
+      }
+    },
+
+    "GerritELBSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Enable TCP access to the gerrit HTTP and SSH services from external sources.",
+        "VpcId": { "Ref":"VPC" },
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "443",                      "ToPort": "443",                      "CidrIp":"0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": { "Ref": "GerritSSHPort" }, "ToPort": { "Ref": "GerritSSHPort" }, "CidrIp":"0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress": [
+          { "IpProtocol": "tcp", "FromPort": { "Ref": "GerritApplicationServerPort" }, "ToPort":{ "Ref": "GerritApplicationServerPort" }, "DestinationSecurityGroupId" : { "Ref" : "GerritSecurityGroup" }},
+          { "IpProtocol": "tcp", "FromPort": { "Ref": "GerritSSHPort" },               "ToPort":{ "Ref": "GerritSSHPort" },               "DestinationSecurityGroupId" : { "Ref" : "GerritSecurityGroup" }}
+        ]
+      }
+    },
+
+    "GerritELB":{
+      "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties":{
+        "Listeners":[
+          {
+            "LoadBalancerPort":"443",
+            "InstancePort": { "Ref": "GerritApplicationServerPort" },
+            "Protocol":"HTTPS",
+            "InstanceProtocol":"HTTP",
+            "SSLCertificateId": { "Ref": "SSLCertificateARN" }
+          },
+          {
+            "LoadBalancerPort": { "Ref": "GerritSSHPort" },
+            "InstancePort": { "Ref": "GerritSSHPort" },
+            "Protocol": "TCP"
+          }
+        ],
+        "Subnets": [{ "Ref":"PublicSubnet" }],
+        "Instances": [{ "Ref": "GerritInstance" }],
+        "SecurityGroups": [{ "Ref": "GerritELBSecurityGroup" }]
+      }
+    },
+
+    "GerritDBSubnetGroup" : {
+      "Type" : "AWS::RDS::DBSubnetGroup",
+      "Properties" : {
+        "DBSubnetGroupDescription" : "Subnets available for the RDS DB Instance",
+        "SubnetIds" : [{ "Ref" : "PrivateSubnet1" }, { "Ref": "PrivateSubnet2" }]
+      }
+    },
+
+    "GerritDBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable access to the gerrit database",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress" : [ { "IpProtocol" : "tcp", "FromPort" : "3306",  "ToPort" : "3306",  "SourceSecurityGroupId": { "Ref": "GerritSecurityGroup" }}]
+      }
+    },
+
+    "GerritDB" : {
+      "Type" : "AWS::RDS::DBInstance",
+      "Properties" : {
+        "DBName" : "gerritdb",
+        "AllocatedStorage" : "5",
+        "DBInstanceClass" : "db.t1.micro",
+        "Engine" : "mysql",
+        "EngineVersion" : "5.6.13",
+        "Port": "3306",
+        "MasterUsername" : "gerritadmin" ,
+        "MasterUserPassword" : { "Ref" : "DBPassword" },
+        "DBSubnetGroupName" : { "Ref" : "GerritDBSubnetGroup" },
+        "VPCSecurityGroups" : [ { "Ref" : "GerritDBSecurityGroup" }  ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "GerritHostname": {
+      "Description": "The public DNS name of the exposed ELB",
+      "Value": {"Fn::GetAtt" : ["GerritELB", "DNSName"]}
+    },
+    "GerritDBHostname": {
+      "Description": "The private address of the RDS",
+      "Value": {"Fn::GetAtt" : ["GerritDB", "Endpoint.Address"]}
+    }
+  }
+}
