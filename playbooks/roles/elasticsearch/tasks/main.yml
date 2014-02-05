@@ -70,5 +70,17 @@
     mode=0744
   when: ELASTICSEARCH_CLUSTERED  
     
+  # Plugin installation fails hard when the plugin already
+  # exists. This is problematic of this is upgraded.
+- name: check if the bigdesk plugin is installed
+  command: test -d /usr/share/elasticsearch/plugins/bigdesk
+  ignore_errors: true
+  register: bigdesk_present
+  
+- name: install bigdesk plugin
+  shell: >
+    /usr/share/elasticsearch/bin/plugin -install lukas-vlcek/bigdesk/2.2.0
+  when: bigdesk_present|failed
+  
 - name: Ensure elasticsearch is enabled and started
   service: name=elasticsearch state=restarted enabled=yes
