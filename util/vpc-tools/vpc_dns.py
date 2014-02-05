@@ -149,6 +149,7 @@ def update_elb_rds_dns(zone):
 
     stack_elbs = [elb for elb in elb_con.get_all_load_balancers()
                   if elb.vpc_id == vpc_id]
+
     for elb in stack_elbs:
         for inst in elb.instances:
             instance = ec2_con.get_all_instances(
@@ -160,13 +161,12 @@ def update_elb_rds_dns(zone):
                 else:
                     # deprecated, for backwards compatibility
                     play_tag = instance.tags['role']
-                play_tag = instance.tags['role']
                 fqdn = "{}-{}.{}".format(env_tag, play_tag, zone_name)
                 add_or_update_record(zone, fqdn, 'CNAME', 600, [elb.dns_name])
                 if play_tag == 'edxapp':
                     # create courses and studio CNAME records for edxapp
                     for name in ['courses', 'studio']:
-                        fqdn = "{}.{}".format(name, zone_name)
+                        fqdn = "{}-{}.{}".format(env_tag, name, zone_name)
                         add_or_update_record(zone, fqdn, 'CNAME',
                                              600, [elb.dns_name])
                 break  # only need the first instance for tag info

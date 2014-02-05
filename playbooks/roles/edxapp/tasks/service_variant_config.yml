@@ -44,6 +44,21 @@
   when: celery_worker is defined and not devstack
   sudo_user: "{{ supervisor_user }}"
 
+- name: syncdb and migrate
+  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+- name: db migrate
+  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
+  when: migrate_only is defined and migrate_only|lower == "yes"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  sudo_user: "{{ edxapp_user }}"
 
 # Gather assets using rake if possible
 
@@ -61,18 +76,3 @@
   environment: "{{ edxapp_environment }}"
 
 
-- name: syncdb and migrate
-  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_db is defined and migrate_db|lower == "yes"
-  sudo_user: "{{ edxapp_user }}"
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
-
-- name: db migrate
-  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_only is defined and migrate_only|lower == "yes"
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
-  sudo_user: "{{ edxapp_user }}"

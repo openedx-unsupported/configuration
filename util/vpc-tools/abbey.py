@@ -58,7 +58,7 @@ class MongoConnection:
             'deployment': args.deployment,
             'configuration_ref': args.configuration_version,
             'configuration_secure_ref': args.configuration_secure_version,
-            'vars': extra_vars,
+            'vars': git_refs,
         }
         try:
             self.mongo_ami.insert(query)
@@ -142,6 +142,8 @@ def parse_args():
                         help="don't cleanup on failures")
     parser.add_argument('--vars', metavar="EXTRA_VAR_FILE",
                         help="path to extra var file", required=False)
+    parser.add_argument('--refs', metavar="GIT_REFS_FILE",
+                        help="path to a var file with app git refs", required=False)
     parser.add_argument('-a', '--application', required=False,
                         help="Application for subnet, defaults to admin",
                         default="admin")
@@ -314,10 +316,13 @@ EOF
 fi
 
 cat << EOF >> $extra_vars
+---
 # extra vars passed into
 # abbey.py including versions
 # of all the repositories
 {extra_vars_yml}
+
+{git_refs_yml}
 
 # path to local checkout of
 # the secure repo
@@ -370,6 +375,7 @@ rm -rf $base_dir
                 identity_file=identity_file,
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
+                git_refs_yml=git_refs_yml,
                 secure_vars=secure_vars)
 
     ec2_args = {
@@ -633,8 +639,16 @@ if __name__ == '__main__':
             extra_vars_yml = f.read()
             extra_vars = yaml.load(extra_vars_yml)
     else:
-        extra_vars_yml = "---\n"
+        extra_vars_yml = ""
         extra_vars = {}
+
+    if args.refs:
+        with open(args.refs) as f:
+            git_refs_yml = f.read()
+            git_refs = yaml.load(git_refs_yml)
+    else:
+        git_refs_yml = ""
+        git_refs = {}
 
     if args.secure_vars:
         secure_vars = args.secure_vars
