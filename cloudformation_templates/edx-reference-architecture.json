@@ -63,7 +63,30 @@
       "ConstraintDescription":"must be a valid EC2 instance type."
     },
     "ForumInstanceType":{
-      "Description":"Worker EC2 instance type",
+      "Description":"Forum EC2 instance type",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "NotifierInstanceType":{
+      "Description":"Notifier EC2 instance type",
       "Type":"String",
       "Default":"m1.small",
       "AllowedValues":[
@@ -292,6 +315,11 @@
       "Type":"Number",
       "Default":"2"
     },
+    "NotifierDesiredCapacity":{
+      "Description":"The Auto-scaling group desired capacity for the notifier hosts",
+      "Type":"Number",
+      "Default":"1"
+    },
     "MongoDesiredCapacity":{
       "Description":"The Auto-scaling group desired capacity for the mongodb hosts",
       "Type":"Number",
@@ -451,6 +479,7 @@
       "Mongo01":        { "CIDR":"10.0.90.0/24" },
       "Mongo02":        { "CIDR":"10.0.91.0/24" },
       "Mongo03":        { "CIDR":"10.0.92.0/24" },
+      "Notifier01":        { "CIDR":"10.0.100.0/24" },
       "Admin":          { "CIDR":"10.0.200.0/24" }
     },
     "MapRegionsToAvailZones":{
@@ -1428,6 +1457,51 @@
         ]
       }
     },
+    "NotifierSubnet01":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Notifier01",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"notifier"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-notifier','target':'ec2'}"
+				 ]
+				]
+		    }
+          }
+        ]
+      }
+    },
     "InternetGateway":{
       "Type":"AWS::EC2::InternetGateway",
       "Properties":{
@@ -1937,6 +2011,17 @@
         }
       }
     },
+    "PrivateSubnetRouteTableAssociationNotifier01":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"NotifierSubnet01"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
     "PrivateSubnetRouteTableAssociationMongo01":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
@@ -2216,6 +2301,17 @@
       "Properties":{
         "SubnetId":{
           "Ref":"ForumSubnet02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationNotifier01":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"NotifierSubnet01"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -5516,6 +5612,164 @@
         "AutoMinorVersionUpgrade": true,
         "CacheSubnetGroupName" : { "Ref" : "CacheSubnetGroup" },
         "VpcSecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup" } ]
+      }
+    },
+		"NotifierRole": {
+				"Type": "AWS::IAM::Role",
+        "Properties": {
+						"AssumeRolePolicyDocument": {
+								"Statement": [ {
+										"Effect": "Allow",
+										"Principal": {
+												"Service": [ "ec2.amazonaws.com" ]
+										},
+										"Action": [ "sts:AssumeRole" ]
+								} ]
+            },
+            "Path": "/",
+            "Policies": [ {
+              "PolicyName": "NotifierBasePolicy",
+              "PolicyDocument": {
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Action":[
+                      "cloudformation:DescribeStackResource",
+                      "s3:Put",
+                      "ses:SendEmail",
+                      "ses:SendRawEmail",
+                      "ses:GetSendQuota"
+                    ],
+                    "Resource":"*"
+                  }
+                ]
+              }
+            } ]
+        }
+    },
+	  "NotifierInstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+            "Path": "/",
+            "Roles": [ {
+								"Ref": "NotifierRole"
+            } ]
+        }
+    },
+    "NotifierHost":{
+      "Type":"AWS::EC2::Instance",
+      "Properties":{
+        "InstanceType":{
+          "Ref":"NotifierInstanceType"
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "IamInstanceProfile" : {
+          "Ref" : "NotifierInstanceProfile"
+        },
+        "SubnetId":{
+          "Ref":"NotifierSubnet01"
+        },
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSRegionArch2AMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            {
+              "Fn::FindInMap":[
+                "AWSInstanceType2Arch",
+                {
+                  "Ref":"NotifierInstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "SecurityGroupIds":[
+          {
+            "Ref":"NotifierSecurityGroup"
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"notifier"
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            },
+            "PropagateAtLaunch":true
+          }
+        ],
+        "UserData":{
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash -x\n",
+                "exec >> /home/ubuntu/cflog.log\n",
+                "exec 2>> /home/ubuntu/cflog.log\n",
+                "function error_exit\n",
+                "{\n",
+                "  cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref":"NotifierServerWaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "apt-get -y update\n",
+                "apt-get -y install python-setuptools\n",
+                "echo \"Python Tools installed\" - `date`\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "echo \"Cloudformation Boostrap installed \" - `date`\n",
+                "# If all went well, signal success\n",
+                "cfn-signal -e $? -r 'Edx Server configuration' '",
+                {
+                  "Ref":"NotifierServerWaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "NotifierSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Notifier Security Group",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          }
+        ]
+      }
+    },
+    "NotifierServerWaitHandle":{
+      "Type":"AWS::CloudFormation::WaitConditionHandle"
+    },
+    "NotifierServerWaitCondition":{
+      "Type":"AWS::CloudFormation::WaitCondition",
+      "DependsOn":"NotifierHost",
+      "Properties":{
+        "Handle":{
+          "Ref":"NotifierServerWaitHandle"
+        },
+        "Timeout":"1200"
       }
     }
   },
