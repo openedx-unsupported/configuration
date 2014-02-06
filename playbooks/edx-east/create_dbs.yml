@@ -5,7 +5,7 @@
 #   - ora
 #   - discern
 #
-# The mysql root user and password must be passed in as extra vars for
+# The mysql root user MUST be passed in as extra vars for
 # at least one of the databases.
 #
 # the environment and deployment must be passed in as COMMON_ENVIRONMENT
@@ -16,22 +16,40 @@
 #
 # Create the databases for edxapp and xqueue:
 #
-# ansible-playbook -i localhost, create_db_users.yml -e@/path/to/secrets.yml -e "edxapp_db_root_user=root edxapp_db_root_pass=pass xqueue_db_root_user=root xqueue_db_root_pass=pass "
+# ansible-playbook -i localhost, create_db_users.yml -e@/path/to/secrets.yml -e "edxapp_db_root_user=root xqueue_db_root_user=root"
 #
 #
-- name: Create all db users on the edx-stack
+- name: Create all databases on the edX stack
   hosts: all
-  connection: local
   gather_facts: False
   vars:
+    # These should be set to the root user for the
+    # db, if left 'None' the databse will be skipped
     edxapp_db_root_user: 'None'
-    edxapp_db_root_pass: 'None'
     xqueue_db_root_user: 'None'
-    xqueue_db_root_pass: 'None'
     ora_db_root_user: 'None'
-    ora_db_root_pass: 'None'
     discern_db_root_user: 'None'
-    discern_db_root_pass: 'None'
+
+  vars_prompt:
+    # passwords use vars_prompt so they aren't in the
+    # bash history
+    - name: "edxapp_db_root_pass"
+      prompt: "Password for edxapp root mysql user (enter to skip)"
+      default: "None"
+      private: yes
+    - name: "xqueue_db_root_pass"
+      prompt: "Password for xqueue root mysql user (enter to skip)"
+      default: "None"
+      private: yes
+    - name: "ora_db_root_pass"
+      prompt: "Password for ora root mysql user (enter to skip)"
+      default: "None"
+      private: yes
+    - name: "discern_db_root_pass"
+      prompt: "Password for discern root mysql user (enter to skip)"
+      default: "None"
+      private: yes
+
 
   tasks:
     - fail: msg="COMMON_ENVIRONMENT and COMMON_DEPLOYMENT need to be defined to use this play"
