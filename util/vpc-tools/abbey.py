@@ -336,6 +336,11 @@ secure_vars: $secure_vars_file
 # to true in the extra vars for this
 # variable to be used.
 EDXAPP_LOCAL_GIT_IDENTITY: $secure_identity
+
+# abbey will always run fake migrations
+# this is so that the application can come
+# up healthy
+fake_migrations: true
 EOF
 
 chmod 400 $secure_identity

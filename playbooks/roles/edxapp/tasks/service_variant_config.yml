@@ -44,21 +44,60 @@
   when: celery_worker is defined and not devstack
   sudo_user: "{{ supervisor_user }}"
 
+# Fake syncdb with migrate, only when fake_migrations is defined
+# This overrides the database name to be the test database which
+# the default application user has full write access to
 - name: syncdb and migrate
-  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin}}/django-admin.py syncdb --migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_db is defined and migrate_db|lower == "yes"
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
+  when: fake_migrations is defined and migrate_db is defined and migrate_db|lower == "yes"
+  sudo_user: "{{ edxapp_user }}"
+  environment:
+    DB_MIGRATION_NAME: "{{ EDXAPP_TEST_MIGRATE_DB_NAME }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+# Regular syncdb with migrate
+- name: syncdb and migrate
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
+  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
 
+# Fake migrate, only when fake_migrations is defined
+# This overrides the database name to be the test database which
+# the default application user has full write access to
 - name: db migrate
-  shell: SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/django-admin.py migrate --noinput --settings=lms.envs.aws --pythonpath={{ edxapp_code_dir }}
-  when: migrate_only is defined and migrate_only|lower == "yes"
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
+  when: fake_migrations is defined and migrate_only is defined and migrate_only|lower == "yes"
+  sudo_user: "{{ edxapp_user }}"
+  environment:
+    DB_MIGRATION_NAME: "{{ EDXAPP_TEST_MIGRATE_DB_NAME }}"
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
+
+
+# Regular migrations
+- name: db migrate
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
+  when: fake_migrations is not defined and migrate_only is defined and migrate_only|lower == "yes"
   sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
 
 # Gather assets using rake if possible
 
@@ -74,5 +113,4 @@
   - "restart edxapp"
   - "restart edxapp_workers"
   environment: "{{ edxapp_environment }}"
-
 
