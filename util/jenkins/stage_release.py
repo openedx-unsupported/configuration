@@ -48,6 +48,8 @@ import argparse
 import json
 import yaml
 import logging as log
+import requests
+from copy import deepcopy
 from datetime import datetime
 from git import Repo
 from pprint import pformat
@@ -150,7 +152,9 @@ def prepare_release(args):
                     all_plays[play]['amis'][env] = None
 
     release['plays'] = all_plays
-    if not args.noop:
+    if args.noop:
+        print("Would insert into release collection: {}".format(pformat(release)))
+    else:
         release_coll.insert(release)
     # All plays that need new AMIs have been updated.
     notify_abbey(config['abbey_url'], args.deployment,
@@ -171,7 +175,6 @@ def ami_for(db, env, deployment, play, configuration,
 
     return db.amis.find_one(ami_signature)
 
-import requests
 def notify_abbey(abbey_url, deployment, all_plays, release_id,
                  mongo_uri, configuration_ref, configuration_secure_ref, noop=False):
     for play_name, play in all_plays.items():
@@ -188,9 +191,12 @@ def notify_abbey(abbey_url, deployment, all_plays, release_id,
                 params['configuration_secure'] = configuration_secure_ref
 
                 log.info("Need ami for {}".format(pformat(params)))
-                if not noop:
-                    r = requests.post(abbey_url,
-                                      params=params)
+                if noop:
+                    r = requests.Request('POST', abbey_url, params=params)
+                    url = r.prepare().url
+                    print("Would have posted: {}".format(url))
+                else:
+                    r = requests.post(abbey_url, params=params)
 
                     log.info("Sent request got {}".format(r))
                     if r.status_code != 200:
