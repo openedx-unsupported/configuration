@@ -112,7 +112,7 @@ def prepare_release(args):
 
     try:
         last_successful = releases.next()
-        all_plays = last_successful['plays']
+        all_plays = deepcopy(last_successful['plays'])
     except StopIteration:
         # No successful builds.
         log.warn("No Previously successful builds.")
@@ -157,7 +157,7 @@ def prepare_release(args):
     else:
         release_coll.insert(release)
     # All plays that need new AMIs have been updated.
-    notify_abbey(config['abbey_url'], args.deployment,
+    notify_abbey(config, args.deployment,
                  all_plays, args.release_id, mongo_uri, config_repo_ver,
                  config_secure_ver, args.noop)
 
@@ -175,8 +175,12 @@ def ami_for(db, env, deployment, play, configuration,
 
     return db.amis.find_one(ami_signature)
 
-def notify_abbey(abbey_url, deployment, all_plays, release_id,
+def notify_abbey(config, deployment, all_plays, release_id,
                  mongo_uri, configuration_ref, configuration_secure_ref, noop=False):
+    abbey_url = config['abbey_url']
+    base_amis = config['base_amis']
+    default_base = config['default_base_ami']
+
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             if ami is None:
@@ -189,6 +193,7 @@ def notify_abbey(abbey_url, deployment, all_plays, release_id,
                 params['mongo_uri'] = mongo_uri
                 params['configuration'] = configuration_ref
                 params['configuration_secure'] = configuration_secure_ref
+                params['base_ami'] = base_amis.get(play_name, default_base)
 
                 log.info("Need ami for {}".format(pformat(params)))
                 if noop:
