@@ -42,12 +42,19 @@ deployments:
 
 # A jenkins URL to post requests for building AMIs
 abbey_url: "http://...."
+
+# A mapping of plays to base AMIs
+base_ami:{}
+
+# The default AMI to use if there isn't one specific to your plays.
+default_base_ami: ''
 ---
 """
 import argparse
 import json
 import yaml
 import logging as log
+import requests
 from datetime import datetime
 from git import Repo
 from pprint import pformat
@@ -150,10 +157,12 @@ def prepare_release(args):
                     all_plays[play]['amis'][env] = None
 
     release['plays'] = all_plays
-    if not args.noop:
+    if args.noop:
+        print("Would insert into release collection: {}".format(pformat(release)))
+    else:
         release_coll.insert(release)
     # All plays that need new AMIs have been updated.
-    notify_abbey(config['abbey_url'], args.deployment,
+    notify_abbey(config, args.deployment,
                  all_plays, args.release_id, mongo_uri, config_repo_ver,
                  config_secure_ver, args.noop)
 
@@ -171,9 +180,12 @@ def ami_for(db, env, deployment, play, configuration,
 
     return db.amis.find_one(ami_signature)
 
-import requests
-def notify_abbey(abbey_url, deployment, all_plays, release_id,
+def notify_abbey(config, deployment, all_plays, release_id,
                  mongo_uri, configuration_ref, configuration_secure_ref, noop=False):
+    abbey_url = config['abbey_url']
+    base_amis = config['base_amis']
+    default_base = config['default_base_ami']
+
     for play_name, play in all_plays.items():
         for env, ami in play['amis'].items():
             if ami is None:
@@ -186,11 +198,15 @@ def notify_abbey(abbey_url, deployment, all_plays, release_id,
                 params['mongo_uri'] = mongo_uri
                 params['configuration'] = configuration_ref
                 params['configuration_secure'] = configuration_secure_ref
+                params['base_ami'] = base_amis.get(play_name, default_base)
 
                 log.info("Need ami for {}".format(pformat(params)))
-                if not noop:
-                    r = requests.post(abbey_url,
-                                      params=params)
+                if noop:
+                    r = requests.Request('POST', abbey_url, params=params)
+                    url = r.prepare().url
+                    print("Would have posted: {}".format(url))
+                else:
+                    r = requests.post(abbey_url, params=params)
 
                     log.info("Sent request got {}".format(r))
                     if r.status_code != 200:
