@@ -46,7 +46,8 @@ abbey_url: "http://...."
 # A mapping of plays to base AMIs
 base_ami:{}
 
-default_base_ami:
+# The default AMI to use if there isn't one specific to your plays.
+default_base_ami: ''
 ---
 """
 import argparse
