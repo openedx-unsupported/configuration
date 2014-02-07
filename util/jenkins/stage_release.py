@@ -42,6 +42,11 @@ deployments:
 
 # A jenkins URL to post requests for building AMIs
 abbey_url: "http://...."
+
+# A mapping of plays to base AMIs
+base_ami:{}
+
+default_base_ami:
 ---
 """
 import argparse
@@ -49,7 +54,6 @@ import json
 import yaml
 import logging as log
 import requests
-from copy import deepcopy
 from datetime import datetime
 from git import Repo
 from pprint import pformat
@@ -112,7 +116,7 @@ def prepare_release(args):
 
     try:
         last_successful = releases.next()
-        all_plays = deepcopy(last_successful['plays'])
+        all_plays = last_successful['plays']
     except StopIteration:
         # No successful builds.
         log.warn("No Previously successful builds.")
