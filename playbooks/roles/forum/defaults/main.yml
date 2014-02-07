@@ -28,6 +28,7 @@ FORUM_ELASTICSEARCH_PORT: "9200"
 FORUM_ELASTICSEARCH_URL: "http://{{ FORUM_ELASTICSEARCH_HOST }}:{{ FORUM_ELASTICSEARCH_PORT }}"
 FORUM_NEW_RELIC_LICENSE_KEY: "new-relic-license-key"
 FORUM_NEW_RELIC_APP_NAME: "forum-newrelic-app"
+FORUM_WORKER_PROCESSES: "4"
 
 forum_environment:
   RBENV_ROOT: "{{ forum_rbenv_root }}"
@@ -41,12 +42,22 @@ forum_environment:
   MONGOHQ_URL: "{{ FORUM_MONGO_URL }}"
   HOME: "{{ forum_app_dir }}"
   NEW_RELIC_APP_NAME: "{{ FORUM_NEW_RELIC_APP_NAME }}"
-  NEW_RELIC_LICENSE_KEY: " {{ FORUM_NEW_RELIC_LICENSE_KEY }}"
+  NEW_RELIC_LICENSE_KEY: "{{ FORUM_NEW_RELIC_LICENSE_KEY }}"
+  WORKER_PROCESSES: "{{ FORUM_WORKER_PROCESSES }}"
+  DATA_DIR: "{{ forum_data_dir }}"
 
 forum_user: "forum"
 forum_ruby_version: "1.9.3-p448"
 forum_source_repo: "https://github.com/edx/cs_comments_service.git"
-forum_version: "HEAD"
+# Currently we are installing a branch of the comments service
+# that configures unicorn to listen on a unix socket and get the
+# worker count configuration from the environment.  We are not
+# merging to master of the comments service yet as this will have
+# some incompatibilities with our Heroku deployments.
+#
+# https://github.com/edx/cs_comments_service/pull/83
+#
+forum_version: "e0d/unicorn-config"
 forum_unicorn_port: "4567"
 
 #
@@ -59,5 +70,5 @@ forum_unicorn_port: "4567"
 # connectivity to Mongo is also tested, but separately.
 #
 forum_services:
-  - {service: "sinatra", host: "localhost", port: "{{ forum_unicorn_port }}"}
   - {service: "elasticsearch", host: "{{ FORUM_ELASTICSEARCH_HOST }}", port: "{{ FORUM_ELASTICSEARCH_PORT }}"}
+
