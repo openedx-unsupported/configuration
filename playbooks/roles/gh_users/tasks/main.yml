@@ -10,6 +10,8 @@
 #     gh_users:
 #      - joe
 #      - mark
+#     gh_users_no_sudo:
+#      - tourist_dave
 
 
 - name: creating default .bashrc
@@ -27,22 +29,28 @@
     dest=/etc/sudoers.d/gh owner=root group=root
     mode=0440 validate='visudo -cf %s'
 
-- name: create github users
+- name: create sudo github users
   user:
     name={{ item }} groups=gh
     shell=/bin/bash
   with_items: gh_users
 
+- name: create non-sudo github users
+  user:
+    name={{ item }}
+    shell=/bin/bash
+  with_items: gh_users_no_sudo
+
 - name: create .ssh directory
   file:
     path=/home/{{ item }}/.ssh state=directory mode=0700
     owner={{ item }}
-  with_items: gh_users
+  with_items: gh_users + gh_users_no_sudo
 
 - name: copy github key[s] to .ssh/authorized_keys
   get_url:
     url=https://github.com/{{ item }}.keys
     dest=/home/{{ item }}/.ssh/authorized_keys mode=0600
     owner={{ item }}
-  with_items: gh_users
+  with_items: gh_users + gh_users_no_sudo
 
