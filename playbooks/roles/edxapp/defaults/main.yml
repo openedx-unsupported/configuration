@@ -30,8 +30,8 @@ EDXAPP_MONGO_USER: 'edxapp'
 EDXAPP_MONGO_DB_NAME: 'edxapp'
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
-EDXAPP_MYSQL_USER: 'root'
-EDXAPP_MYSQL_PASSWORD: ''
+EDXAPP_MYSQL_USER: 'edxapp001'
+EDXAPP_MYSQL_PASSWORD: 'password'
 EDXAPP_MYSQL_HOST: 'localhost'
 EDXAPP_MYSQL_PORT: '3306'
 
@@ -131,6 +131,13 @@ EDXAPP_SANDBOX_ENFORCE: true
 EDXAPP_INCLUDE_AUTOMATOR_ROLE: false
 EDXAPP_AUTOMATOR_AUTHORIZED_KEYS: []
 
+EDXAPP_USE_GIT_IDENTITY: false
+# Example: "{{ secure_dir }}/files/git-identity"
+EDXAPP_LOCAL_GIT_IDENTITY: !!null
+
+# Configuration for database migration
+EDXAPP_TEST_MIGRATE_DB_NAME: "{{ COMMON_ENVIRONMENT }}_{{ COMMON_DEPLOYMENT }}_test_{{ EDXAPP_MYSQL_DB_NAME }}"
+
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -154,6 +161,8 @@ edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_course_data_dir: "{{ edxapp_data_dir }}/data"
 edxapp_upload_dir: "{{ edxapp_data_dir }}/uploads"
 edxapp_theme_dir: "{{ edxapp_data_dir }}/themes"
+edxapp_git_identity: "{{ edxapp_app_dir }}/{{ EDXAPP_LOCAL_GIT_IDENTITY|basename }}"
+edxapp_git_ssh: "/tmp/edxapp_git_ssh.sh"
 edxapp_pypi_local_mirror: "http://localhost:{{ devpi_port }}/root/pypi/+simple"
 edxapp_workers:
   - queue: low
@@ -493,6 +502,10 @@ edxapp_debian_pkgs:
   - libgeos-dev
   # i18n
   - gettext
+  # Pillow (PIL Fork) Dependencies
+  # Needed by the CMS to manipulate images.
+  - libjpeg8-dev
+  - libpng12-dev
 
 # Ruby Specific Vars
 edxapp_ruby_version: "1.9.3-p374"
