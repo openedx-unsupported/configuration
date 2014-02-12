@@ -1,0 +1,49 @@
+# requires:
+# - oraclejdk
+# - elasticsearch
+---
+
+- name: logstash | Ensure app apt dependencies are installed
+  apt: pkg={{ item }} state=installed
+  with_items:
+    - redis-server
+
+- name: logstash | Ensure {{ logstash_app_dir }} exists
+  file: path={{ logstash_app_dir }} state=directory owner=root group=root mode=0755
+
+- name: logstash | Ensure subdirectories exist
+  file: path={{ logstash_app_dir }}/{{ item }} owner=root group=root mode=0755 state=directory
+  with_items:
+    - bin
+    - etc
+    - share
+
+- name: logstash | ensure logstash config is in place
+  template: src=logstash.conf.j2 dest={{ logstash_app_dir }}/etc/logstash.conf owner=root group=root mode=0644
+  notify: restart logstash
+
+- name: logstash | ensure logstash upstart job is in place
+  template: src=logstash.upstart.conf.j2 dest=/etc/init/logstash.conf owner=root group=root mode=0755
+
+- name: logstash | ensure logstash has a logging dir at {{ logstash_log_dir }}
+  file: path={{ logstash_log_dir }} owner=root group=root mode=0755 state=directory
+
+- name: logstash | ensure we have the specified logstash release
+  get_url: url={{ logstash_url }} dest={{ logstash_app_dir }}/share/{{ logstash_file }}
+
+- name: logstash | ensure symlink with no version exists at /opt/logstash/share/logstash.jar
+  file: src={{ logstash_app_dir }}/share/${logstash_file} dest={{ logstash_app_dir }}/share/logstash.jar state=link
+
+- name: logstash | start logstash
+  action: service name=logstash state=started enabled=yes
+
+- name: logstash | Ensure we are running
+  wait_for: port={{ logstash_syslog_port }} host=localhost timeout=60
+
+- name: logstash | Copy logstash es index template
+  copy: src=template_logstash.json dest=/etc/elasticsearch/template_logstash.json
+
+- name: logstash | Enable logstash es index template
+  shell: chdir=/etc/elasticsearch executable=/bin/bash curl -XPUT 'http://localhost:9200/_template/template_logstash' -d @template_logstash.json
+
+# TODO: add logrotate for cycling the file logs

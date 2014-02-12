@@ -1,0 +1,28 @@
+server {
+  listen 80;
+  server_name {{ kibana_server_name }};
+  root {{ kibana_app_dir }}/htdocs;
+
+  # Set image format types to expire in a very long time
+  location ~* ^.+\.(jpg|jpeg|gif|png|ico)$ {
+      access_log off;
+      expires max;
+  }
+
+  # Set css and js to expire in a very long time
+  location ~* ^.+\.(css|js)$ {
+      access_log off;
+      expires max;
+  }
+
+  # Catchall for everything else
+  location / {
+    root {{ kibana_app_dir }};
+    index index.html;
+    expires 1d;
+    try_files $uri/ $uri;
+    if (-f $request_filename) {
+      break;
+    }
+  }
+}
