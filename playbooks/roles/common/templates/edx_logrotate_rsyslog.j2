@@ -1,0 +1,53 @@
+/var/log/syslog
+{
+    rotate 7
+    daily
+    missingok
+    notifempty
+    delaycompress
+    compress
+    postrotate
+        reload rsyslog >/dev/null 2>&1 || true
+        {% if COMMON_S3_LOGS -%}
+        bash /edx/bin/send-logs-to-s3 "/var/log/syslog*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        {% endif -%}
+    endscript
+}
+
+/var/log/mail.info
+/var/log/mail.warn
+/var/log/mail.err
+/var/log/mail.log
+/var/log/daemon.log
+/var/log/kern.log
+/var/log/auth.log
+/var/log/user.log
+/var/log/lpr.log
+/var/log/cron.log
+/var/log/debug
+/var/log/messages
+{
+    rotate 4
+    weekly
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        reload rsyslog >/dev/null 2>&1 || true
+        {% if COMMON_S3_LOGS -%}
+        # wildcard expansion is fine, brace expansion won't work
+        # http://stackoverflow.com/questions/369145/how-to-glob-variables-in-bash-script
+        bash /edx/bin/send-logs-to-s3 "/var/log/mail*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/daemon*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/kern*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/auth*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/user*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/lpr*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/cron*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/debug*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        bash /edx/bin/send-logs-to-s3 "/var/log/messages*"  s3://{{ COMMON_S3_LOGS_APP_BUCKET }}
+        {% endif -%}
+    endscript
+}

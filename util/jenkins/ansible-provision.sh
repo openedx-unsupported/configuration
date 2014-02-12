@@ -129,6 +129,8 @@ discern_version: $discern_version
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
 COMMON_HOSTNAME: edx-server
+COMMON_DEPLOYMENT: edx
+COMMON_ENVIRONMENT: sandbox
 EDXAPP_STATIC_URL_BASE: $static_url_base
 
 # Settings for Grade downloads
@@ -136,6 +138,9 @@ EDXAPP_GRADE_STORAGE_TYPE: 's3'
 EDXAPP_GRADE_BUCKET: 'edx-grades'
 EDXAPP_GRADE_ROOT_PATH: 'sandbox'
 
+# send logs to s3
+COMMON_S3_LOGS: true
+COMMON_S3_LOGS_NOTIFY_MAIL: jarv@edx.org
 EOF
 
 if [[ $basic_auth == "true" ]]; then
