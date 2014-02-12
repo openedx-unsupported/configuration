@@ -1,0 +1,61 @@
+upstream elasticsearch_server {
+		 server 127.0.0.1:9200;
+}
+
+server {
+  # Kibana server, templated by ansible
+
+  listen 443;
+
+  server_name {{ kibana_server_name }};
+
+  root {{ kibana_app_dir }}/htdocs;
+
+  access_log {{ COMMON_LOG_DIR }}/nginx/kibana.access.log ssl_combined;
+  error_log {{ COMMON_LOG_DIR }}/nginx/kibana.error.log error;
+
+
+  # Authentication restrictions to server
+  set $idok "no";
+  {%- for user in kibana_valid_users -%}
+  if ($ssl_client_s_dn ~ "/emailAddress={{ user }}@MIT.EDU") { set $idok "yes"; }
+
+  {%- endfor -%}
+  if ($idok !~ "yes") {  return 403; }
+
+  # Set image format types to expire in a very long time
+  location ~* ^.+\.(jpg|jpeg|gif|png|ico)$ {
+      access_log off;
+      expires max;
+  }
+
+  # Set css and js to expire in a very long time
+  location ~* ^.+\.(css|js)$ {
+      access_log off;
+      expires max;
+  }
+
+  # Elastic Search
+  location /e {
+	  rewrite /e/(.*) /$1 break;
+	  proxy_pass http://elasticsearch_server;
+	  proxy_set_header X-Real-IP $remote_addr;
+	  proxy_set_header SSL_CLIENT_S_DN $ssl_client_s_dn;
+	  proxy_set_header X-Forwarded-Protocol https;	# sets HTTP_X_FORWARDED_PROTOCOL
+ 	  proxy_set_header HTTP_X_FORWARDED_PROTO https;	# sets HTTP_X_FORWARDED_PROTOCOL
+	  proxy_ssl_session_reuse off;	
+	  proxy_redirect off;
+
+    }
+
+  # Kibana
+  location / {
+	  root {{ kibana_app_dir }}/htdocs;
+	  index index.html;
+	  expires 1d;
+	  try_files $uri/ $uri;
+	  if (-f $request_filename) {
+		  break;
+	  }
+  }
+}
