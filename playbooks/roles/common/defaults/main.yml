@@ -39,9 +39,16 @@ COMMON_S3_LOGS: false
 COMMON_S3_LOGS_NOTIFY_MAIL: dummy@example.com
 # Separate buckets for tracking logs and everything else
 # You should be overriding the environment and deployment vars
-COMMON_S3_LOGS_APP_BUCKET: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-app-logs"
-COMMON_S3_LOGS_TRACKING_BUCKET: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-tracking-logs"
-
+COMMON_S3_LOG_PATHS:
+  - bucket: "{{ COMMON_S3_LOGS_APP_BUCKET }}"
+    paths:
+    # globs are ok, do not use brace expansion
+    # everything except tracking logs
+    - "{{ COMMON_LOG_DIR }}/!(*tracking*)"
+    - "/var/log/*"
+  - bucket: "{{ COMMON_S3_LOGS_TRACKING_BUCKET }}"
+    paths:
+    - "{{ COMMON_LOG_DIR }}/*tracking*"
 common_debian_pkgs:
   - ntp
   - ack-grep
