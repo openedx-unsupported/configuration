@@ -140,7 +140,7 @@ EDXAPP_GRADE_ROOT_PATH: 'sandbox'
 
 # send logs to s3
 COMMON_S3_LOGS: true
-COMMON_S3_LOGS_NOTIFY_MAIL: jarv@edx.org
+COMMON_S3_LOGS_NOTIFY_MAIL: devops@edx.org
 EOF
 
 if [[ $basic_auth == "true" ]]; then
