@@ -10,13 +10,13 @@
 #
 #
 # Tasks for role aws
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
@@ -33,3 +33,40 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: aws_pip_pkgs
 
+- name: create data directory
+  file: >
+    path={{ aws_data_dir }}
+    state=directory
+    owner=root
+    group=root
+    mode=0700
+
+- name: dump all vars to yaml
+  template: src=dumpall.yml.j2 dest={{ aws_var_file }} mode=0600
+
+- name: clean up var file, removing all version vars and internal ansible vars
+  shell: sed -i -e "/{{item}}/d" {{ edx_ansible_var_file }}
+  with_items:
+    # deploy versions
+    - "^edx_platform_version:"
+    - "^edx_platform_commit:"
+    - "^xqueue_version:"
+    - "^forum_version:"
+    - "^xserver_version:"
+    - "^discern_ease_version:"
+    - "^ora_ease_version:"
+    - "^discern_version:"
+    - "^ora_version:"
+    - "^configuration_version:"
+    - "^ease_version:"
+    - "^certs_version:"
+    # other misc vars
+    - "^tags:"
+    - "^_original_file:"
+    - "^register:"
+    - "^item:"
+    - "^failed_when:"
+    - "^changed_when:"
+    - "^delegate_to:"
+    - "^ansible_ssh_private_key_file:"
+    - "^always_run:"
