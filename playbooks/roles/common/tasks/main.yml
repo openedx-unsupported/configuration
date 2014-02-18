@@ -102,24 +102,3 @@
     dest=/etc/ssh/sshd_config
     src=sshd_config.j2 mode=0644 owner=root group=root
   notify: restart ssh
-
-- name: create s3 log sync script
-  template: >
-    dest={{ COMMON_BIN_DIR }}/send-logs-to-s3
-    src=send-logs-to-s3.j2 mode=0755 owner=root group=root
-  when: COMMON_S3_LOGS
-
-- name: run s3 log sync script on shutdown
-  file: >
-    state=link
-    src={{ COMMON_BIN_DIR }}/send-logs-to-s3
-    path=/etc/rc0.d/S00send-logs-to-s3
-  when: COMMON_S3_LOGS
-
-- name: cronjob for s3 log sync
-  cron: >
-    name="cronjob for s3 log sync"
-    user=root
-    minute=0
-    job={{ COMMON_BIN_DIR }}/send-logs-to-s3
-  when: COMMON_S3_LOGS

@@ -51,7 +51,7 @@
     state=link
 
 - name: clean up var file, removing all version vars and internal ansible vars
-  shell: sed -i -e "/{{item}}/d" {{ edx_ansible_var_file }}
+  shell: sed -i -e "/{{item}}/d" {{ aws_var_file }}
   with_items:
     # deploy versions
     - "^edx_platform_version:"
@@ -76,3 +76,32 @@
     - "^delegate_to:"
     - "^ansible_ssh_private_key_file:"
     - "^always_run:"
+
+
+- name: create s3 log sync script
+  template: >
+    dest={{ aws_s3_sync_script }}
+    src=send-logs-to-s3.j2 mode=0755 owner=root group=root
+  when: AWS_S3_LOGS
+
+- name: create symlink for s3 log sync script
+  file: >
+    state=link
+    src={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
+    path={{ aws_s3_sync_script }}
+  when: AWS_S3_LOGS
+
+- name: run s3 log sync script on shutdown
+  file: >
+    state=link
+    src={{ COMMON_BIN_DIR }}/send-logs-to-s3
+    path=/etc/rc0.d/S00send-logs-to-s3
+  when: AWS_S3_LOGS
+
+- name: cronjob for s3 log sync
+  cron: >
+    name="cronjob for s3 log sync"
+    user=root
+    minute=0
+    job={{ aws_s3_sync_script }}
+  when: AWS_S3_LOGS
