@@ -417,6 +417,14 @@
       "MinValue":"5",
       "MaxValue":"3072",
       "ConstraintDescription":"must be between 5 and 3072Gb."
+    },
+    "ClassB":{
+      "Default":"1",
+      "Description":"The second octet of the Class B to be allocated for this VPC. 10.?.xxx.xxx",
+      "Type":"Number",
+      "MinValue":"0",
+      "MaxValue":"255",
+      "ConstraintDescription":"must be between 5 and 3072Gb."
     }
   },
   "Mappings":{
@@ -456,31 +464,31 @@
       "sa-east-1":       { "AMI":"ami-0439e619" }
     },
     "SubnetConfig":{
-      "VPC":             { "CIDR":"10.0.0.0/16" },
-      "Public01":        { "CIDR":"10.0.0.0/24" },
-      "Public02":        { "CIDR":"10.0.1.0/24" },
-      "Edxapp01":        { "CIDR":"10.0.10.0/24" },
-      "Edxapp02":        { "CIDR":"10.0.11.0/24" },
-      "XServerJail01":   { "CIDR":"10.0.20.0/24" },
-      "XServerJail02":   { "CIDR":"10.0.21.0/24" },
-      "Xqueue01":        { "CIDR":"10.0.30.0/24" },
-      "Xqueue02":        { "CIDR":"10.0.31.0/24" },
-      "CommonCluster01": { "CIDR":"10.0.46.0/24"},
-      "CommonCluster02": { "CIDR":"10.0.47.0/24"},
-      "CommonCluster03": { "CIDR":"10.0.48.0/24"},
-      "Data01":          { "CIDR":"10.0.50.0/24" },
-      "Data02":          { "CIDR":"10.0.51.0/24" },
-      "Cache01":         { "CIDR":"10.0.60.0/24" },
-      "Cache02":         { "CIDR":"10.0.61.0/24" },
-      "Worker01":        { "CIDR":"10.0.70.0/24" },
-      "Worker02":        { "CIDR":"10.0.71.0/24" },
-      "Forum01":        { "CIDR":"10.0.80.0/24" },
-      "Forum02":        { "CIDR":"10.0.81.0/24" },
-      "Mongo01":        { "CIDR":"10.0.90.0/24" },
-      "Mongo02":        { "CIDR":"10.0.91.0/24" },
-      "Mongo03":        { "CIDR":"10.0.92.0/24" },
-      "Notifier01":        { "CIDR":"10.0.100.0/24" },
-      "Admin":          { "CIDR":"10.0.200.0/24" }
+      "VPC":             { "CIDR":".0.0/16" },
+      "Public01":        { "CIDR":".0.0/24" },
+      "Public02":        { "CIDR":".1.0/24" },
+      "Edxapp01":        { "CIDR":".10.0/24" },
+      "Edxapp02":        { "CIDR":".11.0/24" },
+      "XServerJail01":   { "CIDR":".20.0/24" },
+      "XServerJail02":   { "CIDR":".21.0/24" },
+      "Xqueue01":        { "CIDR":".30.0/24" },
+      "Xqueue02":        { "CIDR":".31.0/24" },
+      "CommonCluster01": { "CIDR":".46.0/24"},
+      "CommonCluster02": { "CIDR":".47.0/24"},
+      "CommonCluster03": { "CIDR":".48.0/24"},
+      "Data01":          { "CIDR":".50.0/24" },
+      "Data02":          { "CIDR":".51.0/24" },
+      "Cache01":         { "CIDR":".60.0/24" },
+      "Cache02":         { "CIDR":".61.0/24" },
+      "Worker01":        { "CIDR":".70.0/24" },
+      "Worker02":        { "CIDR":".71.0/24" },
+       "Forum01":        { "CIDR":".80.0/24" },
+       "Forum02":        { "CIDR":".81.0/24" },
+       "Mongo01":        { "CIDR":".90.0/24" },
+       "Mongo02":        { "CIDR":".91.0/24" },
+       "Mongo03":        { "CIDR":".92.0/24" },
+      "Notifier01":      { "CIDR":".100.0/24" },
+      "Admin":           { "CIDR":".200.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1d",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -499,7 +507,7 @@
       "Properties":{
         "EnableDnsSupport" : "true",
         "EnableDnsHostnames" : "true",
-        "CidrBlock":"10.0.0.0/16",
+        "CidrBlock": { "Fn::Join": ["", ["10.", { "Ref": "ClassB" }, "0.0.0/16"]]},
         "InstanceTenancy":"default"
       }
     },
@@ -510,11 +518,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Public01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Public01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -547,11 +558,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Public02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Public02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -584,11 +598,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Admin",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Admin",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -616,11 +633,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Edxapp01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Edxapp01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -661,11 +681,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Edxapp02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Edxapp02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -706,11 +729,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Xqueue01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Xqueue01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -751,11 +777,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Xqueue02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Xqueue02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -796,11 +825,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "CommonCluster01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "CommonCluster01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -841,11 +873,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "CommonCluster02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "CommonCluster02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -886,11 +921,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "CommonCluster03",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "CommonCluster03",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -931,11 +969,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "XServerJail01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "XServerJail01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -976,11 +1017,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "XServerJail02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "XServerJail02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1021,11 +1065,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Data01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Data01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1053,11 +1100,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Data02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Data02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1085,11 +1135,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Cache01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Cache01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1117,11 +1170,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Cache02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Cache02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1149,11 +1205,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Worker01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Worker01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1194,11 +1253,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Worker02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Worker02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1239,11 +1301,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Forum01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Forum01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1284,11 +1349,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Forum02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Forum02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1329,11 +1397,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Mongo01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Mongo01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1374,11 +1445,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Mongo02",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Mongo02",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1419,11 +1493,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Mongo03",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Mongo03",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
@@ -1464,11 +1541,14 @@
           "Ref":"EdxVPC"
         },
         "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Notifier01",
-            "CIDR"
-          ]
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Notifier01",
+              "CIDR"
+            ]}
+          ]]
         },
         "AvailabilityZone":{
           "Fn::FindInMap":[
