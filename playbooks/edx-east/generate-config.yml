@@ -1,0 +1,62 @@
+# This play will generate local copies of edxapp service
+# variant json configuration files, exercising the complete
+# variable precedence path, and place the files in
+#
+# /tmp/$CONFIGURATION_GIT_HASH/[stage|prod]/
+#
+# This is useful for debugging variable precedence
+# and hash-merging as well as comparing generated
+# config across versions of the configuration
+# repository.
+#
+# Running the play assumes you have a local.ini file
+# with the following content.
+#
+# [localhost]
+# 127.0.0.1
+#
+# The play is run as follows:
+#
+# ansible-playbook -i local.ini generate-config.yml \
+# --extra-vars "secure_dir=/path/to/configuration-secure/ansible" \
+# --tags config
+
+- name: Generate stage config
+  hosts: localhost
+  connection: local
+  vars:
+    git_rev: $PIPE(git rev-parse --short HEAD)
+    edxapp_app_dir: /tmp/{{ git_rev }}/stage
+    edxapp_user: $PIPE(whoami)
+  vars_files:
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/stage/stage-edx.yml"
+  gather_facts: True
+  pre_tasks:
+    - file:
+        path={{ edxapp_app_dir }}
+        state=directory
+      tags:
+        - config
+  roles:
+    - edxapp
+
+- name: Generate prod config
+  hosts: localhost
+  connection: local
+  vars:
+    git_rev: $PIPE(git rev-parse --short HEAD)
+    edxapp_app_dir: /tmp/{{ git_rev }}/prod
+    edxapp_user: $PIPE(whoami)
+  vars_files:
+    - "{{ secure_dir }}/vars/common/common.yml"
+    - "{{ secure_dir }}/vars/prod/prod-edx.yml"
+  gather_facts: True
+  pre_tasks:
+    - file:
+        path={{ edxapp_app_dir }}
+        state=directory
+      tags:
+        - config
+  roles:
+    - edxapp
