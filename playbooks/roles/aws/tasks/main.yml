@@ -33,13 +33,32 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: aws_pip_pkgs
 
-- name: create data directory
+- name: create data and app directories
   file: >
-    path={{ aws_data_dir }}
+    path={{ item }}
     state=directory
     owner=root
     group=root
     mode=0700
+  with_items:
+    - "{{ aws_data_dir }}"
+    - "{{ aws_app_dir }}"
+
+# The sync script and config file are now symlinks
+# Remove them if they are regular files
+# This can be removed once we don't need to worry
+# about backwards compatibility.
+- stat: path={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
+  register: sync_script
+
+- stat: path={{ COMMON_CFG_DIR}}/{{ aws_var_file|basename }}
+  register: var_file
+
+- file: path={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }} state=absent
+  when: sync_script.stat.exists and sync_script.stat.isreg
+
+- file: path={{ COMMON_CFG_DIR}}/{{ aws_var_file|basename }} state=absent
+  when: var_file.stat.exists and var_file.stat.isreg
 
 - name: dump all vars to yaml
   template: src=dumpall.yml.j2 dest={{ aws_var_file }} mode=0600
@@ -47,7 +66,7 @@
 - name: create symlink for config file
   file: >
     src={{ aws_var_file }}
-    dest={{ COMMON_BIN_DIR }}/{{ aws_var_file|basename }}
+    dest={{ COMMON_CFG_DIR }}/{{ aws_var_file|basename }}
     state=link
 
 - name: clean up var file, removing all version vars and internal ansible vars
@@ -87,8 +106,8 @@
 - name: create symlink for s3 log sync script
   file: >
     state=link
-    src={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
-    path={{ aws_s3_sync_script }}
+    src={{ aws_s3_sync_script }}
+    dest={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
   when: AWS_S3_LOGS
 
 - name: run s3 log sync script on shutdown
