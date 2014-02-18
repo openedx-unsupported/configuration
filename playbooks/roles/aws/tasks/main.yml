@@ -44,6 +44,12 @@
 - name: dump all vars to yaml
   template: src=dumpall.yml.j2 dest={{ aws_var_file }} mode=0600
 
+- name: create symlink for config file
+  file: >
+    src={{ aws_var_file }}
+    dest={{ COMMON_BIN_DIR }}/{{ aws_var_file|basename }}
+    state=link
+
 - name: clean up var file, removing all version vars and internal ansible vars
   shell: sed -i -e "/{{item}}/d" {{ edx_ansible_var_file }}
   with_items:
