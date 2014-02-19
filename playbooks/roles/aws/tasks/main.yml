@@ -1,0 +1,127 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role aws
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: install system packages
+  apt: >
+    pkg={{','.join(aws_debian_pkgs)}}
+    state=present
+    update_cache=yes
+
+- name: install aws python packages
+  pip: >
+    name="{{ item }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: aws_pip_pkgs
+
+- name: create data and app directories
+  file: >
+    path={{ item }}
+    state=directory
+    owner=root
+    group=root
+    mode=0700
+  with_items:
+    - "{{ aws_data_dir }}"
+    - "{{ aws_app_dir }}"
+    - "{{ aws_log_dir }}"
+
+# The sync script and config file are now symlinks
+# Remove them if they are regular files
+# This can be removed once we don't need to worry
+# about backwards compatibility.
+- stat: path={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
+  register: sync_script
+
+- stat: path={{ COMMON_CFG_DIR}}/{{ aws_var_file|basename }}
+  register: var_file
+
+- file: path={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }} state=absent
+  when: sync_script.stat.exists and sync_script.stat.isreg
+
+- file: path={{ COMMON_CFG_DIR}}/{{ aws_var_file|basename }} state=absent
+  when: var_file.stat.exists and var_file.stat.isreg
+
+- name: dump all vars to yaml
+  template: src=dumpall.yml.j2 dest={{ aws_var_file }} mode=0600
+
+- name: create symlink for config file
+  file: >
+    src={{ aws_var_file }}
+    dest={{ COMMON_CFG_DIR }}/{{ aws_var_file|basename }}
+    state=link
+
+- name: clean up var file, removing all version vars and internal ansible vars
+  shell: sed -i -e "/{{item}}/d" {{ aws_var_file }}
+  with_items:
+    # deploy versions
+    - "^edx_platform_version:"
+    - "^edx_platform_commit:"
+    - "^xqueue_version:"
+    - "^forum_version:"
+    - "^xserver_version:"
+    - "^discern_ease_version:"
+    - "^ora_ease_version:"
+    - "^discern_version:"
+    - "^ora_version:"
+    - "^configuration_version:"
+    - "^ease_version:"
+    - "^certs_version:"
+    # other misc vars
+    - "^tags:"
+    - "^_original_file:"
+    - "^register:"
+    - "^item:"
+    - "^failed_when:"
+    - "^changed_when:"
+    - "^delegate_to:"
+    - "^ansible_ssh_private_key_file:"
+    - "^always_run:"
+
+
+- name: create s3 log sync script
+  template: >
+    dest={{ aws_s3_sync_script }}
+    src=send-logs-to-s3.j2 mode=0755 owner=root group=root
+  when: AWS_S3_LOGS
+
+- name: create symlink for s3 log sync script
+  file: >
+    state=link
+    src={{ aws_s3_sync_script }}
+    dest={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
+  when: AWS_S3_LOGS
+
+- name: run s3 log sync script on shutdown
+  file: >
+    state=link
+    src={{ COMMON_BIN_DIR }}/send-logs-to-s3
+    path=/etc/rc0.d/S00send-logs-to-s3
+  when: AWS_S3_LOGS
+
+- name: cronjob for s3 log sync
+  cron: >
+    name="cronjob for s3 log sync"
+    user=root
+    minute=0
+    job={{ aws_s3_sync_script }}
+  when: AWS_S3_LOGS

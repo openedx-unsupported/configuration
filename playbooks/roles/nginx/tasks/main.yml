@@ -75,20 +75,40 @@
     path={{ nginx_log_dir}} state=directory
     owner={{ common_web_user }} group={{ common_web_user }}
 
+# Check to see if the ssl cert/key exists before copying.
+# This extra check is done to prevent failures when
+# ansible-playbook is run locally
+- stat: path={{ NGINX_SSL_CERTIFICATE }}
+  register: ssl_cert
+
+- stat: path={{ NGINX_SSL_KEY }}
+  register: ssl_key
+
 - name: copy ssl cert
   copy: >
     src={{ NGINX_SSL_CERTIFICATE }}
-    dest=/etc/ssl/certs/{{ item|basename }}
+    dest=/etc/ssl/certs/
     owner=root group=root mode=0644
-  when: NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
+  when: ssl_cert.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
 
 - name: copy ssl key
   copy: >
     src={{ NGINX_SSL_KEY }}
-    dest=/etc/ssl/private/{{ item|basename }}
+    dest=/etc/ssl/private/
     owner=root group=root mode=0640
-  when: NGINX_ENABLE_SSL and NGINX_SSL_KEY != 'ssl-cert-snakeoil.key'
+  when: ssl_key.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_KEY != 'ssl-cert-snakeoil.key'
 
+# removing default link
+- name: Removing default nginx config and restart (enabled)
+  file: path={{ nginx_sites_enabled_dir }}/default state=absent
+  notify: reload nginx
+
+# Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
+
+- name: Set up nginx access log rotation
+  template: >
+    dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2
+    owner=root group=root mode=644
 
 # removing default link
 - name: Removing default nginx config and restart (enabled)

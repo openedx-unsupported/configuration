@@ -107,7 +107,6 @@ EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
 EDXAPP_SITE_NAME: ${deploy_host}
-COMMON_PYPI_MIRROR_URL: 'https://pypi.edx.org/root/pypi/+simple/'
 XSERVER_GRADER_DIR: "/edx/var/xserver/data/content-mit-600x~2012_Fall"
 XSERVER_GRADER_SOURCE: "git@github.com:/MITx/6.00x.git"
 XSERVER_LOCAL_GIT_IDENTITY: /var/lib/jenkins/git-identity-edx-pull
@@ -129,6 +128,8 @@ discern_version: $discern_version
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
 COMMON_HOSTNAME: edx-server
+COMMON_DEPLOYMENT: edx
+COMMON_ENVIRONMENT: sandbox
 EDXAPP_STATIC_URL_BASE: $static_url_base
 
 # Settings for Grade downloads
@@ -136,6 +137,10 @@ EDXAPP_GRADE_STORAGE_TYPE: 's3'
 EDXAPP_GRADE_BUCKET: 'edx-grades'
 EDXAPP_GRADE_ROOT_PATH: 'sandbox'
 
+# send logs to s3
+AWS_S3_LOGS: true
+AWS_S3_LOGS_NOTIFY_EMAIL: devops+sandbox-log-sync@edx.org
+AWS_S3_LOGS_FROM_EMAIL: devops@edx.org
 EOF
 
 if [[ $basic_auth == "true" ]]; then

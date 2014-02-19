@@ -1,0 +1,63 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role aws
+#
+#
+# Rotate logs to S3
+# Only for when edX is running in AWS since it organizes
+# logs by security group.
+# !! The buckets defined below MUST exist prior to enabling !!
+# this feature and the instance IAM role must have write permissions
+# to the buckets
+AWS_S3_LOGS: false
+# If there are any issues with the s3 sync an error
+# log will be sent to the following address.
+# This relies on your server being able to send mail
+AWS_S3_LOGS_NOTIFY_EMAIL: dummy@example.com
+AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
+# Separate buckets for tracking logs and everything else
+# You should be overriding the environment and deployment vars
+# Order of precedence is left to right for exclude and include options
+AWS_S3_LOG_PATHS:
+  - bucket: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-app-logs"
+    path: "{{ COMMON_LOG_DIR }}/"
+    extra_args: "--exclude '*tracking*' --exclude {{ aws_s3_logfile }}"
+  - bucket: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-app-logs"
+    path: "/var/log/"
+    extra_args: ""
+  - bucket: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-tracking-logs"
+    path: "{{ COMMON_LOG_DIR }}/"
+    extra_args: "--exclude '*' --include '*tracking*'"
+#
+# vars are namespace with the module name.
+#
+aws_role_name: aws
+aws_data_dir: "{{ COMMON_DATA_DIR }}/aws"
+aws_app_dir: "{{ COMMON_APP_DIR }}/aws"
+aws_var_file: "{{ aws_app_dir }}/server-vars.yml"
+aws_s3_sync_script: "{{ aws_app_dir }}/send-logs-to-s3"
+aws_s3_logfile: "{{ aws_log_dir }}/s3-log-sync.log"
+aws_log_dir: "{{ COMMON_LOG_DIR }}/aws"
+
+# default path to the aws binary
+aws_cmd: "/usr/local/bin/aws"
+#
+# OS packages
+#
+
+aws_debian_pkgs:
+  - python-setuptools
+
+aws_pip_pkgs:
+  - https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+  - awscli
+
+aws_redhat_pkgs: []
