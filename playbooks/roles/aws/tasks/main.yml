@@ -118,10 +118,15 @@
     path=/etc/rc0.d/S00send-logs-to-s3
   when: AWS_S3_LOGS
 
+  # cron job runs the aws s3 sync script
+  # with the -c option which skips over
+  # .log files. This is because aws s3 sync
+  # has issues syncing files that are written
+  # to during the sync
 - name: cronjob for s3 log sync
   cron: >
     name="cronjob for s3 log sync"
     user=root
     minute=0
-    job={{ aws_s3_sync_script }}
+    job="{{ aws_s3_sync_script }} -c"
   when: AWS_S3_LOGS
