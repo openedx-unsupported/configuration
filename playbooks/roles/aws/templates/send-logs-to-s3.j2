@@ -32,6 +32,7 @@ usage() {
             -v    add verbosity (set -x)
             -n    echo what will be done
             -h    this
+            -c    run as a cron which will exclude .log files
 EO
 }
 
@@ -47,6 +48,9 @@ while getopts "vhn" opt; do
       ;;
     n)
       noop="echo Would have run: "
+      shift
+    c)
+      cron_exclude="--exclude '*log'"
       shift
   esac
 done
@@ -94,5 +98,5 @@ region=${availability_zone:0:${{lb}}#availability_zone{{rb}} - 1}
 
 s3_path="${2}/$sec_grp/"
 {% for item in AWS_S3_LOG_PATHS -%}
-$noop $AWS_CMD s3 sync {{ item['path'] }} "s3://{{ item['bucket'] }}/$sec_grp/${instance_id}-${ip}/" --region $region {{ item['extra_args'] }}
+$noop $AWS_CMD s3 sync {{ item['path'] }} "s3://{{ item['bucket'] }}/$sec_grp/${instance_id}-${ip}/" --region $region {{ item['extra_args'] }} $cron_exclude
 {% endfor %}
