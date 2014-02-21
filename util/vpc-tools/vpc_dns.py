@@ -31,6 +31,9 @@ import re
 
 r53 = boto.connect_route53()
 
+
+extra_play_dns = {"edxapp":["courses","studio"]}
+
 class DNSRecord():
 
     def __init__(self, zone, record_name, record_type,
@@ -205,11 +208,11 @@ def update_elb_rds_dns(zone):
             fqdn = "{}-{}.{}".format(env_tag, play_tag, zone_name)
             dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[elb.dns_name]))
 
-            if play_tag == 'edxapp':
-            # create courses and studio CNAME records for edxapp
-                for name in ['courses', 'studio']:
-                    fqdn = "{}-{}.{}".format(env_tag, name, zone_name)
-                    dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[elb.dns_name]))
+        if extra_play_dns.has_key(play_tag):
+            for name in extra_play_dns.get(play_tag):
+                fqdn = "{}-{}.{}".format(env_tag, name, zone_name)
+                dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[elb.dns_name]))
+
 
     stack_rdss = [rds for rds in rds_con.get_all_dbinstances()
                   if hasattr(rds.subnet_group, 'vpc_id') and
