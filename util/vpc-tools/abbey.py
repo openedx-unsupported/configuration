@@ -324,10 +324,6 @@ cat << EOF >> $extra_vars
 
 {git_refs_yml}
 
-# path to local checkout of
-# the secure repo
-secure_vars: $secure_vars_file
-
 # The private key used for pulling down
 # private edx-platform repos is the same
 # identity of the github huser that has
@@ -362,8 +358,8 @@ sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars
-ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$secure_vars_file -e@$extra_vars
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$secure_vars_file -e@$extra_vars
 
 rm -rf $base_dir
 
