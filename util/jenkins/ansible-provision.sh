@@ -141,6 +141,7 @@ EDXAPP_GRADE_ROOT_PATH: 'sandbox'
 AWS_S3_LOGS: true
 AWS_S3_LOGS_NOTIFY_EMAIL: devops+sandbox-log-sync@edx.org
 AWS_S3_LOGS_FROM_EMAIL: devops@edx.org
+AWS_DUMP_VARS: true
 EOF
 
 if [[ $basic_auth == "true" ]]; then

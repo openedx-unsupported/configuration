@@ -63,12 +63,14 @@
 
 - name: dump all vars to yaml
   template: src=dumpall.yml.j2 dest={{ aws_var_file }} mode=0600
+  when: AWS_DUMP_VARS
 
 - name: create symlink for config file
   file: >
     src={{ aws_var_file }}
     dest={{ COMMON_CFG_DIR }}/{{ aws_var_file|basename }}
     state=link
+  when: AWS_DUMP_VARS
 
 - name: clean up var file, removing all version vars and internal ansible vars
   shell: sed -i -e "/{{item}}/d" {{ aws_var_file }}
@@ -96,6 +98,7 @@
     - "^delegate_to:"
     - "^ansible_ssh_private_key_file:"
     - "^always_run:"
+  when: AWS_DUMP_VARS
 
 
 - name: create s3 log sync script
