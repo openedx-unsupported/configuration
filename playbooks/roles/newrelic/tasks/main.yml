@@ -1,0 +1,38 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role newrelic
+# 
+# Overview:
+#
+# Installs and configures the newrelic system monitoring agent
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: add apt key
+  apt_key: id=548C16BF url={{COMMON_NEWRELIC_KEY_URL }} state=present
+
+- name: install apt repository
+  apt_repository: repo="{{ COMMON_NEWRELIC_REPO }}" update_cache=yes
+
+- name: install newrelic agent
+  apt: pkg="newrelic-sysmond"
+
+- name: configure the agent with the license key
+  shell: nrsysmond-config --set license_key={{ COMMON_NEWRELIC_LICENSE_KEY }} ssl=true
+
+- name: start the newrelic system agent
+  shell: /etc/init.d/newrelic-sysmond start
