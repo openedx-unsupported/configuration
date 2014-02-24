@@ -33,6 +33,23 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: aws_pip_pkgs
 
+- name: get s3cmd
+  get_url: >
+    url={{ aws_s3cmd_url }}
+    dest={{ aws_data_dir }}
+
+- name: untar s3cmd
+  shell: >
+    tar xf {{ aws_data_dir }}/{{ aws_s3cmd_version }}.tar.gz
+    creates={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
+    chdir={{ aws_app_dir }}
+
+- name: create symlink for s3cmd
+  file: >
+    src={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
+    dest={{ COMMON_BIN_DIR }}/s3cmd
+    state=link
+
 - name: create data and app directories
   file: >
     path={{ item }}
@@ -122,14 +139,10 @@
   when: AWS_S3_LOGS
 
   # cron job runs the aws s3 sync script
-  # with the -c option which skips over
-  # .log files. This is because aws s3 sync
-  # has issues syncing files that are written
-  # to during the sync
 - name: cronjob for s3 log sync
   cron: >
     name="cronjob for s3 log sync"
     user=root
     minute=0
-    job="{{ aws_s3_sync_script }} -c"
+    job={{ aws_s3_sync_script }}
   when: AWS_S3_LOGS
