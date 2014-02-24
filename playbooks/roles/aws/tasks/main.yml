@@ -21,6 +21,18 @@
 #
 #
 
+- name: create data and app directories
+  file: >
+    path={{ item }}
+    state=directory
+    owner=root
+    group=root
+    mode=0700
+  with_items:
+    - "{{ aws_data_dir }}"
+    - "{{ aws_app_dir }}"
+    - "{{ aws_log_dir }}"
+
 - name: install system packages
   apt: >
     pkg={{','.join(aws_debian_pkgs)}}
@@ -49,18 +61,6 @@
     src={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
     dest={{ COMMON_BIN_DIR }}/s3cmd
     state=link
-
-- name: create data and app directories
-  file: >
-    path={{ item }}
-    state=directory
-    owner=root
-    group=root
-    mode=0700
-  with_items:
-    - "{{ aws_data_dir }}"
-    - "{{ aws_app_dir }}"
-    - "{{ aws_log_dir }}"
 
 # The sync script and config file are now symlinks
 # Remove them if they are regular files
