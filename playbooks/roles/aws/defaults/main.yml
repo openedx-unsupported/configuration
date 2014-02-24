@@ -28,14 +28,11 @@ AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
 # Order of precedence is left to right for exclude and include options
 AWS_S3_LOG_PATHS:
   - bucket: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-app-logs"
-    path: "{{ COMMON_LOG_DIR }}/"
-    extra_args: "--exclude '*tracking*'"
+    path: "{{ COMMON_LOG_DIR }}/!(*tracking*)"
   - bucket: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-app-logs"
-    path: "/var/log/"
-    extra_args: ""
+    path: "/var/log/*"
   - bucket: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-tracking-logs"
-    path: "{{ COMMON_LOG_DIR }}/"
-    extra_args: "--exclude '*' --include '*tracking*'"
+    path: "{{ COMMON_LOG_DIR }}/*tracking*"
 
 # set this to true dump all extra vars
 # this is currently broken when extra vars
@@ -55,7 +52,7 @@ aws_s3_logfile: "{{ aws_log_dir }}/s3-log-sync.log"
 aws_log_dir: "{{ COMMON_LOG_DIR }}/aws"
 
 # default path to the aws binary
-aws_cmd: "/usr/local/bin/aws"
+aws_cmd: "{{ COMMON_BIN_DIR }}/s3cmd"
 #
 # OS packages
 #
@@ -68,3 +65,5 @@ aws_pip_pkgs:
   - awscli
 
 aws_redhat_pkgs: []
+aws_s3cmd_version: s3cmd-1.5.0-beta1
+aws_s3cmd_url: "http://files.edx.org/s3cmd/{{ aws_s3cmd_version }}.tar.gz"
