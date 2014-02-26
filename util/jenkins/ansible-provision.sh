@@ -176,7 +176,7 @@ gh_users:
   - ${github_username}
 dns_zone: $dns_zone
 rabbitmq_refresh: True
-GH_USERS_PROMPT: '[$name_tag] '
+USER_CMD_PROMPT: '[$name_tag] '
 elb: $elb
 EOF
 

@@ -1,0 +1,173 @@
+---
+
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role user
+#
+# Overview:
+#
+# This role is included as a dependency by other roles or as a standalone
+# paramaterized role to create users.
+#
+# There are generally three classes of users:
+# (1) normal login users without any special permissions
+# (2) admin users with full sudo permissions
+# (3) restricted users that use rbash and are locked down to specific sudo commands
+#
+# Dependencies:
+#
+# This role has no dependencies but requires parameters
+#
+# Example:
+#
+#   # Create a few users, one restricted
+#   # one admin with a github key and one with
+#   # a regular key.
+#   #
+#   # All user types can use a key from github
+#   # and also have additional authorized keys defined
+#   #
+#
+#   - role: user
+#     user_info:
+#       - name: joe
+#         restricted: true
+#         # The sudoers file is optional.
+#         sudoers_template: 'roles/edxapp/templates/etc/sudoers.d/99-automator-edxapp-server.j2'
+#         authorized_keys:
+#         - ssh-rsa abcdef...
+#         - ssh-rsa ghiklm...
+
+#       - name: frank
+#         github: true
+#         admin: true
+#
+#       - name: sally
+#         authorized_keys:
+#         - ssh-rsa abcdef...
+#         - ssh-rsa ghiklm...
+
+#
+# Set user_rbash_links for links to be set in the restricted
+# user's bin dir by default we only allow /usr/bin/sudo
+#
+
+- fail: you must pass in a user_info parameter to this role
+  when: user_info|length == 0
+
+- name: create the edxadmin group
+  group: name=edxadmin state=present
+
+# give full sudo admin access to the edxadmin group
+- name: grant full sudo access to the edxadmin group
+  copy: >
+    content="%edxadmin ALL=(ALL) NOPASSWD:ALL"
+    dest=/etc/sudoers.d/edxadmin owner=root group=root
+    mode=0440 validate='visudo -cf %s'
+
+- name: create the users
+  user:
+    name={{ item.name }}
+    shell=/bin/bash
+  with_items: user_info
+
+- name: create .ssh directory
+  file:
+    path=/home/{{ item.name }}/.ssh state=directory mode=0750
+    owner={{ item.name }}
+  with_items: user_info
+
+- name: assign admin role to admin users
+  user:
+    name={{ item.name }}
+    groups=edxadmin
+  when: item.admin is defined
+  with_items: user_info
+
+# authorized_keys2 used here so that personal
+# keys can be copied to authorized_keys
+- name: copy github key[s] to .ssh/authorized_keys2
+  get_url:
+    url=https://github.com/{{ item.name }}.keys
+    dest=/home/{{ item.name }}/.ssh/authorized_keys2 mode=0640
+    owner={{ item.name }}
+  when: item.github is defined
+  with_items: user_info
+
+- name: copy additional authorized keys
+  copy: >
+    content="{{ "\n".join(item.authorized_keys) }}"
+    dest=/home/{{ item.name }}/.ssh/authorized_keys mode=0640
+    owner={{ item.name }}
+    mode=0440 validate='visudo -cf %s'
+  when: item.authorized_keys is defined
+  with_item: user_info
+
+- name: create bashrc file for normal users
+  template: >
+    src=default.bashrc.j2
+    dest=/home/{{ item.name }}/.bashrc mode=0640
+    owner={{ item.name }}
+  when: item.restricted is not defined
+  with_items: user_info
+
+- name: create .profile for all users
+  template: >
+    src=default.profile.j2
+    dest=/home/{{ item.name }}/.profile mode=0640
+    owner={{ item.name }}
+
+########################################################
+# All tasks below this line are for restricted users
+
+- name: modify shell for restricted users
+  user:
+    name={{ item.name }}
+    shell=/bin/rbash
+  when: item.restricted is defined
+  with_items: user_info
+
+- name: create bashrc file for restricted users
+  template: >
+    src=restricted.bashrc.j2
+    dest=/home/{{ item.name }}/.bashrc mode=0640
+    owner={{ item.name }}
+  when: item.restricted is defined
+  with_items: user_info
+
+- name: create sudoers file from template
+  copy:
+    dest=/etc/sudoers.d/{{ item.sudoers_template|basename|replace('.j2','') }}
+    src={{ item.sudoers_template }} owner="root"
+    group="root" mode=0440 validate='visudo -cf %s'
+  when: item.restricted is defined and item.sudoers_template is defined
+  with_items: user_info
+
+  # Prevent restricted user from updating their PATH and
+  # environment by ensuring root ownership
+
+- name: change home directory ownership to root for restricted users
+  shell: "chown -R root:{{ item.name }} /home/{{ item.name }}"
+  when: item.restricted is defined
+  with_items: user_info
+
+- name: create ~/bin directory
+  file:
+    path=/home/{{ item.name }}/bin state=directory mode=0750
+    owner="root" group={{ item.name }}
+  when: item.restricted is defined
+  with_items: user_info
+
+- name: create allowed command links
+  file:
+    src={{ item[1] }} dest=/home/{{ item[0] }}/bin/{{ item.[1]|basename }}
+    state=link
+  when: when item[0].restricted is defined
+  with_nested:
+    - user_info
+    - user_rbash_links
