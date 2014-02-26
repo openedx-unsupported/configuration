@@ -60,6 +60,8 @@
 - fail: you must pass in a user_info parameter to this role
   when: user_info|length == 0
 
+- debug: var=user_info
+
 - name: create the edxadmin group
   group: name=edxadmin state=present
 
@@ -106,7 +108,7 @@
     owner={{ item.name }}
     mode=0440 validate='visudo -cf %s'
   when: item.authorized_keys is defined
-  with_item: user_info
+  with_items: user_info
 
 - name: create bashrc file for normal users
   template: >
@@ -121,6 +123,7 @@
     src=default.profile.j2
     dest=/home/{{ item.name }}/.profile mode=0640
     owner={{ item.name }}
+  with_items: user_info
 
 ########################################################
 # All tasks below this line are for restricted users
