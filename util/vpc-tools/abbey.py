@@ -675,7 +675,7 @@ if __name__ == '__main__':
         sqs_queue = None
         instance_id = None
 
-        run_id = "abbey-{}-{}-{}-{}".format(
+        run_id = "{}-abbey-{}-{}-{}".format(
             int(time.time() * 100), args.environment, args.deployment, args.play)
 
         ec2_args = create_instance_args()
