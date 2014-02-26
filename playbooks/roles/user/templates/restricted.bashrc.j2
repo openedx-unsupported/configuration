@@ -1,0 +1,1 @@
+PATH=${HOME}/bin

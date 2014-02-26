@@ -144,9 +144,9 @@
   with_items: user_info
 
 - name: create sudoers file from template
-  copy:
+  template:
     dest=/etc/sudoers.d/{{ item.sudoers_template|basename|replace('.j2','') }}
-    src={{ item.sudoers_template }} owner="root"
+    src=etc/sudoers.d/{{ item.sudoers_template }} owner="root"
     group="root" mode=0440 validate='visudo -cf %s'
   when: item.restricted is defined and item.sudoers_template is defined
   with_items: user_info
@@ -168,9 +168,10 @@
 
 - name: create allowed command links
   file:
-    src={{ item[1] }} dest=/home/{{ item[0] }}/bin/{{ item.[1]|basename }}
-    state=link
-  when: when item[0].restricted is defined
+    src: "{{ item[1] }}"
+    dest: "/home/{{ item[0].name }}/bin/{{ item[1]|basename }}"
+    state: link
+  when: item[0].restricted is defined
   with_nested:
     - user_info
     - user_rbash_links
