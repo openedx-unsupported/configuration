@@ -172,11 +172,13 @@ instance_tags:
     owner: $BUILD_USER
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
-gh_users:
-  - ${github_username}
+user_data:
+  - name: ${github_username}
+    github: true
+    type: admin
 dns_zone: $dns_zone
 rabbitmq_refresh: True
-GH_USERS_PROMPT: '[$name_tag] '
+USER_CMD_PROMPT: '[$name_tag] '
 elb: $elb
 EOF
 
