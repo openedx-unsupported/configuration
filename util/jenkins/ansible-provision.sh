@@ -175,7 +175,7 @@ name_tag: $name_tag
 user_data:
   - name: ${github_username}
     github: true
-    admin: true
+    type: admin
 dns_zone: $dns_zone
 rabbitmq_refresh: True
 USER_CMD_PROMPT: '[$name_tag] '

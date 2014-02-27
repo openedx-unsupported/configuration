@@ -19,6 +19,11 @@
 # (2) admin users with full sudo permissions
 # (3) restricted users that use rbash and are locked down to specific sudo commands
 #
+# The parameter "type" sets the user in one of these three categories:
+#   (1) type not set
+#   (2) type=admin
+#   (3) type=restricted
+#
 # Dependencies:
 #
 # This role has no dependencies but requires parameters
@@ -39,7 +44,7 @@
 #       # for edxapp, it creates a user that can only
 #       # run manage.py commands
 #       - name: automator
-#         restricted: true
+#         type: restricted
 #         # The sudoers file is optional.
 #         sudoers_template: '99-edxapp-manage-cmds.j2'
 #         authorized_keys:
@@ -50,7 +55,7 @@
 #       # with full sudo, key fetched from github
 #       - name: frank
 #         github: true
-#         admin: true
+#         type: admin
 #
 #       # This user is a normal login user without sudo, with
 #       # a couple keys passed in as parameters
@@ -92,7 +97,7 @@
   user:
     name={{ item.name }}
     groups=edxadmin
-  when: item.admin is defined
+  when: item.type is defined and item.type == 'admin'
   with_items: user_info
 
 # authorized_keys2 used here so that personal
@@ -119,7 +124,7 @@
     src=default.bashrc.j2
     dest=/home/{{ item.name }}/.bashrc mode=0640
     owner={{ item.name }}
-  when: item.restricted is not defined
+  when: not (item.type is defined and item.type == 'restricted')
   with_items: user_info
 
 - name: create .profile for all users
@@ -136,7 +141,7 @@
   user:
     name={{ item.name }}
     shell=/bin/rbash
-  when: item.restricted is defined
+  when: item.type is defined and item.type == 'restricted'
   with_items: user_info
 
 - name: create bashrc file for restricted users
@@ -144,7 +149,7 @@
     src=restricted.bashrc.j2
     dest=/home/{{ item.name }}/.bashrc mode=0640
     owner={{ item.name }}
-  when: item.restricted is defined
+  when: item.type is defined and item.type == 'restricted'
   with_items: user_info
 
 - name: create sudoers file from template
@@ -152,7 +157,7 @@
     dest=/etc/sudoers.d/{{ item.sudoers_template|basename|replace('.j2','') }}
     src=etc/sudoers.d/{{ item.sudoers_template }} owner="root"
     group="root" mode=0440 validate='visudo -cf %s'
-  when: item.restricted is defined and item.sudoers_template is defined
+  when: item.type is defined and item.type == 'restricted' and item.sudoers_template is defined
   with_items: user_info
 
   # Prevent restricted user from updating their PATH and
@@ -160,14 +165,14 @@
 
 - name: change home directory ownership to root for restricted users
   shell: "chown -R root:{{ item.name }} /home/{{ item.name }}"
-  when: item.restricted is defined
+  when: item.type is defined and item.type == 'restricted'
   with_items: user_info
 
 - name: create ~/bin directory
   file:
     path=/home/{{ item.name }}/bin state=directory mode=0750
     owner="root" group={{ item.name }}
-  when: item.restricted is defined
+  when: item.type is defined and item.type == 'restricted'
   with_items: user_info
 
 - name: create allowed command links
@@ -175,7 +180,7 @@
     src: "{{ item[1] }}"
     dest: "/home/{{ item[0].name }}/bin/{{ item[1]|basename }}"
     state: link
-  when: item[0].restricted is defined
+  when: item[0].type is defined and item[0].type == 'restricted'
   with_nested:
     - user_info
     - user_rbash_links

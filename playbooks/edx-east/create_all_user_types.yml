@@ -3,10 +3,15 @@
 # Example: ansible-playbook -i "jarv.m.sandbox.edx.org,"  ./create_user.yml -e "user=jarv"
 # Create a user with sudo privileges
 # Example: ansible-playbook -i "jarv.m.sandbox.edx.org,"  ./create_user.yml -e "user=jarv" -e "give_sudo=true"
-- name: Create a single user
+- name: Create all user types (test play)
   hosts: all
   sudo: True
   gather_facts: False
+  vars_files:
+    - 'roles/edxapp/defaults/main.yml'
+    - 'roles/common/defaults/main.yml'
+    - 'roles/analytics-server/defaults/main.yml'
+    - 'roles/analytics/defaults/main.yml'
   pre_tasks:
     - fail: msg="You must pass a user into this play"
       when: user is not defined
@@ -15,13 +20,14 @@
         user_info:
           - name: "{{ user }}"
             github: true
-      when: give_sudo is not defined
-    - name: give access with sudo
-      set_fact:
-        user_info:
-          - name: "{{ user }}"
+          - name: test-admin-user
             type: admin
-            github: true
-      when: give_sudo is defined
+          - name: test-normal-user
+          - name: test-restricted-user-edxapp
+            type: restricted
+            sudoers_template: 99-edxapp-manage-cmds.j2
+          - name: test-restricted-user-anayltics
+            type: restricted
+            sudoers_template: 99-analytics-manage-cmds.j2
   roles:
     - user
