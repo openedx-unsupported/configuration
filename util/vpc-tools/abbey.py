@@ -521,7 +521,15 @@ def create_ami(instance_id, name, description):
         try:
             img = ec2.get_image(image_id)
             if img.state == 'available':
-                break
+                img.add_tag("environment", args.environment)
+                img.add_tag("deployment", args.deployment)
+                img.add_tag("play", args.play)
+                img.add_tag("configuration_ref", args.configuration_version)
+                img.add_tag("configuration_secure_ref", args.configuration_secure_version)
+                img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                for repo,ref in git_refs:
+                    key = "vars:{}".format(repo)
+                    image.add_tag(key, ref)
             else:
                 time.sleep(1)
         except EC2ResponseError as e:
@@ -533,17 +541,6 @@ def create_ami(instance_id, name, description):
             time.sleep(1)
     else:
         raise Exception("Timeout waiting for AMI to finish")
-
-    image = ec2.get_all_images([image_id])[0]
-    image.add_tag("environment", args.environment)
-    image.add_tag("deployment", args.deployment)
-    image.add_tag("play", args.play)
-    image.add_tag("configuration_ref", args.configuration_version)
-    image.add_tag("configuration_secure_ref", args.configuration_secure_version)
-    image.add_tag("configuration_secure_repo", args.configuration_secure_repo)
-    for repo,ref in git_refs:
-        key = "vars:{}".format(repo)
-        image.add_tag(key, ref)
 
     return image_id
 
