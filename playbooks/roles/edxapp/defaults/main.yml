@@ -127,12 +127,18 @@ EDXAPP_SANDBOX_ENFORCE: true
 # role.
 EDXAPP_AUTOMATOR_NAME: automator
 EDXAPP_AUTOMATOR_AUTHORIZED_KEYS: []
+# These are the commands allowed by the automator role.
+# The --settings parameter must be set at the end so that
+# is caught by the glob.
+# Example: sudo -u www-data /edx/bin/python.edxapp /edx/bin/manage.edxapp lms migrate --settings=aws
 EDXAPP_AUTOMATOR_SUDO_CMDS:
-- "ALL=({{ common_web_user }})	NOPASSWD:SETENV:{{ edxapp_venv_dir }}/bin/django-admin.py	migrate *"
-- "ALL=({{ common_web_user }})	NOPASSWD:SETENV:{{ edxapp_venv_dir }}/bin/django-admin.py	seed_permissions_roles *"
-- "ALL=({{ common_web_user }})	NOPASSWD:SETENV:{{ edxapp_venv_dir }}/bin/django-admin.py	set_staff *"
-- "ALL=({{ common_web_user }})	NOPASSWD:SETENV:{{ edxapp_venv_dir }}/bin/django-admin.py	transfer_students *"
-
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms migrate *"
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp cms migrate *"
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms syncdb *"
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp cms syncdb *"
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms seed_permissions_roles *"
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms set_staff *"
+- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms transfer_students *"
 
 EDXAPP_USE_GIT_IDENTITY: false
 # Example: "{{ secure_dir }}/files/git-identity"
