@@ -193,7 +193,7 @@ def notify_abbey(config, deployment, all_plays, release_id,
                 params['play'] = play_name
                 params['deployment'] = deployment
                 params['environment'] = env
-                params['vars'] = yaml.safe_dump(play['vars'], default_flow_style=False)
+                params['refs'] = yaml.safe_dump(play['vars'], default_flow_style=False)
                 params['release_id'] = release_id
                 params['mongo_uri'] = mongo_uri
                 params['configuration'] = configuration_ref
