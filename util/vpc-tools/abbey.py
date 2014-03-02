@@ -527,7 +527,8 @@ def create_ami(instance_id, name, description):
                 img.add_tag("configuration_ref", args.configuration_version)
                 img.add_tag("configuration_secure_ref", args.configuration_secure_version)
                 img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
-                for repo,ref in git_refs:
+                img.add_tag("build_id", args.jenkins_build)
+                for repo,ref in git_refs.items():
                     key = "vars:{}".format(repo)
                     image.add_tag(key, ref)
             else:
