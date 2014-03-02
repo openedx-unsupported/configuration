@@ -530,7 +530,7 @@ def create_ami(instance_id, name, description):
                 img.add_tag("build_id", args.jenkins_build)
                 for repo,ref in git_refs.items():
                     key = "vars:{}".format(repo)
-                    image.add_tag(key, ref)
+                    img.add_tag(key, ref)
             else:
                 time.sleep(1)
         except EC2ResponseError as e:
