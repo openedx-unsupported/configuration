@@ -1,11 +1,12 @@
-# ansible-playbook -i ec2.py --limit="tag_group_grader:&tag_environment_stage" legacy_ora.yml -e "COMMON_ENV_TYPE=stage secure_dir=/path/to/secure/dir"
+# ansible-playbook -i ec2.py --limit="tag_group_grader:&tag_environment_stage" legacy_ora.yml -e "COMMON_ENVIRONMENT=stage COMMON_DEPLOYMENT=edx secure_dir=/path/to/secure/dir"
 - name: Deploy legacy_ora
   hosts: all
   sudo: True
   gather_facts: True
-  vars:
-    ora_app_dir: '/opt/wwc'
-    ora_user: 'www-data'
   serial: 1
+  vars_files:
+  - "{{secure_dir}}/vars/{{COMMON_ENVIRONMENT}}/legacy-ora.yml"
   roles:
     - legacy_ora
+    - splunkforwarder
+    - newrelic
