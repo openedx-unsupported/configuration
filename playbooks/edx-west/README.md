@@ -29,7 +29,7 @@ Ansible Commands - Prod
 Generally we do installs as the "ubuntu" user.  You want to make
 sure that the stanford-deploy-20130415 ssh key is in your ssh agent.
 
-    ANSIBLE_EC2_INI=ec2.ini ansible-playbook prod-log.yml -u ubuntu -c ssh -i ./ec2.py
+    ANSIBLE_CONFIG=prod-ansible.cfg ANSIBLE_EC2_INI=ec2.ini ansible-playbook prod-log.yml -u ubuntu -c ssh -i ./ec2.py
 
 
 Ansible Commands - Stage
