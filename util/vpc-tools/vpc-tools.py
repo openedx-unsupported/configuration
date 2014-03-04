@@ -21,25 +21,33 @@ VERSION="vpc tools 0.1"
 DEFAULT_USER="ubuntu"
 DEFAULT_HOST_CHECK="ask"
 
-JUMPBOX_CONFIG = """
-    Host {jump_box}
-      HostName {ip}
-      ForwardAgent yes
-      User {user}
-      StrictHostKeyChecking {strict_host_check}
-      {identity_line}
+BASTION_CONFIG = """Host {jump_box}
+    HostName {ip}
+    ForwardAgent yes
+    User {user}
+    StrictHostKeyChecking {strict_host_check}
+    {identity_line}
     """
 
-HOST_CONFIG = """
-    # Instance ID: {instance_id}
-    Host {name}
-      ProxyCommand ssh {config_file} -W %h:%p {jump_box}
-      HostName {ip}
-      ForwardAgent yes
-      User {user}
-      StrictHostKeyChecking {strict_host_check}
-      {identity_line}
+HOST_CONFIG = """# Instance ID: {instance_id}
+Host {name}
+    ProxyCommand ssh {config_file} -W %h:%p {jump_box}
+    HostName {ip}
+    ForwardAgent yes
+    User {user}
+    StrictHostKeyChecking {strict_host_check}
+    {identity_line}
     """
+
+BASTION_HOST_CONFIG = """# Instance ID: {instance_id}
+Host {name}
+    HostName {ip}
+    ForwardAgent yes
+    User {user}
+    StrictHostKeyChecking {strict_host_check}
+    {identity_line}
+    """
+
 
 
 def dispatch(args):
@@ -80,7 +88,7 @@ def _ssh_config(args):
     else:
       config_file = ""
 
-    jump_box = "{stack_name}-jumpbox".format(stack_name=stack_name)
+    jump_box = "{stack_name}-bastion".format(stack_name=stack_name)
     friendly = "{stack_name}-{logical_id}-{instance_number}"
     id_type_counter = defaultdict(int)
 
@@ -105,39 +113,61 @@ def _ssh_config(args):
 
             if logical_id == "BastionHost" or logical_id == 'bastion':
 
-                print JUMPBOX_CONFIG.format(
+                print BASTION_CONFIG.format(
                     jump_box=jump_box,
                     ip=instance.ip_address,
                     user=user,
                     strict_host_check=strict_host_check,
                     identity_line=identity_line)
 
-            # Print host config even for the bastion box because that is how
-            # ansible accesses it.
-            print HOST_CONFIG.format(
-                name=instance.private_ip_address,
-                jump_box=jump_box,
-                ip=instance.private_ip_address,
-                user=user,
-                config_file=config_file,
-                strict_host_check=strict_host_check,
-                instance_id=instance.id,
-                identity_line=identity_line)
+                print BASTION_HOST_CONFIG.format(
+                    name=instance.private_ip_address,
+                    ip=instance.ip_address,
+                    user=user,
+                    instance_id=instance.id,
+                    strict_host_check=strict_host_check,
+                    identity_line=identity_line)
 
-            #duplicating for convenience with ansible
-            name = friendly.format(stack_name=stack_name,
-                                   logical_id=logical_id,
-                                   instance_number=instance_number)
+                #duplicating for convenience with ansible
+                name = friendly.format(stack_name=stack_name,
+                                       logical_id=logical_id,
+                                       instance_number=instance_number)
 
-            print HOST_CONFIG.format(
-                name=name,
-                jump_box=jump_box,
-                ip=instance.private_ip_address,
-                user=user,
-                config_file=config_file,
-                strict_host_check=strict_host_check,
-                instance_id=instance.id,
-                identity_line=identity_line)
+                print BASTION_HOST_CONFIG.format(
+                    name=name,
+                    ip=instance.ip_address,
+                    user=user,
+                    strict_host_check=strict_host_check,
+                    instance_id=instance.id,
+                    identity_line=identity_line)
+
+            else:
+                # Print host config even for the bastion box because that is how
+                # ansible accesses it.
+                print HOST_CONFIG.format(
+                    name=instance.private_ip_address,
+                    jump_box=jump_box,
+                    ip=instance.private_ip_address,
+                    user=user,
+                    config_file=config_file,
+                    strict_host_check=strict_host_check,
+                    instance_id=instance.id,
+                    identity_line=identity_line)
+
+                #duplicating for convenience with ansible
+                name = friendly.format(stack_name=stack_name,
+                                       logical_id=logical_id,
+                                       instance_number=instance_number)
+
+                print HOST_CONFIG.format(
+                    name=name,
+                    jump_box=jump_box,
+                    ip=instance.private_ip_address,
+                    user=user,
+                    config_file=config_file,
+                    strict_host_check=strict_host_check,
+                    instance_id=instance.id,
+                    identity_line=identity_line)
 
 if __name__ == '__main__':
     args = docopt(__doc__, version=VERSION)
