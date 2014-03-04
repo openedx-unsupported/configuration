@@ -24,26 +24,55 @@
 
 - name: "writing {{ item }} supervisor script"
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }}
+    group={{ supervisor_user }}
   with_items: service_variants_enabled
-  when: celery_worker is not defined and not devstack
   sudo_user: "{{ supervisor_user }}"
 
 - name: writing edxapp supervisor script
   template: >
-    src=edxapp.conf.j2 dest={{ supervisor_cfg_dir }}/edxapp.conf
+    src=edxapp.conf.j2 dest={{ supervisor_available_dir }}/edxapp.conf
     owner={{ supervisor_user }}
-  when: celery_worker is not defined and not devstack
+    group={{ supervisor_user }}
   sudo_user: "{{ supervisor_user }}"
 
 # write the supervisor script for celery workers
 
 - name: writing celery worker supervisor script
   template: >
-    src=workers.conf.j2 dest={{ supervisor_cfg_dir }}/workers.conf
+    src=workers.conf.j2 dest={{ supervisor_available_dir }}/workers.conf
     owner={{ supervisor_user }}
-  when: celery_worker is defined and not devstack
+    group={{ supervisor_user }}
+  sudo_user: "{{ supervisor_user }}"
+
+# Enable the supervisor jobs
+- name: "enable {{ item }} supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    state=link
+    force=yes
+  with_items: service_variants_enabled
+  when: celery_worker is not defined and not disable_edx_services
+  sudo_user: "{{ supervisor_user }}"
+
+- name: "enable edxapp supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/edxapp.conf
+    dest={{ supervisor_cfg_dir }}/edxapp.conf
+    state=link
+    force=yes
+  when: celery_worker is not defined and not disable_edx_services
+  sudo_user: "{{ supervisor_user }}"
+
+- name: "enable celery worker supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/workers.conf
+    dest={{ supervisor_cfg_dir }}/workers.conf
+    state=link
+    force=yes
+  when: celery_worker is defined and not disable_edx_services
   sudo_user: "{{ supervisor_user }}"
 
 # Fake syncdb with migrate, only when fake_migrations is defined

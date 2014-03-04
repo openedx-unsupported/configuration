@@ -2,11 +2,23 @@
 
 - name: create the supervisor config
   template: >
-    src=forum.conf.j2 dest={{ supervisor_cfg_dir }}/forum.conf
+    src=forum.conf.j2 dest={{ supervisor_available_dir }}/forum.conf
     owner={{ supervisor_user }}
+    group={{ supervisor_user }}
     mode=0644
   sudo_user: "{{ supervisor_user }}"
-  when: not devstack
+  register: forum_supervisor
+
+- name: enable the supervisor config
+  file: >
+    src={{ supervisor_available_dir }}/forum.conf
+    dest={{ supervisor_cfg_dir }}/forum.conf
+    owner={{ supervisor_user }}
+    state=link
+    force=yes
+    mode=0644
+  sudo_user: "{{ supervisor_user }}"
+  when: not disable_edx_services
   register: forum_supervisor
 
 - name: create the supervisor wrapper
@@ -15,7 +27,6 @@
     dest={{ forum_supervisor_wrapper }}
     mode=0755
   sudo_user: "{{ forum_user }}"
-  when: not devstack
   notify: restart the forum service
 
 - name:  git checkout forum repo into {{ forum_code_dir }}
@@ -41,7 +52,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
-  when: not devstack
+  when: not disable_edx_services
 
 - name: ensure forum is started
   supervisorctl_local: >
@@ -49,7 +60,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: not disable_edx_services
 
 - include: test.yml tags=deploy
 
