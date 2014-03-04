@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) user <user> [(identity-file <identity_file>)] [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
+    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) [(identity-file <identity_file>)] user <user> [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
