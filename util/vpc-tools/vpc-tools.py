@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) identity-file <identity_file> user <user> [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
+    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) user <user> [(identity-file <identity_file>)] [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
@@ -24,10 +24,10 @@ DEFAULT_HOST_CHECK="ask"
 JUMPBOX_CONFIG = """
     Host {jump_box}
       HostName {ip}
-      IdentityFile {identity_file}
       ForwardAgent yes
       User {user}
       StrictHostKeyChecking {strict_host_check}
+      {identity_line}
     """
 
 HOST_CONFIG = """
@@ -35,10 +35,10 @@ HOST_CONFIG = """
     Host {name}
       ProxyCommand ssh {config_file} -W %h:%p {jump_box}
       HostName {ip}
-      IdentityFile {identity_file}
       ForwardAgent yes
       User {user}
       StrictHostKeyChecking {strict_host_check}
+      {identity_line}
     """
 
 
@@ -59,7 +59,12 @@ def _ssh_config(args):
 
     vpc = boto.connect_vpc()
 
-    identity_file = args.get("<identity_file>")
+    identity_file = args.get("<identity_file>", None)
+    if identity_file:
+        identity_line = "IdentityFile {}".format(identity_file)
+    else:
+        identity_line = ""
+
     user = args.get("<user>")
     config_file = args.get("<config_file>")
     strict_host_check = args.get("<strict_host_check>")
@@ -104,8 +109,8 @@ def _ssh_config(args):
                     jump_box=jump_box,
                     ip=instance.ip_address,
                     user=user,
-                    identity_file=identity_file,
-                    strict_host_check=strict_host_check)
+                    strict_host_check=strict_host_check,
+                    identity_line=identity_line)
 
             # Print host config even for the bastion box because that is how
             # ansible accesses it.
@@ -114,10 +119,10 @@ def _ssh_config(args):
                 jump_box=jump_box,
                 ip=instance.private_ip_address,
                 user=user,
-                identity_file=identity_file,
                 config_file=config_file,
                 strict_host_check=strict_host_check,
-                instance_id=instance.id)
+                instance_id=instance.id,
+                identity_line=identity_line)
 
             #duplicating for convenience with ansible
             name = friendly.format(stack_name=stack_name,
@@ -129,10 +134,10 @@ def _ssh_config(args):
                 jump_box=jump_box,
                 ip=instance.private_ip_address,
                 user=user,
-                identity_file=identity_file,
                 config_file=config_file,
                 strict_host_check=strict_host_check,
-                instance_id=instance.id)
+                instance_id=instance.id,
+                identity_line=identity_line)
 
 if __name__ == '__main__':
     args = docopt(__doc__, version=VERSION)
