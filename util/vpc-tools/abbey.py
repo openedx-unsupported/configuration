@@ -124,7 +124,7 @@ def parse_args():
                         metavar="SECURE_VAR_FILE",
                         help="path to secure-vars from the root of "
                         "the secure repo (defaults to ansible/"
-                        "vars/DEPLOYMENT/ENVIRONMENT-DEPLOYMENT.yml)")
+                        "vars/ENVIRONMENT-DEPLOYMENT.yml)")
     parser.add_argument('--stack-name',
                         help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
@@ -662,7 +662,7 @@ if __name__ == '__main__':
     if args.secure_vars:
         secure_vars = args.secure_vars
     else:
-        secure_vars = "ansible/vars/{}/{}-{}.yml".format(
+        secure_vars = "ansible/vars/{}-{}.yml".format(
                       args.environment, args.environment, args.deployment)
     if args.stack_name:
         stack_name = args.stack_name
