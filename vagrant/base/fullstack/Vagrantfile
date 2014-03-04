@@ -1,5 +1,4 @@
 VAGRANTFILE_API_VERSION = "2"
-Vagrant.require_version ">= 1.4"
 
 MEMORY = 2048
 CPU_COUNT = 2
