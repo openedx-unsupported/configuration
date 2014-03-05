@@ -663,7 +663,7 @@ if __name__ == '__main__':
         secure_vars = args.secure_vars
     else:
         secure_vars = "ansible/vars/{}-{}.yml".format(
-                      args.environment, args.environment, args.deployment)
+                      args.environment, args.deployment)
     if args.stack_name:
         stack_name = args.stack_name
     else:
