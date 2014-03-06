@@ -522,15 +522,23 @@ def create_ami(instance_id, name, description):
             img = ec2.get_image(image_id)
             if img.state == 'available':
                 img.add_tag("environment", args.environment)
+                time.sleep(1)
                 img.add_tag("deployment", args.deployment)
+                time.sleep(1)
                 img.add_tag("play", args.play)
+                time.sleep(1)
                 img.add_tag("configuration_ref", args.configuration_version)
+                time.sleep(1)
                 img.add_tag("configuration_secure_ref", args.configuration_secure_version)
+                time.sleep(1)
                 img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                time.sleep(1)
                 img.add_tag("build_id", args.jenkins_build)
+                time.sleep(1)
                 for repo,ref in git_refs.items():
                     key = "vars:{}".format(repo)
                     img.add_tag(key, ref)
+                    time.sleep(1)
             else:
                 time.sleep(1)
         except EC2ResponseError as e:
