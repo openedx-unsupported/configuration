@@ -516,21 +516,30 @@ def create_ami(instance_id, name, description):
               'description': description,
               'no_reboot': True}
 
+    AWS_API_WAIT_TIME = 1
     image_id = ec2.create_image(**params)
     for _ in xrange(AMI_TIMEOUT):
         try:
             img = ec2.get_image(image_id)
             if img.state == 'available':
                 img.add_tag("environment", args.environment)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("deployment", args.deployment)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("play", args.play)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("configuration_ref", args.configuration_version)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("configuration_secure_ref", args.configuration_secure_version)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("build_id", args.jenkins_build)
+                time.sleep(AWS_API_WAIT_TIME)
                 for repo,ref in git_refs.items():
                     key = "vars:{}".format(repo)
                     img.add_tag(key, ref)
+                    time.sleep(AWS_API_WAIT_TIME)
             else:
                 time.sleep(1)
         except EC2ResponseError as e:
