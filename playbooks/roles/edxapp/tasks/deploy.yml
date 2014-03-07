@@ -7,6 +7,20 @@
     owner={{ edxapp_user }}  group={{ common_web_user }}
     mode=0644
 
+- name: Get current time
+  shell: 'date +%s'
+  register: time_in_seconds
+
+- name: Update the static_files_key_prefix
+  set_fact:
+    EDXAPP_ENV_EXTRA:
+      CACHES:
+        staticfiles:
+          KEY_PREFIX: '{{time_in_seconds.stdout}}'
+
+- name: Print out the staticfiles prefix
+  debug: msg="Setting static_files_cache_prefix to {{time_in_seconds.stdout}}"
+
 # Optional auth for git
 - name: create ssh script for git (not authenticated)
   template: >
