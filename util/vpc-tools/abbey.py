@@ -340,7 +340,7 @@ fake_migrations: true
 
 # Use the build number an the dynamic cache key.
 EDXOAPP_UPDATE_STATIC_FILES_KEY: true
-edxapp_dynamic_cache_key: {build_id}
+edxapp_dynamic_cache_key: {environment}-{deployment}-{play}-{build_id}
 EOF
 
 chmod 400 $secure_identity
