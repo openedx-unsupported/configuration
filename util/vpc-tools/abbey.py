@@ -518,10 +518,12 @@ def create_ami(instance_id, name, description):
 
     AWS_API_WAIT_TIME = 1
     image_id = ec2.create_image(**params)
+    print("Checking if image is ready.")
     for _ in xrange(AMI_TIMEOUT):
         try:
             img = ec2.get_image(image_id)
             if img.state == 'available':
+                print("Tagging image.")
                 img.add_tag("environment", args.environment)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("deployment", args.deployment)
@@ -540,6 +542,7 @@ def create_ami(instance_id, name, description):
                     key = "vars:{}".format(repo)
                     img.add_tag(key, ref)
                     time.sleep(AWS_API_WAIT_TIME)
+                break
             else:
                 time.sleep(1)
         except EC2ResponseError as e:
