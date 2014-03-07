@@ -382,7 +382,7 @@ rm -rf $base_dir
                 extra_vars_yml=extra_vars_yml,
                 git_refs_yml=git_refs_yml,
                 secure_vars=secure_vars,
-                build_id=args.jenkin_build)
+                build_id=args.jenkins_build)
 
     ec2_args = {
         'security_group_ids': [security_group_id],
