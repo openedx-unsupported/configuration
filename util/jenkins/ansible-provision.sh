@@ -172,7 +172,7 @@ instance_tags:
     owner: $BUILD_USER
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
-USER_INFO:
+COMMON_USER_INFO:
   - name: ${github_username}
     github: true
     type: admin
