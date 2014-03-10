@@ -68,7 +68,8 @@
     {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
   when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes"
   environment:
-    DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD }}"
+    DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_ADMIN }}"
+    DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"
@@ -97,6 +98,9 @@
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
   when: fake_migrations is not defined and migrate_only is defined and migrate_only|lower == "yes"
+  environment:
+    DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_ADMIN }}"
+    DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"
