@@ -33,21 +33,8 @@
   vars_prompt:
     # passwords use vars_prompt so they aren't in the
     # bash history
-    - name: "edxapp_db_root_pass"
-      prompt: "Password for edxapp root mysql user (enter to skip)"
-      default: "None"
-      private: True
-    - name: "xqueue_db_root_pass"
-      prompt: "Password for xqueue root mysql user (enter to skip)"
-      default: "None"
-      private: True
-    - name: "ora_db_root_pass"
-      prompt: "Password for ora root mysql user (enter to skip)"
-      default: "None"
-      private: True
-    - name: "discern_db_root_pass"
-      prompt: "Password for discern root mysql user (enter to skip)"
-      default: "None"
+    - name: "db_root_pass"
+      prompt: "Password for root mysql user"
       private: True
 
 
@@ -72,17 +59,58 @@
           - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
             db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
             db_user: "{{ edxapp_db_root_user }}"
-            db_pass: "{{ edxapp_db_root_pass }}"
+            db_pass: "{{ db_root_pass }}"
           - db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
             db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
             db_user: "{{ xqueue_db_root_user }}"
-            db_pass: "{{ xqueue_db_root_pass }}"
+            db_pass: "{{ db_root_pass }}"
           - db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
             db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
             db_user: "{{ ora_db_root_user }}"
-            db_pass: "{{ ora_db_root_pass }}"
+            db_pass: "{{ db_root_pass }}"
 
-    - name: assign mysql user permissions for db user
+
+    - name: assign mysql user permissions for read_only user
+      mysql_user:
+        name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
+        priv: "*.*:SELECT"
+        password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        host: '%'
+      with_items:
+        - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+        - db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+          db_user: "{{ xqueue_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+        - db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+          db_user: "{{ ora_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+
+    - name: assign mysql user permissions for admin user
+      mysql_user:
+        name: "{{ COMMON_MYSQL_ADMIN_USER }}"
+        priv: "*.*:CREATE USER"
+        password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        host: '%'
+      with_items:
+        - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+        - db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+          db_user: "{{ xqueue_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+        - db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+          db_user: "{{ ora_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+
+    - name: assign mysql user permissions for db users
       mysql_user:
         name: "{{ item.db_user_to_modify }}"
         priv: "{{ item.db_name }}.*:SELECT,INSERT,UPDATE,DELETE"
@@ -99,19 +127,19 @@
         - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
           db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
           db_user: "{{ edxapp_db_root_user|default('None') }}"
-          db_pass: "{{ edxapp_db_root_pass|default('None') }}"
+          db_pass: "{{ db_root_pass|default('None') }}"
           db_user_to_modify: "{{ EDXAPP_MYSQL_USER }}"
           db_user_to_modify_pass: "{{ EDXAPP_MYSQL_PASSWORD }}"
         - db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
           db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
           db_user: "{{ xqueue_db_root_user|default('None') }}"
-          db_pass: "{{ xqueue_db_root_pass|default('None') }}"
+          db_pass: "{{ db_root_pass|default('None') }}"
           db_user_to_modify: "{{ XQUEUE_MYSQL_USER }}"
           db_user_to_modify_pass: "{{ XQUEUE_MYSQL_PASSWORD }}"
         - db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
           db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
           db_user: "{{ ora_db_root_user|default('None') }}"
-          db_pass: "{{ ora_db_root_pass|default('None') }}"
+          db_pass: "{{ db_root_pass|default('None') }}"
           db_user_to_modify: "{{ ORA_MYSQL_USER }}"
           db_user_to_modify_pass: "{{ ORA_MYSQL_PASSWORD }}"
 
@@ -139,18 +167,18 @@
         - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
           db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
           db_user: "{{ edxapp_db_root_user|default('None') }}"
-          db_pass: "{{ edxapp_db_root_pass|default('None') }}"
+          db_pass: "{{ db_root_pass|default('None') }}"
           db_user_to_modify: "{{ EDXAPP_MYSQL_USER }}"
           db_user_to_modify_pass: "{{ EDXAPP_MYSQL_PASSWORD }}"
         - db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
           db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
           db_user: "{{ xqueue_db_root_user|default('None') }}"
-          db_pass: "{{ xqueue_db_root_pass|default('None') }}"
+          db_pass: "{{ db_root_pass|default('None') }}"
           db_user_to_modify: "{{ XQUEUE_MYSQL_USER }}"
           db_user_to_modify_pass: "{{ XQUEUE_MYSQL_PASSWORD }}"
         - db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
           db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
           db_user: "{{ ora_db_root_user|default('None') }}"
-          db_pass: "{{ ora_db_root_pass|default('None') }}"
+          db_pass: "{{ db_root_pass|default('None') }}"
           db_user_to_modify: "{{ ORA_MYSQL_USER }}"
           db_user_to_modify_pass: "{{ ORA_MYSQL_PASSWORD }}"
