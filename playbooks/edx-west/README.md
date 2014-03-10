@@ -31,13 +31,19 @@ sure that the stanford-deploy-20130415 ssh key is in your ssh agent.
 
 Some specifics:
 
-* To hit multiple machines the -e parameter would look like this: ```"machine=app(1|2|4)"```.
+* To do database migrations, include this: ```-e "migrate_db=yes"```.  The default
+  behavior is to not do migrations.
+
+* To hit multiple machines the use this: ```-e "machine=app(1|2|4)"```.
+  Use multiple separate "-e" options to specify multiple vars on the
+  command line.
 
 * Usually I do with the ```--list-hosts``` option first to verify that I'm
   doing something sane before actually running.
 
-* To do the utility machines, use ```prod-worker.yml```.  Those also
-  take the machine variable.
+* To install the utility machines, substitute ```prod-worker.yml```.  Those
+  are also parameterized on the take the machine variable (util1, util(1|2),
+  and so forth).
 
 
 ## Ansible Commands - Stage

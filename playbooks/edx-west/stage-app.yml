@@ -1,11 +1,10 @@
-- hosts: tag_environment_stage:&tag_function_webserver
-#- hosts: tag_Name_app1_stage
+# This uses variable expansion so you can select machine(s) from the command line
+# using the -e flag.  See README for instructions on how to use.
+- hosts: ~tag_Name_{{ machine }}_stage
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'app' machines"
+    when: "'app' not in machine"
   sudo: True
-  vars_prompt:
-    - name: "migrate_db"
-      prompt: "Should this playbook run database migrations? (Type 'yes' to run, anything else to skip migrations)"
-      default: "no"
-      private: no
   vars:
     not_prod: true
     secure_dir: ../../../edx-secret/ansible
