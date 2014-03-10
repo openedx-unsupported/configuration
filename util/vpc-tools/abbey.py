@@ -339,7 +339,7 @@ EDXAPP_LOCAL_GIT_IDENTITY: $secure_identity
 fake_migrations: true
 
 # Use the build number an the dynamic cache key.
-EDXOAPP_UPDATE_STATIC_FILES_KEY: true
+EDXAPP_UPDATE_STATIC_FILES_KEY: true
 edxapp_dynamic_cache_key: {deployment}-{environment}-{play}-{build_id}
 EOF
 
