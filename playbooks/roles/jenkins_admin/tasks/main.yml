@@ -123,3 +123,11 @@
 - name: install system packages for edxapp virtualenvs
   apt: pkg={{ item }} state=present
   with_items: jenkins_admin_debian_pkgs
+
+# This is necessary so that ansible can run with
+# sudo set to True (as the jenkins user) on jenkins
+- name: grant sudo access to the jenkins user
+  copy: >
+    content="{{ jenkins_user }} ALL=({{ jenkins_user }}) NOPASSWD:ALL"
+    dest=/etc/sudoers.d/99-jenkins owner=root group=root
+    mode=0440 validate='visudo -cf %s'
