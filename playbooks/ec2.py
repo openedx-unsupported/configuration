@@ -156,7 +156,6 @@ class Ec2Inventory(object):
                 data_to_print = self.get_inventory_from_cache()
             else:
                 data_to_print = self.json_format_dict(self.inventory, True)
-
         print data_to_print
 
 
@@ -217,13 +216,15 @@ class Ec2Inventory(object):
         self.cache_path_cache = cache_path + "/ansible-ec2.cache"
         self.cache_path_index = cache_path + "/ansible-ec2.index"
         self.cache_max_age = config.getint('ec2', 'cache_max_age')
-        
+
 
 
     def parse_cli_args(self):
         ''' Command line argument processing '''
 
         parser = argparse.ArgumentParser(description='Produce an Ansible Inventory file based on EC2')
+        parser.add_argument('--tags-only', action='store_true', default=False,
+                           help='only return tags (default: False)')
         parser.add_argument('--list', action='store_true', default=True,
                            help='List instances (default: True)')
         parser.add_argument('--host', action='store',
@@ -266,13 +267,13 @@ class Ec2Inventory(object):
             if conn is None:
                 print("region name: %s likely not supported, or AWS is down.  connection to region failed." % region)
                 sys.exit(1)
- 
+
             reservations = conn.get_all_instances()
             for reservation in reservations:
                 instances = sorted(reservation.instances)
                 for instance in instances:
                     self.add_instance(instance, region)
-        
+
         except boto.exception.BotoServerError as e:
             if  not self.eucalyptus:
                 print "Looks like AWS is down again:"
@@ -349,7 +350,7 @@ class Ec2Inventory(object):
         # Inventory: Group by key pair
         if instance.key_name:
             self.push(self.inventory, self.to_safe('key_' + instance.key_name), dest)
-        
+
         # Inventory: Group by security group
         try:
             for group in instance.groups:
@@ -403,10 +404,10 @@ class Ec2Inventory(object):
 
         # Inventory: Group by availability zone
         self.push(self.inventory, instance.availability_zone, dest)
-        
+
         # Inventory: Group by instance type
         self.push(self.inventory, self.to_safe('type_' + instance.instance_class), dest)
-        
+
         # Inventory: Group by security group
         try:
             if instance.security_group:
@@ -574,7 +575,8 @@ class Ec2Inventory(object):
     def json_format_dict(self, data, pretty=False):
         ''' Converts a dict to a JSON object and dumps it as a formatted
         string '''
-
+        if self.args.tags_only:
+            data = [key for key in data.keys() if 'tag_' in key]
         if pretty:
             return json.dumps(data, sort_keys=True, indent=2)
         else:
