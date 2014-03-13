@@ -26,15 +26,11 @@
     owner={{ certs_user }} mode=750
   notify: restart certs
 
-- stat: path={{ CERTS_LOCAL_GIT_IDENTITY }}
-  register: certs_identity
-
 - name: install read-only ssh key for the certs repo
   copy: >
-    src={{ CERTS_LOCAL_GIT_IDENTITY }} dest={{ certs_git_identity }}
+    content={{ CERTS_GIT_IDENTITY }} dest={{ certs_git_identity }}
     force=yes owner={{ certs_user }} mode=0600
   notify: restart certs
-  when: certs_identity.stat.exists
 
 - name: checkout certificates repo into {{ certs_code_dir }}
   git: dest={{ certs_code_dir }} repo={{ certs_repo }} version={{ certs_version }}
@@ -42,12 +38,10 @@
   environment:
     GIT_SSH: "{{ certs_git_ssh }}"
   notify: restart certs
-  when: certs_identity.stat.exists
 
 - name: remove read-only ssh key for the certs repo
   file: path={{ certs_git_identity }} state=absent
   notify: restart certs
-  when: certs_identity.stat.exists
 
 - name : install python requirements
   pip: requirements="{{ certs_requirements_file }}" virtualenv="{{ certs_venv_dir }}" state=present

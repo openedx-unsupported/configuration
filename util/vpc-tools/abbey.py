@@ -200,11 +200,9 @@ def parse_args():
 
 def get_instance_sec_group(vpc_id):
 
-    security_group_id = None
-
     grp_details = ec2.get_all_security_groups(
         filters={
-            'vpc_id':vpc_id,
+            'vpc_id': vpc_id,
             'tag:play': args.play
         }
     )
@@ -242,10 +240,14 @@ def create_instance_args():
     if args.identity:
         config_secure = 'true'
         with open(args.identity) as f:
-            identity_file = f.read()
+            identity_contents = f.read()
     else:
         config_secure = 'false'
-        identity_file = "dummy"
+        identity_contents = "dummy"
+
+    # indent identity file with 4 spaces for
+    # yaml
+    identity_contents_indent = "\n".join(("    ") + line for line in identity_contents.splitlines())
 
     user_data = """#!/bin/bash
 set -x
@@ -311,7 +313,7 @@ chmod 755 $git_ssh
 
 if $config_secure; then
     cat << EOF > $secure_identity
-{identity_file}
+{identity_contents}
 EOF
 fi
 
@@ -331,7 +333,8 @@ cat << EOF >> $extra_vars
 # EDXAPP_USE_GIT_IDENTITY needs to be set
 # to true in the extra vars for this
 # variable to be used.
-EDXAPP_LOCAL_GIT_IDENTITY: $secure_identity
+EDXAPP_GIT_IDENTITY: |
+{identity_contents_indent}
 
 # abbey will always run fake migrations
 # this is so that the application can come
@@ -377,7 +380,8 @@ rm -rf $base_dir
                 deployment=args.deployment,
                 play=args.play,
                 config_secure=config_secure,
-                identity_file=identity_file,
+                identity_contents_indent=identity_contents_indent,
+                identity_contents=identity_contents,
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
                 git_refs_yml=git_refs_yml,
@@ -543,7 +547,7 @@ def create_ami(instance_id, name, description):
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("build_id", args.jenkins_build)
                 time.sleep(AWS_API_WAIT_TIME)
-                for repo,ref in git_refs.items():
+                for repo, ref in git_refs.items():
                     key = "vars:{}".format(repo)
                     img.add_tag(key, ref)
                     time.sleep(AWS_API_WAIT_TIME)
