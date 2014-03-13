@@ -10,21 +10,18 @@
     - libapache2-mod-shib2
     - opensaml2-tools
   notify: restart shibd
-  tags:
-    - shib
-    - install
 
 - name: Creates /etc/shibboleth/metadata directory
   file: path=/etc/shibboleth/metadata state=directory mode=2774 group=_shibd owner=_shibd
-  tags:
-    - shib
-    - install
 
 - name: Downloads metadata into metadata directory as backup
-  get_url: url=https://idp.stanford.edu/Stanford-metadata.xml dest=/etc/shibboleth/metadata/idp-metadata.xml mode=0640 group=_shibd owner=_shibd
-  tags:
-    - shib
-    - install
+  get_url: >
+    url={{ shib_metadata_backup_url }}
+    dest=/etc/shibboleth/metadata/idp-metadata.xml
+    mode=0640
+    group=_shibd
+    owner=_shibd
+  when: shib_download_metadata
 
 - name: writes out key and pem file
   template: src=sp.{{item}}.j2 dest=/etc/shibboleth/sp.{{item}}  group=_shibd owner=_shibd mode=0600
@@ -32,24 +29,15 @@
     - key
     - pem
   notify: restart shibd
-  tags:
-    - shib
-    - install
 
 - name: writes out configuration files
-  template: src={{item}}.j2 dest=/etc/shibboleth/{{item}}  group=_shibd owner=_shibd mode=0644
+  template: src={{ shib_template_dir }}/{{item}}.j2 dest=/etc/shibboleth/{{item}}  group=_shibd owner=_shibd mode=0644
   with_items:
     - attribute-map.xml
     - shibboleth2.xml
   notify: restart shibd
-  tags:
-    - shib
-    - install
 
 - name: enables shib
   command: a2enmod shib2
   notify: restart shibd
-  tags:
-    - shib
-    - install
 
