@@ -137,13 +137,13 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars
-    ansible-playbook edx_provision.yml  -i inventory.ini -e "@${extra_vars}"  --user ubuntu  -v
+    ansible-playbook edx_provision.yml  -i inventory.ini -e @${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu  -v
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        ansible-playbook rabbitmq.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
-        ansible-playbook restart_supervisor.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu
+        ansible-playbook rabbitmq.yml -i "${deploy_host}," -e@${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
+        ansible-playbook restart_supervisor.yml -i "${deploy_host}," -e@${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
     fi
 fi
 
@@ -157,7 +157,7 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" ]]; then
     cat $extra_vars
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --skip-tags deploy
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu --skip-tags deploy
 fi
 
 if [[ $server_type == "full_edx_installation" ]]; then
@@ -165,7 +165,7 @@ if [[ $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars
-            ansible-playbook ${i}.yml -i "${deploy_host}," -e "@${extra_vars}" --user ubuntu --tags deploy
+            ansible-playbook ${i}.yml -i "${deploy_host}," -e@${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu --tags deploy
         fi
     done
 fi
