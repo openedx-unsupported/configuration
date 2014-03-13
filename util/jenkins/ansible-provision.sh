@@ -25,7 +25,7 @@ if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
 else
-    source "$WORKSPACE/util/jenkins/ascii-convert.sh"
+    source "$WORKSPACE/configuration/util/jenkins/ascii-convert.sh"
 fi
 
 if [[ -z $static_url_base ]]; then
