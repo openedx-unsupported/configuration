@@ -137,7 +137,7 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars
-    ansible-playbook edx_provision.yml  -i inventory.ini -e @${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu  -v
+    ansible-playbook edx_provision.yml  -i inventory.ini -e@${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu  -v
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
