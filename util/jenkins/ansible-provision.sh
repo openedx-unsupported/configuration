@@ -155,12 +155,12 @@ done
 
 # If reconfigure was selected or if starting from an ubuntu 12.04 AMI
 # run non-deploy tasks for all roles
-if [[ $reconfigure == "true" ]]; then
+if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars
     ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu --skip-tags deploy
 fi
 
-if [[ $server_type == "full_edx_installation" ]]; then
+if [[ $server_type == "full_edx_installation" || $server_type == "full_edx_installation_from_scratch" ]]; then
     # Run deploy tasks for the roles selected
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
