@@ -245,10 +245,6 @@ def create_instance_args():
         config_secure = 'false'
         identity_contents = "dummy"
 
-    # indent identity file with 4 spaces for
-    # yaml
-    identity_contents_indent = "\n".join(("    ") + line for line in identity_contents.splitlines())
-
     user_data = """#!/bin/bash
 set -x
 set -e
@@ -326,16 +322,6 @@ cat << EOF >> $extra_vars
 
 {git_refs_yml}
 
-# The private key used for pulling down
-# private edx-platform repos is the same
-# identity of the github huser that has
-# access to the secure vars repo.
-# EDXAPP_USE_GIT_IDENTITY needs to be set
-# to true in the extra vars for this
-# variable to be used.
-EDXAPP_GIT_IDENTITY: |
-{identity_contents_indent}
-
 # abbey will always run fake migrations
 # this is so that the application can come
 # up healthy
@@ -380,7 +366,6 @@ rm -rf $base_dir
                 deployment=args.deployment,
                 play=args.play,
                 config_secure=config_secure,
-                identity_contents_indent=identity_contents_indent,
                 identity_contents=identity_contents,
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
