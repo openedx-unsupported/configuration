@@ -162,8 +162,13 @@ class Ec2Inventory(object):
     def is_cache_valid(self):
         ''' Determines if the cache files have expired, or if it is still valid '''
 
-        if os.path.isfile(self.cache_path_cache):
-            mod_time = os.path.getmtime(self.cache_path_cache)
+        if self.args.tags_only:
+            to_check = self.cache_path_tags
+        else:
+            to_check = self.cache_path_cache
+
+        if os.path.isfile(to_check):
+            mod_time = os.path.getmtime(to_check)
             current_time = time()
             if (mod_time + self.cache_max_age) > current_time:
                 if os.path.isfile(self.cache_path_index):
@@ -214,6 +219,7 @@ class Ec2Inventory(object):
         # Cache related
         cache_path = config.get('ec2', 'cache_path')
         self.cache_path_cache = cache_path + "/ansible-ec2.cache"
+        self.cache_path_tags = cache_path + "/ansible-ec2.tags.cache"
         self.cache_path_index = cache_path + "/ansible-ec2.index"
         self.cache_max_age = config.getint('ec2', 'cache_max_age')
 
@@ -248,9 +254,12 @@ class Ec2Inventory(object):
             self.get_instances_by_region(region)
             self.get_rds_instances_by_region(region)
 
-        self.write_to_cache(self.inventory, self.cache_path_cache)
-        self.write_to_cache(self.index, self.cache_path_index)
+        if self.args.tags_only:
+            self.write_to_cache(self.inventory, self.cache_path_tags)
+        else:
+            self.write_to_cache(self.inventory, self.cache_path_cache)
 
+        self.write_to_cache(self.index, self.cache_path_index)
 
     def get_instances_by_region(self, region):
         ''' Makes an AWS EC2 API call to the list of instances in a particular
@@ -542,8 +551,10 @@ class Ec2Inventory(object):
     def get_inventory_from_cache(self):
         ''' Reads the inventory from the cache file and returns it as a JSON
         object '''
-
-        cache = open(self.cache_path_cache, 'r')
+        if self.args.tags_only:
+            cache = open(self.cache_path_tags, 'r')
+        else:
+            cache = open(self.cache_path_cache, 'r')
         json_inventory = cache.read()
         return json_inventory
 
@@ -557,7 +568,9 @@ class Ec2Inventory(object):
 
 
     def write_to_cache(self, data, filename):
-        ''' Writes data in JSON format to a file '''
+        '''
+            Writes data in JSON format to a file
+            '''
 
         json_data = self.json_format_dict(data, True)
         cache = open(filename, 'w')
