@@ -570,8 +570,6 @@ class Ec2Inventory(object):
     def write_to_cache(self, data, filename):
         '''
             Writes data in JSON format to a file
-            Never write the data to cache if the
-            --tags-only option was used
             '''
 
         json_data = self.json_format_dict(data, True)
