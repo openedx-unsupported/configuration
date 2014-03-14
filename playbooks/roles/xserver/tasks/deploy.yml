@@ -23,25 +23,17 @@
   sudo_user: "{{ xserver_user }}"
   notify: restart xserver
 
-# Check to see if the identity file exists before copying.
-# This extra check is done to prevent failures when
-# ansible-playbook is run locally
-- stat: path={{ XSERVER_LOCAL_GIT_IDENTITY }}
-  register: xserver_identity
-
 - name: install read-only ssh key for the content repo that is required for grading
   copy: >
-    src={{ XSERVER_LOCAL_GIT_IDENTITY }} dest={{ xserver_git_identity }}
+    content="{{ XSERVER_GIT_IDENTITY }}" dest={{ xserver_git_identity }}
     owner={{ xserver_user }} group={{ xserver_user }} mode=0600
   notify: restart xserver
-  when: xserver_identity.stat.exists
 
 - name: upload ssh script
   template: >
     src=git_ssh.sh.j2 dest=/tmp/git_ssh.sh
     owner={{ xserver_user }} mode=750
   notify: restart xserver
-  when: xserver_identity.stat.exists
 
 - name: checkout grader code
   git: dest={{ XSERVER_GRADER_DIR }} repo={{ XSERVER_GRADER_SOURCE }} version={{ xserver_grader_version }}
@@ -49,12 +41,10 @@
     GIT_SSH: /tmp/git_ssh.sh
   notify: restart xserver
   sudo_user: "{{ xserver_user }}"
-  when: xserver_identity.stat.exists
 
 - name: remove read-only ssh key for the content repo
   file: path={{ xserver_git_identity }} state=absent
   notify: restart xserver
-  when: xserver_identity.stat.exists
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
