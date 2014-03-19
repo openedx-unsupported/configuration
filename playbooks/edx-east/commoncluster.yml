@@ -1,0 +1,23 @@
+# ansible-playbook -i ec2.py commoncluster.yml --extra-vars "deployment=edge env=stage" -e@/path/to/vars/env-deployment.yml -T 30 --list-hosts
+
+- hosts: tag_play_commoncluster:&tag_environment_{{ env }}:&tag_deployment_{{ deployment }}
+  sudo: True
+  serial: 1
+  roles:
+    - oraclejdk
+    - elasticsearch
+    - rabbitmq
+    - datadog
+    - splunkforwarder
+
+#
+# In order to reconfigure the host resolution we are issuing a
+# reboot.
+- hosts: tag_play_commoncluster:&tag_environment_{{ env }}:&tag_deployment_{{ deployment }}
+  sudo: True
+  serial: 1
+  vars:
+    reboot: False
+  tasks:
+    - name: reboot
+      command: /sbin/shutdown -r now "Reboot is triggered by Ansible"
