@@ -16,9 +16,19 @@
 
 - name: writing supervisor script for certificates
   template: >
-    src=certs.conf.j2 dest={{ supervisor_cfg_dir }}/certs.conf
+    src=certs.conf.j2 dest={{ supervisor_available_dir }}/certs.conf
     owner={{ supervisor_user }} mode=0644
+
+- name: enable supervisor script for certificates
+  file: >
+    src={{ supervisor_available_dir }}/certs.conf
+    dest={{ supervisor_cfg_dir }}/certs.conf
+    owner={{ supervisor_user }}
+    state=link
+    force=yes
+    mode=0644
   notify: restart certs
+  when: not disable_edx_services
 
 - name: create ssh script for git
   template: >
@@ -58,6 +68,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
+  when: not disable_edx_services
 
 - name: ensure certs has started
   supervisorctl_local: >
@@ -66,6 +77,7 @@
     config={{ supervisor_cfg }}
     state=started
   sudo_user: "{{ supervisor_service_user }}"
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >

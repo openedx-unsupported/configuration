@@ -21,11 +21,6 @@
           <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
-        <hudson.model.StringParameterDefinition>
-          <name>release_id</name>
-          <description></description>
-          <defaultValue></defaultValue>
-        </hudson.model.StringParameterDefinition>
         <hudson.model.TextParameterDefinition>
           <name>refs</name>
           <description></description>
@@ -36,11 +31,6 @@
           <description></description>
           <defaultValue></defaultValue>
         </hudson.model.TextParameterDefinition>
-        <hudson.model.PasswordParameterDefinition>
-          <name>mongo_uri</name>
-          <description></description>
-          <defaultValue>Y56UKJlT3WFThRJmUNxvNmW0y5RFvMj3XeWs/b9LlL6UlOuhsVC2COm1h2fBWuiyGS8wKx4fTnj7DY/7InIAaLbaZkVtIrgxtua5MpRZSxo=</defaultValue>
-        </hudson.model.PasswordParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>configuration</name>
           <description>The GITREF of configuration to use.</description>
@@ -152,10 +142,15 @@
   <triggers/>
   <concurrentBuild>true</concurrentBuild>
   <builders>
-    <hudson.tasks.Shell>
+    <jenkins.plugins.shiningpanda.builders.VirtualenvBuilder plugin="shiningpanda@0.20">
+      <pythonName>System-CPython-2.7</pythonName>
+      <home></home>
+      <clear>false</clear>
+      <useDistribute>true</useDistribute>
+      <systemSitePackages>false</systemSitePackages>
+      <nature>shell</nature>
       <command>#!/bin/bash -x
-
-if [[(&quot;\$play&quot; == &quot;&quot;)]]; then
+if [[ &quot;\$play&quot; == &quot;&quot; ]]; then
     echo &quot;No Play Specified. Nothing to Do.&quot;
     exit 0
 fi
@@ -180,8 +175,9 @@ cat /var/tmp/\$BUILD_ID-refs.yml
 echo &quot;\$vars&quot; &gt; /var/tmp/\$BUILD_ID-extra-vars.yml
 cat /var/tmp/\$BUILD_ID-extra-vars.yml
 
-python -u abbey.py -p \$play -t c1.medium  -d \$deployment -e \$environment -i {{jenkins_home}}/.ssh/id_rsa -b \$base_ami --vars /var/tmp/\$BUILD_ID-extra-vars.yml --refs /var/tmp/\$BUILD_ID-refs.yml -j \$release_id --mongo-uri \$mongo_uri --mongo-deployment-collection \$deployment --mongo-db devops --configuration-version \$configuration --configuration-secure-version \$configuration_secure -k {{JENKINS_ADMIN_EC2_KEY}} --configuration-secure-repo &quot;{{JENKINS_ADMIN_CONFIGURATION_SECURE_REPO}}&quot;</command>
-    </hudson.tasks.Shell>
+python -u abbey.py -p \$play -t c1.medium  -d \$deployment -e \$environment -i {{jenkins_home}}/.ssh/id_rsa -b \$base_ami --vars /var/tmp/\$BUILD_ID-extra-vars.yml --refs /var/tmp/\$BUILD_ID-refs.yml -c \$BUILD_NUMBER --configuration-version \$configuration --configuration-secure-version \$configuration_secure -k {{JENKINS_ADMIN_EC2_KEY}} --configuration-secure-repo &quot;{{JENKINS_ADMIN_CONFIGURATION_SECURE_REPO}}&quot;</command>
+      <ignoreExitCode>false</ignoreExitCode>
+    </jenkins.plugins.shiningpanda.builders.VirtualenvBuilder>
     <hudson.tasks.Shell>
       <command>#!/bin/bash -x
 

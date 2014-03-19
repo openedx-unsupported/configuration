@@ -300,7 +300,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
-  when: not devstack
+  when: not disable_edx_services
 
 - name: ensure edxapp has started
   supervisorctl_local: >
@@ -309,7 +309,7 @@
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
-  when: celery_worker is not defined and not devstack
+  when: celery_worker is not defined and not disable_edx_services
   with_items: service_variants_enabled
 
 - name: ensure edxapp_workers has started
@@ -318,7 +318,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: celery_worker is defined and not devstack
+  when: celery_worker is defined and not disable_edx_services
   with_items: edxapp_workers
   sudo_user: "{{ supervisor_service_user }}"
 

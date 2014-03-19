@@ -68,10 +68,12 @@
     state=directory
     owner={{ supervisor_user }}
     group={{ supervisor_service_user }}
+    mode="755"
   with_items:
     - "{{ supervisor_app_dir }}"
     - "{{ supervisor_venv_dir }}"
     - "{{ supervisor_cfg_dir }}"
+    - "{{ supervisor_available_dir }}"
 
 - name: create supervisor directories
   file: >
@@ -88,14 +90,37 @@
   pip: name=supervisor virtualenv="{{supervisor_venv_dir}}" state=present
   sudo_user: "{{ supervisor_user }}"
 
+- name: install supervisor in its venv
+  pip: name=boto virtualenv="{{supervisor_venv_dir}}" state=present
+  sudo_user: "{{ supervisor_user }}"
+  when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+
 - name: create supervisor upstart job
   template: >
-    src=supervisor-upstart.conf.j2 dest=/etc/init/{{ supervisor_service }}.conf
+    src=etc/init/supervisor-upstart.conf.j2 dest=/etc/init/{{ supervisor_service }}.conf
     owner=root group=root
+
+# This script is aws specific and looks up instances
+# tags and enables services based on the 'services' tag
+# on instance startup.
+- name: create pre_supervisor upstart job
+  template: >
+    src=etc/initpre_supervisor.conf.j2 dest=/etc/init/pre_supervisor.conf
+    owner=root group=root
+  when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+
+- name: write the pre_suprevisor python script
+  copy: >
+    src=pre_supervisor_checks.py 
+    dest={{ supervisor_app_dir }}/pre_supervisor_checks.py
+    mode=0750
+    owner={{ supervisor_user }}
+    group={{ supervisor_service_user }}
+  when: disable_edx_services
 
 - name: create supervisor master config
   template: >
-    src=supervisord.conf.j2 dest={{ supervisor_cfg }}
+    src=edx/app/supervisor/supervisord.conf.j2 dest={{ supervisor_cfg }}
     owner={{ supervisor_user }} group={{ supervisor_service_user }}
     mode=0644
 

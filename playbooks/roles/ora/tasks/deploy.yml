@@ -1,12 +1,23 @@
 - name: create supervisor scripts - ora, ora_celery
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['ora', 'ora_celery']
+
+- name: enable supervisor scripts - ora, ora_celery
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    state=link
+    force=yes
+    owner={{ supervisor_user }}
+    group={{ common_web_user }}
+    mode=0644
   notify:
     - restart ora
     - restart ora_celery
   with_items: ['ora', 'ora_celery']
-  when: not devstack
+  when: not disable_edx_services
 
 - include: ease.yml
 
@@ -86,7 +97,7 @@
 - name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  when: not devstack
+  when: not disable_edx_services
   changed_when: supervisor_update.stdout != ""
 
 - name: ensure ora is started
@@ -95,7 +106,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: not disable_edx_services
 
 - name: ensure ora_celery is started
   supervisorctl_local: >
@@ -103,7 +114,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >

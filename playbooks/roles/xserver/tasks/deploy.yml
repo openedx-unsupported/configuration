@@ -1,7 +1,15 @@
 - name: "writing supervisor script"
   template: >
-    src=xserver.conf.j2 dest={{ supervisor_cfg_dir }}/xserver.conf
+    src=xserver.conf.j2 dest={{ supervisor_available_dir }}/xserver.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: "enable supervisor script"
+  template: >
+    src={{ supervisor_available_dir }}/xserver.conf
+    dest={{ supervisor_cfg_dir }}/xserver.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+    state=link force=yes
+  when: not disable_edx_services
 
 - name: checkout code
   git: dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
@@ -55,6 +63,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
+  when: not disable_edx_services
 
 - name: ensure xserver is started
   supervisorctl_local: >
@@ -62,6 +71,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >
