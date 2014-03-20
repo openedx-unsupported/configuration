@@ -41,6 +41,11 @@
   tasks:
     - fail: msg="COMMON_ENVIRONMENT and COMMON_DEPLOYMENT need to be defined to use this play"
       when: COMMON_ENVIRONMENT is not defined or COMMON_DEPLOYMENT is not defined
+    - name: install python mysqldb module
+      apt: pkg={{item}} install_recommends=no state=present update_cache=yes
+      sudo: yes
+      with_items:
+        - python-mysqldb
     - name: create mysql databases for the edX stack
       mysql_db: >
         db={{ item[0] }}{{ item[1].db_name }}
