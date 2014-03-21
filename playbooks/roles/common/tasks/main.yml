@@ -48,11 +48,17 @@
   with_items: common_pip_pkgs
 
 - name: Install rsyslog configuration for edX
-  template: dest=/etc/rsyslog.d/99-edx.conf src=edx_rsyslog.j2 owner=root group=root mode=644
+  template: >
+    dest=/etc/rsyslog.d/99-edx.conf
+    src=edx_rsyslog.j2
+    owner=root group=root mode=644
   notify: restart rsyslogd
 
 - name: Install logrotate configuration for edX
-  template: dest=/etc/logrotate.d/edx-services src=etc/logrotate.d/edx_logrotate.j2 owner=root group=root mode=644
+  template: >
+    dest=/etc/logrotate.d/edx-services
+    src=etc/logrotate.d/edx_logrotate.j2
+    owner=root group=root mode=644
 
   # This is in common to keep all logrotation config
   # in the same role
@@ -60,12 +66,18 @@
   file: path=/etc/logrotate.d/hourly state=directory
 
 - name: Install logrotate configuration for tracking file
-  template: dest=/etc/logrotate.d/hourly/tracking.log src=etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2 owner=root group=root mode=644
+  template: >
+    dest=/etc/logrotate.d/hourly/tracking.log
+    src=etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2
+    owner=root group=root mode=644
 
 - name: Add logrotate for tracking.log to cron.hourly
-  copy: src=etc/cron.hourly/logrotate dest=/etc/cron.hourly/logrotate owner=root group=root mode=555
+  copy: >
+    dest=/etc/cron.hourly/logrotate
+    src=etc/cron.hourly/logrotate
+    owner=root group=root mode=555
 
-  # This is transitional to allow older version of edx to update to new logrotate settings
+  # This can be removed after new release of edX
 - name: Remove old tracking.log config from /etc/logrotate.d
   file: path=/etc/logrotate.d/tracking.log state=absent
 
