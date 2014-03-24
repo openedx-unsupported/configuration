@@ -54,10 +54,6 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-- name: remove read-only ssh key
-  file: path={{ edxapp_git_identity }} state=absent
-  when: EDXAPP_USE_GIT_IDENTITY
-
 - name: create checksum for requirements, package.json and Gemfile
   shell: >
     /usr/bin/md5sum {{ " ".join(edxapp_chksum_req_files) }} 2>/dev/null > /var/tmp/edxapp.req.new
@@ -185,6 +181,26 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
+# Private requriements require a ssh key to install, use the same key as the private key for edx-platform
+# If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
+- name : install python private requirements
+  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
+  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
+  # installs everything into that virtual environment.
+  shell: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    chdir={{ edxapp_code_dir }}
+  with_items:
+  - "{{ private_requirements_file }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment:
+    GIT_SSH: "{{ edxapp_git_ssh }}"
+  when: EDXAPP_INSTALL_PRIVATE_REQUIREMENTS
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
 
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
@@ -350,5 +366,9 @@
     state=link
   with_items:
   - manage.py
+
+- name: remove read-only ssh key
+  file: path={{ edxapp_git_identity }} state=absent
+  when: EDXAPP_USE_GIT_IDENTITY
 
 - set_fact: edxapp_installed=true
