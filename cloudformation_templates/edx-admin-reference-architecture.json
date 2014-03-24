@@ -99,10 +99,20 @@
       "Type":"Number",
       "Default":"8090"
     },
-    "MongoServicePort":{
-      "Description":"The TCP port for the deployment mongo server",
-      "Type":"Number",
-      "Default":"10001"
+    "VPCSubnet":{
+      "Description":"The subnet CIDR for the whole VPC.",
+      "Type":"String",
+      "Default":"10.254.0.0/16"
+    },
+    "PrivateSubnet":{
+      "Description":"The subnet CIDR for the private VPC subnet.",
+      "Type":"String",
+      "Default":"10.254.0.0/24"
+    },
+    "PublicSubnet":{
+      "Description":"The subnet CIDR for the public VPC subnet.",
+      "Type":"String",
+      "Default":"10.254.1.0/24"
     }
   },
   "Mappings":{
@@ -141,11 +151,6 @@
       "ap-northeast-1":  { "AMI":"ami-14d86d15" },
       "sa-east-1":       { "AMI":"ami-0439e619" }
     },
-    "SubnetConfig":{
-      "VPC":             { "CIDR":"10.0.0.0/16" },
-      "Public01":        { "CIDR":"10.0.0.0/24" },
-      "Admin":          { "CIDR":"10.0.185.0/24" }
-    },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1d",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
       "us-west-1":       { "AZone0":"us-west-1a",      "AZone2":"us-west-1b",      "AZone1":"us-west-1c" },
@@ -163,7 +168,7 @@
       "Properties":{
         "EnableDnsSupport" : "true",
         "EnableDnsHostnames" : "true",
-        "CidrBlock":"10.0.0.0/16",
+        "CidrBlock": { "Ref": "VPCSubnet" },
         "InstanceTenancy":"default"
       }
     },
@@ -173,13 +178,7 @@
         "VpcId":{
           "Ref":"AdminVPC"
         },
-        "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Public01",
-            "CIDR"
-          ]
-        },
+        "CidrBlock":{ "Ref": "PublicSubnet" },
         "AvailabilityZone":{
           "Fn::FindInMap":[
             "MapRegionsToAvailZones",
@@ -201,13 +200,7 @@
         "VpcId":{
           "Ref":"AdminVPC"
         },
-        "CidrBlock":{
-          "Fn::FindInMap":[
-            "SubnetConfig",
-            "Admin",
-            "CIDR"
-          ]
-        },
+        "CidrBlock":{ "Ref": "PrivateSubnet" },
         "AvailabilityZone":{
           "Fn::FindInMap":[
             "MapRegionsToAvailZones",
@@ -589,12 +582,6 @@
             "FromPort":"443",
             "ToPort":"443",
             "CidrIp":"0.0.0.0/0"
-          },
-          {
-            "IpProtocol":"tcp",
-            "FromPort":{ "Ref": "MongoServicePort" },
-            "ToPort":{ "Ref": "MongoServicePort" },
-            "CidrIp":"0.0.0.0/0"
           }
         ],
         "SecurityGroupEgress":[
@@ -616,12 +603,6 @@
             "IpProtocol":"tcp",
             "FromPort":"443",
             "ToPort":"443",
-            "CidrIp":"0.0.0.0/0"
-          },
-          {
-            "IpProtocol":"tcp",
-            "FromPort":{ "Ref": "MongoServicePort" },
-            "ToPort":{ "Ref": "MongoServicePort" },
             "CidrIp":"0.0.0.0/0"
           }
         ]
