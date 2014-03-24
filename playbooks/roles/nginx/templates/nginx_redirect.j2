@@ -1,0 +1,20 @@
+{% for item in nginx_redirects -%}
+
+{%- if "default" in item -%}
+  {%- set default_site = "default" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+server {
+  listen 80 {{ default_site }};
+  listen 443 {{ default_site }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+
+  server_name {{ item['server_name'] }};
+  return 301 {{ item['redirect'] }}$request_uri;
+}
+{% endfor %}
+
