@@ -85,18 +85,36 @@
   file:
     path="{{ NOTIFIER_HOME }}/bin" mode=2775 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_USER }}
 
-- name: supervisord config for celery workers
+- name: write supervisord config for celery workers
   template: >
     src=edx/app/supervisor/conf.d/notifier-celery-workers.conf.j2
-    dest="{{ supervisor_cfg_dir }}/notifier-celery-workers.conf"
+    dest="{{ supervisor_available_dir }}/notifier-celery-workers.conf"
   sudo_user: "{{ supervisor_user }}"
-  notify: restart notifier-celery-workers
 
-- name: supervisord config for scheduler
+- name: write supervisord config for scheduler
   template: >
     src=edx/app/supervisor/conf.d/notifier-scheduler.conf.j2
+    dest="{{ supervisor_available_dir }}/notifier-scheduler.conf"
+  sudo_user: "{{ supervisor_user }}"
+
+- name: enable supervisord config for celery workers
+  file: >
+    src="{{ supervisor_available_dir }}/notifier-celery-workers.conf"
+    dest="{{ supervisor_cfg_dir }}/notifier-celery-workers.conf"
+    state=link
+    force=yes
+  sudo_user: "{{ supervisor_user }}"
+  notify: restart notifier-celery-workers
+  when: not disable_edx_services
+
+- name: enable supervisord config for scheduler
+  file: >
+    src="{{ supervisor_available_dir }}/notifier-scheduler.conf"
     dest="{{ supervisor_cfg_dir }}/notifier-scheduler.conf"
+    state=link
+    force=yes
   sudo_user: "{{ supervisor_user }}"
   notify: restart notifier-scheduler
+  when: not disable_edx_services
 
 - include: deploy.yml tags=deploy

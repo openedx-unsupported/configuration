@@ -156,15 +156,19 @@ class Ec2Inventory(object):
                 data_to_print = self.get_inventory_from_cache()
             else:
                 data_to_print = self.json_format_dict(self.inventory, True)
-
         print data_to_print
 
 
     def is_cache_valid(self):
         ''' Determines if the cache files have expired, or if it is still valid '''
 
-        if os.path.isfile(self.cache_path_cache):
-            mod_time = os.path.getmtime(self.cache_path_cache)
+        if self.args.tags_only:
+            to_check = self.cache_path_tags
+        else:
+            to_check = self.cache_path_cache
+
+        if os.path.isfile(to_check):
+            mod_time = os.path.getmtime(to_check)
             current_time = time()
             if (mod_time + self.cache_max_age) > current_time:
                 if os.path.isfile(self.cache_path_index):
@@ -215,15 +219,18 @@ class Ec2Inventory(object):
         # Cache related
         cache_path = config.get('ec2', 'cache_path')
         self.cache_path_cache = cache_path + "/ansible-ec2.cache"
+        self.cache_path_tags = cache_path + "/ansible-ec2.tags.cache"
         self.cache_path_index = cache_path + "/ansible-ec2.index"
         self.cache_max_age = config.getint('ec2', 'cache_max_age')
-        
+
 
 
     def parse_cli_args(self):
         ''' Command line argument processing '''
 
         parser = argparse.ArgumentParser(description='Produce an Ansible Inventory file based on EC2')
+        parser.add_argument('--tags-only', action='store_true', default=False,
+                           help='only return tags (default: False)')
         parser.add_argument('--list', action='store_true', default=True,
                            help='List instances (default: True)')
         parser.add_argument('--host', action='store',
@@ -247,9 +254,12 @@ class Ec2Inventory(object):
             self.get_instances_by_region(region)
             self.get_rds_instances_by_region(region)
 
-        self.write_to_cache(self.inventory, self.cache_path_cache)
-        self.write_to_cache(self.index, self.cache_path_index)
+        if self.args.tags_only:
+            self.write_to_cache(self.inventory, self.cache_path_tags)
+        else:
+            self.write_to_cache(self.inventory, self.cache_path_cache)
 
+        self.write_to_cache(self.index, self.cache_path_index)
 
     def get_instances_by_region(self, region):
         ''' Makes an AWS EC2 API call to the list of instances in a particular
@@ -266,13 +276,13 @@ class Ec2Inventory(object):
             if conn is None:
                 print("region name: %s likely not supported, or AWS is down.  connection to region failed." % region)
                 sys.exit(1)
- 
+
             reservations = conn.get_all_instances()
             for reservation in reservations:
                 instances = sorted(reservation.instances)
                 for instance in instances:
                     self.add_instance(instance, region)
-        
+
         except boto.exception.BotoServerError as e:
             if  not self.eucalyptus:
                 print "Looks like AWS is down again:"
@@ -349,7 +359,7 @@ class Ec2Inventory(object):
         # Inventory: Group by key pair
         if instance.key_name:
             self.push(self.inventory, self.to_safe('key_' + instance.key_name), dest)
-        
+
         # Inventory: Group by security group
         try:
             for group in instance.groups:
@@ -403,10 +413,10 @@ class Ec2Inventory(object):
 
         # Inventory: Group by availability zone
         self.push(self.inventory, instance.availability_zone, dest)
-        
+
         # Inventory: Group by instance type
         self.push(self.inventory, self.to_safe('type_' + instance.instance_class), dest)
-        
+
         # Inventory: Group by security group
         try:
             if instance.security_group:
@@ -541,8 +551,10 @@ class Ec2Inventory(object):
     def get_inventory_from_cache(self):
         ''' Reads the inventory from the cache file and returns it as a JSON
         object '''
-
-        cache = open(self.cache_path_cache, 'r')
+        if self.args.tags_only:
+            cache = open(self.cache_path_tags, 'r')
+        else:
+            cache = open(self.cache_path_cache, 'r')
         json_inventory = cache.read()
         return json_inventory
 
@@ -556,7 +568,9 @@ class Ec2Inventory(object):
 
 
     def write_to_cache(self, data, filename):
-        ''' Writes data in JSON format to a file '''
+        '''
+            Writes data in JSON format to a file
+            '''
 
         json_data = self.json_format_dict(data, True)
         cache = open(filename, 'w')
@@ -574,7 +588,8 @@ class Ec2Inventory(object):
     def json_format_dict(self, data, pretty=False):
         ''' Converts a dict to a JSON object and dumps it as a formatted
         string '''
-
+        if self.args.tags_only:
+            data = [key for key in data.keys() if 'tag_' in key]
         if pretty:
             return json.dumps(data, sort_keys=True, indent=2)
         else:

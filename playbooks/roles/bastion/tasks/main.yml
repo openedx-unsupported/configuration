@@ -1,0 +1,62 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role bastion
+#
+# Overview:
+#
+#
+# Dependencies:
+#   - common
+#
+- name: install system packages
+  apt: >
+    pkg={{','.join(bastion_debian_pkgs)}}
+    state=present
+
+- name: install bastion python packages
+  pip: >
+    name="{{ item }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: bastion_pip_pkgs
+
+- template: >
+    src=mysql.sh.j2
+    dest=/home/{{ item[0] }}/{{ item[1].script_name }}
+    mode=0700 owner={{ item[0] }} group=root
+  with_nested:
+    - "{{ BASTION_REPLICA_USERS }}"
+    -
+      - db_host: "{{ EDXAPP_MYSQL_HOST }}"
+        db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
+        script_name: edxapp-rds.sh
+      - db_host: "{{ XQUEUE_MYSQL_HOST }}"
+        db_name: "{{ XQUEUE_MYSQL_DB_NAME }}"
+        script_name: xqueue-rds.sh
+      - db_host: "{{ ORA_MYSQL_HOST }}"
+        db_name: "{{ ORA_MYSQL_DB_NAME }}"
+        script_name: ora-rds.sh
+
+- template: >
+    src=mongo.sh.j2
+    dest=/home/{{ item[0] }}/{{ item[1].script_name }}
+    mode=0700 owner={{ item[0] }} group=root
+  with_nested:
+    - "{{ BASTION_REPLICA_USERS }}"
+    -
+      - db_host: "{{ EDXAPP_MONGO_HOSTS[1] }}"
+        db_name: "{{ EDXAPP_MONGO_DB_NAME }}"
+        db_port: "{{ EDXAPP_MONGO_PORT }}"
+        script_name: edxapp-mongo.sh
+      - db_host: "{{ FORUM_MONGO_HOSTS[1] }}"
+        db_name: "{{ FORUM_MONGO_DATABASE }}"
+        db_port: "{{ FORUM_MONGO_PORT }}"
+        script_name: forum-mongo.sh

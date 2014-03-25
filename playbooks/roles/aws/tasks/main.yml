@@ -1,0 +1,101 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role aws
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: create data directories
+  file: >
+    path={{ item }}
+    state=directory
+    owner=root
+    group=root
+    mode=0700
+  with_items:
+    - "{{ aws_data_dir }}"
+    - "{{ aws_log_dir }}"
+
+- name: create app directory
+  file: >
+    path={{ item }}
+    state=directory
+    owner=root
+    group=root
+    mode=0755
+  with_items:
+    - "{{ aws_app_dir }}"
+
+- name: install system packages
+  apt: >
+    pkg={{','.join(aws_debian_pkgs)}}
+    state=present
+    update_cache=yes
+
+- name: install aws python packages
+  pip: >
+    name="{{ item }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: aws_pip_pkgs
+
+- name: get s3cmd
+  get_url: >
+    url={{ aws_s3cmd_url }}
+    dest={{ aws_data_dir }}/
+
+- name: untar s3cmd
+  shell: >
+    tar xf {{ aws_data_dir }}/{{ aws_s3cmd_version }}.tar.gz
+    creates={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
+    chdir={{ aws_app_dir }}
+
+- name: create symlink for s3cmd
+  file: >
+    src={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
+    dest={{ COMMON_BIN_DIR }}/s3cmd
+    state=link
+
+- name: create s3 log sync script
+  template: >
+    dest={{ aws_s3_sync_script }}
+    src=send-logs-to-s3.j2 mode=0755 owner=root group=root
+  when: AWS_S3_LOGS
+
+- name: create symlink for s3 log sync script
+  file: >
+    state=link
+    src={{ aws_s3_sync_script }}
+    dest={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
+  when: AWS_S3_LOGS
+
+- name: run s3 log sync script on shutdown
+  file: >
+    state=link
+    src={{ COMMON_BIN_DIR }}/send-logs-to-s3
+    path=/etc/rc0.d/S00send-logs-to-s3
+  when: AWS_S3_LOGS
+
+  # cron job runs the aws s3 sync script
+- name: cronjob for s3 log sync
+  cron: >
+    name="cronjob for s3 log sync"
+    user=root
+    minute=0
+    job={{ aws_s3_sync_script }}
+  when: AWS_S3_LOGS

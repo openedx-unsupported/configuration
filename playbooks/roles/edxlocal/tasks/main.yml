@@ -13,6 +13,12 @@
 - name: install packages needed for single server
   apt: pkg={{','.join(edxlocal_debian_pkgs)}} install_recommends=yes state=present
 
+- name: setup the migration db user
+  mysql_user: >
+    name={{ EDXAPP_MYSQL_USER_MIGRATE }}
+    password={{ EDXAPP_MYSQL_PASSWORD_MIGRATE}}
+    priv='{{EDXAPP_MYSQL_DB_NAME}}.*:ALL'
+
 - name: setup the edxapp db user
   mysql_user: >
     name={{ EDXAPP_MYSQL_USER }}
@@ -31,14 +37,14 @@
     name={{ XQUEUE_MYSQL_USER }}
     password={{ XQUEUE_MYSQL_PASSWORD }}
     priv='{{XQUEUE_MYSQL_DB_NAME}}.*:ALL'
-  when: XQUEUE_MYSQL_USER is defined and not devstack
+  when: XQUEUE_MYSQL_USER is defined and not disable_edx_services
 
 - name: create a database for xqueue
   mysql_db: >
     db=xqueue
     state=present
     encoding=utf8
-  when: XQUEUE_MYSQL_USER is defined and not devstack
+  when: XQUEUE_MYSQL_USER is defined and not disable_edx_services
 
 - name: setup the ora db user
   mysql_user: >
@@ -58,7 +64,7 @@
     name={{ DISCERN_MYSQL_USER }}
     password={{ DISCERN_MYSQL_PASSWORD }}
     priv='{{DISCERN_MYSQL_DB_NAME}}.*:ALL'
-  when: DISCERN_MYSQL_USER is defined and not devstack
+  when: DISCERN_MYSQL_USER is defined and not disable_edx_services
 
 
 - name: create a database for discern
@@ -66,7 +72,7 @@
     db=discern
     state=present
     encoding=utf8
-  when: DISCERN_MYSQL_USER is defined and not devstack
+  when: DISCERN_MYSQL_USER is defined and not disable_edx_services
 
 
 - name: install memcached

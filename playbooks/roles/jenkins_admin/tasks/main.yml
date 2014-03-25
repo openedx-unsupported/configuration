@@ -1,0 +1,137 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role jenkins_admin
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- fail: "JENKINS_ADMIN_S3_PROFILE is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE is not defined
+
+- fail: "JENKINS_ADMIN_S3_PROFILE.name is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE.name is not defined
+
+- fail: "JENKINS_ADMIN_S3_PROFILE.access_key is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE.access_key is not defined
+
+- fail: "JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
+
+- fail: "JENKINS_ADMIN_CONFIGURATION_REPO is not defined."
+  when: JENKINS_ADMIN_CONFIGURATION_REPO is not defined
+
+- fail: "JENKINS_ADMIN_CONFIGURATION_SECURE_REPO is not defined."
+  when: JENKINS_ADMIN_CONFIGURATION_SECURE_REPO is not defined
+
+- fail: "JENKINS_ADMIN_GIT_KEY is not defined."
+  when: JENKINS_ADMIN_GIT_KEY is not defined
+
+- fail: "JENKINS_ADMIN_EC2_KEY is not defined."
+  when: JENKINS_ADMIN_EC2_KEY is not defined
+
+# We first download the plugins to a temp directory and include
+# the version in the file name.  That way, if we increment
+# the version, the plugin will be updated in Jenkins
+- name: download Jenkins plugins
+  get_url: url=http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
+           dest=/tmp/{{ item.name }}_{{ item.version }}
+  with_items: jenkins_admin_plugins
+
+- name: install Jenkins plugins
+  command: cp /tmp/{{ item.name }}_{{ item.version }} {{ jenkins_home }}/plugins/{{ item.name }}.hpi
+  with_items: jenkins_admin_plugins
+
+- name: set Jenkins plugin permissions
+  file: path={{ jenkins_home }}/plugins/{{ item.name }}.hpi
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  with_items: jenkins_admin_plugins
+  notify:
+    - restart Jenkins
+
+- name: configure s3 plugin
+  template: >
+    src="./{{jenkins_home}}/hudson.plugins.s3.S3BucketPublisher.xml.j2"
+    dest="{{jenkins_home}}/hudson.plugins.s3.S3BucketPublisher.xml"
+    owner={{jenkins_user}}
+    group={{jenkins_group}}
+    mode=0644
+
+- name: create the ssh directory
+  file: >
+    path={{jenkins_home}}/.ssh
+    owner={{jenkins_user}}
+    group={{jenkins_group}}
+    mode=0700
+    state=directory
+
+# Need to add Github to known_hosts to avoid
+# being prompted when using git through ssh
+- name: Add github.com to known_hosts if it does not exist
+  shell: >
+     ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts
+
+- name: drop the secure credentials
+  copy: >
+    content="{{ JENKINS_ADMIN_GIT_KEY }}"
+    dest={{jenkins_home}}/.ssh/id_rsa
+    owner={{jenkins_user}}
+    group={{jenkins_group}}
+    mode=0600
+
+- name: create job directory
+  file: >
+    path="{{jenkins_home}}/jobs"
+    owner="{{jenkins_user}}"
+    group="{{jenkins_group}}"
+    mode=0755
+    state=directory
+
+- name: create admin job directories
+  file: >
+    path="{{jenkins_home}}/jobs/{{item}}"
+    owner={{jenkins_user}}
+    group={{jenkins_group}}
+    mode=0755
+    state=directory
+  with_items: jenkins_admin_jobs
+
+- name: create admin job config files
+  template: >
+    src="./{{jenkins_home}}/jobs/{{item}}/config.xml.j2"
+    dest="{{jenkins_home}}/jobs/{{item}}/config.xml"
+    owner={{jenkins_user}}
+    group={{jenkins_group}}
+    mode=0644
+  with_items: jenkins_admin_jobs
+
+- name: install system packages for edxapp virtualenvs
+  apt: pkg={{ item }} state=present
+  with_items: jenkins_admin_debian_pkgs
+
+# This is necessary so that ansible can run with
+# sudo set to True (as the jenkins user) on jenkins
+- name: grant sudo access to the jenkins user
+  copy: >
+    content="{{ jenkins_user }} ALL=({{ jenkins_user }}) NOPASSWD:ALL"
+    dest=/etc/sudoers.d/99-jenkins owner=root group=root
+    mode=0440 validate='visudo -cf %s'
+
+- name: install global gem dependencies
+  gem: name={{ item.name }} state=present version={{ item.version }}
+  with_items: jenkins_admin_gem_pkgs

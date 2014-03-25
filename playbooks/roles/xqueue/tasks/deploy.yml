@@ -1,8 +1,17 @@
 - name: "writing supervisor scripts - xqueue, xqueue consumer"
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
+
+- name: "enabling supervisor scripts - xqueue, xqueue consumer"
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }}
+    mode=0644 state=link force=yes
+  with_items: ['xqueue', 'xqueue_consumer']
+  when: not disable_edx_services
 
 
 - name: create xqueue application config
@@ -63,6 +72,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout != ""
+  when: not disable_edx_services
 
 - name: ensure xqueue, consumer is running
   supervisorctl_local: >
@@ -73,6 +83,7 @@
   with_items:
   - xqueue
   - xqueue_consumer
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >

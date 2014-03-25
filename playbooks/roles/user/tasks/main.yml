@@ -1,0 +1,188 @@
+---
+
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role user
+#
+# Overview:
+#
+# This role is included as a dependency by other roles or as a standalone
+# paramaterized role to create users.
+#
+# There are generally three classes of users:
+# (1) normal login users without any special permissions
+# (2) admin users with full sudo permissions
+# (3) restricted users that use rbash and are locked down to specific sudo commands
+#
+# The parameter "type" sets the user in one of these three categories:
+#   (1) type not set
+#   (2) type=admin
+#   (3) type=restricted
+#
+# Dependencies:
+#
+# This role has no dependencies but requires parameters
+#
+# Example:
+#
+#   # Create a few users, one restricted
+#   # one admin with a github key and one with
+#   # a regular key.
+#   #
+#   # All user types can use a key from github
+#   # and also have additional authorized keys defined
+#   #
+#
+#   - role: user
+#     user_info:
+#       # This restricted user is defined in meta/
+#       # for edxapp, it creates a user that can only
+#       # run manage.py commands
+#       - name: automator
+#         type: restricted
+#         # The sudoers file is optional.
+#         sudoers_template: '99-edxapp-manage-cmds.j2'
+#         authorized_keys:
+#         - ssh-rsa abcdef...
+#         - ssh-rsa ghiklm...
+#
+#       # More users passed to the role, this one is a user
+#       # with full sudo, key fetched from github
+#       - name: frank
+#         github: true
+#         type: admin
+#
+#       # This user is a normal login user without sudo, with
+#       # a couple keys passed in as parameters
+#       - name: sally
+#         authorized_keys:
+#         - ssh-rsa abcdef...
+#         - ssh-rsa ghiklm...
+#
+# By default for restricted users we only allow sudo, if you
+# want to provide more binaries add them to user_rbash_links
+# which can be passed in as a paramter to the role.
+#
+
+- debug: var=user_info
+
+- name: create the edxadmin group
+  group: name=edxadmin state=present
+
+# give full sudo admin access to the edxadmin group
+- name: grant full sudo access to the edxadmin group
+  copy: >
+    content="%edxadmin ALL=(ALL) NOPASSWD:ALL"
+    dest=/etc/sudoers.d/edxadmin owner=root group=root
+    mode=0440 validate='visudo -cf %s'
+
+- name: create the users
+  user:
+    name={{ item.name }}
+    shell=/bin/bash
+  with_items: user_info
+
+- name: create .ssh directory
+  file:
+    path=/home/{{ item.name }}/.ssh state=directory mode=0750
+    owner={{ item.name }}
+  with_items: user_info
+
+- name: assign admin role to admin users
+  user:
+    name={{ item.name }}
+    groups=edxadmin
+  when: item.type is defined and item.type == 'admin'
+  with_items: user_info
+
+# authorized_keys2 used here so that personal
+# keys can be copied to authorized_keys
+# force is set to yes here, otherwise the keys
+# won't update if they haven't changed on teh github
+# side
+- name: copy github key[s] to .ssh/authorized_keys2
+  get_url:
+    url=https://github.com/{{ item.name }}.keys
+    force=yes
+    dest=/home/{{ item.name }}/.ssh/authorized_keys2 mode=0640
+    owner={{ item.name }}
+  when: item.github is defined
+  with_items: user_info
+
+- name: copy additional authorized keys
+  copy: >
+    content="{{ "\n".join(item.authorized_keys) }}"
+    dest=/home/{{ item.name }}/.ssh/authorized_keys mode=0640
+    owner={{ item.name }}
+    mode=0440
+  when: item.authorized_keys is defined
+  with_items: user_info
+
+- name: create bashrc file for normal users
+  template: >
+    src=default.bashrc.j2
+    dest=/home/{{ item.name }}/.bashrc mode=0640
+    owner={{ item.name }}
+  when: not (item.type is defined and item.type == 'restricted')
+  with_items: user_info
+
+- name: create .profile for all users
+  template: >
+    src=default.profile.j2
+    dest=/home/{{ item.name }}/.profile mode=0640
+    owner={{ item.name }}
+  with_items: user_info
+
+########################################################
+# All tasks below this line are for restricted users
+
+- name: modify shell for restricted users
+  user:
+    name={{ item.name }}
+    shell=/bin/rbash
+  when: item.type is defined and item.type == 'restricted'
+  with_items: user_info
+
+- name: create bashrc file for restricted users
+  template: >
+    src=restricted.bashrc.j2
+    dest=/home/{{ item.name }}/.bashrc mode=0640
+    owner={{ item.name }}
+  when: item.type is defined and item.type == 'restricted'
+  with_items: user_info
+
+- name: create sudoers file from template
+  template:
+    dest=/etc/sudoers.d/99-restricted
+    src=restricted.sudoers.conf.j2 owner="root"
+    group="root" mode=0440 validate='visudo -cf %s'
+
+  # Prevent restricted user from updating their PATH and
+  # environment by ensuring root ownership
+
+- name: change home directory ownership to root for restricted users
+  shell: "chown -R root:{{ item.name }} /home/{{ item.name }}"
+  when: item.type is defined and item.type == 'restricted'
+  with_items: user_info
+
+- name: create ~/bin directory
+  file:
+    path=/home/{{ item.name }}/bin state=directory mode=0750
+    owner="root" group={{ item.name }}
+  when: item.type is defined and item.type == 'restricted'
+  with_items: user_info
+
+- name: create allowed command links
+  file:
+    src: "{{ item[1] }}"
+    dest: "/home/{{ item[0].name }}/bin/{{ item[1]|basename }}"
+    state: link
+  when: item[0].type is defined and item[0].type == 'restricted'
+  with_nested:
+    - user_info
+    - user_rbash_links

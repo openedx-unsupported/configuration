@@ -1,7 +1,11 @@
-  # this gets all running stage util machiens
-- hosts: tag_environment_stage:&tag_function_util
-# or we can get subsets of them by name
-#- hosts: ~tag_Name_util(1|2)_stage
+---
+- name: Basic util setup on all hosts
+  # This uses variable expansion so you can select machine(s) from the command line
+  # using the -e flag.  See README for instructions on how to use.
+  hosts: ~tag_Name_{{machine}}_stage
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'util' machines"
+    when: "'util' not in machine"
   sudo: True
   vars:
     secure_dir: ../../../edx-secret/ansible

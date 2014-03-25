@@ -1,0 +1,49 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role newrelic
+# 
+# Overview:
+#
+# Installs and configures the newrelic system monitoring agent.  The server
+# will be identified in Newrelic by hostname and this cannot be changed
+# in configuration.  Also configuratin does not allow hosts to be
+# associated with an application or tagged.
+#
+# Example play:
+#
+# - name: Install Newrelic system agent
+#   hosts: all
+#   sudo: True
+#   gather_facts: True
+#   roles:
+#     - newrelic
+
+- name: add apt key
+  apt_key: >
+    id="{{ NEWRELIC_KEY_ID }}" url="{{ NEWRELIC_KEY_URL }}"
+    state=present
+
+- name: install apt repository
+  apt_repository: repo="{{ NEWRELIC_REPO }}" update_cache=yes
+
+- name: install newrelic agent
+  apt: pkg="newrelic-sysmond"
+
+- name: Install newrelic related system packages.
+  apt: pkg={{ item }} install_recommends=yes state=present
+  with_items: newrelic_debian_pkgs
+  
+- name: configure the agent with the license key
+  shell: >
+    nrsysmond-config --set license_key="{{ NEWRELIC_LICENSE_KEY }}"
+    ssl=true 
+
+- name: ensure started and enabled
+  service: name=newrelic-sysmond state=restarted enabled=yes

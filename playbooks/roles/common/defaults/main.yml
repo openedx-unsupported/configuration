@@ -7,7 +7,9 @@ COMMON_BASE_DIR: /edx
 COMMON_DATA_DIR: "{{ COMMON_BASE_DIR}}/var"
 COMMON_APP_DIR: "{{ COMMON_BASE_DIR}}/app"
 COMMON_LOG_DIR: "{{ COMMON_DATA_DIR }}/log"
-
+# Override this to create
+# common users in all roles
+COMMON_USER_INFO: []
 # these directories contain
 # symlinks for convenience
 COMMON_BIN_DIR: "{{ COMMON_BASE_DIR }}/bin"
@@ -25,7 +27,22 @@ COMMON_HOSTNAME: !!null
 COMMON_CUSTOM_DHCLIENT_CONFIG: false
 # uncomment and specifity your domains.
 # COMMON_DHCLIENT_DNS_SEARCH: ["ec2.internal","example.com"]
-  
+
+
+COMMON_MOTD_TEMPLATE: "motd.tail.j2"
+
+# These are two special accounts across all databases
+# the read only user is is granted select privs on all dbs
+# the admin user is granted create user privs on all dbs
+
+COMMON_MYSQL_READ_ONLY_USER: 'read_only'
+COMMON_MYSQL_READ_ONLY_PASS: 'password'
+COMMON_MYSQL_ADMIN_USER: 'admin'
+COMMON_MYSQL_ADMIN_PASS: 'password'
+
+COMMON_MONGO_READ_ONLY_USER: 'read_only'
+COMMON_MONGO_READ_ONLY_PASS: 'password'
+
 common_debian_pkgs:
   - ntp
   - ack-grep
@@ -40,9 +57,13 @@ common_debian_pkgs:
   - python2.7
   - python-pip
   - python2.7-dev
+  # Not installed by default on vagrant ubuntu
+  # boxes
+  - curl
 
 common_pip_pkgs:
-  - virtualenv==1.10.1
+  - pip==1.5.4
+  - virtualenv==1.11.4
   - virtualenvwrapper
 
 common_web_user: www-data
@@ -52,7 +73,14 @@ common_log_user: syslog
 common_git_ppa: "ppa:git-core/ppa"
 
 # Skip supervisor tasks
-# Useful when supervisor is not installed (local dev)
+# When set to true this flag will allow you to install everything but keep
+# supervisor from starting any of the services.
+# Service files will be placed in supervisor's conf.available.d but not linked
+# to supervisors 'conf.d' directory.
+disable_edx_services: False
+
+# Some apps run differently in dev mode(forums)
+# so different start scripts are generated in dev mode.
 devstack: False
 
 common_debian_variants:

@@ -22,7 +22,7 @@
 
 - name: install read-only ssh key
   copy: >
-    src={{ EDXAPP_LOCAL_GIT_IDENTITY }} dest={{ edxapp_git_identity }}
+    content="{{ EDXAPP_GIT_IDENTITY }}" dest={{ edxapp_git_identity }}
     force=yes owner={{ edxapp_user }} mode=0600
   when: EDXAPP_USE_GIT_IDENTITY
 
@@ -53,10 +53,6 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
-
-- name: remove read-only ssh key
-  file: path={{ edxapp_git_identity }} state=absent
-  when: EDXAPP_USE_GIT_IDENTITY
 
 - name: create checksum for requirements, package.json and Gemfile
   shell: >
@@ -186,6 +182,37 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+# Private requriements require a ssh key to install, use the same key as the private key for edx-platform
+# If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
+- name : install python private requirements
+  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
+  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
+  # installs everything into that virtual environment.
+  shell: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    chdir={{ edxapp_code_dir }}
+  with_items:
+  - "{{ private_requirements_file }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment:
+    GIT_SSH: "{{ edxapp_git_ssh }}"
+  when: EDXAPP_INSTALL_PRIVATE_REQUIREMENTS
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+
+# If using CAS and you have a function for mapping attributes, install
+# the module here.  The next few tasks set up the python code sandbox
+- name: install CAS attribute module
+  pip: >
+    name="{{ EDXAPP_CAS_ATTRIBUTE_PACKAGE }}"
+    virtualenv="{{edxapp_venv_dir}}"
+    state=present
+    extra_args="-i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors"
+  sudo_user: "{{ edxapp_user }}"
+  when: EDXAPP_CAS_ATTRIBUTE_PACKAGE|length > 0
+  notify: "restart edxapp"
 
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
 - name : install sandbox requirements into regular venv
@@ -253,7 +280,7 @@
   - edxapp-sandbox
 
 - name: compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
+  shell: "{{ edxapp_venv_bin }}/python -m compileall -x .git/.* {{ edxapp_code_dir }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"
@@ -300,7 +327,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
-  when: not devstack
+  when: not disable_edx_services
 
 - name: ensure edxapp has started
   supervisorctl_local: >
@@ -309,7 +336,7 @@
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
-  when: celery_worker is not defined and not devstack
+  when: celery_worker is not defined and not disable_edx_services
   with_items: service_variants_enabled
 
 - name: ensure edxapp_workers has started
@@ -318,18 +345,30 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: celery_worker is defined and not devstack
+  when: celery_worker is defined and not disable_edx_services
   with_items: edxapp_workers
   sudo_user: "{{ supervisor_service_user }}"
 
-- name: create a symlink for venv python
+- name: create symlinks from the venv bin dir
   file: >
     src="{{ edxapp_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.edxapp
+    dest={{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edxapp
     state=link
   with_items:
   - python
   - pip
+  - django-admin.py
 
+- name: create symlinks from the repo dir
+  file: >
+    src="{{ edxapp_code_dir }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edxapp
+    state=link
+  with_items:
+  - manage.py
+
+- name: remove read-only ssh key
+  file: path={{ edxapp_git_identity }} state=absent
+  when: EDXAPP_USE_GIT_IDENTITY
 
 - set_fact: edxapp_installed=true

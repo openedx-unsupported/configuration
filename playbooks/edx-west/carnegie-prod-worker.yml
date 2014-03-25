@@ -1,8 +1,12 @@
-# this gets all running prod webservers
-- hosts: tag_environment_prod_carn:&tag_function_util
-# or we can get subsets of them by name
-#- hosts: ~tag_Name_util(10)_carn
+- name: Basic util setup on carnegie workers
+  # This uses variable expansion so you can select machine(s) from the command line
+  # using the -e flag.  See README for instructions on how to use.
+  hosts: ~tag_Name_{{machine}}_carn
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'util' machines"
+    when: "'util' not in machine"
   sudo: True
+  gather_facts: True
   vars:
     secure_dir: '../../../edx-secret/ansible'
     # this indicates the path to site-specific (with precedence)

@@ -2,10 +2,22 @@
 
 - name: create supervisor scripts - discern, discern_celery
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} mode=0644
   sudo_user: "{{ supervisor_user }}"
   with_items: ['discern', 'discern_celery']
+
+- name: enable supervisor scripts - discern, discern_celery
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }}
+    state=link
+    force=yes
+    mode=0644
+  sudo_user: "{{ supervisor_user }}"
+  with_items: ['discern', 'discern_celery']
+  when: not disable_edx_services
 
 #Upload config files for django (auth and env)
 - name: create discern application config env.json file
@@ -104,6 +116,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
+  when: not disable_edx_services
 
 - name: ensure discern, discern_celery has started
   supervisorctl_local: >
@@ -114,6 +127,7 @@
   with_items:
   - discern
   - discern_celery
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >

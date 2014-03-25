@@ -19,6 +19,13 @@ AS_SERVER_PORT: '9000'
 AS_ENV_LANG: 'en_US.UTF-8'
 AS_LOG_LEVEL: 'INFO'
 AS_WORKERS: '4'
+# add public keys to enable the automator user
+# for running manage.py commands
+
+AS_AUTOMATOR_NAME: automator
+AS_AUTOMATOR_AUTHORIZED_KEYS: []
+AS_AUTOMATOR_SUDO_CMDS:
+- "ALL=({{ analytics_web_user }}) NOPASSWD:SETENV:{{ analytics_venv_dir }}/bin/django-admin.py	run_all_queries	*"
 
 DATABASES:
   default: &databases_default
@@ -43,7 +50,7 @@ analytics_auth_config:
     MONGO_STORED_QUERIES_COLLECTION: $AS_DB_RESULTS_COLLECTION
 
 as_role_name: "analytics-server"
-as_user: "analytics-server" 
+as_user: "analytics-server"
 as_home: "/opt/wwc/analytics-server"
 as_venv_dir: "{{ as_home }}/virtualenvs/analytics-server"
 as_source_repo: "git@github.com:edx/analytics-server.git"
@@ -61,14 +68,6 @@ as_django_settings: 'anserv.settings'
 
 as_env_vars:
   ANALYTICS_SERVER_LOG_LEVEL: "{{ AS_LOG_LEVEL }}"
-
-#
-# Used by the included role, automated.
-# See meta/main.yml
-#
-as_automated_rbash_links:
-  - /usr/bin/sudo
-  - /usr/bin/scp
 
 #
 # OS packages

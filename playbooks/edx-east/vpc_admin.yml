@@ -1,0 +1,20 @@
+# ansible-playbook -c ssh -vvvv --user=ubuntu -i ec2.py deployer.yml -e "@/path/to/secure/ansible/vars/edx_admin.yml" --limit="tag_aws_cloudformation_stack-name_<admin_stack_name>"
+# You will need to create a gh_users.yml that contains the github names of users that should have login access to the machines.
+# Setup user login on the bastion
+- name: Configure Bastion
+  hosts: tag_play_bastion
+  sudo: True
+  gather_facts: False
+  roles:
+  - aws
+# Configure an admin instance with jenkins and asgard.
+- name: Configure instance(s)
+  hosts: tag_play_admin
+  sudo: True
+  gather_facts: True
+  roles:
+  - aws
+  - edx_ansible
+  - jenkins_admin
+  - hotg
+  - newrelic
