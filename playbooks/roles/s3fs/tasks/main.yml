@@ -8,7 +8,7 @@
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
 # Tasks for role s3fs
-# 
+#
 # Overview:
 #
 # Installs s3fs, but doesn't mount any buckets.
@@ -25,18 +25,18 @@
 #
 # The role would need to include tasks like the following
 #
-# - name: my_role | create s3fs mount points
+# - name: create s3fs mount points
 #   file:
 #     path={{ item.mount_point }} owner={{ item.owner }}
 #     group={{ item.group }} mode={{ item.mode }} state="directory"
-#   with_items: "{{ my_role_s3fs_mounts }}"
+#   with_items: my_role_s3fs_mounts
 #
-# - name: my_role | mount s3 buckets
+# - name: mount s3 buckets
 #   mount:
 #     name={{ item.mount_point }} src={{ item.bucket }} fstype=fuse.s3fs
 #     opts=use_cache=/tmp,iam_role={{ task_iam_role }},allow_other state=mounted
-#   with_items: "{{ myrole_s3fs_mounts }}"
-# 
+#   with_items: myrole_s3fs_mounts
+#
 # Example play:
 #
 # Required sudo for the installation phase.
@@ -53,38 +53,38 @@
 #     - s3fs
 #
 
-- name: s3fs | install system packages
+- name: install system packages
   apt: pkg={{','.join(s3fs_debian_pkgs)}} state=present
   tags:
   - s3fs
   - install
   - update
 
-- name: s3fs | fetch package
+- name: fetch package
   get_url:
     url={{ s3fs_download_url }}
     dest={{ s3fs_temp_dir }}
-    
-- name: s3fs | extract package
+
+- name: extract package
   shell:
     /bin/tar -xzf {{ s3fs_archive }}
     chdir={{ s3fs_temp_dir }}
     creates={{ s3fs_temp_dir }}/{{ s3fs_version }}/configure
-    
-- name: s3fs | configure
+
+- name: configure
   shell:
     ./configure
     chdir={{ s3fs_temp_dir }}/{{ s3fs_version }}
     creates={{ s3fs_temp_dir }}/{{ s3fs_version }}/config.status
-    
-- name: s3fs | make
+
+- name: make
   shell:
     /usr/bin/make
     chdir={{ s3fs_temp_dir }}/{{ s3fs_version }}
     creates={{ s3fs_temp_dir }}/{{ s3fs_version }}/src/s3cmd
 
-- name: s3fs | make install
+- name: make install
   shell:
     /usr/bin/make install
     chdir={{ s3fs_temp_dir }}/{{ s3fs_version }}
-    
+

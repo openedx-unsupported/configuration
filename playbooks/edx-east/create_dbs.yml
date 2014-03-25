@@ -1,0 +1,156 @@
+# This is a utility play to initialize the mysql dbs for the following
+# roles:
+#   - edxapp
+#   - xqueue
+#   - ora
+#   - discern
+#
+# The mysql root user MUST be passed in as extra vars for
+# at least one of the databases.
+#
+# the environment and deployment must be passed in as COMMON_ENVIRONMENT
+# and COMMON_DEPLOYMENT.  These two vars should be set in the secret
+# var file for the corresponding vpc stack
+#
+# Example invocation:
+#
+# Create the databases for edxapp and xqueue:
+#
+# ansible-playbook -i localhost, create_db_users.yml -e@/path/to/secrets.yml -e "edxapp_db_root_user=root xqueue_db_root_user=root"
+#
+#
+- name: Create all databases on the edX stack
+  hosts: all
+  gather_facts: False
+  vars:
+    # These should be set to the root user for the
+    # db, if left 'None' the databse will be skipped
+    edxapp_db_root_user: 'None'
+    xqueue_db_root_user: 'None'
+    ora_db_root_user: 'None'
+    discern_db_root_user: 'None'
+
+  vars_prompt:
+    # passwords use vars_prompt so they aren't in the
+    # bash history
+    - name: "edxapp_db_root_pass"
+      prompt: "Password for edxapp root mysql user (enter to skip)"
+      default: "None"
+      private: True
+    - name: "xqueue_db_root_pass"
+      prompt: "Password for xqueue root mysql user (enter to skip)"
+      default: "None"
+      private: True
+    - name: "ora_db_root_pass"
+      prompt: "Password for ora root mysql user (enter to skip)"
+      default: "None"
+      private: True
+    - name: "discern_db_root_pass"
+      prompt: "Password for discern root mysql user (enter to skip)"
+      default: "None"
+      private: True
+
+
+  tasks:
+    - fail: msg="COMMON_ENVIRONMENT and COMMON_DEPLOYMENT need to be defined to use this play"
+      when: COMMON_ENVIRONMENT is not defined or COMMON_DEPLOYMENT is not defined
+    - name: create mysql databases for the edX stack
+      mysql_db: >
+        db={{ item[0] }}{{ item[1].db_name }}
+        state=present
+        login_host={{ item[1].db_host }}
+        login_user={{ item[1].db_user }}
+        login_password={{ item[1].db_pass }}
+        encoding=utf8
+      when: item[1].db_user != 'None'
+      with_nested:
+        - ['{{ COMMON_ENVIRONMENT }}_{{ COMMON_DEPLOYMENT }}_test_', '']
+        -
+          # These defaults are needed, otherwise ansible will throw
+          # variable undefined errors for when they are not defined
+          # in secret vars
+          - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+            db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+            db_user: "{{ edxapp_db_root_user }}"
+            db_pass: "{{ edxapp_db_root_pass }}"
+          - db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
+            db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+            db_user: "{{ xqueue_db_root_user }}"
+            db_pass: "{{ xqueue_db_root_pass }}"
+          - db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
+            db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+            db_user: "{{ ora_db_root_user }}"
+            db_pass: "{{ ora_db_root_pass }}"
+
+    - name: assign mysql user permissions for db user
+      mysql_user:
+        name: "{{ item.db_user_to_modify }}"
+        priv: "{{ item.db_name }}.*:SELECT,INSERT,UPDATE,DELETE"
+        password: "{{ item.db_user_to_modify_pass }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        # These defaults are needed, otherwise ansible will throw
+        # variable undefined errors for when they are not defined
+        # in secret vars
+        - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user|default('None') }}"
+          db_pass: "{{ edxapp_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ EDXAPP_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ EDXAPP_MYSQL_PASSWORD }}"
+        - db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+          db_user: "{{ xqueue_db_root_user|default('None') }}"
+          db_pass: "{{ xqueue_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ XQUEUE_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ XQUEUE_MYSQL_PASSWORD }}"
+        - db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+          db_user: "{{ ora_db_root_user|default('None') }}"
+          db_pass: "{{ ora_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ ORA_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ ORA_MYSQL_PASSWORD }}"
+
+
+    # The second call to mysql_user needs to have append_privs set to
+    # yes otherwise it will overwrite the previous run.
+    # This means that both tasks will report changed on every ansible
+    # run
+
+    - name: assign mysql user permissions for db test user
+      mysql_user:
+        append_privs: yes
+        name: "{{ item.db_user_to_modify }}"
+        priv: "{{ COMMON_ENVIRONMENT }}_{{ COMMON_DEPLOYMENT }}_test_{{ item.db_name }}.*:ALL"
+        password: "{{ item.db_user_to_modify_pass }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        # These defaults are needed, otherwise ansible will throw
+        # variable undefined errors for when they are not defined
+        # in secret vars
+        - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user|default('None') }}"
+          db_pass: "{{ edxapp_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ EDXAPP_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ EDXAPP_MYSQL_PASSWORD }}"
+        - db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+          db_user: "{{ xqueue_db_root_user|default('None') }}"
+          db_pass: "{{ xqueue_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ XQUEUE_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ XQUEUE_MYSQL_PASSWORD }}"
+        - db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+          db_user: "{{ ora_db_root_user|default('None') }}"
+          db_pass: "{{ ora_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ ORA_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ ORA_MYSQL_PASSWORD }}"

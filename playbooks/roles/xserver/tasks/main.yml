@@ -3,28 +3,28 @@
 # access to the edX 6.00x repo which is not public
 ---
 
-- name: xserver | checking for grader info
+- name: checking for grader info
   fail: msg="You must define XSERVER_GRADER_DIR and XSERVER_GRADER_SOURCE to use this role!"
   when: not XSERVER_GRADER_DIR or not XSERVER_GRADER_SOURCE
 
-- name: xserver | checking for git identity
+- name: checking for git identity
   fail: msg="You must define XSERVER_LOCAL_GIT_IDENTITY to use this role"
   when: not XSERVER_LOCAL_GIT_IDENTITY
 
-- name: xserver | create application user
+- name: create application user
   user: >
     name="{{ xserver_user }}"
     home="{{ xserver_app_dir }}"
     createhome=no
     shell=/bin/false
 
-- name: xserver | create application sandbox user
+- name: create application sandbox user
   user: >
     name="{{ xserver_sandbox_user }}"
     createhome=no
     shell=/bin/false
 
-- name: xserver | create xserver app and data dirs
+- name: create xserver app and data dirs
   file: >
     path="{{ item }}"
     state=directory
@@ -36,43 +36,30 @@
     - "{{ xserver_data_dir }}"
     - "{{ xserver_data_dir }}/data"
 
-- name: xserver | create sandbox sudoers file
+- name: create sandbox sudoers file
   template: src=99-sandbox.j2 dest=/etc/sudoers.d/99-sandbox owner=root group=root mode=0440
 
 # Make sure this line is in the common-session file.
-- name: xserver | ensure pam-limits module is loaded
+- name: ensure pam-limits module is loaded
   lineinfile:
     dest=/etc/pam.d/common-session
     regexp="session required pam_limits.so"
     line="session required pam_limits.so"
 
-- name: xserver | set sandbox limits
+- name: set sandbox limits
   template: src={{ item }} dest=/etc/security/limits.d/sandbox.conf
   first_available_file:
   - "{{ secure_dir }}/sandbox.conf.j2"
   - "sandbox.conf.j2"
 
-- name: xserver | install system dependencies of xserver
+- name: install system dependencies of xserver
   apt: pkg={{ item }} state=present
   with_items: xserver_debian_pkgs
 
-- name: xserver | load python-sandbox apparmor profile
+- name: load python-sandbox apparmor profile
   template: src={{ item }} dest=/etc/apparmor.d/edx_apparmor_sandbox
   first_available_file:
   - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
   - "usr.bin.python-sandbox.j2"
 
-- include: deploy.yml
-
-- name: xserver | enforce app-armor rules
-  command: aa-enforce {{ xserver_venv_sandbox_dir }}
-
-- name: xserver | create a symlink for venv python
-  file: >
-    src="{{ xserver_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.xserver
-    state=link
-  with_items:
-  - python
-  - pip
-
+- include: deploy.yml tags=deploy

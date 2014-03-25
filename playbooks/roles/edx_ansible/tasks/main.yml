@@ -1,0 +1,47 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Tasks for role edx_ansible
+#
+# Overview:
+#
+# This is an edx_ansible role that installs edx_ansible :)
+# The purpose is to install edx_ansible on a server so
+# that it can be updated locally.
+#
+# This role will also drop some helper scripts that
+# for running edx_ansible tasks
+#
+# Example play:
+#
+#
+#
+- name: create application user
+  user: >
+    name="{{ edx_ansible_user }}"
+    home="{{ edx_ansible_app_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: create edx_ansible app and venv dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ edx_ansible_user }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ edx_ansible_app_dir }}"
+    - "{{ edx_ansible_data_dir }}"
+    - "{{ edx_ansible_venvs_dir }}"
+
+- name: install a bunch of system packages on which edx_ansible relies
+  apt: pkg={{','.join(edx_ansible_debian_pkgs)}} state=present
+
+- include: deploy.yml tags=deploy

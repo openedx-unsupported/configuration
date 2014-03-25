@@ -2,10 +2,10 @@
 
 #
 # datadog
-# 
+#
 # Overview:
-# 
-# Installs datadog 
+#
+# Installs datadog
 ##
 # Dependencies:
 #
@@ -15,35 +15,26 @@
 #   - datadog
 #
 
-- name: datadog | add apt key
+- name: install debian needed pkgs
+  apt: pkg={{ item }}
+  with_items: datadog_debian_pkgs
+  tags:
+    - datadog
+
+- name: add apt key
   apt_key: id=C7A7DA52 url={{datadog_apt_key}} state=present
   tags:
     - datadog
-    - ubuntu
-  when: ansible_distribution in common_debian_variants
 
-- name: datadog | install apt repository
-  shell: echo 'deb http://apt.datadoghq.com/ unstable main' > /etc/apt/sources.list.d/datadog-source.list
+- name: install apt repository
+  apt_repository: repo='deb http://apt.datadoghq.com/ unstable main' update_cache=yes
   tags:
     - datadog
-    - ubuntu
-  when: ansible_distribution in common_debian_variants
 
-- name: datadog | add yum repo
-  copy:
-    src=etc/yum.repo.d/datdog.repo
-    dest=/etc/yum.repo.d/datdog.repo
+- name: install datadog agent
+  apt: pkg="datadog-agent"
   tags:
     - datadog
-    - redhat
-  when_string: ansible_distribution in common_redhat_variants
-
-- name: datadog | install datadog agent
-  apt: pkg="datadog-agent" update_cache=yes
-  tags:
-    - datadog
-    - ubuntu
-  when: ansible_distribution in common_debian_variants
 
 - name: datadog | datadog user to syslog group for log reading
   user: append=yes groups=syslog name=dd-agent state=present
@@ -132,7 +123,12 @@
     "regexp=^api_key\s*:.*"
     "line=api_key:{{ common_dd_api_key }}"
   notify:
-    - datadog | restart the datadog service
+    - restart the datadog service
+  tags:
+    - datadog
+
+- name: ensure started and enabled
+  service: name=datadog-agent state=started enabled=yes
   tags:
     - datadog
 

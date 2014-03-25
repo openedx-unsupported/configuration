@@ -10,33 +10,64 @@
 #  http://downloads.mysql.com/archives/mysql-5.1/mysql-5.1.62.tar.gz
 #
 ---
-- name: edxlocal| install packages needed for single server
+- name: install packages needed for single server
   apt: pkg={{','.join(edxlocal_debian_pkgs)}} install_recommends=yes state=present
 
-- name: edxlocal | create a database for edxapp
+- name: setup the edxapp db user
+  mysql_user: >
+    name={{ EDXAPP_MYSQL_USER }}
+    password={{ EDXAPP_MYSQL_PASSWORD }}
+    priv='{{EDXAPP_MYSQL_DB_NAME}}.*:ALL'
+
+- name: create a database for edxapp
   mysql_db: >
     db=edxapp
     state=present
     encoding=utf8
+  when: EDXAPP_MYSQL_USER is defined
+    
+- name: setup the xqueue db user
+  mysql_user: >
+    name={{ XQUEUE_MYSQL_USER }}
+    password={{ XQUEUE_MYSQL_PASSWORD }}
+    priv='{{XQUEUE_MYSQL_DB_NAME}}.*:ALL'
+  when: XQUEUE_MYSQL_USER is defined and not devstack
 
-- name: edxlocal | create a database for xqueue
+- name: create a database for xqueue
   mysql_db: >
     db=xqueue
     state=present
     encoding=utf8
+  when: XQUEUE_MYSQL_USER is defined and not devstack
 
-- name: edxlocal | create a database for ora
+- name: setup the ora db user
+  mysql_user: >
+    name={{ ORA_MYSQL_USER }}
+    password={{ ORA_MYSQL_PASSWORD }}
+    priv='{{ORA_MYSQL_DB_NAME}}.*:ALL'
+
+- name: create a database for ora
   mysql_db: >
     db=ora
     state=present
     encoding=utf8
+  when: ORA_MYSQL_USER is defined
 
-- name: edxlocal | create a database for discern
+- name: setup the discern db user
+  mysql_user: >
+    name={{ DISCERN_MYSQL_USER }}
+    password={{ DISCERN_MYSQL_PASSWORD }}
+    priv='{{DISCERN_MYSQL_DB_NAME}}.*:ALL'
+  when: DISCERN_MYSQL_USER is defined and not devstack
+
+
+- name: create a database for discern
   mysql_db: >
     db=discern
     state=present
     encoding=utf8
+  when: DISCERN_MYSQL_USER is defined and not devstack
 
 
-- name: edxlocal | install memcached
+- name: install memcached
   apt: pkg=memcached state=present

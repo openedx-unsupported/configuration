@@ -1,26 +1,30 @@
 # vars for the ORA role
 ---
 ORA_NGINX_PORT: 18060
-ORA_BASIC_AUTH: False
 
 ora_app_dir: "{{ COMMON_APP_DIR }}/ora"
 ora_code_dir: "{{ ora_app_dir }}/ora"
 ora_data_dir: "{{ COMMON_DATA_DIR }}/ora"
+ora_data_course_dir: "{{ ora_data_dir }}/course"
 ora_venvs_dir: "{{ ora_app_dir }}/venvs"
 ora_venv_dir: "{{ ora_venvs_dir }}/ora"
 ora_venv_bin: "{{ ora_venv_dir }}/bin"
 ora_user: "ora"
+ora_deploy_path: "{{ ora_venv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ora_nltk_data_dir: "{{ ora_data_dir}}/nltk_data"
 
+ora_nltk_download_url: http://edx-static.s3.amazonaws.com/nltk/nltk-data-20131113.tar.gz
+ora_nltk_tmp_file: "{{ ora_data_dir }}/nltk.tmp.tar.tz"
+
 ora_source_repo: https://github.com/edx/edx-ora.git
-ora_version: 'HEAD'
+ora_version: 'master'
 ora_pre_requirements_file: "{{ ora_code_dir }}/pre-requirements.txt"
 ora_post_requirements_file: "{{ ora_code_dir }}/requirements.txt"
 
 ora_ease_venv_dir: "{{ ora_venv_dir }}"
 ora_ease_code_dir: "{{ ora_app_dir }}/ease"
 ora_ease_source_repo: https://github.com/edx/ease.git
-ora_ease_version: 'HEAD'
+ora_ease_version: 'master'
 ora_ease_pre_requirements_file: "{{ ora_ease_code_dir }}/pre-requirements.txt"
 ora_ease_post_requirements_file: "{{ ora_ease_code_dir }}/requirements.txt"
 
@@ -31,12 +35,12 @@ ORA_TIME_BETWEEN_XQUEUE_PULLS: 5
 ORA_TIME_BETWEEN_EXPIRED_CHECKS: 1800
 ORA_GRADER_SETTINGS_DIRECTORY: "grader_settings/"
 ORA_MAX_NUMBER_OF_TIMES_TO_RETRY_GRADING: 10
-ORA_MIN_TO_USE_ML: 100
+ORA_MIN_TO_USE_ML: 4
 ORA_ML_PATH: "machine-learning/"
 ORA_ML_MODEL_PATH: "ml_models/"
 ORA_TIME_BETWEEN_ML_CREATOR_CHECKS: 300
 ORA_TIME_BETWEEN_ML_GRADER_CHECKS: 5
-ORA_MIN_TO_USE_PEER: 10
+ORA_MIN_TO_USE_PEER: 4
 ORA_PEER_GRADER_COUNT: 3
 ORA_PEER_GRADER_MINIMUM_TO_CALIBRATE: 3
 ORA_PEER_GRADER_MAXIMUM_TO_CALIBRATE: 6
@@ -55,14 +59,18 @@ ORA_USERS:
   "lms": "password"
 
 ORA_XQUEUE_URL: "http://localhost:18040"
+ORA_XQUEUE_DJANGO_USER: "lms"
+ORA_XQUEUE_DJANGO_PASSWORD: "password"
+ORA_XQUEUE_BASIC_AUTH_USER: "edx"
+ORA_XQUEUE_BASIC_AUTH_PASSWORD: "edx"
 
 ORA_DJANGO_USER: "lms"
 ORA_DJANGO_PASSWORD: "password"
 ORA_URL: "http://localhost:18060"
 
 ORA_MYSQL_DB_NAME: 'ora'
-ORA_MYSQL_USER: 'root'
-ORA_MYSQL_PASSWORD: ''
+ORA_MYSQL_USER: 'ora001'
+ORA_MYSQL_PASSWORD: 'password'
 ORA_MYSQL_HOST: 'localhost'
 ORA_MYSQL_PORT: '3306'
 
@@ -84,6 +92,7 @@ ora_gunicorn_host: 127.0.0.1
 ora_env_config:
   LOGGING_ENV: $ORA_LOGGING_ENV
   LOG_DIR: "{{ COMMON_DATA_DIR }}/logs/xqueue"
+  COURSE_DATA_PATH: "{{ ora_data_course_dir }}"
   REQUESTS_TIMEOUT: $ORA_REQUESTS_TIMEOUT
   QUEUES_TO_PULL_FROM: $ORA_QUEUES_TO_PULL_FROM
   TIME_BETWEEN_XQUEUE_PULLS: $ORA_TIME_BETWEEN_XQUEUE_PULLS
@@ -112,9 +121,9 @@ ora_auth_config:
   USERS: $ORA_USERS
   XQUEUE_INTERFACE:
     django_auth:
-      username: $XQUEUE_DJANGO_USER
-      password: $XQUEUE_DJANGO_PASSWORD
-    basic_auth: [$XQUEUE_BASIC_AUTH_USER, $XQUEUE_BASIC_AUTH_PASSWORD]
+      username: $ORA_XQUEUE_DJANGO_USER
+      password: $ORA_XQUEUE_DJANGO_PASSWORD
+    basic_auth: [ $ORA_XQUEUE_BASIC_AUTH_USER, $ORA_XQUEUE_BASIC_AUTH_PASSWORD ]
     url: $ORA_XQUEUE_URL
   GRADING_CONTROLLER_INTERFACE:
     django_auth:
@@ -122,7 +131,7 @@ ora_auth_config:
       username: $ORA_DJANGO_USER
     url: $ORA_URL
   DATABASES:
-    default: 
+    default:
       ENGINE: 'django.db.backends.mysql'
       NAME: $ORA_MYSQL_DB_NAME
       USER: $ORA_MYSQL_USER
@@ -131,6 +140,12 @@ ora_auth_config:
       PORT: $ORA_MYSQL_PORT
   AWS_ACCESS_KEY_ID: $ORA_AWS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY: $ORA_AWS_SECRET_ACCESS_KEY
+
+ora_environment:
+  SERVICE_VARIANT: ora
+  NLTK_DATA: $ora_nltk_data_dir
+  LANG: $ORA_LANG
+  PATH: $ora_deploy_path
 
 ora_debian_pkgs:
   - python-software-properties

@@ -1,0 +1,169 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gerrit
+#
+# Overview: Installs and configures Gerrit on the server.  Requires
+# several secure variables to be defined that are not defined in this
+# role.
+#
+#
+# Dependencies:
+#   - An existing running database.
+#   - An S3 bucket containing all of the necessary plugin jars.
+#   - In addition to the variables defined in defaults/main.yml, the following variables must be defined:
+#
+# gerrit_github_client_id: alskdjdfkjasdjfsdlfkj
+# gerrit_github_client_secret: 0938908450deffaaa87665a555a6fc6de5777f77f
+# gerrit_db_hostname: somedb.88374jhyehf.us-east-1.rds.amazonaws.com
+# gerrit_db_admin_username: adminuser
+# gerrit_db_admin_password: adminpassword
+# gerrit_db_password: gerrituserpassword
+# gerrit_artifact_s3_bucket:
+#   name: some-s3-bucket
+#   aws_access_key_id: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+#   aws_secret_access_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+# gerrit_hostname: "gerrit.example.com"
+# gerrit_smtp_enabled: false
+# gerrit_email: gerrit@example.com
+# gerrit_smtp_server: smtp.example.com
+# gerrit_smtp_encryption: none
+# gerrit_smtp_user: someuser
+# gerrit_smtp_pass: somepassword
+#
+#
+# Example play:
+#
+# - name: Deploy gerrit
+#   hosts: gerrit
+#   gather_facts: True
+#   sudo: True
+#   roles:
+#     - gerrit
+
+- name: system package pre-requisites installed
+  apt: pkg={{ item }}
+  with_items: gerrit_debian_pkgs
+
+- name: user
+  user: name={{ gerrit_user }} system=yes home={{ gerrit_app_dir }} createhome=no
+
+- name: directories created
+  file: path={{ item }} mode=700 owner={{ gerrit_user }} state=directory
+  with_items:
+    - "{{ gerrit_app_dir }}"
+    - "{{ gerrit_app_dir }}/etc"
+    - "{{ gerrit_data_dir }}"
+
+- name: repository volume fs exists
+  shell: file -s {{ gerrit_repo_volume_os_device }} | grep ext4
+  ignore_errors: yes
+  register: is_formatted
+
+- name: repository volume formatted
+  command: mkfs -t ext4 {{ gerrit_repo_volume_os_device }}
+  when: is_formatted | failed
+
+- name: fstab includes repository volume
+  lineinfile: >
+    dest=/etc/fstab
+    regexp="^{{ gerrit_repo_volume_os_device }}\s"
+    line="{{ gerrit_repo_volume_os_device }}       {{ gerrit_data_dir }}   ext4    defaults        0       2"
+
+# output will look roughly like:
+# /dev/foo on /some/mount/point type ext4 (options)
+- name: repository volume is mounted
+  shell: >
+    mount -l | grep '^{{ gerrit_repo_volume_os_device }} '
+  ignore_errors: yes
+  register: is_mounted
+
+- name: repository volume mounted
+  command: mount {{ gerrit_repo_volume_os_device }}
+  when: is_mounted | failed
+
+- name: war file downloaded
+  s3: >
+    bucket={{ gerrit_artifact_s3_bucket.name }}
+    object=gerrit-{{ gerrit_release }}.war
+    dest=/tmp/gerrit.war
+    mode=get
+    aws_access_key="{{ gerrit_artifact_s3_bucket.aws_access_key_id }}"
+    aws_secret_key="{{ gerrit_artifact_s3_bucket.aws_secret_access_key }}"
+  sudo_user: "{{ gerrit_user }}"
+
+- name: database created
+  mysql_db: >
+    name={{ gerrit_db_name }}
+    encoding=utf8
+    login_host={{ gerrit_db_hostname }} login_user={{ gerrit_db_admin_username }} login_password={{ gerrit_db_admin_password }}
+  register: db_created
+
+- name: database user created
+  mysql_user: >
+    name={{ gerrit_user }}
+    password={{ gerrit_db_password }}
+    host='%'
+    priv="{{ gerrit_db_name }}.*:ALL"
+    login_host={{ gerrit_db_hostname }} login_user={{ gerrit_db_admin_username }} login_password={{ gerrit_db_admin_password }}
+
+- name: configuration uploaded
+  template: src=gerrit.config.j2 dest={{ gerrit_app_dir }}/etc/gerrit.config mode=600
+  sudo_user: "{{ gerrit_user }}"
+  notify: gerrit restarted
+
+- name: initialized
+  command: >
+    {{ gerrit_java_exe_path }} -jar /tmp/gerrit.war init -d {{ gerrit_app_dir }} --batch --no-auto-start
+    creates={{ gerrit_app_dir }}/bin
+  sudo_user: "{{ gerrit_user }}"
+  notify: gerrit restarted
+
+- name: artifacts installed from s3
+  s3: >
+    bucket={{ gerrit_artifact_s3_bucket.name }}
+    object={{ item.jar }}
+    dest={{ item.dest }}/{{ item.jar }}
+    mode=get
+    aws_access_key="{{ gerrit_artifact_s3_bucket.aws_access_key_id }}"
+    aws_secret_key="{{ gerrit_artifact_s3_bucket.aws_secret_access_key }}"
+  sudo_user: "{{ gerrit_user }}"
+  notify: gerrit restarted
+  with_items:
+    - { jar: "github-oauth-{{ gerrit_release }}.jar", dest: "{{ gerrit_app_dir }}/lib" }
+    - { jar: "github-plugin-{{ gerrit_release }}.jar", dest: "{{ gerrit_app_dir }}/plugins" }
+    - { jar: "singleusergroup-{{ gerrit_release }}.jar", dest: "{{ gerrit_app_dir }}/plugins" }
+
+- name: plugins installed from war
+  shell: unzip -p /tmp/gerrit.war WEB-INF/plugins/replication.jar > {{ gerrit_app_dir }}/plugins/replication.jar creates={{ gerrit_app_dir }}/plugins/replication.jar
+  sudo_user: "{{ gerrit_user }}"
+  notify: gerrit restarted
+
+- name: setup ngnix vhost
+  template: >
+    src=nginx-gerrit.j2
+    dest={{ nginx_sites_available_dir }}/gerrit
+
+- name: enable gerrit vhost
+  file: >
+    src={{ nginx_sites_available_dir }}/gerrit
+    dest={{ nginx_sites_enabled_dir }}/gerrit
+    state=link
+  notify: nginx restarted
+
+- name: init script configured
+  template: src=gerritcodereview.j2 dest=/etc/default/gerritcodereview mode=644
+
+- name: init script installed
+  file: src={{ gerrit_app_dir }}/bin/gerrit.sh dest=/etc/init.d/gerrit state=link
+
+- name: starts on boot
+  service: name=gerrit enabled=yes

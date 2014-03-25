@@ -1,4 +1,5 @@
-# Stanford Ansible Configuration Files
+Readme
+------
 
 This directory has the live playbooks that we use here at Stanford to
 maintain our instance of OpenEdX at [class.stanford.edu][c].  We check
@@ -22,7 +23,8 @@ Other install docs:
   [1]: https://docs.google.com/document/d/1ZDx51Jxa-zffyeKvHmTp_tIskLW9D9NRg9NytPTbnrA/edit#heading=h.iggugvghbcpf
 
 
-## Ansible Commands - Prod
+Ansible Commands - Prod
+-----------------------
 
 Generally we do installs as the "ubuntu" user.  You want to make
 sure that the stanford-deploy-20130415 ssh key is in your ssh agent.
@@ -46,10 +48,10 @@ Some specifics:
   and so forth).
 
 
-## Ansible Commands - Stage
+Ansible Commands - Stage
+-------------------------
 
 Command is:
 
     ANSIBLE_CONFIG=stage-ansible.cfg ANSIBLE_EC2_INI=stage-ec2.ini ansible-playbook stage-app.yml -e "machine=app1" -u ubuntu -c ssh -i ./ec2.py
-
 

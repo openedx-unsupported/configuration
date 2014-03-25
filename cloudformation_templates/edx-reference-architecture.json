@@ -16,7 +16,7 @@
       "Description":"Name of an existing EC2 KeyPair to enable SSH access to the web server",
       "Default":"deployment"
     },
-    "InstanceType":{
+    "EdxappInstanceType":{
       "Description":"WebServer EC2 instance type",
       "Type":"String",
       "Default":"m1.small",
@@ -63,7 +63,30 @@
       "ConstraintDescription":"must be a valid EC2 instance type."
     },
     "ForumInstanceType":{
-      "Description":"Worker EC2 instance type",
+      "Description":"Forum EC2 instance type",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "NotifierInstanceType":{
+      "Description":"Notifier EC2 instance type",
       "Type":"String",
       "Default":"m1.small",
       "AllowedValues":[
@@ -108,8 +131,54 @@
       ],
       "ConstraintDescription":"must be a valid EC2 instance type."
     },
-    "RabbitInstanceType":{
-      "Description":"RabbitMQ server EC2 instance type",
+    "CommonClusterInstanceType":{
+      "Description":"The instance type on which common, clustered applications, e.g., RabbitMQ and Elasticsearch are hosted.",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "XserverInstanceType":{
+      "Description":"Xserver server EC2 instance type",
+      "Type":"String",
+      "Default":"m1.small",
+      "AllowedValues":[
+        "t1.micro",
+        "m1.small",
+        "m1.medium",
+        "m1.large",
+        "m1.xlarge",
+        "m2.xlarge",
+        "m2.2xlarge",
+        "m2.4xlarge",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "c1.medium",
+        "c1.xlarge",
+        "cc1.4xlarge",
+        "cc2.8xlarge",
+        "cg1.4xlarge"
+      ],
+      "ConstraintDescription":"must be a valid EC2 instance type."
+    },
+    "XqueueInstanceType":{
+      "Description":"Xqueue server EC2 instance type",
       "Type":"String",
       "Default":"m1.small",
       "AllowedValues":[
@@ -158,7 +227,7 @@
     "ForumServerPort":{
       "Description":"The TCP port for the Forum Server",
       "Type":"Number",
-      "Default":"4567"
+      "Default":"18080"
     },
     "CacheNodePort":{
       "Description":"The TCP port for the nodes in the Elasticache cluster",
@@ -231,10 +300,10 @@
       "Type":"Number",
       "Default":"2"
     },
-    "RabbitMQDesiredCapacity":{
-      "Description":"The Auto-scaling group desired capacity for the RabbitMQ hosts",
+    "CommonClusterDesiredCapacity":{
+      "Description":"The Auto-scaling group desired capacity for the CommonCluster hosts",
       "Type":"Number",
-      "Default":"2"
+      "Default":"3"
     },
     "WorkerDesiredCapacity":{
       "Description":"The Auto-scaling group desired capacity for the celery worker hosts",
@@ -245,6 +314,11 @@
       "Description":"The Auto-scaling group desired capacity for the forums hosts",
       "Type":"Number",
       "Default":"2"
+    },
+    "NotifierDesiredCapacity":{
+      "Description":"The Auto-scaling group desired capacity for the notifier hosts",
+      "Type":"Number",
+      "Default":"1"
     },
     "MongoDesiredCapacity":{
       "Description":"The Auto-scaling group desired capacity for the mongodb hosts",
@@ -276,7 +350,7 @@
       "ConstraintDescription":"must be between 1 and 10."
     },
     "DBName":{
-      "Default":"wwc",
+      "Default":"edxapp",
       "Description":"The database name",
       "Type":"String",
       "MinLength":"1",
@@ -285,7 +359,7 @@
       "ConstraintDescription":"must begin with a letter and contain only alphanumeric characters."
     },
     "DBUsername":{
-      "Default":"edxapp",
+      "Default":"root",
       "NoEcho":"true",
       "Description":"The database admin account username",
       "Type":"String",
@@ -317,6 +391,16 @@
         "db.m2.4xlarge"
       ],
       "ConstraintDescription":"must select a valid database instance type."
+    },
+    "DBEngineVersion":{
+      "Default":"5.6",
+      "Description":"Version of MySQL for the RDS",
+      "Type":"String",
+      "AllowedValues":[
+        "5.5",
+        "5.6"
+      ],
+      "ConstraintDescription":"must select a valid database version."
     },
     "DBAllocatedStorage":{
       "Default":"5",
@@ -381,8 +465,9 @@
       "XServerJail02":   { "CIDR":"10.0.21.0/24" },
       "Xqueue01":        { "CIDR":"10.0.30.0/24" },
       "Xqueue02":        { "CIDR":"10.0.31.0/24" },
-      "Rabbit01":        { "CIDR":"10.0.40.0/24" },
-      "Rabbit02":        { "CIDR":"10.0.41.0/24" },
+      "CommonCluster01": { "CIDR":"10.0.46.0/24"},
+      "CommonCluster02": { "CIDR":"10.0.47.0/24"},
+      "CommonCluster03": { "CIDR":"10.0.48.0/24"},
       "Data01":          { "CIDR":"10.0.50.0/24" },
       "Data02":          { "CIDR":"10.0.51.0/24" },
       "Cache01":         { "CIDR":"10.0.60.0/24" },
@@ -393,7 +478,9 @@
       "Forum02":        { "CIDR":"10.0.81.0/24" },
       "Mongo01":        { "CIDR":"10.0.90.0/24" },
       "Mongo02":        { "CIDR":"10.0.91.0/24" },
-      "Mongo03":        { "CIDR":"10.0.92.0/24" }
+      "Mongo03":        { "CIDR":"10.0.92.0/24" },
+      "Notifier01":        { "CIDR":"10.0.100.0/24" },
+      "Admin":          { "CIDR":"10.0.200.0/24" }
     },
     "MapRegionsToAvailZones":{
       "us-east-1":       { "AZone2":"us-east-1d",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
@@ -435,7 +522,22 @@
             { "Ref":"AWS::Region" },
             "AZone0"
           ]
-        }
+        },
+        "Tags":[ 
+          { 
+            "Key":"immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "external','target':'ec2'}"
+				 ]
+				]
+		    } 
+          }
+        ]
       }
     },
     "PublicSubnet02":{
@@ -457,7 +559,54 @@
             { "Ref":"AWS::Region" },
             "AZone1"
           ]
-        }
+        },
+        "Tags":[ 
+          { 
+            "Key":"immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "external','target':'ec2'}"
+				 ]
+				]
+		    }  
+          } 
+        ]
+      }
+    },
+    "AdminSubnet":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Admin",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":"admin"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
       }
     },
     "EdxappSubnet01":{
@@ -482,12 +631,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"edxapp"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key":"immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-edxapp','target':'ec2'}"
+				 ]
+				]
+		    }  
           }
         ]
       }
@@ -514,12 +676,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"edxapp"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key":"immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-edxapp','target':'ec2'}"
+				 ]
+				]
+		    }  
           }
         ]
       }
@@ -546,12 +721,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"xqueue"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-xqueue','target':'ec2'}"
+				 ]
+				]
+		    }    
           }
         ]
       }
@@ -578,17 +766,30 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"xqueue"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-xqueue','target':'ec2'}"
+				 ]
+				]
+		    }
           }
         ]
       }
     },
-    "RabbitSubnet01":{
+    "CommonClusterSubnet01":{
       "Type":"AWS::EC2::Subnet",
       "Properties":{
         "VpcId":{
@@ -597,7 +798,7 @@
         "CidrBlock":{
           "Fn::FindInMap":[
             "SubnetConfig",
-            "Rabbit01",
+            "CommonCluster01",
             "CIDR"
           ]
         },
@@ -610,17 +811,30 @@
         },
         "Tags":[
           {
-            "Key":"Application",
-            "Value":"RabbitMQ"
+            "Key":"play",
+            "Value":"commoncluster"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-commoncluster','target':'ec2'}"
+				 ]
+				]
+		    }
           }
         ]
       }
     },
-    "RabbitSubnet02":{
+    "CommonClusterSubnet02":{
       "Type":"AWS::EC2::Subnet",
       "Properties":{
         "VpcId":{
@@ -629,7 +843,7 @@
         "CidrBlock":{
           "Fn::FindInMap":[
             "SubnetConfig",
-            "Rabbit02",
+            "CommonCluster02",
             "CIDR"
           ]
         },
@@ -642,12 +856,70 @@
         },
         "Tags":[
           {
-            "Key":"Application",
-            "Value":"RabbitMQ"
+            "Key":"play",
+            "Value":"commoncluster"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-commoncluster','target':'ec2'}"
+				 ]
+				]
+		    } 
+          }
+        ]
+      }
+    },
+    "CommonClusterSubnet03":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "CommonCluster03",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone2"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"commoncluster"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-commoncluster','target':'ec2'}"
+				 ]
+				]
+		    } 
           }
         ]
       }
@@ -674,12 +946,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"xserver"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-xserver','target':'ec2'}"
+				 ]
+				]
+		    } 
           }
         ]
       }
@@ -706,12 +991,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"xserver"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-xserver','target':'ec2'}"
+				 ]
+				]
+		    } 
           }
         ]
       }
@@ -866,12 +1164,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"worker"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-worker','target':'ec2'}"
+				 ]
+				]
+		    } 
           }
         ]
       }
@@ -898,12 +1209,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"worker"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-worker','target':'ec2'}"
+				 ]
+				]
+		    } 
           }
         ]
       }
@@ -930,12 +1254,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"forum"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-forum','target':'ec2'}"
+				 ]
+				]
+		    } 
           }
         ]
       }
@@ -962,12 +1299,25 @@
         },
         "Tags":[
           {
-            "Key":"Application",
+            "Key":"play",
             "Value":"forum"
           },
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-forum','target':'ec2'}"
+				 ]
+				]
+		    }
           }
         ]
       }
@@ -1000,6 +1350,19 @@
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-mongo','target':'ec2'}"
+				 ]
+				]
+		    }
           }
         ]
       }
@@ -1032,6 +1395,19 @@
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata", 
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-mongo','target':'ec2'}"
+				 ]
+				]
+		    }
           }
         ]
       }
@@ -1064,6 +1440,64 @@
           {
             "Key":"Network",
             "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-mongo','target':'ec2'}"
+				 ]
+				]
+		    } 
+          }
+        ]
+      }
+    },
+    "NotifierSubnet01":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::FindInMap":[
+            "SubnetConfig",
+            "Notifier01",
+            "CIDR"
+          ]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"notifier"
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          },
+          {
+            "Key" : "immutable_metadata",
+            "Value":{"Fn::Join":["",
+				 ["{'purpose':'",
+				  {"Ref":"EnvironmentTag"},
+				  "-",
+				  {"Ref":"DeploymentTag"},
+				  "-",
+				  "internal-notifier','target':'ec2'}"
+				 ]
+				]
+		    }
           }
         ]
       }
@@ -1379,6 +1813,17 @@
         }
       }
     },
+    "PrivateSubnetRouteTableAssociationAdmin":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"AdminSubnet"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
     "PrivateSubnetRouteTableAssociationEdxapp01":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
@@ -1423,22 +1868,33 @@
         }
       }
     },
-    "PrivateSubnetRouteTableAssociationRabbit01":{
+    "PrivateSubnetRouteTableAssociationCommonCluster01":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"RabbitSubnet01"
+          "Ref":"CommonClusterSubnet01"
         },
         "RouteTableId":{
           "Ref":"PrivateRouteTable"
         }
       }
     },
-    "PrivateSubnetRouteTableAssociationRabbit02":{
+    "PrivateSubnetRouteTableAssociationCommonCluster02":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"RabbitSubnet02"
+          "Ref":"CommonClusterSubnet02"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
+    "PrivateSubnetRouteTableAssociationCommonCluster03":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"CommonClusterSubnet03"
         },
         "RouteTableId":{
           "Ref":"PrivateRouteTable"
@@ -1555,6 +2011,17 @@
         }
       }
     },
+    "PrivateSubnetRouteTableAssociationNotifier01":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"NotifierSubnet01"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
     "PrivateSubnetRouteTableAssociationMongo01":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
@@ -1642,6 +2109,17 @@
         }
       }
     },
+    "PrivateSubnetNetworkAclAssociationAdmin":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"AdminSubnet"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
     "PrivateSubnetNetworkAclAssociationEdxapp01":{
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
@@ -1686,22 +2164,33 @@
         }
       }
     },
-    "PrivateSubnetNetworkAclAssociationRabbit01":{
+    "PrivateSubnetNetworkAclAssociationCommonCluster01":{
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"RabbitSubnet01"
+          "Ref":"CommonClusterSubnet01"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
         }
       }
     },
-    "PrivateSubnetNetworkAclAssociationRabbit02":{
+    "PrivateSubnetNetworkAclAssociationCommonCluster02":{
       "Type":"AWS::EC2::SubnetNetworkAclAssociation",
       "Properties":{
         "SubnetId":{
-          "Ref":"RabbitSubnet02"
+          "Ref":"CommonClusterSubnet02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationCommonCluster03":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"CommonClusterSubnet03"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -1812,6 +2301,17 @@
       "Properties":{
         "SubnetId":{
           "Ref":"ForumSubnet02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationNotifier01":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"NotifierSubnet01"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -1974,6 +2474,12 @@
             "CidrIp":"0.0.0.0/0"
           },
           {
+            "IpProtocol":"tcp",
+            "FromPort":"11371",
+            "ToPort":"11371",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
             "IpProtocol":"icmp",
             "FromPort":"-1",
             "ToPort":"-1",
@@ -2017,6 +2523,12 @@
             "IpProtocol":"tcp",
             "FromPort":"10016",
             "ToPort":"10016",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"11371",
+            "ToPort":"11371",
             "CidrIp":"0.0.0.0/0"
           }
         ]
@@ -2111,7 +2623,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"bastion"
           },
           {
@@ -2430,7 +2942,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"InstanceType"
+                  "Ref":"EdxappInstanceType"
                 },
                 "Arch"
               ]
@@ -2477,7 +2989,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"EdxappInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -2522,7 +3034,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"edxapp",
             "PropagateAtLaunch":true
           },
@@ -2544,8 +3056,12 @@
         "LaunchConfigurationName":{
           "Ref":"EdxappServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"EdxappDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"EdxappDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"EdxappDesiredCapacity"
         },
@@ -2746,6 +3262,24 @@
             },
             "CidrIp":"0.0.0.0/0"
           }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"edxapp"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
+          }
         ]
       }
     },
@@ -2781,7 +3315,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"InstanceType"
+                  "Ref":"XqueueInstanceType"
                 },
                 "Arch"
               ]
@@ -2824,7 +3358,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"XqueueInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -2869,7 +3403,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"xqueue",
             "PropagateAtLaunch":true
           },
@@ -2891,8 +3425,12 @@
         "LaunchConfigurationName":{
           "Ref":"XqueueServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"XqueueDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"XqueueDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"XqueueDesiredCapacity"
         },
@@ -3077,6 +3615,24 @@
             "ToPort": { "Ref": "XqueueServerPort" },
             "CidrIp":"0.0.0.0/0"
           }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"xqueue"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
+          }
         ]
       }
     },
@@ -3093,12 +3649,15 @@
         "Timeout":"1200"
       }
     },
-    "RabbitMQServer":{
+    "CommonClusterServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
       "Properties":{
         "SecurityGroups":[
           {
             "Ref":"RabbitMQServerSecurityGroup"
+          },
+          {
+            "Ref":"ElasticsearchServerSecurityGroup"
           }
         ],
         "ImageId":{
@@ -3111,7 +3670,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"RabbitInstanceType"
+                  "Ref":"CommonClusterInstanceType"
                 },
                 "Arch"
               ]
@@ -3130,7 +3689,7 @@
                 "{\n",
                 "  cfn-signal -e 1 -r \"$1\" '",
                 {
-                  "Ref":"RabbitMQServerWaitHandle"
+                  "Ref":"CommonClusterServerWaitHandle"
                 },
                 "'\n",
                 "  exit 1\n",
@@ -3143,7 +3702,7 @@
                 "# If all went well, signal success\n",
                 "cfn-signal -e $? -r 'Edx Server configuration' '",
                 {
-                  "Ref":"RabbitMQServerWaitHandle"
+                  "Ref":"CommonClusterServerWaitHandle"
                 },
                 "'\n"
               ]
@@ -3154,7 +3713,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"CommonClusterInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -3172,35 +3731,44 @@
         ]
       }
     },
-    "RabbitMQServerASGroup":{
+    "CommonClusterServerASGroup":{
       "Type":"AWS::AutoScaling::AutoScalingGroup",
       "Properties":{
         "AvailabilityZones":[
           {
             "Fn::GetAtt":[
-              "RabbitSubnet01",
+              "CommonClusterSubnet01",
               "AvailabilityZone"
             ]
           },
           {
             "Fn::GetAtt":[
-              "RabbitSubnet02",
+              "CommonClusterSubnet02",
+              "AvailabilityZone"
+            ]
+          },
+          {
+            "Fn::GetAtt":[
+              "CommonClusterSubnet03",
               "AvailabilityZone"
             ]
           }
         ],
         "VPCZoneIdentifier":[
           {
-            "Ref":"RabbitSubnet01"
+            "Ref":"CommonClusterSubnet01"
           },
           {
-            "Ref":"RabbitSubnet02"
+            "Ref":"CommonClusterSubnet02"
+          },
+          {
+            "Ref":"CommonClusterSubnet03"
           }
         ],
         "Tags":[
           {
-            "Key":"role",
-            "Value":"rabbitmq",
+            "Key":"play",
+            "Value":"commoncluster",
             "PropagateAtLaunch":true
           },
           {
@@ -3219,92 +3787,178 @@
           }
         ],
         "LaunchConfigurationName":{
-          "Ref":"RabbitMQServer"
+          "Ref":"CommonClusterServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"CommonClusterDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"CommonClusterDesiredCapacity"
+        },
         "DesiredCapacity":{
-          "Ref":"RabbitMQDesiredCapacity"
+          "Ref":"CommonClusterDesiredCapacity"
         },
         "LoadBalancerNames":[
           {
             "Ref":"RabbitMQELB"
+          },
+          {
+            "Ref":"ElasticSearchELB"
           }
         ]
       }
     },
-    "RabbitMQScaleUpPolicy":{
-      "Type":"AWS::AutoScaling::ScalingPolicy",
-      "Properties":{
-        "AdjustmentType":"ChangeInCapacity",
-        "AutoScalingGroupName":{
-          "Ref":"RabbitMQServerASGroup"
-        },
-        "Cooldown":"60",
-        "ScalingAdjustment":"1"
-      }
-    },
-    "RabbitMQScaleDownPolicy":{
-      "Type":"AWS::AutoScaling::ScalingPolicy",
-      "Properties":{
-        "AdjustmentType":"ChangeInCapacity",
-        "AutoScalingGroupName":{
-          "Ref":"RabbitMQServerASGroup"
-        },
-        "Cooldown":"60",
-        "ScalingAdjustment":"-1"
-      }
-    },
-    "RabbitMQCPUAlarmHigh":{
+    "CommonClusterCPUAlarmHigh":{
       "Type":"AWS::CloudWatch::Alarm",
       "Properties":{
-        "AlarmDescription":"Scale-up if CPU > 90% for 10 minutes",
+        "AlarmDescription":"Alarm if CPU > 90% for 10 minutes",
         "MetricName":"CPUUtilization",
         "Namespace":"AWS/EC2",
         "Statistic":"Average",
         "Period":"300",
         "EvaluationPeriods":"2",
         "Threshold":"90",
-        "AlarmActions":[
-          {
-            "Ref":"RabbitMQScaleUpPolicy"
-          }
-        ],
+        "AlarmActions":[],
         "Dimensions":[
           {
             "Name":"AutoScalingGroupName",
             "Value":{
-              "Ref":"RabbitMQServerASGroup"
+              "Ref":"CommonClusterServerASGroup"
             }
           }
         ],
         "ComparisonOperator":"GreaterThanThreshold"
       }
     },
-    "RabbitMQCPUAlarmLow":{
+    "CommonClusterCPUAlarmLow":{
       "Type":"AWS::CloudWatch::Alarm",
       "Properties":{
-        "AlarmDescription":"Scale-down if CPU < 70% for 10 minutes",
+        "AlarmDescription":"Alarm if CPU < 70% for 10 minutes",
         "MetricName":"CPUUtilization",
         "Namespace":"AWS/EC2",
         "Statistic":"Average",
         "Period":"300",
         "EvaluationPeriods":"2",
         "Threshold":"70",
-        "AlarmActions":[
-          {
-            "Ref":"RabbitMQScaleDownPolicy"
-          }
-        ],
+        "AlarmActions":[],
         "Dimensions":[
           {
             "Name":"AutoScalingGroupName",
             "Value":{
-              "Ref":"RabbitMQServerASGroup"
+              "Ref":"CommonClusterServerASGroup"
             }
           }
         ],
         "ComparisonOperator":"LessThanThreshold"
+      }
+    },
+    "ElasticSearchELB":{
+      "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties":{
+        "Scheme":"internal",
+        "SecurityGroups":[
+          {
+            "Ref":"ElasticSearchELBSecurityGroup"
+          }
+        ],
+        "Listeners":[
+          {
+            "LoadBalancerPort":"9200",
+            "InstancePort":"9200",
+            "Protocol":"TCP"
+          },
+          {
+            "LoadBalancerPort":"9300",
+            "InstancePort":"9300",
+            "Protocol":"TCP"
+          }
+        ],
+        "HealthCheck":{
+          "Target":"TCP:9200",
+          "HealthyThreshold":"3",
+          "UnhealthyThreshold":"5",
+          "Interval":"30",
+          "Timeout":"5"
+        },
+        "Subnets":[
+          {
+            "Ref":"CommonClusterSubnet01"
+          },
+          {
+            "Ref":"CommonClusterSubnet02"
+          },
+          {
+            "Ref":"CommonClusterSubnet03"
+          }
+        ]
+      }
+    },
+    "ElasticSearchELBSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Enable TCP access on elasticsearch ports",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"9200",
+            "ToPort":"9200",
+            "CidrIp":"10.0.0.0/16"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"9300",
+            "ToPort":"9300",
+            "CidrIp":"10.0.0.0/16"
+          }
+        ],
+        "SecurityGroupEgress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"9200",
+            "ToPort":"9200",
+            "CidrIp":"10.0.0.0/16"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"9300",
+            "ToPort":"9300",
+            "CidrIp":"10.0.0.0/16"
+          }
+        ]
+      }
+    },
+    "ElasticsearchServerSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Open up SSH access plus Edx Server required ports",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort": 9200,
+            "ToPort": 9200,
+            "CidrIp":"10.0.0.0/16"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort": 9300,
+            "ToPort": 9300,
+            "CidrIp":"10.0.0.0/16"
+          }
+        ]
       }
     },
     "RabbitMQELB":{
@@ -3337,10 +3991,13 @@
         },
         "Subnets":[
           {
-            "Ref":"RabbitSubnet01"
+            "Ref":"CommonClusterSubnet01"
           },
           {
-            "Ref":"RabbitSubnet02"
+            "Ref":"CommonClusterSubnet02"
+          },
+          {
+            "Ref":"CommonClusterSubnet03"
           }
         ]
       }
@@ -3401,32 +4058,32 @@
             "FromPort":"5672",
             "ToPort":"5672",
             "SourceSecurityGroupId" : {
-		"Ref" : "RabbitMQELBSecurityGroup"
-	    }
+                "Ref" : "RabbitMQELBSecurityGroup"
+            }
           },
           {
             "IpProtocol":"tcp",
             "FromPort":"6163",
             "ToPort":"6163",
             "SourceSecurityGroupId" : {
-		"Ref" : "RabbitMQELBSecurityGroup" 
-	    }
+                "Ref" : "RabbitMQELBSecurityGroup" 
+            }
           },
           {
             "IpProtocol":"tcp",
             "FromPort":"5672",
             "ToPort":"5672",
             "SourceSecurityGroupId" : {
-		"Ref" : "XqueueServerSecurityGroup"
-	    }
+                "Ref" : "XqueueServerSecurityGroup"
+            }
           },
           {
             "IpProtocol":"tcp",
             "FromPort":"6163",
             "ToPort":"6163",
             "SourceSecurityGroupId" : {
-		"Ref" : "XqueueServerSecurityGroup"
-	    }
+                "Ref" : "XqueueServerSecurityGroup"
+            }
           },
           {
             "IpProtocol":"tcp",
@@ -3439,21 +4096,39 @@
             "FromPort":"15672",
             "ToPort":"15672",
             "SourceSecurityGroupId" : {
-		"Ref" : "BastionSecurityGroup"
-	    }
+                "Ref" : "BastionSecurityGroup"
+            }
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"rabbitmq"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
           }
         ]
       }
     },
-    "RabbitMQServerWaitHandle":{
+    "CommonClusterServerWaitHandle":{
       "Type":"AWS::CloudFormation::WaitConditionHandle"
     },
-    "RabbitMQServerWaitCondition":{
+    "CommonClusterServerWaitCondition":{
       "Type":"AWS::CloudFormation::WaitCondition",
-      "DependsOn":"RabbitMQServer",
+      "DependsOn":"CommonClusterServer",
       "Properties":{
         "Handle":{
-          "Ref":"RabbitMQServerWaitHandle"
+          "Ref":"CommonClusterServerWaitHandle"
         },
         "Timeout":"1200"
       }
@@ -3461,7 +4136,7 @@
     "XServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
       "Properties":{
-				"IamInstanceProfile":{ "Ref":"XServerInstanceProfile" },
+        "IamInstanceProfile":{ "Ref":"XServerInstanceProfile" },
         "SecurityGroups":[
           {
             "Ref":"XServerSecurityGroup"
@@ -3477,7 +4152,7 @@
               "Fn::FindInMap":[
                 "AWSInstanceType2Arch",
                 {
-                  "Ref":"InstanceType"
+                  "Ref":"XserverInstanceType"
                 },
                 "Arch"
               ]
@@ -3520,7 +4195,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"XserverInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -3565,7 +4240,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"xserver",
             "PropagateAtLaunch":true
           },
@@ -3587,8 +4262,12 @@
         "LaunchConfigurationName":{
           "Ref":"XServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"XServerDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"XServerDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"XServerDesiredCapacity"
         },
@@ -3762,8 +4441,26 @@
             "FromPort":"80",
             "ToPort":"80",
             "SourceSecurityGroupId" : { 
-		"Ref" : "XServerELBSecurityGroup" 
-	    }
+                "Ref" : "XServerELBSecurityGroup" 
+            }
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"xserver"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
           }
         ]
       }
@@ -3851,7 +4548,7 @@
           "Ref":"DBClass"
         },
         "Engine":"MySQL",
-        "EngineVersion":"5.5",
+        "EngineVersion":{ "Ref": "DBEngineVersion" },
         "MasterUsername":{
           "Ref":"DBUsername"
         },
@@ -3868,7 +4565,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"rds"
           },
           {
@@ -3979,7 +4676,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"WorkerInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -4024,7 +4721,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"worker",
             "PropagateAtLaunch":true
           },
@@ -4046,8 +4743,12 @@
         "LaunchConfigurationName":{
           "Ref":"WorkerServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"WorkerDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"WorkerDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"WorkerDesiredCapacity"
         }
@@ -4143,6 +4844,24 @@
               "Ref":"SSHLocation"
             }
           }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"worker"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
+          }
         ]
       }
     },
@@ -4224,7 +4943,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"ForumInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -4269,7 +4988,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"forum",
             "PropagateAtLaunch":true
           },
@@ -4291,8 +5010,12 @@
         "LaunchConfigurationName":{
           "Ref":"ForumServer"
         },
-        "MinSize":"2",
-        "MaxSize":"2",
+        "MinSize":{
+          "Ref":"ForumDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"ForumDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"ForumDesiredCapacity"
         },
@@ -4387,13 +5110,6 @@
         ],
         "Listeners":[
           {
-            "LoadBalancerPort":"80",
-            "InstancePort":{
-              "Ref":"ForumServerPort"
-            },
-            "Protocol":"HTTP"
-          },
-          {
             "LoadBalancerPort":"443",
             "InstancePort":{
               "Ref":"ForumServerPort"
@@ -4406,7 +5122,12 @@
           }
         ],
         "HealthCheck":{
-          "Target":"TCP:80",
+          "Target":{"Fn::Join":["",
+			       ["TCP:",
+				{"Ref":"ForumServerPort"}
+			       ]
+			      ]
+		   },
           "HealthyThreshold":"3",
           "UnhealthyThreshold":"5",
           "Interval":"30",
@@ -4425,17 +5146,11 @@
     "ForumELBSecurityGroup":{
       "Type":"AWS::EC2::SecurityGroup",
       "Properties":{
-        "GroupDescription":"Enable HTTP access on port 80",
+        "GroupDescription":"Enable HTTPS access",
         "VpcId":{
           "Ref":"EdxVPC"
         },
         "SecurityGroupIngress":[
-          {
-            "IpProtocol":"tcp",
-            "FromPort":"80",
-            "ToPort":"80",
-            "CidrIp":"0.0.0.0/0"
-          },
           {
             "IpProtocol":"tcp",
             "FromPort":"443",
@@ -4473,7 +5188,27 @@
             "IpProtocol":"tcp",
             "FromPort": { "Ref": "ForumServerPort" },
             "ToPort": { "Ref": "ForumServerPort" },
-            "CidrIp":"0.0.0.0/0"
+            "SourceSecurityGroupId" : {
+                "Ref" : "ForumELBSecurityGroup"
+            }
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"forum"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
           }
         ]
       }
@@ -4595,7 +5330,7 @@
           "Ref":"KeyName"
         },
         "InstanceType":{
-          "Ref":"InstanceType"
+          "Ref":"MongoInstanceType"
         },
         "BlockDeviceMappings":[
           {
@@ -4661,7 +5396,7 @@
         ],
         "Tags":[
           {
-            "Key":"role",
+            "Key":"play",
             "Value":"mongo",
             "PropagateAtLaunch":true
           },
@@ -4683,8 +5418,12 @@
         "LaunchConfigurationName":{
           "Ref":"MongoServer"
         },
-        "MinSize":"3",
-        "MaxSize":"3",
+        "MinSize":{
+          "Ref":"MongoDesiredCapacity"
+        },
+        "MaxSize":{
+          "Ref":"MongoDesiredCapacity"
+        },
         "DesiredCapacity":{
           "Ref":"MongoDesiredCapacity"
         }
@@ -4814,6 +5553,24 @@
               ]
             }
           }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"mongo"
+          },
+          {
+            "Key":"environment",
+            "Value":{
+              "Ref":"EnvironmentTag"
+            }
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            }
+          }
         ]
       }
     },
@@ -4856,6 +5613,164 @@
         "CacheSubnetGroupName" : { "Ref" : "CacheSubnetGroup" },
         "VpcSecurityGroupIds"  : [ { "Ref" : "CacheSecurityGroup" } ]
       }
+    },
+		"NotifierRole": {
+				"Type": "AWS::IAM::Role",
+        "Properties": {
+						"AssumeRolePolicyDocument": {
+								"Statement": [ {
+										"Effect": "Allow",
+										"Principal": {
+												"Service": [ "ec2.amazonaws.com" ]
+										},
+										"Action": [ "sts:AssumeRole" ]
+								} ]
+            },
+            "Path": "/",
+            "Policies": [ {
+              "PolicyName": "NotifierBasePolicy",
+              "PolicyDocument": {
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Action":[
+                      "cloudformation:DescribeStackResource",
+                      "s3:Put",
+                      "ses:SendEmail",
+                      "ses:SendRawEmail",
+                      "ses:GetSendQuota"
+                    ],
+                    "Resource":"*"
+                  }
+                ]
+              }
+            } ]
+        }
+    },
+	  "NotifierInstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+            "Path": "/",
+            "Roles": [ {
+								"Ref": "NotifierRole"
+            } ]
+        }
+    },
+    "NotifierHost":{
+      "Type":"AWS::EC2::Instance",
+      "Properties":{
+        "InstanceType":{
+          "Ref":"NotifierInstanceType"
+        },
+        "KeyName":{
+          "Ref":"KeyName"
+        },
+        "IamInstanceProfile" : {
+          "Ref" : "NotifierInstanceProfile"
+        },
+        "SubnetId":{
+          "Ref":"NotifierSubnet01"
+        },
+        "ImageId":{
+          "Fn::FindInMap":[
+            "AWSRegionArch2AMI",
+            {
+              "Ref":"AWS::Region"
+            },
+            {
+              "Fn::FindInMap":[
+                "AWSInstanceType2Arch",
+                {
+                  "Ref":"NotifierInstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "SecurityGroupIds":[
+          {
+            "Ref":"NotifierSecurityGroup"
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"play",
+            "Value":"notifier"
+          },
+          {
+            "Key":"deployment",
+            "Value":{
+              "Ref":"DeploymentTag"
+            },
+            "PropagateAtLaunch":true
+          }
+        ],
+        "UserData":{
+          "Fn::Base64":{
+            "Fn::Join":[
+              "",
+              [
+                "#!/bin/bash -x\n",
+                "exec >> /home/ubuntu/cflog.log\n",
+                "exec 2>> /home/ubuntu/cflog.log\n",
+                "function error_exit\n",
+                "{\n",
+                "  cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref":"NotifierServerWaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "apt-get -y update\n",
+                "apt-get -y install python-setuptools\n",
+                "echo \"Python Tools installed\" - `date`\n",
+                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                "echo \"Cloudformation Boostrap installed \" - `date`\n",
+                "# If all went well, signal success\n",
+                "cfn-signal -e $? -r 'Edx Server configuration' '",
+                {
+                  "Ref":"NotifierServerWaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "NotifierSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Notifier Security Group",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"22",
+            "ToPort":"22",
+            "CidrIp":{
+              "Ref":"SSHLocation"
+            }
+          }
+        ]
+      }
+    },
+    "NotifierServerWaitHandle":{
+      "Type":"AWS::CloudFormation::WaitConditionHandle"
+    },
+    "NotifierServerWaitCondition":{
+      "Type":"AWS::CloudFormation::WaitCondition",
+      "DependsOn":"NotifierHost",
+      "Properties":{
+        "Handle":{
+          "Ref":"NotifierServerWaitHandle"
+        },
+        "Timeout":"1200"
+      }
     }
   },
   "Outputs":{
@@ -4864,52 +5779,6 @@
       "Value":{
         "Ref":"EdxappServerSecurityGroup"
       }
-    },
-    "DatabaseConfigurationString":{
-      "Description":"JDBC connection string for database",
-      "Value":{
-        "Fn::Join":[
-          "",
-          [
-            "'DATABASES': {\n",
-            "    'default': {\n",
-            "        'ENGINE': 'django.db.backends.mysql',\n",
-            "        'NAME': '",
-            {
-              "Ref":"DBName"
-            },
-            "',\n",
-            "        'USER': '",
-            {
-              "Ref":"DBUsername"
-            },
-            "',\n",
-            "        'PASSWORD': '",
-            {
-              "Ref":"DBPassword"
-            },
-            "',\n",
-            "        'HOST': '",
-            {
-              "Fn::GetAtt":[
-                "EdxDB",
-                "Endpoint.Address"
-              ]
-            },
-            "',\n",
-            "        'PORT': '",
-            {
-              "Fn::GetAtt":[
-                "EdxDB",
-                "Endpoint.Port"
-              ]
-            },
-            "'\n",
-            "    }\n",
-            "}\n"
-          ]
-        ]
-      }
-    }    
+    }
   }
 }
