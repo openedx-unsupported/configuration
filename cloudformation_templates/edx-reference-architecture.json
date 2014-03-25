@@ -2951,6 +2951,25 @@
 								} ]
             },
             "Path": "/"
+            "Policies": [ {
+              "PolicyName": "ForumBasePolicy",
+              "PolicyDocument": {
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Action":[
+                      "cloudformation:DescribeStackResource",
+                      "ses:SendEmail",
+                      "ses:SendRawEmail",
+                      "ses:GetSendQuota",
+                      "ec2:DescribeInstances",
+                      "ec2:DescribeTags"
+                    ],
+                    "Resource":"*"
+                  }
+                ]
+              }
+            } ]
         }
     },
 	  "XqueueInstanceProfile": {
@@ -2975,6 +2994,25 @@
 								} ]
             },
             "Path": "/"
+            "Policies": [ {
+              "PolicyName": "EdxAppBasePolicy",
+              "PolicyDocument": {
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Action":[
+                      "cloudformation:DescribeStackResource",
+                      "ses:SendEmail",
+                      "ses:SendRawEmail",
+                      "ses:GetSendQuota",
+                      "ec2:DescribeInstances",
+                      "ec2:DescribeTags"
+                    ],
+                    "Resource":"*"
+                  }
+                ]
+              }
+            } ]
         }
     },
 	  "XServerInstanceProfile": {
@@ -2983,6 +3021,49 @@
             "Path": "/",
             "Roles": [ {
 								"Ref": "XServerRole"
+            } ]
+        }
+    },
+    "ForumRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+            "AssumeRolePolicyDocument": {
+                "Statement": [ {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Service": [ "ec2.amazonaws.com" ]
+                    },
+                    "Action": [ "sts:AssumeRole" ]
+                } ]
+            },
+            "Path": "/"
+            "Policies": [ {
+              "PolicyName": "EdxAppBasePolicy",
+              "PolicyDocument": {
+                "Statement":[
+                  {
+                    "Effect":"Allow",
+                    "Action":[
+                      "cloudformation:DescribeStackResource",
+                      "ses:SendEmail",
+                      "ses:SendRawEmail",
+                      "ses:GetSendQuota",
+                      "ec2:DescribeInstances",
+                      "ec2:DescribeTags"
+                    ],
+                    "Resource":"*"
+                  }
+                ]
+              }
+            } ]
+        }
+    },
+    "ForumInstanceProfile": {
+        "Type": "AWS::IAM::InstanceProfile",
+        "Properties": {
+            "Path": "/",
+            "Roles": [ {
+                "Ref": "ForumRole"
             } ]
         }
     },
@@ -4880,6 +4961,7 @@
     "ForumServer":{
       "Type":"AWS::AutoScaling::LaunchConfiguration",
       "Properties":{
+        "IamInstanceProfile":{ "Ref":"ForumInstanceProfile" },
         "SecurityGroups":[
           {
             "Ref":"ForumServerSecurityGroup"
