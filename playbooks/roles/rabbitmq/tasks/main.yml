@@ -76,6 +76,9 @@
 - name: add vhosts
   rabbitmq_vhost: name={{ item }} state=present
   with_items: RABBITMQ_VHOSTS
+  tags:
+    - vhosts
+    - maintenance
 
 - name: add admin users
   rabbitmq_user: >
@@ -87,10 +90,16 @@
     - ${rabbitmq_auth_config.admins}
     - RABBITMQ_VHOSTS
   when: "'admins' in rabbitmq_auth_config"
+  tags:
+    - users
+    - maintenance
 
 - name: make queues mirrored
   shell: "/usr/sbin/rabbitmqctl set_policy HA '^(?!amq\\.).*' '{\"ha-mode\": \"all\"}'"
   when: RABBITMQ_CLUSTERED or rabbitmq_clustered_hosts|length > 1
+  tags:
+    - ha
+    - maintenance
 
 #
 # Depends upon the management plugin
