@@ -41,6 +41,13 @@
     owner=root group=root mode=0600
   notify: reload nginx
 
+- name: Create robot rules
+  template: >
+    src=robots.txt.j2 dest={{ nginx_app_dir }}/robots.txt
+    owner=root group={{ common_web_user }} mode=0644
+  notify: reload nginx
+  when: NGINX_ROBOT_RULES|length > 0
+
 - name: Creating link for common nginx configuration
   file: >
     src={{ nginx_sites_available_dir }}/edx-release
