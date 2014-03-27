@@ -28,6 +28,9 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: bastion_pip_pkgs
 
+# These templates rely on there being a global
+# read_only user, you must override the default
+# in order for these templates to be written out
 - template: >
     src=mysql.sh.j2
     dest=/home/{{ item[0] }}/{{ item[1].script_name }}
@@ -44,6 +47,7 @@
       - db_host: "{{ ORA_MYSQL_HOST }}"
         db_name: "{{ ORA_MYSQL_DB_NAME }}"
         script_name: ora-rds.sh
+  when: COMMON_MYSQL_READ_ONLY_PASS
 
 - template: >
     src=mongo.sh.j2
