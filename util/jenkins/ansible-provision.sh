@@ -126,6 +126,7 @@ instance_tags:
     Name: $name_tag
     source: jenkins
     owner: $BUILD_USER
+    datadog: monitored
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 COMMON_USER_INFO:
