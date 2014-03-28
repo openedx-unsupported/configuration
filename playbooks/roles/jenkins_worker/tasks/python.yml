@@ -1,46 +1,46 @@
 ---
 
 # Install scripts requiring a GitHub OAuth token
-- name: jenkins_worker | Install requests Python library
+- name: Install requests Python library
   pip: name=requests state=present
 
-- fail: jenkins_worker | OAuth token not defined
+- fail: OAuth token not defined
   when: github_oauth_token is not defined
 
-- name: jenkins_worker | Install Python GitHub PR auth script
+- name: Install Python GitHub PR auth script
   template: src="github_pr_auth.py.j2" dest="/usr/local/bin/github_pr_auth.py"
             owner=root group=root
             mode=755
 
-- name: jenkins_worker | Install Python GitHub post status script
+- name: Install Python GitHub post status script
   template: src="github_post_status.py.j2" dest="/usr/local/bin/github_post_status.py"
             owner=root group=root
             mode=755
 
 # Create wheelhouse to enable fast virtualenv creation
-- name: jenkins_worker | Create wheel virtualenv
+- name: Create wheel virtualenv
   command: /usr/local/bin/virtualenv {{ jenkins_venv }} creates={{ jenkins_venv }}
   sudo_user: "{{ jenkins_user }}"
 
-- name: jenkins_worker | Install wheel
+- name: Install wheel
   pip: name=wheel virtualenv={{ jenkins_venv }} virtualenv_command=/usr/local/bin/virtualenv
   sudo_user: "{{ jenkins_user }}"
 
-- name: jenkins_worker | Create wheelhouse dir
+- name: Create wheelhouse dir
   file:
     path={{ jenkins_wheel_dir }} state=directory
     owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
 
 # (need to install each one in the venv to satisfy dependencies)
-- name: jenkins_worker | Create wheel archives
+- name: Create wheel archives
   shell:
     "{{ jenkins_pip }} wheel --wheel-dir={{ jenkins_wheel_dir }} \"${item.pkg}\" &&
     {{ jenkins_pip }} install --use-wheel --no-index --find-links={{ jenkins_wheel_dir }} \"${item.pkg}\"
     creates={{ jenkins_wheel_dir }}/${item.wheel}"
   sudo_user: "{{ jenkins_user }}"
-  with_items: "{{ jenkins_wheels }}"
+  with_items: jenkins_wheels
 
-- name: jenkins_worker | Add wheel_venv.sh script
+- name: Add wheel_venv.sh script
   template:
     src=wheel_venv.sh.j2 dest={{ jenkins_home }}/wheel_venv.sh
     owner={{ jenkins_user }} group={{ jenkins_group }} mode=700

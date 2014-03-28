@@ -8,29 +8,79 @@
 #   * oraclejdk
 # 
 # Example play:
-#
-#   roles:
-#   - common
-#   - oraclejdk
-#   - elasticsearch 
+#  
+# This role can be used to do a single-server or clustered
+# installation of the elasticsearch service.  When a cluster
+# is being installed, there are two important things that
+# you must know.
 
-- name:  elasticsearch | download elasticsearch
+# The ELASTICSEARCH_CLUSTERED var must be true.
+
+# All hosts targeted by your play will be cluster peers.
+# Elasticsearch will determine who the master should be.
+#
+# Ansible provides handy set operators for use in the
+# plays host declaration, as seen in the following example.
+#
+# -  hosts: tag_role_elasticsearch:&tag_environment_stage
+#    roles:
+#    - common
+#    - oraclejdk
+#    - elasticsearch
+#
+
+- name: download elasticsearch
   get_url: >
     url={{ elasticsearch_url }}
     dest=/var/tmp/{{ elasticsearch_file }}
     force=no
+  register: elasticsearch_reinstall
 
-- name: elasticsearch | install elasticsearch from local package
+- name: install elasticsearch from local package
   shell: >
-    dpkg -i /var/tmp/elasticsearch-{{ elasticsearch_version }}.deb
-    executable=/bin/bash 
-    creates=/usr/share/elasticsearch/bin/elasticsearch
-  tags:
-    - elasticsearch
-    - install
+    dpkg -i  --force-confold /var/tmp/elasticsearch-{{ elasticsearch_version }}.deb
+    executable=/bin/bash
+  when: elasticsearch_reinstall.changed
 
-- name: elasticsearch | Ensure elasticsearch is enabled and started
-  service: name=elasticsearch state=started enabled=yes
-  tags:
-    - elasticsearch
-    - install
+- name: create directories
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ elasticsearch_user }}"
+    group="{{ elasticsearch_group }}"
+  with_items:
+    - "{{ elasticsearch_data_dir }}"
+    - "{{ elasticsearch_log_dir }}"
+    - "{{ elasticsearch_cfg_dir }}"
+
+- name: update elasticsearch defaults
+  template: >
+    src=etc/default/elasticsearch.j2 dest=/etc/default/elasticsearch
+  when: ELASTICSEARCH_CLUSTERED
+    
+- name: drop the elasticsearch config
+  template: >
+    src=edx/etc/elasticsearch/elasticsearch.yml.j2 dest={{ elasticsearch_cfg_dir }}/elasticsearch.yml
+    mode=0744
+  when: ELASTICSEARCH_CLUSTERED
+
+- name: drop the elasticsearch logging config
+  template: >
+    src=edx/etc/elasticsearch/logging.yml.j2 dest={{ elasticsearch_cfg_dir }}/logging.yml
+    mode=0744
+  when: ELASTICSEARCH_CLUSTERED  
+    
+  # Plugin installation fails hard when the plugin already
+  # exists. This is problematic if this is upgraded.
+
+- name: check if the bigdesk plugin is installed
+  stat: path=/usr/share/elasticsearch/plugins/bigdesk
+  register: bigdesk
+  
+- name: install bigdesk plugin
+  shell: >
+    /usr/share/elasticsearch/bin/plugin -install lukas-vlcek/bigdesk/2.2.0
+  when: bigdesk.stat.isdir is not defined
+  
+- name: Ensure elasticsearch is enabled and started
+  service: name=elasticsearch state=restarted enabled=yes

@@ -17,7 +17,7 @@
 # Dependencies:
 #   - common
 #   - nginx
-# 
+#
 # Example play:
 #   roles:
 #     - common
@@ -28,48 +28,48 @@
 
 
 ---
-- name: gh_mirror | install pip packages
+- name: install pip packages
   pip: name={{ item }} state=present
   with_items: gh_mirror_pip_pkgs
 
-- name: gh_mirror | install debian packages
+- name: install debian packages
   apt: >
     pkg={{ ",".join(gh_mirror_debian_pkgs) }}
     state=present
     update_cache=yes
 
-- name: gh_mirror | create gh_mirror user
+- name: create gh_mirror user
   user: >
     name={{ gh_mirror_user }}
     state=present
 
-- name: gh_mirror | create the gh_mirror data directory
+- name: create the gh_mirror data directory
   file: >
     path={{ gh_mirror_data_dir }}
     state=directory
     owner={{ gh_mirror_user }}
     group={{ gh_mirror_group }}
 
-- name: gh_mirror | create the gh_mirror app directory
+- name: create the gh_mirror app directory
   file: >
     path={{ gh_mirror_app_dir }}
     state=directory
 
-- name: gh_mirror | create org config
+- name: create org config
   template: src=orgs.yml.j2 dest={{ gh_mirror_app_dir }}/orgs.yml
 
 - name: copying sync scripts
   copy: src={{ item }} dest={{ gh_mirror_app_dir }}/{{ item }}
-  with_items: "{{ gh_mirror_app_files }}"
+  with_items: gh_mirror_app_files
 
 - name: creating cron job to update repos
   cron:
     name: "update repos from github"
     job: "/usr/bin/python {{ gh_mirror_app_dir }}/repos_from_orgs.py -d {{ gh_mirror_data_dir }}"
-    
+
 - name: creating cron to update github repo list
-  cron: 
+  cron:
     name: "refresh repo list from github"
     job: "/usr/bin/python {{ gh_mirror_app_dir}}/repos_from_orgs.py -r"
     minute: 0
-      
+

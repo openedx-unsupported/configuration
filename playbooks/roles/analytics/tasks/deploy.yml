@@ -1,87 +1,80 @@
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics | upload ssh script
-  template: 
+- name: upload ssh script
+  template:
     src=tmp/{{ analytics_role_name }}.git_ssh.sh.j2 dest={{ analytics_git_ssh }}
     force=yes owner=root group=adm mode=750
   tags:
   - analytics
-  - deploy
   - install
   - update
 
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics | install read-only ssh key required for checkout
-  copy: 
+- name: install read-only ssh key required for checkout
+  copy:
     src={{ analytics_git_identity_path }} dest={{ analytics_git_identity_dest }}
     force=yes owner=ubuntu group=adm mode=0600
   tags:
   - analytics
-  - deploy
   - install
   - update
 
-- name: analytics | checkout code
-  git: 
-    dest={{ analytics_code_dir }} repo={{ analytics_source_repo }} 
+- name: checkout code
+  git:
+    dest={{ analytics_code_dir }} repo={{ analytics_source_repo }}
     version={{ analytics_version }} force=true
   environment:
     GIT_SSH: $analytics_git_ssh
-    notify: analytics | restart the analytics service
-  notify: analytics | start the analytics service
+    notify: restart the analytics service
+  notify: start the analytics service
   tags:
     - analytics
-    - deploy
     - install
     - update
 
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics | update src permissions
-  file: 
-    path={{ analytics_code_dir }} state=directory owner={{ analytics_user }} 
+- name: update src permissions
+  file:
+    path={{ analytics_code_dir }} state=directory owner={{ analytics_user }}
     group={{ analytics_web_user }} mode=2750 recurse=yes
   tags:
   - analytics
-  - deploy
   - install
   - update
 
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics | remove read-only ssh key for the content repo
+- name: remove read-only ssh key for the content repo
   file: path={{ analytics_git_identity_dest }} state=absent
   tags:
   - analytics
-  - deploy
   - install
   - update
 
 #
 # TODO: Needed while this repo is private
 #
-- name: analytics | remove ssh script
+- name: remove ssh script
   file: path={{ analytics_git_ssh }} state=absent
   tags:
   - analytics
-  - deploy
   - install
   - update
 
-- name: analytics | install application requirements
-  pip: 
+- name: install application requirements
+  pip:
     requirements={{ analytics_requirements_file }}
     virtualenv={{ analytics_venv_dir }} state=present
-  sudo: true  
+  sudo: true
   sudo_user: "{{ analytics_user }}"
-  notify: analytics | start the analytics service  
+  notify: start the analytics service
   tags:
   - analytics
-  - deploy
   - install
   - update
