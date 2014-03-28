@@ -54,7 +54,13 @@
     - "{{ certs_app_dir }}"
     - "{{ certs_venvs_dir }}"
 
-- name: create certs gpg dir
+- name: destroy certs gpg dir
+  file: >
+    path="{{ certs_gpg_dir }}" state=absent
+    recurse="yes"
+  notify: restart certs
+
+- name: recreate certs gpg dir
   file: >
     path="{{ certs_gpg_dir }}" state=directory
     owner="{{ common_web_user }}"
@@ -64,17 +70,25 @@
 - name: copy the private gpg signing key
   copy: >
     src={{ CERTS_LOCAL_PRIVATE_KEY }}
-    dest={{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
+    dest={{ certs_gpg_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
     owner={{ common_web_user }} mode=0600
   notify: restart certs
   register: certs_gpg_key
 
+- name: change owner of gpg dir
+  file: >
+    path="{{ certs_gpg_dir }}" state=directory
+    owner="{{ common_web_user }}" group="{{ common_web_group }}"
+    recurse="yes"
+    mode=0700
+  notify: restart certs
+
 
 - name: load the gpg key
   shell: >
-    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
+    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_gpg_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
   sudo_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
   notify: restart certs
 
-- include: deploy.yml tags=deploy
+- include: deploy.yml tags=deploy,certs
