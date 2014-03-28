@@ -448,7 +448,7 @@ def create_ami(instance_id, name, description):
                 img.add_tag("cache_id", args.cache_id)
                 time.sleep(AWS_API_WAIT_TIME)
                 for repo, ref in git_refs.items():
-                    key = "vars:{}".format(repo)
+                    key = "refs:{}".format(repo)
                     img.add_tag(key, ref)
                     time.sleep(AWS_API_WAIT_TIME)
                 break
