@@ -12,6 +12,7 @@
 #   - configuration_secure - the version of the secure repo to use
 #   - jenkins_admin_ec2_key - location of the ec2 key to pass to abbey
 #   - jenkins_admin_configuration_secure_repo - the git repo to use for secure vars
+#   - use_blessed - whether or not to use blessed AMIs
 
 if [[ "$play" == "" ]]; then
     echo "No Play Specified. Nothing to Do."
@@ -32,6 +33,16 @@ if [[ -z $configuration_secure ]]; then
   cd ..
 fi
 
+base_params=""
+if [[ -n "$base_ami" ]]; then
+  base_params="-b $base_ami"
+fi
+
+blessed_params=""
+if [[ "$use_blessed" == "true" ]]; then
+  blessed_params="--blessed"
+fi
+
 cd configuration
 pip install -r requirements.txt
 
@@ -43,4 +54,4 @@ cat /var/tmp/$BUILD_ID-refs.yml
 echo "$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
 cat /var/tmp/$BUILD_ID-extra-vars.yml
 
-python -u abbey.py -p $play -t c1.medium  -d $deployment -e $environment -i /edx/var/jenkins/.ssh/id_rsa -b $base_ami --vars /var/tmp/$BUILD_ID-extra-vars.yml --refs /var/tmp/$BUILD_ID-refs.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo
+python -u abbey.py -p $play -t c1.medium  -d $deployment -e $environment -i /edx/var/jenkins/.ssh/id_rsa $base_params $blessed_params --vars /var/tmp/$BUILD_ID-extra-vars.yml --refs /var/tmp/$BUILD_ID-refs.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo
