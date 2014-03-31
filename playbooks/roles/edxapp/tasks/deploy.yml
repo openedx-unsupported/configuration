@@ -165,6 +165,20 @@
   - "restart edxapp_workers"
   when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
 
+# Install the python paver requirements into {{ edxapp_venv_dir }}
+- name : install python paver-requirements
+  pip: >
+    requirements="{{paver_requirements_file}}"
+    virtualenv="{{edxapp_venv_dir}}"
+    state=present
+    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+
 # Install the final python modules into {{ edxapp_venv_dir }}
 - name : install python post-post requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
