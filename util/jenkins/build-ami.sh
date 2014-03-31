@@ -3,8 +3,12 @@
 # following variables to be set:
 #   - BUILD_ID - set by jenkins, Unique ID of build
 #   - BUILD_NUMBER - set by jenkins, Build number
-#   - refs - repo revisions to pass to abbey
-#   - vars - other vars to pass to abbey
+#   - refs - repo revisions to pass to abbey. This is provided in YAML syntax,
+#            and we put the contents in a file that abbey reads. Refs are
+#            different from 'vars' in that each ref is set as a tag on the
+#            output AMI.
+#   - vars - other vars to pass to abbey. This is provided in YAML syntax,
+#            and we put the contents in a file that abby reads.
 #   - deployment - edx, edge, etc
 #   - environment - stage,prod, etc
 #   - play - forum, edxapp, xqueue, etc
