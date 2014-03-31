@@ -1,22 +1,58 @@
 #!/bin/bash -x
-# This script is meant to be sourced from elswhere(jenkins) and expects the
+# This script is meant to be run from jenkins and expects the
 # following variables to be set:
+#   - BUILD_ID - set by jenkins, Unique ID of build
+#   - BUILD_NUMBER - set by jenkins, Build number
 #   - refs - repo revisions to pass to abbey
 #   - vars - other vars to pass to abbey
-#   - deployment
-#   - environment
-#   - base_ami
-#   - BUILD_ID
-#   - BUILD_NUMBER
+#   - deployment - edx, edge, etc
+#   - environment - stage,prod, etc
+#   - play - forum, edxapp, xqueue, etc
+#   - base_ami - Optional AMI to use as base AMI for abby instance
 #   - configuration - the version of the configuration repo to use
 #   - configuration_secure - the version of the secure repo to use
 #   - jenkins_admin_ec2_key - location of the ec2 key to pass to abbey
 #   - jenkins_admin_configuration_secure_repo - the git repo to use for secure vars
 #   - use_blessed - whether or not to use blessed AMIs
 
-if [[ "$play" == "" ]]; then
-    echo "No Play Specified. Nothing to Do."
-    exit 0
+if [[ -z "$BUILD_ID" ]]; then
+  echo "BUILD_ID not specified."
+  exit -1
+fi
+
+if [[ -z "$BUILD_NUMBER" ]]; then
+  echo "BUILD_NUMBER not specified."
+  exit -1
+fi
+
+if [[ -z "$refs" ]]; then
+  echo "refs not specified."
+  exit -1
+fi
+
+if [[ -z "$deployment" ]]; then
+  echo "deployment not specified."
+  exit -1
+fi
+
+if [[ -z "$environment" ]]; then
+  echo "environment not specified."
+  exit -1
+fi
+
+if [[ -z "$play" ]]; then
+  echo "play not specified."
+  exit -1
+fi
+
+if [[ -z "$jenkins_admin_ec2_key" ]]; then
+  echo "jenkins_admin_ec2_key not specified."
+  exit -1
+fi
+
+if [[ -z "$jenkins_admin_configuration_secure_repo" ]]; then
+  echo "jenkins_admin_configuration_secure_repo not specified."
+  exit -1
 fi
 
 export PYTHONUNBUFFERED=1
