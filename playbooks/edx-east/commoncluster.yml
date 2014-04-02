@@ -3,7 +3,22 @@
 - hosts: all
   sudo: True
   serial: 1
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_SPLUNKFORWARDER: False
+    ENABLE_NEWRELIC: False
   roles:
+    - aws
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - role: xqueue
+    - role: datadog
+      when: ENABLE_DATADOG
+    - role: splunkforwarder
+      when: ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: ENABLE_NEWRELIC
     - oraclejdk
     - elasticsearch
     - rabbitmq
@@ -13,6 +28,8 @@
 #
 # In order to reconfigure the host resolution we are issuing a
 # reboot.
+# TODO: We should probably poll to ensure the host comes back before moving
+# to the next host so that we don't reboot all of the servers simultaneously
 - hosts: all
   sudo: True
   serial: 1
