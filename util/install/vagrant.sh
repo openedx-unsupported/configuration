@@ -28,7 +28,7 @@ sudo pip install --upgrade virtualenv
 ## Clone the configuration repository and run Ansible
 ##
 cd /var/tmp
-git clone -b https://github.com/edx/configuration
+git clone -b release https://github.com/edx/configuration
 
 ##
 ## Install the ansible requirements
