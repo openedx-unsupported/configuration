@@ -177,29 +177,6 @@
       ],
       "ConstraintDescription":"must be a valid EC2 instance type."
     },
-    "XqueueInstanceType":{
-      "Description":"Xqueue server EC2 instance type",
-      "Type":"String",
-      "Default":"m1.small",
-      "AllowedValues":[
-        "t1.micro",
-        "m1.small",
-        "m1.medium",
-        "m1.large",
-        "m1.xlarge",
-        "m2.xlarge",
-        "m2.2xlarge",
-        "m2.4xlarge",
-        "m3.xlarge",
-        "m3.2xlarge",
-        "c1.medium",
-        "c1.xlarge",
-        "cc1.4xlarge",
-        "cc2.8xlarge",
-        "cg1.4xlarge"
-      ],
-      "ConstraintDescription":"must be a valid EC2 instance type."
-    },
     "SSHLocation":{
       "Description":"The IP address range that can be used to SSH to the EC2 instances",
       "Type":"String",
@@ -287,11 +264,6 @@
     },
     "EdxappDesiredCapacity":{
       "Description":"The Auto-scaling group desired capacity for the edxapp hosts",
-      "Type":"Number",
-      "Default":"2"
-    },
-    "XqueueDesiredCapacity":{
-      "Description":"The Auto-scaling group desired capacity for the xqueue hosts",
       "Type":"Number",
       "Default":"2"
     },
@@ -471,8 +443,6 @@
       "Edxapp02":        { "CIDR":".11.0/24" },
       "XServerJail01":   { "CIDR":".20.0/24" },
       "XServerJail02":   { "CIDR":".21.0/24" },
-      "Xqueue01":        { "CIDR":".30.0/24" },
-      "Xqueue02":        { "CIDR":".31.0/24" },
       "CommonCluster01": { "CIDR":".46.0/24"},
       "CommonCluster02": { "CIDR":".47.0/24"},
       "CommonCluster03": { "CIDR":".48.0/24"},
@@ -715,102 +685,6 @@
 				  {"Ref":"DeploymentTag"},
 				  "-",
 				  "internal-edxapp','target':'ec2'}"
-				 ]
-				]
-		    }
-          }
-        ]
-      }
-    },
-    "XqueueSubnet01":{
-      "Type":"AWS::EC2::Subnet",
-      "Properties":{
-        "VpcId":{
-          "Ref":"EdxVPC"
-        },
-        "CidrBlock":{
-          "Fn::Join": ["", [
-            "10.", { "Ref": "ClassB"},
-            {"Fn::FindInMap":[
-              "SubnetConfig",
-              "Xqueue01",
-              "CIDR"
-            ]}
-          ]]
-        },
-        "AvailabilityZone":{
-          "Fn::FindInMap":[
-            "MapRegionsToAvailZones",
-            { "Ref":"AWS::Region" },
-            "AZone0"
-          ]
-        },
-        "Tags":[
-          {
-            "Key":"play",
-            "Value":"xqueue"
-          },
-          {
-            "Key":"Network",
-            "Value":"Private"
-          },
-          {
-            "Key" : "immutable_metadata",
-            "Value":{"Fn::Join":["",
-				 ["{'purpose':'",
-				  {"Ref":"EnvironmentTag"},
-				  "-",
-				  {"Ref":"DeploymentTag"},
-				  "-",
-				  "internal-xqueue','target':'ec2'}"
-				 ]
-				]
-		    }
-          }
-        ]
-      }
-    },
-    "XqueueSubnet02":{
-      "Type":"AWS::EC2::Subnet",
-      "Properties":{
-        "VpcId":{
-          "Ref":"EdxVPC"
-        },
-        "CidrBlock":{
-          "Fn::Join": ["", [
-            "10.", { "Ref": "ClassB"},
-            {"Fn::FindInMap":[
-              "SubnetConfig",
-              "Xqueue02",
-              "CIDR"
-            ]}
-          ]]
-        },
-        "AvailabilityZone":{
-          "Fn::FindInMap":[
-            "MapRegionsToAvailZones",
-            { "Ref":"AWS::Region" },
-            "AZone1"
-          ]
-        },
-        "Tags":[
-          {
-            "Key":"play",
-            "Value":"xqueue"
-          },
-          {
-            "Key":"Network",
-            "Value":"Private"
-          },
-          {
-            "Key" : "immutable_metadata",
-            "Value":{"Fn::Join":["",
-				 ["{'purpose':'",
-				  {"Ref":"EnvironmentTag"},
-				  "-",
-				  {"Ref":"DeploymentTag"},
-				  "-",
-				  "internal-xqueue','target':'ec2'}"
 				 ]
 				]
 		    }
@@ -1926,28 +1800,6 @@
         }
       }
     },
-    "PrivateSubnetRouteTableAssociationXqueue01":{
-      "Type":"AWS::EC2::SubnetRouteTableAssociation",
-      "Properties":{
-        "SubnetId":{
-          "Ref":"XqueueSubnet01"
-        },
-        "RouteTableId":{
-          "Ref":"PrivateRouteTable"
-        }
-      }
-    },
-    "PrivateSubnetRouteTableAssociationXqueue02":{
-      "Type":"AWS::EC2::SubnetRouteTableAssociation",
-      "Properties":{
-        "SubnetId":{
-          "Ref":"XqueueSubnet02"
-        },
-        "RouteTableId":{
-          "Ref":"PrivateRouteTable"
-        }
-      }
-    },
     "PrivateSubnetRouteTableAssociationCommonCluster01":{
       "Type":"AWS::EC2::SubnetRouteTableAssociation",
       "Properties":{
@@ -2216,28 +2068,6 @@
       "Properties":{
         "SubnetId":{
           "Ref":"EdxappSubnet02"
-        },
-        "NetworkAclId":{
-          "Ref":"PrivateNetworkAcl"
-        }
-      }
-    },
-    "PrivateSubnetNetworkAclAssociationXqueue01":{
-      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
-      "Properties":{
-        "SubnetId":{
-          "Ref":"XqueueSubnet01"
-        },
-        "NetworkAclId":{
-          "Ref":"PrivateNetworkAcl"
-        }
-      }
-    },
-    "PrivateSubnetNetworkAclAssociationXqueue02":{
-      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
-      "Properties":{
-        "SubnetId":{
-          "Ref":"XqueueSubnet02"
         },
         "NetworkAclId":{
           "Ref":"PrivateNetworkAcl"
@@ -2944,49 +2774,6 @@
             } ]
         }
     },
-		"XqueueRole": {
-				"Type": "AWS::IAM::Role",
-        "Properties": {
-						"AssumeRolePolicyDocument": {
-								"Statement": [ {
-										"Effect": "Allow",
-										"Principal": {
-												"Service": [ "ec2.amazonaws.com" ]
-										},
-										"Action": [ "sts:AssumeRole" ]
-								} ]
-            },
-            "Path": "/", 
-            "Policies": [ {
-              "PolicyName": "XqueueBasePolicy",
-              "PolicyDocument": {
-                "Statement":[
-                  {
-                    "Effect":"Allow",
-                    "Action":[
-                      "cloudformation:DescribeStackResource",
-                      "ses:SendEmail",
-                      "ses:SendRawEmail",
-                      "ses:GetSendQuota",
-                      "ec2:DescribeInstances",
-                      "ec2:DescribeTags"
-                    ],
-                    "Resource":"*"
-                  }
-                ]
-              }
-            } ]
-        }
-    },
-	  "XqueueInstanceProfile": {
-        "Type": "AWS::IAM::InstanceProfile",
-        "Properties": {
-            "Path": "/",
-            "Roles": [ {
-								"Ref": "XqueueRole"
-            } ]
-        }
-    },
 		"XServerRole": {
 				"Type": "AWS::IAM::Role",
         "Properties": {
@@ -3420,197 +3207,6 @@
         ]
       }
     },
-    "XqueueServer":{
-      "Type":"AWS::AutoScaling::LaunchConfiguration",
-      "Properties":{
-				"IamInstanceProfile":{ "Ref":"XqueueInstanceProfile" },
-        "SecurityGroups":[
-          {
-            "Ref":"XqueueServerSecurityGroup"
-          }
-        ],
-        "ImageId":{
-          "Fn::FindInMap":[
-            "AWSRegionArch2AMI",
-            {
-              "Ref":"AWS::Region"
-            },
-            {
-              "Fn::FindInMap":[
-                "AWSInstanceType2Arch",
-                {
-                  "Ref":"XqueueInstanceType"
-                },
-                "Arch"
-              ]
-            }
-          ]
-        },
-        "KeyName":{
-          "Ref":"KeyName"
-        },
-        "InstanceType":{
-          "Ref":"XqueueInstanceType"
-        },
-        "BlockDeviceMappings":[
-          {
-            "DeviceName":"/dev/sda1",
-            "Ebs":{
-              "VolumeSize":"100"
-            }
-          }
-        ]
-      }
-    },
-    "XqueueServerAsGroup":{
-      "Type":"AWS::AutoScaling::AutoScalingGroup",
-      "Properties":{
-        "AvailabilityZones":[
-          {
-            "Fn::GetAtt":[
-              "XqueueSubnet01",
-              "AvailabilityZone"
-            ]
-          },
-          {
-            "Fn::GetAtt":[
-              "XqueueSubnet02",
-              "AvailabilityZone"
-            ]
-          }
-        ],
-        "VPCZoneIdentifier":[
-          {
-            "Ref":"XqueueSubnet01"
-          },
-          {
-            "Ref":"XqueueSubnet02"
-          }
-        ],
-        "Tags":[
-          {
-            "Key":"Name",
-            "Value": {"Fn::Join": ["-",[{"Ref": "EnvironmentTag"},{"Ref": "DeploymentTag"},"xqueue"]]},
-            "PropagateAtLaunch":true
-          },
-          {
-            "Key":"play",
-            "Value":"xqueue",
-            "PropagateAtLaunch":true
-          },
-          {
-            "Key":"services",
-            "Value":"xqueue,xqueue_consumer",
-            "PropagateAtLaunch":true
-          },
-          {
-            "Key":"environment",
-            "Value":{
-              "Ref":"EnvironmentTag"
-            },
-            "PropagateAtLaunch":true
-          },
-          {
-            "Key":"deployment",
-            "Value":{
-              "Ref":"DeploymentTag"
-            },
-            "PropagateAtLaunch":true
-          }
-        ],
-        "LaunchConfigurationName":{
-          "Ref":"XqueueServer"
-        },
-        "MinSize":{
-          "Ref":"XqueueDesiredCapacity"
-        },
-        "MaxSize":{
-          "Ref":"XqueueDesiredCapacity"
-        },
-        "DesiredCapacity":{
-          "Ref":"XqueueDesiredCapacity"
-        },
-        "LoadBalancerNames":[
-          {
-            "Ref":"XqueueELB"
-          }
-        ]
-      }
-    },
-    "XqueueScaleUpPolicy":{
-      "Type":"AWS::AutoScaling::ScalingPolicy",
-      "Properties":{
-        "AdjustmentType":"ChangeInCapacity",
-        "AutoScalingGroupName":{
-          "Ref":"XqueueServerAsGroup"
-        },
-        "Cooldown":"60",
-        "ScalingAdjustment":"1"
-      }
-    },
-    "XqueueScaleDownPolicy":{
-      "Type":"AWS::AutoScaling::ScalingPolicy",
-      "Properties":{
-        "AdjustmentType":"ChangeInCapacity",
-        "AutoScalingGroupName":{
-          "Ref":"XqueueServerAsGroup"
-        },
-        "Cooldown":"60",
-        "ScalingAdjustment":"-1"
-      }
-    },
-    "XqueueCPUAlarmHigh":{
-      "Type":"AWS::CloudWatch::Alarm",
-      "Properties":{
-        "AlarmDescription":"Scale-up if CPU > 90% for 10 minutes",
-        "MetricName":"CPUUtilization",
-        "Namespace":"AWS/EC2",
-        "Statistic":"Average",
-        "Period":"300",
-        "EvaluationPeriods":"2",
-        "Threshold":"90",
-        "AlarmActions":[
-          {
-            "Ref":"XqueueScaleUpPolicy"
-          }
-        ],
-        "Dimensions":[
-          {
-            "Name":"AutoScalingGroupName",
-            "Value":{
-              "Ref":"XqueueServerAsGroup"
-            }
-          }
-        ],
-        "ComparisonOperator":"GreaterThanThreshold"
-      }
-    },
-    "XqueueCPUAlarmLow":{
-      "Type":"AWS::CloudWatch::Alarm",
-      "Properties":{
-        "AlarmDescription":"Scale-down if CPU < 70% for 10 minutes",
-        "MetricName":"CPUUtilization",
-        "Namespace":"AWS/EC2",
-        "Statistic":"Average",
-        "Period":"300",
-        "EvaluationPeriods":"2",
-        "Threshold":"70",
-        "AlarmActions":[
-          {
-            "Ref":"XqueueScaleDownPolicy"
-          }
-        ],
-        "Dimensions":[
-          {
-            "Name":"AutoScalingGroupName",
-            "Value":{
-              "Ref":"XqueueServerAsGroup"
-            }
-          }
-        ],
-        "ComparisonOperator":"LessThanThreshold"
-      }
-    },
     "XqueueELB":{
       "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
       "Properties":{
@@ -3741,6 +3337,9 @@
           },
           {
             "Ref":"ElasticsearchServerSecurityGroup"
+          },
+          {
+            "Ref":"XqueueServerSecurityGroup"
           }
         ],
         "ImageId":{
@@ -3854,6 +3453,9 @@
           },
           {
             "Ref":"ElasticSearchELB"
+          },
+          {
+            "Ref":"XqueueELB"
           }
         ]
       }
