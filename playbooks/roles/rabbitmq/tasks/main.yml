@@ -17,10 +17,16 @@
     url={{ rabbitmq_pkg_url }}
     dest=/var/tmp/{{ rabbitmq_pkg_url|basename }}
 
+- name: check if rabbit is installed
+  shell: >
+    dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"
+  register: is_installed
+
 - name: install rabbit package using gdebi
   shell: >
     gdebi --n {{ rabbitmq_pkg_url|basename }}
     chdir=/var/tmp
+  when: is_installed == "not installed"
 
 - name: stop rabbit cluster
   service: name=rabbitmq-server state=stopped
