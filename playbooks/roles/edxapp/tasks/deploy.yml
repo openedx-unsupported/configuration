@@ -97,19 +97,19 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-- name: Upgrade pip
+- name: Upgrade pip and wheel
   pip: >
-    name={{ item }}
+    name="{{ item.package }}"
     virtualenv="{{edxapp_venv_dir}}"
-    state=latest
+    version="{{ item.version }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
   with_items:
-    - pip
-    - wheel
+    - { package: "pip", version: "1.5.4" }
+    - { package: "wheel", version: "0.23.0" }
 
 # Install the python pre requirements into {{ edxapp_venv_dir }}
 - name : install python pre-requirements
@@ -117,7 +117,7 @@
     requirements="{{pre_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="--use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com"
+    extra_args="{{ PIP_EXTRA_ARGS }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -129,7 +129,7 @@
     requirements="{{base_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="--use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com"
+    extra_args="{{ PIP_EXTRA_ARGS }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -141,7 +141,7 @@
     requirements="{{ github_requirements_file }}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="--use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com"
+    extra_args="{{ PIP_EXTRA_ARGS }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -154,8 +154,7 @@
   # installs everything into that virtual environment.
   shell: >
     {{ edxapp_venv_dir }}/bin/pip install
-    --use-wheel --no-index
-    --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com
+    {{ PIP_EXTRA_ARGS }}
     --exists-action w -r {{ local_requirements_file }}
     chdir={{ edxapp_code_dir }}
   sudo_user: "{{ edxapp_user }}"
@@ -170,7 +169,7 @@
     requirements="{{post_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="--use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com"
+    extra_args=" {{ PIP_EXTRA_ARGS }} "
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -183,7 +182,7 @@
     requirements="{{paver_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="--use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com"
+    extra_args="{{ PIP_EXTRA_ARGS }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -229,11 +228,10 @@
   # installs everything into that virtual environment.
   shell: >
     {{ edxapp_venv_dir }}/bin/pip install
-    --use-wheel --no-index
-    --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com
+    "{{ PIP_EXTRA_ARGS }}"
     --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
-  with_items:
+    with_items:
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
@@ -258,7 +256,7 @@
     requirements="{{sandbox_base_requirements}}"
     virtualenv="{{edxapp_sandbox_venv_dir}}"
     state=present
-    extra_args="--exists-action w --use-mirrors --use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com""
+    extra_args="{{ PIP_EXTRA_ARGS }}"
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   notify:
@@ -270,7 +268,7 @@
 - name: code sandbox | Install sandbox requirements into sandbox venv
   shell: >
     {{ edxapp_sandbox_venv_dir }}/bin/pip install --exists-action w
-    --use-wheel --no-index --find-links=http://edx-wheels.s3-website-us-east-1.amazonaws.com
+    {{ PIP_EXTRA_ARGS }}
     -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
