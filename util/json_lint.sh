@@ -4,8 +4,7 @@
 
 
 # Save current directory so we can come back; change to repo root
-STARTED_FROM=`pwd`
-cd $(git rev-parse --show-toplevel)
+pushd $(git rev-parse --show-toplevel) >/dev/null
 
 # Do very basic syntax check of every json file to make sure it's valid format
 for file in `find . -iname '*.json'`; do 
@@ -14,11 +13,11 @@ for file in `find . -iname '*.json'`; do
     if [ $retval != 0 ]; then
         echo "JSON errors in $file"
         echo "$errors"
-        cd $STARTED_FROM
+        popd >/dev/null
         exit $retval;
     fi
 done
 
 # Everything went ok!
-cd $STARTED_FROM
+popd >/dev/null
 exit 0
