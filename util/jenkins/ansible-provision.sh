@@ -3,7 +3,7 @@
 # Ansible provisioning wrapper script that
 # assumes the following parameters set
 # as environment variables
-# 
+#
 # - github_username
 # - server_type
 # - instance_type
@@ -72,7 +72,7 @@ if [[ -z $ami ]]; then
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="m1.medium"
+  instance_type="m3.medium"
 fi
 
 deploy_host="${dns_name}.${dns_zone}"
@@ -118,9 +118,9 @@ keypair: $keypair
 instance_type: $instance_type
 security_group: $security_group
 ami: $ami
-region: $region 
+region: $region
 zone: $zone
-instance_tags: 
+instance_tags:
     environment: $environment
     github_username: $github_username
     Name: $name_tag
