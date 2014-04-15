@@ -9,18 +9,16 @@ cd $(git rev-parse --show-toplevel)
 
 # Do very basic syntax check of every json file to make sure it's valid format
 for file in `find . -iname '*.json'`; do 
-    cat $file | python -m json.tool 1>/dev/null 2>json_complaint.err; 
+    errors=$(python -m json.tool "$file" 2>&1 1>/dev/null)
     retval=$?
     if [ $retval != 0 ]; then
         echo "JSON errors in $file"
-        cat json_complaint.err
-        rm -f json_complaint.err
+        echo "$errors"
         cd $STARTED_FROM
         exit $retval;
     fi
 done
 
 # Everything went ok!
-rm -f json_complaint.err
 cd $STARTED_FROM
 exit 0
