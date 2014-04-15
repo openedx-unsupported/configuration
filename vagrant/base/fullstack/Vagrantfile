@@ -7,7 +7,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box     = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
   config.ssh.insert_key = true
-
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.vm.network :private_network, ip: "192.168.33.10"
 
   config.vm.provider :virtualbox do |vb|
@@ -28,6 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision :ansible do |ansible|
     # point Vagrant at the location of your playbook you want to run
     ansible.playbook = "../../../playbooks/vagrant-fullstack.yml"
-    ansible.verbose = "extra"
+    ansible.extra_vars = { ansible_ssh_user: 'vagrant' }
+    ansible.verbose = "vvvv"
   end
 end
