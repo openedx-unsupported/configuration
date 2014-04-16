@@ -102,6 +102,13 @@ def parse_args():
                         default=5,
                         help="How long to delay message display from sqs "
                              "to ensure ordering")
+    parser.add_argument("--hipchat-room-id", required=False,
+                        default=None,
+                        help="The API ID of the Hipchat room to post"
+                             "status messages to")
+    parser.add_argument("--hipchat-api-token", required=False,
+                        default=None,
+                        help="The API token for Hipchat integration")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--base-ami', required=False,
@@ -482,8 +489,24 @@ def create_ami(instance_id, name, description):
     else:
         raise Exception("Timeout waiting for AMI to finish")
 
-    return image_id
+    #If hipchat is configured send the details to the specified room
+    if args.hipchat_api_token and args.hipchat_room_id:
+        import hipchat
+        try:
+            hipchat = hipchat.HipChat(token=args.hipchat_api_token)
+            hipchat.message_room(args.hipchat_room_id,'AbbeyNormal',
+                'Finished baking AMI {image_id} for {environment} '
+                '{deployment} {play}.'.format(
+                    image_id=image_id,
+                    environment=args.environment,
+                    deployment=args.deployment,
+                    play=args.play))
+        except:
+            e = sys.exc_info()[0]
+            print("Hipchat messaging resulted in an error.")
+            print("Error: %s" % e)
 
+    return image_id
 
 def launch_and_configure(ec2_args):
     """
