@@ -7,7 +7,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box     = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
   config.ssh.insert_key = true
-
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.vm.network :private_network, ip: "192.168.33.10"
 
   config.vm.provider :virtualbox do |vb|
@@ -28,6 +28,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision :ansible do |ansible|
     # point Vagrant at the location of your playbook you want to run
     ansible.playbook = "../../../playbooks/vagrant-fullstack.yml"
-    ansible.verbose = "extra"
+    # set extra-vars here instead of in the vagrant play so that
+    # they are written out to /edx/etc/server-vars.yml which can
+    # be used later when running ansible locally
+    ansible.extra_vars = { 
+        ansible_ssh_user: 'vagrant',
+        migrate_db: 'yes',
+        openid_workaround: true,
+        edx_platform_version: 'master',
+        EDXAPP_LMS_NGINX_PORT: '80',
+        EDX_ANSIBLE_DUMP_VARS: true,
+        CERTS_DOWNLOAD_URL: 'http://192.168.33.10:18090',
+        CERTS_VERIFY_URL: 'http://192.168.33.10:18090',
+    }
+    ansible.verbose = "vvvv"
   end
 end
