@@ -669,12 +669,13 @@ if __name__ == '__main__':
                     play=args.play)
 
             send_hipchat_message(message)
-    except:
+    except Exception as e:
         message = 'An error occurred building AMI for {environment} ' \
-            '{deployment} {play}.'.format(
+            '{deployment} {play}.  The Exception was {exception}'.format(
                 environment=args.environment,
                 deployment=args.deployment,
-                play=args.play)
+                play=args.play,
+                exception=repr(e))
         send_hipchat_message(message)
     finally:
         print
