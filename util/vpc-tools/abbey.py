@@ -489,23 +489,6 @@ def create_ami(instance_id, name, description):
     else:
         raise Exception("Timeout waiting for AMI to finish")
 
-    #If hipchat is configured send the details to the specified room
-    if args.hipchat_api_token and args.hipchat_room_id:
-        import hipchat
-        try:
-            hipchat = hipchat.HipChat(token=args.hipchat_api_token)
-            hipchat.message_room(args.hipchat_room_id,'AbbeyNormal',
-                'Finished baking AMI {image_id} for {environment} '
-                '{deployment} {play}.'.format(
-                    image_id=image_id,
-                    environment=args.environment,
-                    deployment=args.deployment,
-                    play=args.play))
-        except:
-            e = sys.exc_info()[0]
-            print("Hipchat messaging resulted in an error.")
-            print("Error: %s" % e)
-
     return image_id
 
 def launch_and_configure(ec2_args):
@@ -597,6 +580,19 @@ def launch_and_configure(ec2_args):
 
     return run_summary, ami
 
+def send_hipchat_message(message):
+    #If hipchat is configured send the details to the specified room
+    if args.hipchat_api_token and args.hipchat_room_id:
+        import hipchat
+        try:
+            hipchat = hipchat.HipChat(token=args.hipchat_api_token)
+            hipchat.message_room(args.hipchat_room_id,'AbbeyNormal',
+               message)
+        except:
+            e = sys.exc_info()[0]
+            print("Hipchat messaging resulted in an error.")
+            print("Error: %s" % e)
+
 if __name__ == '__main__':
 
     args = parse_args()
@@ -666,6 +662,22 @@ if __name__ == '__main__':
                 print "{:<30} {:0>2.0f}:{:0>5.2f}".format(
                     run[0], run[1] / 60, run[1] % 60)
             print "AMI: {}".format(ami)
+
+            message = 'Finished baking AMI {image_id} for {environment} ' \
+              '{deployment} {play}.'.format(
+                    image_id=ami,
+                    environment=args.environment,
+                    deployment=args.deployment,
+                    play=args.play)
+
+            send_hipchat_message(message)
+    except:
+        message = 'An error occurred building AMI for {environment} ' \
+            '{deployment} {play}.'.format(
+                environment=args.environment,
+                deployment=args.deployment,
+                play=args.play)
+        send_hipchat_message(message)
     finally:
         print
         if not args.no_cleanup and not args.noop:
