@@ -161,10 +161,10 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu --skip-tags deploy
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu 
 fi
 
-if [[ $server_type == "full_edx_installation" || $server_type == "full_edx_installation_from_scratch" ]]; then
+if [[ $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
