@@ -43,18 +43,10 @@
     owner={{ xserver_user }} group={{ xserver_user }} mode=0600
   notify: restart xserver
 
-- name: upload ssh script
-  template: >
-    src=git_ssh.sh.j2 dest=/tmp/git_ssh.sh
-    owner={{ xserver_user }} mode=750
-  notify: restart xserver
-
 - name: checkout grader code
   git: >
     dest={{ XSERVER_GRADER_DIR }} repo={{ XSERVER_GRADER_SOURCE }} version={{ xserver_grader_version }}
-    accept_hostkey=yes key_file={{ xserver_git_identity }}
-#  environment:
-#    GIT_SSH: /tmp/git_ssh.sh
+    accept_hostkey=yes key_file={{ xserver_git_identity }} ssh_opts="-o UserKnownHostsFile={{ xserver_app_dir }}"
   notify: restart xserver
   sudo_user: "{{ xserver_user }}"
 
