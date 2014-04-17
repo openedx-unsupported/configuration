@@ -588,10 +588,8 @@ def send_hipchat_message(message):
             hipchat = hipchat.HipChat(token=args.hipchat_api_token)
             hipchat.message_room(args.hipchat_room_id,'AbbeyNormal',
                message)
-        except:
-            e = sys.exc_info()[0]
-            print("Hipchat messaging resulted in an error.")
-            print("Error: %s" % e)
+        except Exception as e:
+            print("Hipchat messaging resulted in an error: %s." % e)
 
 if __name__ == '__main__':
 
