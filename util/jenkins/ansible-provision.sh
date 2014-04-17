@@ -87,6 +87,8 @@ EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: studio.${deploy_host}
 EDXAPP_SITE_NAME: ${deploy_host}
+CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
+CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 xqueue_version: $xqueue_version
