@@ -102,6 +102,13 @@ def parse_args():
                         default=5,
                         help="How long to delay message display from sqs "
                              "to ensure ordering")
+    parser.add_argument("--hipchat-room-id", required=False,
+                        default=None,
+                        help="The API ID of the Hipchat room to post"
+                             "status messages to")
+    parser.add_argument("--hipchat-api-token", required=False,
+                        default=None,
+                        help="The API token for Hipchat integration")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--base-ami', required=False,
@@ -484,7 +491,6 @@ def create_ami(instance_id, name, description):
 
     return image_id
 
-
 def launch_and_configure(ec2_args):
     """
     Creates an sqs queue, launches an ec2 instance,
@@ -574,6 +580,17 @@ def launch_and_configure(ec2_args):
 
     return run_summary, ami
 
+def send_hipchat_message(message):
+    #If hipchat is configured send the details to the specified room
+    if args.hipchat_api_token and args.hipchat_room_id:
+        import hipchat
+        try:
+            hipchat = hipchat.HipChat(token=args.hipchat_api_token)
+            hipchat.message_room(args.hipchat_room_id,'AbbeyNormal',
+               message)
+        except Exception as e:
+            print("Hipchat messaging resulted in an error: %s." % e)
+
 if __name__ == '__main__':
 
     args = parse_args()
@@ -643,6 +660,23 @@ if __name__ == '__main__':
                 print "{:<30} {:0>2.0f}:{:0>5.2f}".format(
                     run[0], run[1] / 60, run[1] % 60)
             print "AMI: {}".format(ami)
+
+            message = 'Finished baking AMI {image_id} for {environment} ' \
+              '{deployment} {play}.'.format(
+                    image_id=ami,
+                    environment=args.environment,
+                    deployment=args.deployment,
+                    play=args.play)
+
+            send_hipchat_message(message)
+    except Exception as e:
+        message = 'An error occurred building AMI for {environment} ' \
+            '{deployment} {play}.  The Exception was {exception}'.format(
+                environment=args.environment,
+                deployment=args.deployment,
+                play=args.play,
+                exception=repr(e))
+        send_hipchat_message(message)
     finally:
         print
         if not args.no_cleanup and not args.noop:
