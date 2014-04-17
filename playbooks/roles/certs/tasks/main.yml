@@ -76,10 +76,23 @@
   notify: restart certs
   register: certs_gpg_key
 
+- name: copy the pgp trust export
+  copy: >
+    content={{ CERTS_OWNER_TRUST }}
+    dest={{ certs_app_dir }}/trust.export
+    owner={{ common_web_user }} mode=0600
+  notify: restart certs
 
 - name: load the gpg key
   shell: >
     /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
+  sudo_user: "{{ common_web_user }}"
+  when: certs_gpg_key.changed
+  notify: restart certs
+
+- name: import the trust export
+  shell: >
+    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import-ownertrust {{ certs_app_dir }}/trust.export
   sudo_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
   notify: restart certs
