@@ -213,7 +213,7 @@ git_repo="https://github.com/edx/$git_repo_name"
 git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 git_repo_private="{configuration_private_repo}"
-git_repo_private_name="{configuration_private_repo_basename}"
+git_repo_private_basename=$(basename $git_repo_private)
 secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
@@ -299,7 +299,7 @@ if $config_secure; then
     cd $base_dir
 fi
 
-if $config_private; then
+if [[ ! -z $git_repo_private ]]; then
     $git_cmd clone $git_repo_private $git_repo_private_name
     cd $git_repo_private_name
     $git_cmd checkout $configuration_private_version
