@@ -8,12 +8,7 @@ if [ ! -d /edx/app/edx_ansible ]; then
     echo "Error: Base box is missing provisioning scripts." 1>&2
     exit 1
 fi
-# VBox 4.3.10 has a bug; make it not a problem
-#  - see https://www.virtualbox.org/ticket/12879
-if [ ! -d /usr/lib/VBoxGuestAdditions ] \
-  && [ -d /opt/VBoxGuestAdditions-4.3.10/lib/VBoxGuestAdditions ]; then
-    sudo ln -s /opt/VBoxGuestAdditions-4.3.10/lib/VBoxGuestAdditions /usr/lib/VBoxGuestAdditions
-fi
+
 export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
@@ -26,6 +21,15 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 
 ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=release
 SCRIPT
+
+$mount = <<SCRIPT2
+# VBox 4.3.10 has a bug; make it not a problem
+#  - see https://www.virtualbox.org/ticket/12879
+if [ ! -d /usr/lib/VBoxGuestAdditions ] \
+  && [ -d /opt/VBoxGuestAdditions-4.3.10/lib/VBoxGuestAdditions ]; then
+    sudo ln -s /opt/VBoxGuestAdditions-4.3.10/lib/VBoxGuestAdditions /usr/lib/VBoxGuestAdditions
+fi
+SCRIPT2
 
 edx_platform_mount_dir = "edx-platform"
 forum_mount_dir = "cs_comments_service"
@@ -44,6 +48,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Creates an edX devstack VM from an official release
   config.vm.box     = "himbasha-devstack"
   config.vm.box_url = "http://files.edx.org/vagrant-images/20140325-himbasha-devstack.box"
+
+# workaround for VirtualBox 4.3.10 problem:
+  config.vm.provision "shell", inline: $mounts
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
