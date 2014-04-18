@@ -1,3 +1,5 @@
+Vagrant.require_version ">= 1.5.3"
+
 VAGRANTFILE_API_VERSION = "2"
 
 MEMORY = 2048
@@ -28,6 +30,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 4567, host: 4567
   config.ssh.insert_key = true
 
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
   config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
   config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
@@ -53,20 +56,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "../../../playbooks/vagrant-devstack.yml"
     ansible.verbose = "vvvv"
-    # set extra-vars here instead of in the vagrant play so that
-    # they are written out to /edx/etc/server-vars.yml which can
-    # be used later when running ansible locally
-    ansible.extra_vars = {
-        migrate_db: 'yes',
-        openid_workaround: true,
-        devstack: true,
-        disable_edx_services: true,
-        edx_platform_version: 'master',
-        mongo_enable_journal: false,
-        EDXAPP_NO_PREREQ_INSTALL: 0,
-        COMMON_MOTD_TEMPLATE: 'devstack_motd.tail.j2',
-        COMMON_SSH_PASSWORD_AUTH: "yes",
-    }
 
   end
 end
