@@ -31,10 +31,6 @@
 #     - supervisor
 #     - certs
 #
-- name: Checking to see if git identity is set
-  fail: msg="You must set CERTS_GIT_IDENTITY var for this role!"
-  when: not CERTS_GIT_IDENTITY
-
 - name: create application user
   user: >
     name="{{ certs_user }}"
@@ -43,7 +39,7 @@
     shell=/bin/false
   notify: restart certs
 
-- name: create certs app and data dirs
+- name: create certs app dirs
   file: >
     path="{{ item }}"
     state=directory
@@ -52,7 +48,20 @@
   notify: restart certs
   with_items:
     - "{{ certs_app_dir }}"
+    # needed for the ansible 1.5 git module
+    - "{{ certs_app_dir }}/.ssh"
     - "{{ certs_venvs_dir }}"
+    - "{{ certs_data_dir }}"
+
+# The certs web root must be owned
+# by the web user so the certs service
+# can write files there.
+- name: create certs web root
+  file: >
+    path="{{ CERTS_WEB_ROOT }}"
+    state=directory
+    owner="{{ common_web_group }}"
+    group="{{ certs_user }}"
 
 - name: create certs gpg dir
   file: >
@@ -69,10 +78,23 @@
   notify: restart certs
   register: certs_gpg_key
 
+- name: copy the pgp trust export
+  copy: >
+    content="{{ CERTS_OWNER_TRUST }}"
+    dest={{ certs_app_dir }}/trust.export
+    owner={{ common_web_user }} mode=0600
+  notify: restart certs
 
 - name: load the gpg key
   shell: >
     /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
+  sudo_user: "{{ common_web_user }}"
+  when: certs_gpg_key.changed
+  notify: restart certs
+
+- name: import the trust export
+  shell: >
+    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import-ownertrust {{ certs_app_dir }}/trust.export
   sudo_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
   notify: restart certs

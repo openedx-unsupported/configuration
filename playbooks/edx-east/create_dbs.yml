@@ -83,17 +83,48 @@
         login_host: "{{ item.db_host }}"
         login_user: "{{ item.db_user }}"
         login_password: "{{ item.db_pass }}"
+        append_privs: yes
         host: '%'
+      when: item.db_user != 'None'
       with_items:
         - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
           db_user: "{{ edxapp_db_root_user }}"
           db_pass: "{{ db_root_pass }}"
         - db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+          db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
           db_user: "{{ xqueue_db_root_user }}"
           db_pass: "{{ db_root_pass }}"
         - db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+          db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
           db_user: "{{ ora_db_root_user }}"
           db_pass: "{{ db_root_pass }}"
+
+    - name: assign mysql user permissions for migrate user
+      mysql_user:
+        name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        priv: "{{ item.db_name }}.*:SELECT,INSERT,UPDATE,DELETE,ALTER,CREATE,DROP,INDEX"
+        password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        append_privs: yes
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_user: "{{ edxapp_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+        - db_host: "{{ XQUEUE_MYSQL_HOST|default('None') }}"
+          db_name: "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
+          db_user: "{{ xqueue_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+        - db_host: "{{ ORA_MYSQL_HOST|default('None') }}"
+          db_name: "{{ ORA_MYSQL_DB_NAME|default('None') }}"
+          db_user: "{{ ora_db_root_user }}"
+          db_pass: "{{ db_root_pass }}"
+
 
     - name: assign mysql user permissions for admin user
       mysql_user:
@@ -103,7 +134,9 @@
         login_host: "{{ item.db_host }}"
         login_user: "{{ item.db_user }}"
         login_password: "{{ item.db_pass }}"
+        append_privs: yes
         host: '%'
+      when: item.db_user != 'None'
       with_items:
         - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
           db_user: "{{ edxapp_db_root_user }}"

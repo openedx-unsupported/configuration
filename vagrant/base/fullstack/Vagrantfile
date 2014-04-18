@@ -1,3 +1,5 @@
+Vagrant.require_version ">= 1.5.3"
+
 VAGRANTFILE_API_VERSION = "2"
 
 MEMORY = 2048
@@ -6,7 +8,8 @@ CPU_COUNT = 2
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box     = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
-
+  config.ssh.insert_key = true
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.vm.network :private_network, ip: "192.168.33.10"
 
   config.vm.provider :virtualbox do |vb|
@@ -20,10 +23,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
+  # Make LC_ALL default to en_US.UTF-8 instead of en_US.
+  # See: https://github.com/mitchellh/vagrant/issues/1188
+  config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
+
   config.vm.provision :ansible do |ansible|
     # point Vagrant at the location of your playbook you want to run
     ansible.playbook = "../../../playbooks/vagrant-fullstack.yml"
-    ansible.inventory_path = "../../../playbooks/vagrant/inventory.ini"
-    ansible.verbose = "extra"
+    # set extra-vars here instead of in the vagrant play so that
+    # they are written out to /edx/etc/server-vars.yml which can
+    # be used later when running ansible locally
+    ansible.verbose = "vvvv"
   end
 end

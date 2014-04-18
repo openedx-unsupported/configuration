@@ -67,6 +67,9 @@ EDXAPP_CAS_SERVER_URL: ''
 EDXAPP_CAS_EXTRA_LOGIN_PARAMS: ''
 EDXAPP_CAS_ATTRIBUTE_CALLBACK: ''
 EDXAPP_CAS_ATTRIBUTE_PACKAGE: ''
+# Enable an end-point that creates a user and logs them in
+# Used for performance testing
+EDXAPP_ENABLE_AUTO_AUTH: false
 
 EDXAPP_FEATURES:
   AUTH_USE_OPENID_PROVIDER: true
@@ -78,6 +81,7 @@ EDXAPP_FEATURES:
   PREVIEW_LMS_BASE: $EDXAPP_PREVIEW_LMS_BASE
   ENABLE_S3_GRADE_DOWNLOADS: true
   USE_CUSTOM_THEME: $edxapp_use_custom_theme
+  AUTOMATIC_AUTH_FOR_TESTING: $EDXAPP_ENABLE_AUTO_AUTH
 
 EDXAPP_BOOK_URL: ''
 # This needs to be set to localhost
@@ -125,6 +129,18 @@ EDXAPP_STATIC_URL_BASE: "/static/"
 EDXAPP_GRADE_STORAGE_TYPE: 'localfs'
 EDXAPP_GRADE_BUCKET: 'edx-grades'
 EDXAPP_GRADE_ROOT_PATH: '/tmp/edx-s3/grades'
+# Credit card processor
+# These are the same defaults set in common.py
+EDXAPP_CC_PROCESSOR:
+  CyberSource:
+    SHARED_SECRET: ''
+    MERCHANT_ID: ''
+    SERIAL_NUMBER: ''
+    ORDERPAGE_VERSION: '7'
+    PURCHASE_ENDPOINT: ''
+
+# does not affect verified students
+EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY: ['usd', '$']
 
 # Configure rake tasks in edx-platform to skip Python/Ruby/Node installation
 EDXAPP_NO_PREREQ_INSTALL: 1
@@ -399,6 +415,7 @@ generic_env_config:  &edxapp_generic_env
 
 lms_auth_config:
   <<: *edxapp_generic_auth
+  CC_PROCESSOR: $EDXAPP_CC_PROCESSOR
   MODULESTORE:
     default:
       ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
@@ -426,6 +443,7 @@ lms_auth_config:
 
 lms_env_config:
   <<: *edxapp_generic_env
+  PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
   'CODE_JAIL':
     # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
     'python_bin': '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'

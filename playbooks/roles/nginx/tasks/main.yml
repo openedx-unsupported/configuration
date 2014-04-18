@@ -31,15 +31,23 @@
 
 - name: Server configuration file
   template: >
-    src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+    src=etc/nginx/nginx.conf.j2 dest=/etc/nginx/nginx.conf
     owner=root group={{ common_web_user }} mode=0644
   notify: reload nginx
 
 - name: Creating common nginx configuration
   template: >
-    src=edx-release.j2 dest={{ nginx_sites_available_dir }}/edx-release
+    src=edx/app/nginx/sites-available/edx-release.j2
+    dest={{ nginx_sites_available_dir }}/edx-release
     owner=root group=root mode=0600
   notify: reload nginx
+
+- name: Create robot rules
+  template: >
+    src=edx/app/nginx/robots.txt.j2 dest={{ nginx_app_dir }}/robots.txt
+    owner=root group={{ common_web_user }} mode=0644
+  notify: reload nginx
+  when: NGINX_ROBOT_RULES|length > 0
 
 - name: Creating link for common nginx configuration
   file: >
@@ -50,7 +58,8 @@
 
 - name: Copying nginx configs for {{ nginx_sites }}
   template: >
-    src={{ item }}.j2 dest={{ nginx_sites_available_dir }}/{{ item }}
+    src=edx/app/nginx/sites-available/{{ item }}.j2
+    dest={{ nginx_sites_available_dir }}/{{ item }}
     owner=root group={{ common_web_user }} mode=0640
   notify: reload nginx
   with_items: nginx_sites
@@ -113,24 +122,14 @@
 
 - name: Set up nginx access log rotation
   template: >
-    dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2
-    owner=root group=root mode=644
-
-# removing default link
-- name: Removing default nginx config and restart (enabled)
-  file: path={{ nginx_sites_enabled_dir }}/default state=absent
-  notify: reload nginx
-
-# Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
-
-- name: Set up nginx access log rotation
-  template: >
-    dest=/etc/logrotate.d/nginx-access src=edx_logrotate_nginx_access.j2
+    src=etc/logrotate.d/edx_logrotate_nginx_access.j2
+    dest=/etc/logrotate.d/nginx-access
     owner=root group=root mode=644
 
 - name: Set up nginx access log rotation
   template: >
-    dest=/etc/logrotate.d/nginx-error src=edx_logrotate_nginx_error.j2
+    src=etc/logrotate.d/edx_logrotate_nginx_error.j2
+    dest=/etc/logrotate.d/nginx-error
     owner=root group=root mode=644
 
 # If tasks that notify restart nginx don't change the state of the remote system

@@ -33,20 +33,26 @@
     - restart discern
 
 - name: git checkout discern repo into discern_code_dir
-  git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_version }}
+  git: >
+    dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_version }}
+    accept_hostkey=yes
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
 
 - name: git checkout ease repo into discern_ease_code_dir
-  git: dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
+  git: >
+    dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
+    accept_hostkey=yes
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
 
 #Numpy has to be a pre-requirement in order for scipy to build
 - name : install python pre-requirements for discern and ease
-  pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+  pip: >
+    requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
@@ -55,7 +61,9 @@
     - "{{ discern_ease_pre_requirements_file }}"
 
 - name : install python requirements for discern and ease
-  pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+  pip: >
+    requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern

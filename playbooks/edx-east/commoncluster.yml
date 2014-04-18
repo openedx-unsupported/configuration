@@ -1,9 +1,24 @@
-# ansible-playbook -i ec2.py commoncluster.yml --extra-vars "deployment=edge env=stage" -e@/path/to/vars/env-deployment.yml -T 30 --list-hosts
+# ansible-playbook -i ec2.py commoncluster.yml --limit tag_Name_stage-edx-commoncluster -e@/path/to/vars/env-deployment.yml -T 30 --list-hosts
 
-- hosts: tag_play_commoncluster:&tag_environment_{{ env }}:&tag_deployment_{{ deployment }}
+- hosts: all
   sudo: True
   serial: 1
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_SPLUNKFORWARDER: False
+    ENABLE_NEWRELIC: False
   roles:
+    - aws
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - role: xqueue
+    - role: datadog
+      when: ENABLE_DATADOG
+    - role: splunkforwarder
+      when: ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: ENABLE_NEWRELIC
     - oraclejdk
     - elasticsearch
     - rabbitmq
@@ -13,7 +28,9 @@
 #
 # In order to reconfigure the host resolution we are issuing a
 # reboot.
-- hosts: tag_play_commoncluster:&tag_environment_{{ env }}:&tag_deployment_{{ deployment }}
+# TODO: We should probably poll to ensure the host comes back before moving
+# to the next host so that we don't reboot all of the servers simultaneously
+- hosts: all
   sudo: True
   serial: 1
   vars:
@@ -21,3 +38,5 @@
   tasks:
     - name: reboot
       command: /sbin/shutdown -r now "Reboot is triggered by Ansible"
+      when: reboot
+      tags: reboot

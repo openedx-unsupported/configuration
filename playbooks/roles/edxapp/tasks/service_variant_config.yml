@@ -77,7 +77,10 @@
 
 # Fake syncdb with migrate, only when fake_migrations is defined
 # This overrides the database name to be the test database which
-# the default application user has full write access to
+# the default application user has full write access to.
+#
+# This is run in cases where you want to test to see if migrations
+# work without actually runnning them (when creating AMIs for example).
 - name: syncdb and migrate
   shell: >
     chdir={{ edxapp_code_dir }}
@@ -90,12 +93,27 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-# Regular syncdb with migrate
+# Syncdb with migrate when the migrate user is overridden in extra vars
 - name: syncdb and migrate
   shell: >
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
-  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes"
+  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
+  environment:
+    DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+# Syncdb with migrate when the default migrate user is not set,
+# in this case use the EDXAPP_MYSQL_USER_MIGRATE user to run migrations
+- name: syncdb and migrate
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
+  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and not COMMON_MYSQL_MIGRATE_PASS
   environment:
     DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_MIGRATE }}"
     DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_MIGRATE }}"
@@ -103,6 +121,7 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
 
 # Fake migrate, only when fake_migrations is defined
 # This overrides the database name to be the test database which

@@ -33,12 +33,12 @@
         </hudson.model.TextParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>configuration</name>
-          <description>The GITREF of configuration to use.</description>
+          <description>The GITREF of configuration to use. Leave blank to default to master.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>configuration_secure</name>
-          <description>The GITREF of configuration-secure repository to use.</description>
+          <description>The GITREF of configuration-secure repository to use. Leave blank to default to master.</description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
@@ -46,6 +46,11 @@
           <description></description>
           <defaultValue></defaultValue>
         </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>use_blessed</name>
+          <description></description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
     <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.20">
@@ -60,7 +65,7 @@
           <hudson.plugins.git.UserRemoteConfig>
             <name></name>
             <refspec></refspec>
-            <url>{{JENKINS_ADMIN_CONFIGURATION_REPO}}</url>
+            <url>{{ JENKINS_ADMIN_CONFIGURATION_REPO }}</url>
           </hudson.plugins.git.UserRemoteConfig>
         </userRemoteConfigs>
         <branches>
@@ -99,7 +104,7 @@
           <hudson.plugins.git.UserRemoteConfig>
             <name></name>
             <refspec></refspec>
-            <url>{{JENKINS_ADMIN_CONFIGURATION_SECURE_REPO}}</url>
+            <url>{{ JENKINS_ADMIN_CONFIGURATION_SECURE_REPO }}</url>
           </hudson.plugins.git.UserRemoteConfig>
         </userRemoteConfigs>
         <branches>
@@ -151,40 +156,23 @@
       <nature>shell</nature>
       <command>
 #!/bin/bash -x
+export jenkins_admin_ec2_key="{{ JENKINS_ADMIN_EC2_KEY }}"
+export jenkins_admin_configuration_secure_repo="{{ JENKINS_ADMIN_CONFIGURATION_SECURE_REPO }}"
 
-if [[ "\$play" == "" ]]; then
-    echo "No Play Specified. Nothing to Do."
-    exit 0
-fi
-
-export PYTHONUNBUFFERED=1
-export PIP_DOWNLOAD_CACHE=\$WORKSPACE/pip-cache
-
-cd configuration
-pip install -r requirements.txt
-
-cd util/vpc-tools/
-
-echo "\$refs" > /var/tmp/$BUILD_ID-refs.yml
-cat /var/tmp/$BUILD_ID-refs.yml
-
-echo "\$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
-cat /var/tmp/$BUILD_ID-extra-vars.yml
-
-python -u abbey.py -p \$play -t c1.medium  -d \$deployment -e \$environment -i /edx/var/jenkins/.ssh/id_rsa -b \$base_ami --vars /var/tmp/\$BUILD_ID-extra-vars.yml --refs /var/tmp/\$BUILD_ID-refs.yml -c \$BUILD_NUMBER --configuration-version \$configuration --configuration-secure-version \$configuration_secure -k deployment --configuration-secure-repo "git@github.com:edx-ops/prod-secure.git"
+configuration/util/jenkins/build-ami.sh
       </command>
       <ignoreExitCode>false</ignoreExitCode>
     </jenkins.plugins.shiningpanda.builders.VirtualenvBuilder>
     <hudson.tasks.Shell>
       <command>#!/bin/bash -x
 
-if [[(&quot;\$play&quot; == &quot;&quot;)]]; then
+if [[(&quot;$play&quot; == &quot;&quot;)]]; then
     echo &quot;No Play Specified. Nothing to Do.&quot;
     exit 0
 fi
 
-rm /var/tmp/\$BUILD_ID-extra-vars.yml
-rm /var/tmp/\$BUILD_ID-refs.yml</command>
+rm /var/tmp/$BUILD_ID-extra-vars.yml
+rm /var/tmp/$BUILD_ID-refs.yml</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers/>

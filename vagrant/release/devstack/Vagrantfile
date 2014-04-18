@@ -1,3 +1,5 @@
+Vagrant.require_version ">= 1.5.3"
+
 VAGRANTFILE_API_VERSION = "2"
 
 MEMORY = 2048
@@ -18,7 +20,7 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # this can cause problems (e.g. looking for templates that no longer exist).
 /edx/bin/update configuration release
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release
+ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=release
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
@@ -36,13 +38,16 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
-  config.vm.box     = "himbasha-devstack"
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140325-himbasha-devstack.box"
+  config.vm.box     = "injera-devstack"
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
+  config.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
   config.vm.network :forwarded_port, guest: 8001, host: 8001
   config.vm.network :forwarded_port, guest: 4567, host: 4567
+  config.vm.network :forwarded_port, guest: 8765, host: 8765
+  config.ssh.insert_key = true
 
   # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']
@@ -61,6 +66,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
+
+  # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
+  config.vbguest.auto_reboot = true
+  config.vbguest.auto_update = true
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
