@@ -43,6 +43,14 @@ fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 
+if [[ $public_ami == "true" ]]; then
+    # if this is a public server do not include
+    # the secret var file
+    extra_var_arg="-e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
+else
+    extra_var_arg="-e@${extra_vars_file}"
+fi
+
 if [[ -z $region ]]; then
   region="us-east-1"
 fi
@@ -104,11 +112,19 @@ $extra_vars
 EOF
 
 if [[ $basic_auth == "true" ]]; then
-    # vars specific to provisioning added to $extra-vars
-    cat << EOF_AUTH >> $extra_vars_file
-NGINX_HTPASSWD_USER: $auth_user
-NGINX_HTPASSWD_PASS: $auth_pass
+
+    if [[ $public_ami == "true" ]]; then
+        cat << EOF_AUTH >> $extra_vars_file
+    NGINX_HTPASSWD_USER: edx 
+    NGINX_HTPASSWD_PASS: edx
 EOF_AUTH
+    else
+        # vars specific to provisioning added to $extra-vars
+        cat << EOF_AUTH >> $extra_vars_file
+    NGINX_HTPASSWD_USER: $auth_user
+    NGINX_HTPASSWD_PASS: $auth_pass
+EOF_AUTH
+    fi
 fi
 
 
@@ -131,25 +147,34 @@ instance_tags:
     datadog: monitored
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
+dns_zone: $dns_zone
+rabbitmq_refresh: True
+elb: $elb
+EOF
+
+    if [[ $public_ami != "true" ]]; then
+        # if this isn't a public server add the github
+        # user and set public_ami to false
+        cat << EOF >> $extra_vars_file
+public_ami: False
 COMMON_USER_INFO:
   - name: ${github_username}
     github: true
     type: admin
-dns_zone: $dns_zone
-rabbitmq_refresh: True
 USER_CMD_PROMPT: '[$name_tag] '
-elb: $elb
 EOF
+    fi
+
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    ansible-playbook edx_provision.yml  -i inventory.ini -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu  -v
+    ansible-playbook edx_provision.yml  -i inventory.ini $extra_var_arg --user ubuntu  -v
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        ansible-playbook rabbitmq.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
-        ansible-playbook restart_supervisor.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
+        ansible-playbook rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        ansible-playbook restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
@@ -163,21 +188,22 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu 
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu 
 fi
+
 
 if [[ $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            ansible-playbook ${i}.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu --tags deploy -v
+            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy -v
         fi
     done
 fi
 
 # deploy the edx_ansible role
-ansible-playbook edx_ansible.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
+ansible-playbook edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 # set the hostname
 ansible-playbook set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
