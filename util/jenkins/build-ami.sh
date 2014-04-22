@@ -90,9 +90,9 @@ fi
 
 configurationprivate_params=""
 if [[ ! -z "$configurationprivaterepo" ]]; then
-  configurationprivate_params="--configuration-private-repo $configurationprivate-repo"
+  configurationprivate_params="--configuration-private-repo $configurationprivaterepo"
   if [[ ! -z "$configurationprivateversion" ]]; then
-    configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivate-version"
+    configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivateversion"
   fi
 fi
 
