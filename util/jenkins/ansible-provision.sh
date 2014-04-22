@@ -115,14 +115,14 @@ if [[ $basic_auth == "true" ]]; then
 
     if [[ $public_ami == "true" ]]; then
         cat << EOF_AUTH >> $extra_vars_file
-    NGINX_HTPASSWD_USER: edx 
-    NGINX_HTPASSWD_PASS: edx
+NGINX_HTPASSWD_USER: edx 
+NGINX_HTPASSWD_PASS: edx
 EOF_AUTH
     else
         # vars specific to provisioning added to $extra-vars
         cat << EOF_AUTH >> $extra_vars_file
-    NGINX_HTPASSWD_USER: $auth_user
-    NGINX_HTPASSWD_PASS: $auth_pass
+NGINX_HTPASSWD_USER: $auth_user
+NGINX_HTPASSWD_PASS: $auth_pass
 EOF_AUTH
     fi
 fi
