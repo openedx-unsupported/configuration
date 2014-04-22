@@ -179,4 +179,7 @@ fi
 # deploy the edx_ansible role
 ansible-playbook edx_ansible.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
 
+# set the hostname
+ansible-playbook set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+
 rm -f "$extra_vars_file"
