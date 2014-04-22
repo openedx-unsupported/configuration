@@ -89,9 +89,9 @@ if [[ ! -z "$playbook_dir" ]]; then
 fi
 
 configurationprivate_params=""
-if [[ ! -z "$configurationprivate-repo" ]]; then
+if [[ ! -z "$configurationprivaterepo" ]]; then
   configurationprivate_params="--configuration-private-repo $configurationprivate-repo"
-  if [[ ! -z "$configurationprivate-version" ]]; then
+  if [[ ! -z "$configurationprivateversion" ]]; then
     configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivate-version"
   fi
 fi
