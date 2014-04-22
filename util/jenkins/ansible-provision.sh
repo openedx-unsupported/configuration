@@ -43,11 +43,11 @@ fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 
-if [[ $public_ami == "true" ]]; then
-    # if this is a public server do not include
-    # the secret var file
+if [[ $edx_internal == "true" ]]; then
     extra_var_arg="-e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 else
+    # if this is a public server do not include
+    # the secret var file
     extra_var_arg="-e@${extra_vars_file}"
 fi
 
@@ -113,18 +113,10 @@ EOF
 
 if [[ $basic_auth == "true" ]]; then
 
-    if [[ $public_ami == "true" ]]; then
-        cat << EOF_AUTH >> $extra_vars_file
-NGINX_HTPASSWD_USER: edx 
-NGINX_HTPASSWD_PASS: edx
-EOF_AUTH
-    else
-        # vars specific to provisioning added to $extra-vars
-        cat << EOF_AUTH >> $extra_vars_file
+    cat << EOF_AUTH >> $extra_vars_file
 NGINX_HTPASSWD_USER: $auth_user
 NGINX_HTPASSWD_PASS: $auth_pass
 EOF_AUTH
-    fi
 fi
 
 
@@ -152,11 +144,11 @@ rabbitmq_refresh: True
 elb: $elb
 EOF
 
-    if [[ $public_ami != "true" ]]; then
+    if [[ $edx_internal == "true" ]]; then
         # if this isn't a public server add the github
         # user and set public_ami to false
         cat << EOF >> $extra_vars_file
-public_ami: False
+edx_internal: False
 COMMON_USER_INFO:
   - name: ${github_username}
     github: true
