@@ -61,7 +61,7 @@ def parse_args():
                         metavar="PLAY", required=True)
     parser.add_argument('--playbook-dir',
                         help='directory to find playbooks in',
-                        default='configuration/playbooks/edx-east'
+                        default='configuration/playbooks/edx-east',
                         metavar="PLAYBOOKDIR", required=False)
     parser.add_argument('-d', '--deployment', metavar="DEPLOYMENT",
                         required=True)
