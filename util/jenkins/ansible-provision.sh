@@ -42,6 +42,13 @@ if [[ ! -f $BOTO_CONFIG ]]; then
 fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
+extra_var_arg="-e@${extra_vars_file}"
+
+if [[ $edx_internal == "true" ]]; then
+    # if this is a an edx server include
+    # the secret var file
+    extra_var_arg="-e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
+fi
 
 if [[ -z $region ]]; then
   region="us-east-1"
@@ -83,12 +90,6 @@ cd playbooks/edx-east
 cat << EOF > $extra_vars_file
 ---
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
-EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
-EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio.${deploy_host}
-EDXAPP_SITE_NAME: ${deploy_host}
-CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 xqueue_version: $xqueue_version
@@ -98,13 +99,23 @@ ease_version: $ease_version
 certs_version: $certs_version
 discern_version: $discern_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
+EDXAPP_LMS_NGINX_PORT: 80
+EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
+EDX_ANSIBLE_DUMP_VARS: true
+migrate_db: "yes"
+openid_workaround: True
+rabbitmq_ip: "127.0.0.1"
+rabbitmq_refresh: True
+COMMON_HOSTNAME: edx-server
+COMMON_DEPLOYMENT: edx
+COMMON_ENVIRONMENT: sandbox
 
 # User provided extra vars
 $extra_vars
 EOF
 
 if [[ $basic_auth == "true" ]]; then
-    # vars specific to provisioning added to $extra-vars
+
     cat << EOF_AUTH >> $extra_vars_file
 NGINX_HTPASSWD_USER: $auth_user
 NGINX_HTPASSWD_PASS: $auth_pass
@@ -131,25 +142,41 @@ instance_tags:
     datadog: monitored
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
+dns_zone: $dns_zone
+rabbitmq_refresh: True
+elb: $elb
+EOF
+
+    if [[ $edx_internal == "true" ]]; then
+        # if this isn't a public server add the github
+        # user and set edx_internal to True so that
+        # xserver is installed
+        cat << EOF >> $extra_vars_file
+EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
+EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_CMS_BASE: studio.${deploy_host}
+EDXAPP_SITE_NAME: ${deploy_host}
+CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
+CERTS_VERIFY_URL: "http://${deploy_host}:18090"
+edx_internal: True
 COMMON_USER_INFO:
   - name: ${github_username}
     github: true
     type: admin
-dns_zone: $dns_zone
-rabbitmq_refresh: True
 USER_CMD_PROMPT: '[$name_tag] '
-elb: $elb
 EOF
+    fi
+
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    ansible-playbook edx_provision.yml  -i inventory.ini -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu  -v
+    ansible-playbook edx_provision.yml  -i inventory.ini $extra_var_arg --user ubuntu  -v
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        ansible-playbook rabbitmq.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
-        ansible-playbook restart_supervisor.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
+        ansible-playbook rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        ansible-playbook restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
@@ -163,21 +190,22 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu 
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu 
 fi
+
 
 if [[ $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            ansible-playbook ${i}.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu --tags deploy -v
+            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy -v
         fi
     done
 fi
 
 # deploy the edx_ansible role
-ansible-playbook edx_ansible.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
+ansible-playbook edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 # set the hostname
 ansible-playbook set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
