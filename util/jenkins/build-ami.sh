@@ -89,11 +89,16 @@ if [[ ! -z "$playbook_dir" ]]; then
 fi
 
 configurationprivate_params=""
-if [[ ! -z "$configurationprivate-repo" ]]; then
-  configurationprivate_params="--configuration-private-repo $configurationprivate-repo"
-  if [[ ! -z "$configurationprivate-version" ]]; then
-    configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivate-version"
+if [[ ! -z "$configurationprivaterepo" ]]; then
+  configurationprivate_params="--configuration-private-repo $configurationprivaterepo"
+  if [[ ! -z "$configurationprivateversion" ]]; then
+    configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivateversion"
   fi
+fi
+
+stackname_params=""
+if [[ ! -z "$playbook_dir" ]]; then
+  stackname_params="--playbook-dir $playbook_dir"
 fi
 
 cd configuration
