@@ -42,13 +42,12 @@ if [[ ! -f $BOTO_CONFIG ]]; then
 fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
+extra_var_arg="-e@${extra_vars_file}"
 
 if [[ $edx_internal == "true" ]]; then
-    extra_var_arg="-e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
-else
-    # if this is a public server do not include
+    # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${extra_vars_file}"
+    extra_var_arg="-e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 fi
 
 if [[ -z $region ]]; then
