@@ -213,7 +213,7 @@ git_repo="https://github.com/edx/$git_repo_name"
 git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 git_repo_private="{configuration_private_repo}"
-git_repo_private_basename=$(basename $git_repo_private)
+git_repo_private_name=$(basename $git_repo_private .git)
 secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
@@ -221,7 +221,7 @@ instance_ip=\\
 $(curl http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
 instance_type=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null)
-playbook_dir="$base_dir/{playbook-dir}"
+playbook_dir="$base_dir/{playbook_dir}"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
@@ -323,9 +323,12 @@ rm -rf $base_dir
                 configuration_secure_repo=args.configuration_secure_repo,
                 configuration_secure_repo_basename=os.path.basename(
                     args.configuration_secure_repo),
+                configuration_private_version=args.configuration_private_version,
+                configuration_private_repo=args.configuration_private_repo,
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play,
+                playbook_dir=args.playbook_dir,
                 config_secure=config_secure,
                 identity_contents=identity_contents,
                 queue_name=run_id,

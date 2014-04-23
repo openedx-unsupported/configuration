@@ -96,6 +96,11 @@ if [[ ! -z "$configurationprivaterepo" ]]; then
   fi
 fi
 
+stackname_params=""
+if [[ ! -z "$playbook_dir" ]]; then
+  stackname_params="--playbook-dir $playbook_dir"
+fi
+
 cd configuration
 pip install -r requirements.txt
 
