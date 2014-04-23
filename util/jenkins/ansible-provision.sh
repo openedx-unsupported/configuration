@@ -106,6 +106,16 @@ ease_version: $ease_version
 certs_version: $certs_version
 discern_version: $discern_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
+EDXAPP_LMS_NGINX_PORT: 80
+EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
+EDX_ANSIBLE_DUMP_VARS: true
+migrate_db: "yes"
+openid_workaround: True
+rabbitmq_ip: "127.0.0.1"
+rabbitmq_refresh: True
+COMMON_HOSTNAME: edx-server
+COMMON_DEPLOYMENT: edx
+COMMON_ENVIRONMENT: sandbox
 
 # User provided extra vars
 $extra_vars
@@ -146,9 +156,10 @@ EOF
 
     if [[ $edx_internal == "true" ]]; then
         # if this isn't a public server add the github
-        # user and set public_ami to false
+        # user and set edx_internal to True so that
+        # xserver is installed
         cat << EOF >> $extra_vars_file
-edx_internal: False
+edx_internal: True
 COMMON_USER_INFO:
   - name: ${github_username}
     github: true
