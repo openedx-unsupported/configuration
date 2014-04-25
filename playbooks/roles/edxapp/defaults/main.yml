@@ -412,12 +412,14 @@ generic_env_config:  &edxapp_generic_env
   CAS_SERVER_URL: $EDXAPP_CAS_SERVER_URL
   CAS_EXTRA_LOGIN_PARAMS: $EDXAPP_CAS_EXTRA_LOGIN_PARAMS
   CAS_ATTRIBUTE_CALLBACK: $EDXAPP_CAS_ATTRIBUTE_CALLBACK
+  HOSTNAME_MODULESTORE_DEFAULT_MAPPINGS:
+    'preview\.': 'draft'
 
 lms_auth_config:
   <<: *edxapp_generic_auth
   CC_PROCESSOR: $EDXAPP_CC_PROCESSOR
   MODULESTORE:
-    default:
+    default:  &lms_default_modulestore
       ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
       OPTIONS:
         mappings: $EDXAPP_XML_MAPPINGS
@@ -440,7 +442,9 @@ lms_auth_config:
               fs_root: $edxapp_course_data_dir
             ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
             DOC_STORE_CONFIG: *edxapp_generic_default_docstore
-
+    draft:
+      <<: *edxapp_generic_default_modulestore
+      ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
 lms_env_config:
   <<: *edxapp_generic_env
   PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
@@ -456,14 +460,6 @@ cms_auth_config:
   <<: *edxapp_generic_auth
 cms_env_config:
   <<: *edxapp_generic_env
-lms_preview_auth_config:
-  <<: *edxapp_generic_auth
-  MODULESTORE:
-    default: *edxapp_generic_default_modulestore
-lms_preview_env_config:
-  <<: *edxapp_generic_env
-
-
 
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
@@ -474,9 +470,6 @@ edxapp_cms_gunicorn_port: 8010
 edxapp_cms_gunicorn_host: 127.0.0.1
 edxapp_lms_gunicorn_port: 8000
 edxapp_lms_gunicorn_host: 127.0.0.1
-edxapp_lms_preview_gunicorn_port: 8020
-edxapp_lms_preview_gunicorn_host: 127.0.0.1
-
 
 # These vars are for creating the application json config
 # files.  There are two for each service that uses the
@@ -494,7 +487,6 @@ edxapp_cms_env: 'cms.envs.aws'
 #Number of gunicorn worker processes to spawn, as a multiplier to number of virtual cores
 worker_core_mult:
   lms: 4
-  lms_preview: 2
   cms: 2
 
 # Theming
