@@ -131,14 +131,11 @@ def add_or_update_record(dns_records):
     if args.noop:
         print("Would have submitted the following change set:\n")
     else:
-        print("Submitted the following change set:\n")
+        print("Submitting the following change set:\n")
     xml_doc = xml.dom.minidom.parseString(change_set.to_xml())
     print(xml_doc.toprettyxml(newl=''))  # newl='' to remove extra newlines
     if not args.noop:
-        if len(change_set) == 0:
-            print("No changes, not doing anything")
-        else:
-            r53.change_rrsets(zone_id, change_set.to_xml())
+        r53.change_rrsets(zone_id, change_set.to_xml())
 
 
 def get_or_create_hosted_zone(zone_name):
