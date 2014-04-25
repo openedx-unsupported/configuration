@@ -35,8 +35,18 @@ import sys
 # up the dns name to be unique
 
 ELB_BAN_LIST = [
-    'prod-mcki-AprosELB-887241654.us-east-1.elb.amazonaws.com',
+    'Apros',
 ]
+
+# If the ELB name has the key in its name these plays
+# will be used for the DNS CNAME tuple.  This is used for
+# commoncluster.
+
+ELB_PLAY_MAPPINGS = {
+    'RabbitMQ': 'rabbitmq',
+    'Xqueue': 'xqueue',
+    'Elastic': 'elasticsearch',
+}
 
 
 class DNSRecord():
@@ -69,6 +79,8 @@ def add_or_update_record(dns_records):
                             record.record_ttl, record.record_values)
         if args.noop:
             print("Would have updated DNS record:\n{}".format(status_msg))
+        else:
+            print("Updating DNS record:\n{}".format(status_msg))
 
         if record.record_name in record_names:
             print("Unable to create record for {} with value {} because one already exists!".format(
@@ -88,8 +100,8 @@ def add_or_update_record(dns_records):
         if record.record_name in old_records.keys():
             if record.record_name + "." == old_records[record.record_name].name and \
                     record.record_type == old_records[record.record_name].type:
-                print "Record for {} already exists and is identical, skipping.\n".format(
-                    record.record_name)
+                print("Record for {} already exists and is identical, skipping.\n".format(
+                    record.record_name))
                 continue
 
             if args.force:
@@ -118,11 +130,15 @@ def add_or_update_record(dns_records):
 
     if args.noop:
         print("Would have submitted the following change set:\n")
-        xml_doc = xml.dom.minidom.parseString(change_set.to_xml())
-        print xml_doc.toprettyxml(newl='')  # newl='' to remove extra newlines
     else:
-        r53.change_rrsets(zone_id, change_set.to_xml())
-        print("Updated DNS record:\n{}".format(status_msg))
+        print("Submitted the following change set:\n")
+    xml_doc = xml.dom.minidom.parseString(change_set.to_xml())
+    print(xml_doc.toprettyxml(newl=''))  # newl='' to remove extra newlines
+    if not args.noop:
+        if len(change_set) == 0:
+            print("No changes, not doing anything")
+        else:
+            r53.change_rrsets(zone_id, change_set.to_xml())
 
 
 def get_or_create_hosted_zone(zone_name):
@@ -170,7 +186,6 @@ def get_security_group_dns(group_name):
 
 
 def get_dns_from_instances(elb):
-
     for inst in elb.instances:
         try:
             instance = ec2_con.get_all_instances(
@@ -186,7 +201,6 @@ def get_dns_from_instances(elb):
             else:
                 # deprecated, for backwards compatibility
                 play_tag = instance.tags['role']
-
             break  # only need the first instance for tag info
         except KeyError:
             print("Instance {}, attached to elb {} does not "
@@ -218,17 +232,25 @@ def update_elb_rds_dns(zone):
     stack_elbs = [elb for elb in elb_con.get_all_load_balancers()
                   if elb.vpc_id == vpc_id]
     for elb in stack_elbs:
+        env_tag, deployment_tag, play_tag = get_dns_from_instances(elb)
 
-        if "RabbitMQ" in elb.source_security_group.name or "ElasticSearch" in elb.source_security_group.name:
-            env_tag, deployment_tag, play_tag = get_security_group_dns(elb.source_security_group.name)
-            fqdn = "{}-{}-{}.{}".format(env_tag, play_tag, deployment_tag, zone_name)
-            if elb.dns_name not in ELB_BAN_LIST:
-                dns_records.add(DNSRecord(zone, fqdn, 'CNAME', 600, [elb.dns_name]))
-        else:
-            env_tag, deployment_tag, play_tag = get_dns_from_instances(elb)
-            fqdn = "{}-{}-{}.{}".format(env_tag, deployment_tag, play_tag, zone_name)
-            if elb.dns_name not in ELB_BAN_LIST:
-                dns_records.add(DNSRecord(zone, fqdn, 'CNAME', 600, [elb.dns_name]))
+        # Override the play tag if a substring of the elb name
+        # is in ELB_PLAY_MAPPINGS
+
+        for key in ELB_PLAY_MAPPINGS.keys():
+            if key in elb.name:
+                play_tag = ELB_PLAY_MAPPINGS[key]
+                break
+        fqdn = "{}-{}-{}.{}".format(env_tag, deployment_tag, play_tag, zone_name)
+
+        # Skip over ELBs if a substring of the ELB name is in
+        # the ELB_BAN_LIST
+
+        if any(name in elb.name for name in ELB_BAN_LIST):
+            print("Skipping {} because it is on the ELB ban list".format(elb.name))
+            continue
+
+        dns_records.add(DNSRecord(zone, fqdn, 'CNAME', 600, [elb.dns_name]))
 
     stack_rdss = [rds for rds in rds_con.get_all_dbinstances()
                   if hasattr(rds.subnet_group, 'vpc_id') and
@@ -287,7 +309,6 @@ if __name__ == "__main__":
 
     # Connect to route53 using the user's .boto file
     r53 = boto.connect_route53()
-
 
     zone = get_or_create_hosted_zone(args.zone_name)
     update_elb_rds_dns(zone)
