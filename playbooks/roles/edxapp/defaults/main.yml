@@ -30,8 +30,8 @@ EDXAPP_MONGO_USER: 'edxapp'
 EDXAPP_MONGO_DB_NAME: 'edxapp'
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
-EDXAPP_MYSQL_USER: 'root'
-EDXAPP_MYSQL_PASSWORD: ''
+EDXAPP_MYSQL_USER: 'edxapp001'
+EDXAPP_MYSQL_PASSWORD: 'password'
 EDXAPP_MYSQL_HOST: 'localhost'
 EDXAPP_MYSQL_PORT: '3306'
 
@@ -40,12 +40,10 @@ EDXAPP_EMAIL_BACKEND: 'django.core.mail.backends.smtp.EmailBackend'
 EDXAPP_LOG_LEVEL: 'INFO'
 
 EDXAPP_MEMCACHE: [ 'localhost:11211' ]
-EDXAPP_COMMENTS_SERVICE_URL:  'http://localhost:4567'
+EDXAPP_COMMENTS_SERVICE_URL:  'http://localhost:18080'
 EDXAPP_COMMENTS_SERVICE_KEY:  'password'
 
 EDXAPP_EDXAPP_SECRET_KEY: ''
-
-EDXAPP_PEARSON_TEST_PASWORD: ''
 
 EDXAPP_OEE_URL: 'http://localhost:18060/'
 EDXAPP_OEE_USER: 'lms'
@@ -64,10 +62,11 @@ EDXAPP_FEATURES:
   CERTIFICATES_ENABLED: true
   ENABLE_DISCUSSION_SERVICE: true
   ENABLE_INSTRUCTOR_ANALYTICS: true
-  ENABLE_PEARSON_HACK_TEST: false
   SUBDOMAIN_BRANDING: false
   SUBDOMAIN_COURSE_LISTINGS: false
   PREVIEW_LMS_BASE: $EDXAPP_PREVIEW_LMS_BASE
+  ENABLE_S3_GRADE_DOWNLOADS: true
+  USE_CUSTOM_THEME: $edxapp_use_custom_theme
 
 EDXAPP_BOOK_URL: ''
 # This needs to be set to localhost
@@ -85,26 +84,38 @@ EDXAPP_RABBIT_HOSTNAME: 'localhost'
 EDXAPP_XML_MAPPINGS: {}
 
 EDXAPP_LMS_NGINX_PORT: 18000
+EDXAPP_LMS_SSL_NGINX_PORT: 48000
+
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 18020
 EDXAPP_CMS_NGINX_PORT: 18010
+EDXAPP_CMS_SSL_NGINX_PORT: 48010
 
-EDXAPP_LMS_BASIC_AUTH: False
-EDXAPP_CMS_BASIC_AUTH: False
-EDXAPP_LMS_PREVIEW_BASIC_AUTH: False
 EDXAPP_LANG: 'en_US.UTF-8'
 EDXAPP_TIME_ZONE: 'America/New_York'
 
-EDXAPP_TECH_SUPPORT_EMAIL: ''
-EDXAPP_CONTACT_EMAIL: ''
-EDXAPP_BUGS_EMAIL: ''
-EDXAPP_DEFAULT_FROM_EMAIL: ''
-EDXAPP_DEFAULT_FEEDBACK_EMAIL: ''
-EDXAPP_SERVER_EMAIL: ''
-EDXAPP_BULK_EMAIL_DEFAULT_FROM_EMAIL: ''
+EDXAPP_TECH_SUPPORT_EMAIL: 'technical@example.com'
+EDXAPP_CONTACT_EMAIL: 'info@example.com'
+EDXAPP_BUGS_EMAIL: 'bugs@example.com'
+EDXAPP_DEFAULT_FROM_EMAIL: 'registration@example.com'
+EDXAPP_DEFAULT_FEEDBACK_EMAIL: 'feedback@example.com'
+EDXAPP_DEFAULT_SERVER_EMAIL: 'devops@example.com'
+EDXAPP_BULK_EMAIL_DEFAULT_FROM_EMAIL: 'no-reply@example.com'
 
 EDXAPP_ENV_EXTRA: {}
 EDXAPP_AUTH_EXTRA: {}
 EDXAPP_MKTG_URL_LINK_MAP: {}
+# Set this sets the url for static files
+# Override this var to use a CDN
+# Example: xxxxx.cloudfront.net/static/
+EDXAPP_STATIC_URL_BASE: "/static/"
+
+# Settings for Grade downloads
+EDXAPP_GRADE_STORAGE_TYPE: 'localfs'
+EDXAPP_GRADE_BUCKET: 'edx-grades'
+EDXAPP_GRADE_ROOT_PATH: '/tmp/edx-s3/grades'
+
+# Configure rake tasks in edx-platform to skip Python/Ruby/Node installation
+EDXAPP_NO_PREREQ_INSTALL: 1
 
 # whether to setup the python codejail or not
 EDXAPP_PYTHON_SANDBOX: false
@@ -114,6 +125,20 @@ EDXAPP_SANDBOX_ENFORCE: true
 
 EDXAPP_USER: 'www-data'
 COMMON_WEB_GROUP: 'www-data'
+# Supply authorized keys used for remote management via the automated
+# role, see meta/main.yml.  Ensure you know what this does before
+# enabling.  The boolean flag determines whether the role is included.
+# This is done to make it possible to disable remote access easily by
+# setting the flag to true and providing an empty array.
+EDXAPP_INCLUDE_AUTOMATOR_ROLE: false
+EDXAPP_AUTOMATOR_AUTHORIZED_KEYS: []
+
+EDXAPP_USE_GIT_IDENTITY: false
+# Example: "{{ secure_dir }}/files/git-identity"
+EDXAPP_LOCAL_GIT_IDENTITY: !!null
+
+# Configuration for database migration
+EDXAPP_TEST_MIGRATE_DB_NAME: "{{ COMMON_ENVIRONMENT }}_{{ COMMON_DEPLOYMENT }}_test_{{ EDXAPP_MYSQL_DB_NAME }}"
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -137,6 +162,8 @@ edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_course_data_dir: "{{ edxapp_data_dir }}/data"
 edxapp_upload_dir: "{{ edxapp_data_dir }}/uploads"
 edxapp_theme_dir: "{{ edxapp_data_dir }}/themes"
+edxapp_git_identity: "{{ edxapp_app_dir }}/{{ EDXAPP_LOCAL_GIT_IDENTITY|basename }}"
+edxapp_git_ssh: "/tmp/edxapp_git_ssh.sh"
 edxapp_pypi_local_mirror: "http://localhost:{{ devpi_port }}/root/pypi/+simple"
 edxapp_workers:
   - queue: low
@@ -195,7 +222,7 @@ edxapp_all_req_files:
 
 edxapp_environment:
   LANG: $EDXAPP_LANG
-  NO_PREREQ_INSTALL: 1
+  NO_PREREQ_INSTALL: $EDXAPP_NO_PREREQ_INSTALL
   SKIP_WS_MIGRATIONS: 1
   RBENV_ROOT: $edxapp_rbenv_root
   GEM_HOME: $edxapp_gem_root
@@ -258,7 +285,6 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       PASSWORD: $EDXAPP_MYSQL_PASSWORD
       HOST: $EDXAPP_MYSQL_HOST
       PORT: $EDXAPP_MYSQL_PORT
-  PEARSON_TEST_PASSWORD:  $EDXAPP_PEARSON_TEST_PASSWORD
   OPEN_ENDED_GRADING_INTERFACE:
     url: $EDXAPP_OEE_URL
     password: $EDXAPP_OEE_PASSWORD
@@ -273,6 +299,11 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   CELERY_BROKER_PASSWORD: $EDXAPP_CELERY_PASSWORD
 
 generic_env_config:  &edxapp_generic_env
+  GRADES_DOWNLOAD:
+    STORAGE_TYPE: $EDXAPP_GRADE_STORAGE_TYPE
+    BUCKET: $EDXAPP_GRADE_BUCKET
+    ROOT_PATH: $EDXAPP_GRADE_ROOT_PATH
+  STATIC_URL_BASE: $EDXAPP_STATIC_URL_BASE
   STATIC_ROOT_BASE: $edxapp_staticfile_dir
   LMS_BASE: $EDXAPP_LMS_BASE
   CMS_BASE: $EDXAPP_CMS_BASE
@@ -292,6 +323,8 @@ generic_env_config:  &edxapp_generic_env
   FEEDBACK_SUBMISSION_EMAIL: $EDXAPP_FEEDBACK_SUBMISSION_EMAIL
   TIME_ZONE: $EDXAPP_TIME_ZONE
   MKTG_URL_LINK_MAP: $EDXAPP_MKTG_URL_LINK_MAP
+  # repo root for courses
+  GITHUB_REPO_ROOT: $edxapp_course_data_dir
   CACHES:
     default: &default_generic_cache
       BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
@@ -417,18 +450,21 @@ worker_core_mult:
   cms: 2
 
 # Theming
-# To turn off theming, specify edxapp_theme_name: ""
+# Turn theming on and off with edxapp_use_custom_theme
+# Set theme name with edxapp_theme_name
 # Stanford, for example, uses edxapp_theme_name: 'stanford'
 #
+# TODO: change variables to ALL-CAPS, since they are meant to be externally overridden
+edxapp_use_custom_theme: false
 edxapp_theme_name: ""
 edxapp_theme_source_repo: 'https://{{ COMMON_GIT_MIRROR }}/Stanford-Online/edx-theme.git'
 edxapp_theme_version: 'HEAD'
 
 # make this the public URL instead of writable
 edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
-# `edx_platform_commit` can be anything that git recognizes as a commit
+# `edx_platform_version` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
-edx_platform_commit: 'release'
+edx_platform_version: 'release'
 local_requirements_file:  "{{ edxapp_code_dir }}/requirements/edx/local.txt"
 pre_requirements_file:    "{{ edxapp_code_dir }}/requirements/edx/pre.txt"
 post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
@@ -468,6 +504,14 @@ edxapp_debian_pkgs:
   - ntp
   # for shapely
   - libgeos-dev
+  # i18n
+  - gettext
+  # Pillow (PIL Fork) Dependencies
+  # Needed by the CMS to manipulate images.
+  - libjpeg8-dev
+  - libpng12-dev
+  # Postgres support
+  - libpq-dev
 
 # Ruby Specific Vars
 edxapp_ruby_version: "1.9.3-p374"
@@ -479,6 +523,9 @@ edxapp_cms_variant: cms
 # Worker Settings
 worker_django_settings_module: 'aws'
 
-# Skip supervisor tasks
-# Useful when supervisor is not installed (local dev)
-devstack: False
+# This array is used by the automator role to provide
+# access to a limited set of commands via rbash.  The
+# commands listed here will be symlinked to ~/bin/ for
+# the automator user.
+edxapp_automated_rbash_links:
+  - /usr/bin/sudo

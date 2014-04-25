@@ -1,11 +1,12 @@
 - name: Basic util setup on carnegie workers
-# this gets all running prod webservers
-# hosts: tag_environment_prod_carn:&tag_function_util
-# or we can get subsets of them by name
-# hosts: ~tag_Name_util(10)_carn
-  hosts: ~tag_Name_util(1)_carn
-  gather_facts: True
+  # This uses variable expansion so you can select machine(s) from the command line
+  # using the -e flag.  See README for instructions on how to use.
+  hosts: ~tag_Name_{{machine}}_carn
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'util' machines"
+    when: "'util' not in machine"
   sudo: True
+  gather_facts: True
   vars:
     secure_dir: '../../../edx-secret/ansible'
     # this indicates the path to site-specific (with precedence)
@@ -15,12 +16,23 @@
   vars_files:
     - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
     - "{{ secure_dir }}/vars/datadog_carn.yml"
+    - "{{ secure_dir }}/vars/xqueue_carnegie_vars.yml"
   roles:
     - role: gh_users
       gh_users:
         - sefk
         - jbau
         - jrbl
+        - ali123
+        - caesar2164
+        - dcadams
+        - nparlante
+        - jarv
+        - e0d
+        - feanil
+      gh_users_no_sudo:
+        - jinpa
+        - gbruhns
       tags: users
     - role: 'common'
       tags: common
@@ -29,8 +41,33 @@
     - role: 'edxapp'
       celery_worker: True
       devstack: false
-      tags: celery
+    - role: nginx
+      nginx_sites:
+      - xqueue
+      - basic-auth
+      tags: nginx
+    - role: xqueue
+      xqueue_create_db: "no"
+      xqueue_create_users: false
+      tags: xqueue
     - datadog
+
+- name: Deploy certs only to first util machine
+  hosts: ~tag_Name_util(1)_carn
+  sudo: True
+  gather_facts: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/edxapp_carnegie_vars.yml"
+    - "{{ secure_dir }}/vars/certs_carn_vars.yml"
+  roles:
+    - role: certs
+      tags: certs
 
 ## run the certificate agent on the first util machine only
 #- hosts: ~tag_Name_util10_carn

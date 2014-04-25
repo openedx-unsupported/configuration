@@ -1,8 +1,10 @@
 - name: Basic util setup on cme hosts
-# this gets all running prod webservers
-# hosts: tag_environment_prod_cme:&tag_function_util
-# or we can get subsets of them by name
-  hosts: ~tag_Name_util(1)_cme
+  # This uses variable expansion so you can select machine(s) from the command line
+  # using the -e flag.  See README for instructions on how to use.
+  hosts: ~tag_Name_{{machine}}_cme
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'util' machines"
+    when: "'util' not in machine"
   sudo: True
   gather_facts: True
   vars:
@@ -23,6 +25,16 @@
         - sefk
         - jbau
         - jrbl
+        - ali123
+        - caesar2164
+        - dcadams
+        - nparlante
+        - jarv
+        - e0d
+        - feanil
+      gh_users_no_sudo:
+        - jinpa
+        - gbruhns
       tags: users
     - role: 'common'
       tags: common
@@ -31,7 +43,6 @@
     - role: 'edxapp'
       celery_worker: True
       devstack: false
-      tags: celery
     - role: nginx
       nginx_sites:
       - xqueue
@@ -42,6 +53,23 @@
       xqueue_create_users: false
       tags: xqueue
     - datadog
+
+- name: Deploy certs only to first util machine
+  hosts: ~tag_Name_util(1)_cme
+  sudo: True
+  gather_facts: True
+  vars:
+    secure_dir: '../../../configuration-secure/ansible'
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/edxapp_cme_vars.yml"
+    - "{{ secure_dir }}/vars/certs_cme_vars.yml"
+  roles:
+    - role: certs
+      tags: certs
 
 # run the certificate agent on the first util machine only
 #- hosts: ~tag_Name_util10_cme

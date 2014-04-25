@@ -1,57 +1,57 @@
-- name: edxapp | code sandbox | Create edxapp sandbox user
+- name: code sandbox | Create edxapp sandbox user
   user: name={{ edxapp_sandbox_user }} shell=/bin/false home={{ edxapp_sandbox_venv_dir }}
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: edxapp | code sandbox | Install apparmor utils system pkg
+- name: code sandbox | Install apparmor utils system pkg
   apt: pkg=apparmor-utils state=present
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: edxapp | code sandbox | write out apparmor code sandbox config
+- name: code sandbox | write out apparmor code sandbox config
   template: src=code.sandbox.j2 dest=/etc/apparmor.d/code.sandbox mode=0644 owner=root group=root
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: edxapp | code sandbox | write out sandbox user sudoers config
+- name: code sandbox | write out sandbox user sudoers config
   template: src=95-sandbox-sudoer.j2 dest=/etc/sudoers.d/95-{{ edxapp_sandbox_user }} mode=0440 owner=root group=root validate='visudo -c -f %s'
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
 # we boostrap and enable the apparmor service here.  in deploy.yml we disable, deploy, then re-enable
 # so we need to enable it in main.yml
-- name: edxapp | code sandbox | start apparmor service
+- name: code sandbox | start apparmor service
   service: name=apparmor state=started
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: edxapp | code sandbox | (bootstrap) load code sandbox profile
+- name: code sandbox | (bootstrap) load code sandbox profile
   command: apparmor_parser -r /etc/apparmor.d/code.sandbox
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox
 
-- name: edxapp | code sandbox | (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
+- name: code sandbox | (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
   notify:
-  - "edxapp | restart edxapp"
-  - "edxapp | restart edxapp_workers"
+  - "restart edxapp"
+  - "restart edxapp_workers"
   tags:
   - edxapp-sandbox

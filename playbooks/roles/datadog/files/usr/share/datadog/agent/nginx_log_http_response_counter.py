@@ -76,7 +76,7 @@ def event_example(logger, line):
      'timestamp': 1384313730}
 
     """
-    raise Exception, "Do not use this method."
+    raise Exception, "Do not use this method. It murders their servers."
     import time
     from datetime import datetime
     e = None

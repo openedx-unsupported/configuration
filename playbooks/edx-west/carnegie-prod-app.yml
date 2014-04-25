@@ -1,13 +1,10 @@
-#- hosts: ~tag_Name_app(10|20)_carn
-#- hosts: ~tag_Name_app10_carn
-#- hosts: ~tag_Name_app20_carn
-- hosts: ~tag_Name_app1_carn_test
+# This uses variable expansion so you can select machine(s) from the command line
+# using the -e flag.  See README for instructions on how to use.
+- hosts: ~tag_Name_{{machine}}_carn
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'app' machines"
+    when: "'app' not in machine"
   sudo: True
-  vars_prompt:
-    - name: "migrate_db"
-      prompt: "Should this playbook run database migrations? (Type 'yes' to run, anything else to skip migrations)"
-      default: "no"
-      private: no
   vars:
     secure_dir: '../../../configuration-secure/ansible'
     # this indicates the path to site-specific (with precedence)
@@ -27,6 +24,16 @@
         - sefk
         - jbau
         - jrbl
+        - ali123
+        - caesar2164
+        - dcadams
+        - nparlante
+        - jarv
+        - e0d
+        - feanil
+      gh_users_no_sudo:
+        - jinpa
+        - gbruhns
       tags: users
     - common
     - supervisor
@@ -35,10 +42,8 @@
       nginx_sites:
       - lms
       - cms
-      - lms-preview
-      - phpmyadminc
+      - phpmyadmin
       nginx_template_directory: "{{local_dir}}/nginx/templates/carnegie/"
-      nginx_conf: true
     - {'role': 'edxapp', 'openid_workaround': true, 'template_subdir': 'carnegie'}
     - datadog
     #- splunkforwarder

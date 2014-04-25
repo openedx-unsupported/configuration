@@ -1,6 +1,11 @@
+---
 - name: Basic util setup on all hosts
-#- hosts: tag_environment_stage:&tag_function_util
-  hosts: ~tag_Name_util1_stage
+  # This uses variable expansion so you can select machine(s) from the command line
+  # using the -e flag.  See README for instructions on how to use.
+  hosts: ~tag_Name_{{machine}}_stage
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'util' machines"
+    when: "'util' not in machine"
   sudo: True
   gather_facts: True
   vars:
@@ -14,14 +19,30 @@
     #- "{{ secure_dir }}/vars/edxapp_stage_users.yml"
     - "{{ secure_dir }}/vars/datadog_stage.yml"
   roles:
-    - role: 'common'
+    - role: common
       tags: common
-    - role: 'supervisor'
+    - role: supervisor
       tags: supervisor
-    - role: 'edxapp'
+    - role: gh_users
+      gh_users:
+        - sefk
+        - jbau
+        - jrbl
+        - ali123
+        - caesar2164
+        - dcadams
+        - nparlante
+        - stvstnfrd
+        - jarv
+        - e0d
+        - feanil
+      gh_users_no_sudo:
+        - jinpa
+        - gbruhns
+      tags: users
+    - role: edxapp
       celery_worker: True
       devstack: false
-      tags: celery
     - role: nginx
       nginx_sites:
       - xqueue
@@ -32,38 +53,36 @@
       xqueue_create_users: false
       tags: xqueue
 
-#- name: Deploy certs, notifier only to first util machine
-#  hosts: ~tag_Name_util1_stage
-#  sudo: True
-#  gather_facts: True
-#  vars:
-#    secure_dir: '../../../configuration-secure/ansible'
-#    local_dir: "{{secure_dir}}/local"
-#    migrate_db: "no"
-#  vars_files:
-#    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
-#    - "{{ secure_dir }}/vars/notifier_stage_vars.yml"
-#  roles:
-#    - certs
-#    - role: virtualenv
-#      virtualenv_user: "notifier"
-#      virtualenv_user_home: "/opt/wwc/notifier"
-#      virtualenv_name: "notifier"
-#    - notifier
+- name: deploy certs to first util machine only
+  hosts: ~tag_Name_util1_stage
+  sudo: True
+  gather_facts: True
+  vars:
+    secure_dir: "../../../configuration-secure/ansible"
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
+    - "{{ secure_dir }}/vars/certs_stage_vars.yml"
+  roles:
+    - role: gh_users # gh_users var intentionally unspecified
+      tags: users 
+    - role: certs
+      tags: certs
 
-#- name: Deploy certs to first util machine
-#  hosts: ~tag_Name_util1_stage
-#  sudo: True
-#  vars:
-#    secure_dir: '../../../configuration-secure/ansible'
-#    migrate_db: "no"
-#  vars_files:
-#    - "{{ secure_dir }}/vars/edxapp_stage_vars.yml"
-#    - "{{ secure_dir }}/vars/certifier_stage_vars.yml"
-#  roles:
-#    - common
-#    - role: virtualenv
-#      virtualenv_user: "certifier"
-#      virtualenv_name: "certifier"
-#      virtualenv_user_home: "/opt/wwc/certifier"
-#    - certificates
+- name: run the notifier on the first util machine only
+  hosts: ~tag_Name_util1_stage
+  sudo: True
+  vars:
+    secure_dir: "../../../configuration-secure/ansible"
+    local_dir: "{{secure_dir}}/local"
+    migrate_db: "no"
+  vars_files:
+    - "roles/common/defaults/main.yml"
+    - "roles/supervisor/defaults/main.yml"
+    - "{{ secure_dir }}/vars/notifier_stage_vars.yml"
+  roles:
+    - role: notifier
+      tags: notifier
