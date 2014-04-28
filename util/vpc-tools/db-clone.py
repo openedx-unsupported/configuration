@@ -18,7 +18,7 @@ description = """
    The name of the db will remain the same, the master db password
    will be changed and is set on the command line.
 
-   New db name defaults to "from-snapshot-<source db name>-<date>"
+   New db name defaults to "from-<source db name>-<human date>-<ts>"
    A new DNS entry will be created for the RDS when provided
    on the command line
 
