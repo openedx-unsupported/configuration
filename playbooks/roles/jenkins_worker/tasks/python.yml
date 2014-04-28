@@ -44,3 +44,12 @@
   template:
     src=wheel_venv.sh.j2 dest={{ jenkins_home }}/wheel_venv.sh
     owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+
+# Archive the current state of the virtualenv
+# as a starting point for new builds
+- name: Create a clean virtualenv archive
+  command: >
+    tar -cpzWf {{ jenkins_venv }}_clean.tar.gz {{ jenkins_venv }}
+    chdir={{ jenkins_home }}
+    creates={{ jenkins_home }}/{{ jenkins_venv }}_clean.tar.gz
+  sudo_user: "{{ jenkins_user }}"
