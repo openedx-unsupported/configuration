@@ -70,7 +70,6 @@ def wait_on_db_status(db_name, region='us-east-1', wait_on='available', aws_id=N
     return
 
 if __name__ == '__main__':
-    # restore_db_instance_to_point_in_time(source_db_instance_identifier, target_db_instance_identifier, restore_time=None, use_latest_restorable_time=None, db_instance_class=None, port=None, availability_zone=None, db_subnet_group_name=None, multi_az=None, publicly_accessible=None, auto_minor_version_upgrade=None, license_model=None, db_name=None, engine=None, iops=None, option_group_name=None, tags=None)
     args = parse_args()
 
     rds = boto.rds2.connect_to_region(args.region)
@@ -83,4 +82,3 @@ if __name__ == '__main__':
         db_instance_class=args.type,
         db_subnet_group_name=subnet_name)
     wait_on_db_status(restore_dbid)
-    #rds.modify_db_instance(restore_dbid, master_password=args.password)
