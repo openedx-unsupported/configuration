@@ -34,13 +34,13 @@ if __name__ == '__main__':
         repo_url = cols[4]
 
         if author_format.lower() != 'xml' \
-          or disposition.lower() == "don't import" \
-          or disposition.lower() == 'on disk':
+          or disposition.lower() == "don't import":
             continue
 
+        # Checkout w/tilde
         logging.debug("{}: {}".format(slug, repo_url))
         org, course, run = slug.split("/")
-        repo_name = "{}".format(basename(repo_url).rstrip('.git'), run)
+        repo_name = "{}~{}".format(basename(repo_url).rstrip('.git'), run)
 
         # Clone course into data dir.
         repo_location = join(args.data_dir, repo_name)
@@ -57,16 +57,26 @@ if __name__ == '__main__':
         f.write(xml_content.format(org, course, run))
         f.close()
 
-        # Import the course
-        if disposition.lower() == "import":
-            # Import into cms
-            cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import {} {}".format(args.data_dir, repo_name)
-            logging.debug("Running cmd:: {}".format(cmd))
-            subprocess.check_call(cmd, shell=True)
-        elif disposition.lower() == "no static import":
-            # Update courses.xml
-            # Import with --nostatic
+
+        if disposition.lower() == "on disk":
+            pass
+        elif disposition.lower() == 'no static import':
+            # Import w/nostatic flag
             cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import --nostatic {} {}".format(args.data_dir, repo_name)
             logging.debug("Running cmd:: {}".format(cmd))
             subprocess.check_call(cmd, shell=True)
+        elif disposition.lower() == 'import':
+            # Import
+            cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import {} {}".format(args.data_dir, repo_name)
+            logging.debug("Running cmd: {}".format(cmd))
+            subprocess.check_call(cmd, shell=True)
+            # Remove from disk.
+            cmd = "sudo rm -rf {}".format(repo_location)
+            logging.debug("Running cmd: {}".format(cmd))
+            subprocess.check_call(cmd, shell=True)
+
+        # Create the tar file of all xml courses
+        cmd = "sudo tar cvzf static_course_content.tar.gz {}".format(args.data_dir)
+        logging.debug("Running cmd: {}".format(cmd))
+        subprocess.check_call(cmd, shell=True)
 
