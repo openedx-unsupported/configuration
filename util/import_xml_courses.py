@@ -75,8 +75,8 @@ if __name__ == '__main__':
             logging.debug("Running cmd: {}".format(cmd))
             subprocess.check_call(cmd, shell=True)
 
-        # Create the tar file of all xml courses
-        cmd = "sudo tar cvzf static_course_content.tar.gz {}".format(args.data_dir)
-        logging.debug("Running cmd: {}".format(cmd))
-        subprocess.check_call(cmd, shell=True)
+    # Create the tar file of all xml courses
+    cmd = "sudo tar cvzf static_course_content.tar.gz -C {} .".format(args.data_dir)
+    logging.debug("Running cmd: {}".format(cmd))
+    subprocess.check_call(cmd, shell=True)
 
