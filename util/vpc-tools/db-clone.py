@@ -141,7 +141,7 @@ if __name__ == '__main__':
         os.system(sanitize_cmd)
 
     if args.secret_var_file:
-        db_cmd = """cd {play_path} && ansible-playbook -i 10.3.10.17, update_edxapp_db_users.yml """ \
+        db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, update_edxapp_db_users.yml """ \
             """-e @{secret_var_file} -e "edxapp_db_root_user=root edxapp_db_root_pass={root_pass} """ \
             """EDXAPP_MYSQL_HOST={db_host}" """.format(
             root_pass=args.password,
