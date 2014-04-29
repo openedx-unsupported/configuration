@@ -1,8 +1,20 @@
 SET FOREIGN_KEY_CHECKS=0;
 
 /*
+  Remove all password hashes, even for edx employees
+*/
+
+UPDATE wwc.auth_user
+    set
+        password = null;
+
+UPDATE wwc.student_passwordhistory
+    set
+        password = null;
+
+/*
   Rewrite all emails to used the SES simulator, simulating success.
-  Anonymize other user information
+  Anonymize other user information. Skip @edx.org accounts
 */
 
 UPDATE wwc.auth_user
@@ -11,7 +23,6 @@ UPDATE wwc.auth_user
         username = concat('user-',cast(id AS CHAR)),
         first_name = concat('user-',cast(id AS CHAR)),
         last_name = concat('user-',cast(id AS CHAR)),
-        password = null,
         last_login = null,
         date_joined = null
             where email not like ('%@edx.org');
