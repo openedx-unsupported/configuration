@@ -14,7 +14,7 @@ UPDATE wwc.auth_user
         where email not like ('%@edx.org'),
     set last_name = concat('user-',cast(id AS CHAR)
         where email not like ('%@edx.org'),
-    set password = ""
+    set password = null
         where email not like ('%@edx.org'),
     set last_login = null
         where email not like ('%@edx.org'),
