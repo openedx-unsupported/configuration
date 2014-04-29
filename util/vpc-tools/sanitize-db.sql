@@ -1,12 +1,5 @@
 SET FOREIGN_KEY_CHECKS=0;
 
-/* 
-  Truncate the courseware_studentmodulehistory table since
-  it is only needed for analytics    
-*/
-
-TRUNCATE courseware_studentmodulehistory;
-
 /*
   Rewrite all emails to used the SES simulator, simulating success.
   Anonymize other user information
@@ -21,7 +14,7 @@ UPDATE wwc.auth_user
         where email not like ('%@edx.org'),
     set last_name = concat('user-',cast(id AS CHAR)
         where email not like ('%@edx.org'),
-    set password = null
+    set password = ""
         where email not like ('%@edx.org'),
     set last_login = null
         where email not like ('%@edx.org'),
