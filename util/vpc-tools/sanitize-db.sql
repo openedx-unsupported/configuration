@@ -8,11 +8,11 @@ SET FOREIGN_KEY_CHECKS=0;
 UPDATE wwc.auth_user
     set email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com')
         where email not like ('%@edx.org'),
-    set username = concat('user-',cast(id AS CHAR)
+    set username = concat('user-',cast(id AS CHAR))
         where email not like ('%@edx.org'),
-    set first_name = concat('user-',cast(id AS CHAR)
+    set first_name = concat('user-',cast(id AS CHAR))
         where email not like ('%@edx.org'),
-    set last_name = concat('user-',cast(id AS CHAR)
+    set last_name = concat('user-',cast(id AS CHAR))
         where email not like ('%@edx.org'),
     set password = null
         where email not like ('%@edx.org'),
@@ -62,11 +62,11 @@ UPDATE wwc.auth_userprofile
 UPDATE prod_grader.auth_user
     set email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com')
         where email not like ('%@edx.org'),
-    set username = concat('user-',cast(id AS CHAR)
+    set username = concat('user-',cast(id AS CHAR))
         where email not like ('%@edx.org'),
-    set first_name = concat('user-',cast(id AS CHAR)
+    set first_name = concat('user-',cast(id AS CHAR))
         where email not like ('%@edx.org'),
-    set last_name = concat('user-',cast(id AS CHAR)
+    set last_name = concat('user-',cast(id AS CHAR))
         where email not like ('%@edx.org'),
     set password = null
         where email not like ('%@edx.org'),
