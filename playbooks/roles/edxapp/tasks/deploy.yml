@@ -219,6 +219,33 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+# Need to do this because s3 module fails when trying
+# to checksum a multipart s3 object. And overwrite is
+# not effective
+- name: remove existing coursedata file
+  file: path="/var/tmp/xml_coursedata.tar.gz" state=absent
+
+# Install the xml courses from an s3 bucket
+- name: download xml coursedata from s3
+  s3: >
+    bucket="{{ EDXAPP_XML_S3_BUCKET }}"
+    object="{{ EDXAPP_XML_S3_KEY }}"
+    mode="get"
+    dest="/var/tmp/xml_coursedata.tar.gz"
+  when: EDXAPP_XML_S3_BUCKET is defined and EDXAPP_XML_S3_BUCKET != "" and EDXAPP_XML_S3_KEY is defined and EDXAPP_XML_S3_KEY != ""
+  register: download_xml_s3
+
+# Install the xml courses from a url.
+- name: download xml coursedata
+  get_url: url="{{ EDXAPP_XML_URL }}" dest="/var/tmp/xml_coursedata.tar.gz"
+  when: EDXAPP_XML_URL is defined and EDXAPP_XML_URL != ""
+  register: download_xml_url
+
+- name: unzip the data to the data dir
+  shell: >
+    tar xvzf /var/tmp/xml_coursedata.tar.gz
+    chdir="{{ edxapp_course_data_dir }}"
+  when: download_xml_s3.changed or download_xml_url.changed
 
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
