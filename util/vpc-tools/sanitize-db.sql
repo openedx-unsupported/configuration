@@ -6,20 +6,15 @@ SET FOREIGN_KEY_CHECKS=0;
 */
 
 UPDATE wwc.auth_user
-    set email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com')
-        where email not like ('%@edx.org'),
-    set username = concat('user-',cast(id AS CHAR))
-        where email not like ('%@edx.org'),
-    set first_name = concat('user-',cast(id AS CHAR))
-        where email not like ('%@edx.org'),
-    set last_name = concat('user-',cast(id AS CHAR))
-        where email not like ('%@edx.org'),
-    set password = null
-        where email not like ('%@edx.org'),
-    set last_login = null
-        where email not like ('%@edx.org'),
-    set date_joined = null
-        where email not like ('%@edx.org');
+    set 
+        email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com'),
+        username = concat('user-',cast(id AS CHAR)),
+        first_name = concat('user-',cast(id AS CHAR)),
+        last_name = concat('user-',cast(id AS CHAR)),
+        password = null,
+        last_login = null,
+        date_joined = null
+            where email not like ('%@edx.org');
 
 /*
    There are a handful of email changes requests captured in flight.
@@ -43,37 +38,33 @@ UPDATE wwc.student_courseenrollmentallowed
 */
 
 UPDATE wwc.auth_userprofile
-    set name = concat('user-',cast(id as CHAR)),
-    set language = "",
-    set location = "",
-    set meta = "",
-    set gender = null,
-    set mailing_address = null,
-    set year_of_birth = null,
-    set level_of_education = null,
-    set goals = null
-    set country = "",
-    set city = null;
+    set 
+        name = concat('user-',cast(id as CHAR)),
+        language = "",
+        location = "",
+        meta = "",
+        gender = null,
+        mailing_address = null,
+        year_of_birth = null,
+        level_of_education = null,
+        goals = null,
+        country = "",
+        city = null;
 
 /*
    Grader has its own django core tables.
 */
 
 UPDATE prod_grader.auth_user
-    set email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com')
-        where email not like ('%@edx.org'),
-    set username = concat('user-',cast(id AS CHAR))
-        where email not like ('%@edx.org'),
-    set first_name = concat('user-',cast(id AS CHAR))
-        where email not like ('%@edx.org'),
-    set last_name = concat('user-',cast(id AS CHAR))
-        where email not like ('%@edx.org'),
-    set password = null
-        where email not like ('%@edx.org'),
-    set last_login = null
-        where email not like ('%@edx.org'),
-    set date_joined = null
-        where email not like ('%@edx.org');
+    set 
+        email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com'),
+        username = concat('user-',cast(id AS CHAR)),
+        first_name = concat('user-',cast(id AS CHAR)),
+        last_name = concat('user-',cast(id AS CHAR)),
+        password = null,
+        last_login = null,
+        date_joined = null
+            where email not like ('%@edx.org');
 
 
 SET FOREIGN_KEY_CHECKS=1;
