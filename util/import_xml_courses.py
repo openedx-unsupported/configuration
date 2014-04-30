@@ -6,25 +6,38 @@ import argparse
 import logging
 import subprocess
 from os.path import basename, exists, join
-from os import chdir
+import os
+import contextlib
 from getpass import getuser
 
 logging.basicConfig(level=logging.DEBUG)
+
+@contextlib.contextmanager
+def chdir(dirname=None):
+  curdir = os.getcwd()
+  try:
+    if dirname is not None:
+      os.chdir(dirname)
+    yield
+  finally:
+    os.chdir(curdir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Import XML courses from git repos.")
     parser.add_argument("-c", "--courses-csv", required=True,
         help="A CSV of xml courses to import.")
-    parser.add_argument("-d", "--data-dir", required=True,
-        help="The location to checkout the repos for import.")
+    parser.add_argument("-d", "--var-dir", default="/edx/var/edxapp",
+        help="The location of the edxapp var directory that hold the data and courstatic dirs.")
     args = parser.parse_args()
 
     courses = open(args.courses_csv, 'r')
+    data_dir = join(args.var_dir, 'data')
+    static_dir = join(args.var_dir, 'course_static')
 
-    # Go to the platform dir.
-    # Need this for dealer to work.
-    chdir("/edx/app/edxapp/edx-platform")
+
+    cwd = getcwd()
+    platform_dir = "/edx/app/edxapp/edx-platform"
 
     for line in courses:
         cols = line.strip().split(',')
@@ -59,24 +72,44 @@ if __name__ == '__main__':
 
 
         if disposition.lower() == "on disk":
-            pass
+            with chdir(args.static_dir):
+                # Link static files to course_static dir
+                static_location = join(repo_location, 'static')
+                cmd = "ln -sf {} {}".format(static_location, repo_name)
+                logging.debug("Running cmd: {}".format(cmd))
+                subprocess.check_call(cmd, shell=True)
         elif disposition.lower() == 'no static import':
-            # Import w/nostatic flag
-            cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import --nostatic {} {}".format(args.data_dir, repo_name)
-            logging.debug("Running cmd:: {}".format(cmd))
-            subprocess.check_call(cmd, shell=True)
+            # Go to the platform dir.
+            # Need this for dealer to work.
+            with chdir(platform_dir):
+                # Import w/nostatic flag
+                cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import --nostatic {} {}".format(args.data_dir, repo_name)
+                logging.debug("Running cmd: {}".format(cmd))
+                subprocess.check_call(cmd, shell=True)
+
+            with chdir(args.static_dir):
+                # Link static files to course_static dir.
+                static_location = join(repo_location, 'static')
+                cmd = "ln -sf {} {}".format(static_location, repo_name)
+                logging.debug("Running cmd: {}".format(cmd))
+                subprocess.check_call(cmd, shell=True)
+
         elif disposition.lower() == 'import':
-            # Import
-            cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import {} {}".format(args.data_dir, repo_name)
-            logging.debug("Running cmd: {}".format(cmd))
-            subprocess.check_call(cmd, shell=True)
+            # Go to the platform dir.
+            # Need this for dealer to work.
+            with chdir(platform_dir):
+                # Import
+                cmd = "sudo -E -u edxapp /edx/bin/python.edxapp /edx/app/edxapp/edx-platform/manage.py cms --settings=aws import {} {}".format(args.data_dir, repo_name)
+                logging.debug("Running cmd: {}".format(cmd))
+                subprocess.check_call(cmd, shell=True)
+
             # Remove from disk.
             cmd = "sudo rm -rf {}".format(repo_location)
             logging.debug("Running cmd: {}".format(cmd))
             subprocess.check_call(cmd, shell=True)
 
     # Create the tar file of all xml courses
-    cmd = "sudo tar cvzf static_course_content.tar.gz -C {} .".format(args.data_dir)
+    cmd = "sudo tar cvzf static_course_content.tar.gz -C {} data course_static".format(args.var_dir)
     logging.debug("Running cmd: {}".format(cmd))
     subprocess.check_call(cmd, shell=True)
 
