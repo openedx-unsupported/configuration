@@ -232,13 +232,13 @@
     object="{{ EDXAPP_XML_S3_KEY }}"
     mode="get"
     dest="/var/tmp/xml_coursedata.tar.gz"
-  when: EDXAPP_XML_S3_BUCKET is defined and EDXAPP_XML_S3_BUCKET != "" and EDXAPP_XML_S3_KEY is defined and EDXAPP_XML_S3_KEY != ""
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
   register: download_xml_s3
 
 # Install the xml courses from a url.
 - name: download xml coursedata
   get_url: url="{{ EDXAPP_XML_URL }}" dest="/var/tmp/xml_coursedata.tar.gz"
-  when: EDXAPP_XML_URL is defined and EDXAPP_XML_URL != ""
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_URL
   register: download_xml_url
 
 - name: unzip the data to the data dir
@@ -246,6 +246,9 @@
     tar xvzf /var/tmp/xml_coursedata.tar.gz
     chdir="{{ edxapp_course_data_dir }}"
   when: download_xml_s3.changed or download_xml_url.changed
+
+- include: xml.yml
+  when: EDXAPP_XML_FROM_GIT
 
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
