@@ -2,6 +2,16 @@
 # Run with sudo and make sure the user can clone
 # the course repos.
 
+# Output Has per course
+#{
+#    repo_url:
+#    repo_name:
+#    org:
+#    course:
+#    run:
+#    disposition:
+#}
+
 import argparse
 import logging
 import subprocess
