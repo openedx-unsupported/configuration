@@ -9,6 +9,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 import datetime
 import sys
 from vpcutil import rds_subnet_group_name_for_stack_name, all_stack_names
+import os
 
 description = """
 
@@ -33,6 +34,23 @@ RDS_SIZES = [
     'db.m2.4xlarg',
 ]
 
+# These are the groups for the different
+# stack names that will be assigned once
+# the corresponding db is cloned
+
+SG_GROUPS = {
+    'stage-edx': 'sg-d2f623b7',
+}
+
+# This group must already be created
+# and allows for full access to port
+# 3306. this group is assigned temporarily
+# for cleaning the db
+
+SG_GROUPS_FULL = {
+    'stage-edx': 'sg-0abf396f',
+}
+
 
 def parse_args(args=sys.argv[1:]):
 
@@ -49,10 +67,24 @@ def parse_args(args=sys.argv[1:]):
                         default='db.m1.small', help='RDS size to create instances of')
     parser.add_argument('-d', '--db-source', choices=dbs,
                         default=u'stage-edx', help="source db to clone")
-    parser.add_argument('-p', '--password', required=True,
+    parser.add_argument('-p', '--password',
                         help="password for the new database", metavar="NEW PASSWORD")
     parser.add_argument('-r', '--region', default='us-east-1',
                         help="region to connect to")
+    parser.add_argument('--dns',
+                        help="dns entry for the new rds instance")
+    parser.add_argument('--security-group', action="store_true",
+                        default=False,
+                        help="add sg group from SG_GROUPS")
+    parser.add_argument('--clean', action="store_true",
+                        default=False,
+                        help="clean the db after launching it into the vpc, removing sensitive data")
+    parser.add_argument('--dump', action="store_true",
+                        default=False,
+                        help="create a sql dump after launching it into the vpc")
+    parser.add_argument('--secret-var-file',
+                        help="using a secret var file run ansible against the host to update db users")
+
     return parser.parse_args(args)
 
 
@@ -71,6 +103,8 @@ def wait_on_db_status(db_name, region='us-east-1', wait_on='available', aws_id=N
 
 if __name__ == '__main__':
     args = parse_args()
+    sanitize_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sanitize-db.sql")
+    play_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../playbooks/edx-east")
 
     rds = boto.rds2.connect_to_region(args.region)
     subnet_name = rds_subnet_group_name_for_stack_name(args.stack_name)
@@ -82,3 +116,50 @@ if __name__ == '__main__':
         db_instance_class=args.type,
         db_subnet_group_name=subnet_name)
     wait_on_db_status(restore_dbid)
+
+    db_host = rds.describe_db_instances(restore_dbid)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['Endpoint']['Address']
+
+    if args.password or args.security_group:
+        modify_args = dict(
+            apply_immediately=True
+        )
+        if args.password:
+            modify_args['master_user_password'] = args.password
+        if args.security_group:
+            modify_args['vpc_security_group_ids'] = [SG_GROUPS[args.stack_name], SG_GROUPS_FULL[args.stack_name]]
+
+        # Update the db immediately
+        rds.modify_db_instance(restore_dbid, **modify_args)
+
+    if args.clean:
+        # Run the mysql clean sql file
+        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} < {sanitize_sql_file} """.format(
+            root_pass=args.password,
+            db_host=db_host,
+            sanitize_sql_file=sanitize_sql_file)
+        print("Running {}".format(sanitize_cmd))
+        os.system(sanitize_cmd)
+
+    if args.secret_var_file:
+        db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, update_edxapp_db_users.yml """ \
+            """-e @{secret_var_file} -e "edxapp_db_root_user=root edxapp_db_root_pass={root_pass} """ \
+            """EDXAPP_MYSQL_HOST={db_host}" """.format(
+            root_pass=args.password,
+            secret_var_file=args.secret_var_file,
+            db_host=db_host,
+            play_path=play_path)
+        print("Running {}".format(db_cmd))
+        os.system(db_cmd)
+
+    if args.dns:
+        dns_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, create_cname.yml """ \
+            """-e "dns_zone=edx.org dns_name={dns} sandbox={db_host}" """.format(
+            play_path=play_path,
+            dns=args.dns,
+            db_host=db_host)
+        print("Running {}".format(dns_cmd))
+        os.system(dns_cmd)
+
+    if args.security_group:
+        # remove full mysql access from within the vpc
+        rds.modify_db_instance(restore_dbid, vpc_security_group_ids=[SG_GROUPS[args.stack_name]])
