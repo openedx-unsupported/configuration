@@ -60,7 +60,8 @@ UPDATE wwc.auth_userprofile
         level_of_education = null,
         goals = null,
         country = "",
-        city = null;
+        city = null
+            where email not like ('%@edx.org');
 
 /*
    Grader has its own django core tables.
