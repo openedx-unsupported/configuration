@@ -221,6 +221,8 @@ class Ec2Inventory(object):
             cache_path = self.args.cache_path
         else:
             cache_path = config.get('ec2', 'cache_path')
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path)
         self.cache_path_cache = cache_path + "/ansible-ec2.cache"
         self.cache_path_tags = cache_path + "/ansible-ec2.tags.cache"
         self.cache_path_index = cache_path + "/ansible-ec2.index"
