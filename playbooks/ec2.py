@@ -217,7 +217,10 @@ class Ec2Inventory(object):
                 config.get('ec2', 'route53_excluded_zones', '').split(','))
 
         # Cache related
-        cache_path = config.get('ec2', 'cache_path')
+        if self.args.cache_path:
+            cache_path = self.args.cache_path
+        else:
+            cache_path = config.get('ec2', 'cache_path')
         self.cache_path_cache = cache_path + "/ansible-ec2.cache"
         self.cache_path_tags = cache_path + "/ansible-ec2.tags.cache"
         self.cache_path_index = cache_path + "/ansible-ec2.index"
@@ -241,6 +244,10 @@ class Ec2Inventory(object):
         default_inifile = os.environ.get("ANSIBLE_EC2_INI", os.path.dirname(os.path.realpath(__file__))+'/ec2.ini')
 
         parser.add_argument('--inifile', dest='inifile', help='Path to init script to use', default=default_inifile)
+        parser.add_argument(
+            '--cache-path',
+            help='Override the cache path set in ini file',
+            required=False)
         self.args = parser.parse_args()
 
 
