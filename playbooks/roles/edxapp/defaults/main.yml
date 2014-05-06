@@ -88,6 +88,8 @@ EDXAPP_BOOK_URL: ''
 # if xqueue is run on the same server
 # as the lms (it's sent in the request)
 EDXAPP_SITE_NAME: 'localhost'
+EDXAPP_LMS_SITE_NAME: "{{ EDXAPP_SITE_NAME }}"
+EDXAPP_CMS_SITE_NAME: 'localhost'
 EDXAPP_MEDIA_URL:  ''
 EDXAPP_ANALYTICS_SERVER_URL:  ''
 EDXAPP_FEEDBACK_SUBMISSION_EMAIL: ''
@@ -187,6 +189,23 @@ EDXAPP_UPDATE_STATIC_FILES_KEY: false
 EDXAPP_INSTALL_PRIVATE_REQUIREMENTS: false
 
 EDXAPP_GOOGLE_ANALYTICS_ACCOUNT: "UA-DUMMY"
+
+EDXAPP_PEARSON_TEST_PASSWORD: ""
+EDXAPP_SEGMENT_IO_LMS_KEY: ""
+EDXAPP_EDX_API_KEY: ""
+# This is the default set in common.py
+EDXAPP_VERIFY_STUDENT:
+  DAYS_GOOD_FOR: 365
+EDXAPP_GOOGLE_ANALYTICS_LINKEDIN: ""
+EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS: {}
+EDXAPP_BULK_EMAIL_EMAILS_PER_TASK: 500
+# If using microsites this should point to the microsite repo
+EDXAPP_MICROSITE_ROOT_DIR: "{{ edxapp_app_dir }}/edx-microsite"
+# this dictionary defines what microsites are configured
+EDXAPP_MICROSITE_CONFIGRATION: {}
+# Instructor code that will not be run in the code sandbox
+EDXAPP_COURSES_WITH_UNSAFE_CODE: []
+EDXAPP_SESSION_COOKIE_DOMAIN: ""
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -307,6 +326,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       password: $EDXAPP_MONGO_PASSWORD
       port: $EDXAPP_MONGO_PORT
       user: $EDXAPP_MONGO_USER
+    ADDITIONAL_OPTIONS: $EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS
     DOC_STORE_CONFIG: *edxapp_generic_default_docstore
   MODULESTORE:
     default: &edxapp_generic_default_modulestore
@@ -350,6 +370,10 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   GOOGLE_ANALYTICS_ACCOUNT: $EDXAPP_GOOGLE_ANALYTICS_ACCOUNT
 
 generic_env_config:  &edxapp_generic_env
+  COURSES_WITH_UNSAFE_CODE: $EDXAPP_COURSES_WITH_UNSAFE_CODE
+  BULK_EMAIL_EMAILS_PER_TASK: $EDXAPP_BULK_EMAIL_EMAILS_PER_TASK
+  MICROSITE_ROOT_DIR: $EDXAPP_MICROSITE_ROOT_DIR
+  MICROSITE_CONFIGURATION: $EDXAPP_MICROSITE_CONFIGRATION
   GRADES_DOWNLOAD:
     STORAGE_TYPE: $EDXAPP_GRADE_STORAGE_TYPE
     BUCKET: $EDXAPP_GRADE_BUCKET
@@ -367,7 +391,6 @@ generic_env_config:  &edxapp_generic_env
   FEATURES: $EDXAPP_FEATURES
   WIKI_ENABLED: true
   SYSLOG_SERVER:  $EDXAPP_SYSLOG_SERVER
-  SITE_NAME:  $EDXAPP_SITE_NAME
   LOG_DIR:  "{{ COMMON_DATA_DIR }}/logs/edx"
   MEDIA_URL:  $EDXAPP_MEDIA_URL
   ANALYTICS_SERVER_URL:  $EDXAPP_ANALYTICS_SERVER_URL
@@ -390,17 +413,19 @@ generic_env_config:  &edxapp_generic_env
     mongo_metadata_inheritance:
       <<: *default_generic_cache
       KEY_PREFIX:  'integration_mongo_metadata_inheritance'
+      TIMEOUT: 300
     staticfiles:
       <<: *default_generic_cache
       KEY_PREFIX:  'integration_static_files'
     celery:
       <<: *default_generic_cache
       KEY_PREFIX:  'integration_celery'
+      TIMEOUT: "7200"
   CELERY_BROKER_TRANSPORT: 'amqp'
   CELERY_BROKER_HOSTNAME: $EDXAPP_RABBIT_HOSTNAME
   COMMENTS_SERVICE_URL: $EDXAPP_COMMENTS_SERVICE_URL
   LOGGING_ENV: $EDXAPP_LOGGING_ENV
-  SESSION_COOKIE_DOMAIN:  !!null
+  SESSION_COOKIE_DOMAIN:  $EDXAPP_SESSION_COOKIE_DOMAIN
   COMMENTS_SERVICE_KEY: $EDXAPP_COMMENTS_SERVICE_KEY
   SEGMENT_IO_LMS: true
   THEME_NAME: $edxapp_theme_name
@@ -423,6 +448,11 @@ generic_env_config:  &edxapp_generic_env
 
 lms_auth_config:
   <<: *edxapp_generic_auth
+  PEARSON_TEST_PASSWORD: $EDXAPP_PEARSON_TEST_PASSWORD
+  SEGMENT_IO_LMS_KEY: $EDXAPP_SEGMENT_IO_LMS_KEY
+  EDX_API_KEY: $EDXAPP_EDX_API_KEY
+  VERIFY_STUDENT: $EDXAPP_VERIFY_STUDENT
+  GOOGLE_ANALYTICS_LINKEDIN: $EDXAPP_GOOGLE_ANALYTICS_LINKEDIN
   CC_PROCESSOR: $EDXAPP_CC_PROCESSOR
   MODULESTORE:
     default:  &lms_default_modulestore
@@ -454,6 +484,7 @@ lms_auth_config:
 lms_env_config:
   <<: *edxapp_generic_env
   PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
+  SITE_NAME:  $EDXAPP_LMS_SITE_NAME
   'CODE_JAIL':
     # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
     'python_bin': '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
@@ -466,6 +497,7 @@ cms_auth_config:
   <<: *edxapp_generic_auth
 cms_env_config:
   <<: *edxapp_generic_env
+  SITE_NAME:  $EDXAPP_CMS_SITE_NAME
 
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
