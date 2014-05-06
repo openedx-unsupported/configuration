@@ -217,7 +217,9 @@ class Ec2Inventory(object):
                 config.get('ec2', 'route53_excluded_zones', '').split(','))
 
         # Cache related
-        if self.args.cache_path:
+        if 'EC2_CACHE_PATH' in os.environ:
+            cache_path = os.environ['EC2_CACHE_PATH']
+        elif self.args.cache_path:
             cache_path = self.args.cache_path
         else:
             cache_path = config.get('ec2', 'cache_path')
