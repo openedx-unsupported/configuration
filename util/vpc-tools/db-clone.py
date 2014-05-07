@@ -76,9 +76,12 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--security-group', action="store_true",
                         default=False,
                         help="add sg group from SG_GROUPS")
-    parser.add_argument('--clean', action="store_true",
+    parser.add_argument('--clean-wwc', action="store_true",
                         default=False,
-                        help="clean the db after launching it into the vpc, removing sensitive data")
+                        help="clean the wwc db after launching it into the vpc, removing sensitive data")
+    parser.add_argument('--clean-prod-grader', action="store_true",
+                        default=False,
+                        help="clean the prod_grader db after launching it into the vpc, removing sensitive data")
     parser.add_argument('--dump', action="store_true",
                         default=False,
                         help="create a sql dump after launching it into the vpc")
@@ -103,7 +106,8 @@ def wait_on_db_status(db_name, region='us-east-1', wait_on='available', aws_id=N
 
 if __name__ == '__main__':
     args = parse_args()
-    sanitize_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sanitize-db.sql")
+    sanitize_wwc_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sanitize-db-wwc.sql")
+    sanitize_prod_grader_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sanitize-db-prod_grader.sql")
     play_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../playbooks/edx-east")
 
     rds = boto.rds2.connect_to_region(args.region)
@@ -131,14 +135,24 @@ if __name__ == '__main__':
         # Update the db immediately
         rds.modify_db_instance(restore_dbid, **modify_args)
 
-    if args.clean:
+    if args.clean_wwc:
         # Run the mysql clean sql file
-        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} < {sanitize_sql_file} """.format(
+        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} < {sanitize_wwc_sql_file} """.format(
             root_pass=args.password,
             db_host=db_host,
-            sanitize_sql_file=sanitize_sql_file)
+            sanitize_wwc_sql_file=sanitize_wwc_sql_file)
         print("Running {}".format(sanitize_cmd))
         os.system(sanitize_cmd)
+
+    if args.clean_prod_grader:
+        # Run the mysql clean sql file
+        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} < {sanitize_prod_grader_sql_file} """.format(
+            root_pass=args.password,
+            db_host=db_host,
+            sanitize_prod_grader_sql_file=sanitize_prod_grader_sql_file)
+        print("Running {}".format(sanitize_cmd))
+        os.system(sanitize_cmd)
+
 
     if args.secret_var_file:
         db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, update_edxapp_db_users.yml """ \
