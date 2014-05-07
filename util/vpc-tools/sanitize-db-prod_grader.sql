@@ -4,7 +4,7 @@ SET FOREIGN_KEY_CHECKS=0;
    Grader has its own django core tables.
 */
 
-UPDATE prod_grader.auth_user
+UPDATE auth_user
     set 
         email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com'),
         username = concat('user-',cast(id AS CHAR)),
