@@ -4,11 +4,11 @@ SET FOREIGN_KEY_CHECKS=0;
   Remove all password hashes, even for edx employees
 */
 
-UPDATE wwc.auth_user
+UPDATE auth_user
     set
         password = null;
 
-UPDATE wwc.student_passwordhistory
+UPDATE student_passwordhistory
     set
         password = null;
 
@@ -17,7 +17,7 @@ UPDATE wwc.student_passwordhistory
   Anonymize other user information. Skip @edx.org accounts
 */
 
-UPDATE wwc.auth_user
+UPDATE auth_user
     set 
         email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com'),
         username = concat('user-',cast(id AS CHAR)),
@@ -31,7 +31,7 @@ UPDATE wwc.auth_user
    There are a handful of email changes requests captured in flight.
 */
 
-UPDATE wwc.student_pendingemailchange
+UPDATE student_pendingemailchange
     set new_email = concat('success+',cast(user_id AS CHAR),'@simulator.amazonses.com');
 
 /*
@@ -40,7 +40,7 @@ UPDATE wwc.student_pendingemailchange
    sending email, but cannot hurt.
 */
 
-UPDATE wwc.student_courseenrollmentallowed
+UPDATE student_courseenrollmentallowed
     set email = concat('success+','courseenrollmentallowed_',cast(id AS CHAR),'@simulator.amazonses.com');
 
 /* 
@@ -48,7 +48,7 @@ UPDATE wwc.student_courseenrollmentallowed
   This will also empty user profile data for edx employees
 */
 
-UPDATE wwc.auth_userprofile
+UPDATE auth_userprofile
     set 
         name = concat('user-',cast(id as CHAR)),
         language = "",
