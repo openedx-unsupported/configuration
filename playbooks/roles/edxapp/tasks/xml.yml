@@ -4,7 +4,6 @@
     dest="{{ edxapp_course_data_dir }}/{{ item.repo_name }}"
     version="{{ item.version }}"
     accept_hostkey=True
-    depth=1
   sudo_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
@@ -48,6 +47,11 @@
   file: path="{{ edxapp_course_data_dir }}/{{ item.repo_name }}" state=absent
   with_items: EDXAPP_XML_COURSES
   when: item.disposition == "import"
+
+- name: delete .git repos
+  file: path="{{ edxapp_course_data_dir }}/{{ item.repo_name }}/.git" state=absent
+  with_items: EDXAPP_XML_COURSES
+  when: item.disposition == "on disk" or item.disposition == "no static import"
 
 - name: create an archive of course data and course static dirs
   shell: tar cjf /tmp/static_course_content.tar.bz2 -C {{ edxapp_data_dir }} {{ edxapp_course_data_dir|basename }} {{ edxapp_course_static_dir|basename }}
