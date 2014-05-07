@@ -250,32 +250,31 @@
   - "restart edxapp_workers"
 
 # The next few tasks install xml courses.
-# Need to do this because s3 module fails when trying
-# to checksum a multipart s3 object. And overwrite is
-# not effective
-- name: remove existing coursedata file
-  file: path="/var/tmp/xml_coursedata.tar.gz" state=absent
-  when: not EDXAPP_XML_FROM_GIT
 
 # Install the xml courses from an s3 bucket
-- name: download xml coursedata from s3
+- name: get s3 one time url
   s3: >
     bucket="{{ EDXAPP_XML_S3_BUCKET }}"
     object="{{ EDXAPP_XML_S3_KEY }}"
-    mode="get"
-    dest="/var/tmp/xml_coursedata.tar.gz"
+    mode="geturl"
+    expiration=300
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: s3_one_time_url
+
+- name: download from one time url
+  get_url: url="{{ s3_one_time_url.s3_url }}" dest="/var/tmp/xml_coursedata.tar.gz"
   when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
   register: download_xml_s3
 
 # Install the xml courses from a url.
 - name: download xml coursedata
-  get_url: url="{{ EDXAPP_XML_URL }}" dest="/var/tmp/xml_coursedata.tar.bz2"
+  get_url: url="{{ EDXAPP_XML_URL }}" dest="/var/tmp/xml_coursedata.tar.gz"
   when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_URL
   register: download_xml_url
 
 - name: unzip the data to the data dir
   shell: >
-    tar xvjf /var/tmp/xml_coursedata.tar.bz2
+    tar xzf /var/tmp/xml_coursedata.tar.gz
     chdir="{{ edxapp_course_data_dir }}"
   when: download_xml_s3.changed or download_xml_url.changed
 
