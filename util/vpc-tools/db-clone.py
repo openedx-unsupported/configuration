@@ -137,7 +137,7 @@ if __name__ == '__main__':
 
     if args.clean_wwc:
         # Run the mysql clean sql file
-        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} < {sanitize_wwc_sql_file} """.format(
+        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} wwc < {sanitize_wwc_sql_file} """.format(
             root_pass=args.password,
             db_host=db_host,
             sanitize_wwc_sql_file=sanitize_wwc_sql_file)
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     if args.clean_prod_grader:
         # Run the mysql clean sql file
-        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} < {sanitize_prod_grader_sql_file} """.format(
+        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} prod_grader < {sanitize_prod_grader_sql_file} """.format(
             root_pass=args.password,
             db_host=db_host,
             sanitize_prod_grader_sql_file=sanitize_prod_grader_sql_file)
