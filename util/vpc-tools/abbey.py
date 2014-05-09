@@ -11,6 +11,7 @@ try:
     from boto.vpc import VPCConnection
     from boto.exception import NoAuthHandlerFound, EC2ResponseError
     from boto.sqs.message import RawMessage
+    from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 except ImportError:
     print "boto required for script"
     sys.exit(1)
@@ -119,6 +120,10 @@ def parse_args():
     parser.add_argument("--hipchat-api-token", required=False,
                         default=None,
                         help="The API token for Hipchat integration")
+    parser.add_argument("--root-vol-size", required=False,
+                        default=50,
+                        help="The size of the root volume to use for the "
+                             "abbey instance.")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--base-ami', required=False,
@@ -337,6 +342,10 @@ rm -rf $base_dir
                 secure_vars=secure_vars,
                 cache_id=args.cache_id)
 
+    mapping = BlockDeviceMapping()
+    root_vol = BlockDeviceType(size=args.root_vol_size)
+    mapping['/dev/sda1'] = root_vol
+
     ec2_args = {
         'security_group_ids': [security_group_id],
         'subnet_id': subnet_id,
@@ -345,7 +354,7 @@ rm -rf $base_dir
         'instance_type': args.instance_type,
         'instance_profile_name': args.role_name,
         'user_data': user_data,
-
+        'block_device_map': mapping,
     }
 
     return ec2_args
