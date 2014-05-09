@@ -337,6 +337,10 @@ rm -rf $base_dir
                 secure_vars=secure_vars,
                 cache_id=args.cache_id)
 
+    mapping = boto.ec2.BlockDeviceMapping()
+    root_vol = boto.ec2.BlockDeviceType(size=50)
+    mapping['/dev/sda1'] = root_vol
+
     ec2_args = {
         'security_group_ids': [security_group_id],
         'subnet_id': subnet_id,
@@ -345,6 +349,7 @@ rm -rf $base_dir
         'instance_type': args.instance_type,
         'instance_profile_name': args.role_name,
         'user_data': user_data,
+        'block_device_map': mapping,
 
     }
 
