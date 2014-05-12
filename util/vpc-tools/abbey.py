@@ -409,7 +409,7 @@ def poll_sqs_ansible():
         now = int(time.time())
         if buf:
             try:
-                if (now - max([msg['recv_ts'] for msg in buf])) > args.msg_delay:
+                if (now - min([msg['recv_ts'] for msg in buf])) > args.msg_delay:
                     # sort by TS instead of recv_ts
                     # because the sqs timestamp is not as
                     # accurate
