@@ -106,6 +106,11 @@ if [[ ! -z "$hipchat_room_id" ]] && [[ ! -z "$hipchat_api_token"  ]]; then
   hipchat_params="--hipchat-room-id $hipchat_room_id --hipchat-api-token $hipchat_api_token"
 fi
 
+cleanup_params=""
+if [[ "$cleanup" == "false" ]]; then
+  cleanup_params="--no-cleanup"
+fi
+
 cd configuration
 pip install -r requirements.txt
 
@@ -117,4 +122,4 @@ cat /var/tmp/$BUILD_ID-refs.yml
 echo "$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
 cat /var/tmp/$BUILD_ID-extra-vars.yml
 
-python -u abbey.py -p $play -t c1.medium  -d $deployment -e $environment -i /edx/var/jenkins/.ssh/id_rsa $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml --refs /var/tmp/$BUILD_ID-refs.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $hipchat_params
+python -u abbey.py -p $play -t c3.large -d $deployment -e $environment -i /edx/var/jenkins/.ssh/id_rsa $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml --refs /var/tmp/$BUILD_ID-refs.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $hipchat_params $cleanup_params
