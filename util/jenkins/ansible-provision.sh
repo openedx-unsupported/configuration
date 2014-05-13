@@ -108,6 +108,8 @@ if [[ $basic_auth == "true" ]]; then
     cat << EOF_AUTH >> $extra_vars_file
 NGINX_HTPASSWD_USER: $auth_user
 NGINX_HTPASSWD_PASS: $auth_pass
+XQUEUE_BASIC_AUTH_USER: $auth_user
+XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
 fi
 
