@@ -262,14 +262,14 @@
   register: s3_one_time_url
 
 - name: download from one time url
-  get_url: url="{{ s3_one_time_url.s3_url }}" dest="/tmp/{{ EDXAPP_XML_S3_KEY|basename }}"
+  get_url: url="{{ s3_one_time_url.url }}" dest="/tmp/{{ EDXAPP_XML_S3_KEY|basename }}"
   when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
   register: download_xml_s3
 
 - name: unzip the data to the data dir
   shell: >
     tar xzf /tmp/{{ EDXAPP_XML_S3_KEY|basename }}
-    chdir="{{ edxapp_course_data_dir }}"
+    chdir="{{ edxapp_data_dir }}"
   when: download_xml_s3.changed
 
 - include: xml.yml
