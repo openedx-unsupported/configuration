@@ -15,7 +15,7 @@ Building the platform takes place in two phases:
 
 As much as possible, we have tried to keep a clean distinction between
 provisioning and configuration.  You are not obliged to use our tools
-and are free to use one, but not the other.  The provisioning phase 
+and are free to use one, but not the other.  The provisioning phase
 stands-up the required resources and tags them with role identifiers
 so that the configuration tool can come in and complete the job.
 
@@ -26,9 +26,9 @@ Private Cloud with hosts for the core edX services.  This template
 will build quite a number of AWS resources that cost money, so please
 consider this before you start.
 
-The configuration phase is manged by [Ansible](http://ansible.cc/).
+The configuration phase is managed by [Ansible](http://ansible.cc/).
 We have provided a number of playbooks that will configure each of
-the edX service.  
+the edX services.
 
 This project is a re-write of the current edX provisioning and
 configuration tools, we will be migrating features to this project
@@ -36,3 +36,5 @@ over time, so expect frequent changes.
 
 
 For more information including installation instruction please see the [Configuration Wiki](https://github.com/edx/configuration/wiki).
+
+For info on any large recent changes please see the [change log](https://github.com/edx/configuration/blob/master/CHANGELOG.md).
