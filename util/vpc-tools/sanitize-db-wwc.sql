@@ -1,18 +1,7 @@
 SET FOREIGN_KEY_CHECKS=0;
 
 /*
-  Remove all password hashes, even for edx employees
-*/
-
-UPDATE auth_user
-    set
-        password = null;
-
-UPDATE student_passwordhistory
-    set
-        password = null;
-
-/*
+  Remove all password hashes, except for edx employees
   Rewrite all emails to used the SES simulator, simulating success.
   Anonymize other user information. Skip @edx.org accounts
 */
@@ -24,8 +13,16 @@ UPDATE auth_user
         first_name = concat('user-',cast(id AS CHAR)),
         last_name = concat('user-',cast(id AS CHAR)),
         last_login = null,
-        date_joined = null
+        date_joined = null,
+        password = null
             where email not like ('%@edx.org');
+
+UPDATE student_passwordhistory
+    set
+        password = null
+            where email not like ('%@edx.org');
+
+
 
 /*
    There are a handful of email changes requests captured in flight.
