@@ -159,7 +159,6 @@ if __name__ == '__main__':
         print("Running {}".format(sanitize_cmd))
         os.system(sanitize_cmd)
 
-
     if args.secret_var_file:
         db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, update_edxapp_db_users.yml """ \
             """-e @{secret_var_file} -e "edxapp_db_root_user=root edxapp_db_root_pass={root_pass} """ \
@@ -183,5 +182,5 @@ if __name__ == '__main__':
     # remove full mysql access from within the vpc
     if args.stack_name:
         rds.modify_db_instance(restore_dbid, vpc_security_group_ids=[SG_GROUPS[args.stack_name]])
-    else
-        rds.modify_db_instance(restore_dbid, db_security_groups=[]])
+    else:
+        rds.modify_db_instance(restore_dbid, db_security_groups=[])
