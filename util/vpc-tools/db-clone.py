@@ -13,11 +13,14 @@ import os
 
 description = """
 
-   Creates a new RDS instance in a VPC using restore
+   Creates a new RDS instance using restore
    from point in time using the latest available backup.
    The new db will be the same size as the original.
    The name of the db will remain the same, the master db password
    will be changed and is set on the command line.
+
+   If stack-name is provided the RDS instance will be launched
+   in the VPC that corresponds to that name.
 
    New db name defaults to "from-<source db name>-<human date>-<ts>"
    A new DNS entry will be created for the RDS when provided
@@ -61,7 +64,8 @@ def parse_args(args=sys.argv[1:]):
 
     parser = ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
     parser.add_argument('-s', '--stack-name', choices=stack_names,
-                        default='stage-edx',
+                        default='stage-edx', required=False,
+                        default=None,
                         help='Stack name for where you want this RDS instance launched')
     parser.add_argument('-t', '--type', choices=RDS_SIZES,
                         default='db.m1.small', help='RDS size to create instances of')
@@ -111,14 +115,17 @@ if __name__ == '__main__':
     play_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../playbooks/edx-east")
 
     rds = boto.rds2.connect_to_region(args.region)
-    subnet_name = rds_subnet_group_name_for_stack_name(args.stack_name)
     restore_dbid = 'from-{0}-{1}-{2}'.format(args.db_source, datetime.date.today(), int(time.time()))
-    rds.restore_db_instance_to_point_in_time(
+    restore_args = dict(
         source_db_instance_identifier=args.db_source,
         target_db_instance_identifier=restore_dbid,
         use_latest_restorable_time=True,
         db_instance_class=args.type,
-        db_subnet_group_name=subnet_name)
+    )
+    if args.stack_name:
+        subnet_name = rds_subnet_group_name_for_stack_name(args.stack_name)
+        restore_args['db_subnet_group_name'] = subnet_name
+    rds.restore_db_instance_to_point_in_time(**restore_args)
     wait_on_db_status(restore_dbid)
 
     db_host = rds.describe_db_instances(restore_dbid)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['Endpoint']['Address']
