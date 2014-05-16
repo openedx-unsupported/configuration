@@ -64,7 +64,6 @@ def parse_args(args=sys.argv[1:]):
 
     parser = ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
     parser.add_argument('-s', '--stack-name', choices=stack_names,
-                        default='stage-edx', required=False,
                         default=None,
                         help='Stack name for where you want this RDS instance launched')
     parser.add_argument('-t', '--type', choices=RDS_SIZES,
