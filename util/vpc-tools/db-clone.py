@@ -77,9 +77,6 @@ def parse_args(args=sys.argv[1:]):
                         help="region to connect to")
     parser.add_argument('--dns',
                         help="dns entry for the new rds instance")
-    parser.add_argument('--security-group', action="store_true",
-                        default=False,
-                        help="add sg group from SG_GROUPS")
     parser.add_argument('--clean-wwc', action="store_true",
                         default=False,
                         help="clean the wwc db after launching it into the vpc, removing sensitive data")
@@ -130,14 +127,16 @@ if __name__ == '__main__':
 
     db_host = rds.describe_db_instances(restore_dbid)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['Endpoint']['Address']
 
-    if args.password or args.security_group:
+    if args.password or args.stack_name:
         modify_args = dict(
             apply_immediately=True
         )
         if args.password:
             modify_args['master_user_password'] = args.password
-        if args.security_group:
+        if args.stack_name:
             modify_args['vpc_security_group_ids'] = [SG_GROUPS[args.stack_name], SG_GROUPS_FULL[args.stack_name]]
+        else:
+            modify_args['db_security_groups'] = ['open']
 
         # Update the db immediately
         rds.modify_db_instance(restore_dbid, **modify_args)
@@ -181,6 +180,8 @@ if __name__ == '__main__':
         print("Running {}".format(dns_cmd))
         os.system(dns_cmd)
 
-    if args.security_group:
-        # remove full mysql access from within the vpc
+    # remove full mysql access from within the vpc
+    if args.stack_name:
         rds.modify_db_instance(restore_dbid, vpc_security_group_ids=[SG_GROUPS[args.stack_name]])
+    else
+        rds.modify_db_instance(restore_dbid, db_security_groups=[]])
