@@ -163,9 +163,13 @@ done
 
 # If reconfigure was selected or if starting from an ubuntu 12.04 AMI
 # run non-deploy tasks for all roles
+if [[ $server_type == "ubuntu_12.04" ]]; then
+    ansible-playbook create_user.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
+fi
+
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu 
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," -e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml --user ubuntu
 fi
 
 if [[ $server_type == "full_edx_installation" ]]; then
