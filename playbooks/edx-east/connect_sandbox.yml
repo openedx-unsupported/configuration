@@ -1,0 +1,36 @@
+- name: connect a sandbox to production data
+  hosts: all
+  gather_facts: False
+  sudo: True
+  tasks:
+    - name: Dump mongo data using the cloned dbs for forums
+      shell: >
+        mongodump -d comments-prod-clone -u {{ CLONE_FORUM_USER }} -p {{ CLONE_FORUM_PASS }} -h {{ CLONE_FORUM_HOST }} --port {{ CLONE_FORUM_PORT }} -o /mnt/forum-dump -c {{ item }}
+      with_items:
+        - activities
+        - blocked_hash
+        - contents
+        - contents_tag_aggregation
+        - delayed_backend_mongoid_jobs
+        - results
+        - subscriptions
+        - users
+
+    - name: Restore the mongo data for the forums
+      shell: >
+        mongorestore --drop -d cs_comments_service -u cs_comments_service -p 'password' /mnt/forum-dump
+
+    - name: Dump mongo data using the cloned dbs for the modulestore
+      shell: >
+        mongodump -d prod-edx-clone -u {{ CLONE_MODULESTORE_USER }} -p {{ CLONE_MODULESTORE_PASS }} -h {{ CLONE_MODULESTORE_HOST }} --port {{ CLONE_MODULESTORE_PORT }} -o /mnt/modulestore-dump -c modulestore
+
+    - name: Restore the mongo data for the modulestore
+      shell: >
+        mongorestore --drop -d edxapp -u edxapp -p 'password' /mnt/modulestore-dump
+
+    - name: Remove dump files
+      shell: >
+        rm -rf {{ item }}
+      with_items:
+        - /mnt/forum-dump
+        - /mnt/modulestore-dump
