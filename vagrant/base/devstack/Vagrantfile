@@ -32,10 +32,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 9200, host: 9200
   config.ssh.insert_key = true
 
-  config.vm.synced_folder  ".", "/vagrant", disabled: true
-  config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
-  config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
-  config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
+  config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+    create: true, owner: "edxapp", group: "www-data"
+  config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
+    create: true, owner: "edxapp", group: "www-data"
+  config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+    create: true, owner: "forum", group: "www-data"
+  config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+    create: true, owner: "ora", group: "www-data"
 
   # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']
