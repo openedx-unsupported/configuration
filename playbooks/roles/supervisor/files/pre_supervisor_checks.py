@@ -104,6 +104,7 @@ if __name__ == '__main__':
                         code_dir=args.edxapp_code_dir,
                         env=service)
                     if os.path.exists(args.edxapp_code_dir):
+                        os.chdir(args.edxapp_code_dir)
                         # Run migration check command.
                         output = subprocess.check_output(cmd, shell=True)
                         if 'Migrating' in output:
@@ -113,6 +114,7 @@ if __name__ == '__main__':
                         code_dir=xqueue_code_dir,
                         env=service)
                     if os.path.exists(args.xqueue_code_dir):
+                        os.chdir(args.xqueue_code_dir)
                         # Run migration check command.
                         output = subprocess.check_output(cmd, shell=True)
                         if 'Migrating' in output:
