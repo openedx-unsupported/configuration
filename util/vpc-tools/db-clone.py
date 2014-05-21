@@ -47,7 +47,8 @@ SG_GROUPS = {
 
 # This group must already be created
 # and allows for full access to port
-# 3306. this group is assigned temporarily
+# 3306 from within the vpc.
+# This group is assigned temporarily
 # for cleaning the db
 
 SG_GROUPS_FULL = {
@@ -135,7 +136,10 @@ if __name__ == '__main__':
         if args.stack_name:
             modify_args['vpc_security_group_ids'] = [SG_GROUPS[args.stack_name], SG_GROUPS_FULL[args.stack_name]]
         else:
-            modify_args['db_security_groups'] = ['open']
+            # dev-edx is the default security group for dbs that
+            # are not in the vpc, it allows connections from the various
+            # NAT boxes and from sandboxes
+            modify_args['db_security_groups'] = ['dev-edx']
 
         # Update the db immediately
         rds.modify_db_instance(restore_dbid, **modify_args)
@@ -178,8 +182,5 @@ if __name__ == '__main__':
         print("Running {}".format(dns_cmd))
         os.system(dns_cmd)
 
-    # remove full mysql access from within the vpc
     if args.stack_name:
         rds.modify_db_instance(restore_dbid, vpc_security_group_ids=[SG_GROUPS[args.stack_name]])
-    else:
-        rds.modify_db_instance(restore_dbid, db_security_groups=[])
