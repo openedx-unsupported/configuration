@@ -3,6 +3,26 @@
   gather_facts: False
   sudo: True
   tasks:
+
+    - name: Switch the mongo db to use ephemeral
+      file: >
+        name=/mnt/mongodb
+        state=directory
+        owner=mongodb
+        group=mongodb
+      tags: update_mongo_data1
+
+    - name: update the mongo config to use the new mongo dir
+      shell: >
+        sed -i 's#^dbpath=.*#dbpath=/mnt/mongodb/#' /etc/mongodb.conf
+      tags: update_mongo_data1
+
+    - name: restart mongodb
+      service: >
+        name=mongodb
+        state=restarted
+      tags: update_mongo_data1
+
     - name: Dump mongo data using the cloned dbs for forums
       shell: >
         mongodump -d comments-prod-clone -u {{ CLONE_FORUM_USER }} -p {{ CLONE_FORUM_PASS }} -h {{ CLONE_FORUM_HOST }} --port {{ CLONE_FORUM_PORT }} -o /mnt/forum-dump -c {{ item }}
@@ -15,18 +35,26 @@
         - results
         - subscriptions
         - users
+      tags: update_mongo_data
 
     - name: Restore the mongo data for the forums
       shell: >
         mongorestore --drop -d cs_comments_service  /mnt/forum-dump/comments-prod-clone
+      tags: update_mongo_data
 
     - name: Dump mongo data using the cloned dbs for the modulestore
       shell: >
         mongodump -d prod-edx-clone -u {{ CLONE_MODULESTORE_USER }} -p {{ CLONE_MODULESTORE_PASS }} -h {{ CLONE_MODULESTORE_HOST }} --port {{ CLONE_MODULESTORE_PORT }} -o /mnt/modulestore-dump -c modulestore
+      with_items:
+        - modulestore
+        - fs.chunks
+        - fs.files
+      tags: update_mongo_data
 
     - name: Restore the mongo data for the modulestore
       shell: >
         mongorestore --drop -d edxapp /mnt/modulestore-dump/prod-edx-clone
+      tags: update_mongo_data
 
     - name: Remove dump files
       shell: >
@@ -34,3 +62,27 @@
       with_items:
         - /mnt/forum-dump
         - /mnt/modulestore-dump
+
+      # WARNING - calling lineinfile on a symlink
+      # will convert the symlink to a file!
+      # don't use /edx/etc/serv-ars.yml here
+      #
+      # What we are doing here is updating the sandbox
+      # server-vars config file so that when update
+      # is called it will use the new MYSQL connection
+      # info.
+    - name: Update RDS to point to the sandbox clone
+      lineinfile: >
+        dest=/edx/app/edx_ansible/server-vars.yml
+        line="{{ item }}"
+      with_items:
+        - "EDXAPP_MYSQL_HOST: {{ EDXAPP_MYSQL_HOST }}"
+        - "EDXAPP_MYSQL_DB_NAME: {{ EDXAPP_MYSQL_DB_NAME }}"
+        - "EDXAPP_MYSQL_USER: {{ EDXAPP_MYSQL_USER }}"
+        - "EDXAPP_MYSQL_PASSWORD: {{ EDXAPP_MYSQL_PASSWORD }}"
+      tags: update_edxapp_mysql_host
+
+    - name: call update on edx-platform
+      shell: >
+        /edx/bin/update edx-platform master
+      tags: update_edxapp_mysql_host
