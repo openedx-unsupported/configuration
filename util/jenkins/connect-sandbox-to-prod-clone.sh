@@ -38,5 +38,4 @@ if [[ -z $sandbox_to_update ]]; then
 fi
 
 cd $WORKSPACE/configuration/playbooks/edx-east
-ansible-playbook connect_sandbox.yml  -i $sandbox_to_update, -e@${WORKSPACE}/configuration-secure/ansible/vars/clone-db.yml --user ubuntu  -v
-ansible-playbook edxapp.yml  -i $sandbox_to_update, -e@${WORKSPACE}/configuration-secure/ansible/vars/clone-db.yml -e EDXAPP_MYSQL_HOST=$EDXAPP_MYSQL_HOST --user ubuntu  -v
+ansible-playbook connect_sandbox.yml  -i $sandbox_to_update, -e@${WORKSPACE}/configuration-secure/ansible/vars/clone-db.yml -e EDXAPP_MYSQL_HOST=$EDXAPP_MYSQL_HOS --user ubuntu  -v
