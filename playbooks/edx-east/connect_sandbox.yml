@@ -15,7 +15,7 @@
     - name: update the mongo config to use the new mongo dir
       shell: >
         sed -i 's#^dbpath=.*#dbpath=/mnt/mongodb#' /etc/mongodb.conf
-      tags: update_mongo_data1
+      tags: update_mongo_data
 
     - name: restart mongodb
       service: >
@@ -23,45 +23,67 @@
         state=restarted
       tags: update_mongo_data
 
-    - name: Dump mongo data using the cloned dbs for forums
+    - name: grab the most recent backup from s3 for forums
+      shell : >
+        /edx/bin/s3cmd ls s3://edx-mongohq/mongohq_backups/ | grep comment | sort | tail -1  | awk '{ print $4 }'
+      register: s3cmd_out_forum
+      tags: update_mongo_data
+
+    - name: grab the most recent backup from s3 for forums
+      shell : >
+        /edx/bin/s3cmd get {{ s3cmd_out_forum.stdout }}
+        chdir=/mnt
+      tags: update_mongo_data
+
+    - name: untar the s3 backup
       shell: >
-        mongodump -d comments-prod-clone -u {{ CLONE_FORUM_USER }} -p {{ CLONE_FORUM_PASS }} -h {{ CLONE_FORUM_HOST }} --port {{ CLONE_FORUM_PORT }} -o /mnt/forum-dump -c {{ item }}
-      with_items:
-        - activities
-        - blocked_hash
-        - contents
-        - contents_tag_aggregation
-        - delayed_backend_mongoid_jobs
-        - results
-        - subscriptions
-        - users
+        tar zxf {{ s3cmd_out_forum.stdout }}
+        chdir=/mnt
+      tags: update_mongo_data
+
+
+    - name: grab the most recent backup from s3 for prod-edx
+      shell : >
+        /edx/bin/s3cmd ls s3://edx-mongohq/mongohq_backups/ | grep prod-edx | sort | tail -1  | awk '{ print $4 }'
+      register: s3cmd_out_modulestore
+      tags: update_mongo_data
+
+    - name: grab the most recent backup from s3 for prod-edx
+      shell : >
+        /edx/bin/s3cmd get {{ s3cmd_out_modulestore.stdout }}
+        chdir=/mnt
+      tags: update_mongo_data
+
+    - name: untar the s3 backup
+      shell: >
+        tar zxf {{ s3cmd_out_modulestore.stdout }}
+        chdir=/mnt
       tags: update_mongo_data
 
     - name: Restore the mongo data for the forums
       shell: >
-        mongorestore --drop -d cs_comments_service  /mnt/forum-dump/comments-prod-clone
-      tags: update_mongo_data
-
-    - name: Dump mongo data using the cloned dbs for the modulestore
-      shell: >
-        mongodump -d prod-edx-clone -u {{ CLONE_MODULESTORE_USER }} -p {{ CLONE_MODULESTORE_PASS }} -h {{ CLONE_MODULESTORE_HOST }} --port {{ CLONE_MODULESTORE_PORT }} -o /mnt/modulestore-dump -c {{ item }}
-      with_items:
-        - modulestore
-        - fs.chunks
-        - fs.files
+        mongorestore --drop -d cs_comments_service  /mnt/comments-prod
       tags: update_mongo_data
 
     - name: Restore the mongo data for the modulestore
       shell: >
-        mongorestore --drop -d edxapp /mnt/modulestore-dump/prod-edx-clone
+        mongorestore --drop -d edxapp /mnt/prod-edx
       tags: update_mongo_data
 
-    - name: Remove dump files
-      shell: >
-        rm -rf {{ item }}
+    # recreate users after the restore
+    - name: create a mongodb users
+      mongodb_user: >
+        database={{ item.database }}
+        name={{ item.user }}
+        password={{ item.password }}
+        state=present
       with_items:
-        - /mnt/forum-dump
-        - /mnt/modulestore-dump
+        - user: cs_comments_service
+          password: password
+          database: cs_comments_service
+        - user: exdapp
+          password: password
+          database: edxapp
 
       # WARNING - calling lineinfile on a symlink
       # will convert the symlink to a file!
