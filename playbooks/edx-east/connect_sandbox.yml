@@ -109,3 +109,10 @@
         /edx/bin/ansible-playbook -i localhost, -c local  -e@/edx/app/edx_ansible/server-vars.yml edxapp.yml  --tags service_variant_config
         chdir=/edx/app/edx_ansible/edx_ansible/playbooks/edx-east
       tags: update_edxapp_mysql_host
+
+    - name: restart edxapp services because the notifier handlers are skipped
+      shell: >
+        /edx/bin/supervisorctl -c /edx/etc/supervisord.conf restart {{ item }}
+      with_items:
+        - "edxapp:"
+        - "edxapp_worker:"
