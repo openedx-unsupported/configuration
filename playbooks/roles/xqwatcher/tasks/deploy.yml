@@ -1,0 +1,17 @@
+- name: install read-only ssh key
+  copy: >
+    content="{{ XQWATCHER_GIT_IDENTITY }}" dest={{ xqwatcher_git_identity }}
+    owner={{ xqwatcher_user }} group={{ xqwatcher_user }} mode=0600
+
+- name: upload ssh script
+  template: >
+    src=git_ssh.sh.j2 dest=/tmp/git_ssh.sh
+    owner={{ xqwatcher_user }} mode=750
+    
+- include: deploy_watcher.yml tags=deploy-watcher
+
+- include: deploy_courses.yml tags=deploy-courses
+    
+- name: remove read-only ssh key for the content repo
+  file: path={{ xqwatcher_git_identity }} state=absent
+  
