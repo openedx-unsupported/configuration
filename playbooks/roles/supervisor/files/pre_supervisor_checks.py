@@ -8,8 +8,11 @@ import subprocess
 import traceback
 
 # Services that should be checked for migrations.
-MIGRATION_SERVICES = [ 'lms', 'cms', 'xqueue' ]
-MIGRATION_COMMAND = "{python} {code_dir}/manage.py {env} migrate --noinput --settings=aws --db-dry-run --merge"
+MIGRATION_COMMANDS = {
+        'lms': "{python} {code_dir}/manage.py lms migrate --noinput --settings=aws --db-dry-run --merge",
+        'cms': "{python} {code_dir}/manage.py cms migrate --noinput --settings=aws --db-dry-run --merge",
+        'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
+    }
 HIPCHAT_USER = "PreSupervisor"
 
 def services_for_instance(instance_id):
@@ -94,15 +97,18 @@ if __name__ == '__main__':
     prefix = instance_id
 
     try:
-        edp = edp_for_instance(instance_id)
-        prefix = "{}-{}-{}-{}".format(edp[0], edp[1], edp[2], instance_id)
+        environment, deployment, play = edp_for_instance(instance_id)
+        prefix = "{environment}-{deployment}-{play}-{instance_id}".format(
+            environment=environment,
+            deployment=deployment,
+            play=play,
+            instance_id=instance_id)
         for service in services_for_instance(instance_id):
-            if service in MIGRATION_SERVICES:
+            if service in MIGRATION_COMMANDS:
                 # Do extra migration related stuff.
                 if (service == 'lms' or service == 'cms') and args.edxapp_code_dir:
-                    cmd = MIGRATION_COMMAND.format(python=args.edxapp_python,
-                        code_dir=args.edxapp_code_dir,
-                        env=service)
+                    cmd = MIGRATION_COMMANDS[service].format(python=args.edxapp_python,
+                        code_dir=args.edxapp_code_dir)
                     if os.path.exists(args.edxapp_code_dir):
                         os.chdir(args.edxapp_code_dir)
                         # Run migration check command.
@@ -110,9 +116,8 @@ if __name__ == '__main__':
                         if 'Migrating' in output:
                             raise Exception("Migrations have not been run for {}".format(service))
                 elif service == 'xqueue' and args.xqueue_code_dir:
-                    cmd = MIGRATION_COMMAND.format(python=args.xqueue_python,
-                        code_dir=xqueue_code_dir,
-                        env=service)
+                    cmd = MIGRATION_COMMANDS[service].format(python=args.xqueue_python,
+                        code_dir=xqueue_code_dir)
                     if os.path.exists(args.xqueue_code_dir):
                         os.chdir(args.xqueue_code_dir)
                         # Run migration check command.
