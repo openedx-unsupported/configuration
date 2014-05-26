@@ -26,7 +26,7 @@ Private Cloud with hosts for the core edX services.  This template
 will build quite a number of AWS resources that cost money, so please
 consider this before you start.
 
-The configuration phase is managed by [Ansible](http://ansible.cc/).
+The configuration phase is managed by [Ansible](http://ansible.com/).
 We have provided a number of playbooks that will configure each of
 the edX services.
 
