@@ -48,11 +48,12 @@ def parse_args():
     parser.add_argument('--noop', action='store_true',
                         help="don't actually run the cmds",
                         default=False)
-    parser.add_argument('--secure-vars', required=False,
-                        metavar="SECURE_VAR_FILE",
+    parser.add_argument('--secure-vars-file', required=False,
+                        metavar="SECURE_VAR_FILE", default=None,
                         help="path to secure-vars from the root of "
-                        "the secure repo (defaults to ansible/"
-                        "vars/ENVIRONMENT-DEPLOYMENT.yml)")
+                        "the secure repo. By default <deployment>.yml and "
+                        "<environment>-<deployment>.yml will be used if they "
+                        "exist in <secure-repo>/ansible/vars/")
     parser.add_argument('--stack-name',
                         help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
@@ -663,12 +664,12 @@ if __name__ == '__main__':
         git_refs_yml = ""
         git_refs = {}
 
-    if args.secure_vars:
+    if args.secure_vars_file:
         # explicit path to a single
         # secure var file
-        secure_vars = args.secure_vars
+        secure_vars_file = args.secure_vars_file
     else:
-        secure_vars = 'false'
+        secure_vars_file = 'false'
 
     if args.stack_name:
         stack_name = args.stack_name
