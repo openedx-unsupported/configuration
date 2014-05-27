@@ -220,6 +220,7 @@ git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 git_repo_private="{configuration_private_repo}"
 git_repo_private_name=$(basename $git_repo_private .git)
+secure_vars_file={secure_vars_file}
 environment_deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{environment}-{deployment}.yml"
 deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{deployment}.yml"
 instance_id=\\
@@ -327,8 +328,8 @@ if [[ -r "$environment_deployment_secure_vars" ]]; then
     extra_args_opts+=" -e@$environment_deployment_secure_vars"
 fi
 
-if $secure_vars; then
-    extra_args_opts+=" -e@$secure_vars"
+if $secure_vars_file; then
+    extra_args_opts+=" -e@$secure_vars_file"
 fi
 
 extra_args_opts+=" -e@$extra_vars"
@@ -355,7 +356,7 @@ rm -rf $base_dir
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
                 git_refs_yml=git_refs_yml,
-                secure_vars=secure_vars,
+                secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id)
 
     mapping = BlockDeviceMapping()
