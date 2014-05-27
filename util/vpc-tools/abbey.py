@@ -53,7 +53,8 @@ def parse_args():
                         help="path to secure-vars from the root of "
                         "the secure repo. By default <deployment>.yml and "
                         "<environment>-<deployment>.yml will be used if they "
-                        "exist in <secure-repo>/ansible/vars/")
+                        "exist in <secure-repo>/ansible/vars/. This secure file "
+                        "will be used in addition to these if they exist.")
     parser.add_argument('--stack-name',
                         help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
