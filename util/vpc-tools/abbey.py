@@ -219,7 +219,8 @@ git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 git_repo_private="{configuration_private_repo}"
 git_repo_private_name=$(basename $git_repo_private .git)
-secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
+environment_deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{environment}-{deployment}.yml"
+deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{deployment}.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -317,8 +318,22 @@ sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$secure_vars_file -e@$extra_vars
-ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$secure_vars_file -e@$extra_vars
+if [[ -r "$deployment_secure_vars" ]]; then
+    extra_args_opts+=" -e@$deployment_secure_vars"
+fi
+
+if [[ -r "$environment_deployment_secure_vars" ]]; then
+    extra_args_opts+=" -e@$environment_deployment_secure_vars"
+fi
+
+if $secure_vars; then
+    extra_args_opts+=" -e@$secure_vars"
+fi
+
+extra_args_opts+=" -e@$extra_vars"
+
+ansible-playbook -vvvv -c local -i "localhost," $play.yml $extra_args_opts
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml $extra_args_opts
 
 rm -rf $base_dir
 
@@ -649,10 +664,12 @@ if __name__ == '__main__':
         git_refs = {}
 
     if args.secure_vars:
+        # explicit path to a single
+        # secure var file
         secure_vars = args.secure_vars
     else:
-        secure_vars = "ansible/vars/{}-{}.yml".format(
-                      args.environment, args.deployment)
+        secure_vars = 'false'
+
     if args.stack_name:
         stack_name = args.stack_name
     else:
