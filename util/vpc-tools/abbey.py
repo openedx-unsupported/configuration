@@ -48,11 +48,13 @@ def parse_args():
     parser.add_argument('--noop', action='store_true',
                         help="don't actually run the cmds",
                         default=False)
-    parser.add_argument('--secure-vars', required=False,
-                        metavar="SECURE_VAR_FILE",
+    parser.add_argument('--secure-vars-file', required=False,
+                        metavar="SECURE_VAR_FILE", default=None,
                         help="path to secure-vars from the root of "
-                        "the secure repo (defaults to ansible/"
-                        "vars/ENVIRONMENT-DEPLOYMENT.yml)")
+                        "the secure repo. By default <deployment>.yml and "
+                        "<environment>-<deployment>.yml will be used if they "
+                        "exist in <secure-repo>/ansible/vars/. This secure file "
+                        "will be used in addition to these if they exist.")
     parser.add_argument('--stack-name',
                         help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
@@ -127,11 +129,11 @@ def parse_args():
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--base-ami', required=False,
-                        help="ami to use as a base ami",
-                        default="ami-0568456c")
+                       help="ami to use as a base ami",
+                       default="ami-0568456c")
     group.add_argument('--blessed', action='store_true',
-                        help="Look up blessed ami for env-dep-play.",
-                        default=False)
+                       help="Look up blessed ami for env-dep-play.",
+                       default=False)
 
     return parser.parse_args()
 
@@ -151,6 +153,7 @@ def get_instance_sec_group(vpc_id):
 
     return grp_details[0].id
 
+
 def get_blessed_ami():
     images = ec2.get_all_images(
         filters={
@@ -166,6 +169,7 @@ def get_blessed_ami():
             len(images)))
 
     return images[0].id
+
 
 def create_instance_args():
     """
@@ -219,7 +223,9 @@ git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
 git_repo_private="{configuration_private_repo}"
 git_repo_private_name=$(basename $git_repo_private .git)
-secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
+secure_vars_file={secure_vars_file}
+environment_deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{environment}-{deployment}.yml"
+deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{deployment}.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -317,8 +323,22 @@ sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$secure_vars_file -e@$extra_vars
-ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$secure_vars_file -e@$extra_vars
+if [[ -r "$deployment_secure_vars" ]]; then
+    extra_args_opts+=" -e@$deployment_secure_vars"
+fi
+
+if [[ -r "$environment_deployment_secure_vars" ]]; then
+    extra_args_opts+=" -e@$environment_deployment_secure_vars"
+fi
+
+if $secure_vars_file; then
+    extra_args_opts+=" -e@$secure_vars_file"
+fi
+
+extra_args_opts+=" -e@$extra_vars"
+
+ansible-playbook -vvvv -c local -i "localhost," $play.yml $extra_args_opts
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml $extra_args_opts
 
 rm -rf $base_dir
 
@@ -339,7 +359,7 @@ rm -rf $base_dir
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
                 git_refs_yml=git_refs_yml,
-                secure_vars=secure_vars,
+                secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id)
 
     mapping = BlockDeviceMapping()
@@ -524,6 +544,7 @@ def create_ami(instance_id, name, description):
 
     return image_id
 
+
 def launch_and_configure(ec2_args):
     """
     Creates an sqs queue, launches an ec2 instance,
@@ -613,14 +634,15 @@ def launch_and_configure(ec2_args):
 
     return run_summary, ami
 
+
 def send_hipchat_message(message):
     #If hipchat is configured send the details to the specified room
     if args.hipchat_api_token and args.hipchat_room_id:
         import hipchat
         try:
             hipchat = hipchat.HipChat(token=args.hipchat_api_token)
-            hipchat.message_room(args.hipchat_room_id,'AbbeyNormal',
-               message)
+            hipchat.message_room(args.hipchat_room_id, 'AbbeyNormal',
+                                 message)
         except Exception as e:
             print("Hipchat messaging resulted in an error: %s." % e)
 
@@ -648,11 +670,13 @@ if __name__ == '__main__':
         git_refs_yml = ""
         git_refs = {}
 
-    if args.secure_vars:
-        secure_vars = args.secure_vars
+    if args.secure_vars_file:
+        # explicit path to a single
+        # secure var file
+        secure_vars_file = args.secure_vars_file
     else:
-        secure_vars = "ansible/vars/{}-{}.yml".format(
-                      args.environment, args.deployment)
+        secure_vars_file = 'false'
+
     if args.stack_name:
         stack_name = args.stack_name
     else:
@@ -694,12 +718,11 @@ if __name__ == '__main__':
                     run[0], run[1] / 60, run[1] % 60)
             print "AMI: {}".format(ami)
 
-            message = 'Finished baking AMI {image_id} for {environment} ' \
-              '{deployment} {play}.'.format(
-                    image_id=ami,
-                    environment=args.environment,
-                    deployment=args.deployment,
-                    play=args.play)
+            message = 'Finished baking AMI {image_id} for {environment} {deployment} {play}.'.format(
+                image_id=ami,
+                environment=args.environment,
+                deployment=args.deployment,
+                play=args.play)
 
             send_hipchat_message(message)
     except Exception as e:
