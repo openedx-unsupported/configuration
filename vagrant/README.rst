@@ -12,3 +12,4 @@ There are two versions of the stack:
 
 - ``fullstack`` is a production-like configuration running all the services on a single server.  https://github.com/edx/configuration/wiki/edX-Production-Stack
 - ``devstack`` is designed for local development.  Although it uses the same system requirements as in production, it simplifies certain settings to make development more convenient.  https://github.com/edx/configuration/wiki/edX-Developer-Stack
+- ``jenkins-master`` is an instance set with the same master configuration as the Jenkins instance that tests pull requests (jenkins.testeng.edx.org). It does not contain jenkins_worker modules. 

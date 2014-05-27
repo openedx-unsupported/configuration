@@ -1,0 +1,32 @@
+Vagrant.require_version ">= 1.5.3"
+
+VAGRANTFILE_API_VERSION = "2"
+
+MEMORY = 2048
+CPU_COUNT = 2
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # Creates a devstack from a base Ubuntu 12.04 image
+  config.vm.box     = "precise64"
+  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+
+  config.vm.network :private_network, ip: "192.168.33.80"
+  config.vm.network :forwarded_port, guest: 8080, host: 8080
+  config.ssh.insert_key = true
+
+  config.vm.provider :virtualbox do |vb|
+    vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
+    vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
+
+    # Allow DNS to work for Ubuntu 12.10 host
+    # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "../../../playbooks/jenkins-vagrant.yml"
+    ansible.verbose = "vvvv"
+
+  end
+end
