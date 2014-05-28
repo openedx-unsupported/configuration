@@ -28,11 +28,11 @@ if [ ! -z "$extra_vars" ]; then
 fi
 
 if [[ $first_in == "true" ]]; then
-    $ansible_limit+="first_in"
+    $ansible_limit+="first_in_"
 fi
 
-ansible_limit="_tag_Name_${environment}-${deployment}-${play}"
+ansible_limit="tag_Name_${environment}-${deployment}-${play}"
 
 env
 
-echo ansible-playbook $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment}-${deployment}.yml" $ansible_extra_vars
+ansible-playbook -v $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment}-${deployment}.yml" $ansible_extra_vars
