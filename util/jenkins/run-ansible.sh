@@ -32,7 +32,6 @@ if [[ $first_in == "true" ]]; then
 fi
 
 ansible_limit="tag_Name_${environment}-${deployment}-${play}"
-
+export PYTHONUNBUFFERED=1
 env
-
 ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment}-${deployment}.yml" $ansible_extra_vars 
