@@ -27,6 +27,14 @@
   with_items: EDXAPP_XML_COURSES
   when: item.disposition == "on disk" or item.disposition == "no static import"
 
+- name: make symlinks so code works
+  file: >
+    src="{{ edxapp_course_data_dir }}/{{ item.repo_name }}"
+    dest="{{ edxapp_course_data_dir }}/{{ item.course }}"
+    state=link
+  with_items: EDXAPP_XML_COURSES
+  when: item.disposition == "on disk" or item.disposition == "no static import"
+
 - name: import courses with nostatic flag
   shell: >
     {{ edxapp_venv_bin }}/python manage.py cms --settings=aws import --nostatic {{ edxapp_course_data_dir }} {{ item.repo_name }}
