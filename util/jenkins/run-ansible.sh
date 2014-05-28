@@ -37,4 +37,4 @@ fi
 ansible_limit="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
 export PYTHONUNBUFFERED=1
 env
-ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment}-${deployment}.yml" $ansible_extra_vars 
+ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment_tag}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml" $ansible_extra_vars 
