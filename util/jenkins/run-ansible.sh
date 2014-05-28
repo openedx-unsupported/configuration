@@ -21,7 +21,7 @@ fi
 
 cd $WORKSPACE/configuration/playbooks/edx-east
 
-ansible_extra_vars+=" -e 'serial_count=$serial_count elb_pre_post=$elb_pre_post'"
+ansible_extra_vars+=" -e serial_count=$serial_count -e elb_pre_post=$elb_pre_post"
 
 if [ ! -z "$extra_vars" ]; then
       ansible_extra_vars+=" -e $extra_vars"
