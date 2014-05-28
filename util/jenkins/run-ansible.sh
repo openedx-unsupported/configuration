@@ -5,13 +5,13 @@
 # that are tagged with Name: <environment>-<deployment>-<play>
 
 if [[
-        -z $WORKSPACE      ||
-        -z $environment    ||
-        -z $deployment     ||
-        -z $play           ||
-        -z $ansible_play   ||
-        -z $elb_pre_post   ||
-        -z $first_in       ||
+        -z $WORKSPACE           ||
+        -z $environment_tag     ||
+        -z $deployment_tag      ||
+        -z $play_tag            ||
+        -z $ansible_play        ||
+        -z $elb_pre_post        ||
+        -z $first_in            ||
         -z $serial_count
     ]]; then
     echo "Environment incorrect for this wrapper script"
@@ -27,11 +27,14 @@ if [ ! -z "$extra_vars" ]; then
       ansible_extra_vars+=" -e $extra_vars"
 fi
 
+if [[ $run_migrations == "true" ]]; then
+      ansible_extra_vars+=" -e migrate_db=yes"
+fi
+
 if [[ $first_in == "true" ]]; then
     $ansible_limit+="first_in_"
 fi
-
-ansible_limit="tag_Name_${environment}-${deployment}-${play}"
+ansible_limit="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
 export PYTHONUNBUFFERED=1
 env
 ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment}-${deployment}.yml" $ansible_extra_vars 
