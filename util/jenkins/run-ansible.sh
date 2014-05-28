@@ -32,7 +32,7 @@ if [[ $run_migrations == "true" ]]; then
 fi
 
 if [[ $first_in == "true" ]]; then
-    $ansible_limit+="first_in_"
+    ansible_limit+="first_in_"
 fi
 ansible_limit+="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
 export PYTHONUNBUFFERED=1
