@@ -294,6 +294,10 @@ EDXAPP_UPDATE_STATIC_FILES_KEY: true
 edxapp_dynamic_cache_key: {deployment}-{environment}-{play}-{cache_id}
 
 disable_edx_services: true
+
+# abbey should never take instances in
+# and out of elbs
+elb_pre_post: false
 EOF
 
 chmod 400 $secure_identity
