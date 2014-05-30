@@ -45,7 +45,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Creates an edX devstack VM from an official release
   config.vm.box     = "injera-devstack"
   config.vm.synced_folder  ".", "/vagrant", disabled: true
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
+  
+  if File.file?("20140418-injera-devstack.box")
+    puts "Trying to use the pre-downloaded box 20140418-injera-devstack.box"
+    config.vm.box_url = "20140418-injera-devstack.box"
+  else
+    puts "Could not find the pre-downloaded box; using http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
+    config.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
+  end
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
