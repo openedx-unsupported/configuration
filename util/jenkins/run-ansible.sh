@@ -12,7 +12,8 @@ if [[
         -z $ansible_play        ||
         -z $elb_pre_post        ||
         -z $first_in            ||
-        -z $serial_count
+        -z $serial_count        ||
+        -z $task_tags
     ]]; then
     echo "Environment incorrect for this wrapper script"
     env
@@ -35,6 +36,13 @@ if [[ $first_in == "true" ]]; then
     ansible_limit+="first_in_"
 fi
 ansible_limit+="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
+
+ansible_task_tags=""
+
+if [[ -z "$task_tags" ]]; then
+    ansible_task_tags+="--tags $task_tags"
+fi
+
 export PYTHONUNBUFFERED=1
 env
-ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment_tag}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml" $ansible_extra_vars 
+ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py $ansible_task_tags --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment_tag}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml" $ansible_extra_vars 
