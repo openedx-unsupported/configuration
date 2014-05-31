@@ -687,10 +687,15 @@ if __name__ == '__main__':
         stack_name = "{}-{}".format(args.environment, args.deployment)
 
     try:
-        sqs = boto.sqs.connect_to_region(args.region)
         ec2 = boto.ec2.connect_to_region(args.region)
     except NoAuthHandlerFound:
-        print 'You must be able to connect to sqs and ec2 to use this script'
+        print 'Unable to connect to ec2 in region :{}'.format(args.region)
+        sys.exit(1)
+
+    try:
+        sqs = boto.sqs.connect_to_region(args.region)
+    except NoAuthHandlerFound:
+        print 'Unable to connect to sqs in region :{}'.format(args.region)
         sys.exit(1)
 
     if args.blessed:
