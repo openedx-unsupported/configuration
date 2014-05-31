@@ -268,7 +268,6 @@ edxapp_workers:
 
 # setup for python codejail
 edxapp_sandbox_venv_dir:  '{{ edxapp_venvs_dir }}/edxapp-sandbox'
-edxapp_sandbox_venv_bin: '{{ edxapp_sandbox_venv_dir }}/bin'
 edxapp_sandbox_user: 'sandbox'  # I think something about the codejail requires hardcoding this to sandbox:sandbox
 
 # apparmor command
@@ -496,7 +495,10 @@ lms_env_config:
     # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
     python_bin: '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
     limits:
-      VMEM: 0
+      # Limit the memory of the jailed process to something high but not
+      # infinite (128MiB in bytes)
+      VMEM: 134217728
+      # Time in seconds that the jailed process has to run.
       REALTIME: 1
       # Needs to be non-zero for matplotlib (1MiB in bytes)
       FSIZE: 1048576
