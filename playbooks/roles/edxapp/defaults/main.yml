@@ -149,7 +149,7 @@ EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY: ['usd', '$']
 EDXAPP_NO_PREREQ_INSTALL: 1
 
 # whether to setup the python codejail or not
-EDXAPP_PYTHON_SANDBOX: false
+EDXAPP_PYTHON_SANDBOX: true
 # this next setting, if true, turns on actual sandbox enforcement.  If not true,
 # it puts the sandbox in 'complain' mode, for reporting but not enforcement
 EDXAPP_SANDBOX_ENFORCE: true
@@ -439,10 +439,6 @@ generic_env_config:  &edxapp_generic_env
   TECH_SUPPORT_EMAIL: $EDXAPP_TECH_SUPPORT_EMAIL
   CONTACT_EMAIL: $EDXAPP_CONTACT_EMAIL
   BUGS_EMAIL: $EDXAPP_BUGS_EMAIL
-  CODE_JAIL:
-    limits:
-      VMEM: 0
-      REALTIME: 3
   DEFAULT_FROM_EMAIL: $EDXAPP_DEFAULT_FROM_EMAIL
   DEFAULT_FEEDBACK_EMAIL: $EDXAPP_DEFAULT_FEEDBACK_EMAIL
   SERVER_EMAIL: $EDXAPP_DEFAULT_SERVER_EMAIL
@@ -492,13 +488,18 @@ lms_env_config:
   <<: *edxapp_generic_env
   PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
   SITE_NAME:  $EDXAPP_LMS_SITE_NAME
-  'CODE_JAIL':
+  CODE_JAIL:
     # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
-    'python_bin': '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
-    'limits':
-      'VMEM': 0
-      'REALTIME': 5
-    'user': '{{ edxapp_sandbox_user }}'
+    python_bin: '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
+    limits:
+      # Limit the memory of the jailed process to something high but not
+      # infinite (128MiB in bytes)
+      VMEM: 134217728
+      # Time in seconds that the jailed process has to run.
+      REALTIME: 1
+      # Needs to be non-zero so that jailed code can use it as their temp directory.(1MiB in bytes)
+      FSIZE: 1048576
+    user: '{{ edxapp_sandbox_user }}'
 
 cms_auth_config:
   <<: *edxapp_generic_auth
