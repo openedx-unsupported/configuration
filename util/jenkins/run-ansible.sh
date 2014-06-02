@@ -31,12 +31,14 @@ if [[ $run_migrations == "true" ]]; then
       ansible_extra_vars+=" -e migrate_db=yes"
 fi
 
-if [[ $first_in == "true" ]]; then
-    ansible_limit+="first_in_"
+if [[ ! -z "$run_on_single_ip" ]]; then
+    ansible_limit+="$run_on_single_ip"
+else
+    if [[ $first_in == "true" ]]; then
+        ansible_limit+="first_in_"
+    fi
+    ansible_limit+="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
 fi
-ansible_limit+="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
-
-ansible_task_tags=""
 
 if [[ ! -z "$task_tags" ]]; then
     ansible_task_tags+="--tags $task_tags"
