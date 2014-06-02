@@ -12,8 +12,7 @@ if [[
         -z $ansible_play        ||
         -z $elb_pre_post        ||
         -z $first_in            ||
-        -z $serial_count        ||
-        -z $task_tags
+        -z $serial_count
     ]]; then
     echo "Environment incorrect for this wrapper script"
     env
@@ -39,7 +38,7 @@ ansible_limit+="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
 
 ansible_task_tags=""
 
-if [[ -z "$task_tags" ]]; then
+if [[ ! -z "$task_tags" ]]; then
     ansible_task_tags+="--tags $task_tags"
 fi
 
