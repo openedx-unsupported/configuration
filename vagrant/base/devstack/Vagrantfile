@@ -1,4 +1,7 @@
 Vagrant.require_version ">= 1.5.3"
+unless Vagrant.has_plugin?("vagrant-vbguest")
+  raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
+end
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -23,6 +26,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Creates a devstack from a base Ubuntu 12.04 image
   config.vm.box     = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -32,10 +36,23 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 9200, host: 9200
   config.ssh.insert_key = true
 
-  config.vm.synced_folder  ".", "/vagrant", disabled: true
-  config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
-  config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
-  config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
+  if ENV['NFS']
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      type: "nfs", create: true
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      type: "nfs", create: true
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      type: "nfs", create: true
+  end
+
+  if ENV['VBOXFS']
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      create: true, owner: "edxapp", group: "www-data"
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, owner: "forum", group: "www-data"
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      create: true, owner: "ora", group: "www-data"
+  end
 
   # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']

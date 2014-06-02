@@ -21,8 +21,8 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # The vagrant-devstack.yml playbook will also do this, but only
 # after loading the playbooks into memory.  If these are out of date,
 # this can cause problems (e.g. looking for templates that no longer exist).
-/edx/bin/update configuration release
 
+/edx/bin/update configuration release
 ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=release
 SCRIPT
 
@@ -44,8 +44,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
   config.vm.box     = "injera-devstack"
-  config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -60,10 +60,23 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       config.ssh.forward_x11 = true
   end
 
-  config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
-  config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes", :create => true, nfs: true
-  config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
-  config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
+  if ENV['NFS']
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      type: "nfs", create: true
+    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
+      type: "nfs", create: true
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      type: "nfs", create: true
+  end
+
+  if ENV['VBOXFS']
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      create: true, owner: "edxapp", group: "www-data"
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, owner: "forum", group: "www-data"
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      create: true, owner: "ora", group: "www-data"
+  end
 
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
