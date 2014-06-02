@@ -12,8 +12,7 @@ if [[
         -z $ansible_play        ||
         -z $elb_pre_post        ||
         -z $first_in            ||
-        -z $serial_count        ||
-        -z $task_tags
+        -z $serial_count
     ]]; then
     echo "Environment incorrect for this wrapper script"
     env
