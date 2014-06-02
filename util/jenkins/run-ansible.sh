@@ -38,7 +38,7 @@ ansible_limit+="tag_Name_${environment_tag}-${deployment_tag}-${play_tag}"
 
 ansible_task_tags=""
 
-if [[ -z "$task_tags" ]]; then
+if [[ ! -z "$task_tags" ]]; then
     ansible_task_tags+="--tags $task_tags"
 fi
 
