@@ -1,0 +1,32 @@
+# This is a test play that creates all supported user
+# types using the user role. Example only, not meant
+# to be run on a real system
+- name: Create all user types (test play)
+  hosts: all
+  sudo: True
+  gather_facts: False
+  vars_files:
+    - 'roles/edxapp/defaults/main.yml'
+    - 'roles/common/defaults/main.yml'
+    - 'roles/analytics-server/defaults/main.yml'
+    - 'roles/analytics/defaults/main.yml'
+  pre_tasks:
+    - fail: msg="You must pass a user into this play"
+      when: user is not defined
+    - name: give access with no sudo
+      set_fact:
+        CUSTOM_USER_INFO:
+          - name: "{{ user }}"
+            github: true
+          - name: test-admin-user
+            type: admin
+          - name: test-normal-user
+          - name: test-restricted-user-edxapp
+            type: restricted
+            sudoers_template: 99-edxapp-manage-cmds.j2
+          - name: test-restricted-user-anayltics
+            type: restricted
+            sudoers_template: 99-analytics-manage-cmds.j2
+  roles:
+    - role: user
+      user_info: "{{ CUSTOM_USER_INFO }}"

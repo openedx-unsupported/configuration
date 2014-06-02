@@ -13,6 +13,10 @@
     openid_workaround: True
     EDXAPP_LMS_NGINX_PORT: '80'
     edx_platform_version: 'master'
+    # These should stay false for the public AMI
+    ENABLE_DATADOG: False
+    ENABLE_SPLUNKFORWARDER: False
+    ENABLE_NEWRELIC: False
   roles:
     - role: nginx
       nginx_sites:
@@ -34,5 +38,11 @@
     - forum
     - { role: "xqueue", update_users: True }
     - ora
-    - discern
+    - certs
     - edx_ansible
+    - role: datadog
+      when: ENABLE_DATADOG
+    - role: splunkforwarder
+      when: ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: ENABLE_NEWRELIC

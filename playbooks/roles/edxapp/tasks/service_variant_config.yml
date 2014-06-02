@@ -3,6 +3,7 @@
     src={{ item }}.env.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.env.json
   sudo_user: "{{ edxapp_user }}"
+  tags: edxapp_cfg
   with_items: service_variants_enabled
   notify:
   - "restart edxapp"
@@ -13,6 +14,7 @@
     src={{ item }}.auth.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
+  tags: edxapp_cfg
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -22,31 +24,63 @@
 
 - name: "writing {{ item }} supervisor script"
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }}
+    group={{ supervisor_user }}
   with_items: service_variants_enabled
-  when: celery_worker is not defined and not devstack
   sudo_user: "{{ supervisor_user }}"
 
 - name: writing edxapp supervisor script
   template: >
-    src=edxapp.conf.j2 dest={{ supervisor_cfg_dir }}/edxapp.conf
+    src=edxapp.conf.j2 dest={{ supervisor_available_dir }}/edxapp.conf
     owner={{ supervisor_user }}
-  when: celery_worker is not defined and not devstack
+    group={{ supervisor_user }}
   sudo_user: "{{ supervisor_user }}"
 
 # write the supervisor script for celery workers
 
 - name: writing celery worker supervisor script
   template: >
-    src=workers.conf.j2 dest={{ supervisor_cfg_dir }}/workers.conf
+    src=workers.conf.j2 dest={{ supervisor_available_dir }}/workers.conf
     owner={{ supervisor_user }}
-  when: celery_worker is defined and not devstack
+    group={{ supervisor_user }}
+  sudo_user: "{{ supervisor_user }}"
+
+# Enable the supervisor jobs
+- name: "enable {{ item }} supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    state=link
+    force=yes
+  with_items: service_variants_enabled
+  when: celery_worker is not defined and not disable_edx_services
+  sudo_user: "{{ supervisor_user }}"
+
+- name: "enable edxapp supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/edxapp.conf
+    dest={{ supervisor_cfg_dir }}/edxapp.conf
+    state=link
+    force=yes
+  when: celery_worker is not defined and not disable_edx_services
+  sudo_user: "{{ supervisor_user }}"
+
+- name: "enable celery worker supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/workers.conf
+    dest={{ supervisor_cfg_dir }}/workers.conf
+    state=link
+    force=yes
+  when: celery_worker is defined and not disable_edx_services
   sudo_user: "{{ supervisor_user }}"
 
 # Fake syncdb with migrate, only when fake_migrations is defined
 # This overrides the database name to be the test database which
-# the default application user has full write access to
+# the default application user has full write access to.
+#
+# This is run in cases where you want to test to see if migrations
+# work without actually runnning them (when creating AMIs for example).
 - name: syncdb and migrate
   shell: >
     chdir={{ edxapp_code_dir }}
@@ -59,18 +93,35 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-# Regular syncdb with migrate
+# Syncdb with migrate when the migrate user is overridden in extra vars
 - name: syncdb and migrate
   shell: >
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
-  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes"
+  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
   environment:
-    DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD }}"
+    DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
+# Syncdb with migrate when the default migrate user is not set,
+# in this case use the EDXAPP_MYSQL_USER_MIGRATE user to run migrations
+- name: syncdb and migrate
+  shell: >
+    chdir={{ edxapp_code_dir }}
+    {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
+  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and not COMMON_MYSQL_MIGRATE_PASS
+  environment:
+    DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_MIGRATE }}"
+    DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_MIGRATE }}"
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
 
 # Fake migrate, only when fake_migrations is defined
 # This overrides the database name to be the test database which
@@ -95,6 +146,9 @@
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
   when: fake_migrations is not defined and migrate_only is defined and migrate_only|lower == "yes"
+  environment:
+    DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_MIGRATE }}"
+    DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_MIGRATE }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"

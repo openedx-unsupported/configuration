@@ -1,3 +1,7 @@
+Vagrant.require_version ">= 1.5.3"
+
+VAGRANTFILE_API_VERSION = "2"
+
 MEMORY = 2048
 CPU_COUNT = 2
 
@@ -14,7 +18,7 @@ if ENV['VAGRANT_MOUNT_BASE']
 end
 
 
-Vagrant.configure("2") do |config|
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates a devstack from a base Ubuntu 12.04 image
   config.vm.box     = "precise64"
@@ -23,8 +27,12 @@ Vagrant.configure("2") do |config|
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
   config.vm.network :forwarded_port, guest: 8001, host: 8001
-  config.vm.network :forwarded_port, guest: 4567, host: 4567
+  config.vm.network :forwarded_port, guest: 18080, host: 18080
+  config.vm.network :forwarded_port, guest: 8765, host: 8765
+  config.vm.network :forwarded_port, guest: 9200, host: 9200
+  config.ssh.insert_key = true
 
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
   config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
   config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
@@ -43,9 +51,13 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
+  # Make LC_ALL default to en_US.UTF-8 instead of en_US.
+  # See: https://github.com/mitchellh/vagrant/issues/1188
+  config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
+
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "../../../playbooks/vagrant-devstack.yml"
-    ansible.inventory_path = "../../../playbooks/vagrant/inventory.ini"
-    ansible.verbose = "extra"
+    ansible.verbose = "vvvv"
+
   end
 end

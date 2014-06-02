@@ -1,0 +1,46 @@
+upstream app_server {
+    {% for host in nginx_ora_gunicorn_hosts %}
+        server {{ host }}:{{ ora_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
+server {
+  listen {{ ORA_NGINX_PORT }} default_server;
+
+  location / {
+
+    {% include "basic-auth.j2" %}
+    try_files $uri @proxy_to_app;
+  }
+
+  # Check security on this
+  location /static/ {
+    alias /opt/wwc/staticfiles/;
+
+    # return a 403 for static files that shouldn't be
+    # in the staticfiles directory
+    location ~ ^/static/(.*)(\.xml|\.json|README.TXT) {
+        return 403;
+    }
+    # Set django-pipelined files to maximum cache time
+    location ~ /static/.*\.[0-9a-f]+\..* {
+        expires max;
+    }
+
+    # Expire other static files immediately (there should be very few / none of these)
+    expires epoch;
+  }
+
+  {% include "robots.j2" %}
+
+  location @proxy_to_app {
+    client_max_body_size 75K;
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://app_server;
+  }
+}

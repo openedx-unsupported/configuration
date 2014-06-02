@@ -2,14 +2,6 @@
 #  - group_vars/all
 #  - common/tasks/main.yml
 ---
-
-
-- name: Install logrotate configuration for tracking file
-  template: dest=/etc/logrotate.d/tracking.log src=edx_logrotate_tracking_log.j2 owner=root group=root mode=644
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
-
 - name: create application user
   user: >
     name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
@@ -27,10 +19,13 @@
   - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_app_dir }}"
+    # needed for the ansible 1.5 git module
+    - "{{ edxapp_app_dir }}/.ssh"
     - "{{ edxapp_data_dir }}"
     - "{{ edxapp_venvs_dir }}"
     - "{{ edxapp_theme_dir }}"
     - "{{ edxapp_staticfile_dir }}"
+    - "{{ edxapp_course_static_dir }}"
 
 - name: create edxapp log dir
   file: >

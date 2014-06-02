@@ -22,13 +22,15 @@
 
 - name: install read-only ssh key
   copy: >
-    src={{ EDXAPP_LOCAL_GIT_IDENTITY }} dest={{ edxapp_git_identity }}
+    content="{{ EDXAPP_GIT_IDENTITY }}" dest={{ edxapp_git_identity }}
     force=yes owner={{ edxapp_user }} mode=0600
   when: EDXAPP_USE_GIT_IDENTITY
 
 # Do A Checkout
 - name: checkout edx-platform repo into {{edxapp_code_dir}}
-  git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
+  git: >
+    dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
+    accept_hostkey=yes
   register: chkout
   sudo_user: "{{ edxapp_user }}"
   environment:
@@ -45,7 +47,9 @@
   - "restart edxapp_workers"
 
 - name: checkout theme
-  git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+  git: >
+    dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+    accept_hostkey=yes
   when: edxapp_theme_name != ''
   sudo_user: "{{ edxapp_user }}"
   environment:
@@ -53,10 +57,6 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
-
-- name: remove read-only ssh key
-  file: path={{ edxapp_git_identity }} state=absent
-  when: EDXAPP_USE_GIT_IDENTITY
 
 - name: create checksum for requirements, package.json and Gemfile
   shell: >
@@ -108,7 +108,7 @@
 # Set the npm registry
 - name: Set the npm registry
   shell:
-    npm config set registry 'http://registry.npmjs.org'
+    npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
     creates="{{ edxapp_app_dir }}/.npmrc"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
@@ -132,7 +132,7 @@
     requirements="{{pre_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -146,7 +146,7 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
     chdir={{ edxapp_code_dir }}
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
@@ -161,7 +161,21 @@
     requirements="{{post_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  when: not inst.stat.exists or new.stat.md5 != inst.stat.md5
+
+# Install the python paver requirements into {{ edxapp_venv_dir }}
+- name : install python paver-requirements
+  pip: >
+    requirements="{{paver_requirements_file}}"
+    virtualenv="{{edxapp_venv_dir}}"
+    state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -175,10 +189,9 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
-  - "{{ repo_requirements_file }}"
   - "{{ github_requirements_file }}"
   - "{{ local_requirements_file }}"
   sudo_user: "{{ edxapp_user }}"
@@ -186,6 +199,36 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+# Private requriements require a ssh key to install, use the same key as the private key for edx-platform
+# If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
+- name : install python private requirements
+  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
+  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
+  # installs everything into that virtual environment.
+  shell: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
+    chdir={{ edxapp_code_dir }}
+  with_items:
+  - "{{ private_requirements_file }}"
+  sudo_user: "{{ edxapp_user }}"
+  environment:
+    GIT_SSH: "{{ edxapp_git_ssh }}"
+  when: EDXAPP_INSTALL_PRIVATE_REQUIREMENTS
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+# If using CAS and you have a function for mapping attributes, install
+# the module here.  The next few tasks set up the python code sandbox
+- name: install CAS attribute module
+  pip: >
+    name="{{ EDXAPP_CAS_ATTRIBUTE_PACKAGE }}"
+    virtualenv="{{edxapp_venv_dir}}"
+    state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors"
+  sudo_user: "{{ edxapp_user }}"
+  when: EDXAPP_CAS_ATTRIBUTE_PACKAGE|length > 0
+  notify: "restart edxapp"
 
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
 - name : install sandbox requirements into regular venv
@@ -193,7 +236,7 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ sandbox_base_requirements }}"
@@ -204,6 +247,33 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
+# The next few tasks install xml courses.
+
+# Install the xml courses from an s3 bucket
+- name: get s3 one time url
+  s3: >
+    bucket="{{ EDXAPP_XML_S3_BUCKET }}"
+    object="{{ EDXAPP_XML_S3_KEY }}"
+    mode="geturl"
+    expiration=300
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: s3_one_time_url
+
+- name: download from one time url
+  get_url: url="{{ s3_one_time_url.url }}" dest="/tmp/{{ EDXAPP_XML_S3_KEY|basename }}"
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: download_xml_s3
+
+- name: unzip the data to the data dir
+  shell: >
+    tar xzf /tmp/{{ EDXAPP_XML_S3_KEY|basename }}
+    chdir="{{ edxapp_data_dir }}"
+  when: download_xml_s3.changed
+
+- include: xml.yml
+  tags: deploy
+  when: EDXAPP_XML_FROM_GIT
 
 # The next few tasks set up the python code sandbox
 
@@ -220,7 +290,7 @@
     requirements="{{sandbox_base_requirements}}"
     virtualenv="{{edxapp_sandbox_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors"
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   notify:
@@ -231,7 +301,7 @@
 
 - name: code sandbox | Install sandbox requirements into sandbox venv
   shell: >
-    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ sandbox_local_requirements }}"
@@ -253,7 +323,7 @@
   - edxapp-sandbox
 
 - name: compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall {{ edxapp_code_dir }}"
+  shell: "{{ edxapp_venv_bin }}/python -m compileall -x .git/.* {{ edxapp_code_dir }}"
   sudo_user: "{{ edxapp_user }}"
   notify:
   - "restart edxapp"
@@ -289,6 +359,9 @@
 # service variants configured, runs
 # gather_assets and db migrations
 - include: service_variant_config.yml
+  tags:
+    - service_variant_config
+    - deploy
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -300,7 +373,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
-  when: not devstack
+  when: not disable_edx_services
 
 - name: ensure edxapp has started
   supervisorctl_local: >
@@ -309,7 +382,7 @@
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
-  when: celery_worker is not defined and not devstack
+  when: celery_worker is not defined and not disable_edx_services
   with_items: service_variants_enabled
 
 - name: ensure edxapp_workers has started
@@ -318,18 +391,30 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: celery_worker is defined and not devstack
+  when: celery_worker is defined and not disable_edx_services
   with_items: edxapp_workers
   sudo_user: "{{ supervisor_service_user }}"
 
-- name: create a symlink for venv python
+- name: create symlinks from the venv bin dir
   file: >
     src="{{ edxapp_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.edxapp
+    dest={{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edxapp
     state=link
   with_items:
   - python
   - pip
+  - django-admin.py
 
+- name: create symlinks from the repo dir
+  file: >
+    src="{{ edxapp_code_dir }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edxapp
+    state=link
+  with_items:
+  - manage.py
+
+- name: remove read-only ssh key
+  file: path={{ edxapp_git_identity }} state=absent
+  when: EDXAPP_USE_GIT_IDENTITY
 
 - set_fact: edxapp_installed=true

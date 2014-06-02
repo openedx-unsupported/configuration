@@ -2,10 +2,22 @@
 
 - name: create supervisor scripts - discern, discern_celery
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} mode=0644
   sudo_user: "{{ supervisor_user }}"
   with_items: ['discern', 'discern_celery']
+
+- name: enable supervisor scripts - discern, discern_celery
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }}
+    state=link
+    force=yes
+    mode=0644
+  sudo_user: "{{ supervisor_user }}"
+  with_items: ['discern', 'discern_celery']
+  when: not disable_edx_services
 
 #Upload config files for django (auth and env)
 - name: create discern application config env.json file
@@ -21,20 +33,26 @@
     - restart discern
 
 - name: git checkout discern repo into discern_code_dir
-  git: dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_version }}
+  git: >
+    dest={{ discern_code_dir }} repo={{ discern_source_repo }} version={{ discern_version }}
+    accept_hostkey=yes
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
 
 - name: git checkout ease repo into discern_ease_code_dir
-  git: dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
+  git: >
+    dest={{ discern_ease_code_dir}} repo={{ discern_ease_source_repo }} version={{ discern_ease_version }}
+    accept_hostkey=yes
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
 
 #Numpy has to be a pre-requirement in order for scipy to build
 - name : install python pre-requirements for discern and ease
-  pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+  pip: >
+    requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
@@ -43,7 +61,9 @@
     - "{{ discern_ease_pre_requirements_file }}"
 
 - name : install python requirements for discern and ease
-  pip: requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+  pip: >
+    requirements={{item}} virtualenv={{ discern_venv_dir }} state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ discern_user }}"
   notify:
     - restart discern
@@ -104,6 +124,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout != ""
+  when: not disable_edx_services
 
 - name: ensure discern, discern_celery has started
   supervisorctl_local: >
@@ -114,6 +135,7 @@
   with_items:
   - discern
   - discern_celery
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >

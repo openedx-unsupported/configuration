@@ -20,7 +20,9 @@
   when: EDX_ANSIBLE_USE_GIT_IDENTITY
 
 - name: git checkout edx_ansible repo into edx_ansible_code_dir
-  git: dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
+  git: >
+    dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
+    accept_hostkey=yes
   sudo_user: "{{ edx_ansible_user }}"
   environment:
     GIT_SSH: "{{ edx_ansible_git_ssh }}"
@@ -30,7 +32,9 @@
   when: EDX_ANSIBLE_USE_GIT_IDENTITY
 
 - name : install edx_ansible venv requirements
-  pip: requirements="{{ edx_ansible_requirements_file }}" virtualenv="{{ edx_ansible_venv_dir }}" state=present
+  pip: >
+    requirements="{{ edx_ansible_requirements_file }}" virtualenv="{{ edx_ansible_venv_dir }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edx_ansible_user }}"
 
 - name: create update script
@@ -44,31 +48,29 @@
     dest={{ COMMON_BIN_DIR }}/update
     state=link
 
+- name: create a symlink for ansible-playbook
+  file: >
+    src={{ edx_ansible_venv_bin }}/ansible-playbook
+    dest={{ COMMON_BIN_DIR }}/ansible-playbook
+    state=link
+
+- name: create a symlink for the playbooks dir
+  file: >
+    src={{ edx_ansible_code_dir }}/playbooks
+    dest={{ COMMON_CFG_DIR }}/playbooks
+    state=link
+
 - name: dump all vars to yaml
   template: src=dumpall.yml.j2 dest={{ edx_ansible_var_file }} mode=0600
+  when: EDX_ANSIBLE_DUMP_VARS
 
-- name: clean up var file, removing all version vars
-  shell: sed -i -e "/{{item}}/d" {{ edx_ansible_var_file }}
-  with_items:
-    # deploy versions
-    - "^edx_platform_version:"
-    - "^edx_platform_commit:"
-    - "^xqueue_version:"
-    - "^forum_version:"
-    - "^xserver_version:"
-    - "^discern_ease_version:"
-    - "^ora_ease_version:"
-    - "^discern_version:"
-    - "^ora_version:"
-    - "^configuration_version:"
-    - "^ease_version:"
-    - "^certs_version:"
-    # other misc vars
-    - "^tags:"
-    - "^_original_file:"
-
-- name: create a symlink for var file
+- name: create symlink for config file
   file: >
     src={{ edx_ansible_var_file }}
     dest={{ COMMON_CFG_DIR }}/{{ edx_ansible_var_file|basename }}
     state=link
+  when: EDX_ANSIBLE_DUMP_VARS
+
+- name: clean up var file, removing all version vars and internal ansible vars (anything not caps)
+  shell: python -c "import yaml; y=yaml.load(open('{{ edx_ansible_var_file }}')); f=open('{{ edx_ansible_var_file }}', 'wb'); f.write(yaml.safe_dump({key:value for key,value in y.iteritems() if key.isupper()}, default_flow_style=False)); f.close();"
+  when: EDX_ANSIBLE_DUMP_VARS

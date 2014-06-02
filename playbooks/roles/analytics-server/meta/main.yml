@@ -1,10 +1,12 @@
 ---
 dependencies:
-  - {
-  role: automated,
-  automated_rbash_links: $as_automated_rbash_links,
-  autmoated_sudoers_dest: '99-automator-analytics-server',
-  automated_sudoers_template: 'roles/analytics-server/templates/etc/sudoers.d/99-automator-analytics-server.j2'
-  }
-
-
+  - role: user
+    user_info:
+    - name: "{{ AS_AUTOMATOR_NAME }}"
+      type: restricted
+      sudo_cmds: "{{ AS_AUTOMATOR_SUDO_CMDS }}"
+      authorized_keys: "{{ AS_AUTOMATOR_AUTHORIZED_KEYS }}"
+    user_rbash_links:
+      - /usr/bin/sudo
+      - /usr/bin/scp
+    when: AS_AUTOMATOR_AUTHORIZED_KEYS|length != 0

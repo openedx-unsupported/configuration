@@ -1,18 +1,10 @@
-# this gets all running prod webservers
-#- hosts: tag_environment_prod:&tag_function_webserver
-# or we can get subsets of them by name
-#- hosts: ~tag_Name_app(10|20)_prod
-- hosts: ~tag_Name_app(11|21)_prod
-## this is the test box
-#- hosts: ~tag_Name_app4_prod
-## you can also do security group, but don't do that
-#- hosts: security_group_edx-prod-EdxappServerSecurityGroup-NSKCQTMZIPQB
+# This uses variable expansion so you can select machine(s) from the command line
+# using the -e flag.  See README for instructions on how to use.
+- hosts: ~tag_Name_{{machine}}_prod
+  pre_tasks:
+  - fail: msg="This playbook only runnable on 'app' machines"
+    when: "'app' not in machine"
   sudo: True
-  vars_prompt:
-    - name: "migrate_db"
-      prompt: "Should this playbook run database migrations? (Type 'yes' to run, anything else to skip migrations)"
-      default: "no"
-      private: no
   vars:
     secure_dir: '../../../configuration-secure/ansible'
     # this indicates the path to site-specific (with precedence)

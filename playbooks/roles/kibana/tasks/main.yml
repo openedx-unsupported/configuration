@@ -1,0 +1,39 @@
+# requires:
+# - oraclejdk
+# - elasticsearch
+# - nginx
+---
+
+- name: Ensure app apt dependencies are installed
+  apt: pkg={{ item }} state=installed
+  with_items:
+    - python-software-properties
+    - git
+    - nginx
+
+- name: Ensure {{ kibana_app_dir }} exists
+  file: path={{ kibana_app_dir }} state=directory owner=root group=root mode=0755
+
+- name: Ensure subdirectories exist
+  file: path={{ kibana_app_dir }}/{{ item }} owner=root group=root mode=0755 state=directory
+  with_items:
+    - htdocs
+    - share
+
+- name: ensure we have the specified kibana release
+  get_url: url={{ kibana_url }} dest={{ kibana_app_dir }}/share/{{ kibana_file }}
+
+- name: extract
+  shell: >
+    chdir={{ kibana_app_dir }}/share
+    tar -xzvf {{ kibana_app_dir }}/share/{{ kibana_file }}
+    creates={{ kibana_app_dir }}/share/{{ kibana_file|replace('.tar.gz','') }}
+
+- name: install
+  shell: >
+    chdir={{ kibana_app_dir }}/share/{{ kibana_file|replace('.tar.gz','') }}
+    cp -R * {{ kibana_app_dir }}/htdocs/
+
+- name: copy config
+  template: src=config.js.j2 dest={{ kibana_app_dir }}/htdocs/config.js
+

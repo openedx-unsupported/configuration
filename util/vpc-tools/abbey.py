@@ -11,12 +11,11 @@ try:
     from boto.vpc import VPCConnection
     from boto.exception import NoAuthHandlerFound, EC2ResponseError
     from boto.sqs.message import RawMessage
+    from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
 except ImportError:
     print "boto required for script"
     sys.exit(1)
 
-from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, DuplicateKeyError
 from pprint import pprint
 
 AMI_TIMEOUT = 600  # time to wait for AMIs to complete
@@ -24,77 +23,6 @@ EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
 NUM_PLAYBOOKS = 2
-
-
-class MongoConnection:
-
-    def __init__(self):
-        try:
-            mongo = MongoClient(host=args.mongo_uri)
-        except ConnectionFailure:
-            print "Unable to connect to the mongo database specified"
-            sys.exit(1)
-
-        mongo_db = getattr(mongo, args.mongo_db)
-        if args.mongo_ami_collection not in mongo_db.collection_names():
-            mongo_db.create_collection(args.mongo_ami_collection)
-        if args.mongo_deployment_collection not in mongo_db.collection_names():
-            mongo_db.create_collection(args.mongo_deployment_collection)
-        self.mongo_ami = getattr(mongo_db, args.mongo_ami_collection)
-        self.mongo_deployment = getattr(
-            mongo_db, args.mongo_deployment_collection)
-
-    def update_ami(self, ami):
-        """
-        Creates a new document in the AMI
-        collection with the ami id as the
-        id
-        """
-
-        query = {
-            '_id': ami,
-            'play': args.play,
-            'env': args.environment,
-            'deployment': args.deployment,
-            'configuration_ref': args.configuration_version,
-            'configuration_secure_ref': args.configuration_secure_version,
-            'vars': git_refs,
-        }
-        try:
-            self.mongo_ami.insert(query)
-        except DuplicateKeyError:
-            if not args.noop:
-                print "Entry already exists for {}".format(ami)
-                raise
-
-    def update_deployment(self, ami):
-        """
-        Adds the built AMI to the deployment
-        collection
-        """
-        query = {'_id': args.jenkins_build}
-        deployment = self.mongo_deployment.find_one(query)
-        try:
-            deployment['plays'][args.play]['amis'][args.environment] = ami
-        except KeyError:
-            msg = "Unexpected document structure, couldn't write " +\
-                  "to path deployment['plays']['{}']['amis']['{}']"
-            print msg.format(args.play, args.environment)
-            pprint(deployment)
-            if args.noop:
-                deployment = {
-                    'plays': {
-                        args.play: {
-                            'amis': {
-                                args.environment: ami,
-                            },
-                        },
-                    },
-                }
-            else:
-                raise
-
-        self.mongo_deployment.save(deployment)
 
 
 class Unbuffered:
@@ -120,11 +48,13 @@ def parse_args():
     parser.add_argument('--noop', action='store_true',
                         help="don't actually run the cmds",
                         default=False)
-    parser.add_argument('--secure-vars', required=False,
-                        metavar="SECURE_VAR_FILE",
+    parser.add_argument('--secure-vars-file', required=False,
+                        metavar="SECURE_VAR_FILE", default=None,
                         help="path to secure-vars from the root of "
-                        "the secure repo (defaults to ansible/"
-                        "vars/DEPLOYMENT/ENVIRONMENT-DEPLOYMENT.yml)")
+                        "the secure repo. By default <deployment>.yml and "
+                        "<environment>-<deployment>.yml will be used if they "
+                        "exist in <secure-repo>/ansible/vars/. This secure file "
+                        "will be used in addition to these if they exist.")
     parser.add_argument('--stack-name',
                         help="defaults to ENVIRONMENT-DEPLOYMENT",
                         metavar="STACK_NAME",
@@ -132,6 +62,10 @@ def parse_args():
     parser.add_argument('-p', '--play',
                         help='play name without the yml extension',
                         metavar="PLAY", required=True)
+    parser.add_argument('--playbook-dir',
+                        help='directory to find playbooks in',
+                        default='configuration/playbooks/edx-east',
+                        metavar="PLAYBOOKDIR", required=False)
     parser.add_argument('-d', '--deployment', metavar="DEPLOYMENT",
                         required=True)
     parser.add_argument('-e', '--environment', metavar="ENVIRONMENT",
@@ -144,9 +78,6 @@ def parse_args():
                         help="path to extra var file", required=False)
     parser.add_argument('--refs', metavar="GIT_REFS_FILE",
                         help="path to a var file with app git refs", required=False)
-    parser.add_argument('-a', '--application', required=False,
-                        help="Application for subnet, defaults to admin",
-                        default="admin")
     parser.add_argument('--configuration-version', required=False,
                         help="configuration repo branch(no hashes)",
                         default="master")
@@ -156,11 +87,14 @@ def parse_args():
     parser.add_argument('--configuration-secure-repo', required=False,
                         default="git@github.com:edx-ops/prod-secure",
                         help="repo to use for the secure files")
-    parser.add_argument('-j', '--jenkins-build', required=False,
-                        help="jenkins build number to update")
-    parser.add_argument('-b', '--base-ami', required=False,
-                        help="ami to use as a base ami",
-                        default="ami-0568456c")
+    parser.add_argument('--configuration-private-version', required=False,
+                        help="configuration-private repo branch(no hashes)",
+                        default="master")
+    parser.add_argument('--configuration-private-repo', required=False,
+                        default="git@github.com:edx-ops/ansible-private",
+                        help="repo to use for private playbooks")
+    parser.add_argument('-c', '--cache-id', required=True,
+                        help="unique id to use as part of cache prefix")
     parser.add_argument('-i', '--identity', required=False,
                         help="path to identity file for pulling "
                              "down configuration-secure",
@@ -181,30 +115,34 @@ def parse_args():
                         default=5,
                         help="How long to delay message display from sqs "
                              "to ensure ordering")
-    parser.add_argument("--mongo-uri", required=False,
+    parser.add_argument("--hipchat-room-id", required=False,
                         default=None,
-                        help="Mongo uri for the host that contains"
-                             "the AMI collection")
-    parser.add_argument("--mongo-db", required=False,
-                        default="test",
-                        help="Mongo database")
-    parser.add_argument("--mongo-ami-collection", required=False,
-                        default="amis",
-                        help="Mongo ami collection")
-    parser.add_argument("--mongo-deployment-collection", required=False,
-                        default="deployment",
-                        help="Mongo deployment collection")
+                        help="The API ID of the Hipchat room to post"
+                             "status messages to")
+    parser.add_argument("--hipchat-api-token", required=False,
+                        default=None,
+                        help="The API token for Hipchat integration")
+    parser.add_argument("--root-vol-size", required=False,
+                        default=50,
+                        help="The size of the root volume to use for the "
+                             "abbey instance.")
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-b', '--base-ami', required=False,
+                       help="ami to use as a base ami",
+                       default="ami-0568456c")
+    group.add_argument('--blessed', action='store_true',
+                       help="Look up blessed ami for env-dep-play.",
+                       default=False)
 
     return parser.parse_args()
 
 
 def get_instance_sec_group(vpc_id):
 
-    security_group_id = None
-
     grp_details = ec2.get_all_security_groups(
         filters={
-            'vpc_id':vpc_id,
+            'vpc_id': vpc_id,
             'tag:play': args.play
         }
     )
@@ -214,6 +152,23 @@ def get_instance_sec_group(vpc_id):
             len(grp_details)))
 
     return grp_details[0].id
+
+
+def get_blessed_ami():
+    images = ec2.get_all_images(
+        filters={
+            'tag:environment': args.environment,
+            'tag:deployment': args.deployment,
+            'tag:play': args.play,
+            'tag:blessed': True
+        }
+    )
+
+    if len(images) != 1:
+        raise Exception("ERROR: Expected only one blessed ami, got {}\n".format(
+            len(images)))
+
+    return images[0].id
 
 
 def create_instance_args():
@@ -242,10 +197,10 @@ def create_instance_args():
     if args.identity:
         config_secure = 'true'
         with open(args.identity) as f:
-            identity_file = f.read()
+            identity_contents = f.read()
     else:
         config_secure = 'false'
-        identity_file = "dummy"
+        identity_contents = "dummy"
 
     user_data = """#!/bin/bash
 set -x
@@ -257,6 +212,7 @@ secure_identity="$base_dir/secure-identity"
 git_ssh="$base_dir/git_ssh.sh"
 configuration_version="{configuration_version}"
 configuration_secure_version="{configuration_secure_version}"
+configuration_private_version="{configuration_private_version}"
 environment="{environment}"
 deployment="{deployment}"
 play="{play}"
@@ -265,14 +221,18 @@ git_repo_name="configuration"
 git_repo="https://github.com/edx/$git_repo_name"
 git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name="{configuration_secure_repo_basename}"
-secure_vars_file="$base_dir/$git_repo_secure_name/{secure_vars}"
+git_repo_private="{configuration_private_repo}"
+git_repo_private_name=$(basename $git_repo_private .git)
+secure_vars_file={secure_vars_file}
+environment_deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{environment}-{deployment}.yml"
+deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{deployment}.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
 $(curl http://169.254.169.254/latest/meta-data/local-ipv4 2>/dev/null)
 instance_type=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-type 2>/dev/null)
-playbook_dir="$base_dir/configuration/playbooks/edx-east"
+playbook_dir="$base_dir/{playbook_dir}"
 
 if $config_secure; then
     git_cmd="env GIT_SSH=$git_ssh git"
@@ -311,7 +271,7 @@ chmod 755 $git_ssh
 
 if $config_secure; then
     cat << EOF > $secure_identity
-{identity_file}
+{identity_contents}
 EOF
 fi
 
@@ -324,23 +284,20 @@ cat << EOF >> $extra_vars
 
 {git_refs_yml}
 
-# path to local checkout of
-# the secure repo
-secure_vars: $secure_vars_file
-
-# The private key used for pulling down
-# private edx-platform repos is the same
-# identity of the github huser that has
-# access to the secure vars repo.
-# EDXAPP_USE_GIT_IDENTITY needs to be set
-# to true in the extra vars for this
-# variable to be used.
-EDXAPP_LOCAL_GIT_IDENTITY: $secure_identity
-
 # abbey will always run fake migrations
 # this is so that the application can come
 # up healthy
 fake_migrations: true
+
+# Use the build number an the dynamic cache key.
+EDXAPP_UPDATE_STATIC_FILES_KEY: true
+edxapp_dynamic_cache_key: {deployment}-{environment}-{play}-{cache_id}
+
+disable_edx_services: true
+
+# abbey should never take instances in
+# and out of elbs
+elb_pre_post: false
 EOF
 
 chmod 400 $secure_identity
@@ -357,13 +314,35 @@ if $config_secure; then
     cd $base_dir
 fi
 
+if [[ ! -z $git_repo_private ]]; then
+    $git_cmd clone $git_repo_private $git_repo_private_name
+    cd $git_repo_private_name
+    $git_cmd checkout $configuration_private_version
+    cd $base_dir
+fi
+
+
 cd $base_dir/$git_repo_name
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
 
-ansible-playbook -vvvv -c local -i "localhost," $play.yml -e@$extra_vars
-ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml -e@$extra_vars
+if [[ -r "$deployment_secure_vars" ]]; then
+    extra_args_opts+=" -e@$deployment_secure_vars"
+fi
+
+if [[ -r "$environment_deployment_secure_vars" ]]; then
+    extra_args_opts+=" -e@$environment_deployment_secure_vars"
+fi
+
+if $secure_vars_file; then
+    extra_args_opts+=" -e@$secure_vars_file"
+fi
+
+extra_args_opts+=" -e@$extra_vars"
+
+ansible-playbook -vvvv -c local -i "localhost," $play.yml $extra_args_opts
+ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml $extra_args_opts
 
 rm -rf $base_dir
 
@@ -373,25 +352,33 @@ rm -rf $base_dir
                 configuration_secure_repo=args.configuration_secure_repo,
                 configuration_secure_repo_basename=os.path.basename(
                     args.configuration_secure_repo),
+                configuration_private_version=args.configuration_private_version,
+                configuration_private_repo=args.configuration_private_repo,
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play,
+                playbook_dir=args.playbook_dir,
                 config_secure=config_secure,
-                identity_file=identity_file,
+                identity_contents=identity_contents,
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
                 git_refs_yml=git_refs_yml,
-                secure_vars=secure_vars)
+                secure_vars_file=secure_vars_file,
+                cache_id=args.cache_id)
+
+    mapping = BlockDeviceMapping()
+    root_vol = BlockDeviceType(size=args.root_vol_size)
+    mapping['/dev/sda1'] = root_vol
 
     ec2_args = {
         'security_group_ids': [security_group_id],
         'subnet_id': subnet_id,
         'key_name': args.keypair,
-        'image_id': args.base_ami,
+        'image_id': base_ami,
         'instance_type': args.instance_type,
         'instance_profile_name': args.role_name,
         'user_data': user_data,
-
+        'block_device_map': mapping,
     }
 
     return ec2_args
@@ -446,7 +433,7 @@ def poll_sqs_ansible():
         now = int(time.time())
         if buf:
             try:
-                if (now - max([msg['recv_ts'] for msg in buf])) > args.msg_delay:
+                if (now - min([msg['recv_ts'] for msg in buf])) > args.msg_delay:
                     # sort by TS instead of recv_ts
                     # because the sqs timestamp is not as
                     # accurate
@@ -520,12 +507,32 @@ def create_ami(instance_id, name, description):
               'description': description,
               'no_reboot': True}
 
+    AWS_API_WAIT_TIME = 1
     image_id = ec2.create_image(**params)
-
+    print("Checking if image is ready.")
     for _ in xrange(AMI_TIMEOUT):
         try:
             img = ec2.get_image(image_id)
             if img.state == 'available':
+                print("Tagging image.")
+                img.add_tag("environment", args.environment)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("deployment", args.deployment)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("play", args.play)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("configuration_ref", args.configuration_version)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("configuration_secure_ref", args.configuration_secure_version)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("cache_id", args.cache_id)
+                time.sleep(AWS_API_WAIT_TIME)
+                for repo, ref in git_refs.items():
+                    key = "refs:{}".format(repo)
+                    img.add_tag(key, ref)
+                    time.sleep(AWS_API_WAIT_TIME)
                 break
             else:
                 time.sleep(1)
@@ -631,6 +638,18 @@ def launch_and_configure(ec2_args):
 
     return run_summary, ami
 
+
+def send_hipchat_message(message):
+    #If hipchat is configured send the details to the specified room
+    if args.hipchat_api_token and args.hipchat_room_id:
+        import hipchat
+        try:
+            hipchat = hipchat.HipChat(token=args.hipchat_api_token)
+            hipchat.message_room(args.hipchat_room_id, 'AbbeyNormal',
+                                 message)
+        except Exception as e:
+            print("Hipchat messaging resulted in an error: %s." % e)
+
 if __name__ == '__main__':
 
     args = parse_args()
@@ -655,32 +674,41 @@ if __name__ == '__main__':
         git_refs_yml = ""
         git_refs = {}
 
-    if args.secure_vars:
-        secure_vars = args.secure_vars
+    if args.secure_vars_file:
+        # explicit path to a single
+        # secure var file
+        secure_vars_file = args.secure_vars_file
     else:
-        secure_vars = "ansible/vars/{}/{}-{}.yml".format(
-                      args.environment, args.environment, args.deployment)
+        secure_vars_file = 'false'
+
     if args.stack_name:
         stack_name = args.stack_name
     else:
         stack_name = "{}-{}".format(args.environment, args.deployment)
 
     try:
-        sqs = boto.sqs.connect_to_region(args.region)
         ec2 = boto.ec2.connect_to_region(args.region)
     except NoAuthHandlerFound:
-        print 'You must be able to connect to sqs and ec2 to use this script'
+        print 'Unable to connect to ec2 in region :{}'.format(args.region)
         sys.exit(1)
 
-    if args.mongo_uri:
-        mongo_con = MongoConnection()
+    try:
+        sqs = boto.sqs.connect_to_region(args.region)
+    except NoAuthHandlerFound:
+        print 'Unable to connect to sqs in region :{}'.format(args.region)
+        sys.exit(1)
+
+    if args.blessed:
+        base_ami = get_blessed_ami()
+    else:
+        base_ami = args.base_ami
 
     try:
         sqs_queue = None
         instance_id = None
 
-        run_id = "abbey-{}-{}-{}".format(
-            args.environment, args.deployment, int(time.time() * 100))
+        run_id = "{}-abbey-{}-{}-{}".format(
+            int(time.time() * 100), args.environment, args.deployment, args.play)
 
         ec2_args = create_instance_args()
 
@@ -698,9 +726,22 @@ if __name__ == '__main__':
                 print "{:<30} {:0>2.0f}:{:0>5.2f}".format(
                     run[0], run[1] / 60, run[1] % 60)
             print "AMI: {}".format(ami)
-        if args.mongo_uri:
-            mongo_con.update_ami(ami)
-            mongo_con.update_deployment(ami)
+
+            message = 'Finished baking AMI {image_id} for {environment} {deployment} {play}.'.format(
+                image_id=ami,
+                environment=args.environment,
+                deployment=args.deployment,
+                play=args.play)
+
+            send_hipchat_message(message)
+    except Exception as e:
+        message = 'An error occurred building AMI for {environment} ' \
+            '{deployment} {play}.  The Exception was {exception}'.format(
+                environment=args.environment,
+                deployment=args.deployment,
+                play=args.play,
+                exception=repr(e))
+        send_hipchat_message(message)
     finally:
         print
         if not args.no_cleanup and not args.noop:

@@ -1,12 +1,23 @@
 - name: create supervisor scripts - ora, ora_celery
   template: >
-    src={{ item }}.conf.j2 dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  with_items: ['ora', 'ora_celery']
+
+- name: enable supervisor scripts - ora, ora_celery
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    state=link
+    force=yes
+    owner={{ supervisor_user }}
+    group={{ common_web_user }}
+    mode=0644
   notify:
     - restart ora
     - restart ora_celery
   with_items: ['ora', 'ora_celery']
-  when: not devstack
+  when: not disable_edx_services
 
 - include: ease.yml
 
@@ -29,7 +40,9 @@
 
 # Do A Checkout
 - name: git checkout ora repo into {{ ora_app_dir }}
-  git: dest={{ ora_code_dir }} repo={{ ora_source_repo }} version={{ ora_version }}
+  git: >
+    dest={{ ora_code_dir }} repo={{ ora_source_repo }} version={{ ora_version }}
+    accept_hostkey=yes
   sudo_user: "{{ ora_user }}"
   notify:
     - restart ora
@@ -41,7 +54,9 @@
 
 # Install the python pre requirements into {{ ora_venv_dir }}
 - name: install python pre-requirements
-  pip: requirements="{{ ora_pre_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
+  pip: >
+    requirements="{{ ora_pre_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ ora_user }}"
   notify:
     - restart ora
@@ -49,7 +64,9 @@
 
 # Install the python post requirements into {{ ora_venv_dir }}
 - name: install python post-requirements
-  pip: requirements="{{ ora_post_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
+  pip: >
+    requirements="{{ ora_post_requirements_file }}" virtualenv="{{ ora_venv_dir }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ ora_user }}"
   notify:
     - restart ora
@@ -86,7 +103,7 @@
 - name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  when: not devstack
+  when: not disable_edx_services
   changed_when: supervisor_update.stdout != ""
 
 - name: ensure ora is started
@@ -95,7 +112,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: not disable_edx_services
 
 - name: ensure ora_celery is started
   supervisorctl_local: >
@@ -103,7 +120,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  when: not devstack
+  when: not disable_edx_services
 
 - name: create a symlink for venv python
   file: >

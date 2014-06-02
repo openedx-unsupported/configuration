@@ -51,6 +51,11 @@
   notify:
     - restart Jenkins
 
+# Using this instead of the user module because the user module
+# fails if the directory exists.
+- name: set home directory for jenkins user
+  shell: usermod -d {{jenkins_home}} {{jenkins_user}}
+
 - name: make plugins directory
   sudo_user: jenkins
   shell: mkdir -p {{ jenkins_home }}/plugins
@@ -79,7 +84,9 @@
 # upstream, we may be able to use the regular plugin install process.
 # Until then, we compile and install the forks ourselves.
 - name: checkout custom plugin repo
-  git: repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
+  git: >
+    repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
+    accept_hostkey=yes
   with_items: jenkins_custom_plugins
 
 - name: compile custom plugins
