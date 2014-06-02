@@ -1,15 +1,15 @@
 [program:xqueue]
 
 {% if COMMON_ENABLE_NEWRELIC %}
-{% set executable = xqueue_venv_dir + '/bin/newrelic-admin run-program ' + xqueue_venv_dir + '/bin/gunicorn' %}
+{% set executable = xqueue_venv_bin + '/newrelic-admin run-program ' + xqueue_venv_bin + '/gunicorn' %}
 {% else %}
-{% set executable = xqueue_venv_dir + '/bin/gunicorn' %}
+{% set executable = xqueue_venv_bin + '/gunicorn' %}
 {% endif %}
 
 {% if ansible_processor|length > 0 %}
-command={{ xqueue_venv_bin }}/gunicorn --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ ansible_processor|length * 2 }} --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ ansible_processor|length * 2 }} --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
 {% else %}
-command={{ xqueue_venv_bin }}/gunicorn --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w 2 --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w 2 --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
 {% endif %}
 
 user={{ common_web_user }}
