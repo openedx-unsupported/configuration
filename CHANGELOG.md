@@ -1,4 +1,8 @@
 - Role: Edxapp
+  - Turn on code sandboxing by default and allow the jailed code to be able to write
+    files to the tmp directory created for it by codejail.
+
+- Role: Edxapp
   - The repo.txt requirements file is no longer being processed in anyway.  This file was removed from edxplatform
     via pull #3487(https://github.com/edx/edx-platform/pull/3487)
 
