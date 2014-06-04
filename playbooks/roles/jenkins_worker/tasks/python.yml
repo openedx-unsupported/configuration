@@ -44,3 +44,27 @@
   template:
     src=wheel_venv.sh.j2 dest={{ jenkins_home }}/wheel_venv.sh
     owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+
+# Run the wheel_venv.sh script for the first time
+# This was previously done in the Jenkins global
+# configuration as part of the AMI Init script.
+# Moving here so that we can archive a clean snapshot
+# of the virtualenv with only the defined packages
+# from jenkins_wheels.
+- name: Run the wheel_venv.sh script
+  command: >
+    ./wheel_venv.sh edx-venv
+    chdir={{ jenkins_home }}
+    creates={{ jenkins_home }}/edx-venv
+  sudo_user: "{{ jenkins_user }}"
+
+# Archive the current state of the virtualenv
+# as a starting point for new builds.
+# The edx-venv directory is deleted and then recreated
+# cleanly from the archive by the jenkins build scripts.
+- name: Create a clean virtualenv archive
+  command: >
+    tar -cpzf edx-venv_clean.tar.gz edx-venv
+    chdir={{ jenkins_home }}
+    creates={{ jenkins_home }}/edx-venv_clean.tar.gz
+  sudo_user: "{{ jenkins_user }}"

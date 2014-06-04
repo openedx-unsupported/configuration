@@ -28,6 +28,7 @@
       sudo_user: "{{ edxapp_user }}"
       notify:
         - "restart edxapp"
+        - "restart workers"
 
     - name: syncdb and migrate
       shell: >
@@ -38,10 +39,11 @@
         DB_MIGRATION_PASS: "{{ edxapp_mysql_password }}"
       notify:
         - "restart edxapp"
+        - "restart workers"
 
   handlers:
     - name: restart edxapp
-      shell: "{{ supervisorctl_path }} restart edxapp:{{ item }}"
-      with_items:
-        - lms
-        - cms
+      shell: "{{ supervisorctl_path }} restart edxapp:"
+
+    - name: restart workers
+      shell: "{{ supervisorctl_path }} restart edxapp_worker:"

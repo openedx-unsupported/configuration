@@ -115,10 +115,12 @@ $extra_vars
 EOF
 
 if [[ $basic_auth == "true" ]]; then
-
+    # vars specific to provisioning added to $extra-vars
     cat << EOF_AUTH >> $extra_vars_file
 NGINX_HTPASSWD_USER: $auth_user
 NGINX_HTPASSWD_PASS: $auth_pass
+XQUEUE_BASIC_AUTH_USER: $auth_user
+XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
 fi
 
@@ -163,7 +165,10 @@ COMMON_USER_INFO:
   - name: ${github_username}
     github: true
     type: admin
+dns_zone: $dns_zone
+rabbitmq_refresh: True
 USER_CMD_PROMPT: '[$name_tag] '
+elb: $elb
 EOF
     fi
 
@@ -192,7 +197,6 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
     cat $extra_vars_file
     ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu 
 fi
-
 
 if [[ $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected

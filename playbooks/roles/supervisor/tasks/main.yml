@@ -94,10 +94,10 @@
 
 - name: install supervisor in its venv
   pip: >
-    name=boto virtualenv="{{supervisor_venv_dir}}" state=present
+    name={{ item }} virtualenv="{{supervisor_venv_dir}}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ supervisor_user }}"
-  when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+  with_items: supervisor_pip_pkgs
 
 - name: create supervisor upstart job
   template: >

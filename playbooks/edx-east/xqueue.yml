@@ -3,9 +3,26 @@
   sudo: True
   gather_facts: True
   vars:
-    ENABLE_DATADOG: False
-    ENABLE_SPLUNKFORWARDER: False
-    ENABLE_NEWRELIC: False
+    # By default take instances in and out of the elb(s) they
+    # are attached to
+    # To skip elb operations use "-e elb_pre_post=fase"
+    elb_pre_post: true
+    # Number of instances to operate on at a time
+    serial_count: 1
+  serial: "{{ serial_count }}"
+  pre_tasks:
+    - action: ec2_facts
+      when: elb_pre_post
+    - debug: var="{{ ansible_ec2_instance_id }}"
+      when: elb_pre_post
+    - name: Instance De-register
+      local_action: ec2_elb_local_1.6.2
+      args:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        region: us-east-1
+        state: absent
+      sudo: False
+      when: elb_pre_post
   roles:
     - aws
     - role: nginx
@@ -13,8 +30,21 @@
       - xqueue
     - role: xqueue
     - role: datadog
-      when: ENABLE_DATADOG
+      when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder
-      when: ENABLE_SPLUNKFORWARDER
+      when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
-      when: ENABLE_NEWRELIC
+      when: COMMON_ENABLE_NEWRELIC
+  post_tasks:
+    - debug: var="{{ ansible_ec2_instance_id }}"
+      when: elb_pre_post
+    - name: Register instance in the elb
+      local_action: ec2_elb_local_1.6.2
+      args:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        ec2_elbs: "{{ item }}"
+        region: us-east-1
+        state: present
+      with_items: ec2_elbs
+      sudo: False
+      when: elb_pre_post
