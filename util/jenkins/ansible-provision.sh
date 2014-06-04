@@ -79,7 +79,7 @@ if [[ -z $ami ]]; then
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="m3.medium"
+  instance_type="m1.medium"
 fi
 
 deploy_host="${dns_name}.${dns_zone}"
