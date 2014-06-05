@@ -103,7 +103,21 @@
   # Remove some of the default motd display on ubuntu
   # and add a custom motd.  These do not require an
   # ssh restart
-- name: update the ssh motd on Ubuntu
+
+- name: check for certin motd scripts
+  stat: path={{ item }}
+  with_items:
+  - "/etc/update-motd.d/10-help-text"
+  - "/usr/share/landscape/landscape-sysinfo.wrapper"
+  - "/etc/update-motd.d/51-cloudguest"
+  - "/etc/update-motd.d/91-release-upgrade"
+  register: check_path
+
+- name: It exists?
+  debug: msg='Yay, the path exists!'
+  when: check_path.stat.exists == True
+
+- name: update some motd scripts on Ubuntu
   file: >
     mode=0644
     path={{ item }}
@@ -112,11 +126,19 @@
   - "/usr/share/landscape/landscape-sysinfo.wrapper"
   - "/etc/update-motd.d/51-cloudguest"
   - "/etc/update-motd.d/91-release-upgrade"
+  when: check_path.stat.exists == True
 
-- name: add ssh-warning banner motd
+- name: add ssh motd banner
   template: >
     dest=/etc/motd.tail
     src={{ COMMON_MOTD_TEMPLATE }} mode=0755 owner=root group=root
+
+- name: add 99-footer script if needed
+  copy: >
+    src=etc/update-motd.d/99-footer
+    dest=/etc/update-motd.d/99-footer
+    mode=0755
+    force=no
 
 - name: update ssh config
   template: >
