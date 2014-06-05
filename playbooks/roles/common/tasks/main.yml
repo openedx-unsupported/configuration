@@ -15,6 +15,12 @@
     - "{{ COMMON_BIN_DIR }}"
     - "{{ COMMON_CFG_DIR }}"
 
+# Determine if machine is provisioned via vagrant
+# Some EC2-specific steps would need to be skipped
+- name: check if instance is vagrant
+  stat: path=/home/vagrant
+  register: vagrant_home_dir
+
 # Need to install python-pycurl to use Ansible's apt_repository module
 - name: Install python-pycurl
   apt: pkg=python-pycurl state=present update_cache=yes
@@ -103,10 +109,12 @@
   # Remove some of the default motd display on ubuntu
   # and add a custom motd.  These do not require an
   # ssh restart
+  # Only needed for EC2 instances.
 - name: update the ssh motd on Ubuntu
   file: >
     mode=0644
     path={{ item }}
+  when: vagrant_home_dir.stat.exists == false
   with_items:
   - "/etc/update-motd.d/10-help-text"
   - "/usr/share/landscape/landscape-sysinfo.wrapper"
