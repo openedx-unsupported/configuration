@@ -34,9 +34,8 @@
 
 - name: put code jail into aa-complain
   command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
-  when: CODE_JAIL_COMPLAIN
   with_items: XQWATCHER_COURSES
-  
+
 - name: create jail virtualenv
   shell: >
     /usr/local/bin/virtualenv --no-site-packages {{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
@@ -55,6 +54,7 @@
     virtualenv="{{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
     state=present
     extra_args="{{ XQWATCHER_PIP_EXTRA_ARGS }}"
+  with_items: XQWATCHER_COURSES
 
 - name: give other read permissions to the virtualenv
   shell: >
@@ -66,6 +66,15 @@
 
 - name: load code sandbox profile
   command: apparmor_parser -r "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  with_items: XQWATCHER_COURSES
+
+#
+# Leaves aa in either complain or enforce depending upon the value of the
+# CODE_JAIL_COMPLAIN var.  Complain mode should never be run in an
+# environment where untrusted users can submit code
+- name: put code jail into aa-complain
+  command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  when: CODE_JAIL_COMPLAIN
   with_items: XQWATCHER_COURSES
 
 - name: put code sandbox into aa-enforce
