@@ -127,6 +127,33 @@ XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
 fi
 
+if [[ $edx_internal == "true" ]]; then
+    # if this isn't a public server add the github
+    # user and set edx_internal to True so that
+    # xserver is installed
+    cat << EOF >> $extra_vars_file
+EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
+EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_CMS_BASE: studio.${deploy_host}
+EDXAPP_SITE_NAME: ${deploy_host}
+CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
+CERTS_VERIFY_URL: "http://${deploy_host}:18090"
+edx_internal: True
+COMMON_USER_INFO:
+  - name: ${github_username}
+    github: true
+    type: admin
+USER_CMD_PROMPT: '[$name_tag] '
+COMMON_ENABLE_NEWRELIC: $enable_monitoring
+COMMON_ENABLE_DATADOG: $enable_monitoring
+FORUM_NEW_RELIC_ENABLE: $enable_monitoring
+EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
+EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
+XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
+FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
+EOF
+fi
+
 
 if [[ $recreate == "true" ]]; then
     # vars specific to provisioning added to $extra-vars
@@ -152,35 +179,6 @@ rabbitmq_refresh: True
 elb: $elb
 EOF
 
-    if [[ $edx_internal == "true" ]]; then
-        # if this isn't a public server add the github
-        # user and set edx_internal to True so that
-        # xserver is installed
-        cat << EOF >> $extra_vars_file
-EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
-EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio.${deploy_host}
-EDXAPP_SITE_NAME: ${deploy_host}
-CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-CERTS_VERIFY_URL: "http://${deploy_host}:18090"
-edx_internal: True
-COMMON_USER_INFO:
-  - name: ${github_username}
-    github: true
-    type: admin
-dns_zone: $dns_zone
-rabbitmq_refresh: True
-USER_CMD_PROMPT: '[$name_tag] '
-elb: $elb
-COMMON_ENABLE_NEWRELIC: $enable_monitoring
-COMMON_ENABLE_DATADOG: $enable_monitoring
-FORUM_NEW_RELIC_ENABLE: $enable_monitoring
-EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
-EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
-XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
-FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
-EOF
-    fi
 
 
     # run the tasks to launch an ec2 instance from AMI
