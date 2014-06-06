@@ -106,7 +106,7 @@ migrate_db: "yes"
 openid_workaround: True
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
-COMMON_HOSTNAME: edx-server
+COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 
