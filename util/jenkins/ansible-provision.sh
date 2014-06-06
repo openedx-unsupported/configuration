@@ -82,6 +82,10 @@ if [[ -z $instance_type ]]; then
   instance_type="m1.medium"
 fi
 
+if [[ -z $enable_monitoring ]]; then
+  enable_monitoring="false"
+fi
+
 deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
@@ -109,7 +113,6 @@ rabbitmq_refresh: True
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
-
 # User provided extra vars
 $extra_vars
 EOF
@@ -169,6 +172,13 @@ dns_zone: $dns_zone
 rabbitmq_refresh: True
 USER_CMD_PROMPT: '[$name_tag] '
 elb: $elb
+COMMON_ENABLE_NEWRELIC: $enable_monitoring
+COMMON_ENABLE_DATADOG: $enable_monitoring
+FORUM_NEW_RELIC_ENABLE: $enable_monitoring
+EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
+EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
+XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
+FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 EOF
     fi
 
