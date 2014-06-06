@@ -17,7 +17,7 @@
 # - dns_name
 # - environment
 # - name_tag
-
+env 
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
