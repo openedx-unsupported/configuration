@@ -1,0 +1,161 @@
+- name: Add resources for the XQWatcher
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+    lc_name: "XQWatcherLaunchConfiguration"
+    lc_ami: "ami-d0f89fb9"
+    instance_type: "m3-medium"
+    instance_volume_size: 100
+    
+  tasks:
+
+    - name: Create security group
+      ec2_group:
+        profile: {{ profile }}
+        name: XQWatcherServerSecurityGroup
+        vpc_id: {{ vpc_id }}
+        rules:
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: {{ item }}
+      with_items:
+        - "18.4.102.0/24"
+    - name: Created the launch configuration
+      ec2_lc:
+        profile: {{ profile }}
+        name: {{ lc_name }}
+        image_id: {{ lc_ami }}
+        key_name: sandbox
+        security_groups: 'foo'
+        instance_type: {{ instance_type }}
+        volumes:
+          - device_name: "/dev/sda1"
+            size: 100
+
+    - name: Update VPC
+      ecs_vpc:
+
+
+        subnets:
+          - cidr: 10.3.0.0/24
+            az: us-east-1b
+            resource_tags: {
+              "immutable_metadata":"{'purpose':'stage-edx-external','target':'ec2'}","autostack":"true",
+                }`
+          - cidr: 10.3.1.0/24
+            az: us-east-1c
+            resource_tags: {
+              "autostack":"true","immutable_metadata":"{'purpose':'stage-edx-external','target':'ec2'}",
+              }
+          - cidr: 10.3.10.0/24
+            az: us-east-1b
+            resource_tags: {
+              "autostack":"true","play":"edxapp","immutable_metadata":"{'purpose':'stage-edx-internal-edxapp','target':'ec2'}","Network":"Private",
+              }
+          - cidr: 10.3.11.0/24
+            az: us-east-1c
+            resource_tags: {
+              "Network":"Private","autostack":"true","immutable_metadata":"{'purpose':'stage-edx-internal-edxapp','target':'ec2'}","play":"edxapp",
+              }
+          - cidr: 10.3.20.0/24
+            az: us-east-1b
+            resource_tags: {
+              "Network":"Private","immutable_metadata":"{'purpose':'stage-edx-internal-xserver','target':'ec2'}","play":"xserver","autostack":"true",
+              }
+          - cidr: 10.3.21.0/24
+            az: us-east-1c
+            resource_tags: {
+              "Network":"Private","immutable_metadata":"{'purpose':'stage-edx-internal-xserver','target':'ec2'}","play":"xserver","autostack":"true",
+              }
+          - cidr: 10.3.30.0/24
+            az: us-east-1b
+            resource_tags: {
+              "autostack":"true","play":"xqwatcher","immutable_metadata":"{'purpose':'stage-edx-internal-xqwatcher','target':'ec2'}","Network":"Private",
+              }
+          - cidr: 10.3.31.0/24
+            az: us-east-1c
+            resource_tags: {
+              "autostack":"true","immutable_metadata":"{'purpose':'stage-edx-internal-xqwatcher','target':'ec2'}","play":"xqwatcher","Network":"Private",
+              }
+          - cidr: 10.3.46.0/24
+            az: us-east-1b
+            resource_tags: {
+              "immutable_metadata":"{'purpose':'stage-edx-internal-commoncluster','target':'ec2'}","autostack":"true","play":"commoncluster","Network":"Private",
+              }
+          - cidr: 10.3.48.0/24
+            az: us-east-1d
+            resource_tags: {
+              "Network":"Private","autostack":"true","immutable_metadata":"{'purpose':'stage-edx-internal-commoncluster','target':'ec2'}","play":"commoncluster",
+              }
+          - cidr: 10.3.47.0/24
+            az: us-east-1c
+            resource_tags: {
+              "Network":"Private","autostack":"true","play":"commoncluster","immutable_metadata":"{'purpose':'stage-edx-internal-commoncluster','target':'ec2'}",
+              }
+          - cidr: 10.3.50.0/24
+            az: us-east-1b
+            resource_tags: {
+              "autostack":"true","Application":"RDS","Network":"Data",
+              }
+          - cidr: 10.3.51.0/24
+            az: us-east-1c
+            resource_tags: {
+              "Network":"Data","autostack":"true","Application":"RDS",
+              }
+          - cidr: 10.3.60.0/24
+            az: us-east-1b
+            resource_tags: {
+              "autostack":"true","Application":"Elasticache","Network":"Cache",
+              }
+          - cidr: 10.3.61.0/24
+            az: us-east-1c
+            resource_tags: {
+              "Application":"Elasticache","Network":"Cache","autostack":"true",
+              }
+          - cidr: 10.3.70.0/24
+            az: us-east-1b
+            resource_tags: {
+              "autostack":"true","immutable_metadata":"{'purpose':'stage-edx-internal-worker','target':'ec2'}","Network":"Private","play":"worker",
+              }
+          - cidr: 10.3.71.0/24
+            az: us-east-1c
+            resource_tags: {
+              "Network":"Private","autostack":"true","immutable_metadata":"{'purpose':'stage-edx-internal-worker','target':'ec2'}","play":"worker",
+              }
+          - cidr: 10.3.80.0/24
+            az: us-east-1b
+            resource_tags: {
+              "autostack":"true","Network":"Private","play":"forum","immutable_metadata":"{'purpose':'stage-edx-internal-forum','target':'ec2'}",
+              }
+          - cidr: 10.3.81.0/24
+            az: us-east-1c
+            resource_tags: {
+              "autostack":"true","immutable_metadata":"{'purpose':'stage-edx-internal-forum','target':'ec2'}","play":"forum","Network":"Private",
+              }
+          - cidr: 10.3.90.0/24
+            az: us-east-1b
+            resource_tags: {
+              "immutable_metadata":"{'purpose':'stage-edx-internal-mongo','target':'ec2'}","Network":"Private","Application":"mongo","autostack":"true",
+              }
+          - cidr: 10.3.91.0/24
+            az: us-east-1c
+            resource_tags: {
+              "immutable_metadata":"{'purpose':'stage-edx-internal-mongo','target':'ec2'}","autostack":"true","Application":"mongo","Network":"Private",
+              }
+          - cidr: 10.3.92.0/24
+            az: us-east-1d
+            resource_tags: {
+              "immutable_metadata":"{'purpose':'stage-edx-internal-mongo','target':'ec2'}","Network":"Private","autostack":"true","Application":"mongo",
+              }
+          - cidr: 10.3.100.0/24
+            az: us-east-1b
+            resource_tags: {
+              "immutable_metadata":"{'purpose':'stage-edx-internal-notifier','target':'ec2'}","play":"notifier","autostack":"true","Network":"Private",
+              }
+          - cidr: 10.3.200.0/24
+            az: us-east-1b
+            resource_tags: {
+              "Network":"Private","Application":"admin","autostack":"true",
+              }
