@@ -21,6 +21,15 @@ env
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
+if [[ -z $BUILD_USER ]]; then
+    BUILD_USER=jenkins
+fi
+
+if [[ -z $BUILD_USER_ID ]]; then
+    BUILD_USER_ID=edx-sandbox
+fi
+
+
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
