@@ -83,16 +83,16 @@
   git: >
     repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
     accept_hostkey=yes
-  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   sudo_user: "{{ rbenv_user }}"
 
 - name: install ruby-build
   command: ./install.sh chdir={{ tempdir.stdout }}/ruby-build
-  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
 
 - name: remove temporary directory
   file: path={{ tempdir.stdout }} state=absent
-  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
 
 - name: check ruby {{ rbenv_ruby_version }} installed
   shell: "rbenv versions | grep {{ rbenv_ruby_version }}"

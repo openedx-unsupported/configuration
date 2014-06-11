@@ -31,6 +31,10 @@ if [[ $run_migrations == "true" ]]; then
       ansible_extra_vars+=" -e migrate_db=yes"
 fi
 
+if [[ $check_mode == "true" ]]; then
+      ansible_extra_vars+=" --check"
+fi
+
 if [[ ! -z "$run_on_single_ip" ]]; then
     ansible_limit+="$run_on_single_ip"
 else
@@ -46,4 +50,4 @@ fi
 
 export PYTHONUNBUFFERED=1
 env
-ansible-playbook -v -u ubuntu $ansible_play -i ./ec2.py $ansible_task_tags --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment_tag}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml" $ansible_extra_vars 
+ansible-playbook -v -D -u ubuntu $ansible_play -i ./ec2.py $ansible_task_tags --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment_tag}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml" $ansible_extra_vars 

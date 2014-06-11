@@ -309,7 +309,7 @@
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   register: sandbox_install_output
-  changed_when: "'installed' in sandbox_install_output"
+  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -372,7 +372,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
 
 - name: ensure edxapp has started
