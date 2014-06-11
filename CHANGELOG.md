@@ -1,3 +1,6 @@
+- Role: xqwatcher, xqueue, nginx, edxapp, common
+  - Moving nginx basic authorization flag and credentials to the common role
+
 - Role: Edxapp
   - Turn on code sandboxing by default and allow the jailed code to be able to write
     files to the tmp directory created for it by codejail.
