@@ -30,7 +30,7 @@ pip install --exists-action w -r requirements/edx/local.txt
 cd $WORKSPACE/configuration/playbooks/edx-east
 
 if [[ -f ${WORKSPACE}/configuration-secure/ansible/vars/${environment}.yml ]]; then
-    extra_var_args+=" -e@${WORKSPACE}/configuration-secure/ansible/vars/${environment}.yml"
+    extra_var_args+=" -e@${WORKSPACE}/configuration-secure/ansible/vars/${deployment}.yml"
 fi
 
 if [[ $db_dry_run=="false" ]]; then
