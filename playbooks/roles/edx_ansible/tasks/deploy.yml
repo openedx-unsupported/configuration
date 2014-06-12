@@ -1,9 +1,35 @@
 ---
+
+# Optional auth for git
+- name: create ssh script for git (not authenticated)
+  template: >
+    src=git_ssh_noauth.sh.j2 dest={{ edx_ansible_git_ssh }}
+    owner={{ edx_ansible_user }} mode=750
+  when: not EDX_ANSIBLE_USE_GIT_IDENTITY
+
+- name: create ssh script for git (authenticated)
+  template: >
+    src=git_ssh_auth.sh.j2 dest={{ edx_ansible_git_ssh }}
+    owner={{ edx_ansible_user }} mode=750
+  when: EDX_ANSIBLE_USE_GIT_IDENTITY
+
+- name: install read-only ssh key
+  copy: >
+    src={{ EDX_ANSIBLE_LOCAL_GIT_IDENTITY }} dest={{ edx_ansible_git_identity }}
+    force=yes owner={{ edx_ansible_user }} mode=0600
+  when: EDX_ANSIBLE_USE_GIT_IDENTITY
+
 - name: git checkout edx_ansible repo into edx_ansible_code_dir
   git: >
     dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
     accept_hostkey=yes
   sudo_user: "{{ edx_ansible_user }}"
+  environment:
+    GIT_SSH: "{{ edx_ansible_git_ssh }}"
+
+- name: remove read-only ssh key
+  file: path={{ edx_ansible_git_identity }} state=absent
+  when: EDX_ANSIBLE_USE_GIT_IDENTITY
 
 - name : install edx_ansible venv requirements
   pip: >
