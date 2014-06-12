@@ -1,0 +1,56 @@
+#!/bin/bash
+
+read -p "Configure <%= name %>? !! WARNING !! this will overwrite previous config changes [Y/n]: " reconfig
+reconfig=${reconfig:-y}
+
+if [[ $reconfig =~ ^[Yy] ]]; then
+
+    read -p "Enter a mysql hostname for <%= name %> [localhost]: " db_host
+    db_host=${db_host:-localhost}
+
+    read -p "Enter a mysql port for <%= name %> [3306]: " db_port
+    db_port=${db_port:-3306}
+
+    read -p "Enter a mysql user for <%= name %> [root]: " db_user
+    db_user=${db_user:-root}
+
+    read -p "Enter a mysql password for <%= name %> [password]: " db_password
+    db_password=${db_password:-password}
+
+    read -p "Enter a mysql database for <%= name %> (will try to create if it doesn't exist) [xqueue]: " db_name
+    db_name=${db_name:-xqueue}
+
+    if ! mysql -u $db_user -p${db_password} -P $db_port -e "use ${db_name}" >/dev/null 2>&1; then
+      mysql -u $db_user -p${db_password} -P $db_port -e "CREATE DATABASE ${db_name} DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;"
+    fi
+
+        cat << EXTRA_EOF >{{ COMMON_CFG_DIR }}/xqueue.cfg
+export XQUEUE_MYSQL_DB_NAME=$db_name
+export XQUEUE_MYSQL_USER=$db_user
+export XQUEUE_MYSQL_PASSWORD=$db_password
+export XQUEUE_MYSQL_HOST=$db_host
+export XQUEUE_MYSQL_PORT=$db_port
+export DB_MIGRATION_PASS=$db_password
+export DB_MIGRATION_USER=$db_user
+export DB_MIGRATION_NAME=$db_name
+export DB_MIGRATION_HOST=$db_host
+export DB_MIGRATION_PORT=$db_port
+
+EXTRA_EOF
+
+fi
+
+source {{ xqueue_app_dir }}/xqueue_env
+echo "Migrating database"
+sudo -E -u {{ xqueue_user }} SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_settings_env --pythonpath={{ xqueue_code_dir }}
+echo "Creating xqueue users"
+sudo -E -u {{ xqueue_user }} SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.aws_settings_env --pythonpath={{ xqueue_code_dir }}
+
+echo "Updating supervisor config"
+{{ supervisor_ctl }} -c {{ supervisor_cfg }} update
+echo "Restarting xqueue"
+{{ supervisor_ctl }} -c {{ supervisor_cfg }} stop xqueue >/dev/null
+{{ supervisor_ctl }} -c {{ supervisor_cfg }} stop xqueue_consumer >/dev/null
+
+{{ supervisor_ctl }} -c {{ supervisor_cfg }} start xqueue
+{{ supervisor_ctl }} -c {{ supervisor_cfg }} start xqueue_consumer

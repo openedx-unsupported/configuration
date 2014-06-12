@@ -1,0 +1,33 @@
+
+fpm -s dir -t deb -n edx-base --description "edX base config" -v 1.0 -a native --deb-use-file-permissions \
+  --before-install /var/tmp/fpm-base.before \
+  --after-install /var/tmp/fpm-base.after \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude {{ exclude }} \
+  {% endfor -%}
+  --exclude "**/conf.d/**" \
+  --exclude "**/conf.available.d/**" \
+  {% for pkg in common_debian_pkgs -%}
+  -d {{ pkg }} \
+  {% endfor -%}
+  {% for pkg in nginx_debian_pkgs -%}
+  -d {{ pkg }} \
+  {% endfor -%}
+  /etc/sudoers.d/ssh_key_forward \
+  /etc/rsyslog.d/99-edx.conf \
+  /etc/logrotate.d/edx-services  \
+  /etc/logrotate.d/hourly/tracking.log \
+  /etc/cron.hourly/logrotate \
+  {{ supervisor_app_dir }} \
+  {{ supervisor_data_dir }} \
+  {{ supervisor_log_dir }} \
+  /opt/edx/etc/supervisord.conf \
+  /etc/init/supervisor.conf \
+  /opt/edx/bin/supervisorctl \
+  /etc/nginx/sites-available/lms \
+  /etc/nginx/sites-available/cms \
+  /etc/nginx/sites-available/xqueue \
+  /etc/nginx/sites-enabled/lms \
+  /etc/nginx/sites-enabled/cms \
+  /etc/nginx/nginx.htpasswd \
+  /etc/nginx/sites-enabled/xqueue

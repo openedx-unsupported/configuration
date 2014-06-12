@@ -3,7 +3,9 @@
     src={{ item }}.env.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.env.json
   sudo_user: "{{ edxapp_user }}"
-  tags: edxapp_cfg
+  tags:
+    - edxapp_cfg
+    - post_pkg
   with_items: service_variants_enabled
   notify:
   - "restart edxapp"
@@ -14,7 +16,9 @@
     src={{ item }}.auth.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
-  tags: edxapp_cfg
+  tags:
+    - edxapp_cfg
+    - post_pkg
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -89,6 +93,7 @@
   sudo_user: "{{ edxapp_user }}"
   environment:
     DB_MIGRATION_NAME: "{{ EDXAPP_TEST_MIGRATE_DB_NAME }}"
+  tags: post_pkg
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -99,6 +104,7 @@
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
   when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
+  tags: post_pkg
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
@@ -114,6 +120,7 @@
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
   when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and not COMMON_MYSQL_MIGRATE_PASS
+  tags: post_pkg
   environment:
     DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_MIGRATE }}"
     DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_MIGRATE }}"
@@ -132,6 +139,7 @@
     {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
   when: fake_migrations is defined and migrate_only is defined and migrate_only|lower == "yes"
   sudo_user: "{{ edxapp_user }}"
+  tags: post_pkg
   environment:
     DB_MIGRATION_NAME: "{{ EDXAPP_TEST_MIGRATE_DB_NAME }}"
   notify:
@@ -146,6 +154,7 @@
     chdir={{ edxapp_code_dir }}
     {{ edxapp_venv_bin}}/python manage.py lms migrate --noinput --settings=aws_migrate
   when: fake_migrations is not defined and migrate_only is defined and migrate_only|lower == "yes"
+  tags: post_pkg
   environment:
     DB_MIGRATION_USER: "{{ EDXAPP_MYSQL_USER_MIGRATE }}"
     DB_MIGRATION_PASS: "{{ EDXAPP_MYSQL_PASSWORD_MIGRATE }}"

@@ -35,6 +35,7 @@
   sudo_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
+  tags: pkg
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -373,6 +374,7 @@
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+  tags: post_pkg
   when: not disable_edx_services
 
 - name: ensure edxapp has started
@@ -382,6 +384,7 @@
     config={{ supervisor_cfg }}
     name="edxapp:{{ item }}"
   sudo_user: "{{ supervisor_service_user }}"
+  tags: post_pkg
   when: celery_worker is not defined and not disable_edx_services
   with_items: service_variants_enabled
 
@@ -393,6 +396,7 @@
     state=started
   when: celery_worker is defined and not disable_edx_services
   with_items: edxapp_workers
+  tags: post_pkg
   sudo_user: "{{ supervisor_service_user }}"
 
 - name: create symlinks from the venv bin dir
@@ -400,6 +404,7 @@
     src="{{ edxapp_venv_bin }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edxapp
     state=link
+  tags: post_pkg
   with_items:
   - python
   - pip
@@ -410,6 +415,7 @@
     src="{{ edxapp_code_dir }}/{{ item }}"
     dest={{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edxapp
     state=link
+  tags: post_pkg
   with_items:
   - manage.py
 

@@ -1,0 +1,53 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role create_pkg
+#
+# Overview:
+# Creates packages from edX single server installation
+#
+#
+
+- name: Install apt package dependencies
+  apt: pkg={{ item }}
+  with_items: create_pkg_debian_pkgs
+
+- name: Install fpm
+  shell: >
+    gem install fpm
+    creates=/usr/local/bin/fpm
+
+- name: Create fpm templates
+  template: >
+    src={{ item }}.sh.j2
+    dest=/var/tmp/{{ item }}.sh
+  with_items:
+    - fpm-base
+    - fpm-xqueue
+    - fpm-edxapp
+
+- name: Create fpm before scripts
+  template: >
+    src={{ item }}.before.j2
+    dest=/var/tmp/{{ item }}.before
+  with_items:
+    - fpm-base
+    - fpm-xqueue
+    - fpm-edxapp
+
+- name: Create fpm after scripts
+  template: >
+    src={{ item }}.after.j2
+    dest=/var/tmp/{{ item }}.after
+  with_items:
+    - fpm-base
+    - fpm-xqueue
+    - fpm-edxapp

@@ -1,0 +1,16 @@
+fpm -s dir -t deb -n edx-xqueue --description "edX xqueue service" -v 1.0 -a native --deb-use-file-permissions --template-scripts \
+  --before-install /var/tmp/fpm-xqueue.before \
+  --after-install /var/tmp/fpm-xqueue.after \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude {{ exclude }} \
+  {% endfor -%}
+  {% for pkg in xqueue_debian_pkgs -%}
+  -d {{ pkg }} \
+  {% endfor -%}
+  --config-files {{ xqueue_app_dir }}/xqueue.env.json    \
+  --config-files {{ xqueue_app_dir }}/xqueue.auth.json   \
+  {{ xqueue_app_dir }} \
+  /opt/edx/app/supervisor/conf.available.d/xqueue.conf \
+  /opt/edx/app/supervisor/conf.available.d/xqueue_consumer.conf \
+  /opt/edx/app/supervisor/conf.d/xqueue.conf \
+  /opt/edx/app/supervisor/conf.d/xqueue_consumer.conf

@@ -9,6 +9,7 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+  tags: pre_pkg
 
 - name: create edxapp user dirs
   file: >
@@ -66,5 +67,40 @@
 # Set up the python sandbox execution environment
 - include: python_sandbox_env.yml
   when: EDXAPP_PYTHON_SANDBOX
+
+
+- name: write out the lms env file
+  template: >
+    src=lms_env.j2 dest={{ edxapp_app_dir }}/lms_env
+    owner={{ edxapp_user }}  group={{ common_web_user }}
+    mode=0644
+  tags: pkg
+  notify:
+    - restart edxapp
+
+- name: write out the cms env file
+  template: >
+    src=cms_env.j2 dest={{ edxapp_app_dir }}/cms_env
+    owner={{ edxapp_user }}  group={{ common_web_user }}
+    mode=0644
+  tags: pkg
+  notify:
+    - restart edxapp
+
+- name: create the supervisor wrapper for lms
+  template: >
+    src={{ edxapp_lms_supervisor_wrapper|basename }}.j2
+    dest={{ edxapp_lms_supervisor_wrapper }}
+    owner={{ edxapp_user }}
+    mode=0755
+  notify: restart edxapp
+
+- name: create the supervisor wrapper for cms
+  template: >
+    src={{ edxapp_cms_supervisor_wrapper|basename }}.j2
+    dest={{ edxapp_cms_supervisor_wrapper }}
+    owner={{ edxapp_user }}
+    mode=0755
+  notify: restart edxapp
 
 - include: deploy.yml tags=deploy
