@@ -1,0 +1,22 @@
+fpm -s dir -t deb -n edx-edxapp --description "edX edxapp service" -v 1.0 -a native --deb-use-file-permissions --template-scripts \
+  --before-install /var/tmp/fpm-edxapp.before \
+  --after-install /var/tmp/fpm-edxapp.after \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude {{ exclude }} \
+  {% endfor -%}
+  {% for pkg in edxapp_debian_pkgs -%}
+  -d {{ pkg }} \
+  {% endfor -%}
+  --config-files {{ edxapp_app_dir }}/lms.env.json    \
+  --config-files {{ edxapp_app_dir }}/lms.auth.json   \
+  --config-files {{ edxapp_app_dir }}/cms.env.json    \
+  --config-files {{ edxapp_app_dir }}/cms.auth.json   \
+  {{ edxapp_app_dir }} \
+  {{ edxapp_data_dir }} \
+  /opt/edx/app/supervisor/conf.available.d/lms.conf \
+  /opt/edx/app/supervisor/conf.available.d/workers.conf \
+  /opt/edx/app/supervisor/conf.available.d/cms.conf \
+  /opt/edx/app/supervisor/conf.available.d/edxapp.conf \
+  /opt/edx/app/supervisor/conf.d/lms.conf \
+  /opt/edx/app/supervisor/conf.d/cms.conf \
+  /opt/edx/app/supervisor/conf.d/edxapp.conf

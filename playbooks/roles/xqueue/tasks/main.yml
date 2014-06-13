@@ -35,5 +35,28 @@
 - include: deploy.yml tags=deploy
 
 
+- name: setup the xqueue env
+  template: >
+    src=xqueue_env.j2 dest={{ xqueue_app_dir }}/xqueue_env
+    owner={{ xqueue_user }}  group={{ common_web_user }}
+    mode=0644
+  notify:
+    - restart xqueue
+
+- name: create the supervisor wrapper for xqueue
+  template: >
+    src={{ xqueue_supervisor_wrapper|basename }}.j2
+    dest={{ xqueue_supervisor_wrapper }}
+    mode=0755
+  sudo_user: "{{ xqueue_user }}"
+  notify: restart xqueue
+
+- name: create the supervisor wrapper for xqueue-consumer
+  template: >
+    src={{ xqueue_consumer_supervisor_wrapper|basename }}.j2
+    dest={{ xqueue_consumer_supervisor_wrapper }}
+    mode=0755
+  sudo_user: "{{ xqueue_user }}"
+  notify: restart xqueue
 
 

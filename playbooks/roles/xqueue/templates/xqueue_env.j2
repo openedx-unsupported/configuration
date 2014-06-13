@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+
+{% for name,value in xqueue_env_config.items() -%}
+{%- if value -%}
+export {{ name }}="{{ value }}"
+{% endif %}
+{%- endfor %}
+{% if COMMON_ENABLE_NEWRELIC %}
+export NEW_RELIC_APP_NAME={{ XQUEUE_NEWRELIC_APPNAME }}
+export NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }}
+{% endif -%}
+
+if [[ -f "{{ COMMON_CFG_DIR }}/xqueue.cfg" ]]; then
+  source  {{ COMMON_CFG_DIR }}/xqueue.cfg
+fi

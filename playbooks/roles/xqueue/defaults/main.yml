@@ -48,7 +48,8 @@ xqueue_user: "xqueue"
 # to serve all content on port 80
 xqueue_gunicorn_port: 8040
 xqueue_gunicorn_host: 127.0.0.1
-
+xqueue_supervisor_wrapper: "{{ xqueue_app_dir }}/xqueue-supervisor.sh"
+xqueue_consumer_supervisor_wrapper: "{{ xqueue_app_dir }}/xqueue-consumer-supervisor.sh"
 xqueue_env_config:
   XQUEUES: $XQUEUE_QUEUES
   XQUEUE_WORKERS_PER_QUEUE: 12
@@ -59,7 +60,12 @@ xqueue_env_config:
   S3_BUCKET : $XQUEUE_S3_BUCKET
   S3_PATH_PREFIX: $XQUEUE_S3_PATH_PREFIX
   LOCAL_LOGLEVEL: $XQUEUE_LOCAL_LOGLEVEL
-
+  DJANGO_SETTINGS_MODULE: xqueue.aws_settings_env
+  SERVICE_VARIANT: "xqueue"
+  PID: /var/tmp/xqueue.pid
+  PORT: "{{ xqueue_gunicorn_port }}"
+  ADDRESS: "{{ xqueue_gunicorn_host }}"
+  LANG: "{{ XQUEUE_LANG }}"
 xqueue_auth_config:
   AWS_ACCESS_KEY_ID:  $XQUEUE_AWS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY: $XQUEUE_AWS_SECRET_ACCESS_KEY
