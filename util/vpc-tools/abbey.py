@@ -245,9 +245,14 @@ SQS_NAME={queue_name}
 SQS_REGION=us-east-1
 SQS_MSG_PREFIX="[ $instance_id $instance_ip $environment-$deployment $play ]"
 PYTHONUNBUFFERED=1
-
+HIPCHAT_TOKEN={hipchat_token}
+HIPCHAT_ROOM={hipchat_room}
+HIPCHAT_MSG_PREFIX="$environment-$deployment-$play: "
+HIPCHAT_FROM="ansible-$instance_id"
+HIPCHAT_MSG_COLOR=$(echo -e "yellow\\ngreen\\npurple\\ngray" | shuf | head -1)
 # environment for ansible
 export ANSIBLE_ENABLE_SQS SQS_NAME SQS_REGION SQS_MSG_PREFIX PYTHONUNBUFFERED
+export HIPCHAT_TOKEN HIPCHAT_ROOM HIPCHAT_MSG_PREFIX HIPCHAT_FROM HIPCHAT_MSG_COLOR
 
 if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
     echo "Installing pkg dependencies"
@@ -347,6 +352,8 @@ ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml $extra
 rm -rf $base_dir
 
     """.format(
+                hipchat_token=args.hipchat_api_token,
+                hipchat_room=args.hipchat_room_id,
                 configuration_version=args.configuration_version,
                 configuration_secure_version=args.configuration_secure_version,
                 configuration_secure_repo=args.configuration_secure_repo,
