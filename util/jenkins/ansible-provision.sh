@@ -17,7 +17,7 @@
 # - dns_name
 # - environment
 # - name_tag
-env 
+env
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
@@ -84,6 +84,8 @@ if [[ -z $ami ]]; then
     ami="ami-97dbc3fe"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-59a4a230"
+  elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
+    ami="ami-408c7f28"
   fi
 fi
 
@@ -212,7 +214,7 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu 
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $server_type == "full_edx_installation" ]]; then
