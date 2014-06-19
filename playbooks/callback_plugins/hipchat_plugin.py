@@ -6,7 +6,6 @@ import random
 from ansible import utils
 
 
-
 class CallbackModule(object):
     """Send status updates to a HipChat channel during playbook execution.
 
@@ -38,7 +37,10 @@ class CallbackModule(object):
             self.room = os.getenv('HIPCHAT_ROOM', 'ansible')
             self.from_name = os.getenv('HIPCHAT_FROM', 'ansible')
             self.allow_notify = (os.getenv('HIPCHAT_NOTIFY') != 'false')
-            self.hipchat_conn = hipchat.HipChat(token=os.getenv('HIPCHAT_TOKEN'))
+            try:
+                self.hipchat_conn = hipchat.HipChat(token=os.getenv('HIPCHAT_TOKEN'))
+            except Exception as e:
+                utils.warning("Unable to connect to hipchat: {}".format(e))
             self.hipchat_msg_prefix = os.getenv('HIPCHAT_MSG_PREFIX', '')
             self.hipchat_msg_color = os.getenv('HIPCHAT_MSG_COLOR', '')
             self.printed_playbook = False
@@ -55,7 +57,10 @@ class CallbackModule(object):
             from_name = self.from_name
         if not color:
             color = self.hipchat_msg_color
-        self.hipchat_conn.message_room(room, from_name, message, color=color, message_format=message_format)
+        try:
+            self.hipchat_conn.message_room(room, from_name, message, color=color, message_format=message_format)
+        except Exception as e:
+            utils.warning("Could not submit message to hipchat: {}".format(e))
 
     def _flush_last_task(self):
         if self.last_task:
