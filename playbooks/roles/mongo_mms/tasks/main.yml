@@ -1,0 +1,36 @@
+---
+# mongo_mms
+#
+# Example play:
+#
+#   roles:
+#   - mongo_mms
+
+- fail: MMSAPIKEY is required
+  when: MMSAPIKEY is not defined 
+
+
+
+# this cruft can be removed in ansible 1.6, which can have apt install local deb files
+
+- name: download mongo mms agent
+  get_url: >
+    url="{{ mms_agent_url }}"
+    dest="/tmp/mongodb-mms-monitoring-agent-{{ mms_agent_version }}.deb"
+  register: download_mms_deb
+
+- name: install mongo mms agent
+  shell: "gdebi -nq /tmp/mongodb-mms-monitoring-agent-{{ mms_agent_version }}.deb"
+  when: download_mms_deb.changed
+  notify: restart mms
+
+- name: add key to monitoring-agent.config
+  lineinfile: >
+    dest=/etc/mongodb-mms/monitoring-agent.config
+    regexp="^mmsApiKey="
+    line="mmsApiKey={{ MMSAPIKEY }}"
+  notify: restart mms
+
+- name: start mms service
+  service: name=mongodb-mms-monitoring-agent state=started
+
