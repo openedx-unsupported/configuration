@@ -33,18 +33,6 @@
 - fail: "JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
   when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
 
-- fail: "JENKINS_ADMIN_CONFIGURATION_REPO is not defined."
-  when: JENKINS_ADMIN_CONFIGURATION_REPO is not defined
-
-- fail: "JENKINS_ADMIN_CONFIGURATION_SECURE_REPO is not defined."
-  when: JENKINS_ADMIN_CONFIGURATION_SECURE_REPO is not defined
-
-- fail: "JENKINS_ADMIN_GIT_KEY is not defined."
-  when: JENKINS_ADMIN_GIT_KEY is not defined
-
-- fail: "JENKINS_ADMIN_EC2_KEY is not defined."
-  when: JENKINS_ADMIN_EC2_KEY is not defined
-
 # We first download the plugins to a temp directory and include
 # the version in the file name.  That way, if we increment
 # the version, the plugin will be updated in Jenkins
@@ -85,14 +73,6 @@
 - name: Add github.com to known_hosts if it does not exist
   shell: >
      ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts
-
-- name: drop the secure credentials
-  copy: >
-    content="{{ JENKINS_ADMIN_GIT_KEY }}"
-    dest={{ jenkins_home }}/.ssh/id_rsa
-    owner={{ jenkins_user }}
-    group={{ jenkins_group }}
-    mode=0600
 
 - name: create job directory
   file: >
