@@ -30,7 +30,9 @@
   notify: restart the forum service
 
 - name:  git checkout forum repo into {{ forum_code_dir }}
-  git: dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
+  git: >
+    dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
+    accept_hostkey=yes
   sudo_user: "{{ forum_user }}"
   notify: restart the forum service
 
@@ -51,7 +53,7 @@
 - name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
 
 - name: ensure forum is started

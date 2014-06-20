@@ -1,6 +1,8 @@
 # Do A Checkout
 - name: git checkout ease repo into its base dir
-  git: dest={{ora_ease_code_dir}} repo={{ora_ease_source_repo}} version={{ora_ease_version}}
+  git: >
+    dest={{ora_ease_code_dir}} repo={{ora_ease_source_repo}} version={{ora_ease_version}}
+    accept_hostkey=yes
   sudo_user: "{{ ora_user }}"
   notify:
     - restart ora
@@ -38,20 +40,6 @@
   shell: >
     . {{ ora_ease_venv_dir }}/bin/activate; cd {{ ora_ease_code_dir }}; python setup.py install
   sudo_user: "{{ ora_user }}"
-  notify:
-    - restart ora
-    - restart ora_celery
-
-- name: download and install nltk
-  shell: |
-      set -e
-      curl -o {{ ora_nltk_tmp_file }} {{ ora_nltk_download_url }}
-      tar zxf {{ ora_nltk_tmp_file }}
-      rm -f {{ ora_nltk_tmp_file }}
-      touch {{ ora_nltk_download_url|basename }}-installed
-        creates={{ ora_data_dir }}/{{ ora_nltk_download_url|basename }}-installed
-        chdir={{ ora_data_dir }}
-  sudo_user: "{{ common_web_user }}"
   notify:
     - restart ora
     - restart ora_celery

@@ -27,8 +27,7 @@ server {
   listen {{EDXAPP_CMS_NGINX_PORT}} {{default_site}};
   {% endif %}
 
-
-  server_name ~^((stage|prod)-)?studio\..*;
+  server_name {{ CMS_HOSTNAME }};
 
   access_log {{ nginx_log_dir }}/access.log;
   error_log {{ nginx_log_dir }}/error.log error;
@@ -42,9 +41,15 @@ server {
 
 
   location @proxy_to_cms_app {
+    {% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {% else %}
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {% endif %}
     proxy_set_header Host $http_host;
 
     proxy_redirect off;
@@ -69,7 +74,7 @@ server {
   {% include "robots.j2" %}
 
   # Check security on this
-  location ~ /static/(?P<file>.*) {
+  location ~ ^/static/(?P<file>.*) {
     root {{ edxapp_data_dir }};
     try_files /staticfiles/$file /course_static/$file =404;
 

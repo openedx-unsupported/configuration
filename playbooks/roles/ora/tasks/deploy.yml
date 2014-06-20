@@ -40,7 +40,9 @@
 
 # Do A Checkout
 - name: git checkout ora repo into {{ ora_app_dir }}
-  git: dest={{ ora_code_dir }} repo={{ ora_source_repo }} version={{ ora_version }}
+  git: >
+    dest={{ ora_code_dir }} repo={{ ora_source_repo }} version={{ ora_version }}
+    accept_hostkey=yes
   sudo_user: "{{ ora_user }}"
   notify:
     - restart ora
@@ -102,7 +104,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   when: not disable_edx_services
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
 
 - name: ensure ora is started
   supervisorctl_local: >

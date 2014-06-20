@@ -10,10 +10,23 @@
   apt: pkg={{",".join(rabbitmq_debian_pkgs)}} state=present
 
 - name: add rabbit repository
-  apt_repository: repo="{{rabbitmq_repository}}" state=present
+  apt_repository: repo="{{rabbitmq_repository}}" state=present update_cache=yes
 
-- name: install rabbitmq
-  apt: pkg={{rabbitmq_pkg}} state=present update_cache=yes
+- name: fetch the rabbitmq server deb
+  get_url: >
+    url={{ rabbitmq_pkg_url }}
+    dest=/var/tmp/{{ rabbitmq_pkg_url|basename }}
+
+- name: check if rabbit is installed
+  shell: >
+    dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"
+  register: is_installed
+
+- name: install rabbit package using gdebi
+  shell: >
+    gdebi --n {{ rabbitmq_pkg_url|basename }}
+    chdir=/var/tmp
+  when: is_installed.stdout is defined and is_installed.stdout == "not installed"
 
 - name: stop rabbit cluster
   service: name=rabbitmq-server state=stopped

@@ -1,0 +1,82 @@
+---
+#
+# Tasks related to deploying the code jail for the XQWatcher
+#
+- name: Create sandboxed user
+  user: >
+    name="{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }}"
+    shell=/bin/false
+    home="/dev/null"
+  with_items: XQWATCHER_COURSES
+
+#
+# Need to disable aa to update the virutalenv
+- name: write out apparmor config
+  template: >
+    src=etc/apparmor.d/code.jail.j2
+    dest="/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+    mode=0644 owner=root group=root
+  with_items: XQWATCHER_COURSES
+
+- name: write out sudoers config jail user
+  template: >
+    src=etc/sudoers.d/95-jailed-user.j2
+    dest=/etc/sudoers.d/95-{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }}
+    mode=0440 owner=root group=root validate='visudo -c -f %s'
+  with_items: XQWATCHER_COURSES
+
+- name: write out sudoers for watcher
+  template: >
+    src=etc/sudoers.d/95-xqwatcher.j2
+    dest=/etc/sudoers.d/95-xqwatcher-{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }}
+    mode=0440 owner=root group=root validate='visudo -c -f %s'
+  with_items: XQWATCHER_COURSES
+
+- name: put code jail into aa-complain
+  command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  with_items: XQWATCHER_COURSES
+
+- name: create jail virtualenv
+  shell: >
+    /usr/local/bin/virtualenv --no-site-packages {{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
+  with_items: XQWATCHER_COURSES
+
+- name: write out requirements.txt
+  template: >
+    src=edx/app/xqwatcher/data/requirements.txt.j2
+    dest={{ xqwatcher_data_dir }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt
+    mode=0440 owner=root group=root
+  with_items: XQWATCHER_COURSES
+
+- name : install course specific python requirements
+  pip: >
+    requirements="{{ xqwatcher_data_dir }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt"
+    virtualenv="{{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+    state=present
+    extra_args="{{ XQWATCHER_PIP_EXTRA_ARGS }}"
+  with_items: XQWATCHER_COURSES
+
+- name: give other read permissions to the virtualenv
+  shell: >
+    chown -R {{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }} {{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
+  with_items: XQWATCHER_COURSES
+
+- name: start apparmor service
+  service: name=apparmor state=started
+
+- name: load code sandbox profile
+  command: apparmor_parser -r "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  with_items: XQWATCHER_COURSES
+
+#
+# Leaves aa in either complain or enforce depending upon the value of the
+# CODE_JAIL_COMPLAIN var.  Complain mode should never be run in an
+# environment where untrusted users can submit code
+- name: put code jail into aa-complain
+  command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  when: CODE_JAIL_COMPLAIN
+  with_items: XQWATCHER_COURSES
+
+- name: put code sandbox into aa-enforce
+  command: /usr/sbin/aa-enforce "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  when: CODE_JAIL_COMPAIN is not defined | not CODE_JAIL_COMPLAIN

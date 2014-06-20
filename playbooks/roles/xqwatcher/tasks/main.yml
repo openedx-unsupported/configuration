@@ -1,0 +1,103 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role xqwatcher
+#
+# Overview:
+#
+# This play installs a sandboxed, pull grader that integrates with XQueue.  The
+# code for the XQWatcher lives here: https://github.com/edx/xqueue-watcher
+#
+# Multiple courses can be installed on a single server with distinct sandboxes.
+#
+# Example play:
+#
+# A play to install the XQWatcher would look like this:
+#
+# - name: Deploy xqueue-watcher
+#   hosts: all
+#   sudo: True
+#   gather_facts: True
+#   vars:
+#     COMMON_APP_DIR: "/edx/app"
+#     common_web_group: "www-data"
+#   roles:
+#     - aws
+#     - datadog
+#     - splunkforwarder
+#     - newrelic
+#     - xqwatcher
+#
+# You would use a commone like the following to run the play.
+#
+# ansible-playbook -i ec2.py ./xqwatcher.yml -e@./example-config.yml
+#
+# The contents of the example-config.yml would include the queue
+# meta data and details related to the repository including the
+# grader code.
+#
+# XQWATCHER_COURSES:
+#   - COURSE: "exampleX-101x"
+#     GIT_REPO: "git@github.com:foo/graders-exampleX-101x.git"
+#     GIT_REF: "master"
+#     QUEUE_NAME: "exampleX-101x"
+#     QUEUE_CONFIG:
+#       SERVER: "https://xqueue.example.com"
+#       CONNECTIONS: 5
+#       AUTH: ["user", "password"]
+#       HANDLERS:
+#         - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+#           CODEJAIL:
+#             name: "exampleX-101x"
+#             python_bin: "{{ xqwatcher_venv_base }}/exampleX-101x/bin/python"
+#             user: "exampleX-101x"
+#           KWARGS:
+#             grader_root: "../data/exampleX-101x/graders/"
+#   - COURSE: "exampleX-202x"
+#     GIT_REPO: "git@github.com:foo/graders-exampleX-202x.git"
+#     GIT_REF: "master"
+#     QUEUE_NAME: "exampleX-202x"
+#     QUEUE_CONFIG:
+#       SERVER: "https://xqueue.example.com"
+#       CONNECTIONS: 5
+#       AUTH: ["user", "password"]
+#       HANDLERS:
+#         - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+#           CODEJAIL:
+#             name: "exampleX-202x"
+#             python_bin: "{{ xqwatcher_venv_base }}/exampleX-202x/bin/python"
+#             user: "exampleX-202x"
+#           KWARGS:
+#             grader_root: "../data/exampleX-202x/graders/"
+
+# XQWATCHER_GIT_IDENTITY: |
+#   -----BEGIN RSA PRIVATE KEY-----
+#   Your key if you need to access any private repositories
+#   -----END RSA PRIVATE KEY-----
+#
+
+- include: code_jail.yml CODE_JAIL_COMPLAIN=false
+
+- name: create conf dir
+  file: >
+    path="{{ xqwatcher_conf_dir }}"
+    state=directory
+    owner="{{ xqwatcher_user }}"
+    group="{{ xqwatcher_user }}"
+
+- name: create conf.d dir
+  file: >
+    path="{{ xqwatcher_conf_dir }}/conf.d"
+    state=directory
+    owner="{{ xqwatcher_user }}"
+    group="{{ xqwatcher_user }}"
+
+- include: deploy.yml tags=deploy

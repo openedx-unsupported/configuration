@@ -128,5 +128,8 @@ class CallbackModule(object):
                         if len(payload[msg_type][output]) > 1000:
                             payload[msg_type][output] = "(clipping) ... " \
                                     + payload[msg_type][output][-1000:]
-
+                if 'stdout_lines' in payload[msg_type]:
+                    # only keep the last 20 or so lines to avoid payload size errors
+                    if len(payload[msg_type]['stdout_lines']) > 20:
+                        payload[msg_type]['stdout_lines'] = ['(clipping) ... '] + payload[msg_type]['stdout_lines'][-20:]
             self.sqs.send_message(self.queue, json.dumps(payload))

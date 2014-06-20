@@ -28,7 +28,9 @@
 
 # Do A Checkout
 - name: checkout edx-platform repo into {{edxapp_code_dir}}
-  git: dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
+  git: >
+    dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
+    accept_hostkey=yes
   register: chkout
   sudo_user: "{{ edxapp_user }}"
   environment:
@@ -45,7 +47,9 @@
   - "restart edxapp_workers"
 
 - name: checkout theme
-  git: dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+  git: >
+    dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+    accept_hostkey=yes
   when: edxapp_theme_name != ''
   sudo_user: "{{ edxapp_user }}"
   environment:
@@ -104,7 +108,7 @@
 # Set the npm registry
 - name: Set the npm registry
   shell:
-    npm config set registry 'http://registry.npmjs.org'
+    npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
     creates="{{ edxapp_app_dir }}/.npmrc"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
@@ -128,7 +132,7 @@
     requirements="{{pre_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -142,7 +146,7 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ base_requirements_file }}
     chdir={{ edxapp_code_dir }}
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
@@ -157,7 +161,7 @@
     requirements="{{post_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -171,7 +175,7 @@
     requirements="{{paver_requirements_file}}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }}"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   notify:
@@ -185,10 +189,9 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
-  - "{{ repo_requirements_file }}"
   - "{{ github_requirements_file }}"
   - "{{ local_requirements_file }}"
   sudo_user: "{{ edxapp_user }}"
@@ -203,7 +206,7 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ private_requirements_file }}"
@@ -215,7 +218,6 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
 - name: install CAS attribute module
@@ -223,7 +225,7 @@
     name="{{ EDXAPP_CAS_ATTRIBUTE_PACKAGE }}"
     virtualenv="{{edxapp_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors"
   sudo_user: "{{ edxapp_user }}"
   when: EDXAPP_CAS_ATTRIBUTE_PACKAGE|length > 0
   notify: "restart edxapp"
@@ -234,7 +236,7 @@
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
   shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ sandbox_base_requirements }}"
@@ -245,6 +247,33 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
+# The next few tasks install xml courses.
+
+# Install the xml courses from an s3 bucket
+- name: get s3 one time url
+  s3: >
+    bucket="{{ EDXAPP_XML_S3_BUCKET }}"
+    object="{{ EDXAPP_XML_S3_KEY }}"
+    mode="geturl"
+    expiration=300
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: s3_one_time_url
+
+- name: download from one time url
+  get_url: url="{{ s3_one_time_url.url }}" dest="/tmp/{{ EDXAPP_XML_S3_KEY|basename }}"
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: download_xml_s3
+
+- name: unzip the data to the data dir
+  shell: >
+    tar xzf /tmp/{{ EDXAPP_XML_S3_KEY|basename }}
+    chdir="{{ edxapp_data_dir }}"
+  when: download_xml_s3.changed
+
+- include: xml.yml
+  tags: deploy
+  when: EDXAPP_XML_FROM_GIT
 
 # The next few tasks set up the python code sandbox
 
@@ -261,7 +290,7 @@
     requirements="{{sandbox_base_requirements}}"
     virtualenv="{{edxapp_sandbox_venv_dir}}"
     state=present
-    extra_args="-i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors"
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors"
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   notify:
@@ -272,7 +301,7 @@
 
 - name: code sandbox | Install sandbox requirements into sandbox venv
   shell: >
-    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ edxapp_pypi_local_mirror }} --exists-action w --use-mirrors -r {{ item }}
+    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w --use-mirrors -r {{ item }}
     chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ sandbox_local_requirements }}"
@@ -280,7 +309,7 @@
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   register: sandbox_install_output
-  changed_when: "'installed' in sandbox_install_output"
+  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -330,6 +359,9 @@
 # service variants configured, runs
 # gather_assets and db migrations
 - include: service_variant_config.yml
+  tags:
+    - service_variant_config
+    - deploy
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -340,7 +372,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
 
 - name: ensure edxapp has started
