@@ -28,7 +28,7 @@
   tasks:
       # Fail intermittantly with the following error:
       # The specified rule does not exist in this security group
-    - name: Create security group
+    - name: Create instance security group
       ec2_group:
         profile: "{{ profile }}"
         description: "Open up SSH access"
@@ -43,10 +43,45 @@
       with_items: sec_group_ingress_cidrs
       register: created_sec_group
       ignore_errors: True
-      
+
     - name: debug
       debug:
         msg: "Registered created_sec_group: {{ created_sec_group }}"
+
+    # Needs ansible 1.7 for vpc support of elbs
+    # - name: Create elb security group
+    #   ec2_group:
+    #     profile: "{{ profile }}"
+    #     description: "ELB security group"
+    #     name: "ELB-{{ security_group }}"
+    #     vpc_id: "{{ vpc_id }}"
+    #     region: "{{ ec2_region }}"
+    #     rules:
+    #       - proto: tcp
+    #         from_port: "443"
+    #         to_port: "443"
+    #         cidr_ip: "0.0.0.0/0"
+    #   register: created_elb_sec_group
+    #   ignore_errors: True
+      
+    # Needs 1.7 for VPC support
+    # - name: "Create ELB"
+    #   ec2_elb_lb:
+    #     profile: "{{ profile }}"
+    #     region: "{{ ec2_region }}"
+    #     zones:
+    #       - us-east-1b
+    #       - us-east-1c
+    #     name: "{{ edp }}"
+    #     state: present
+    #     security_group_ids: "{{ created_elb_sec_group.group_id }}"
+    #     listeners:
+    #       - protocol: https
+    #         load_balancer_port: 443
+    #         instance_protocol: http # optional, defaults to value of protocol setting
+    #         instance_port: 80
+    #         # ssl certificate required for https or ssl
+    #         ssl_certificate_id: "{{ ssl_cert }}"
 
       # instance_profile_name was added by me in my fork
     - name: Create the launch configuration
@@ -69,9 +104,13 @@
         region: "{{ ec2_region }}"
         name: "{{ asg_name }}"
         launch_config_name: "{{ lc_name }}"
+        load_balancers: "{{ elb_name }}"
+        availability_zones:
+          - us-east-1b
+          - us-east-1c
         min_size: 0
-        max_size: 0
-        desired_capacity: 0
+        max_size: 2
+        desired_capacity: 1
         vpc_zone_identifier: "{{ subnets|join(',') }}"
         instance_tags:
           Name: "{{ env }}-{{ deployment }}-{{ play }}"
@@ -115,7 +154,7 @@
         min_adjustment_step: 1
         cooldown: 60
       register: scale_down_policy
-
+      
     - name: debug
       debug:
         msg: "Registered scale_down_policy: {{ scale_down_policy }}"

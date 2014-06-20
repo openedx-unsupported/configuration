@@ -5,8 +5,6 @@
     content="{{ ANALYTICS_API_GIT_IDENTITY }}" dest={{ analytics_api_git_identity_file }}
     owner={{ analytics_api_user }} group={{ analytics_api_user }} mode=0600
 
-
-
 - name: checkout code
   git: >
     dest={{ analytics_api_code_dir }} repo={{ analytics_api_source_repo }} version={{ ANALYTICS_API_VERSION }}
@@ -32,7 +30,7 @@
     src=edx/app/analytics_api/analytics_api.sh.j2
     dest={{ analytics_api_app_dir }}/{{ analytics_api_service_name }}.sh
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
-  
+
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/analytics_api.conf.j2
@@ -52,6 +50,6 @@
 - name: update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
-  
+
 - name: remove read-only ssh key for the content repo
   file: path={{ analytics_api_git_identity_file }} state=absent

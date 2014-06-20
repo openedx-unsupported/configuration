@@ -14,17 +14,20 @@ export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
 {% endif -%}
 
 #
-# These blocks 
+# These blocks outpun environment vars that will
+# eventually be replaced by loading a yaml file in
+# the django settings.  That file is currently also
+# being created, but the var reading doesn't exist
 {% for name,value in ANALYTICS_ENV_VARS.items() %}
 {% if value %}
 export {{ name }}="{{ value }}"
-{% endif -%}		 
+{% endif -%}
 {% endfor %}
 
 {% for name,value in ANALYTICS_DATABASES.default.items() %}
 {% if value %}
 export DATABASE_{{ name }}="{{ value }}"
-{% endif -%}		 
+{% endif -%}
 {% endfor %}
 
 {{ executable }} -b {{ analytics_api_gunicorn_host }}:{{ analytics_api_gunicorn_port }} -w {{ analytics_api_gunicorn_workers }} --timeout={{ analytics_api_gunicorn_timeout }}  analyticsdataserver.wsgi:application
