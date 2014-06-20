@@ -8,11 +8,11 @@
 #            different from 'vars' in that each ref is set as a tag on the
 #            output AMI.
 #   - vars - other vars to pass to abbey. This is provided in YAML syntax,
-#            and we put the contents in a file that abby reads.
+#            and we put the contents in a file that abbey reads.
 #   - deployment - edx, edge, etc
 #   - environment - stage,prod, etc
 #   - play - forum, edxapp, xqueue, etc
-#   - base_ami - Optional AMI to use as base AMI for abby instance
+#   - base_ami - Optional AMI to use as base AMI for abbey instance
 #   - configuration - the version of the configuration repo to use
 #   - configuration_secure - the version of the secure repo to use
 #   - jenkins_admin_ec2_key - location of the ec2 key to pass to abbey
