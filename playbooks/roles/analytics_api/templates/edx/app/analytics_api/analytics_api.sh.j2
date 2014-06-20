@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% if COMMON_ENABLE_NEWRELIC %}
+{% set executable = analytics_api_venv_bin + '/newrelic-admin run-program ' + analytics_api_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = analytics_api_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC %}
+export NEW_RELIC_APP_NAME="{{ ANALYTICS_API_NEWRELIC_APPNAME }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+#
+# These blocks 
+{% for name,value in ANALYTICS_ENV_VARS.items() %}
+{% if value %}
+export {{ name }}="{{ value }}"
+{% endif -%}		 
+{% endfor %}
+
+{% for name,value in ANALYTICS_DATABASES.default.items() %}
+{% if value %}
+export DATABASE_{{ name }}="{{ value }}"
+{% endif -%}		 
+{% endfor %}
+
+{{ executable }} -b {{ analytics_api_gunicorn_host }}:{{ analytics_api_gunicorn_port }} -w {{ analytics_api_gunicorn_workers }} --timeout={{ analytics_api_gunicorn_timeout }}  analyticsdataserver.wsgi:application
