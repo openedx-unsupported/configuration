@@ -1,0 +1,55 @@
+---
+
+- name: install read-only ssh key
+  copy: >
+    content="{{ ANALYTICS_API_GIT_IDENTITY }}" dest={{ analytics_api_git_identity_file }}
+    owner={{ analytics_api_user }} group={{ analytics_api_user }} mode=0600
+
+- name: checkout code
+  git: >
+    dest={{ analytics_api_code_dir }} repo={{ analytics_api_source_repo }} version={{ ANALYTICS_API_VERSION }}
+    accept_hostkey=yes
+    ssh_opts="{{ analytics_api_git_ssh_opts }}"
+
+- name: install application requirements
+  pip: >
+    requirements="{{ analytics_api_requirements_base }}/{{ item }}"
+    virtualenv="{{ analytics_api_venv_dir }}" state=present
+  sudo: true
+  sudo_user: "{{ analytics_api_user }}"
+  with_items: analytics_api_requirements
+
+- name: write out app config file
+  template: >
+    src=edx/app/analytics_api/analytics_api.yaml.j2
+    dest={{ analytics_api_app_dir }}/{{ analytics_api_service_name }}.yaml
+    mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
+
+- name: write out the supervisior wrapper
+  template: >
+    src=edx/app/analytics_api/analytics_api.sh.j2
+    dest={{ analytics_api_app_dir }}/{{ analytics_api_service_name }}.sh
+    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/analytics_api.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ analytics_api_service_name }}.conf
+    state=link
+    force=yes
+  when: not disable_edx_services
+
+  #
+  # Needs review
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: remove read-only ssh key for the content repo
+  file: path={{ analytics_api_git_identity_file }} state=absent
