@@ -61,17 +61,13 @@ fi
 
 export PYTHONUNBUFFERED=1
 
-if [[ -z $configuration ]]; then
-  cd configuration
-  configuration=`git rev-parse HEAD`
-  cd ..
-fi
+cd configuration
+configuration=`git rev-parse --short HEAD`
+cd ..
 
-if [[ -z $configuration_secure ]]; then
-  cd configuration-secure
-  configuration_secure=`git rev-parse HEAD`
-  cd ..
-fi
+cd configuration-secure
+configuration_secure=`git rev-parse --short HEAD`
+cd ..
 
 base_params=""
 if [[ -n "$base_ami" ]]; then
