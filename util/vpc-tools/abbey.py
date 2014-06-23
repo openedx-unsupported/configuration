@@ -66,9 +66,6 @@ def parse_args():
                         help='directory to find playbooks in',
                         default='configuration/playbooks/edx-east',
                         metavar="PLAYBOOKDIR", required=False)
-    parser.add_argement('--boto-profile',
-                        help='The profile to use with boto.',
-                        default=None, metavar="PROFILE_NAME", required=False)
     parser.add_argument('-d', '--deployment', metavar="DEPLOYMENT",
                         required=True)
     parser.add_argument('-e', '--environment', metavar="ENVIRONMENT",
