@@ -647,6 +647,7 @@ def launch_and_configure(ec2_args):
 
 
 def send_hipchat_message(message):
+    print(message)
     #If hipchat is configured send the details to the specified room
     if args.hipchat_api_token and args.hipchat_room_id:
         import hipchat
@@ -710,6 +711,7 @@ if __name__ == '__main__':
     else:
         base_ami = args.base_ami
 
+    error_in_abbey_run = False
     try:
         sqs_queue = None
         instance_id = None
@@ -749,6 +751,7 @@ if __name__ == '__main__':
                 play=args.play,
                 exception=repr(e))
         send_hipchat_message(message)
+        error_in_abbey_run = True
     finally:
         print
         if not args.no_cleanup and not args.noop:
@@ -761,3 +764,5 @@ if __name__ == '__main__':
             # Check to make sure we have an instance id.
             if instance_id:
                 ec2.terminate_instances(instance_ids=[instance_id])
+        if error_in_abbey_run:
+            exit(1)
