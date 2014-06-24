@@ -65,10 +65,6 @@ cd configuration
 configuration=`git rev-parse --short HEAD`
 cd ..
 
-cd configuration-secure
-configuration_secure=`git rev-parse --short HEAD`
-cd ..
-
 base_params=""
 if [[ -n "$base_ami" ]]; then
   base_params="-b $base_ami"
@@ -90,11 +86,6 @@ if [[ ! -z "$configurationprivaterepo" ]]; then
   if [[ ! -z "$configurationprivateversion" ]]; then
     configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivateversion"
   fi
-fi
-
-stackname_params=""
-if [[ ! -z "$playbook_dir" ]]; then
-  stackname_params="--playbook-dir $playbook_dir"
 fi
 
 hipchat_params=""
