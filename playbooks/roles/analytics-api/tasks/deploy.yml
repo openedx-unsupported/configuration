@@ -11,6 +11,7 @@
     accept_hostkey=yes
     ssh_opts="{{ analytics_api_git_ssh_opts }}"
   register: analytics_api_code_checkout
+  notify: "restart the analytics service"
   sudo_user: "{{ analytics_api_user }}"
 
 - name: run collectstatic
@@ -20,13 +21,13 @@
   sudo_user: "{{ analytics_api_user }}"
   environment:
     ANALYTICS_API_CFG: "{{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml"
-  tags: tst
 
 - name: install application requirements
   pip: >
     requirements="{{ analytics_api_requirements_base }}/{{ item }}"
     virtualenv="{{ analytics_api_venv_dir }}" state=present
   sudo_user: "{{ analytics_api_user }}"
+  notify: restart the analytics service
   with_items: analytics_api_requirements
 
 - name: write out app config file
@@ -34,18 +35,21 @@
     src=edx/app/analytics-api/analytics-api.yaml.j2
     dest={{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml
     mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
+  notify: restart the analytics service
 
 - name: write out the supervisior wrapper
   template: >
     src=edx/app/analytics-api/analytics-api.sh.j2
     dest={{ analytics_api_app_dir }}/{{ analytics_api_service_name }}.sh
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  notify: restart the analytics service
 
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/analytics-api.conf.j2
     dest="{{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf"
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  notify: restart the analytics service
 
 - name: enable supervisor script
   file: >
@@ -53,6 +57,7 @@
     dest={{ supervisor_cfg_dir }}/{{ analytics_api_service_name }}.conf
     state=link
     force=yes
+  notify: restart the analytics service
   when: not disable_edx_services
 
 - name: update supervisor configuration
