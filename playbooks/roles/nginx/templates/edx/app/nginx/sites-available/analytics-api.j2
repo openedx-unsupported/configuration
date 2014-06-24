@@ -7,6 +7,11 @@ upstream analytics_api_app_server {
 server {
   listen {{ ANALYTICS_API_NGINX_PORT }} default_server;
 
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ analytics_api_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
   location / {
     {% include "basic-auth.j2" %}
     try_files $uri @proxy_to_app;
