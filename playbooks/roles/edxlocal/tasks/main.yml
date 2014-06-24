@@ -18,12 +18,14 @@
     name={{ EDXAPP_MYSQL_USER_MIGRATE }}
     password={{ EDXAPP_MYSQL_PASSWORD_MIGRATE}}
     priv='{{EDXAPP_MYSQL_DB_NAME}}.*:ALL'
+  when: EDXAPP_MYSQL_USER_MIGRATE is defined
 
 - name: setup the edxapp db user
   mysql_user: >
     name={{ EDXAPP_MYSQL_USER }}
     password={{ EDXAPP_MYSQL_PASSWORD }}
     priv='{{EDXAPP_MYSQL_DB_NAME}}.*:ALL'
+  when: EDXAPP_MYSQL_USER is defined
 
 - name: create a database for edxapp
   mysql_db: >
@@ -31,7 +33,7 @@
     state=present
     encoding=utf8
   when: EDXAPP_MYSQL_USER is defined
-    
+
 - name: setup the xqueue db user
   mysql_user: >
     name={{ XQUEUE_MYSQL_USER }}
@@ -51,6 +53,7 @@
     name={{ ORA_MYSQL_USER }}
     password={{ ORA_MYSQL_PASSWORD }}
     priv='{{ORA_MYSQL_DB_NAME}}.*:ALL'
+  when: ORA_MYSQL_USER is defined
 
 - name: create a database for ora
   mysql_db: >
@@ -74,6 +77,29 @@
     encoding=utf8
   when: DISCERN_MYSQL_USER is defined and not disable_edx_services
 
+- name: create databases for analytics api
+  mysql_db: >
+    db={{ item }}
+    state=present
+    encoding=utf8
+  with_items:
+    - 'reports'
+    - 'analytics-api'
+  when: analytics_api_role_name is defined
+
+- name: create api user for the analytics api
+  mysql_user: >
+    name=api001
+    password=password
+    priv='analytics-api.*:ALL/reports.*:SELECT'
+  when: analytics_api_role_name is defined
+
+- name: create read-only reports user for the analytics-api
+  mysql_user: >
+    name=reports001
+    password=password
+    priv='reports.*:SELECT'
+  when: analytics_api_role_name is defined
 
 - name: install memcached
   apt: pkg=memcached state=present
