@@ -14,6 +14,13 @@
   notify: "restart the analytics service"
   sudo_user: "{{ analytics_api_user }}"
 
+- name: write out app config file
+  template: >
+    src=edx/app/analytics-api/analytics-api.yaml.j2
+    dest={{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml
+    mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
+  notify: restart the analytics service
+
 - name: run collectstatic
   shell: >
     chdir={{ analytics_api_code_dir }}
@@ -29,13 +36,6 @@
   sudo_user: "{{ analytics_api_user }}"
   notify: restart the analytics service
   with_items: analytics_api_requirements
-
-- name: write out app config file
-  template: >
-    src=edx/app/analytics-api/analytics-api.yaml.j2
-    dest={{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml
-    mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
-  notify: restart the analytics service
 
 - name: write out the supervisior wrapper
   template: >
