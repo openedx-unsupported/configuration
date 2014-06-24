@@ -217,7 +217,7 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
     ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
-if [[ $server_type == "full_edx_installation" ]]; then
+if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
