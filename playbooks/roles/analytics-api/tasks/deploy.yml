@@ -29,13 +29,6 @@
     mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
   notify: restart the analytics service
 
-- name: run collectstatic
-  shell: >
-    chdir={{ analytics_api_code_dir }}
-    {{ analytics_api_venv_bin }}/python manage.py collectstatic --settings analyticsdataserver.settings.production --noinput --settings analyticsdataserver.settings.production
-  sudo_user: "{{ analytics_api_user }}"
-  environment: "{{ analytics_api_environment }}"
-
 - name: install application requirements
   pip: >
     requirements="{{ analytics_api_requirements_base }}/{{ item }}"
@@ -53,6 +46,21 @@
   sudo_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run collectstatic
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    {{ analytics_api_venv_bin }}/python manage.py collectstatic  --noinput
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+
+- name: create api users
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    {{ analytics_api_venv_bin }}/python manage.py set_api_key {{ item.key }} {{ item.value }} --create-user
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+  with_dict: ANALYTICS_API_USERS
 
 - name: write out the supervisior wrapper
   template: >
