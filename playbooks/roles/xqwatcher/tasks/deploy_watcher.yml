@@ -7,26 +7,44 @@
     dest={{ xqwatcher_code_dir }} repo={{ xqwatcher_source_repo }} version={{ XQWATCHER_VERSION }}
     accept_hostkey=yes
     ssh_opts="{{ xqwatcher_git_ssh_opts }}"
-
+  notify: restart xqwatchera
+  
 - name: install application requirements
   pip: >
     requirements="{{ xqwatcher_requirements_file }}"
     virtualenv="{{ xqwatcher_venv_dir }}" state=present
   sudo: true
   sudo_user: "{{ xqwatcher_user }}"
+  notify: restart xqwatcher
+  
+- name: write out watcher config file
+  template: >
+    src=edx/app/xqwatcher/xqwatcher.json.j2
+    dest={{ xqwatcher_conf_dir }}/xqwatcher.json
+    mode=0644 owner={{ xqwatcher_user }} group={{ xqwatcher_user }}
+  notify: restart xqwatcher
 
+- name: write out watcher logging config file
+  template: >
+    src=edx/app/xqwatcher/logging.json.j2
+    dest={{ xqwatcher_conf_dir }}/logging.json
+    mode=0644 owner={{ xqwatcher_user }} group={{ xqwatcher_user }}    
+  notify: restart xqwatcher
+  
 - name: write out course config files
   template: >
     src=edx/app/xqwatcher/conf.d/course.json.j2
     dest={{ xqwatcher_conf_dir }}/conf.d/{{ item.COURSE }}.json
     mode=0644 owner={{ xqwatcher_user }} group={{ xqwatcher_user }}
   with_items: XQWATCHER_COURSES
-
+  notify: restart xqwatcher
+  
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d/xqwatcher.conf.j2
     dest="{{ xqwatcher_supervisor_available_dir }}/xqwatcher.conf"
     group={{ xqwatcher_user }} mode=0650
+  notify: restart xqwatcher
 
 - name: enable supervisor script
   file: >
