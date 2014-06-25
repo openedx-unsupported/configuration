@@ -23,7 +23,7 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # this can cause problems (e.g. looking for templates that no longer exist).
 /edx/bin/update configuration release
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=release
+ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
@@ -43,9 +43,8 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
-  config.vm.box     = "injera-devstack"
-  config.vm.synced_folder  ".", "/vagrant", disabled: true
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
+  config.vm.box     = "johnnycake-devstack"
+  config.vm.box_url = http://files.edx.org/vagrant-images/20140625-johnnycake-devstack.box"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -54,6 +53,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 8765, host: 8765
   config.vm.network :forwarded_port, guest: 9200, host: 9200
   config.ssh.insert_key = true
+
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
 
   # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']
