@@ -91,8 +91,18 @@
     - "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
     - "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
     - "{{ ORA_MYSQL_DB_NAME|default('None') }}"
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME']|default('None') }}"
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME']|default('None') }}"
+
+- name: setup the migration db user for analytics
+  mysql_user: >
+    name={{ COMMON_MYSQL_MIGRATE_USER }}
+    password={{ COMMON_MYSQL_MIGRATE_PASS }}
+    priv='{{ item }}.*:ALL'
+    append_privs=yes
+  when: ANALYTICS_API_CONFIG is defined
+  with_items:
+    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
+    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
+
 
 - name: setup the read-only db user
   mysql_user: >
