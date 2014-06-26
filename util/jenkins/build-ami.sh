@@ -61,17 +61,9 @@ fi
 
 export PYTHONUNBUFFERED=1
 
-if [[ -z $configuration ]]; then
-  cd configuration
-  configuration=`git rev-parse HEAD`
-  cd ..
-fi
-
-if [[ -z $configuration_secure ]]; then
-  cd configuration-secure
-  configuration_secure=`git rev-parse HEAD`
-  cd ..
-fi
+cd $WORKSPACE/configuration
+configuration=`git rev-parse --short HEAD`
+cd $WORKSPACE
 
 base_params=""
 if [[ -n "$base_ami" ]]; then
@@ -94,11 +86,6 @@ if [[ ! -z "$configurationprivaterepo" ]]; then
   if [[ ! -z "$configurationprivateversion" ]]; then
     configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivateversion"
   fi
-fi
-
-stackname_params=""
-if [[ ! -z "$playbook_dir" ]]; then
-  stackname_params="--playbook-dir $playbook_dir"
 fi
 
 hipchat_params=""
