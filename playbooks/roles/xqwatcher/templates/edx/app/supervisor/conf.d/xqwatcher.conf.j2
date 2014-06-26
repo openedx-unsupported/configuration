@@ -1,0 +1,19 @@
+;  {{ ansible_managed }}
+;
+
+{% if COMMON_ENABLE_NEWRELIC %}
+{% set executable = xqwatcher_venv_dir + '/bin/newrelic-admin run-program ' + xqwatcher_venv_dir + '/bin/python' %}
+{% else %}
+{% set executable = xqwatcher_venv_dir + '/bin/python' %}
+{% endif %}
+
+[program:xqwatcher_service_name]
+command={{ executable }} -m {{ xqwatcher_module }} -d {{ xqwatcher_conf_dir }} 
+process_name=%(program_name)s
+user={{ xqwatcher_user }}
+directory={{ xqwatcher_code_dir }}
+stdout_logfile={{ xqwatcher_supervisor_log_dir }}/%(program_name)-stdout.log
+stderr_logfile={{ xqwatcher_supervisor_log_dir }}/%(program_name)-stderr.log
+environment={% if COMMON_ENABLE_NEWRELIC %}NEW_RELIC_APP_NAME={{ XQWATCHER_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}
+killasgroup=true
+stopasgroup=true

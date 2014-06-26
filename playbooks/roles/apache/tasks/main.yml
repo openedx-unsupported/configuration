@@ -1,36 +1,35 @@
-#Installs apache and runs the lms wsgi
+# Installs apache and runs the lms wsgi by default
 ---
 
 - name: Installs apache and mod_wsgi from apt
-  apt: pkg={{item}} install_recommends=no state=present update_cache=yes
+  apt: pkg={{ item }} install_recommends=no state=present update_cache=yes
   with_items:
     - apache2
     - libapache2-mod-wsgi
   notify: restart apache
-  tags:
-    - apache
-    - install
-
+    
 - name: disables default site
   command: a2dissite 000-default
   notify: restart apache
-  tags:
-    - apache
-    - install
-
+    
 - name: rewrite apache ports conf
   template: dest=/etc/apache2/ports.conf src=ports.conf.j2 owner=root group=root
   notify: restart apache
-  tags:
-    - apache
-    - install
 
-- name: Register the fact that apache role has run
-  command: echo True
-  register: apache_role_run
-  tags:
-    - apache
-    - install
+- debug: msg={{ apache_sites }}
 
+- name: Copying apache configs for {{ apache_sites }}
+  template: >
+    src={{ apache_template_dir }}/{{ item }}.j2
+    dest=/etc/apache2/sites-available/{{ item }}
+    owner=root group={{ common_web_user }} mode=0640
+  notify: restart apache
+  with_items: apache_sites
 
-- include: apache_site.yml state=link site_name=lms
+- name: Creating apache2 config links for {{ apache_sites }}
+  file: >
+    src=/etc/apache2/sites-available/{{ item  }}
+    dest=/etc/apache2/sites-enabled/{{ item }}
+    state=link owner=root group=root
+  notify: restart apache
+  with_items: apache_sites

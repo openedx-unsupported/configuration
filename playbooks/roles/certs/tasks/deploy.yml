@@ -60,7 +60,9 @@
   notify: restart certs
 
 - name : install python requirements
-  pip: requirements="{{ certs_requirements_file }}" virtualenv="{{ certs_venv_dir }}" state=present
+  pip: >
+    requirements="{{ certs_requirements_file }}" virtualenv="{{ certs_venv_dir }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ certs_user }}"
   notify: restart certs
 
@@ -73,7 +75,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
 
 - name: ensure certs has started

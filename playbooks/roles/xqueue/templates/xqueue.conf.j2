@@ -1,15 +1,21 @@
 [program:xqueue]
 
-{% if ansible_processor|length > 0 %}
-command={{ xqueue_venv_bin }}/gunicorn --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ ansible_processor|length * 2 }} --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+{% if COMMON_ENABLE_NEWRELIC %}
+{% set executable = xqueue_venv_bin + '/newrelic-admin run-program ' + xqueue_venv_bin + '/gunicorn' %}
 {% else %}
-command={{ xqueue_venv_bin }}/gunicorn --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w 2 --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+{% set executable = xqueue_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if ansible_processor|length > 0 %}
+command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ ansible_processor|length * 2 }} --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
+{% else %}
+command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w 2 --timeout=300 --pythonpath={{ xqueue_code_dir }} xqueue.wsgi
 {% endif %}
 
 user={{ common_web_user }}
 directory={{ xqueue_code_dir }}
 
-environment=PID=/var/tmp/xqueue.pid,PORT={{ xqueue_gunicorn_port }},ADDRESS={{ xqueue_gunicorn_host }},LANG={{ XQUEUE_LANG }},DJANGO_SETTINGS_MODULE=xqueue.aws_settings,SERVICE_VARIANT="xqueue"
+environment={% if COMMON_ENABLE_NEWRELIC %}NEW_RELIC_APP_NAME={{ XQUEUE_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}PID=/var/tmp/xqueue.pid,PORT={{ xqueue_gunicorn_port }},ADDRESS={{ xqueue_gunicorn_host }},LANG={{ XQUEUE_LANG }},DJANGO_SETTINGS_MODULE=xqueue.aws_settings,SERVICE_VARIANT="xqueue"
 
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log

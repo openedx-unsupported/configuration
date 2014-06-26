@@ -10,7 +10,7 @@
 #
 #
 # Tasks for role edx_service
-# 
+#
 # Overview:
 #
 # This role performs the repetive tasks that most edX roles
@@ -44,12 +44,34 @@
     - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
     - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}/venvs"
 
+- name: create edx_service data and staticfiles dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ edx_service_name }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/data"
+    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/staticfiles"
+
+
+- name: create edx_service log dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="syslog"
+    group="syslog"
+  with_items:
+    - "{{ COMMON_LOG_DIR }}/{{ edx_service_name }}"
+
+# Replace dashes with underscores to support roles that use
+# dashes (the role vars will contain underscores)
 - name: install a bunch of system packages on which edx_service relies
   apt: pkg={{ item }} state=present
-  with_items: "{{ edx_service_name }}_debian_pkgs"
+  with_items: "{{ edx_service_name.replace('-', '_') }}_debian_pkgs"
   when: ansible_distribution in common_debian_variants
 
 - name: install a bunch of system packages on which edx_service relies
   yum: pkg={{ item }} state=present
-  with_items: "{{ edx_service_name }}_redhat_pkgs"
+  with_items: "{{ edx_service_name.replace('-', '_') }}_redhat_pkgs"
   when: ansible_distribution in common_redhat_variants

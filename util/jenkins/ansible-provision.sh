@@ -17,9 +17,18 @@
 # - dns_name
 # - environment
 # - name_tag
-
+env
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
+
+if [[ -z $BUILD_USER ]]; then
+    BUILD_USER=jenkins
+fi
+
+if [[ -z $BUILD_USER_ID ]]; then
+    BUILD_USER_ID=edx-sandbox
+fi
+
 
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
@@ -75,11 +84,17 @@ if [[ -z $ami ]]; then
     ami="ami-97dbc3fe"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-59a4a230"
+  elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
+    ami="ami-408c7f28"
   fi
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="m3.medium"
+  instance_type="m1.medium"
+fi
+
+if [[ -z $enable_monitoring ]]; then
+  enable_monitoring="false"
 fi
 
 deploy_host="${dns_name}.${dns_zone}"
@@ -106,20 +121,48 @@ migrate_db: "yes"
 openid_workaround: True
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
-COMMON_HOSTNAME: edx-server
+COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
-
 # User provided extra vars
 $extra_vars
 EOF
 
 if [[ $basic_auth == "true" ]]; then
-
+    # vars specific to provisioning added to $extra-vars
     cat << EOF_AUTH >> $extra_vars_file
-NGINX_HTPASSWD_USER: $auth_user
-NGINX_HTPASSWD_PASS: $auth_pass
+COMMON_HTPASSWD_USER: $auth_user
+COMMON_HTPASSWD_PASS: $auth_pass
+XQUEUE_BASIC_AUTH_USER: $auth_user
+XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
+fi
+
+if [[ $edx_internal == "true" ]]; then
+    # if this isn't a public server add the github
+    # user and set edx_internal to True so that
+    # xserver is installed
+    cat << EOF >> $extra_vars_file
+EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
+EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_CMS_BASE: studio.${deploy_host}
+EDXAPP_SITE_NAME: ${deploy_host}
+CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
+CERTS_VERIFY_URL: "http://${deploy_host}:18090"
+edx_internal: True
+COMMON_USER_INFO:
+  - name: ${github_username}
+    github: true
+    type: admin
+USER_CMD_PROMPT: '[$name_tag] '
+COMMON_ENABLE_NEWRELIC: $enable_monitoring
+COMMON_ENABLE_DATADOG: $enable_monitoring
+FORUM_NEW_RELIC_ENABLE: $enable_monitoring
+EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
+EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
+XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
+FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
+EOF
 fi
 
 
@@ -147,25 +190,6 @@ rabbitmq_refresh: True
 elb: $elb
 EOF
 
-    if [[ $edx_internal == "true" ]]; then
-        # if this isn't a public server add the github
-        # user and set edx_internal to True so that
-        # xserver is installed
-        cat << EOF >> $extra_vars_file
-EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
-EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio.${deploy_host}
-EDXAPP_SITE_NAME: ${deploy_host}
-CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-CERTS_VERIFY_URL: "http://${deploy_host}:18090"
-edx_internal: True
-COMMON_USER_INFO:
-  - name: ${github_username}
-    github: true
-    type: admin
-USER_CMD_PROMPT: '[$name_tag] '
-EOF
-    fi
 
 
     # run the tasks to launch an ec2 instance from AMI
@@ -190,11 +214,10 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu 
+    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
-
-if [[ $server_type == "full_edx_installation" ]]; then
+if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then

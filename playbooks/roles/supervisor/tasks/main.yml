@@ -94,10 +94,10 @@
 
 - name: install supervisor in its venv
   pip: >
-    name=boto virtualenv="{{supervisor_venv_dir}}" state=present
+    name={{ item }} virtualenv="{{supervisor_venv_dir}}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ supervisor_user }}"
-  when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+  with_items: supervisor_pip_pkgs
 
 - name: create supervisor upstart job
   template: >
@@ -115,7 +115,7 @@
 
 - name: write the pre_suprevisor python script
   copy: >
-    src=pre_supervisor_checks.py 
+    src=pre_supervisor_checks.py
     dest={{ supervisor_app_dir }}/pre_supervisor_checks.py
     mode=0750
     owner={{ supervisor_user }}
@@ -166,4 +166,4 @@
 - name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""

@@ -6,10 +6,6 @@
   vars:
     migrate_db: "yes"
     openid_workaround: True
-    ENABLE_DATADOG: True
-    ENABLE_SPLUNKFORWARDER: False
-    ENABLE_NEWRELIC: False
-    edx_internal: False
   roles:
     - aws
     - role: nginx
@@ -20,27 +16,30 @@
       - xqueue
       - xserver
       - certs
+      - analytics-api
       nginx_default_sites:
       - lms
-    - edxlocal
+    - role: edxlocal
+      tags: edxlocal
     - mongo
     - { role: 'edxapp', celery_worker: True }
     - edxapp
     - role: demo
-      tags: ['demo']
+      tags: demo
     - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - oraclejdk
     - elasticsearch
     - forum
     - { role: "xqueue", update_users: True }
-    - { role: xserver, when: edx_internal }
+    - xserver
     - ora
-    - discern
     - certs
     - edx_ansible
+    - analytics-api
     - role: datadog
-      when: ENABLE_DATADOG
+      when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder
-      when: ENABLE_SPLUNKFORWARDER
+      when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
-      when: ENABLE_NEWRELIC
+      when: COMMON_ENABLE_NEWRELIC
+    - flower

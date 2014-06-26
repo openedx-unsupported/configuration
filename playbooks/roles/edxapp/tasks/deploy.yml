@@ -108,7 +108,7 @@
 # Set the npm registry
 - name: Set the npm registry
   shell:
-    npm config set registry 'http://registry.npmjs.org'
+    npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
     creates="{{ edxapp_app_dir }}/.npmrc"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
@@ -218,7 +218,6 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
 - name: install CAS attribute module
@@ -248,6 +247,33 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
+
+# The next few tasks install xml courses.
+
+# Install the xml courses from an s3 bucket
+- name: get s3 one time url
+  s3: >
+    bucket="{{ EDXAPP_XML_S3_BUCKET }}"
+    object="{{ EDXAPP_XML_S3_KEY }}"
+    mode="geturl"
+    expiration=300
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: s3_one_time_url
+
+- name: download from one time url
+  get_url: url="{{ s3_one_time_url.url }}" dest="/tmp/{{ EDXAPP_XML_S3_KEY|basename }}"
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: download_xml_s3
+
+- name: unzip the data to the data dir
+  shell: >
+    tar xzf /tmp/{{ EDXAPP_XML_S3_KEY|basename }}
+    chdir="{{ edxapp_data_dir }}"
+  when: download_xml_s3.changed
+
+- include: xml.yml
+  tags: deploy
+  when: EDXAPP_XML_FROM_GIT
 
 # The next few tasks set up the python code sandbox
 
@@ -283,7 +309,7 @@
   sudo_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   register: sandbox_install_output
-  changed_when: "'installed' in sandbox_install_output"
+  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -333,6 +359,9 @@
 # service variants configured, runs
 # gather_assets and db migrations
 - include: service_variant_config.yml
+  tags:
+    - service_variant_config
+    - deploy
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -343,7 +372,7 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   sudo_user: "{{ supervisor_service_user }}"
-  changed_when: supervisor_update.stdout != ""
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
 
 - name: ensure edxapp has started

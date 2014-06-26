@@ -1,0 +1,68 @@
+{%- if "kibana" in nginx_default_sites -%}
+  {%- set default_site = "default" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+upstream elasticsearch_server {
+		 server 127.0.0.1:9200;
+}
+
+server {
+  # Kibana server, templated by ansible
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{KIBANA_NGINX_PORT}} {{default_site}};
+  listen {{KIBANA_SSL_NGINX_PORT}} {{default_site}} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+
+  {% else %}
+  listen {{KIBANA_NGINX_PORT}} {{default_site}};
+  {% endif %}
+
+  server_name {{ KIBANA_SERVER_NAME }};
+
+  root {{ kibana_app_dir }}/htdocs;
+
+  access_log {{ nginx_log_dir }}/kibana.access.log;
+  error_log {{ nginx_log_dir }}/kibana.error.log error;
+
+  # Access restriction
+  {% include "basic-auth.j2" %}
+
+  # Set image format types to expire in a very long time
+  location ~* ^.+\.(jpg|jpeg|gif|png|ico)$ {
+      access_log off;
+      expires max;
+  }
+
+  # Set css and js to expire in a very long time
+  location ~* ^.+\.(css|js)$ {
+      access_log off;
+      expires max;
+  }
+
+  # Elastic Search
+  location /e {
+	  rewrite /e/(.*) /$1 break;
+	  proxy_set_header X-Real-IP $remote_addr;
+	  proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+
+	  proxy_redirect off;
+	  proxy_pass http://elasticsearch_server;
+    }
+
+  # Kibana
+  location / {
+	  root {{ kibana_app_dir }}/htdocs;
+	  index index.html;
+	  expires 1d;
+	  try_files $uri/ $uri;
+	  if (-f $request_filename) {
+		  break;
+	  }
+  }
+}

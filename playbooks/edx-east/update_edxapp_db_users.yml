@@ -1,0 +1,122 @@
+# This is a utility play to setup the db users on the edxapp db
+#
+# The mysql root user MUST be passed in as an extra var
+#
+# the environment and deployment must be passed in as COMMON_ENVIRONMENT
+# and COMMON_DEPLOYMENT.  These two vars should be set in the secret
+# var file for the corresponding vpc stack
+#
+# Example invocation:
+#
+# Create the databases for edxapp and xqueue:
+#
+# ansible-playbook -i localhost, create_db_users.yml -e@/path/to/secrets.yml -e "edxapp_db_root_user=root edxapp_db_root_pass=password"
+#
+
+- name: Update db users on the edxapp db
+  hosts: all
+  gather_facts: False
+  vars:
+    edxapp_db_root_user: 'None'
+    edxapp_db_root_pass: 'None'
+
+  tasks:
+    - fail: msg="COMMON_ENVIRONMENT and COMMON_DEPLOYMENT need to be defined to use this play"
+      when: COMMON_ENVIRONMENT is not defined or COMMON_DEPLOYMENT is not defined
+    - name: assign mysql user permissions for read_only user
+      mysql_user:
+        name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
+        priv: "*.*:SELECT"
+        password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        append_privs: yes
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_user: "{{ edxapp_db_root_user }}"
+          db_pass: "{{ edxapp_db_root_pass }}"
+
+    - name: assign mysql user permissions for migrate user
+      mysql_user:
+        name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        priv: "{{ item.db_name }}.*:SELECT,INSERT,UPDATE,DELETE,ALTER,CREATE,DROP,INDEX"
+        password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        append_privs: yes
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_user: "{{ edxapp_db_root_user }}"
+          db_pass: "{{ edxapp_db_root_pass }}"
+
+    - name: assign mysql user permissions for admin user
+      mysql_user:
+        name: "{{ COMMON_MYSQL_ADMIN_USER }}"
+        priv: "*.*:CREATE USER"
+        password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        append_privs: yes
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        - db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user }}"
+          db_pass: "{{ edxapp_db_root_pass }}"
+
+    - name: assign mysql user permissions for db users
+      mysql_user:
+        name: "{{ item.db_user_to_modify }}"
+        priv: "{{ item.db_name }}.*:SELECT,INSERT,UPDATE,DELETE"
+        password: "{{ item.db_user_to_modify_pass }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        # These defaults are needed, otherwise ansible will throw
+        # variable undefined errors for when they are not defined
+        # in secret vars
+        - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user|default('None') }}"
+          db_pass: "{{ edxapp_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ EDXAPP_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ EDXAPP_MYSQL_PASSWORD }}"
+
+    # The second call to mysql_user needs to have append_privs set to
+    # yes otherwise it will overwrite the previous run.
+    # This means that both tasks will report changed on every ansible
+    # run
+
+    - name: assign mysql user permissions for db test user
+      mysql_user:
+        append_privs: yes
+        name: "{{ item.db_user_to_modify }}"
+        priv: "{{ COMMON_ENVIRONMENT }}_{{ COMMON_DEPLOYMENT }}_test_{{ item.db_name }}.*:ALL"
+        password: "{{ item.db_user_to_modify_pass }}"
+        login_host: "{{ item.db_host }}"
+        login_user: "{{ item.db_user }}"
+        login_password: "{{ item.db_pass }}"
+        host: '%'
+      when: item.db_user != 'None'
+      with_items:
+        # These defaults are needed, otherwise ansible will throw
+        # variable undefined errors for when they are not defined
+        # in secret vars
+        - db_name: "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+          db_host: "{{ EDXAPP_MYSQL_HOST|default('None') }}"
+          db_user: "{{ edxapp_db_root_user|default('None') }}"
+          db_pass: "{{ edxapp_db_root_pass|default('None') }}"
+          db_user_to_modify: "{{ EDXAPP_MYSQL_USER }}"
+          db_user_to_modify_pass: "{{ EDXAPP_MYSQL_PASSWORD }}"

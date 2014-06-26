@@ -27,22 +27,38 @@ import boto
 import datetime
 from vpcutil import vpc_for_stack_name
 import xml.dom.minidom
-import re
+import sys
 
-r53 = boto.connect_route53()
+# These are ELBs that we do not want to create dns entries
+# for because the instances attached to them are also in
+# other ELBs and we want the env-deploy-play tuple which makes
+# up the dns name to be unique
 
+ELB_BAN_LIST = [
+    'Apros',
+]
 
-extra_play_dns = {"edxapp":["courses","studio"]}
+# If the ELB name has the key in its name these plays
+# will be used for the DNS CNAME tuple.  This is used for
+# commoncluster.
+
+ELB_PLAY_MAPPINGS = {
+    'RabbitMQ': 'rabbitmq',
+    'Xqueue': 'xqueue',
+    'Elastic': 'elasticsearch',
+}
+
 
 class DNSRecord():
 
     def __init__(self, zone, record_name, record_type,
-                         record_ttl, record_values):
+                 record_ttl, record_values):
         self.zone = zone
         self.record_name = record_name
         self.record_type = record_type
         self.record_ttl = record_ttl
         self.record_values = record_values
+
 
 def add_or_update_record(dns_records):
     """
@@ -50,6 +66,7 @@ def add_or_update_record(dns_records):
     zone
     """
     change_set = boto.route53.record.ResourceRecordSets()
+    record_names = set()
 
     for record in dns_records:
 
@@ -60,9 +77,16 @@ def add_or_update_record(dns_records):
         record_values: {}
                  """.format(record.record_name, record.record_type,
                             record.record_ttl, record.record_values)
-
         if args.noop:
             print("Would have updated DNS record:\n{}".format(status_msg))
+        else:
+            print("Updating DNS record:\n{}".format(status_msg))
+
+        if record.record_name in record_names:
+            print("Unable to create record for {} with value {} because one already exists!".format(
+                record.record_values, record.record_name))
+            sys.exit(1)
+        record_names.add(record.record_name)
 
         zone_id = record.zone.Id.replace("/hostedzone/", "")
 
@@ -71,8 +95,15 @@ def add_or_update_record(dns_records):
         old_records = {r.name[:-1]: r for r in records}
 
         # If the record name already points to something.
-        # Delete the existing connection.
+        # Delete the existing connection. If the record has
+        # the same type and name skip it.
         if record.record_name in old_records.keys():
+            if record.record_name + "." == old_records[record.record_name].name and \
+                    record.record_type == old_records[record.record_name].type:
+                print("Record for {} already exists and is identical, skipping.\n".format(
+                    record.record_name))
+                continue
+
             if args.force:
                 print("Deleting record:\n{}".format(status_msg))
                 change = change_set.add_change(
@@ -99,11 +130,12 @@ def add_or_update_record(dns_records):
 
     if args.noop:
         print("Would have submitted the following change set:\n")
-        xml_doc = xml.dom.minidom.parseString(change_set.to_xml())
-        print xml_doc.toprettyxml()
     else:
+        print("Submitting the following change set:\n")
+    xml_doc = xml.dom.minidom.parseString(change_set.to_xml())
+    print(xml_doc.toprettyxml(newl=''))  # newl='' to remove extra newlines
+    if not args.noop:
         r53.change_rrsets(zone_id, change_set.to_xml())
-        print("Updated DNS record:\n{}".format(status_msg))
 
 
 def get_or_create_hosted_zone(zone_name):
@@ -137,39 +169,42 @@ def get_or_create_hosted_zone(zone_name):
         print("Updating parent zone {}".format(parent_zone_name))
 
         dns_records = set()
-        dns_records.add(DNSRecord(parent_zone,zone_name,'NS',900,zone.NameServers))
+        dns_records.add(DNSRecord(parent_zone, zone_name, 'NS', 900, zone.NameServers))
         add_or_update_record(dns_records)
 
     return zone
 
+
 def get_security_group_dns(group_name):
     # stage-edx-RabbitMQELBSecurityGroup-YB8ZKIZYN1EN
-    environment,deployment,sec_group,salt = group_name.split('-')
-    play = sec_group.replace("ELBSecurityGroup","").lower()
+    environment, deployment, sec_group, salt = group_name.split('-')
+    play = sec_group.replace("ELBSecurityGroup", "").lower()
     return environment, deployment, play
 
+
 def get_dns_from_instances(elb):
-
-    ec2_con = boto.connect_ec2()
-
     for inst in elb.instances:
-        instance = ec2_con.get_all_instances(
+        try:
+            instance = ec2_con.get_all_instances(
                 instance_ids=[inst.id])[0].instances[0]
+        except IndexError:
+            print("instance {} attached to elb {}".format(inst, elb))
+            sys.exit(1)
         try:
             env_tag = instance.tags['environment']
+            deployment_tag = instance.tags['deployment']
             if 'play' in instance.tags:
                 play_tag = instance.tags['play']
             else:
                 # deprecated, for backwards compatibility
                 play_tag = instance.tags['role']
-
             break  # only need the first instance for tag info
         except KeyError:
             print("Instance {}, attached to elb {} does not "
-                  "have tags for environment and play".format(elb, inst))
-            raise
+                  "have a tag for environment, play or deployment".format(inst, elb))
+            sys.exit(1)
 
-    return env_tag, play_tag
+    return env_tag, deployment_tag, play_tag
 
 
 def update_elb_rds_dns(zone):
@@ -182,10 +217,7 @@ def update_elb_rds_dns(zone):
 
     dns_records = set()
 
-    elb_con = boto.connect_elb()
-    rds_con = boto.connect_rds()
-
-    vpc_id = vpc_for_stack_name(args.stack_name)
+    vpc_id = vpc_for_stack_name(args.stack_name, args.aws_id, args.aws_secret)
 
     if not zone and args.noop:
         # use a placeholder for zone name
@@ -196,55 +228,84 @@ def update_elb_rds_dns(zone):
 
     stack_elbs = [elb for elb in elb_con.get_all_load_balancers()
                   if elb.vpc_id == vpc_id]
-
     for elb in stack_elbs:
+        env_tag, deployment_tag, play_tag = get_dns_from_instances(elb)
 
-        if "RabbitMQ" in elb.source_security_group.name or "ElasticSearch" in elb.source_security_group.name:
-            env_tag,deployment,play_tag = get_security_group_dns(elb.source_security_group.name)
-            fqdn = "{}-{}.{}".format(env_tag, play_tag, zone_name)
-            dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[elb.dns_name]))
-        else:
-            env_tag,play_tag = get_dns_from_instances(elb)
-            fqdn = "{}-{}.{}".format(env_tag, play_tag, zone_name)
-            dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[elb.dns_name]))
+        # Override the play tag if a substring of the elb name
+        # is in ELB_PLAY_MAPPINGS
 
-        if extra_play_dns.has_key(play_tag):
-            for name in extra_play_dns.get(play_tag):
-                fqdn = "{}-{}.{}".format(env_tag, name, zone_name)
-                dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[elb.dns_name]))
+        for key in ELB_PLAY_MAPPINGS.keys():
+            if key in elb.name:
+                play_tag = ELB_PLAY_MAPPINGS[key]
+                break
+        fqdn = "{}-{}-{}.{}".format(env_tag, deployment_tag, play_tag, zone_name)
 
+        # Skip over ELBs if a substring of the ELB name is in
+        # the ELB_BAN_LIST
+
+        if any(name in elb.name for name in ELB_BAN_LIST):
+            print("Skipping {} because it is on the ELB ban list".format(elb.name))
+            continue
+
+        dns_records.add(DNSRecord(zone, fqdn, 'CNAME', 600, [elb.dns_name]))
 
     stack_rdss = [rds for rds in rds_con.get_all_dbinstances()
                   if hasattr(rds.subnet_group, 'vpc_id') and
                   rds.subnet_group.vpc_id == vpc_id]
 
     # TODO the current version of the RDS API doesn't support
-    # looking up RDS instance tags.  Hence, we are using the 
-    # env_tag that was set via the loop over instances above.
+    # looking up RDS instance tags.  Hence, we are using the
+    # env_tag and deployment_tag that was set via the loop over instances above.
+
+    rds_endpoints = set()
     for rds in stack_rdss:
-        fqdn = "{}-{}.{}".format(env_tag,'rds', zone_name)
-        dns_records.add(DNSRecord(zone,fqdn,'CNAME',600,[stack_rdss[0].endpoint[0]]))
+        endpoint = stack_rdss[0].endpoint[0]
+        fqdn = "{}-{}-{}.{}".format(env_tag, deployment_tag, 'rds', zone_name)
+        # filter out rds instances with the same endpoints (multi-AZ)
+        if endpoint not in rds_endpoints:
+            dns_records.add(DNSRecord(zone, fqdn, 'CNAME', 600, [endpoint]))
+        rds_endpoints.add(endpoint)
 
     add_or_update_record(dns_records)
 
 if __name__ == "__main__":
-    description = "Give a cloudformation stack name, for an edx stack, setup \
-        DNS names for the ELBs in the stack."
+    description = """
 
+    Give a cloudformation stack name, for an edx stack, setup
+    DNS names for the ELBs in the stack
+
+    DNS entries will be created with the following format
+
+       <environment>-<deployment>-<play>.edx.org
+
+    """
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-s', '--stack-name', required=True,
                         help="The name of the cloudformation stack.")
     parser.add_argument('-n', '--noop',
                         help="Don't make any changes.", action="store_true",
                         default=False)
-    parser.add_argument('-z', '--zone-name', default="vpc.edx.org",
+    parser.add_argument('-z', '--zone-name', default="edx.org",
                         help="The name of the zone under which to "
                              "create the dns entries.")
     parser.add_argument('-f', '--force',
                         help="Force reuse of an existing name in a zone",
-                        action="store_true",default=False)
+                        action="store_true", default=False)
+    parser.add_argument('--aws-id', default=None,
+                        help="read only aws key for fetching instance information"
+                             "the account you wish add entries for")
+    parser.add_argument('--aws-secret', default=None,
+                        help="read only aws id for fetching instance information for"
+                             "the account you wish add entries for")
 
     args = parser.parse_args()
+    # Connect to ec2 using the provided credentials on the commandline
+    ec2_con = boto.connect_ec2(args.aws_id, args.aws_secret)
+    elb_con = boto.connect_elb(args.aws_id, args.aws_secret)
+    rds_con = boto.connect_rds(args.aws_id, args.aws_secret)
+
+    # Connect to route53 using the user's .boto file
+    r53 = boto.connect_route53()
+
     zone = get_or_create_hosted_zone(args.zone_name)
     update_elb_rds_dns(zone)
-

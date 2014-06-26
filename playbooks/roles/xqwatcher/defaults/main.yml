@@ -1,0 +1,106 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role xqwatcher
+#
+
+XQWATCHER_CONFIG:
+  HTTP_BASIC_AUTH: ["{{ COMMON_HTPASSWD_USER }}","{{ COMMON_HTPASSWD_PASS }}"]
+  POLL_TIME: 10
+
+XQWATCHER_COURSES:
+  - COURSE: "exampleX-101x"
+    GIT_REPO: "git@github.com:foo/graders-exampleX-101x.git"
+    GIT_REF: "master"
+    QUEUE_NAME: "exampleX-101x"
+    QUEUE_CONFIG:
+      SERVER: "https://xqueue.example.com"
+      CONNECTIONS: 5
+      AUTH: ["user", "password"]
+      HANDLERS:
+        - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+          CODEJAIL:
+            name: "exampleX-101x"
+            python_bin: "{{ xqwatcher_venv_base }}/exampleX-101x/bin/python"
+            user: "exampleX-101x"
+          KWARGS:
+            grader_root: "../data/exampleX-101x/graders/"
+  - COURSE: "exampleX-202x"
+    GIT_REPO: "git@github.com:foo/graders-exampleX-202x.git"
+    GIT_REF: "master"
+    QUEUE_NAME: "exampleX-202x"
+    QUEUE_CONFIG:
+      SERVER: "https://xqueue.example.com"
+      CONNECTIONS: 5
+      AUTH: ["user", "password"]
+      HANDLERS:
+        - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+          CODEJAIL:
+            name: "exampleX-202x"
+            python_bin: "{{ xqwatcher_venv_base }}/exampleX-202x/bin/python"
+            user: "exampleX-202x"
+          KWARGS:
+            grader_root: "../data/exampleX-202x/graders/"
+
+XQWATCHER_GIT_IDENTITY: |
+  -----BEGIN RSA PRIVATE KEY-----
+  Your key if you need to access any private repositories
+  -----END RSA PRIVATE KEY-----
+
+# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
+# and a key being provided via NEWRELIC_LICENSE_KEY
+XQWATCHER_NEWRELIC_APPNAME: "your Newrelic appname"
+XQWATCHER_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+#
+#
+# vars are namespace with the module name.
+#
+xqwatcher_role_name: "xqwatcher"
+xqwatcher_service_name: "xqwatcher"
+xqwatcher_user: "xqwatcher"
+xqwatcher_module: "xqueue_watcher"
+
+xqwatcher_app_dir: "{{ COMMON_APP_DIR }}/{{ xqwatcher_service_name }}"
+xqwatcher_home: "{{ COMMON_APP_DIR }}/{{ xqwatcher_service_name }}"
+xqwatcher_venv_base: "{{ xqwatcher_home }}/venvs"
+xqwatcher_venv_dir: "{{ xqwatcher_venv_base }}/{{ xqwatcher_service_name }}"
+xqwatcher_code_dir: "{{ xqwatcher_app_dir }}/src"
+xqwatcher_conf_dir: "{{ xqwatcher_home }}"
+xqwatcher_data_dir: "{{ xqwatcher_home }}/data"
+
+xqwatcher_source_repo: "git@{{ COMMON_GIT_MIRROR }}:edx/xqueue-watcher.git"
+xqwatcher_git_ssh_opts: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {{ xqwatcher_git_identity }}"
+XQWATCHER_VERSION: "master"
+xqwatcher_git_identity: "{{ xqwatcher_app_dir }}/git-identity"
+
+xqwatcher_requirements_file: "{{ xqwatcher_code_dir }}/requirements.txt"
+xqwatcher_log_dir: "{{ COMMON_LOG_DIR }}/{{ xqwatcher_service_name }}"
+
+#
+# supervisor related config
+#
+xqwatcher_supervisor_app_dir: "{{ xqwatcher_app_dir }}/supervisor"
+xqwatcher_supervisor_data_dir: "{{ COMMON_DATA_DIR }}/{{ xqwatcher_service_name }}"
+xqwatcher_supervisor_log_dir: "{{ xqwatcher_log_dir }}"
+xqwatcher_supervisor_venv_dir: "{{ xqwatcher_venv_base }}/supervisor"
+xqwatcher_supervisor_user: "{{ xqwatcher_user }}"
+xqwatcher_supervisor_venv_bin: "{{ xqwatcher_supervisor_venv_dir }}/bin"
+xqwatcher_supervisor_ctl: "{{ xqwatcher_supervisor_venv_bin }}/supervisorctl"
+xqwatcher_supervisor_cfg_dir: "{{ xqwatcher_supervisor_app_dir }}/conf.d"
+xqwatcher_supervisor_available_dir: "{{ xqwatcher_supervisor_app_dir }}/conf.available.d"
+
+#
+# OS packages
+#
+
+xqwatcher_debian_pkgs:
+  - apparmor-utils
+
+xqwatcher_redhat_pkgs: []

@@ -1,13 +1,20 @@
 [program:lms]
-{% if ansible_processor|length > 0 %}
-command={{ edxapp_venv_dir }}/bin/gunicorn --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+
+{% if COMMON_ENABLE_NEWRELIC %}
+{% set executable = edxapp_venv_dir + '/bin/newrelic-admin run-program ' + edxapp_venv_dir + '/bin/gunicorn' %}
 {% else %}
-command={{ edxapp_venv_dir }}/bin/gunicorn --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+{% set executable = edxapp_venv_dir + '/bin/gunicorn' %}
+{% endif %}
+
+{% if ansible_processor|length > 0 %}
+command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+{% else %}
+command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
 {% endif %}
 
 user={{ common_web_user }}
 directory={{ edxapp_code_dir }}
-environment=PORT={{edxapp_lms_gunicorn_port}},ADDRESS={{edxapp_lms_gunicorn_host}},LANG={{ EDXAPP_LANG }},DJANGO_SETTINGS_MODULE={{ edxapp_lms_env }},SERVICE_VARIANT="lms"
+environment={% if COMMON_ENABLE_NEWRELIC %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_LMS_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}  PORT={{edxapp_lms_gunicorn_port}},ADDRESS={{edxapp_lms_gunicorn_host}},LANG={{ EDXAPP_LANG }},DJANGO_SETTINGS_MODULE={{ edxapp_lms_env }},SERVICE_VARIANT="lms"
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
 killasgroup=true
