@@ -61,9 +61,9 @@ fi
 
 export PYTHONUNBUFFERED=1
 
-cd configuration
+cd $WORKSPACE/configuration
 configuration=`git rev-parse --short HEAD`
-cd ..
+cd $WORKSPACE
 
 base_params=""
 if [[ -n "$base_ami" ]]; then
