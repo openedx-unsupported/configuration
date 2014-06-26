@@ -5,6 +5,14 @@
     content="{{ ANALYTICS_API_GIT_IDENTITY }}" dest={{ analytics_api_git_identity_file }}
     owner={{ analytics_api_user }} group={{ analytics_api_user }} mode=0600
 
+- name: setup the analytics-api env file
+  template: >
+    src="edx/app/analytics-api/analytics_api_env.j2"
+    dest="{{ analytics_api_app_dir }}/analytics_api_env"
+    owner={{ analytics_api_user }}
+    group={{ analytics_api_user }}
+    mode=0644
+
 - name: checkout code
   git: >
     dest={{ analytics_api_code_dir }} repo={{ analytics_api_source_repo }} version={{ ANALYTICS_API_VERSION }}
@@ -21,14 +29,6 @@
     mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
   notify: restart the analytics service
 
-- name: run collectstatic
-  shell: >
-    chdir={{ analytics_api_code_dir }}
-    {{ analytics_api_venv_bin }}/python manage.py collectstatic --settings analyticsdataserver.settings.production --noinput --settings analyticsdataserver.settings.production
-  sudo_user: "{{ analytics_api_user }}"
-  environment:
-    ANALYTICS_API_CFG: "{{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml"
-
 - name: install application requirements
   pip: >
     requirements="{{ analytics_api_requirements_base }}/{{ item }}"
@@ -36,6 +36,31 @@
   sudo_user: "{{ analytics_api_user }}"
   notify: restart the analytics service
   with_items: analytics_api_requirements
+
+- name: syncdb and migrate
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ analytics_api_venv_bin }}/python ./manage.py syncdb --migrate --noinput
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run collectstatic
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    {{ analytics_api_venv_bin }}/python manage.py collectstatic  --noinput
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+
+- name: create api users
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    {{ analytics_api_venv_bin }}/python manage.py set_api_key {{ item.key }} {{ item.value }} --create-user
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+  with_dict: ANALYTICS_API_USERS
 
 - name: write out the supervisior wrapper
   template: >
@@ -63,6 +88,24 @@
 - name: update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
+
+- name: create symlinks from the venv bin dir
+  file: >
+    src="{{ analytics_api_venv_bin }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.analytics-api"
+    state=link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file: >
+    src="{{ analytics_api_code_dir }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.analytics-api"
+    state=link
+  with_items:
+  - manage.py
 
 - name: remove read-only ssh key for the content repo
   file: path={{ analytics_api_git_identity_file }} state=absent
