@@ -1,3 +1,5 @@
+- Logrotation now happens hourly by default for all logs.
+
 - Role: xqwatcher, xqueue, nginx, edxapp, common
   - Moving nginx basic authorization flag and credentials to the common role
 
