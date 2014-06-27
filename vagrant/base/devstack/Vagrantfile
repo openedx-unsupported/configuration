@@ -1,4 +1,7 @@
 Vagrant.require_version ">= 1.5.3"
+unless Vagrant.has_plugin?("vagrant-vbguest")
+  raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
+end
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -6,17 +9,18 @@ MEMORY = 2048
 CPU_COUNT = 2
 
 edx_platform_mount_dir = "edx-platform"
+themes_mount_dir = "themes"
 forum_mount_dir = "cs_comments_service"
 ora_mount_dir = "ora"
 
 if ENV['VAGRANT_MOUNT_BASE']
 
   edx_platform_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_platform_mount_dir
+  themes_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + themes_mount_dir
   forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
   ora_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ora_mount_dir
 
 end
-
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
@@ -33,14 +37,32 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.ssh.insert_key = true
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
-  config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
-  config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
-  config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
 
-  # Enable X11 forwarding so we can interact with GUI applications
+ # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']
-      config.ssh.forward_x11 = true
+    config.ssh.forward_x11 = true
   end
+
+  if ENV['VAGRANT_USE_VBOXFS'] == 'true'
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      create: true, owner: "edxapp", group: "www-data"
+    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
+      create: true, owner: "edxapp", group: "www-data"
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, owner: "forum", group: "www-data"
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      create: true, owner: "ora", group: "www-data"
+  else
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      create: true, nfs: true
+    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
+      create: true, nfs: true
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, nfs: true
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      create: true, nfs: true
+  end
+
 
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
@@ -66,9 +88,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # See: https://github.com/mitchellh/vagrant/issues/1188
   config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
 
+  # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
+  config.vbguest.auto_reboot = true
+  config.vbguest.auto_update = true
+
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "../../../playbooks/vagrant-devstack.yml"
     ansible.verbose = "vvvv"
-
   end
 end
