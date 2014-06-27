@@ -524,18 +524,20 @@ def create_ami(instance_id, name, description):
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("play", args.play)
                 time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_ref", args.configuration_version)
+                conf_tag = "{} {}".format("http://github.com/edx/configuration", args.configuration_version)
+                img.add_tag("version: configuration", conf_tag)
                 time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_secure_ref", args.configuration_secure_version)
-                time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                conf_secure_tag = "{} {}".format(args.configuration_secure_repo, args.configuration_secure_version)
+                img.add_tag("version: configuration_secure", conf_secure_tag)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("cache_id", args.cache_id)
                 time.sleep(AWS_API_WAIT_TIME)
-                for name,value in extra_vars.items():
-                    if name.endswith('_version'):
-                        key = "vars:{}".format(repo)
-                        img.add_tag(key, value)
+
+                # Get versions from the instance.
+                tags = ec2.get_all_tags(filters={'resource-id': instance_id})
+                for tag in tags:
+                    if tag.name.startswith('version:'):
+                        img.add_tag(tag.name, tag.value)
                         time.sleep(AWS_API_WAIT_TIME)
                 break
             else:
