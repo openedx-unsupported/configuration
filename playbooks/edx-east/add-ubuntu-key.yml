@@ -1,0 +1,32 @@
+# A simple utility play to add a public key to the authorized key
+# file for the ubuntu user.
+# You must pass in the entire line that you are adding.
+# Example: ansible-playbook add-ubuntu-key.yml -c local -i 127.0.0.1, \
+#                              -e "public_key='ssh-rsa SOME_PUBLIC_KEY deployment-201407'" \
+#                              -e owner=jarv  -e keyfile=/home/jarv/.ssh/authorized_keys
+
+- hosts: all
+  vars:
+    owner: ubuntu
+    keyfile: "/home/{{ owner }}/.ssh/authorized_keys"
+  tasks:
+    - fail: msg="You must pass in a public_key"
+      when: public_key is not defined
+    - command: mktemp
+      register: mktemp
+    - name: Validate the public key before we add it to authorized_keys
+      copy: >
+        content="{{ public_key }}"
+        dest={{ mktemp.stdout }}
+    # This tests the public key and will not continue if it does not look valid
+    - command: ssh-keygen -l -f {{ mktemp.stdout }}
+    - file: >
+        path={{ mktemp.stdout }}
+        state=absent
+    - lineinfile: >
+        dest={{ keyfile }}
+        line="{{ public_key }}"
+    - file: >
+        path={{ keyfile }}
+        owner={{ owner }}
+        mode=0600
