@@ -37,7 +37,7 @@ else
     if [[ $first_in == "true" ]]; then
         ansible_limit+="first_in_"
     fi
-    ansible_limit+="tag_environment_${environment_tag}&tag_deployment_${deployment_tag}"
+    ansible_limit+="tag_environment_${environment_tag}:&tag_deployment_${deployment_tag}"
 fi
 
 ansible_extra_vars+=" -e public_key=$public_key"
