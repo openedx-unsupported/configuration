@@ -131,11 +131,18 @@ EOF
 if [[ $basic_auth == "true" ]]; then
     # vars specific to provisioning added to $extra-vars
     cat << EOF_AUTH >> $extra_vars_file
+COMMON_ENABLE_BASIC_AUTH: True
 COMMON_HTPASSWD_USER: $auth_user
 COMMON_HTPASSWD_PASS: $auth_pass
 XQUEUE_BASIC_AUTH_USER: $auth_user
 XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
+
+else
+    cat << EOF_AUTH >> $extra_vars_file
+COMMON_ENABLE_BASIC_AUTH: False
+EOF_AUTH
+
 fi
 
 if [[ $edx_internal == "true" ]]; then
