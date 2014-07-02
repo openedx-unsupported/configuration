@@ -4,91 +4,6 @@
   sudo: True
   tasks:
 
-    - name: Switch the mongo db to use ephemeral
-      file: >
-        name=/mnt/mongodb
-        state=directory
-        owner=mongodb
-        group=mongodb
-      tags: update_mongo_data
-
-    - name: update the mongo config to use the new mongo dir
-      shell: >
-        sed -i 's#^dbpath=.*#dbpath=/mnt/mongodb#' /etc/mongodb.conf
-      tags: update_mongo_data
-
-    - name: restart mongodb
-      service: >
-        name=mongodb
-        state=restarted
-      tags: update_mongo_data
-
-    - name: grab the most recent backup from s3 for forums
-      shell : >
-        /edx/bin/s3cmd ls s3://edx-mongohq/mongohq_backups/ | grep comment | sort | tail -1  | awk '{ print $4 }'
-      register: s3cmd_out_forum
-      tags: update_mongo_data
-
-    - name: grab the most recent backup from s3 for forums
-      shell : >
-        /edx/bin/s3cmd get {{ s3cmd_out_forum.stdout }} --skip-existing
-        chdir=/mnt
-      tags: update_mongo_data
-      when: s3cmd_out_forum.stdout is defined
-
-    - name: untar the s3 backup
-      shell: >
-        tar zxf {{ s3cmd_out_forum.stdout|basename }}
-        chdir=/mnt
-      when: s3cmd_out_forum.stdout is defined
-      tags: update_mongo_data
-
-
-    - name: grab the most recent backup from s3 for prod-edx
-      shell : >
-        /edx/bin/s3cmd ls s3://edx-mongohq/mongohq_backups/ | grep prod-edx | sort | tail -1  | awk '{ print $4 }'
-      register: s3cmd_out_modulestore
-      tags: update_mongo_data
-
-    - name: grab the most recent backup from s3 for prod-edx
-      shell : >
-        /edx/bin/s3cmd get {{ s3cmd_out_modulestore.stdout }} --skip-existing
-        chdir=/mnt
-      tags: update_mongo_data
-      when: s3cmd_out_modulestore.stdout is defined
-
-    - name: untar the s3 backup
-      shell: >
-        tar zxf {{ s3cmd_out_modulestore.stdout|basename }}
-        chdir=/mnt
-      tags: update_mongo_data
-      when: s3cmd_out_modulestore.stdout is defined
-
-    - name: Restore the mongo data for the forums
-      shell: >
-        mongorestore --drop -d cs_comments_service  /mnt/comments-prod
-      tags: update_mongo_data
-
-    - name: Restore the mongo data for the modulestore
-      shell: >
-        mongorestore --drop -d edxapp /mnt/prod-edx
-      tags: update_mongo_data
-
-    # recreate users after the restore
-    - name: create a mongodb users
-      mongodb_user: >
-        database={{ item.database }}
-        name={{ item.user }}
-        password={{ item.password }}
-        state=present
-      with_items:
-        - user: cs_comments_service
-          password: password
-          database: cs_comments_service
-        - user: exdapp
-          password: password
-          database: edxapp
-
       # WARNING - calling lineinfile on a symlink
       # will convert the symlink to a file!
       # don't use /edx/etc/server-vars.yml here
@@ -106,6 +21,17 @@
         - "EDXAPP_MYSQL_DB_NAME: {{ EDXAPP_MYSQL_DB_NAME }}"
         - "EDXAPP_MYSQL_USER: {{ EDXAPP_MYSQL_USER }}"
         - "EDXAPP_MYSQL_PASSWORD: {{ EDXAPP_MYSQL_PASSWORD }}"
+      tags: update_edxapp_mysql_host
+
+    - name: Update mongo to point to the sandbox mongo clone
+      lineinfile: >
+        dest=/edx/app/edx_ansible/server-vars.yml
+        line="{{ item }}"
+      with_items:
+        - "EDXAPP_MONGO_HOSTS: {{ EDXAPP_MONGO_HOSTS }}"
+        - "EDXAPP_MONGO_DB_NAME: {{ EDXAPP_MONGO_DB_NAME }}"
+        - "EDXAPP_MONGO_USER: {{ EDXAPP_MONGO_USER }}"
+        - "EDXAPP_MONGO_PASS: {{ EDXAPP_MONGO_PASS }}"
       tags: update_edxapp_mysql_host
 
     - name: call update on edx-platform
