@@ -52,6 +52,7 @@
   sudo_user: "{{ certs_user }}"
   environment:
     GIT_SSH: "{{ certs_git_ssh }}"
+  register: certs_checkout
   notify: restart certs
 
 - name: remove read-only ssh key for the certs repo
@@ -95,5 +96,8 @@
   with_items:
   - python
   - pip
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE
 
 - set_fact: certs_installed=true

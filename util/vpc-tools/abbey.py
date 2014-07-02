@@ -76,19 +76,17 @@ def parse_args():
                         help="don't cleanup on failures")
     parser.add_argument('--vars', metavar="EXTRA_VAR_FILE",
                         help="path to extra var file", required=False)
-    parser.add_argument('--refs', metavar="GIT_REFS_FILE",
-                        help="path to a var file with app git refs", required=False)
     parser.add_argument('--configuration-version', required=False,
-                        help="configuration repo branch(no hashes)",
+                        help="configuration repo gitref",
                         default="master")
     parser.add_argument('--configuration-secure-version', required=False,
-                        help="configuration-secure repo branch(no hashes)",
+                        help="configuration-secure repo gitref",
                         default="master")
     parser.add_argument('--configuration-secure-repo', required=False,
                         default="git@github.com:edx-ops/prod-secure",
                         help="repo to use for the secure files")
     parser.add_argument('--configuration-private-version', required=False,
-                        help="configuration-private repo branch(no hashes)",
+                        help="configuration-private repo gitref",
                         default="master")
     parser.add_argument('--configuration-private-repo', required=False,
                         default="git@github.com:edx-ops/ansible-private",
@@ -287,8 +285,6 @@ cat << EOF >> $extra_vars
 # of all the repositories
 {extra_vars_yml}
 
-{git_refs_yml}
-
 # abbey will always run fake migrations
 # this is so that the application can come
 # up healthy
@@ -299,6 +295,7 @@ EDXAPP_UPDATE_STATIC_FILES_KEY: true
 edxapp_dynamic_cache_key: {deployment}-{environment}-{play}-{cache_id}
 
 disable_edx_services: true
+COMMON_TAG_EC2_INSTANCE: true
 
 # abbey should never take instances in
 # and out of elbs
@@ -369,7 +366,6 @@ rm -rf $base_dir
                 identity_contents=identity_contents,
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
-                git_refs_yml=git_refs_yml,
                 secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id)
 
@@ -528,18 +524,21 @@ def create_ami(instance_id, name, description):
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("play", args.play)
                 time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_ref", args.configuration_version)
+                conf_tag = "{} {}".format("http://github.com/edx/configuration", args.configuration_version)
+                img.add_tag("version: configuration", conf_tag)
                 time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_secure_ref", args.configuration_secure_version)
-                time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                conf_secure_tag = "{} {}".format(args.configuration_secure_repo, args.configuration_secure_version)
+                img.add_tag("version: configuration_secure", conf_secure_tag)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("cache_id", args.cache_id)
                 time.sleep(AWS_API_WAIT_TIME)
-                for repo, ref in git_refs.items():
-                    key = "refs:{}".format(repo)
-                    img.add_tag(key, ref)
-                    time.sleep(AWS_API_WAIT_TIME)
+
+                # Get versions from the instance.
+                tags = ec2.get_all_tags(filters={'resource-id': instance_id})
+                for tag in tags:
+                    if tag.name.startswith('version:'):
+                        img.add_tag(tag.name, tag.value)
+                        time.sleep(AWS_API_WAIT_TIME)
                 break
             else:
                 time.sleep(1)
@@ -673,14 +672,6 @@ if __name__ == '__main__':
     else:
         extra_vars_yml = ""
         extra_vars = {}
-
-    if args.refs:
-        with open(args.refs) as f:
-            git_refs_yml = f.read()
-            git_refs = yaml.load(git_refs_yml)
-    else:
-        git_refs_yml = ""
-        git_refs = {}
 
     if args.secure_vars_file:
         # explicit path to a single

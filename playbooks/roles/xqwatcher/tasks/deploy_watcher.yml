@@ -7,6 +7,7 @@
     dest={{ xqwatcher_code_dir }} repo={{ xqwatcher_source_repo }} version={{ XQWATCHER_VERSION }}
     accept_hostkey=yes
     ssh_opts="{{ xqwatcher_git_ssh_opts }}"
+  register: xqwatcher_checkout
 
 - name: install application requirements
   pip: >
@@ -40,3 +41,6 @@
   shell: "{{ xqwatcher_supervisor_ctl }} -c {{ xqwatcher_supervisor_app_dir }}/supervisord.conf update"
   when: not disable_edx_services
   notify: restart xqwatcher
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE
