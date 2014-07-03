@@ -29,6 +29,12 @@ if [[ -z $BUILD_USER_ID ]]; then
     BUILD_USER_ID=edx-sandbox
 fi
 
+if [[ ! -z "$extra_vars" ]]; then
+    for arg in $extra_vars; do
+        ansible_extra_vars+=" -e $arg"
+    done
+fi
+
 
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
@@ -51,7 +57,7 @@ if [[ ! -f $BOTO_CONFIG ]]; then
 fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
-extra_var_arg="-e@${extra_vars_file}"
+extra_var_arg="-e@${extra_vars_file} $extra_vars"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
