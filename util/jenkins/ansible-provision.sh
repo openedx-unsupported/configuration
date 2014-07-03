@@ -57,7 +57,7 @@ if [[ ! -f $BOTO_CONFIG ]]; then
 fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
-extra_var_arg="-e@${extra_vars_file} $extra_vars"
+extra_var_arg="-e@${extra_vars_file} $ansible_extra_vars"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
