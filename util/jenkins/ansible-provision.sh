@@ -201,7 +201,7 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    ansible-playbook edx_provision.yml  -i inventory.ini $extra_var_arg --user ubuntu  -v -D
+    ansible-playbook edx_provision.yml  -i inventory.ini $extra_var_arg --user ubuntu -D
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
@@ -229,7 +229,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy -v -D
+            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy -D
         fi
     done
 fi
