@@ -31,6 +31,14 @@ def rds_subnet_group_name_for_stack_name(stack_name, region='us-east-1', aws_id=
             return group['DBSubnetGroupName']
     return None
 
+def rds_subnet_group_name_for_vpc(vpc, region='us-east-1', aws_id=None, aws_secret=None):
+    # Helper function to look up a subnet group name by vpc
+    rds = boto.rds2.connect_to_region(region)
+    for group in rds.describe_db_subnet_groups()['DescribeDBSubnetGroupsResponse']['DescribeDBSubnetGroupsResult']['DBSubnetGroups']:
+        if group['VpcId'] == vpc:
+            return group['DBSubnetGroupName']
+    return None
+
 
 def all_stack_names(region='us-east-1', aws_id=None, aws_secret=None):
     vpc_conn = boto.connect_vpc(aws_id, aws_secret)
