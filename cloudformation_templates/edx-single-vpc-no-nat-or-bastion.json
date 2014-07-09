@@ -1,0 +1,285 @@
+{
+  "AWSTemplateFormatVersion":"2010-09-09",
+  "Description":"Separate VPC for database clones and replicas.",
+  "Parameters":{
+    "EnvironmentTag":{
+      "Type":"String",
+      "Description":"A tag value applied to the hosts in the VPC indicating which environment to use during the configuration phase, e.g., stage, prod, sandbox",
+      "Default":"prod"
+    },
+    "DeploymentTag":{
+      "Type":"String",
+      "Description":"A tag value applied to the hosts in the VPC indicating which deployment this is, e.g., edx, edge, <university>, <org>",
+      "Default":"edx"
+    },
+    "KeyName":{
+      "Type":"String",
+      "Description":"Name of an existing EC2 KeyPair to enable SSH access to the web server",
+      "Default":"deployment-201407"
+    },
+    "ClassB":{
+      "Default":"1",
+      "Description":"The second octet of the Class B to be allocated for this VPC. 10.?.xxx.xxx",
+      "Type":"Number",
+      "MinValue":"0",
+      "MaxValue":"255",
+      "ConstraintDescription":"ClassB value must be between 0 and 255."
+    }
+  },
+  "Mappings":{
+    "SubnetConfig":{
+      "VPC":             { "CIDR":".0.0/16"  },
+      "Data01":          { "CIDR":".50.0/24" },
+      "Data02":          { "CIDR":".51.0/24" }
+    },
+    "MapRegionsToAvailZones":{
+      "us-east-1":       { "AZone2":"us-east-1d",      "AZone0":"us-east-1b",      "AZone1":"us-east-1c" },
+      "us-west-1":       { "AZone0":"us-west-1a",      "AZone2":"us-west-1b",      "AZone1":"us-west-1c" },
+      "us-west-2":       { "AZone0":"us-west-2a",      "AZone1":"us-west-2b",      "AZone2":"us-west-2c" },
+      "eu-west-1":       { "AZone0":"eu-west-1a",      "AZone1":"eu-west-1b",      "AZone2":"eu-west-1c" },
+      "sa-east-1":       { "AZone0":"sa-east-1a",      "AZone1":"sa-east-1b",      "AZone2":"sa-east-1c" },
+      "ap-southeast-1":  { "AZone0":"ap-southeast-1a", "AZone1":"ap-southeast-1b", "AZone2":"ap-southeast-1c" },
+      "ap-southeast-2":  { "AZone0":"ap-southeast-2a", "AZone1":"ap-southeast-2b", "AZone2":"ap-southeast-2c" },
+      "ap-northeast-1":  { "AZone0":"ap-northeast-1a", "AZone1":"ap-northeast-1b", "AZone2":"ap-northeast-1c" }
+    }
+  },
+  "Resources":{
+    "EdxVPC":{
+      "Type":"AWS::EC2::VPC",
+      "Properties":{
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "CidrBlock": { "Fn::Join": ["", ["10.", { "Ref": "ClassB" }, { "Fn::FindInMap": [ "SubnetConfig", "VPC", "CIDR"]}]]},
+        "InstanceTenancy":"default"
+      }
+    },
+    "Data01":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Data01",
+              "CIDR"
+            ]}
+          ]]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone0"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Name",
+            "Value":"Subnet-for-sanitized-dbs"
+          }
+        ]
+      }
+    },
+    "Data02":{
+      "Type":"AWS::EC2::Subnet",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "CidrBlock":{
+          "Fn::Join": ["", [
+            "10.", { "Ref": "ClassB"},
+            {"Fn::FindInMap":[
+              "SubnetConfig",
+              "Data02",
+              "CIDR"
+            ]}
+          ]]
+        },
+        "AvailabilityZone":{
+          "Fn::FindInMap":[
+            "MapRegionsToAvailZones",
+            { "Ref":"AWS::Region" },
+            "AZone1"
+          ]
+        },
+        "Tags":[
+          {
+            "Key":"Name",
+            "Value":"Subnet-for-non-sanitized-clones"
+          }
+        ]
+      }
+    },
+    "PrivateRouteTable":{
+      "Type":"AWS::EC2::RouteTable",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":{
+              "Ref":"AWS::StackId"
+            }
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
+    "PrivateSubnetRouteTableAssociationData01":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"Data01"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
+    "PrivateSubnetRouteTableAssociationData02":{
+      "Type":"AWS::EC2::SubnetRouteTableAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"Data02"
+        },
+        "RouteTableId":{
+          "Ref":"PrivateRouteTable"
+        }
+      }
+    },
+    "PrivateNetworkAcl":{
+      "Type":"AWS::EC2::NetworkAcl",
+      "Properties":{
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "Tags":[
+          {
+            "Key":"Application",
+            "Value":{
+              "Ref":"AWS::StackId"
+            }
+          },
+          {
+            "Key":"Network",
+            "Value":"Private"
+          }
+        ]
+      }
+    },
+    "InboundPrivateNetworkAclEntry":{
+      "Type":"AWS::EC2::NetworkAclEntry",
+      "Properties":{
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        },
+        "RuleNumber":"100",
+        "Protocol":"6",
+        "RuleAction":"allow",
+        "Egress":"false",
+        "CidrBlock":"0.0.0.0/0",
+        "PortRange":{
+          "From":"0",
+          "To":"65535"
+        }
+      }
+    },
+    "OutBoundPrivateNetworkAclEntry":{
+      "Type":"AWS::EC2::NetworkAclEntry",
+      "Properties":{
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        },
+        "RuleNumber":"100",
+        "Protocol":"6",
+        "RuleAction":"allow",
+        "Egress":"true",
+        "CidrBlock":"0.0.0.0/0",
+        "PortRange":{
+          "From":"0",
+          "To":"65535"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationData01":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"Data01"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "PrivateSubnetNetworkAclAssociationData02":{
+      "Type":"AWS::EC2::SubnetNetworkAclAssociation",
+      "Properties":{
+        "SubnetId":{
+          "Ref":"Data02"
+        },
+        "NetworkAclId":{
+          "Ref":"PrivateNetworkAcl"
+        }
+      }
+    },
+    "EdxDataSecurityGroup":{
+      "Type":"AWS::EC2::SecurityGroup",
+      "Properties":{
+        "GroupDescription":"Open up access to the data subnet",
+        "VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "SecurityGroupIngress":[
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"3306",
+            "ToPort":"3306",
+            "CidrIp":"0.0.0.0/0"
+          },
+          {
+            "IpProtocol":"tcp",
+            "FromPort":"27017",
+            "ToPort":"27017",
+            "CidrIp":"0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "EdxDBSubnetGroup":{
+      "Type":"AWS::RDS::DBSubnetGroup",
+      "Properties":{
+        "DBSubnetGroupDescription":"Subnets available for the RDS DB Instance",
+        "SubnetIds":[
+          {
+            "Ref":"Data01"
+          },
+          {
+            "Ref":"Data02"
+          }
+        ]
+      }
+    },
+    "DBSecurityGroup":{
+      "Type":"AWS::RDS::DBSecurityGroup",
+      "Properties":{
+        "EC2VpcId":{
+          "Ref":"EdxVPC"
+        },
+        "GroupDescription":"Data access"
+      }
+    }
+  }
+}
+
+

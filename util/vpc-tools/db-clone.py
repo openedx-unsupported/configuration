@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python -u
 import boto
 import boto.route53
 import boto.route53.record
@@ -37,25 +37,6 @@ RDS_SIZES = [
     'db.m2.4xlarg',
 ]
 
-# These are the groups for the different
-# stack names that will be assigned once
-# the corresponding db is cloned
-
-SG_GROUPS = {
-    'stage-edx': 'sg-d2f623b7',
-}
-
-# This group must already be created
-# and allows for full access to port
-# 3306 from within the vpc.
-# This group is assigned temporarily
-# for cleaning the db
-
-SG_GROUPS_FULL = {
-    'stage-edx': 'sg-0abf396f',
-}
-
-
 def parse_args(args=sys.argv[1:]):
 
     stack_names = all_stack_names()
@@ -64,9 +45,12 @@ def parse_args(args=sys.argv[1:]):
            for db in rds.describe_db_instances()['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']]
 
     parser = ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
-    parser.add_argument('-s', '--stack-name', choices=stack_names,
-                        default=None,
-                        help='Stack name for where you want this RDS instance launched')
+    parser.add_argument('--vpc', default=None, action="store_true",
+                        help='this is for a vpc')
+    parser.add_argument('--security-group', default=None,
+                        help='security group name that should be assigned to the new RDS instance (vpc only!)')
+    parser.add_argument('--subnet', default=None,
+                        help='subnet that should be used for the RDS instance (vpc only!)')
     parser.add_argument('-t', '--type', choices=RDS_SIZES,
                         default='db.m1.small', help='RDS size to create instances of')
     parser.add_argument('-d', '--db-source', choices=dbs,
@@ -86,8 +70,8 @@ def parse_args(args=sys.argv[1:]):
     parser.add_argument('--dump', action="store_true",
                         default=False,
                         help="create a sql dump after launching it into the vpc")
-    parser.add_argument('--secret-var-file',
-                        help="using a secret var file run ansible against the host to update db users")
+    parser.add_argument('-s', '--secret-var-files', action="append", required=True,
+                        help="use one or more secret var files to run ansible against the host to update db users")
 
     return parser.parse_args(args)
 
@@ -99,10 +83,11 @@ def wait_on_db_status(db_name, region='us-east-1', wait_on='available', aws_id=N
         if len(statuses) > 1:
             raise Exception("More than one instance returned for {0}".format(db_name))
         if statuses[0]['DBInstanceStatus'] == wait_on:
+            print("Status is: {}".format(wait_on))
             break
-        sys.stdout.write(".")
+        sys.stdout.write("status is {}..\n".format(statuses[0]['DBInstanceStatus']))
         sys.stdout.flush()
-        time.sleep(2)
+        time.sleep(10)
     return
 
 if __name__ == '__main__':
@@ -119,31 +104,33 @@ if __name__ == '__main__':
         use_latest_restorable_time=True,
         db_instance_class=args.type,
     )
-    if args.stack_name:
-        subnet_name = rds_subnet_group_name_for_stack_name(args.stack_name)
-        restore_args['db_subnet_group_name'] = subnet_name
+    if args.vpc:
+        restore_args['db_subnet_group_name'] = args.subnet
     rds.restore_db_instance_to_point_in_time(**restore_args)
     wait_on_db_status(restore_dbid)
-
+    print("Getting db host")
     db_host = rds.describe_db_instances(restore_dbid)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['Endpoint']['Address']
 
-    if args.password or args.stack_name:
-        modify_args = dict(
-            apply_immediately=True
-        )
-        if args.password:
-            modify_args['master_user_password'] = args.password
-        if args.stack_name:
-            modify_args['vpc_security_group_ids'] = [SG_GROUPS[args.stack_name], SG_GROUPS_FULL[args.stack_name]]
-        else:
-            # dev-edx is the default security group for dbs that
-            # are not in the vpc, it allows connections from the various
-            # NAT boxes and from sandboxes
-            modify_args['db_security_groups'] = ['dev-edx']
+    modify_args = dict(
+        apply_immediately=True
+    )
+    if args.password:
+        modify_args['master_user_password'] = args.password
 
-        # Update the db immediately
-        rds.modify_db_instance(restore_dbid, **modify_args)
+    if args.vpc:
+        modify_args['vpc_security_group_ids'] = [args.security_group]
+    else:
+        # dev-edx is the default security group for dbs that
+        # are not in the vpc, it allows connections from the various
+        # NAT boxes and from sandboxes
+        modify_args['db_security_groups'] = ['dev-edx']
 
+    # Update the db immediately
+    print("Updating db instance: {}".format(modify_args))
+    rds.modify_db_instance(restore_dbid, **modify_args)
+    print("Waiting 15 seconds before checking to see if db is available")
+    time.sleep(15)
+    wait_on_db_status(restore_dbid)
     if args.clean_wwc:
         # Run the mysql clean sql file
         sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} wwc < {sanitize_wwc_sql_file} """.format(
@@ -162,12 +149,16 @@ if __name__ == '__main__':
         print("Running {}".format(sanitize_cmd))
         os.system(sanitize_cmd)
 
-    if args.secret_var_file:
+    if args.secret_var_files:
+        extra_args = ""
+        for secret_var_file in args.secret_var_files:
+            extra_args += " -e@{}".format(secret_var_file)
+
         db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, update_edxapp_db_users.yml """ \
-            """-e @{secret_var_file} -e "edxapp_db_root_user=root edxapp_db_root_pass={root_pass} """ \
+            """{extra_args} -e "edxapp_db_root_user=root edxapp_db_root_pass={root_pass} """ \
             """EDXAPP_MYSQL_HOST={db_host}" """.format(
             root_pass=args.password,
-            secret_var_file=args.secret_var_file,
+            extra_args=extra_args,
             db_host=db_host,
             play_path=play_path)
         print("Running {}".format(db_cmd))
@@ -181,6 +172,3 @@ if __name__ == '__main__':
             db_host=db_host)
         print("Running {}".format(dns_cmd))
         os.system(dns_cmd)
-
-    if args.stack_name:
-        rds.modify_db_instance(restore_dbid, vpc_security_group_ids=[SG_GROUPS[args.stack_name]])
