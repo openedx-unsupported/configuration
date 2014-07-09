@@ -290,10 +290,6 @@ cat << EOF >> $extra_vars
 # up healthy
 fake_migrations: true
 
-# Use the build number an the dynamic cache key.
-EDXAPP_UPDATE_STATIC_FILES_KEY: true
-edxapp_dynamic_cache_key: {deployment}-{environment}-{play}-{cache_id}
-
 disable_edx_services: true
 COMMON_TAG_EC2_INSTANCE: true
 
