@@ -79,12 +79,13 @@
 - name: syncdb and migrate
   shell: >
     chdir={{ edxapp_code_dir }}
-    {{ edxapp_venv_bin}}/python manage.py lms syncdb --migrate --noinput --settings=aws_migrate
-  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
+    {{ edxapp_venv_bin}}/python manage.py {{ item }} syncdb --migrate --noinput --settings=aws_migrate
+  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and item != "lms-preview"
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
   sudo_user: "{{ edxapp_user }}"
+  with_items: service_variants_enabled
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
