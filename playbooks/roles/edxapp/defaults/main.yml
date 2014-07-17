@@ -11,12 +11,16 @@
 #
 # Defaults specified here should not contain
 # any secrets or host identifying information.
+#
+# Variables set to "None" will be converted to None
+# when the edxapp config is written to disk.
 
-EDXAPP_LMS_BASE: ''
-EDXAPP_PREVIEW_LMS_BASE: ''
-EDXAPP_CMS_BASE: ''
-EDXAPP_AWS_ACCESS_KEY_ID:  ''
-EDXAPP_AWS_SECRET_ACCESS_KEY:  ''
+
+EDXAPP_LMS_BASE: ""
+EDXAPP_PREVIEW_LMS_BASE: ""
+EDXAPP_CMS_BASE: ""
+EDXAPP_AWS_ACCESS_KEY_ID:  ""
+EDXAPP_AWS_SECRET_ACCESS_KEY:  ""
 EDXAPP_XQUEUE_BASIC_AUTH: [ "{{ COMMON_HTPASSWD_USER }}", "{{ COMMON_HTPASSWD_PASS }}" ]
 EDXAPP_XQUEUE_DJANGO_AUTH:
   username: 'lms'
@@ -52,27 +56,36 @@ EDXAPP_MEMCACHE: [ 'localhost:11211' ]
 EDXAPP_COMMENTS_SERVICE_URL:  'http://localhost:18080'
 EDXAPP_COMMENTS_SERVICE_KEY:  'password'
 
-EDXAPP_EDXAPP_SECRET_KEY: ''
+EDXAPP_EDXAPP_SECRET_KEY: ""
 
 EDXAPP_OEE_URL: 'http://localhost:18060/'
 EDXAPP_OEE_USER: 'lms'
 EDXAPP_OEE_PASSWORD: 'password'
 
-EDXAPP_ANALYTICS_API_KEY:  ''
-EDXAPP_ZENDESK_USER: ''
-EDXAPP_ZENDESK_API_KEY: ''
+EDXAPP_ANALYTICS_API_KEY:  ""
+EDXAPP_PAYMENT_SUPPORT_EMAIL: "billing@example.com"
+EDXAPP_ZENDESK_USER: ""
+EDXAPP_ZENDESK_URL: ""
+EDXAPP_ZENDESK_API_KEY: ""
 EDXAPP_CELERY_USER: 'celery'
 EDXAPP_CELERY_PASSWORD: 'celery'
+EDXAPP_CELERY_BROKER_VHOST: ""
+
+EDXAPP_VIDEO_CDN_URLS:
+  EXAMPLE_COUNTRY_CODE: "http://example.com/edx/video?s3_url="
 
 EDXAPP_PLATFORM_NAME: 'Your Platform Name Here'
 
-EDXAPP_CAS_SERVER_URL: ''
-EDXAPP_CAS_EXTRA_LOGIN_PARAMS: ''
-EDXAPP_CAS_ATTRIBUTE_CALLBACK: ''
-EDXAPP_CAS_ATTRIBUTE_PACKAGE: ''
+EDXAPP_CAS_SERVER_URL: ""
+EDXAPP_CAS_EXTRA_LOGIN_PARAMS: ""
+EDXAPP_CAS_ATTRIBUTE_CALLBACK: ""
+EDXAPP_CAS_ATTRIBUTE_PACKAGE: ""
 # Enable an end-point that creates a user and logs them in
 # Used for performance testing
 EDXAPP_ENABLE_AUTO_AUTH: false
+# Settings for enabling and configuring third party authorization
+EDXAPP_ENABLE_THIRD_PARTY_AUTH: false
+EDXAPP_THIRD_PARTY_AUTH: !!null
 
 EDXAPP_FEATURES:
   AUTH_USE_OPENID_PROVIDER: true
@@ -85,21 +98,22 @@ EDXAPP_FEATURES:
   ENABLE_S3_GRADE_DOWNLOADS: true
   USE_CUSTOM_THEME: $edxapp_use_custom_theme
   AUTOMATIC_AUTH_FOR_TESTING: $EDXAPP_ENABLE_AUTO_AUTH
+  ENABLE_THIRD_PARTY_AUTH: $EDXAPP_ENABLE_THIRD_PARTY_AUTH
 
-EDXAPP_BOOK_URL: ''
+EDXAPP_BOOK_URL: ""
 # This needs to be set to localhost
 # if xqueue is run on the same server
 # as the lms (it's sent in the request)
 EDXAPP_SITE_NAME: 'localhost'
 EDXAPP_LMS_SITE_NAME: "{{ EDXAPP_SITE_NAME }}"
 EDXAPP_CMS_SITE_NAME: 'localhost'
-EDXAPP_MEDIA_URL:  ''
-EDXAPP_ANALYTICS_SERVER_URL:  ''
-EDXAPP_FEEDBACK_SUBMISSION_EMAIL: ''
-EDXAPP_CELERY_BROKER_HOSTNAME: ''
+EDXAPP_MEDIA_URL:  ""
+EDXAPP_ANALYTICS_SERVER_URL:  ""
+EDXAPP_FEEDBACK_SUBMISSION_EMAIL: ""
+EDXAPP_CELERY_BROKER_HOSTNAME: ""
 EDXAPP_LOGGING_ENV:  'sandbox'
 
-EDXAPP_SYSLOG_SERVER: ''
+EDXAPP_SYSLOG_SERVER: ""
 EDXAPP_RABBIT_HOSTNAME: 'localhost'
 EDXAPP_XML_MAPPINGS: {}
 
@@ -143,11 +157,11 @@ EDXAPP_GRADE_ROOT_PATH: '/tmp/edx-s3/grades'
 # These are the same defaults set in common.py
 EDXAPP_CC_PROCESSOR:
   CyberSource:
-    SHARED_SECRET: ''
-    MERCHANT_ID: ''
-    SERIAL_NUMBER: ''
+    SHARED_SECRET: ""
+    MERCHANT_ID: ""
+    SERIAL_NUMBER: ""
     ORDERPAGE_VERSION: '7'
-    PURCHASE_ENDPOINT: ''
+    PURCHASE_ENDPOINT: ""
 
 # does not affect verified students
 EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY: ['usd', '$']
@@ -192,10 +206,15 @@ EDXAPP_UPDATE_STATIC_FILES_KEY: false
 
 EDXAPP_INSTALL_PRIVATE_REQUIREMENTS: false
 
-EDXAPP_GOOGLE_ANALYTICS_ACCOUNT: "UA-DUMMY"
+EDXAPP_GOOGLE_ANALYTICS_ACCOUNT: "None"
 
 EDXAPP_PEARSON_TEST_PASSWORD: ""
+EDXAPP_SEGMENT_IO_LMS: false
 EDXAPP_SEGMENT_IO_LMS_KEY: ""
+# For the CMS
+EDXAPP_SEGMENT_IO_KEY: ""
+EDXAPP_SEGMENT_IO: false
+
 EDXAPP_EDX_API_KEY: ""
 # This is the default set in common.py
 EDXAPP_VERIFY_STUDENT:
@@ -206,18 +225,41 @@ EDXAPP_BULK_EMAIL_EMAILS_PER_TASK: 500
 # If using microsites this should point to the microsite repo
 EDXAPP_MICROSITE_ROOT_DIR: "{{ edxapp_app_dir }}/edx-microsite"
 # this dictionary defines what microsites are configured
-EDXAPP_MICROSITE_CONFIGRATION: {}
+EDXAPP_MICROSITE_CONFIGURATION: {}
 # Instructor code that will not be run in the code sandbox
 EDXAPP_COURSES_WITH_UNSAFE_CODE: []
 EDXAPP_SESSION_COOKIE_DOMAIN: ""
+EDXAPP_SESSION_COOKIE_NAME: "sessionid"
 
 # XML Course related flags
 EDXAPP_XML_FROM_GIT: false
 EDXAPP_XML_S3_BUCKET: !!null
 EDXAPP_XML_S3_KEY: !!null
 
-EDXAPP_NEWRELIC_LMS_APPNAME: "edX-LMS"
-EDXAPP_NEWRELIC_CMS_APPNAME: "edX-CMS"
+EDXAPP_NEWRELIC_LMS_APPNAME: "{{COMMON_ENVIRONMENT}}-{{COMMON_DEPLOYMENT}}-edxapp-lms"
+EDXAPP_NEWRELIC_CMS_APPNAME: "{{COMMON_ENVIRONMENT}}-{{COMMON_DEPLOYMENT}}-edxapp-cms"
+
+EDXAPP_ORA2_FILE_PREFIX: '{{COMMON_ENVIRONMENT}}-{{COMMON_DEPLOYMENT}}/ora2'
+EDXAPP_FILE_UPLOAD_STORAGE_BUCKET_NAME: 'edxuploads'
+EDXAPP_FILE_UPLOAD_STORAGE_PREFIX: 'submissions_attachments'
+
+EDXAPP_CODE_JAIL_LIMITS:
+  # Limit the memory of the jailed process to something high but not
+  # infinite (128MiB in bytes)
+  VMEM: 134217728
+  # Time in seconds that the jailed process has to run.
+  REALTIME: 1
+  # Needs to be non-zero so that jailed code can use it as their temp directory.(1MiB in bytes)
+  FSIZE: 1048576
+
+EDXAPP_VIRTUAL_UNIVERSITIES: []
+EDXAPP_SUBDOMAIN_BRANDING: {}
+# Set the number of workers explicitely for lms and cms
+# Should be set to
+# EDXAPP_WORKERS:
+#   lms: <num workers>
+#   cms: <num workers>
+EDXAPP_WORKERS: !!null
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -387,12 +429,16 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   CELERY_BROKER_USER: $EDXAPP_CELERY_USER
   CELERY_BROKER_PASSWORD: $EDXAPP_CELERY_PASSWORD
   GOOGLE_ANALYTICS_ACCOUNT: $EDXAPP_GOOGLE_ANALYTICS_ACCOUNT
+  THIRD_PARTY_AUTH: $EDXAPP_THIRD_PARTY_AUTH
 
 generic_env_config:  &edxapp_generic_env
+  CELERY_BROKER_VHOST: $EDXAPP_CELERY_BROKER_VHOST
+  PAYMENT_SUPPORT_EMAIL: $EDXAPP_PAYMENT_SUPPORT_EMAIL
+  ZENDESK_URL: $EDXAPP_ZENDESK_URL
   COURSES_WITH_UNSAFE_CODE: $EDXAPP_COURSES_WITH_UNSAFE_CODE
   BULK_EMAIL_EMAILS_PER_TASK: $EDXAPP_BULK_EMAIL_EMAILS_PER_TASK
   MICROSITE_ROOT_DIR: $EDXAPP_MICROSITE_ROOT_DIR
-  MICROSITE_CONFIGURATION: $EDXAPP_MICROSITE_CONFIGRATION
+  MICROSITE_CONFIGURATION: $EDXAPP_MICROSITE_CONFIGURATION
   GRADES_DOWNLOAD:
     STORAGE_TYPE: $EDXAPP_GRADE_STORAGE_TYPE
     BUCKET: $EDXAPP_GRADE_BUCKET
@@ -424,29 +470,31 @@ generic_env_config:  &edxapp_generic_env
     default: &default_generic_cache
       BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
       KEY_FUNCTION:  'util.memcache.safe_key'
-      KEY_PREFIX:  'sandbox_default'
+      KEY_PREFIX: 'default'
       LOCATION: $EDXAPP_MEMCACHE
     general:
       <<: *default_generic_cache
-      KEY_PREFIX:  'sandbox_general'
+      KEY_PREFIX:  'general'
     mongo_metadata_inheritance:
       <<: *default_generic_cache
-      KEY_PREFIX:  'integration_mongo_metadata_inheritance'
+      KEY_PREFIX:  'mongo_metadata_inheritance'
       TIMEOUT: 300
     staticfiles:
       <<: *default_generic_cache
-      KEY_PREFIX:  'integration_static_files'
+      KEY_PREFIX: "{{ ansible_hostname|default('staticfiles') }}_general"
     celery:
       <<: *default_generic_cache
-      KEY_PREFIX:  'integration_celery'
+      KEY_PREFIX:  'celery'
       TIMEOUT: "7200"
   CELERY_BROKER_TRANSPORT: 'amqp'
   CELERY_BROKER_HOSTNAME: $EDXAPP_RABBIT_HOSTNAME
   COMMENTS_SERVICE_URL: $EDXAPP_COMMENTS_SERVICE_URL
   LOGGING_ENV: $EDXAPP_LOGGING_ENV
   SESSION_COOKIE_DOMAIN:  $EDXAPP_SESSION_COOKIE_DOMAIN
+  SESSION_COOKIE_NAME:  $EDXAPP_SESSION_COOKIE_NAME
   COMMENTS_SERVICE_KEY: $EDXAPP_COMMENTS_SERVICE_KEY
-  SEGMENT_IO_LMS: true
+  SEGMENT_IO_LMS: $EDXAPP_SEGMENT_IO_LMS
+  SEGMENT_IO: $EDXAPP_SEGMENT_IO
   THEME_NAME: $edxapp_theme_name
   TECH_SUPPORT_EMAIL: $EDXAPP_TECH_SUPPORT_EMAIL
   CONTACT_EMAIL: $EDXAPP_CONTACT_EMAIL
@@ -464,6 +512,11 @@ generic_env_config:  &edxapp_generic_env
   PRESS_EMAIL: $EDXAPP_PRESS_EMAIL
   PLATFORM_TWITTER_ACCOUNT: $EDXAPP_PLATFORM_TWITTER_ACCOUNT
   PLATFORM_FACEBOOK_ACCOUNT: $EDXAPP_PLATFORM_FACEBOOK_ACCOUNT
+  ORA2_FILE_PREFIX: $EDXAPP_ORA2_FILE_PREFIX
+  FILE_UPLOAD_STORAGE_BUCKET_NAME: $EDXAPP_FILE_UPLOAD_STORAGE_BUCKET_NAME
+  FILE_UPLOAD_STORAGE_PREFIX: $EDXAPP_FILE_UPLOAD_STORAGE_PREFIX
+  VIRTUAL_UNIVERSITIES: $EDXAPP_VIRTUAL_UNIVERSITIES
+  SUBDOMAIN_BRANDING: $EDXAPP_SUBDOMAIN_BRANDING
 
 
 lms_auth_config:
@@ -505,21 +558,15 @@ lms_env_config:
   <<: *edxapp_generic_env
   PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
   SITE_NAME:  $EDXAPP_LMS_SITE_NAME
+  VIDEO_CDN_URL: $EDXAPP_VIDEO_CDN_URLS
   CODE_JAIL:
     # from https://github.com/edx/codejail/blob/master/codejail/django_integration.py#L24, '' should be same as None
     python_bin: '{% if EDXAPP_PYTHON_SANDBOX %}{{ edxapp_sandbox_venv_dir }}/bin/python{% endif %}'
-    limits:
-      # Limit the memory of the jailed process to something high but not
-      # infinite (128MiB in bytes)
-      VMEM: 134217728
-      # Time in seconds that the jailed process has to run.
-      REALTIME: 1
-      # Needs to be non-zero so that jailed code can use it as their temp directory.(1MiB in bytes)
-      FSIZE: 1048576
+    limits: $EDXAPP_CODE_JAIL_LIMITS
     user: '{{ edxapp_sandbox_user }}'
-
 cms_auth_config:
   <<: *edxapp_generic_auth
+  SEGMENT_IO_KEY: $EDXAPP_SEGMENT_IO_KEY
 cms_env_config:
   <<: *edxapp_generic_env
   SITE_NAME:  $EDXAPP_CMS_SITE_NAME

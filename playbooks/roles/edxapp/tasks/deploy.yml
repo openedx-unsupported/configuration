@@ -29,12 +29,14 @@
 # Do A Checkout
 - name: checkout edx-platform repo into {{edxapp_code_dir}}
   git: >
-    dest={{edxapp_code_dir}} repo={{edx_platform_repo}} version={{edx_platform_version}}
+    dest={{edxapp_code_dir}}
+    repo={{edx_platform_repo}}
+    version={{edx_platform_version}}
     accept_hostkey=yes
-  register: chkout
   sudo_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
+  register: edxapp_platform_checkout
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -48,12 +50,15 @@
 
 - name: checkout theme
   git: >
-    dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}} repo={{edxapp_theme_source_repo}} version={{edxapp_theme_version}}
+    dest={{ edxapp_app_dir }}/themes/{{edxapp_theme_name}}
+    repo={{edxapp_theme_source_repo}}
+    version={{edxapp_theme_version}}
     accept_hostkey=yes
   when: edxapp_theme_name != ''
   sudo_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
+  register: edxapp_theme_checkout
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -416,5 +421,8 @@
 - name: remove read-only ssh key
   file: path={{ edxapp_git_identity }} state=absent
   when: EDXAPP_USE_GIT_IDENTITY
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE
 
 - set_fact: edxapp_installed=true

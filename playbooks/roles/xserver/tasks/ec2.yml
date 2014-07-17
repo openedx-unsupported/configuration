@@ -1,0 +1,18 @@
+---
+
+- name: get instance information
+  action: ec2_facts
+
+- name: tag instance for xserver
+  ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
+  args:
+    tags:
+      "version:xserver" : "{{ xserver_source_repo }} {{ xserver_checkout.after|truncate(7,True,'') }}"
+  when: xserver_checkout.after is defined
+
+- name: tag instance for xserver grader
+  ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
+  args:
+    tags:
+      "version:xserver_grader" : "{{ XSERVER_GRADER_SOURCE }} {{ xserver_grader_checkout.after|truncate(7,True,'') }}"
+  when: xserver_grader_checkout.after is defined

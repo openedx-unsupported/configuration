@@ -64,7 +64,11 @@ if [[ -z $region ]]; then
 fi
 
 if [[ -z $zone ]]; then
-  zone="us-east-1b"
+  zone="us-east-1c"
+fi
+
+if [[ -z $vpc_subnet_id ]]; then
+  vpc_subnet_id="subnet-cd867aba"
 fi
 
 if [[ -z $elb ]]; then
@@ -81,16 +85,16 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-f0814498"
+    ami="ami-f287419a"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-59a4a230"
+    ami="ami-f478849c"
   elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
-    ami="ami-408c7f28"
+    ami="ami-a6926dce"
   fi
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="m1.medium"
+  instance_type="t2.medium"
 fi
 
 if [[ -z $enable_monitoring ]]; then
@@ -201,7 +205,7 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    ansible-playbook edx_provision.yml  -i inventory.ini $extra_var_arg --user ubuntu  -v
+    ansible-playbook edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
@@ -229,7 +233,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy -v
+            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
         fi
     done
 fi

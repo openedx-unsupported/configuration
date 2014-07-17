@@ -1,0 +1,39 @@
+# A simple utility play to remove a public key from the authorized key
+# file for the ubuntu user
+# You must pass in the entire line that you are adding
+- hosts: all
+  vars:
+    # Number of instances to operate on at a time
+    serial_count: 1
+    owner: ubuntu
+    keyfile: "/home/{{ owner }}/.ssh/authorized_keys"
+  serial: "{{ serial_count }}"
+  tasks:
+    - fail: msg="You must pass in a public_key"
+      when: public_key is not defined
+    - fail: msg="public does not exist in secrets"
+      when: ubuntu_public_keys[public_key] is not defined
+    - command: mktemp
+      register: mktemp
+    # This command will fail if this returns zero lines which will prevent
+    # the last key from being removed
+    - shell: >
+        grep -Fv '{{ ubuntu_public_keys[public_key] }}' {{ keyfile }} > {{ mktemp.stdout }}
+    - shell: >
+        while read line; do ssh-keygen -lf /dev/stdin <<<$line; done <{{ mktemp.stdout }}
+        executable=/bin/bash
+      register: keycheck
+    - fail: msg="public key check failed!"
+      when: keycheck.stderr != ""
+    - command: cp {{ mktemp.stdout }} {{ keyfile }}
+    - file: >
+        path={{ keyfile }}
+        owner={{ owner }}
+        mode=0600
+    - file: >
+          path={{ mktemp.stdout }}
+          state=absent
+    - shell: wc -l  < {{ keyfile }}
+      register: line_count
+    - fail: msg="There should only be one line in ubuntu's authorized_keys"
+      when: line_count.stdout|int != 1
