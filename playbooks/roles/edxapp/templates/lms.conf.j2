@@ -6,10 +6,15 @@
 {% set executable = edxapp_venv_dir + '/bin/gunicorn' %}
 {% endif %}
 
-{% if ansible_processor|length > 0 %}
+{% if EDXAPP_WORKERS -%}
+command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ EDXAPP_WORKERS.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+{% else -%}
+{# This is for backwards compatibility, set workers explicitely using EDXAPP_WORKERS #}
+{% if ansible_processor|length > 0 -%}
 command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
-{% else %}
+{% else -%}
 command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+{% endif %}
 {% endif %}
 
 user={{ common_web_user }}
