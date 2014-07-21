@@ -1,0 +1,53 @@
+
+# ansible-playbook -i ec2.py commoncluster.yml --limit tag_Name_stage-edx-commoncluster -e@/path/to/vars/env-deployment.yml -T 30 --list-hosts
+
+- hosts: all
+  sudo: True
+  serial: 1
+  vars:
+    # By default take instances in and out of the elb(s) they
+    # are attached to
+    # To skip elb operations use "-e elb_pre_post=fase"
+    elb_pre_post: true
+    # Number of instances to operate on at a time
+    serial_count: 1
+  serial: "{{ serial_count }}"
+  pre_tasks:
+    - action: ec2_facts
+    - debug: var="{{ ansible_ec2_instance_id }}"
+      when: elb_pre_post
+    - name: Instance De-register
+      local_action: ec2_elb_local_1.6.2
+      args:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        region: us-east-1
+        state: absent
+        wait_timeout: 60
+      sudo: False
+      when: elb_pre_post
+  tasks:
+    - debug: msg="{{ ansible_ec2_local_ipv4 }}"
+      with_items: list.results
+    - shell: echo "rabbit@ip-{{ item|replace('.', '-') }}"
+      when: item != ansible_ec2_local_ipv4
+      with_items: hostvars.keys()
+      register: list
+    - command: rabbitmqctl stop_app
+    - command: rabbitmqctl join_cluster {{ item.stdout }}
+      when: item.stdout is defined
+      with_items: list.results
+    - command: rabbitmqctl start_app
+  post_tasks:
+    - debug: var="{{ ansible_ec2_instance_id }}"
+      when: elb_pre_post
+    - name: Register instance in the elb
+      local_action: ec2_elb_local_1.6.2
+      args:
+        instance_id: "{{ ansible_ec2_instance_id }}"
+        ec2_elbs: "{{ item }}"
+        region: us-east-1
+        state: present
+        wait_timeout: 60
+      with_items: ec2_elbs
+      sudo: False
+      when: elb_pre_post
