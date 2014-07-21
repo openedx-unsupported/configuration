@@ -4,8 +4,11 @@
   gather_facts: False
   vars:
     db_dry_run: "--db-dry-run"
+    edxapp_venv_dir: "$VIRTUAL_ENV"
   tasks:
       # Syncdb with migrate when the migrate user is overridden in extra vars
+    - name: openid workaround
+      shell: sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=255, unique=True/' {{ edxapp_venv_dir }}/lib/python2.7/site-packages/django_openid_auth/models.py
     - name: syncdb and migrate
       shell: >
         chdir={{ edxapp_code_dir }}
