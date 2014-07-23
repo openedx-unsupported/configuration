@@ -253,33 +253,6 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
-# The next few tasks install xml courses.
-
-# Install the xml courses from an s3 bucket
-- name: get s3 one time url
-  s3: >
-    bucket="{{ EDXAPP_XML_S3_BUCKET }}"
-    object="{{ EDXAPP_XML_S3_KEY }}"
-    mode="geturl"
-    expiration=300
-  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
-  register: s3_one_time_url
-
-- name: download from one time url
-  get_url: url="{{ s3_one_time_url.url }}" dest="/tmp/{{ EDXAPP_XML_S3_KEY|basename }}"
-  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
-  register: download_xml_s3
-
-- name: unzip the data to the data dir
-  shell: >
-    tar xzf /tmp/{{ EDXAPP_XML_S3_KEY|basename }}
-    chdir="{{ edxapp_data_dir }}"
-  when: download_xml_s3.changed
-
-- include: xml.yml
-  tags: deploy
-  when: EDXAPP_XML_FROM_GIT
-
 # The next few tasks set up the python code sandbox
 
 # need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
@@ -360,6 +333,32 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+# The next few tasks install xml courses.
+
+# Install the xml courses from an s3 bucket
+- name: get s3 one time url
+  s3: >
+    bucket="{{ EDXAPP_XML_S3_BUCKET }}"
+    object="{{ EDXAPP_XML_S3_KEY }}"
+    mode="geturl"
+    expiration=30
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: s3_one_time_url
+
+- name: download from one time url
+  get_url: 
+    url="{{ s3_one_time_url.url }}"
+    dest="{{ edxapp_data_dir }}/{{ EDXAPP_XML_S3_KEY|basename }}"
+    mode=0600
+  when: not EDXAPP_XML_FROM_GIT and EDXAPP_XML_S3_BUCKET and EDXAPP_XML_S3_KEY
+  register: download_xml_s3
+
+- name: unzip the data to the data dir
+  shell: >
+    tar xzf {{ edxapp_data_dir }}/{{ EDXAPP_XML_S3_KEY|basename }}
+    chdir="{{ edxapp_data_dir }}"
+  when: download_xml_s3.changed
+
 # creates the supervisor jobs for the
 # service variants configured, runs
 # gather_assets and db migrations
@@ -367,6 +366,10 @@
   tags:
     - service_variant_config
     - deploy
+
+- include: xml.yml
+  tags: deploy
+  when: EDXAPP_XML_FROM_GIT
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
