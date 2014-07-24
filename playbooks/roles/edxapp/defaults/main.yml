@@ -397,6 +397,10 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         # Needed for the CMS to be able to run update_templates
         user: $EDXAPP_MONGO_USER
       DOC_STORE_CONFIG: *edxapp_generic_default_docstore
+    direct: &edxapp_generic_direct_modulestore
+      ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+      OPTIONS:  *generic_modulestore_default_options
+      DOC_STORE_CONFIG: *edxapp_generic_default_docstore
   DATABASES:
     read_replica:
       ENGINE: 'django.db.backends.mysql'
@@ -545,8 +549,11 @@ lms_auth_config:
               password: $EDXAPP_MONGO_PASSWORD
               port: $EDXAPP_MONGO_PORT
               fs_root: $edxapp_course_data_dir
-            ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+            ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
             DOC_STORE_CONFIG: *edxapp_generic_default_docstore
+    draft:
+      <<: *edxapp_generic_default_modulestore
+      ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
 lms_env_config:
   <<: *edxapp_generic_env
   PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
