@@ -18,7 +18,7 @@ except ImportError:
 
 from pprint import pprint
 
-AMI_TIMEOUT = 600  # time to wait for AMIs to complete
+AMI_TIMEOUT = 1800  # time to wait for AMIs to complete(30 minutes)
 EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
