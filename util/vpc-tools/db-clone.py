@@ -154,8 +154,9 @@ if __name__ == '__main__':
         for secret_var_file in args.secret_var_files:
             extra_args += " -e@{}".format(secret_var_file)
 
-        db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, update_edxapp_db_users.yml """ \
-            """{extra_args} -e "edxapp_db_root_user=root edxapp_db_root_pass={root_pass} """ \
+        db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, create_dbs.yml """ \
+            """{extra_args} -e "edxapp_db_root_user=root xqueue_db_root_user=root" """ \
+            """ -e "db_root_pass={root_pass}" """ \
             """EDXAPP_MYSQL_HOST={db_host}" """.format(
             root_pass=args.password,
             extra_args=extra_args,
