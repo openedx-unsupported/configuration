@@ -19,12 +19,18 @@
       chdir=/var/tmp
       creates=/var/tmp/{{ oraclejdk_file }}
 
-- name: install Oracle Java
+- name: create jvm dir
+  file: >
+    path=/usr/lib/jvm
+    state=directory
+    owner=root
+    group=root
+
+- name: untar Oracle Java
   shell: >
-    mkdir -p /usr/lib/jvm && tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }}
+    tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }}
     executable=/bin/bash
     creates=/usr/lib/jvm/{{ oraclejdk_base }}
-  sudo: true
 
 - name: create symlink expected by elasticsearch
   file: src=/usr/lib/jvm/{{ oraclejdk_base }} dest={{ oraclejdk_link }} state=link
