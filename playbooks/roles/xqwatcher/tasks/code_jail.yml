@@ -18,17 +18,10 @@
     mode=0644 owner=root group=root
   with_items: XQWATCHER_COURSES
 
-- name: write out sudoers config jail user
-  template: >
-    src=etc/sudoers.d/95-jailed-user.j2
-    dest=/etc/sudoers.d/95-{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }}
-    mode=0440 owner=root group=root validate='visudo -c -f %s'
-  with_items: XQWATCHER_COURSES
-
 - name: write out sudoers for watcher
   template: >
     src=etc/sudoers.d/95-xqwatcher.j2
-    dest=/etc/sudoers.d/95-xqwatcher-{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }}
+    dest=/etc/sudoers.d/95-xqwatcher-{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user|replace('.', '') }}
     mode=0440 owner=root group=root validate='visudo -c -f %s'
   with_items: XQWATCHER_COURSES
 
@@ -44,13 +37,13 @@
 - name: write out requirements.txt
   template: >
     src=edx/app/xqwatcher/data/requirements.txt.j2
-    dest={{ xqwatcher_data_dir }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt
+    dest={{ xqwatcher_app_data }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt
     mode=0440 owner=root group=root
   with_items: XQWATCHER_COURSES
 
 - name : install course specific python requirements
   pip: >
-    requirements="{{ xqwatcher_data_dir }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt"
+    requirements="{{ xqwatcher_app_data }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt"
     virtualenv="{{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
     state=present
     extra_args="{{ XQWATCHER_PIP_EXTRA_ARGS }}"
@@ -74,9 +67,10 @@
 # environment where untrusted users can submit code
 - name: put code jail into aa-complain
   command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
-  when: CODE_JAIL_COMPLAIN
+  when: CODE_JAIL_COMPLAIN|bool
   with_items: XQWATCHER_COURSES
 
 - name: put code sandbox into aa-enforce
   command: /usr/sbin/aa-enforce "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
-  when: CODE_JAIL_COMPAIN is not defined | not CODE_JAIL_COMPLAIN
+  when: not CODE_JAIL_COMPLAIN|bool
+  with_items: XQWATCHER_COURSES

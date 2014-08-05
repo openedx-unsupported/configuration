@@ -31,7 +31,7 @@ BASTION_CONFIG = """Host {jump_box}
 
 HOST_CONFIG = """# Instance ID: {instance_id}
 Host {name}
-    ProxyCommand ssh {config_file} -W %h:%p {jump_box}
+    ProxyCommand ssh -q {config_file} -W %h:%p {jump_box}
     HostName {ip}
     ForwardAgent yes
     User {user}

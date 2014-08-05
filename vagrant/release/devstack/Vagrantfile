@@ -23,7 +23,7 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # this can cause problems (e.g. looking for templates that no longer exist).
 /edx/bin/update configuration release
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=release
+ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
@@ -43,9 +43,8 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
-  config.vm.box     = "injera-devstack"
-  config.vm.synced_folder  ".", "/vagrant", disabled: true
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack.box"
+  config.vm.box     = "johnnycake-devstack"
+  config.vm.box_url = "http://files.edx.org/vagrant-images/20140625-johnnycake-devstack.box"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -55,15 +54,32 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 9200, host: 9200
   config.ssh.insert_key = true
 
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
+
   # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']
-      config.ssh.forward_x11 = true
+    config.ssh.forward_x11 = true
   end
 
-  config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform", :create => true, nfs: true
-  config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes", :create => true, nfs: true
-  config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service", :create => true, nfs: true
-  config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora", :create => true, nfs: true
+  if ENV['VAGRANT_USE_VBOXFS'] == 'true'
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      create: true, owner: "edxapp", group: "www-data"
+    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
+      create: true, owner: "edxapp", group: "www-data"
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, owner: "forum", group: "www-data"
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      create: true, owner: "ora", group: "www-data"
+  else
+    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
+      create: true, nfs: true
+    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
+      create: true, nfs: true
+    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, nfs: true
+    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+      create: true, nfs: true
+  end
 
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
@@ -76,8 +92,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   ["vmware_fusion", "vmware_workstation"].each do |vmware_provider|
     config.vm.provider vmware_provider do |v, override|
-      override.vm.box     = "injera-devstack-vmware"
-      override.vm.box_url = "http://files.edx.org/vagrant-images/20140418-injera-devstack-vmware.box"
+      override.vm.box     = "johnnycake-devstack-vmware"
+      override.vm.box_url = "http://files.edx.org/vagrant-images/20140630-johnnycake-devstack-vmware.box"
       v.vmx["memsize"] = MEMORY.to_s
       v.vmx["numvcpus"] = CPU_COUNT.to_s
     end
@@ -90,5 +106,4 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
   config.vm.provision "shell", inline: $script
-
 end

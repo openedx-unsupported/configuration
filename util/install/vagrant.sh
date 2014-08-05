@@ -17,6 +17,12 @@ if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
 fi
 
 ##
+## Update and Upgrade apt packages
+##
+sudo apt-get update -y
+sudo apt-get upgrade -y
+
+##
 ## Install system pre-requisites
 ##
 sudo apt-get install -y build-essential software-properties-common python-software-properties curl git-core libxml2-dev libxslt1-dev python-pip python-apt python-dev

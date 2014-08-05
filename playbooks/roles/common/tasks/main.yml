@@ -60,16 +60,16 @@
     owner=root group=root mode=644
   notify: restart rsyslogd
 
-- name: Install logrotate configuration for edX
-  template: >
-    dest=/etc/logrotate.d/edx-services
-    src=etc/logrotate.d/edx_logrotate.j2
-    owner=root group=root mode=644
-
   # This is in common to keep all logrotation config
   # in the same role
 - name: Create hourly subdirectory in logrotate.d
   file: path=/etc/logrotate.d/hourly state=directory
+
+- name: Install logrotate configuration for edX
+  template: >
+    dest=/etc/logrotate.d/hourly/edx-services
+    src=etc/logrotate.d/hourly/edx_logrotate.j2
+    owner=root group=root mode=644
 
 - name: Install logrotate configuration for tracking file
   template: >
@@ -82,10 +82,6 @@
     dest=/etc/cron.hourly/logrotate
     src=etc/cron.hourly/logrotate
     owner=root group=root mode=555
-
-  # This can be removed after new release of edX
-- name: Remove old tracking.log config from /etc/logrotate.d
-  file: path=/etc/logrotate.d/tracking.log state=absent
 
 - name: update /etc/hosts
   template: src=hosts.j2 dest=/etc/hosts

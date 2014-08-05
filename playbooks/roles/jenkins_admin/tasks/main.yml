@@ -21,29 +21,21 @@
 #
 #
 
-- fail: "JENKINS_ADMIN_S3_PROFILE is not defined."
+- fail: msg="JENKINS_ADMIN_S3_PROFILE is not defined."
   when: JENKINS_ADMIN_S3_PROFILE is not defined
 
-- fail: "JENKINS_ADMIN_S3_PROFILE.name is not defined."
+- fail: msg="JENKINS_ADMIN_S3_PROFILE.name is not defined."
   when: JENKINS_ADMIN_S3_PROFILE.name is not defined
 
-- fail: "JENKINS_ADMIN_S3_PROFILE.access_key is not defined."
+- fail: msg="JENKINS_ADMIN_S3_PROFILE.access_key is not defined."
   when: JENKINS_ADMIN_S3_PROFILE.access_key is not defined
 
-- fail: "JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
+- fail: msg="JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
   when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
 
-- fail: "JENKINS_ADMIN_CONFIGURATION_REPO is not defined."
-  when: JENKINS_ADMIN_CONFIGURATION_REPO is not defined
-
-- fail: "JENKINS_ADMIN_CONFIGURATION_SECURE_REPO is not defined."
-  when: JENKINS_ADMIN_CONFIGURATION_SECURE_REPO is not defined
-
-- fail: "JENKINS_ADMIN_GIT_KEY is not defined."
-  when: JENKINS_ADMIN_GIT_KEY is not defined
-
-- fail: "JENKINS_ADMIN_EC2_KEY is not defined."
-  when: JENKINS_ADMIN_EC2_KEY is not defined
+- name: add admin specific apt repositories
+  apt_repository: repo="{{ item }}" state=present update_cache=yes
+  with_items: jenkins_admin_debian_repos
 
 # We first download the plugins to a temp directory and include
 # the version in the file name.  That way, if we increment
@@ -72,6 +64,14 @@
     group={{ jenkins_group }}
     mode=0644
 
+- name: configure the boto profiles for jenkins
+  template: >
+    src="./{{ jenkins_home }}/boto.j2"
+    dest="{{ jenkins_home }}/.boto"
+    owner="{{ jenkins_user }}"
+    group="{{ jenkins_group }}"
+    mode="0600"
+
 - name: create the ssh directory
   file: >
     path={{ jenkins_home }}/.ssh
@@ -85,14 +85,6 @@
 - name: Add github.com to known_hosts if it does not exist
   shell: >
      ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts
-
-- name: drop the secure credentials
-  copy: >
-    content="{{ JENKINS_ADMIN_GIT_KEY }}"
-    dest={{ jenkins_home }}/.ssh/id_rsa
-    owner={{ jenkins_user }}
-    group={{ jenkins_group }}
-    mode=0600
 
 - name: create job directory
   file: >
@@ -120,9 +112,12 @@
     mode=0644
   with_items: jenkins_admin_jobs
 
+# adding chris-lea nodejs repo
+- name: add ppas for current versions of nodejs
+  apt_repository: repo="{{ jenkins_chrislea_ppa }}"
+
 - name: install system packages for edxapp virtualenvs
-  apt: pkg={{ item }} state=present
-  with_items: jenkins_admin_debian_pkgs
+  apt: pkg={{','.join(jenkins_admin_debian_pkgs)}} state=present update_cache=yes
 
 # This is necessary so that ansible can run with
 # sudo set to True (as the jenkins user) on jenkins

@@ -1,0 +1,114 @@
+---
+
+- name: install read-only ssh key
+  copy: >
+    content="{{ ANALYTICS_API_GIT_IDENTITY }}" dest={{ analytics_api_git_identity_file }}
+    owner={{ analytics_api_user }} group={{ analytics_api_user }} mode=0600
+
+- name: setup the analytics-api env file
+  template: >
+    src="edx/app/analytics-api/analytics_api_env.j2"
+    dest="{{ analytics_api_app_dir }}/analytics_api_env"
+    owner={{ analytics_api_user }}
+    group={{ analytics_api_user }}
+    mode=0644
+
+- name: checkout code
+  git: >
+    dest={{ analytics_api_code_dir }} repo={{ analytics_api_source_repo }} version={{ ANALYTICS_API_VERSION }}
+    accept_hostkey=yes
+    ssh_opts="{{ analytics_api_git_ssh_opts }}"
+  register: analytics_api_code_checkout
+  notify: "restart the analytics service"
+  sudo_user: "{{ analytics_api_user }}"
+
+- name: write out app config file
+  template: >
+    src=edx/app/analytics-api/analytics-api.yaml.j2
+    dest={{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml
+    mode=0644 owner={{ analytics_api_user }} group={{ analytics_api_user }}
+  notify: restart the analytics service
+
+- name: install application requirements
+  pip: >
+    requirements="{{ analytics_api_requirements_base }}/{{ item }}"
+    virtualenv="{{ analytics_api_venv_dir }}" state=present
+  sudo_user: "{{ analytics_api_user }}"
+  notify: restart the analytics service
+  with_items: analytics_api_requirements
+
+- name: syncdb and migrate
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ analytics_api_venv_bin }}/python ./manage.py syncdb --migrate --noinput
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run collectstatic
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    {{ analytics_api_venv_bin }}/python manage.py collectstatic  --noinput
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+
+- name: create api users
+  shell: >
+    chdir={{ analytics_api_code_dir }}
+    {{ analytics_api_venv_bin }}/python manage.py set_api_key {{ item.key }} {{ item.value }}
+  sudo_user: "{{ analytics_api_user }}"
+  environment: "{{ analytics_api_environment }}"
+  with_dict: ANALYTICS_API_USERS
+
+- name: write out the supervisior wrapper
+  template: >
+    src=edx/app/analytics-api/analytics-api.sh.j2
+    dest={{ analytics_api_app_dir }}/{{ analytics_api_service_name }}.sh
+    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  notify: restart the analytics service
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/analytics-api.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  notify: restart the analytics service
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ analytics_api_service_name }}.conf
+    state=link
+    force=yes
+  notify: restart the analytics service
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the venv bin dir
+  file: >
+    src="{{ analytics_api_venv_bin }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.analytics-api"
+    state=link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file: >
+    src="{{ analytics_api_code_dir }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.analytics-api"
+    state=link
+  with_items:
+  - manage.py
+
+- name: remove read-only ssh key for the content repo
+  file: path={{ analytics_api_git_identity_file }} state=absent
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE

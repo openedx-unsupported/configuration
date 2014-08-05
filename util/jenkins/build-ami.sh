@@ -29,11 +29,6 @@ if [[ -z "$BUILD_NUMBER" ]]; then
   exit -1
 fi
 
-if [[ -z "$refs" ]]; then
-  echo "refs not specified."
-  exit -1
-fi
-
 if [[ -z "$deployment" ]]; then
   echo "deployment not specified."
   exit -1
@@ -61,17 +56,13 @@ fi
 
 export PYTHONUNBUFFERED=1
 
-if [[ -z $configuration ]]; then
-  cd configuration
-  configuration=`git rev-parse HEAD`
-  cd ..
-fi
+cd $WORKSPACE/configuration
+configuration=`git rev-parse --short HEAD`
+cd $WORKSPACE
 
-if [[ -z $configuration_secure ]]; then
-  cd configuration-secure
-  configuration_secure=`git rev-parse HEAD`
-  cd ..
-fi
+cd $WORKSPACE/configuration-secure
+configuration_secure=`git rev-parse --short HEAD`
+cd $WORKSPACE
 
 base_params=""
 if [[ -n "$base_ami" ]]; then
@@ -83,9 +74,10 @@ if [[ "$use_blessed" == "true" ]]; then
   blessed_params="--blessed"
 fi
 
-playbookdir_params=""
-if [[ ! -z "$playbook_dir" ]]; then
-  playbookdir_params="--playbook-dir $playbook_dir"
+if [[ -e "configuration/playbooks/edx-east/${play}.yml" ]]; then
+  playbookdir_params="--playbook-dir configuration/playbooks/edx-east"
+else
+  playbookdir_params="--playbook-dir ansible-private"
 fi
 
 configurationprivate_params=""
@@ -94,11 +86,6 @@ if [[ ! -z "$configurationprivaterepo" ]]; then
   if [[ ! -z "$configurationprivateversion" ]]; then
     configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivateversion"
   fi
-fi
-
-stackname_params=""
-if [[ ! -z "$playbook_dir" ]]; then
-  stackname_params="--playbook-dir $playbook_dir"
 fi
 
 hipchat_params=""
@@ -116,10 +103,7 @@ pip install -r requirements.txt
 
 cd util/vpc-tools/
 
-echo "$refs" > /var/tmp/$BUILD_ID-refs.yml
-cat /var/tmp/$BUILD_ID-refs.yml
-
 echo "$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
 cat /var/tmp/$BUILD_ID-extra-vars.yml
 
-python -u abbey.py -p $play -t c3.large -d $deployment -e $environment -i /edx/var/jenkins/.ssh/id_rsa $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml --refs /var/tmp/$BUILD_ID-refs.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $hipchat_params $cleanup_params
+python -u abbey.py -p $play -t c3.large -d $deployment -e $environment -i /edx/var/jenkins/.ssh/id_rsa $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $hipchat_params $cleanup_params

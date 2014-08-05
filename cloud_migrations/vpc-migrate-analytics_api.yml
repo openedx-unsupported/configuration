@@ -1,0 +1,202 @@
+#
+# Overview:
+# This play needs to be run per environment-deployment and you will need to
+# provide the boto environment and vpc_id as arguments
+#
+# ansible-playbook -i 'localhost,' ./vpc-migrate-analytics_api-edge-stage.yml \
+# -e 'profile=edge vpc_id=vpc-416f9b24'
+#
+# Caveats
+#
+# - This requires ansible 1.6
+# - Required the following branch of Ansible /e0d/add-instance-profile from
+#   https://github.com/e0d/ansible.git
+# - This play isn't full idempotent because of and ec2 module update issue
+#   with ASGs.  This can be worked around by deleting the ASG and re-running
+#   the play
+# - The instance_profile_name will need to be created in advance as there
+#   isn't a way to do so from ansible.
+#
+# Prequisities:
+# Create a iam ec2 role
+#
+
+- name: Add resources for the Analytics API
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+      # Fail intermittantly with the following error:
+      # The specified rule does not exist in this security group
+    - name: Create instance security group
+      ec2_group:
+        profile: "{{ profile }}"
+        description: "Open up SSH access"
+        name: "{{ security_group }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ ec2_region }}"
+        rules:
+          - proto: tcp
+            from_port: "{{ sec_group_ingress_from_port }}"
+            to_port: "{{ sec_group_ingress_to_port }}"
+            cidr_ip: "{{ item }}"
+      with_items: sec_group_ingress_cidrs
+      register: created_sec_group
+      ignore_errors: True
+
+    - name: debug
+      debug:
+        msg: "Registered created_sec_group: {{ created_sec_group }}"
+
+    # Needs ansible 1.7 for vpc support of elbs
+    # - name: Create elb security group
+    #   ec2_group:
+    #     profile: "{{ profile }}"
+    #     description: "ELB security group"
+    #     name: "ELB-{{ security_group }}"
+    #     vpc_id: "{{ vpc_id }}"
+    #     region: "{{ ec2_region }}"
+    #     rules:
+    #       - proto: tcp
+    #         from_port: "443"
+    #         to_port: "443"
+    #         cidr_ip: "0.0.0.0/0"
+    #   register: created_elb_sec_group
+    #   ignore_errors: True
+      
+    # Needs 1.7 for VPC support
+    # - name: "Create ELB"
+    #   ec2_elb_lb:
+    #     profile: "{{ profile }}"
+    #     region: "{{ ec2_region }}"
+    #     zones:
+    #       - us-east-1b
+    #       - us-east-1c
+    #     name: "{{ edp }}"
+    #     state: present
+    #     security_group_ids: "{{ created_elb_sec_group.group_id }}"
+    #     listeners:
+    #       - protocol: https
+    #         load_balancer_port: 443
+    #         instance_protocol: http # optional, defaults to value of protocol setting
+    #         instance_port: 80
+    #         # ssl certificate required for https or ssl
+    #         ssl_certificate_id: "{{ ssl_cert }}"
+
+      # instance_profile_name was added by me in my fork
+    - name: Create the launch configuration
+      ec2_lc:
+        profile: "{{ profile }}"
+        region: "{{ ec2_region }}"
+        name: "{{ lc_name }}"
+        image_id: "{{ lc_ami }}"
+        key_name: "{{ key_name }}"
+        security_groups: "{{ created_sec_group.results[0].group_id }}"
+        instance_type: "{{ instance_type }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        volumes:
+          - device_name: "/dev/sda1"
+            volume_size: "{{ instance_volume_size }}"
+
+    - name: Create ASG
+      ec2_asg:
+        profile: "{{ profile }}"
+        region: "{{ ec2_region }}"
+        name: "{{ asg_name }}"
+        launch_config_name: "{{ lc_name }}"
+        load_balancers: "{{ elb_name }}"
+        availability_zones:
+          - us-east-1b
+          - us-east-1c
+        min_size: 0
+        max_size: 2
+        desired_capacity: 1
+        vpc_zone_identifier: "{{ subnets|join(',') }}"
+        instance_tags:
+          Name: "{{ env }}-{{ deployment }}-{{ play }}"
+          autostack: "true"
+          environment: "{{ env }}"
+          deployment: "{{ deployment }}"
+          play: "{{ play }}"
+          services: "{{ play }}"
+      register: asg
+
+    - name: debug
+      debug:
+        msg: "DEBUG: {{ asg }}"
+
+    - name: Create scale up policy
+      ec2_scaling_policy:
+        state: present
+        profile: "{{ profile }}"
+        region: "{{ ec2_region }}"
+        name: "{{ edp }}-ScaleUpPolicy"
+        adjustment_type: "ChangeInCapacity"
+        asg_name: "{{ asg_name }}"
+        scaling_adjustment: 1
+        min_adjustment_step: 1
+        cooldown: 60
+      register: scale_up_policy
+
+    - name: debug
+      debug:
+        msg: "Registered scale_up_policy: {{ scale_up_policy }}"
+
+    - name: Create scale down policy
+      ec2_scaling_policy:
+        state: present
+        profile: "{{ profile }}"
+        region: "{{ ec2_region }}"
+        name: "{{ edp }}-ScaleDownPolicy"
+        adjustment_type: "ChangeInCapacity"
+        asg_name: "{{ asg_name }}"
+        scaling_adjustment: -1
+        min_adjustment_step: 1
+        cooldown: 60
+      register: scale_down_policy
+      
+    - name: debug
+      debug:
+        msg: "Registered scale_down_policy: {{ scale_down_policy }}"
+
+#
+# Sometimes the scaling policy reports itself changed, but
+# does not return data about the policy. It's bad enough
+# that consistent data isn't returned when things
+# have and have not changed; this make writing idempotent
+# tasks difficult.
+    - name: create high-cpu alarm
+      ec2_metric_alarm:
+        state: present
+        region: "{{ ec2_region }}"
+        name: "cpu-high"
+        metric: "CPUUtilization"
+        namespace: "AWS/EC2"
+        statistic: Average
+        comparison: ">="
+        threshold: 90.0
+        period: 300
+        evaluation_periods: 2
+        unit: "Percent"
+        description: "Scale-up if CPU > 90% for 10 minutes"
+        dimensions: {"AutoScalingGroupName":"{{ asg_name }}"}
+        alarm_actions: ["{{ scale_up_policy.arn }}"]
+      when: scale_up_policy.arn is defined
+
+    - name: create low-cpu alarm
+      ec2_metric_alarm:
+        state: present
+        region: "{{ ec2_region }}"
+        name: "cpu-low"
+        metric: "CPUUtilization"
+        namespace: "AWS/EC2"
+        statistic: Average
+        comparison: "<="
+        threshold: 50.0
+        period: 300
+        evaluation_periods: 2
+        unit: "Percent"
+        description: "Scale-down if CPU < 50% for 10 minutes"
+        dimensions: {"AutoScalingGroupName":"{{ asg_name }}"}
+        alarm_actions: ["{{ scale_down_policy.arn }}"]
+      when: scale_down_policy.arn is defined

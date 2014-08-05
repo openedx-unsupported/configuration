@@ -1,0 +1,78 @@
+#
+# Requires MySQL-python be installed for system python
+# This play will create databases and user for an application.
+# It can be run like so:
+#
+# ansible-playbook -i 'localhost,' create_analytics_reports_dbs.yml -e@./db.yml
+#
+# where the content of dbs.yml contains the following dictionaries
+#
+# database_connection: &default_connection
+#   login_host: "mysql.example.org"
+#   login_user: "root"
+#   login_password: "super-secure-password"
+
+# DEFAULT_ENCODING: "utf8"
+
+# databases:
+#   reports:
+#     state: "present"
+#     encoding: "{{ DEFAULT_ENCODING }}"
+#     <<: *default_connection
+#   application:
+#     state: "present"
+#     encoding: "{{ DEFAULT_ENCODING }}"
+#     <<: *default_connection
+
+# database_users:
+#   migrate:
+#     state: "present"
+#     password: "user-with-ddl-privs"
+#     host: "%"
+#     privileges:
+#       - "reports.*:SELECT,INSERT,UPDATE,DELETE,ALTER,CREATE,DROP,INDEX"
+#       - "wwc.*:SELECT,INSERT,UPDATE,DELETE,ALTER,CREATE,DROP,INDEX"
+#     <<: *default_connection
+#   runtime:
+#     state: "present"
+#     password: "user-with-dml-privs"
+#     host: "%"
+#     privileges:
+#       - "reports.*:SELECT"
+#       - "wwc.*:SELECT,INSERT,UPDATE,DELETE"
+#     <<: *default_connection
+
+- name: Create databases and users
+  hosts: all
+  connection: local
+  gather_facts: False
+  tasks:
+    # Install required library, currently this needs to be available
+    # to system python.
+    - name: install python mysqldb module
+      pip: name={{item}} state=present
+      sudo: yes
+      with_items:
+        - MySQL-python
+
+    - name: create mysql databases
+      mysql_db: >
+        db={{ item.key }}
+        state={{ item.value.state }}
+        encoding={{ item.value.encoding }}
+        login_host={{ item.value.login_host }}
+        login_user={{ item.value.login_user }}
+        login_password={{ item.value.login_password }}
+      with_dict: databases
+
+    - name: create mysql users and assign privileges
+      mysql_user: >
+        name="{{ item.key }}"
+        priv="{{ '/'.join(item.value.privileges) }}"
+        password="{{ item.value.password }}"
+        host={{ item.value.host }}
+        login_host={{ item.value.login_host }}
+        login_user={{ item.value.login_user }}
+        login_password={{ item.value.login_password }}
+        append_privs=yes
+      with_dict: database_users

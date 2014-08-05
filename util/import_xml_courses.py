@@ -58,5 +58,9 @@ if __name__ == '__main__':
         if disposition.lower() == "on disk":
             all_xml_mappings[slug] = 'xml'
 
-    edxapp_xml_courses = { "EDXAPP_XML_COURSES": all_course_data, "EDXAPP_XML_MAPPINGS": all_xml_mappings }
+    edxapp_xml_courses = {
+        "EDXAPP_XML_COURSES": all_course_data,
+        "EDXAPP_XML_MAPPINGS": all_xml_mappings,
+        "EDXAPP_XML_FROM_GIT": True
+    }
     print yaml.safe_dump(edxapp_xml_courses, default_flow_style=False)

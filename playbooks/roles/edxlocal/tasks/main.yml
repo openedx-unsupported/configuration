@@ -13,17 +13,12 @@
 - name: install packages needed for single server
   apt: pkg={{','.join(edxlocal_debian_pkgs)}} install_recommends=yes state=present
 
-- name: setup the migration db user
-  mysql_user: >
-    name={{ EDXAPP_MYSQL_USER_MIGRATE }}
-    password={{ EDXAPP_MYSQL_PASSWORD_MIGRATE}}
-    priv='{{EDXAPP_MYSQL_DB_NAME}}.*:ALL'
-
 - name: setup the edxapp db user
   mysql_user: >
     name={{ EDXAPP_MYSQL_USER }}
     password={{ EDXAPP_MYSQL_PASSWORD }}
     priv='{{EDXAPP_MYSQL_DB_NAME}}.*:ALL'
+  when: EDXAPP_MYSQL_USER is defined
 
 - name: create a database for edxapp
   mysql_db: >
@@ -31,26 +26,27 @@
     state=present
     encoding=utf8
   when: EDXAPP_MYSQL_USER is defined
-    
+
 - name: setup the xqueue db user
   mysql_user: >
     name={{ XQUEUE_MYSQL_USER }}
     password={{ XQUEUE_MYSQL_PASSWORD }}
     priv='{{XQUEUE_MYSQL_DB_NAME}}.*:ALL'
-  when: XQUEUE_MYSQL_USER is defined and not disable_edx_services
+  when: XQUEUE_MYSQL_USER is defined
 
 - name: create a database for xqueue
   mysql_db: >
     db=xqueue
     state=present
     encoding=utf8
-  when: XQUEUE_MYSQL_USER is defined and not disable_edx_services
+  when: XQUEUE_MYSQL_USER is defined
 
 - name: setup the ora db user
   mysql_user: >
     name={{ ORA_MYSQL_USER }}
     password={{ ORA_MYSQL_PASSWORD }}
     priv='{{ORA_MYSQL_DB_NAME}}.*:ALL'
+  when: ORA_MYSQL_USER is defined
 
 - name: create a database for ora
   mysql_db: >
@@ -59,20 +55,66 @@
     encoding=utf8
   when: ORA_MYSQL_USER is defined
 
-- name: setup the discern db user
-  mysql_user: >
-    name={{ DISCERN_MYSQL_USER }}
-    password={{ DISCERN_MYSQL_PASSWORD }}
-    priv='{{DISCERN_MYSQL_DB_NAME}}.*:ALL'
-  when: DISCERN_MYSQL_USER is defined and not disable_edx_services
-
-
-- name: create a database for discern
+- name: create databases for analytics api
   mysql_db: >
-    db=discern
+    db={{ item }}
     state=present
     encoding=utf8
-  when: DISCERN_MYSQL_USER is defined and not disable_edx_services
+  when: ANALYTICS_API_CONFIG is defined
+  with_items:
+    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
+    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
+
+
+- name: create api user for the analytics api
+  mysql_user: >
+    name=api001
+    password=password
+    priv='{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}.*:ALL/reports.*:SELECT'
+  when: ANALYTICS_API_CONFIG is defined
+
+- name: create read-only reports user for the analytics-api
+  mysql_user: >
+    name=reports001
+    password=password
+    priv='{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT'
+  when: ANALYTICS_API_CONFIG is defined
+
+- name: setup the migration db user
+  mysql_user: >
+    name={{ COMMON_MYSQL_MIGRATE_USER }}
+    password={{ COMMON_MYSQL_MIGRATE_PASS }}
+    priv='{{ item }}.*:ALL'
+    append_privs=yes
+  when: item != 'None'
+  with_items:
+    - "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
+    - "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
+    - "{{ ORA_MYSQL_DB_NAME|default('None') }}"
+
+- name: setup the migration db user for analytics
+  mysql_user: >
+    name={{ COMMON_MYSQL_MIGRATE_USER }}
+    password={{ COMMON_MYSQL_MIGRATE_PASS }}
+    priv='{{ item }}.*:ALL'
+    append_privs=yes
+  when: ANALYTICS_API_CONFIG is defined
+  with_items:
+    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
+    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
+
+
+- name: setup the read-only db user
+  mysql_user: >
+    name={{ COMMON_MYSQL_READ_ONLY_USER }}
+    password={{ COMMON_MYSQL_READ_ONLY_PASS }}
+    priv='*.*:ALL'
+
+- name: setup the admin db user
+  mysql_user: >
+    name={{ COMMON_MYSQL_ADMIN_USER }}
+    password={{ COMMON_MYSQL_ADMIN_PASS }}
+    priv='*.*:CREATE USER'
 
 
 - name: install memcached

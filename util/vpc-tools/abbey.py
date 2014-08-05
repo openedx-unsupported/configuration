@@ -18,7 +18,7 @@ except ImportError:
 
 from pprint import pprint
 
-AMI_TIMEOUT = 600  # time to wait for AMIs to complete
+AMI_TIMEOUT = 1800  # time to wait for AMIs to complete(30 minutes)
 EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
@@ -76,19 +76,17 @@ def parse_args():
                         help="don't cleanup on failures")
     parser.add_argument('--vars', metavar="EXTRA_VAR_FILE",
                         help="path to extra var file", required=False)
-    parser.add_argument('--refs', metavar="GIT_REFS_FILE",
-                        help="path to a var file with app git refs", required=False)
     parser.add_argument('--configuration-version', required=False,
-                        help="configuration repo branch(no hashes)",
+                        help="configuration repo gitref",
                         default="master")
     parser.add_argument('--configuration-secure-version', required=False,
-                        help="configuration-secure repo branch(no hashes)",
+                        help="configuration-secure repo gitref",
                         default="master")
     parser.add_argument('--configuration-secure-repo', required=False,
                         default="git@github.com:edx-ops/prod-secure",
                         help="repo to use for the secure files")
     parser.add_argument('--configuration-private-version', required=False,
-                        help="configuration-private repo branch(no hashes)",
+                        help="configuration-private repo gitref",
                         default="master")
     parser.add_argument('--configuration-private-repo', required=False,
                         default="git@github.com:edx-ops/ansible-private",
@@ -287,18 +285,13 @@ cat << EOF >> $extra_vars
 # of all the repositories
 {extra_vars_yml}
 
-{git_refs_yml}
-
 # abbey will always run fake migrations
 # this is so that the application can come
 # up healthy
 fake_migrations: true
 
-# Use the build number an the dynamic cache key.
-EDXAPP_UPDATE_STATIC_FILES_KEY: true
-edxapp_dynamic_cache_key: {deployment}-{environment}-{play}-{cache_id}
-
 disable_edx_services: true
+COMMON_TAG_EC2_INSTANCE: true
 
 # abbey should never take instances in
 # and out of elbs
@@ -369,7 +362,6 @@ rm -rf $base_dir
                 identity_contents=identity_contents,
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
-                git_refs_yml=git_refs_yml,
                 secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id)
 
@@ -528,18 +520,21 @@ def create_ami(instance_id, name, description):
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("play", args.play)
                 time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_ref", args.configuration_version)
+                conf_tag = "{} {}".format("http://github.com/edx/configuration", args.configuration_version)
+                img.add_tag("version:configuration", conf_tag)
                 time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_secure_ref", args.configuration_secure_version)
-                time.sleep(AWS_API_WAIT_TIME)
-                img.add_tag("configuration_secure_repo", args.configuration_secure_repo)
+                conf_secure_tag = "{} {}".format(args.configuration_secure_repo, args.configuration_secure_version)
+                img.add_tag("version:configuration_secure", conf_secure_tag)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("cache_id", args.cache_id)
                 time.sleep(AWS_API_WAIT_TIME)
-                for repo, ref in git_refs.items():
-                    key = "refs:{}".format(repo)
-                    img.add_tag(key, ref)
-                    time.sleep(AWS_API_WAIT_TIME)
+
+                # Get versions from the instance.
+                tags = ec2.get_all_tags(filters={'resource-id': instance_id})
+                for tag in tags:
+                    if tag.name.startswith('version:'):
+                        img.add_tag(tag.name, tag.value)
+                        time.sleep(AWS_API_WAIT_TIME)
                 break
             else:
                 time.sleep(1)
@@ -647,6 +642,7 @@ def launch_and_configure(ec2_args):
 
 
 def send_hipchat_message(message):
+    print(message)
     #If hipchat is configured send the details to the specified room
     if args.hipchat_api_token and args.hipchat_room_id:
         import hipchat
@@ -672,14 +668,6 @@ if __name__ == '__main__':
     else:
         extra_vars_yml = ""
         extra_vars = {}
-
-    if args.refs:
-        with open(args.refs) as f:
-            git_refs_yml = f.read()
-            git_refs = yaml.load(git_refs_yml)
-    else:
-        git_refs_yml = ""
-        git_refs = {}
 
     if args.secure_vars_file:
         # explicit path to a single
@@ -710,6 +698,7 @@ if __name__ == '__main__':
     else:
         base_ami = args.base_ami
 
+    error_in_abbey_run = False
     try:
         sqs_queue = None
         instance_id = None
@@ -749,6 +738,7 @@ if __name__ == '__main__':
                 play=args.play,
                 exception=repr(e))
         send_hipchat_message(message)
+        error_in_abbey_run = True
     finally:
         print
         if not args.no_cleanup and not args.noop:
@@ -761,3 +751,5 @@ if __name__ == '__main__':
             # Check to make sure we have an instance id.
             if instance_id:
                 ec2.terminate_instances(instance_ids=[instance_id])
+        if error_in_abbey_run:
+            exit(1)

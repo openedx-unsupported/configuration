@@ -22,25 +22,24 @@
         instance_id: "{{ ansible_ec2_instance_id }}"
         region: us-east-1
         state: absent
+        wait_timeout: 60
       sudo: False
       when: elb_pre_post
   roles:
     - aws
-    - role: nginx
-      nginx_sites:
-      - xqueue
-    - role: xqueue
     - role: datadog
       when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder
       when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
       when: COMMON_ENABLE_NEWRELIC
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - xqueue
     - oraclejdk
     - elasticsearch
     - rabbitmq
-    - datadog
-    - splunkforwarder
   post_tasks:
     - debug: var="{{ ansible_ec2_instance_id }}"
       when: elb_pre_post
@@ -51,6 +50,7 @@
         ec2_elbs: "{{ item }}"
         region: us-east-1
         state: present
+        wait_timeout: 60
       with_items: ec2_elbs
       sudo: False
       when: elb_pre_post
