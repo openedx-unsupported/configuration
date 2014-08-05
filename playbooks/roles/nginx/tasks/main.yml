@@ -72,6 +72,34 @@
   notify: reload nginx
   with_items: nginx_sites
 
+- name: Copying nginx redirect configs for {{ nginx_redirects }}
+  template: >
+    src={{ nginx_template_dir }}/nginx_redirect.j2
+    dest={{ nginx_sites_available_dir }}/{{ item.key }}
+    owner=root group={{ common_web_user }} mode=0640
+  notify: reload nginx
+  with_dict: nginx_redirects
+  when: nginx_redirects is defined
+
+- name: Creating nginx redirect links for {{ nginx_redirects }}
+  file: >
+    src={{ nginx_sites_available_dir }}/{{ item.key  }}
+    dest={{ nginx_sites_enabled_dir }}/{{ item.key }}
+    state=link owner=root group=root
+  notify: reload nginx
+  with_dict: nginx_redirects
+  when: nginx_redirects is defined
+
+- name: Creating nginx config links for {{ nginx_sites }}
+  file: >
+    src={{ nginx_sites_available_dir }}/{{ item  }}
+    dest={{ nginx_sites_enabled_dir }}/{{ item }}
+    state=link owner=root group=root
+  notify: reload nginx
+  with_items: nginx_sites
+
+
+
 - name: Write out htpasswd file
   htpasswd: >
     name={{ COMMON_HTPASSWD_USER }}
