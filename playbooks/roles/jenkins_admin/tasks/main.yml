@@ -37,6 +37,10 @@
   apt_repository: repo="{{ item }}" state=present update_cache=yes
   with_items: jenkins_admin_debian_repos
 
+- name: create the scripts directory
+  file: path={{ jenkins_admin_scripts_dir }} state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=755
+
 # We first download the plugins to a temp directory and include
 # the version in the file name.  That way, if we increment
 # the version, the plugin will be updated in Jenkins
@@ -71,6 +75,24 @@
     owner="{{ jenkins_user }}"
     group="{{ jenkins_group }}"
     mode="0600"
+  tags:
+    - aws-config
+
+- name: create the .aws directory
+  file: path={{ jenkins_home }}/.aws state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  tags:
+    - aws-config
+
+- name: configure the awscli profiles for jenkins
+  template: >
+    src="./{{ jenkins_home }}/aws_config.j2"
+    dest="{{ jenkins_home }}/.aws/config"
+    owner="{{ jenkins_user }}"
+    group="{{ jenkins_group }}"
+    mode="0600"
+  tags:
+    - aws-config
 
 - name: create the ssh directory
   file: >
@@ -134,3 +156,5 @@
     version={{ item.version }}
     user_install=no
   with_items: jenkins_admin_gem_pkgs
+
+- include: nat_monitor.yml
