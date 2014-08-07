@@ -3,17 +3,13 @@
 # if the primary fails.
 set -e
 
-# NAT instance variables
-PRIMARY_NAT_ID=`aws ec2 describe-route-tables --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=PrivateRouteTable | jq '.RouteTables[].Routes[].InstanceId|strings' -r`
-BACKUP_NAT_ID=`aws ec2 describe-instances --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=NATDevice,BackupNATDevice | jq '.Reservations[].Instances[].InstanceId' -r | grep -v $PRIMARY_NAT_ID`
-NAT_RT_ID=`aws ec2 describe-route-tables --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=PrivateRouteTable | jq '.RouteTables[].RouteTableId' -r`
-
 # Health Check variables
 Num_Pings=3
 Ping_Timeout=1
 Wait_Between_Pings=2
 Wait_for_Instance_Stop=60
 Wait_for_Instance_Start=300
+ID_UPDATE_INTERVAL=150
 
 send_message() {
   message_file=/var/tmp/message-$$.json
@@ -53,12 +49,26 @@ trap send_message ERR SIGHUP SIGINT SIGTERM
 #  ]
 # }
 
-# Get the primary NAT instance's IP
-PRIMARY_NAT_IP=`aws ec2 describe-instances --instance-ids $PRIMARY_NAT_ID | jq -r ".Reservations[].Instances[].PrivateIpAddress"`
-BACKUP_NAT_IP=`aws ec2 describe-instances --instance-ids $BACKUP_NAT_ID | jq -r ".Reservations[].Instances[].PrivateIpAddress"`
+COUNTER=0
 
 echo `date` "-- Running NAT monitor"
 while [ . ]; do
+  # Re check thi IDs and IPs periodically
+  # This is useful in case the primary nat changes by some
+  # other means than this script.
+  if [ $COUNTER -eq 0 ]
+    # NAT instance variables
+    PRIMARY_NAT_ID=`aws ec2 describe-route-tables --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=PrivateRouteTable | jq '.RouteTables[].Routes[].InstanceId|strings' -r`
+    BACKUP_NAT_ID=`aws ec2 describe-instances --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=NATDevice,BackupNATDevice | jq '.Reservations[].Instances[].InstanceId' -r | grep -v $PRIMARY_NAT_ID`
+    NAT_RT_ID=`aws ec2 describe-route-tables --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=PrivateRouteTable | jq '.RouteTables[].RouteTableId' -r`
+    
+    # Get the primary NAT instance's IP
+    PRIMARY_NAT_IP=`aws ec2 describe-instances --instance-ids $PRIMARY_NAT_ID | jq -r ".Reservations[].Instances[].PrivateIpAddress"`
+    BACKUP_NAT_IP=`aws ec2 describe-instances --instance-ids $BACKUP_NAT_ID | jq -r ".Reservations[].Instances[].PrivateIpAddress"`
+
+    let "COUNTER += 1"
+    let "COUNTER %= $ID_UPDATE_INTERVAL"
+  fi
   # Check the health of both instances.
   primary_pingresult=`ping -c $Num_Pings -W $Ping_Timeout $PRIMARY_NAT_IP| grep time= | wc -l`
   
