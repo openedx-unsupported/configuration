@@ -56,7 +56,7 @@ while [ . ]; do
   # Re check thi IDs and IPs periodically
   # This is useful in case the primary nat changes by some
   # other means than this script.
-  if [ $COUNTER -eq 0 ]
+  if [ $COUNTER -eq 0 ]; then
     # NAT instance variables
     PRIMARY_NAT_ID=`aws ec2 describe-route-tables --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=PrivateRouteTable | jq '.RouteTables[].Routes[].InstanceId|strings' -r`
     BACKUP_NAT_ID=`aws ec2 describe-instances --filters Name=tag:aws:cloudformation:stack-name,Values=$VPC_NAME Name=tag:aws:cloudformation:logical-id,Values=NATDevice,BackupNATDevice | jq '.Reservations[].Instances[].InstanceId' -r | grep -v $PRIMARY_NAT_ID`
