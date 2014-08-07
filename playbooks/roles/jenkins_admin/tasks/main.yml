@@ -41,25 +41,6 @@
   file: path={{ jenkins_admin_scripts_dir }} state=directory
         owner={{ jenkins_user }} group={{ jenkins_group }} mode=755
 
-# We first download the plugins to a temp directory and include
-# the version in the file name.  That way, if we increment
-# the version, the plugin will be updated in Jenkins
-- name: download Jenkins plugins
-  get_url: url=http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
-           dest=/tmp/{{ item.name }}_{{ item.version }}
-  with_items: jenkins_admin_plugins
-
-- name: install Jenkins plugins
-  command: cp /tmp/{{ item.name }}_{{ item.version }} {{ jenkins_home }}/plugins/{{ item.name }}.hpi
-  with_items: jenkins_admin_plugins
-
-- name: set Jenkins plugin permissions
-  file: path={{ jenkins_home }}/plugins/{{ item.name }}.hpi
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: jenkins_admin_plugins
-  notify:
-    - restart Jenkins
-
 - name: configure s3 plugin
   template: >
     src="./{{ jenkins_home }}/hudson.plugins.s3.S3BucketPublisher.xml.j2"
