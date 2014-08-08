@@ -73,6 +73,30 @@
   notify: reload nginx
   with_items: nginx_sites
 
+- name: Copying nginx extra configs
+  template: >
+    src={{ item }}
+    dest={{ nginx_sites_available_dir }}/{{ item|basename|replace(".j2", "") }}
+    owner=root group={{ common_web_user }} mode=0640
+  notify: reload nginx
+  with_items: nginx_extra_sites
+
+- name: Creating links for nginx extra configs
+  file: >
+    src={{ nginx_sites_available_dir }}/{{ item|basename|replace(".j2", "")  }}
+    dest={{ nginx_sites_enabled_dir }}/{{ item|basename|replace(".j2", "") }}
+    state=link owner=root group=root
+  notify: reload nginx
+  with_items: nginx_extra_sites
+
+- name: Copying custom nginx config
+  template: >
+    src={{ item }}
+    dest={{ nginx_conf_dir }}/{{ item|basename|replace(".j2", "") }}
+    owner=root group={{ common_web_user }} mode=0640
+  notify: reload nginx
+  with_items: nginx_extra_configs
+
 - name: Copying nginx redirect configs for {{ nginx_redirects }}
   template: >
     src={{ nginx_template_dir }}/nginx_redirect.j2
