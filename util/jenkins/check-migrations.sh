@@ -45,6 +45,7 @@ extra_var_args+=" -e edxapp_app_dir=${WORKSPACE}"
 extra_var_args+=" -e edxapp_code_dir=${WORKSPACE}/edx-platform"
 extra_var_args+=" -e edxapp_user=jenkins"
 extra_var_args+=" -e openid_workaround=true"
+extra_var_args+=" -e edxapp_venv_dir=$VIRTUAL_ENV"
 
 # Generate the json configuration files
 ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml
