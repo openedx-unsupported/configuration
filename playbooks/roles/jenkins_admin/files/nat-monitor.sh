@@ -5,7 +5,7 @@ set -e
 
 # Health Check variables
 Num_Pings=3
-Ping_Timeout=1
+Ping_Timeout=2
 Wait_Between_Pings=2
 Wait_for_Instance_Stop=60
 Wait_for_Instance_Start=300
@@ -77,48 +77,9 @@ while [ . ]; do
     if [ "$backup_pingresult" == "0" ]; then
       send_message "Error monitoring NATs for $VPC_NAME."  "ERROR -- Both NATs($PRIMARY_NAT_ID and $BACKUP_NAT_ID) were unreachable."
     else #Backup nat is healthy.
-      # Set HEALTHY variables to unhealthy (0)
-      ROUTE_HEALTHY=0
-      NAT_HEALTHY=0
-      STOPPING_NAT=0
-      while [ "$NAT_HEALTHY" == "0" ]; do
-      # Primary NAT instance is unhealthy, loop while we try to fix it
-        if [ "$ROUTE_HEALTHY" == "0" ]; then
-          aws ec2 replace-route --route-table-id $NAT_RT_ID --destination-cidr-block 0.0.0.0/0 --instance-id $BACKUP_NAT_ID
-          send_message " Primary $VPC_NAME NAT failed" "-- NAT($PRIMARY_NAT_ID) heartbeat failed, using $BACKUP_NAT_ID for $NAT_RT_ID default route"
-          ROUTE_HEALTHY=1
-        fi
-        # Check NAT state to see if we should stop it or start it again
-        NAT_STATE=`aws ec2 describe-instances --instance-ids $PRIMARY_NAT_ID | jq -r ".Reservations[].Instances[].State.Name"`
-        if [ "$NAT_STATE" == "stopped" ]; then
-          echo `date` "-- NAT($PRIMARY_NAT_ID) instance stopped, starting it back up"
-          aws ec2 start-instances --instance-ids $PRIMARY_NAT_ID
-          sleep $Wait_for_Instance_Start
-        else
-          if [ "$STOPPING_NAT" == "0" ]; then
-            echo `date` "-- NAT($PRIMARY_NAT_ID) instance $NAT_STATE, attempting to stop for reboot"
-            aws ec2 stop-instances --instance-ids $PRIMARY_NAT_ID
-            STOPPING_NAT=1
-          fi
-          sleep $Wait_for_Instance_Stop
-        fi
-        unhealthy_nat_pingresult=`ping -c $Num_Pings -W $Ping_Timeout $PRIMARY_NAT_IP| grep time= | wc -l`
-        if [ "$unhealthy_nat_pingresult" == "$Num_Pings" ]; then
-          NAT_HEALTHY=1
-        fi
-      done
-  
-      # Backup nat was healthy so we switched to it.  It is now the primary.
-      if [ "$ROUTE_HEALTHY" == "1" ]; then
-        TEMP_NAT_ID=$PRIMARY_NAT_ID
-        TEMP_NAT_IP=$PRIMARY_NAT_IP
-  
-        PRIMARY_NAT_ID=$BACKUP_NAT_ID
-        PRIMARY_NAT_IP=$BACKUP_NAT_IP
-  
-        BACKUP_NAT_ID=$TEMP_NAT_ID
-        BACKUP_NAT_IP=$TEMP_NAT_IP
-      fi
+      send_message "Primary $VPC_NAME NAT failed ping" "-- NAT($PRIMARY_NAT_ID) heartbeat failed, consider using $BACKUP_NAT_ID for $NAT_RT_ID default route
+Command for re-routing:
+aws ec2 replace-route --route-table-id $NAT_RT_ID --destination-cidr-block 0.0.0.0/0 --instance-id $BACKUP_NAT_ID"
     fi
   else
     echo `date` "-- PRIMARY NAT ($PRIMARY_NAT_ID $PRIMARY_NAT_IP) reports healthy to pings"
