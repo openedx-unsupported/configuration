@@ -111,12 +111,22 @@
   - "restart edxapp_workers"
 
 # Set the npm registry
+# This needs to be done as root since npm is weird about
+# chown - https://github.com/npm/npm/issues/3565
 - name: Set the npm registry
   shell:
     npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
     creates="{{ edxapp_app_dir }}/.npmrc"
-  sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+# Set the npm registry permissions
+- name: Set the npm registry permissions
+  file:
+    path="{{ edxapp_app_dir }}/.npmrc"
+    owner=edxapp group=edxapp
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
@@ -365,7 +375,7 @@
   register: s3_one_time_url
 
 - name: download from one time url
-  get_url: 
+  get_url:
     url="{{ s3_one_time_url.url }}"
     dest="{{ edxapp_data_dir }}/{{ EDXAPP_XML_S3_KEY|basename }}"
     mode=0600
