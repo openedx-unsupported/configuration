@@ -19,6 +19,9 @@
 
 # Create a virtualenv for edx-platform by installing the requirements
 # and packaging the virtualenv.
+# A shallow clone is created off of master. The depth setting
+# refers to the --depth-setting of git clone. A value of 1
+# will truncate all history prior to the last revision.
 - name: Create shallow clone of edx-platform
   git: >
     repo=https://github.com/edx/edx-platform.git
@@ -50,3 +53,8 @@
     tar -cpzf edx-venv_clean.tar.gz edx-venv
     chdir={{ jenkins_home }}
   sudo_user: "{{ jenkins_user }}"
+
+# Remove the shallow-clone directory now that we archive
+# done with it
+- name: Remove shallow-clone
+  file: path={{ jenkins_home }}/shallow-clone state=absent
