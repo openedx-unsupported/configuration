@@ -20,6 +20,7 @@ import os
 import sys
 import time
 import json
+import socket
 try:
     import boto.sqs
     from boto.exception import NoAuthHandlerFound
@@ -132,4 +133,12 @@ class CallbackModule(object):
                     # only keep the last 20 or so lines to avoid payload size errors
                     if len(payload[msg_type]['stdout_lines']) > 20:
                         payload[msg_type]['stdout_lines'] = ['(clipping) ... '] + payload[msg_type]['stdout_lines'][-20:]
-            self.sqs.send_message(self.queue, json.dumps(payload))
+            while True:
+                try:
+                    self.sqs.send_message(self.queue, json.dumps(payload))
+                    break
+                except socket.gaierror as e:
+                    print 'socket.gaierror will retry: ' + e
+                    time.sleep(1)
+                except Exception as e:
+                    raise e
