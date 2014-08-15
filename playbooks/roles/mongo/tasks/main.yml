@@ -76,3 +76,39 @@
     state=present
   with_items: MONGO_USERS
   when: mongo_create_users
+
+- name: install s3cmd
+  pip: >
+    name="s3cmd"
+    state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  when: MONGO_S3_BACKUP
+ 
+- name: configure s3cmd
+  template: >
+    dest="{{ MONGO_S3_S3CMD_CONFIG }}"
+    src=mongo-s3-backup-s3cfg.j2
+    owner=root
+    group=root
+    mode=0600
+  when: MONGO_S3_BACKUP
+
+- name: install backup-mongo-to-s3 script
+  template: >
+    src=backup-mongo-to-s3.j2
+    dest=/edx/bin/backup-mongo-to-s3.sh
+    owner=root
+    group=root
+    mode=0700
+  when: MONGO_S3_BACKUP
+
+- name: schedule backup-mongo-to-3s crontab
+  cron: 
+    name="backup-mongo-to-s3"
+    job="/edx/bin/backup-mongo-to-s3.sh"
+    backup=yes
+    cron_file=backup-mongo-to-s3
+    user=root
+    hour="{{ MONGO_S3_BACKUP_HOUR }}"
+    minute="0"
+    day="{{ MONGO_S3_BACKUP_DAY }}"
