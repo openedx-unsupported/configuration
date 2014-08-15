@@ -1,19 +1,24 @@
 [program:cms]
 
-{% if COMMON_ENABLE_NEWRELIC %}
-{% set executable = edxapp_venv_dir + '/bin/newrelic-admin run-program ' + edxapp_venv_dir + '/bin/gunicorn' %}
-{% else %}
-{% set executable = edxapp_venv_dir + '/bin/gunicorn' %}
-{% endif %}
+{% if COMMON_ENABLE_NEWRELIC -%}
+{% set executable = edxapp_venv_dir + '/bin/newrelic-admin run-program ' + edxapp_venv_dir + '/bin/gunicorn' -%}
+{% else -%}
+{% set executable = edxapp_venv_dir + '/bin/gunicorn' -%}
+{% endif -%}
+{% if EDXAPP_CMS_MAX_REQ -%}
+{% set max_req = '--max-requests ' + EDXAPP_CMS_MAX_REQ -%}
+{% else -%}
+{% set max_req = '' -%}
+{% endif -%}
 
 {% if EDXAPP_WORKERS -%}
-command={{ executable }} --preload -b {{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }} -w {{ EDXAPP_WORKERS.cms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} cms.wsgi
+command={{ executable }} {{ max_req }} --preload -b {{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }} -w {{ EDXAPP_WORKERS.cms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} cms.wsgi
 {% else -%}
 {# This is for backwards compatibility, set workers explicitely using EDXAPP_WORKERS #}
 {% if ansible_processor|length > 0 -%}
-command={{ executable }}  --preload -b {{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.cms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} cms.wsgi
+command={{ executable }} {{ max_req }} --preload -b {{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.cms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} cms.wsgi
 {% else -%}
-command={{ executable }} --preload -b {{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }} -w {{ worker_core_mult.cms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} cms.wsgi
+command={{ executable }} {{ max_req }} --preload -b {{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }} -w {{ worker_core_mult.cms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} cms.wsgi
 {% endif -%}
 {% endif -%}
 
