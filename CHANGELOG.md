@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Updated the module store settings to match the new settings format.
+
 - Role: analytics-api
   - Added a new role for the analytics-api Django app.  Currently a private repo
 

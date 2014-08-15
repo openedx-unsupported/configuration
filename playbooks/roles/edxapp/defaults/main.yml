@@ -394,24 +394,33 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
     ADDITIONAL_OPTIONS: $EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS
     DOC_STORE_CONFIG: *edxapp_generic_default_docstore
   MODULESTORE:
-    default: &edxapp_generic_default_modulestore
-      ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
-      OPTIONS:  &generic_modulestore_default_options
-        collection:  'modulestore'
-        db:  $EDXAPP_MONGO_DB_NAME
-        default_class:  'xmodule.hidden_module.HiddenDescriptor'
-        fs_root:  $edxapp_course_data_dir
-        host: $EDXAPP_MONGO_HOSTS
-        password:  $EDXAPP_MONGO_PASSWORD
-        port: $EDXAPP_MONGO_PORT
-        render_template:  'edxmako.shortcuts.render_to_string'
-        # Needed for the CMS to be able to run update_templates
-        user: $EDXAPP_MONGO_USER
-      DOC_STORE_CONFIG: *edxapp_generic_default_docstore
-    direct: &edxapp_generic_direct_modulestore
-      ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
-      OPTIONS:  *generic_modulestore_default_options
-      DOC_STORE_CONFIG: *edxapp_generic_default_docstore
+    default:
+        ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
+        OPTIONS:  
+          mappings: $EDXAPP_XML_MAPPINGS
+          stores:
+            - &edxapp_generic_draft_modulestore
+              NAME: 'draft'
+              ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+              DOC_STORE_CONFIG: *edxapp_generic_default_docstore
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  $edxapp_course_data_dir
+                render_template: 'edxmako.shortcuts.render_to_string'
+            - &edxapp_generic_xml_modulestore
+              NAME: 'xml'
+              ENGINE: 'xmodule.modulestore.xml.XMLModuleStore'
+              OPTIONS:
+                data_dir: $edxapp_course_data_dir
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+            - &edxapp_generic_split_modulestore
+              NAME: 'split'
+              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
+              DOC_STORE_CONFIG: *edxapp_generic_default_docstore
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  $edxapp_course_data_dir
+                render_template: 'edxmako.shortcuts.render_to_string'
   DATABASES:
     read_replica:
       ENGINE: 'django.db.backends.mysql'
@@ -545,33 +554,6 @@ lms_auth_config:
   VERIFY_STUDENT: $EDXAPP_VERIFY_STUDENT
   GOOGLE_ANALYTICS_LINKEDIN: $EDXAPP_GOOGLE_ANALYTICS_LINKEDIN
   CC_PROCESSOR: $EDXAPP_CC_PROCESSOR
-  MODULESTORE:
-    default:  &lms_default_modulestore
-      ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
-      OPTIONS:
-        mappings: $EDXAPP_XML_MAPPINGS
-        stores:
-          xml:
-            ENGINE: 'xmodule.modulestore.xml.XMLModuleStore'
-            OPTIONS:
-              data_dir: $edxapp_course_data_dir
-              default_class: 'xmodule.hidden_module.HiddenDescriptor'
-          default:
-            OPTIONS:
-              default_class: 'xmodule.hidden_module.HiddenDescriptor'
-              host: $EDXAPP_MONGO_HOSTS
-              db: $EDXAPP_MONGO_DB_NAME
-              collection: 'modulestore'
-              render_template: 'edxmako.shortcuts.render_to_string'
-              user: $EDXAPP_MONGO_USER
-              password: $EDXAPP_MONGO_PASSWORD
-              port: $EDXAPP_MONGO_PORT
-              fs_root: $edxapp_course_data_dir
-            ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
-            DOC_STORE_CONFIG: *edxapp_generic_default_docstore
-    draft:
-      <<: *edxapp_generic_default_modulestore
-      ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
 lms_env_config:
   <<: *edxapp_generic_env
   PAID_COURSE_REGISTRATION_CURRENCY: $EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY
@@ -585,6 +567,18 @@ lms_env_config:
 cms_auth_config:
   <<: *edxapp_generic_auth
   SEGMENT_IO_KEY: $EDXAPP_SEGMENT_IO_KEY
+  MODULESTORE:
+    default:
+        ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
+        OPTIONS: 
+# See commented section below. LMS-11258
+#          mappings: $EDXAPP_XML_MAPPINGS
+          mappings: {}
+          stores:
+            - *edxapp_generic_draft_modulestore
+# Commented for now so that it can be tested first: LMS-11258
+#            - *edxapp_generic_xml_modulestore
+            - *edxapp_generic_split_modulestore
 cms_env_config:
   <<: *edxapp_generic_env
   SITE_NAME:  $EDXAPP_CMS_SITE_NAME
