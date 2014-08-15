@@ -1,0 +1,37 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role test_build_server
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: Create shallow clone of edx-platform
+  git: >
+    repo=https://github.com/edx/edx-platform.git
+    dest={{ edx_platform_base_path }}/shallow-clone
+    version=master
+    depth=1
+  sudo_user: "{{ test_runner_user }}"
+
+- name: run edx tests
+  shell:
+    "export TEST_SUITE=unit && scripts/all-tests.sh"
+  args:
+    chdir: "{{ edx_platform_base_path }}/shallow-clone"
+  sudo_user: root
