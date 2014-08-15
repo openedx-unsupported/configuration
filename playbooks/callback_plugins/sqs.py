@@ -140,3 +140,5 @@ class CallbackModule(object):
                 except socket.gaierror as e:
                     print 'socket.gaierror will retry: ' + e
                     time.sleep(1)
+                except Exception as e:
+                    raise e
