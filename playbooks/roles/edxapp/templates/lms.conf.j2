@@ -1,19 +1,25 @@
 [program:lms]
 
-{% if COMMON_ENABLE_NEWRELIC %}
-{% set executable = edxapp_venv_dir + '/bin/newrelic-admin run-program ' + edxapp_venv_dir + '/bin/gunicorn' %}
-{% else %}
-{% set executable = edxapp_venv_dir + '/bin/gunicorn' %}
-{% endif %}
+{% if COMMON_ENABLE_NEWRELIC -%}
+{% set executable = edxapp_venv_dir + '/bin/newrelic-admin run-program ' + edxapp_venv_dir + '/bin/gunicorn' -%}
+{% else -%}
+{% set executable = edxapp_venv_dir + '/bin/gunicorn' -%}
+{% endif -%}
+
+{% if EDXAPP_LMS_MAX_REQ -%}
+{% set max_req = '--max-requests ' + EDXAPP_LMS_MAX_REQ -%}
+{% else -%}
+{% set max_req = '' + EDXAPP_LMS_MAX_REQ -%}
+{% endif -%}
 
 {% if EDXAPP_WORKERS -%}
-command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ EDXAPP_WORKERS.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+command={{ executable }} {{ max_req }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ EDXAPP_WORKERS.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
 {% else -%}
 {# This is for backwards compatibility, set workers explicitely using EDXAPP_WORKERS #}
 {% if ansible_processor|length > 0 -%}
-command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+command={{ executable }} {{ max_req }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
 {% else -%}
-command={{ executable }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
+command={{ executable }} {{ max_req }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
 {% endif %}
 {% endif %}
 
