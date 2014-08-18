@@ -1,28 +1,45 @@
 #!/usr/bin/env python
 
+"""
+Build an ansible inventory based on autoscaling group instance lifecycle state.
+
+Outputs JSON to stdout with keys for each state and combination of autoscaling
+group and state.
+
+{
+  "InService": [
+    "10.0.47.127",
+    "10.0.46.174"
+  ],
+  "Terminating:Wait": [
+    "10.0.48.104"
+  ],
+  "e-d-CommonClusterServerAsGroup": [
+    "10.0.47.127",
+    "10.0.46.174"
+  ],
+  "e-d-CommonClusterServerAsGroup_InService": [
+    "10.0.47.127",
+    "10.0.46.174"
+  ],
+  "e-d-CommonClusterServerAsGroup_InService": [
+    "10.0.48.104"
+  ]
+
+}
+"""
 import argparse
 import boto
 import json
+from collections import defaultdict
 
 class LifecycleInventory():
 
     profile = None
 
-    def __init__(self):
+    def __init__(self, profile):
         parser = argparse.ArgumentParser()
-        group = parser.add_argument_group()
-        group.add_argument('-p', '--profile', help='The aws profile to use when connecting.')
-        args = parser.parse_args()
-
-        self.profile = args.profile
-        self.run()
-
-    def push(self, the_dict, key, element):
-        if key in the_dict:
-            the_dict[key].append(element);
-        else:
-            the_dict[key] = [element]
-
+        self.profile = profile
 
     def get_instance_dict(self):
         ec2 = boto.connect_ec2(profile_name=self.profile)
@@ -40,7 +57,7 @@ class LifecycleInventory():
         groups = autoscale.get_all_groups()
 
         instances = self.get_instance_dict()
-        inventory = {}
+        inventory = defaultdict(list)
 
         for group in groups:
 
@@ -48,11 +65,19 @@ class LifecycleInventory():
 
                 private_ip_address = instances[instance.instance_id].private_ip_address
 
-                self.push(inventory, group.name, private_ip_address)
-                self.push(inventory,group.name + "_" + instance.lifecycle_state,private_ip_address)
-                self.push(inventory,instance.lifecycle_state,private_ip_address)
-
+                inventory[group.name].append(private_ip_address)
+                inventory[group.name + "_" + instance.lifecycle_state].append(private_ip_address)
+                inventory[instance.lifecycle_state].append(private_ip_address)
 
         print json.dumps(inventory, sort_keys=True, indent=2)
 
-LifecycleInventory()
+if __name__=="__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--profile', help='The aws profile to use when connecting.')
+    args = parser.parse_args()
+    
+    LifecycleInventory(args.profile).run()
+
+
+    
