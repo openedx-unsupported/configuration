@@ -17,45 +17,31 @@
             owner=root group=root
             mode=755
 
-# Create wheelhouse to enable fast virtualenv creation
-- name: Create wheel virtualenv
-  command: /usr/local/bin/virtualenv {{ jenkins_venv }} creates={{ jenkins_venv }}
+# Create a virtualenv for edx-platform by installing the requirements
+# and packaging the virtualenv.
+# A shallow clone is created off of master. The depth setting
+# refers to the --depth-setting of git clone. A value of 1
+# will truncate all history prior to the last revision.
+- name: Create shallow clone of edx-platform
+  git: >
+    repo=https://github.com/edx/edx-platform.git
+    dest={{ jenkins_home }}/shallow-clone
+    version=master
+    depth=1
   sudo_user: "{{ jenkins_user }}"
 
-- name: Install wheel
-  pip: name=wheel virtualenv={{ jenkins_venv }} virtualenv_command=/usr/local/bin/virtualenv
-  sudo_user: "{{ jenkins_user }}"
-
-- name: Create wheelhouse dir
-  file:
-    path={{ jenkins_wheel_dir }} state=directory
-    owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-
-# (need to install each one in the venv to satisfy dependencies)
-- name: Create wheel archives
-  shell:
-    "{{ jenkins_pip }} wheel --wheel-dir={{ jenkins_wheel_dir }} \"${item.pkg}\" &&
-    {{ jenkins_pip }} install --use-wheel --no-index --find-links={{ jenkins_wheel_dir }} \"${item.pkg}\"
-    creates={{ jenkins_wheel_dir }}/${item.wheel}"
-  sudo_user: "{{ jenkins_user }}"
-  with_items: jenkins_wheels
-
-- name: Add wheel_venv.sh script
-  template:
-    src=wheel_venv.sh.j2 dest={{ jenkins_home }}/wheel_venv.sh
-    owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-
-# Run the wheel_venv.sh script for the first time
-# This was previously done in the Jenkins global
-# configuration as part of the AMI Init script.
-# Moving here so that we can archive a clean snapshot
-# of the virtualenv with only the defined packages
-# from jenkins_wheels.
-- name: Run the wheel_venv.sh script
-  command: >
-    ./wheel_venv.sh edx-venv
-    chdir={{ jenkins_home }}
-    creates={{ jenkins_home }}/edx-venv
+- name: Install edx-platform requirements
+  pip: >
+    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
+    extra_args="--exists-action w"
+    virtualenv={{ jenkins_home }}/edx-venv
+    virtualenv_command=virtualenv-2.7
+  with_items:
+    - pre.txt
+    - github.txt
+    - base.txt
+    - post.txt
+    - paver.txt
   sudo_user: "{{ jenkins_user }}"
 
 # Archive the current state of the virtualenv
@@ -66,5 +52,9 @@
   command: >
     tar -cpzf edx-venv_clean.tar.gz edx-venv
     chdir={{ jenkins_home }}
-    creates={{ jenkins_home }}/edx-venv_clean.tar.gz
   sudo_user: "{{ jenkins_user }}"
+
+# Remove the shallow-clone directory now that we archive
+# done with it
+- name: Remove shallow-clone
+  file: path={{ jenkins_home }}/shallow-clone state=absent
