@@ -47,21 +47,22 @@
 # Need to start splunk manually so that it can create various files
 # and directories that aren't created till the first run and are needed
 # to run some of the below commands.
+
 - name: start splunk manually
   shell: >
-    {{splunkforwarder_output_dir}}/bin/splunk start --accept-license --answer-yes --no-prompt
-      creates={{splunkforwarder_output_dir}}/var/lib/splunk
+    {{SPLUNK_HOME}}/bin/splunk start --accept-license --answer-yes --no-prompt
+      creates={{SPLUNK_HOME}}/var/lib/splunk
   when: download_deb.changed
   register: started_manually
 
 - name: stop splunk manually
   shell: >
-    {{splunkforwarder_output_dir}}/bin/splunk stop --accept-license --answer-yes --no-prompt
+    {{SPLUNK_HOME}}/bin/splunk stop --accept-license --answer-yes --no-prompt
   when: download_deb.changed and started_manually.changed
 
 - name: create boot script
   shell: >
-    {{splunkforwarder_output_dir}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
+    {{SPLUNK_HOME}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
       creates=/etc/init.d/splunk
   register: create_boot_script
   when: download_deb.changed
@@ -69,7 +70,7 @@
 
 # Update credentials
 - name: update admin pasword
-  shell: "{{splunkforwarder_output_dir}}/bin/splunk edit user admin -password {{SPLUNKFORWARDER_PASSWORD}} -auth admin:changeme --accept-license --answer-yes --no-prompt"
+  shell: "{{SPLUNK_HOME}}/bin/splunk edit user admin -password {{SPLUNKFORWARDER_PASSWORD}} -auth admin:changeme --accept-license --answer-yes --no-prompt"
   when: download_deb.changed
   notify: restart splunkforwarder
 
@@ -80,7 +81,7 @@
 
 # Ensure permissions on splunk content
 - name: ensure splunk forder permissions
-  file: path={{splunkforwarder_output_dir}} state=directory recurse=yes owner=splunk group=splunk
+  file: path={{SPLUNK_HOME}} state=directory recurse=yes owner=splunk group=splunk
   when: download_deb.changed
   notify: restart splunkforwarder
 
@@ -88,7 +89,7 @@
 - name: drop input configuration
   template:
     src=opt/splunkforwarder/etc/system/local/inputs.conf.j2
-    dest=/opt/splunkforwarder/etc/system/local/inputs.conf
+    dest="{{SPLUNK_HOME}}/etc/system/local/inputs.conf"
     owner=splunk
     group=splunk
     mode=644
@@ -97,7 +98,16 @@
 - name: create outputs config file
   template:
     src=opt/splunkforwarder/etc/system/local/outputs.conf.j2
-    dest=/opt/splunkforwarder/etc/system/local/outputs.conf
+    dest="{{SPLUNK_HOME}}/etc/system/local/outputs.conf"
+    owner=splunk
+    group=splunk
+    mode=644
+  notify: restart splunkforwarder
+
+- name: drop web configuration
+  template:
+    src=opt/splunkforwarder/etc/system/local/web.conf.j2
+    dest="{{SPLUNK_HOME}}/etc/system/local/web.conf"
     owner=splunk
     group=splunk
     mode=644
