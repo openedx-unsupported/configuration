@@ -32,6 +32,7 @@ import argparse
 import boto
 import json
 from collections import defaultdict
+import re
 
 class LifecycleInventory():
 
@@ -52,6 +53,13 @@ class LifecycleInventory():
 
         return dict
 
+    def to_safe(self, word):
+        ''' Converts 'bad' characters in a string to underscores so they can be
+        used as Ansible groups '''
+
+        return re.sub("[:]", "_", word)
+
+
     def run(self):
         autoscale = boto.connect_autoscale(profile_name=self.profile)
         groups = autoscale.get_all_groups()
@@ -67,7 +75,7 @@ class LifecycleInventory():
 
                 inventory[group.name].append(private_ip_address)
                 inventory[group.name + "_" + instance.lifecycle_state].append(private_ip_address)
-                inventory[instance.lifecycle_state].append(private_ip_address)
+                inventory[self.to_safe(instance.lifecycle_state)].append(private_ip_address)
 
         print json.dumps(inventory, sort_keys=True, indent=2)
 
