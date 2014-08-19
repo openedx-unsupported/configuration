@@ -76,12 +76,7 @@ class LifecycleHandler:
                   "--lifecycle-action-token {token}".format(
             path=self.bin,asg=asg,token=token)
 
-        try:
-            output = subprocess.check_output(command.split(' '))
-        except Exception, e:
-            print e
-            print output
-
+        self.run_subprocess_command(command)
 
     def continue_lifecycle(self, asg, token):
         command = "{path}/python " \
@@ -89,6 +84,11 @@ class LifecycleHandler:
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
               path=self.bin, asg=asg, token=token)
+
+        self.run_subprocess_command(command)
+
+    def run_subprocess_command(self,command):
+        logging.info("Running command {command}.".format(command=command))
 
         try:
             output = subprocess.check_output(command.split(' '))
