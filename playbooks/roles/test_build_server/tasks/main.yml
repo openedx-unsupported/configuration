@@ -19,19 +19,23 @@
 #
 # Example play:
 #
-#
 
-- name: Create shallow clone of edx-platform
+- name: Create clone of edx-platform
   git: >
     repo=https://github.com/edx/edx-platform.git
-    dest={{ edx_platform_base_path }}/shallow-clone
+    dest={{ test_build_server_repo_path }}/edx-platform-clone
     version=master
-    depth=1
-  sudo_user: "{{ test_runner_user }}"
+  sudo_user: "{{ test_build_server_user }}"
 
-- name: run edx tests
-  shell:
-    "export TEST_SUITE=unit && scripts/all-tests.sh"
+- name: Copy test-development-environment.sh to somewhere the jenkins user can access it
+  copy: >
+    src=test-development-environment.sh
+    dest="{{ test_build_server_repo_path }}"
+    mode=0755
+  sudo_user: "{{ test_build_server_user }}"
+
+- name: Validate build environment
+  shell: "bash test-development-environment.sh"
   args:
-    chdir: "{{ edx_platform_base_path }}/shallow-clone"
-  sudo_user: root
+    chdir: "{{ test_build_server_repo_path }}/"
+  sudo_user: "{{ test_build_server_user }}"
