@@ -75,6 +75,7 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--profile', help='The aws profile to use when connecting.')
+    parser.add_argument('-l', '--list', help='Ansible passes this, we ignore it.', action='store_true', default=True)
     args = parser.parse_args()
     
     LifecycleInventory(args.profile).run()
