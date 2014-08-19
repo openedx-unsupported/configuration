@@ -92,9 +92,10 @@ class LifecycleHandler:
 
         try:
             output = subprocess.check_output(command.split(' '))
+            logging.info("Output was {output}".format(output=output))
         except Exception, e:
-            print e
-            print output
+            logging.exception(e)
+            logging.error(output)
 
 
     def get_ec2_instance_by_id(self,id):
