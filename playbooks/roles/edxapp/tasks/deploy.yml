@@ -388,6 +388,18 @@
     chdir="{{ edxapp_data_dir }}"
   when: download_xml_s3.changed
 
+# This currently has to be done because
+# the course coffescript is compiled on the fly
+# by the application after startup.
+# See VPC-117 and VPC-122
+- name: make the course data web user writable
+  file:
+    path="{{ edxapp_course_data_dir }}"
+    state=directory
+    recurse=yes
+    owner="{{ common_web_user }}"
+    group="{{ edxapp_user }}"
+
 # creates the supervisor jobs for the
 # service variants configured, runs
 # gather_assets and db migrations
