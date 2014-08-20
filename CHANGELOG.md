@@ -1,3 +1,7 @@
+- Role: common
+  - We now remove the default syslog.d conf file (50-default.conf) this will 
+  break people who have hand edited that file.
+
 - Role: edxapp
   - Updated the module store settings to match the new settings format.
 
