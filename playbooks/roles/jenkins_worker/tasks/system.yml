@@ -49,3 +49,11 @@
 - name: add preview.localhost to /etc/hosts
   shell: sed -i -r 's/^127.0.0.1\s+.*$/127.0.0.1 localhost preview.localhost/' /etc/hosts
   sudo: yes
+
+# Npm registry must be pre-loaded or else setting it
+# with the Jenkins user will fail
+# See https://github.com/npm/npm/issues/3565
+- name: Set npm registry
+  template:
+    src=.npmrc.j2 dest={{ jenkins_home }}/.npmrc
+    owner={{ jenkins_user }} group={{ jenkins_group }} mode=0664
