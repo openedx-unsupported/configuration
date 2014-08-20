@@ -36,12 +36,15 @@
     owner=root group={{ common_web_user }} mode=0644
   notify: reload nginx
 
-- name: Creating common nginx configuration
+- name: Creating common nginx configurations
   template: >
-    src=edx/app/nginx/sites-available/edx-release.j2
-    dest={{ nginx_sites_available_dir }}/edx-release
+    src=edx/app/nginx/sites-available/{{ item }}.j2
+    dest={{ nginx_sites_available_dir }}/{{ item }}
     owner=root group=root mode=0600
   notify: reload nginx
+  with_items:
+    - edx-release
+    - stub-status
 
 - name: Create robot rules
   template: >
@@ -52,10 +55,13 @@
 
 - name: Creating link for common nginx configuration
   file: >
-    src={{ nginx_sites_available_dir }}/edx-release
-    dest={{ nginx_sites_enabled_dir }}/edx-release
+    src={{ nginx_sites_available_dir }}/{{ item }}
+    dest={{ nginx_sites_enabled_dir }}/{{ item }}
     state=link owner=root group=root
   notify: reload nginx
+  with_items:
+    - edx-release
+    - stub-status
 
 - name: Copying nginx configs for {{ nginx_sites }}
   template: >
