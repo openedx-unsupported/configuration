@@ -12,13 +12,26 @@
 # Tasks for role minos
 # 
 # Overview:
-# 
+#
+# Install the, currently private, minos application
+# which determines whether or not it is safe to retire
+# a server
 #
 # Dependencies:
 #
+# Relies on the common role.
 # 
 # Example play:
 #
+# - name: Deploy minos
+#   hosts: all
+#   sudo: True
+#   gather_facts: True
+#   vars:
+#     COMMON_ENABLE_MINOS: True
+#   roles:
+#     - common
+#     - minos 
 #
 
 - name: gather ec2 facts
@@ -31,14 +44,12 @@
     owner=root
     group=root
     mode=0755
-  when: INSTALL_MINOS
 
 - name: create minos config
   template: >
     dest={{ minos_cfg_file }}
     src=edx/etc/minos/minos.yml.j2
     mode=0755 owner=root group=root
-  when: INSTALL_MINOS
   
 - name: create minos voters configs
   template: >
@@ -50,7 +61,6 @@
     - "ProccessQuienscenceVoterCelery"
     - "ProccessQuienscenceVoterGunicorn"
     - "TrackingLogVoter"
-  when: INSTALL_MINOS
 
     # Optional auth for git
 - name: create ssh script for git (not authenticated)
@@ -58,7 +68,6 @@
     src=tmp/git-identity.sh.j2 dest={{ minos_git_ssh }}
     mode=750
   when:
-    - INSTALL_MINOS
     - MINOS_GIT_IDENTITY is not defined
 
 - name: create ssh script for git (authenticated)
@@ -66,14 +75,12 @@
     src=tmp/git-identity.sh.j2 dest={{ minos_git_ssh }}
     mode=750
   when:
-    - INSTALL_MINOS
     - MINOS_GIT_IDENTITY is defined
 
 - name: install read-only ssh key
   copy: >
     content="{{ COMMON_GIT_IDENTITY }}" dest="{{ minos_git_identity }}"
     force=yes mode=0600
-  when: INSTALL_MINOS
 
 - name : install python custom-requirements
   pip: >
@@ -85,4 +92,3 @@
     GIT_SSH: "{{ minos_git_ssh }}"
   with_items:
     - "{{ minos_requirement }}"
-  when: INSTALL_MINOS
