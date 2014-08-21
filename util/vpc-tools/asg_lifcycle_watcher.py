@@ -77,6 +77,8 @@ class LifecycleHandler:
                         instance=instance_id))
 
                     self.record_lifecycle_action_heartbeat(asg, token,self.hook)
+            # These notifications are send when configuring a new lifecycle hook, they can be
+            # deleted safely
             elif as_message['Event'] == self.TEST_NOTIFICATION:
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
