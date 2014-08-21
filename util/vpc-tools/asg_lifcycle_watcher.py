@@ -1,4 +1,4 @@
-__author__ = 'edward'
+__author__ = 'e0d'
 
 """
 Retrieves AWS Auto-scaling lifecycle messages from and SQS queue and processes them.  For
@@ -13,7 +13,7 @@ This script is meant to be run periodically via some process automation, say, Je
 
 It relies on some component applying the proper tags and performing pre-retirement activities.
 
-./sqs.py -q loadtest-edx_autoscaling-lifecycle -b ~/.virtualenvs/aws/bin
+./sqs.py -q autoscaling-lifecycle-queue -b /home/you/.virtualenvs/aws/bin --hook MyLifeCycleHook
 """
 
 import argparse
@@ -30,12 +30,12 @@ class LifecycleHandler:
     NUM_MESSAGES = 10
     WAIT_TIME_SECONDS = 10
 
-    def __init__(self, profile,queue, hook, bin, dry_run):
+    def __init__(self, profile, queue, hook, bin_directory, dry_run):
         logging.basicConfig(level=logging.INFO)
         self.profile = profile
         self.queue = queue
         self.hook = hook
-        self.bin = bin
+        self.bin_directory = bin_directory
         self.dry_run = dry_run
         self.ec2 = boto.connect_ec2(profile_name=self.profile)
 
@@ -46,13 +46,14 @@ class LifecycleHandler:
         # Needed to get unencoded message for ease of processing
         queue.set_message_class(RawMessage)
 
-        for sqs_message in queue.get_messages(self.NUM_MESSAGES,
-                                              wait_time_seconds=self.WAIT_TIME_SECONDS):
+        for sqs_message in queue.get_messages(LifecycleHandler.NUM_MESSAGES,
+                                              wait_time_seconds=LifecycleHandler.WAIT_TIME_SECONDS):
             body = json.loads(sqs_message.get_body_encoded())
             as_message = json.loads(body['Message'])
             logging.info("Proccessing message {message}.".format(message=as_message))
 
-            if 'LifecycleTransition' in as_message and as_message['LifecycleTransition'] == self.INSTANCE_TERMINATION:
+            if 'LifecycleTransition' in as_message and as_message['LifecycleTransition'] \
+                    == LifecycleHandler.INSTANCE_TERMINATION:
                 # Convenience vars, set here to avoid messages that don't meet the criteria in
                 # the if condition above.
                 instance_id = as_message['EC2InstanceId']
@@ -79,12 +80,15 @@ class LifecycleHandler:
                     self.record_lifecycle_action_heartbeat(asg, token,self.hook)
             # These notifications are send when configuring a new lifecycle hook, they can be
             # deleted safely
-            elif as_message['Event'] == self.TEST_NOTIFICATION:
+            elif as_message['Event'] == LifecycleHandler.TEST_NOTIFICATION:
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
                         sqs_con.delete_message(queue,sqs_message)
                     else:
                         logging.info("Would have deleted message with body {message}".format(message=as_message))
+            else:
+                raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
+                    message_id=as_message['MessageId']))
 
 
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
@@ -95,7 +99,7 @@ class LifecycleHandler:
                   "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
-            path=self.bin,hook=hook,asg=asg,token=token)
+            path=self.bin_directory,hook=hook,asg=asg,token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
@@ -104,11 +108,11 @@ class LifecycleHandler:
                   "{path}/aws autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
-              path=self.bin, hook=hook, asg=asg, token=token)
+              path=self.bin_directory, hook=hook, asg=asg, token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
-    def run_subprocess_command(self,command, dry_run):
+    def run_subprocess_command(self, command, dry_run):
 
         logging.info("Running command {command}.".format(command=command))
 
@@ -120,32 +124,30 @@ class LifecycleHandler:
                 logging.exception(e)
                 raise  e
 
-
-    def get_ec2_instance_by_id(self,id):
+    def get_ec2_instance_by_id(self, instance_id):
         """
         Simple boto call to get the instance based on the instance-id
         """
-        instances = self.ec2.get_only_instances([id])
+        instances = self.ec2.get_only_instances([instance_id])
 
         if len(instances) == 1:
-            return self.ec2.get_only_instances([id])[0]
+            return self.ec2.get_only_instances([instance_id])[0]
         else:
             return None
 
-
-    def verify_ok_to_retire(self,id):
+    def verify_ok_to_retire(self, instance_id):
         """
         Ensure that the ok_to_retire tag has been added to the instance in question
         with the value 'true'
         """
-        instance = self.get_ec2_instance_by_id(id)
+        instance = self.get_ec2_instance_by_id(instance_id)
 
         if instance:
             if 'safe_to_retire' in instance.tags and instance.tags['safe_to_retire'].lower() == 'true':
-                logging.info("Instance with id {id} is safe to retire.".format(id=id))
+                logging.info("Instance with id {id} is safe to retire.".format(id=instance_id))
                 return True
             else:
-                logging.info("Instance with id {id} is not safe to retire.".format(id=id))
+                logging.info("Instance with id {id} is not safe to retire.".format(id=instance_id))
                 return False
         else:
             # No instance for id in SQS message this can happen if something else
