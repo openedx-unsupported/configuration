@@ -67,7 +67,7 @@ class LifecycleInventory():
 
                 inventory[group.name].append(private_ip_address)
                 inventory[group.name + "_" + instance.lifecycle_state].append(private_ip_address)
-                inventory[instance.lifecycle_state].append(private_ip_address)
+                inventory[instance.lifecycle_state.replace(":","_")].append(private_ip_address)
 
         print json.dumps(inventory, sort_keys=True, indent=2)
 
