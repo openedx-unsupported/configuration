@@ -11,7 +11,28 @@
     - stop_all_edx_services
   tasks:
     - name: Force a log rotation
-      command: /usr/sbin/logrotate -f /etc/logrotate.d/hourly/tracking.log
+      command: /usr/sbin/logrotate -f /etc/logrotate.d/{{ item }}
+      with_items:
+        - "apport"
+        - "apt"
+        - "aptitude"
+        - "dpkg"
+        - "hourly"
+        - "landscape-client"
+        - "newrelic-sysmond"
+        - "nginx"
+        - "nginx-access"
+        - "nginx-error"
+        - "ppp"
+        - "rsyslog"
+        - "ufw"
+        - "unattended-upgrades"
+        - "upstart"
+    - name: Force a log rotation
+      command: /usr/sbin/logrotate -f /etc/logrotate.d/hourly/{{ item }}
+      with_items:
+        - "tracking.log"
+        - "edx-services"
     - name: Send logs to s3
       command: /edx/bin/send-logs-to-s3
     - name: Run minos
