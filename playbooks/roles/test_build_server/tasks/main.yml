@@ -1,0 +1,41 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role test_build_server
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+
+- name: Create clone of edx-platform
+  git: >
+    repo=https://github.com/edx/edx-platform.git
+    dest={{ test_build_server_repo_path }}/edx-platform-clone
+    version=master
+  sudo_user: "{{ test_build_server_user }}"
+
+- name: Copy test-development-environment.sh to somewhere the jenkins user can access it
+  copy: >
+    src=test-development-environment.sh
+    dest="{{ test_build_server_repo_path }}"
+    mode=0755
+  sudo_user: "{{ test_build_server_user }}"
+
+- name: Validate build environment
+  shell: "bash test-development-environment.sh"
+  args:
+    chdir: "{{ test_build_server_repo_path }}/"
+  sudo_user: "{{ test_build_server_user }}"
