@@ -30,10 +30,11 @@ class LifecycleHandler:
     NUM_MESSAGES = 10
     WAIT_TIME_SECONDS = 10
 
-    def __init__(self, profile,queue, bin, dry_run):
+    def __init__(self, profile,queue, hook, bin, dry_run):
         logging.basicConfig(level=logging.INFO)
         self.profile = profile
         self.queue = queue
+        self.hook = hook
         self.bin = bin
         self.dry_run = dry_run
         self.ec2 = boto.connect_ec2(profile_name=self.profile)
@@ -63,7 +64,7 @@ class LifecycleHandler:
                     logging.info("Host is marked as OK to retire, retiring {instance}".format(
                         instance=instance_id))
 
-                    self.continue_lifecycle(asg,token)
+                    self.continue_lifecycle(asg,token,self.hook)
 
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
@@ -75,7 +76,7 @@ class LifecycleHandler:
                     logging.info("Recording lifecycle heartbeat for instance {instance}".format(
                         instance=instance_id))
 
-                    self.record_lifecycle_action_heartbeat(asg, token)
+                    self.record_lifecycle_action_heartbeat(asg, token,self.hook)
             elif as_message['Event'] == self.TEST_NOTIFICATION:
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
@@ -84,24 +85,24 @@ class LifecycleHandler:
                         logging.info("Would have deleted message with body {message}".format(message=as_message))
 
 
-    def record_lifecycle_action_heartbeat(self, asg, token):
+    def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
         command = "{path}/python " \
                   "{path}/aws " \
                   "autoscaling record-lifecycle-action-heartbeat " \
-                  "--lifecycle-hook-name GetTrackingLogs " \
+                  "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
-            path=self.bin,asg=asg,token=token)
+            path=self.bin,hook=hook,asg=asg,token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
-    def continue_lifecycle(self, asg, token):
+    def continue_lifecycle(self, asg, token, hook):
         command = "{path}/python " \
-                  "{path}/aws autoscaling complete-lifecycle-action --lifecycle-hook-name GetTrackingLogs " \
+                  "{path}/aws autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
-              path=self.bin, asg=asg, token=token)
+              path=self.bin, hook=hook, asg=asg, token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
@@ -115,8 +116,6 @@ class LifecycleHandler:
                 logging.info("Output was {output}".format(output=output))
             except Exception as e:
                 logging.exception(e)
-                if output:
-                    logging.error(output)
                 raise  e
 
 
@@ -163,10 +162,14 @@ if __name__=="__main__":
     parser.add_argument('-q', '--queue', required=True,
                         help="The SQS queue containing the lifecyle messages")
 
+    parser.add_argument('--hook', required=True,
+                        help="The lifecyle hook to act upon.")
+
+
     parser.add_argument('-d', "--dry-run", dest="dry_run", action="store_true",
                         help='Print the commands, but do not do anything')
     parser.set_defaults(dry_run=False)
     args = parser.parse_args()
 
-    lh = LifecycleHandler(args.profile, args.queue, args.bin, args.dry_run)
+    lh = LifecycleHandler(args.profile, args.queue, args.hook, args.bin, args.dry_run)
     lh.process_lifecycle_messages()
