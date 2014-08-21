@@ -25,27 +25,33 @@ import logging
 
 class LifecycleHandler:
 
-    profile = None
-    queue = None
-    bin = None
+    INSTANCE_TERMINATION = 'autoscaling:EC2_INSTANCE_TERMINATING'
+    TEST_NOTIFICATION = 'autoscaling:TEST_NOTIFICATION'
+    NUM_MESSAGES = 10
+    WAIT_TIME_SECONDS = 10
 
-    def __init__(self, profile,queue, bin):
+    def __init__(self, profile,queue, bin, dry_run):
         logging.basicConfig(level=logging.INFO)
         self.profile = profile
         self.queue = queue
         self.bin = bin
+        self.dry_run = dry_run
+        self.ec2 = boto.connect_ec2(profile_name=self.profile)
 
     def process_lifecycle_messages(self):
         sqs_con = boto.connect_sqs()
-        q = sqs_con.get_queue(self.queue)
-        q.set_message_class(RawMessage)
+        queue = sqs_con.get_queue(self.queue)
 
-        for sqs_message in q.get_messages(10,wait_time_seconds=10):
+        # Needed to get unencoded message for ease of processing
+        queue.set_message_class(RawMessage)
+
+        for sqs_message in queue.get_messages(self.NUM_MESSAGES,
+                                              wait_time_seconds=self.WAIT_TIME_SECONDS):
             body = json.loads(sqs_message.get_body_encoded())
             as_message = json.loads(body['Message'])
             logging.info("Proccessing message {message}.".format(message=as_message))
 
-            if 'LifecycleTransition' in as_message and as_message['LifecycleTransition'] == 'autoscaling:EC2_INSTANCE_TERMINATING':
+            if 'LifecycleTransition' in as_message and as_message['LifecycleTransition'] == self.INSTANCE_TERMINATION:
                 # Convenience vars, set here to avoid messages that don't meet the criteria in
                 # the if condition above.
                 instance_id = as_message['EC2InstanceId']
@@ -58,13 +64,25 @@ class LifecycleHandler:
                         instance=instance_id))
 
                     self.continue_lifecycle(asg,token)
-                    sqs_con.delete_message(q,sqs_message)
+
+                    if not self.dry_run:
+                        logging.info("Deleting message with body {message}".format(message=as_message))
+                        sqs_con.delete_message(queue,sqs_message)
+                    else:
+                        logging.info("Would have deleted message with body {message}".format(message=as_message))
 
                 else:
                     logging.info("Recording lifecycle heartbeat for instance {instance}".format(
                         instance=instance_id))
 
                     self.record_lifecycle_action_heartbeat(asg, token)
+            elif as_message['Event'] == self.TEST_NOTIFICATION:
+                    if not self.dry_run:
+                        logging.info("Deleting message with body {message}".format(message=as_message))
+                        sqs_con.delete_message(queue,sqs_message)
+                    else:
+                        logging.info("Would have deleted message with body {message}".format(message=as_message))
+
 
     def record_lifecycle_action_heartbeat(self, asg, token):
 
@@ -76,7 +94,7 @@ class LifecycleHandler:
                   "--lifecycle-action-token {token}".format(
             path=self.bin,asg=asg,token=token)
 
-        self.run_subprocess_command(command)
+        self.run_subprocess_command(command, self.dry_run)
 
     def continue_lifecycle(self, asg, token):
         command = "{path}/python " \
@@ -85,29 +103,31 @@ class LifecycleHandler:
                   "CONTINUE".format(
               path=self.bin, asg=asg, token=token)
 
-        self.run_subprocess_command(command)
+        self.run_subprocess_command(command, self.dry_run)
 
-    def run_subprocess_command(self,command):
+    def run_subprocess_command(self,command, dry_run):
+
         logging.info("Running command {command}.".format(command=command))
 
-        try:
-            output = subprocess.check_output(command.split(' '))
-            logging.info("Output was {output}".format(output=output))
-        except Exception, e:
-            logging.exception(e)
-            logging.error(output)
+        if not dry_run:
+            try:
+                output = subprocess.check_output(command.split(' '))
+                logging.info("Output was {output}".format(output=output))
+            except Exception as e:
+                logging.exception(e)
+                if output:
+                    logging.error(output)
+                raise  e
 
 
     def get_ec2_instance_by_id(self,id):
         """
         Simple boto call to get the instance based on the instance-id
         """
-        ec2 = boto.connect_ec2(profile_name=self.profile)
-
-        instances = ec2.get_only_instances([id])
+        instances = self.ec2.get_only_instances([id])
 
         if len(instances) == 1:
-            return ec2.get_only_instances([id])[0]
+            return self.ec2.get_only_instances([id])[0]
         else:
             return None
 
@@ -120,13 +140,16 @@ class LifecycleHandler:
         instance = self.get_ec2_instance_by_id(id)
 
         if instance:
-
-            if 'ok_to_retire' in instance.tags and instance.tags['ok_to_retire'].lower() == 'true':
+            if 'safe_to_retire' in instance.tags and instance.tags['safe_to_retire'].lower() == 'true':
+                logging.info("Instance with id {id} is safe to retire.".format(id=id))
                 return True
-
-            return False
+            else:
+                logging.info("Instance with id {id} is not safe to retire.".format(id=id))
+                return False
         else:
-            # No instance for id in SQS message.
+            # No instance for id in SQS message this can happen if something else
+            # has terminated the instances outside of this workflow
+            logging.warn("Instance with id {id} is referenced in an SQS message, but does not exist.")
             return True
 
 if __name__=="__main__":
@@ -140,7 +163,10 @@ if __name__=="__main__":
     parser.add_argument('-q', '--queue', required=True,
                         help="The SQS queue containing the lifecyle messages")
 
+    parser.add_argument('-d', "--dry-run", dest="dry_run", action="store_true",
+                        help='Print the commands, but do not do anything')
+    parser.set_defaults(dry_run=False)
     args = parser.parse_args()
 
-    lh = LifecycleHandler(args.profile, args.queue, args.bin)
+    lh = LifecycleHandler(args.profile, args.queue, args.bin, args.dry_run)
     lh.process_lifecycle_messages()
