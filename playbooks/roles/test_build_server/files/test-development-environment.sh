@@ -20,14 +20,14 @@ cd edx-platform-clone
 # tests because TEST_SUITE isn't defined.
 source scripts/all-tests.sh
 
-# Now we can run a subset of the tests via paver. 
+# Now we can run a subset of the tests via paver.
 # Run some of the common/lib unit tests
 paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
 
 # Generate some coverage reports
 paver coverage
 
-# Run some of the djangoapp unit tests 
+# Run some of the djangoapp unit tests
 paver test_system -t lms/djangoapps/courseware/tests/tests.py
 paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
 
@@ -38,8 +38,8 @@ paver test_js_run -s xmodule
 paver test_bokchoy -t test_lms.py:RegistrationTest
 
 # Run some of the lettuce acceptance tests
-paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature"
-paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature"
+# paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature"
+# paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature"
 
 # Generate quality reports
 paver run_quality
