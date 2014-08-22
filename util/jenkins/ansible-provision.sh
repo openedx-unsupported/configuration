@@ -166,7 +166,7 @@ COMMON_USER_INFO:
     github: true
     type: admin
 USER_CMD_PROMPT: '[$name_tag] '
-COMMON_ENABLE_NEWRELIC: $enable_monitoring
+COMMON_ENABLE_NEWRELIC_APP: $enable_monitoring
 COMMON_ENABLE_DATADOG: $enable_monitoring
 FORUM_NEW_RELIC_ENABLE: $enable_monitoring
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
