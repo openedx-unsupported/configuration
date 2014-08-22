@@ -10,11 +10,11 @@ manage="cd /edx/app/edxapp/edx-platform && sudo -u www-data /edx/bin/python.edxa
 
 if [ "$report" = "true" ]; then
   $ssh ubuntu@"$ip" "$manage lms gen_cert_report -c $course_id --settings aws"
-  elif [ ! -z "username" ]; then
+elif [ "$regenerate" = "true" ] ; then
     $ssh ubuntu@"$ip" "$manage lms regenerate_user -c $course_id -u $username --settings aws"
   else
     $ssh ubuntu@"$ip" "$manage lms ungenerated_certs -c $course_id --settings aws"
-  if [ ! -z "$force_certificate_state" ]; then
+  if [ "$force_certificate_state" ]; then
     $ssh ubuntu@"$ip" "$manage lms ungenerated_certs -c $course_id -f $force_certificate_state --settings aws"
   fi
 fi
