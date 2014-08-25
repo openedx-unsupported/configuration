@@ -68,7 +68,7 @@
 - name: create symlink for s3cmd
   file: >
     src={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
-    dest={{ COMMON_BIN_DIR }}/s3cmd
+    dest={{ aws_s3cmd }}
     state=link
 
 - name: create s3 log sync script
@@ -84,7 +84,7 @@
     dest={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
   when: AWS_S3_LOGS
 
-- name: run s3 log sync script on supervisor shutdown
+- name: force logrotate on supervisor stop
   template: >
     src=etc/init/sync-on-stop.conf.j2
     dest=/etc/init/sync-on-stop.conf
@@ -99,4 +99,5 @@
     user: root
     minute: 0
     job: "{{ aws_s3_sync_script }} > /dev/null 2>&1"
+    state: absent
   when: AWS_S3_LOGS

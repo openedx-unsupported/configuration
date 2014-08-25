@@ -64,10 +64,10 @@ class LifecycleInventory():
             for instance in group.instances:
 
                 private_ip_address = instances[instance.instance_id].private_ip_address
-
-                inventory[group.name].append(private_ip_address)
-                inventory[group.name + "_" + instance.lifecycle_state].append(private_ip_address)
-                inventory[instance.lifecycle_state.replace(":","_")].append(private_ip_address)
+                if private_ip_address:
+                    inventory[group.name].append(private_ip_address)
+                    inventory[group.name + "_" + instance.lifecycle_state].append(private_ip_address)
+                    inventory[instance.lifecycle_state.replace(":","_")].append(private_ip_address)
 
         print json.dumps(inventory, sort_keys=True, indent=2)
 
@@ -77,8 +77,8 @@ if __name__=="__main__":
     parser.add_argument('-p', '--profile', help='The aws profile to use when connecting.')
     parser.add_argument('-l', '--list', help='Ansible passes this, we ignore it.', action='store_true', default=True)
     args = parser.parse_args()
-    
+
     LifecycleInventory(args.profile).run()
 
 
-    
+

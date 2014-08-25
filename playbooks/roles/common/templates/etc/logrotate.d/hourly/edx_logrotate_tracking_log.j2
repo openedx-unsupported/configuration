@@ -10,5 +10,8 @@
   size 1M
   postrotate
     /usr/bin/killall -HUP rsyslogd
+    {% if COMMON_AWS_SYNC -%}
+    {{ aws_s3_sync_script }} -d "{{ COMMON_LOG_DIR }}/tracking/*" -b "{{ COMMON_AWS_SYNC_BUCKET }}/logs/tracking"
+    {% endif -%}
   endscript
 }
