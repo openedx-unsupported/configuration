@@ -205,13 +205,13 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    ansible-playbook edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
+    ansible-playbook -vvvv edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        ansible-playbook rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-        ansible-playbook restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        ansible-playbook -vvvv rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        ansible-playbook -vvvv restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
@@ -225,7 +225,7 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    ansible-playbook -vvvv edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
@@ -233,15 +233,15 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
+            ansible-playbook -vvvv ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
         fi
     done
 fi
 
 # deploy the edx_ansible role
-ansible-playbook edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+ansible-playbook -vvvv edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 # set the hostname
-ansible-playbook set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+ansible-playbook -vvvv set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 rm -f "$extra_vars_file"
