@@ -38,8 +38,8 @@ paver test_js_run -s xmodule
 paver test_bokchoy -t test_lms.py:RegistrationTest
 
 # Run some of the lettuce acceptance tests
-# paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature"
-# paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature"
+paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature -s 1"
+paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature -s 1"
 
 # Generate quality reports
 paver run_quality
