@@ -22,6 +22,9 @@ import json
 import subprocess
 from boto.sqs.message import RawMessage
 import logging
+import os
+from distutils import spawn
+
 
 class LifecycleHandler:
 
@@ -30,12 +33,16 @@ class LifecycleHandler:
     NUM_MESSAGES = 10
     WAIT_TIME_SECONDS = 10
 
-    def __init__(self, profile, queue, hook, bin_directory, dry_run):
+    def __init__(self, profile, queue, hook, dry_run, bin_directory=None):
         logging.basicConfig(level=logging.INFO)
         self.profile = profile
         self.queue = queue
         self.hook = hook
-        self.bin_directory = bin_directory
+        if bin_directory:
+            os.environ["PATH"] = bin_directory + os.pathsep + os.environ["PATH"]
+        self.aws_bin = spawn.find_executable('aws')
+        self.python_bin = spawn.find_executable('python')
+
         self.dry_run = dry_run
         self.ec2 = boto.connect_ec2(profile_name=self.profile)
 
@@ -65,11 +72,11 @@ class LifecycleHandler:
                     logging.info("Host is marked as OK to retire, retiring {instance}".format(
                         instance=instance_id))
 
-                    self.continue_lifecycle(asg,token,self.hook)
+                    self.continue_lifecycle(asg, token, self.hook)
 
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
-                        sqs_con.delete_message(queue,sqs_message)
+                        sqs_con.delete_message(queue, sqs_message)
                     else:
                         logging.info("Would have deleted message with body {message}".format(message=as_message))
 
@@ -77,38 +84,41 @@ class LifecycleHandler:
                     logging.info("Recording lifecycle heartbeat for instance {instance}".format(
                         instance=instance_id))
 
-                    self.record_lifecycle_action_heartbeat(asg, token,self.hook)
+                    self.record_lifecycle_action_heartbeat(asg, token, self.hook)
             # These notifications are send when configuring a new lifecycle hook, they can be
             # deleted safely
             elif as_message['Event'] == LifecycleHandler.TEST_NOTIFICATION:
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
-                        sqs_con.delete_message(queue,sqs_message)
+                        sqs_con.delete_message(queue, sqs_message)
                     else:
                         logging.info("Would have deleted message with body {message}".format(message=as_message))
             else:
                 raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
                     message_id=as_message['MessageId']))
 
-
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
-        command = "{path}/python " \
-                  "{path}/aws " \
+        command = "{python_bin} " \
+                  "{aws_bin} " \
                   "autoscaling record-lifecycle-action-heartbeat " \
                   "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
-            path=self.bin_directory,hook=hook,asg=asg,token=token)
+            python_bin=self.python_bin,
+            aws_bin=self.aws_bin,
+            hook=hook,asg=asg,token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
     def continue_lifecycle(self, asg, token, hook):
-        command = "{path}/python " \
-                  "{path}/aws autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
+        command = "{python_bin} " \
+                  "{aws_bin} autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
-              path=self.bin_directory, hook=hook, asg=asg, token=token)
+                python_bin=self.python_bin,
+                aws_bin=self.aws_bin,
+                hook=hook, asg=asg, token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
@@ -160,20 +170,19 @@ if __name__=="__main__":
     parser.add_argument('-p', '--profile',
                         help='The boto profile to use '
                              'per line.',default=None)
-    parser.add_argument('-b', '--bin', required=True,
+    parser.add_argument('-b', '--bin-directory', required=False, default=None,
                         help='The bin directory of the virtual env '
-                             'from which tor run the AWS cli')
+                             'from which to run the AWS cli (optional)')
     parser.add_argument('-q', '--queue', required=True,
                         help="The SQS queue containing the lifecyle messages")
 
     parser.add_argument('--hook', required=True,
                         help="The lifecyle hook to act upon.")
 
-
     parser.add_argument('-d', "--dry-run", dest="dry_run", action="store_true",
                         help='Print the commands, but do not do anything')
     parser.set_defaults(dry_run=False)
     args = parser.parse_args()
 
-    lh = LifecycleHandler(args.profile, args.queue, args.hook, args.bin, args.dry_run)
+    lh = LifecycleHandler(args.profile, args.queue, args.hook, args.dry_run, args.bin_directory)
     lh.process_lifecycle_messages()
