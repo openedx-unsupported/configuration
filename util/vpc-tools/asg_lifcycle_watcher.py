@@ -172,7 +172,7 @@ if __name__=="__main__":
                              'per line.',default=None)
     parser.add_argument('-b', '--bin-directory', required=False, default=None,
                         help='The bin directory of the virtual env '
-                             'from which tor run the AWS cli (optional)')
+                             'from which to run the AWS cli (optional)')
     parser.add_argument('-q', '--queue', required=True,
                         help="The SQS queue containing the lifecyle messages")
 
