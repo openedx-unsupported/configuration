@@ -35,20 +35,20 @@ class LifecycleHandler:
 
     def __init__(self, profile, queue, hook, dry_run, bin_directory=None):
         logging.basicConfig(level=logging.INFO)
-        self.profile = profile
         self.queue = queue
         self.hook = hook
+        os.environ['AWS_PROFILE'] = profile
         if bin_directory:
             os.environ["PATH"] = bin_directory + os.pathsep + os.environ["PATH"]
         self.aws_bin = spawn.find_executable('aws')
         self.python_bin = spawn.find_executable('python')
 
         self.dry_run = dry_run
-        self.ec2 = boto.connect_ec2(profile_name=self.profile)
+        self.ec2_con = boto.connect_ec2()
+        self.sqs_con = boto.connect_sqs()
 
     def process_lifecycle_messages(self):
-        sqs_con = boto.connect_sqs()
-        queue = sqs_con.get_queue(self.queue)
+        queue = self.sqs_con.get_queue(self.queue)
 
         # Needed to get unencoded message for ease of processing
         queue.set_message_class(RawMessage)
@@ -76,7 +76,7 @@ class LifecycleHandler:
 
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
-                        sqs_con.delete_message(queue, sqs_message)
+                        self.sqs_con.delete_message(queue, sqs_message)
                     else:
                         logging.info("Would have deleted message with body {message}".format(message=as_message))
 
@@ -90,7 +90,7 @@ class LifecycleHandler:
             elif as_message['Event'] == LifecycleHandler.TEST_NOTIFICATION:
                     if not self.dry_run:
                         logging.info("Deleting message with body {message}".format(message=as_message))
-                        sqs_con.delete_message(queue, sqs_message)
+                        self.sqs_con.delete_message(queue, sqs_message)
                     else:
                         logging.info("Would have deleted message with body {message}".format(message=as_message))
             else:
@@ -138,10 +138,10 @@ class LifecycleHandler:
         """
         Simple boto call to get the instance based on the instance-id
         """
-        instances = self.ec2.get_only_instances([instance_id])
+        instances = self.ec2_con.get_only_instances([instance_id])
 
         if len(instances) == 1:
-            return self.ec2.get_only_instances([instance_id])[0]
+            return self.ec2_con.get_only_instances([instance_id])[0]
         else:
             return None
 
