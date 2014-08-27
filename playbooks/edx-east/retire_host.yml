@@ -19,9 +19,18 @@
   sudo: True
   gather_facts: False
   tasks:
+
+    - name: Terminate existing s3 log sync
+      command: /usr/bin/pkill send-logs-to-s3 || true
+    - name: Send logs to s3
+      command: /edx/bin/send-logs-to-s3
+
     # We only force a rotation of edx logs.
     # Forced rotation of system logfiles will only
     # work if there hasn't already been a previous rotation
+    # The logrotate will also call send-logs-to-s3 but hasn't
+    # been updated for all servers yet.
+
     - name: Force a log rotation which will call the log sync
       command: /usr/sbin/logrotate -f /etc/logrotate.d/hourly/{{ item }}
       with_items:
