@@ -37,7 +37,7 @@ class LifecycleHandler:
         logging.basicConfig(level=logging.INFO)
         self.queue = queue
         self.hook = hook
-        os.environ['AWS_PROFILE'] = profile
+        self.profile = profile
         if bin_directory:
             os.environ["PATH"] = bin_directory + os.pathsep + os.environ["PATH"]
         self.aws_bin = spawn.find_executable('aws')
@@ -97,27 +97,26 @@ class LifecycleHandler:
                 raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
                     message_id=as_message['MessageId']))
 
+    def get_base_command(self):
+        return "{python_bin} {aws_bin} --profile {profile} ".format(
+            python_bin=self.python_bin,
+            aws_bin=self.aws_bin,
+            profile=self.profile)
+
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
-        command = "{python_bin} " \
-                  "{aws_bin} " \
-                  "autoscaling record-lifecycle-action-heartbeat " \
+        command = self.get_base_command() + "autoscaling record-lifecycle-action-heartbeat " \
                   "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
-            python_bin=self.python_bin,
-            aws_bin=self.aws_bin,
             hook=hook,asg=asg,token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
     def continue_lifecycle(self, asg, token, hook):
-        command = "{python_bin} " \
-                  "{aws_bin} autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
+        command = self.get_base_command() + "autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
-                python_bin=self.python_bin,
-                aws_bin=self.aws_bin,
                 hook=hook, asg=asg, token=token)
 
         self.run_subprocess_command(command, self.dry_run)
