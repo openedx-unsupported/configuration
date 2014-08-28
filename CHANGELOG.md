@@ -29,3 +29,7 @@
 - Role: Mongo
   - Fixed case of variable used in if block that breaks cluster configuration
     by changing mongo_clustered to MONGO_CLUSTERED.
+
+- Role: Edxapp
+  - Added EDXAPP_LMS_AUTH_EXTRA and EDXAPP_CMS_AUTH_EXTRA for passing unique AUTH_EXTRA configurations to the LMS and CMS. 
+    Both variables default to EDXAPP_AUTH_EXTRA for backward compatibility
