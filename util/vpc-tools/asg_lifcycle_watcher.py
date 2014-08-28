@@ -97,7 +97,7 @@ class LifecycleHandler:
                 raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
                     message_id=as_message['MessageId']))
 
-    def get_base_command(self):
+    def get_base_cli_command(self):
         return "{python_bin} {aws_bin} --profile {profile} ".format(
             python_bin=self.python_bin,
             aws_bin=self.aws_bin,
@@ -105,7 +105,7 @@ class LifecycleHandler:
 
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
-        command = self.get_base_command() + "autoscaling record-lifecycle-action-heartbeat " \
+        command = self.get_base_cli_command() + "autoscaling record-lifecycle-action-heartbeat " \
                   "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
@@ -114,7 +114,7 @@ class LifecycleHandler:
         self.run_subprocess_command(command, self.dry_run)
 
     def continue_lifecycle(self, asg, token, hook):
-        command = self.get_base_command() + "autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
+        command = self.get_base_cli_command() + "autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
                 hook=hook, asg=asg, token=token)
