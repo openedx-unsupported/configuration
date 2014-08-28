@@ -43,6 +43,11 @@ class LifecycleHandler:
         self.aws_bin = spawn.find_executable('aws')
         self.python_bin = spawn.find_executable('python')
 
+        self.base_cli_command ="{python_bin} {aws_bin} --profile {profile} ".format(
+            python_bin=self.python_bin,
+            aws_bin=self.aws_bin,
+            profile=self.profile)
+
         self.dry_run = dry_run
         self.ec2_con = boto.connect_ec2()
         self.sqs_con = boto.connect_sqs()
@@ -97,15 +102,9 @@ class LifecycleHandler:
                 raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
                     message_id=as_message['MessageId']))
 
-    def get_base_cli_command(self):
-        return "{python_bin} {aws_bin} --profile {profile} ".format(
-            python_bin=self.python_bin,
-            aws_bin=self.aws_bin,
-            profile=self.profile)
-
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
-        command = self.get_base_cli_command() + "autoscaling record-lifecycle-action-heartbeat " \
+        command = self.get_base_cli_command + "autoscaling record-lifecycle-action-heartbeat " \
                   "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
@@ -114,7 +113,7 @@ class LifecycleHandler:
         self.run_subprocess_command(command, self.dry_run)
 
     def continue_lifecycle(self, asg, token, hook):
-        command = self.get_base_cli_command() + "autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
+        command = self.get_base_cli_command + "autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
                 hook=hook, asg=asg, token=token)
