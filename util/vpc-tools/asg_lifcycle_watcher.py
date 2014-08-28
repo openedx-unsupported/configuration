@@ -37,11 +37,16 @@ class LifecycleHandler:
         logging.basicConfig(level=logging.INFO)
         self.queue = queue
         self.hook = hook
-        os.environ['AWS_PROFILE'] = profile
+        self.profile = profile
         if bin_directory:
             os.environ["PATH"] = bin_directory + os.pathsep + os.environ["PATH"]
         self.aws_bin = spawn.find_executable('aws')
         self.python_bin = spawn.find_executable('python')
+
+        self.base_cli_command ="{python_bin} {aws_bin} --profile {profile} ".format(
+            python_bin=self.python_bin,
+            aws_bin=self.aws_bin,
+            profile=self.profile)
 
         self.dry_run = dry_run
         self.ec2_con = boto.connect_ec2()
@@ -99,25 +104,18 @@ class LifecycleHandler:
 
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
-        command = "{python_bin} " \
-                  "{aws_bin} " \
-                  "autoscaling record-lifecycle-action-heartbeat " \
+        command = self.get_base_cli_command + "autoscaling record-lifecycle-action-heartbeat " \
                   "--lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} " \
                   "--lifecycle-action-token {token}".format(
-            python_bin=self.python_bin,
-            aws_bin=self.aws_bin,
             hook=hook,asg=asg,token=token)
 
         self.run_subprocess_command(command, self.dry_run)
 
     def continue_lifecycle(self, asg, token, hook):
-        command = "{python_bin} " \
-                  "{aws_bin} autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
+        command = self.get_base_cli_command + "autoscaling complete-lifecycle-action --lifecycle-hook-name {hook} " \
                   "--auto-scaling-group-name {asg} --lifecycle-action-token {token} --lifecycle-action-result " \
                   "CONTINUE".format(
-                python_bin=self.python_bin,
-                aws_bin=self.aws_bin,
                 hook=hook, asg=asg, token=token)
 
         self.run_subprocess_command(command, self.dry_run)
