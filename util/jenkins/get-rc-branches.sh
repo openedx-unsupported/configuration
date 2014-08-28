@@ -62,7 +62,7 @@ fi
 
 $noop cd "/var/tmp/$repo_basename"
 if [[ -z $noop ]]; then
-    python -c 'import sys, json; print json.dumps([line.lstrip().rstrip()  for line in sys.stdin])' < <(git branch -a | grep "$filter" | sort -r | head )
+    git branch -a | grep "$filter" | sort -r | head | python -c 'import sys, json; print json.dumps([line.strip() for line in sys.stdin])'
 else
     echo "Would have checked for branches using filter $filter"
 fi
