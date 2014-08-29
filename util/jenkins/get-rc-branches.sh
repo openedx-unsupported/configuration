@@ -62,7 +62,9 @@ fi
 
 $noop cd "/var/tmp/$repo_basename"
 if [[ -z $noop ]]; then
-    git branch -a | grep "$filter" | sort -r | head | python -c 'import sys, json; print json.dumps([line.strip() for line in sys.stdin])'
+    for branch in $(git branch -a | grep "$filter" | sort -r | tr -d ' '); do
+      echo "origin/${branch}"
+    done
 else
     echo "Would have checked for branches using filter $filter"
 fi
