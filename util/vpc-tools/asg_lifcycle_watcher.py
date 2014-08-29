@@ -80,8 +80,6 @@ class LifecycleHandler:
                     self.continue_lifecycle(asg, token, self.hook)
 
                     if not self.dry_run:
-
-
                         logging.info("Deleting message with body {message}".format(message=as_message))
                         self.sqs_con.delete_message(queue, sqs_message)
                     else:
