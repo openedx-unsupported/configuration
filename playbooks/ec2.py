@@ -225,12 +225,16 @@ class Ec2Inventory(object):
             cache_path = config.get('ec2', 'cache_path')
         if not os.path.exists(cache_path):
             os.makedirs(cache_path)
-        self.cache_path_cache = cache_path + "/ansible-ec2.cache"
-        self.cache_path_tags = cache_path + "/ansible-ec2.tags.cache"
-        self.cache_path_index = cache_path + "/ansible-ec2.index"
+
+        if 'AWS_PROFILE' in os.environ:
+            aws_profile = "{}-".format(os.environ.get('AWS_PROFILE'))
+        else:
+            aws_profile = ""
+
+        self.cache_path_cache = cache_path + "/{}ansible-ec2.cache".format(aws_profile)
+        self.cache_path_tags = cache_path + "/{}ansible-ec2.tags.cache".format(aws_profile)
+        self.cache_path_index = cache_path + "/{}ansible-ec2.index".format(aws_profile)
         self.cache_max_age = config.getint('ec2', 'cache_max_age')
-
-
 
     def parse_cli_args(self):
         ''' Command line argument processing '''

@@ -26,6 +26,10 @@
     owner={{ jenkins_user }} group={{ jenkins_group }} mode=400
   ignore_errors: yes
 
+# adding chris-lea nodejs repo
+- name: add ppas for current versions of nodejs
+  apt_repository: repo="{{ jenkins_chrislea_ppa }}"
+
 - name: Install system packages
   apt: pkg={{','.join(jenkins_debian_pkgs)}}
        state=present update_cache=yes
@@ -40,3 +44,16 @@
 - name: Add github.com to known_hosts if it does not exist
   shell: >
      ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts
+
+# Edit the /etc/hosts file so that the Preview button will work in Studio
+- name: add preview.localhost to /etc/hosts
+  shell: sed -i -r 's/^127.0.0.1\s+.*$/127.0.0.1 localhost preview.localhost/' /etc/hosts
+  sudo: yes
+
+# Npm registry must be pre-loaded or else setting it
+# with the Jenkins user will fail
+# See https://github.com/npm/npm/issues/3565
+- name: Set npm registry
+  template:
+    src=.npmrc.j2 dest={{ jenkins_home }}/.npmrc
+    owner={{ jenkins_user }} group={{ jenkins_group }} mode=0664

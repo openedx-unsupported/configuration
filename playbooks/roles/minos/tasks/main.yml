@@ -1,0 +1,94 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role minos
+# 
+# Overview:
+#
+# Install the, currently private, minos application
+# which determines whether or not it is safe to retire
+# a server
+#
+# Dependencies:
+#
+# Relies on the common role.
+# 
+# Example play:
+#
+# - name: Deploy minos
+#   hosts: all
+#   sudo: True
+#   gather_facts: True
+#   vars:
+#     COMMON_ENABLE_MINOS: True
+#   roles:
+#     - common
+#     - minos 
+#
+
+- name: gather ec2 facts
+  action: ec2_facts
+
+- name: create minos config directory
+  file: >
+    path={{ minos_voter_cfg }}
+    state=directory
+    owner=root
+    group=root
+    mode=0755
+
+- name: create minos config
+  template: >
+    dest={{ minos_cfg_file }}
+    src=edx/etc/minos/minos.yml.j2
+    mode=0755 owner=root group=root
+  
+- name: create minos voters configs
+  template: >
+    dest={{ minos_voter_cfg }}/{{ item }}.yml
+    src=edx/etc/minos/conf.d/{{ item }}.yml.j2
+    mode=0755 owner=root group=root
+  with_items:
+    - "BellwetherVoter"
+    - "ProccessQuienscenceVoterCelery"
+    - "ProccessQuienscenceVoterGunicorn"
+    - "TrackingLogVoter"
+
+    # Optional auth for git
+- name: create ssh script for git (not authenticated)
+  template: >
+    src=tmp/git-identity.sh.j2 dest={{ minos_git_ssh }}
+    mode=750
+  when:
+    - MINOS_GIT_IDENTITY is not defined
+
+- name: create ssh script for git (authenticated)
+  template: >
+    src=tmp/git-identity.sh.j2 dest={{ minos_git_ssh }}
+    mode=750
+  when:
+    - MINOS_GIT_IDENTITY is defined
+
+- name: install read-only ssh key
+  copy: >
+    content="{{ COMMON_GIT_IDENTITY }}" dest="{{ minos_git_identity }}"
+    force=yes mode=0600
+
+- name : install python custom-requirements
+  pip: >
+    name="{{ item }}"
+    virtualenv="{{ minos_venv_dir }}"
+    state=present
+    extra_args="--exists-action w"
+  environment:
+    GIT_SSH: "{{ minos_git_ssh }}"
+  with_items:
+    - "{{ minos_requirement }}"

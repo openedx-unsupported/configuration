@@ -1,3 +1,10 @@
+- Role: common
+  - We now remove the default syslog.d conf file (50-default.conf) this will 
+  break people who have hand edited that file.
+
+- Role: edxapp
+  - Updated the module store settings to match the new settings format.
+
 - Role: analytics-api
   - Added a new role for the analytics-api Django app.  Currently a private repo
 
@@ -18,3 +25,7 @@
 - Update `CMS_HOSTNAME` default to allow any hostname that starts with `studio` along with `prod-studio` or `stage-studio`.
 
 - Start a change log to keep track of backwards incompatible changes and deprecations.
+
+- Role: Mongo
+  - Fixed case of variable used in if block that breaks cluster configuration
+    by changing mongo_clustered to MONGO_CLUSTERED.

@@ -12,44 +12,46 @@
 #   - common
 #   - oraclejdk
 
-- name: check for Oracle Java version {{ oraclejdk_base }}
-  command: test -d /usr/lib/jvm/{{ oraclejdk_base }}
-  ignore_errors: true
-  register: oraclejdk_present
-
 - name: download Oracle Java
   shell: >
     curl -b gpw_e24=http%3A%2F%2Fwww.oracle.com -b oraclelicense=accept-securebackup-cookie -O -L {{ oraclejdk_url }}
       executable=/bin/bash
       chdir=/var/tmp
       creates=/var/tmp/{{ oraclejdk_file }}
-  when: oraclejdk_present|failed
 
-- name: install Oracle Java
+- name: create jvm dir
+  file: >
+    path=/usr/lib/jvm
+    state=directory
+    owner=root
+    group=root
+
+- name: untar Oracle Java
   shell: >
-    mkdir -p /usr/lib/jvm && tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }}
-    creates=/usr/lib/jvm/{{ oraclejdk_base }}
+    tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }}
     executable=/bin/bash
-
-  sudo: true
-  when: oraclejdk_present|failed
+    creates=/usr/lib/jvm/{{ oraclejdk_base }}
 
 - name: create symlink expected by elasticsearch
   file: src=/usr/lib/jvm/{{ oraclejdk_base }} dest={{ oraclejdk_link }} state=link
-  when: oraclejdk_present|failed
 
 - name: update alternatives java
   shell: >
     update-alternatives --install "/usr/bin/java" "java" "/usr/lib/jvm/{{ oraclejdk_base }}/bin/java" 1
+  register: update_alt
+  changed_when: update_alt.stdout != ""
 
 - name: update alternatives javac
   shell: >
     update-alternatives --install "/usr/bin/javac" "javac" "/usr/lib/jvm/{{ oraclejdk_base }}/bin/javac" 1
+  register: update_alt
+  changed_when: update_alt.stdout != ""
 
 - name: update alternatives javaws
   shell: >
     update-alternatives --install "/usr/bin/javaws" "javaws" "/usr/lib/jvm/{{ oraclejdk_base }}/bin/javaws" 1
-  
+  register: update_alt
+  changed_when: update_alt.stdout != ""
+
 - name: add JAVA_HOME for Oracle Java
   template: src=java.sh.j2 dest=/etc/profile.d/java.sh owner=root group=root mode=0755
-  when: oraclejdk_present|failed

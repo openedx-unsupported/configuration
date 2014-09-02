@@ -33,24 +33,13 @@
 - fail: msg="JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
   when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
 
-# We first download the plugins to a temp directory and include
-# the version in the file name.  That way, if we increment
-# the version, the plugin will be updated in Jenkins
-- name: download Jenkins plugins
-  get_url: url=http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
-           dest=/tmp/{{ item.name }}_{{ item.version }}
-  with_items: jenkins_admin_plugins
+- name: add admin specific apt repositories
+  apt_repository: repo="{{ item }}" state=present update_cache=yes
+  with_items: jenkins_admin_debian_repos
 
-- name: install Jenkins plugins
-  command: cp /tmp/{{ item.name }}_{{ item.version }} {{ jenkins_home }}/plugins/{{ item.name }}.hpi
-  with_items: jenkins_admin_plugins
-
-- name: set Jenkins plugin permissions
-  file: path={{ jenkins_home }}/plugins/{{ item.name }}.hpi
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: jenkins_admin_plugins
-  notify:
-    - restart Jenkins
+- name: create the scripts directory
+  file: path={{ jenkins_admin_scripts_dir }} state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=755
 
 - name: configure s3 plugin
   template: >
@@ -67,6 +56,24 @@
     owner="{{ jenkins_user }}"
     group="{{ jenkins_group }}"
     mode="0600"
+  tags:
+    - aws-config
+
+- name: create the .aws directory
+  file: path={{ jenkins_home }}/.aws state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  tags:
+    - aws-config
+
+- name: configure the awscli profiles for jenkins
+  template: >
+    src="./{{ jenkins_home }}/aws_config.j2"
+    dest="{{ jenkins_home }}/.aws/config"
+    owner="{{ jenkins_user }}"
+    group="{{ jenkins_group }}"
+    mode="0600"
+  tags:
+    - aws-config
 
 - name: create the ssh directory
   file: >
@@ -108,9 +115,12 @@
     mode=0644
   with_items: jenkins_admin_jobs
 
+# adding chris-lea nodejs repo
+- name: add ppas for current versions of nodejs
+  apt_repository: repo="{{ jenkins_chrislea_ppa }}"
+
 - name: install system packages for edxapp virtualenvs
-  apt: pkg={{ item }} state=present
-  with_items: jenkins_admin_debian_pkgs
+  apt: pkg={{','.join(jenkins_admin_debian_pkgs)}} state=present update_cache=yes
 
 # This is necessary so that ansible can run with
 # sudo set to True (as the jenkins user) on jenkins
@@ -127,3 +137,7 @@
     version={{ item.version }}
     user_install=no
   with_items: jenkins_admin_gem_pkgs
+
+- include: nat_monitor.yml
+  tags:
+    - nat-monitor

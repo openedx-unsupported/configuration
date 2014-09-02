@@ -20,9 +20,11 @@
   shell: >
     executable=/bin/bash
     if [[ -d {{ edxapp_course_data_dir }}/{{ item.repo_name }}/static ]]; then
-      ln -sf {{ edxapp_course_data_dir }}/{{ item.repo_name }}/static {{ edxapp_course_static_dir }}/{{ item.repo_name }}
+      ln -sf {{ edxapp_course_data_dir }}/{{ item.repo_name }}/static {{ edxapp_course_static_dir }}/{{ item.repo_name}}
+      ln -sf {{ edxapp_course_data_dir }}/{{ item.repo_name }}/static {{ edxapp_course_static_dir }}/{{ item.course}}
     else
-      ln -sf {{ edxapp_course_data_dir }}/{{ item.repo_name }} {{ edxapp_course_static_dir }}/{{ item.repo_name }}
+      ln -sf {{ edxapp_course_data_dir }}/{{ item.repo_name }} {{ edxapp_course_static_dir }}/{{ item.repo_name}}
+      ln -sf {{ edxapp_course_data_dir }}/{{ item.repo_name }} {{ edxapp_course_static_dir }}/{{ item.course}}
     fi
   with_items: EDXAPP_XML_COURSES
   when: item.disposition == "on disk" or item.disposition == "no static import"
@@ -56,13 +58,8 @@
   with_items: EDXAPP_XML_COURSES
   when: item.disposition == "import"
 
-- name: delete .git repos
-  file: path="{{ edxapp_course_data_dir }}/{{ item.repo_name }}/.git" state=absent
-  with_items: EDXAPP_XML_COURSES
-  when: item.disposition == "on disk" or item.disposition == "no static import"
-
 - name: create an archive of course data and course static dirs
-  shell: tar czf /tmp/static_course_content.tar.gz -C {{ edxapp_data_dir }} {{ edxapp_course_data_dir|basename }} {{ edxapp_course_static_dir|basename }}
+  shell: tar czf /tmp/static_course_content.tar.gz -C {{ edxapp_data_dir }} --exclude ".git" {{ edxapp_course_data_dir|basename }} {{ edxapp_course_static_dir|basename }}
 
 - name: upload archive to s3
   s3: >

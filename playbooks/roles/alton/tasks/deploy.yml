@@ -1,8 +1,18 @@
+- name: configure the boto profiles for alton
+  template: >
+    src="boto.j2"
+    dest="{{ alton_app_dir }}/.boto"
+    owner="{{ alton_user }}"
+    group="{{ common_web_user }}"
+    mode="0640"
+  notify: restart alton
+
 - name: checkout the code
   git: >
     dest="{{ alton_code_dir }}" repo="{{ alton_source_repo }}"
     version="{{ alton_version }}" accept_hostkey=yes
   sudo_user: "{{ alton_user }}"
+  register: alton_checkout
   notify: restart alton
 
 - name: install the requirements
@@ -55,3 +65,5 @@
     state=started
   when: not disable_edx_services
 
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE

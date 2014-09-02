@@ -30,17 +30,11 @@
     ora_db_root_user: 'None'
     discern_db_root_user: 'None'
 
-  vars_prompt:
-    # passwords use vars_prompt so they aren't in the
-    # bash history
-    - name: "db_root_pass"
-      prompt: "Password for root mysql user"
-      private: True
-
-
   tasks:
     - fail: msg="COMMON_ENVIRONMENT and COMMON_DEPLOYMENT need to be defined to use this play"
       when: COMMON_ENVIRONMENT is not defined or COMMON_DEPLOYMENT is not defined
+    - fail: msg="db_root_pass is not defined"
+      when: db_root_pass is not defined
     - name: install python mysqldb module
       apt: pkg={{item}} install_recommends=no state=present update_cache=yes
       sudo: yes

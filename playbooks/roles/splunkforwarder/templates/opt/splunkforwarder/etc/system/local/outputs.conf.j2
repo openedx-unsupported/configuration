@@ -1,8 +1,13 @@
+# {{ ansible_managed }}
+
+{% for server in SPLUNKFORWARDER_SERVERS|selectattr("default", "defined") %}
 [tcpout]
-defaultGroup = default_output_server
+defaultGroup = {{ server.target_group }}
+{% endfor %}
 
-[tcpout:default_output_server]
-server = {{SPLUNKFORWARDER_SERVER}}
+# forwarder receivers
+{% for server in SPLUNKFORWARDER_SERVERS %}
+[tcpout:{{ server.target_group }}]
+server = {{ server.server }}
 
-[tcpout-server://{{SPLUNKFORWARDER_SERVER}}]
-
+{% endfor %}

@@ -27,6 +27,7 @@
     src=app_bashrc.j2 dest={{ item.home }}/.bashrc
     owner={{ item.user }} mode=755
   with_items: localdev_accounts
+  ignore_errors: yes
 
 # Default to the correct git config
 # No more accidentally force pushing to master! :)
@@ -35,6 +36,7 @@
     src=gitconfig dest={{ item.home }}/.gitconfig
     owner={{ item.user }} mode=700
   with_items: localdev_accounts
+  ignore_errors: yes
 
 # Configure X11 for application users
 - name: preserve DISPLAY for sudo
@@ -53,3 +55,16 @@
     regexp=". {{ localdev_home }}/share_x11"
     line=". {{ localdev_home }}/share_x11"
     state=present
+
+# Create scripts to add paver autocomplete
+- name: add paver autocomplete
+  template:
+    src=paver_autocomplete dest={{ item.home }}/.paver_autocomplete
+    owner={{ item.user }} mode=755
+  with_items: localdev_accounts
+  ignore_errors: yes
+
+# Edit the /etc/hosts file so that the Preview button will work in Studio
+- name: add preview.localhost to /etc/hosts
+  shell: sed -i -r 's/^127.0.0.1\s+.*$/127.0.0.1 localhost preview.localhost/' /etc/hosts
+  sudo: yes

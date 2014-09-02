@@ -84,18 +84,19 @@
     dest={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
   when: AWS_S3_LOGS
 
-- name: run s3 log sync script on shutdown
-  file: >
-    state=link
-    src={{ COMMON_BIN_DIR }}/send-logs-to-s3
-    path=/etc/rc0.d/S00send-logs-to-s3
+- name: run s3 log sync script on supervisor shutdown
+  template: >
+    src=etc/init/sync-on-stop.conf.j2
+    dest=/etc/init/sync-on-stop.conf
+    owner=root group=root mode=0644
   when: AWS_S3_LOGS
 
   # cron job runs the aws s3 sync script
+  # this job will log its output to /var/log/aws
 - name: cronjob for s3 log sync
-  cron: >
-    name="cronjob for s3 log sync"
-    user=root
-    minute=0
-    job={{ aws_s3_sync_script }}
+  cron:
+    name: "cronjob for s3 log sync"
+    user: root
+    minute: 0
+    job: "{{ aws_s3_sync_script }} > /dev/null 2>&1"
   when: AWS_S3_LOGS

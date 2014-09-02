@@ -36,6 +36,30 @@
 - name: send sigterm to any running rabbitmq processes
   shell: pkill -u rabbitmq || true
 
+# Create the rabbitmq directories
+- name: create rabbitmq edx directories
+  file:
+    path={{ item }}
+    owner={{ rabbitmq_user }}
+    mode=0755
+    state=directory
+  with_items:
+    - "{{ rabbitmq_app_dir }}"
+    - "{{ rabbitmq_log_dir }}"
+
+- name: add queue monitoring script
+  template:
+    src="edx/app/rabbitmq/log-rabbitmq-queues.sh.j2"
+    dest="{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh"
+    owner="{{ rabbitmq_user }}"
+    group="{{ rabbitmq_group }}"
+    mode=0755
+
+- name: set up a cron job to run the script
+  cron:
+    name: "log-queue-lenghts"
+    job: "{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh >/dev/null 2>&1"
+
 # Defaulting to /var/lib/rabbitmq
 - name: create cookie directory
   file: >

@@ -3,7 +3,7 @@ language: python
 python:
   - "2.7"
 install:
-  - "sudo apt-get install -y npm python-demjson"
+  - "sudo apt-get install -y nodejs python-demjson"
   - "pip install --allow-all-external -r requirements.txt"
   - "pip install --allow-all-external demjson"
 script:
@@ -24,9 +24,17 @@ script:
       fi
     done
   - |
-    plays="aws bastion certs commoncluster common demo devpi discern edx_ansible edxapp elasticsearch forum ora rabbitmq worker xqueue xserver"
     set -e
     cd playbooks/edx-east
-    for play in $plays; do
-      ansible-playbook -i localhost, --syntax-check ${play}.yml
+    ROLE_DIRS=$(/bin/ls -d roles/*)
+    cat <<EOF >travis-test.yml
+    - name: Play to test all roles
+      hosts: all
+      roles:
+    EOF
+    for role_dir in $ROLE_DIRS; do
+        echo "    - $(basename $role_dir)" >> travis-test.yml
     done
+
+    ansible-playbook -i localhost, --syntax-check travis-test.yml
+

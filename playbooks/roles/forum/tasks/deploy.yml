@@ -34,6 +34,7 @@
     dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
     accept_hostkey=yes
   sudo_user: "{{ forum_user }}"
+  register: forum_checkout
   notify: restart the forum service
 
 # TODO: This is done as the common_web_user
@@ -65,5 +66,8 @@
   when: not disable_edx_services
 
 - include: test.yml tags=deploy
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE
 
 - set_fact: forum_installed=true

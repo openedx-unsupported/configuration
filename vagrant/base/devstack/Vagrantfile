@@ -5,7 +5,7 @@ end
 
 VAGRANTFILE_API_VERSION = "2"
 
-MEMORY = 2048
+MEMORY = 4096
 CPU_COUNT = 2
 
 edx_platform_mount_dir = "edx-platform"
@@ -50,8 +50,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, owner: "edxapp", group: "www-data"
     config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
       create: true, owner: "forum", group: "www-data"
-    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
-      create: true, owner: "ora", group: "www-data"
+
+    if ENV['ENABLE_LEGACY_ORA']
+        config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+          create: true, owner: "ora", group: "www-data"
+    end
   else
     config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
       create: true, nfs: true
@@ -59,8 +62,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, nfs: true
     config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
       create: true, nfs: true
-    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
-      create: true, nfs: true
+
+    if ENV['ENABLE_LEGACY_ORA']
+        config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
+          create: true, nfs: true
+    end
   end
 
 
@@ -95,5 +101,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "../../../playbooks/vagrant-devstack.yml"
     ansible.verbose = "vvvv"
+
+    if ENV['ENABLE_LEGACY_ORA']
+        ansible.extra_vars = { ENABLE_LEGACY_ORA: true }
+    end
   end
 end

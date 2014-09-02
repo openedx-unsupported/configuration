@@ -27,6 +27,19 @@
     - "{{ edxapp_staticfile_dir }}"
     - "{{ edxapp_course_static_dir }}"
 
+# This is a symlink that has to exist because
+# we currently can't override the DATA_DIR var
+# in edx-platform. TODO: This can be removed once
+# VPC-122 is closed
+- name: make the course data dir
+  file:
+    src="{{ edxapp_course_data_dir }}"
+    dest="{{ edxapp_legacy_course_data_dir }}"
+    state=link
+    owner="{{ edxapp_user }}"
+    group="{{ common_web_group }}"
+    
+
 - name: create edxapp log dir
   file: >
     path="{{ edxapp_log_dir }}" state=directory
@@ -47,8 +60,12 @@
     - "{{ edxapp_course_data_dir }}"
     - "{{ edxapp_upload_dir }}"
 
+# adding chris-lea nodejs repo
+- name: add ppas for current versions of nodejs
+  apt_repository: repo="{{ edxapp_chrislea_ppa }}"
+
 - name: install system packages on which LMS and CMS rely
-  apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present
+  apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present update_cache=yes
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
