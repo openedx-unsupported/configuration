@@ -11,7 +11,7 @@ upstream lms-backend {
 }
 
 # Make Zone
-limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate=10r/s;
+limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate=1r/s;
 
 server {
   # LMS configuration file for nginx, templated by ansible
@@ -71,9 +71,9 @@ server {
     try_files $uri @proxy_to_lms_app;
   }
 
-  location /course {
+  location /courses {
     # Set Limit  
-    limit_req zone=cookies burst=50;
+    limit_req zone=cookies burst=3;
     {% include "basic-auth.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
