@@ -10,6 +10,11 @@ upstream lms-backend {
     {% endfor %}
 }
 
+{%- if EDXAPP_ENABLE_RATE_LIMITING -%}
+# Make Zone
+limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
+{%- endif -%}
+
 server {
   # LMS configuration file for nginx, templated by ansible
 
@@ -65,6 +70,16 @@ server {
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /courses {
+    {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
+    # Set Limit  
+    limit_req zone=cookies burst={{ EDXAPP_COURSE_REQUEST_BURST_RATE }};
+    {%- endif -%}
+
+    {%- include "basic-auth.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 
