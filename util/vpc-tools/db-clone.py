@@ -159,7 +159,8 @@ if __name__ == '__main__':
         db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, create_dbs.yml """ \
             """{extra_args} -e "edxapp_db_root_user=root xqueue_db_root_user=root" """ \
             """ -e "db_root_pass={root_pass}" """ \
-            """ -e "EDXAPP_MYSQL_HOST={db_host}" """.format(
+            """ -e "EDXAPP_MYSQL_HOST={db_host}" """ \
+            """ -e "XQUEUE_MYSQL_HOST={db_host}" """.format(
             root_pass=args.password,
             extra_args=extra_args,
             db_host=db_host,
