@@ -17,6 +17,7 @@
 # - dns_name
 # - environment
 # - name_tag
+set -x
 env
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
@@ -216,7 +217,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum xqueue xserver ora discern certs demo"
+roles="edxapp forum xqueue xserver ora discern certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
