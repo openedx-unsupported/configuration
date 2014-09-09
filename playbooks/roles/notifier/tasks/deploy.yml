@@ -11,6 +11,25 @@
     - restart notifier-scheduler
     - restart notifier-celery-workers
 
+- name: checkout theme
+  git: >
+    dest={{ NOTIFIER_CODE_DIR }}/{{NOTIFIER_THEME_NAME}}
+    repo={{NOTIFIER_THEME_REPO}}
+    version={{NOTIFIER_THEME_VERSION}}
+    accept_hostkey=yes
+  when: NOTIFIER_THEME_NAME != ''
+  sudo_user: "{{ NOTIFIER_USER }}"
+  environment:
+    GIT_SSH: "{{ NOTIFIER_GIT_SSH }}"
+
+- name: write notifier local settings
+  template: >
+    src=settings_local.py.j2
+    dest={{ NOTIFIER_CODE_DIR }}/settings_local.py
+  when: NOTIFIER_THEME_NAME != ''
+  notify:
+    - restart notifier-celery-workers
+
 - name: source repo group perms
   file:
     path={{ NOTIFIER_SOURCE_REPO }} mode=2775 state=directory

@@ -3,7 +3,7 @@
 ;
 [program:notifier-celery-workers]
 
-command={{ NOTIFIER_VENV_DIR }}/bin/python manage.py celery worker -l {{ NOTIFIER_LOG_LEVEL }}
+command={{ NOTIFIER_HOME }}/notifier-celery-workers-supervisor.sh
 
 process_name=%(program_name)s
 numprocs=1
@@ -25,8 +25,3 @@ stderr_logfile={{ NOTIFIER_SUPERVISOR_LOG_DEST }}/notifier-celery-workers-stderr
 stderr_logfile_maxbytes=1MB
 stderr_logfile_backups=10
 stderr_capture_maxbytes=1MB
-environment=PID='/var/tmp/notifier-celery-workers.pid',LANG=en_US.UTF-8,
-{%- do notifier_env_vars.update(NOTIFIER_ENV_EXTRA) -%}
-{%- for name,value in notifier_env_vars.items() -%}
-{%- if value -%}{{name}}="{{value}}"{%- if not loop.last -%},{%- endif -%}{%- endif -%}
-{%- endfor -%}
