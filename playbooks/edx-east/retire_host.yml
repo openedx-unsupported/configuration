@@ -1,12 +1,15 @@
 # ansible-playbook -i ./lifecycle_inventory.py ./retire_host.yml
-# -e@/vars/env.yml --limit Terminating_Wait
+# -e@/vars/env.yml --limit Terminating_Wait -e TARGET="Terminating_Wait"
+#
+# Note that the target now must be specified as an argument
+#
 
 #
 # This is separate because it's use of handlers
 # leads to various race conditions.
 #
 - name: Stop all services
-  hosts: Terminating_Wait
+  hosts: "{{TARGET}}"
   sudo: True
   gather_facts: False
   vars:
@@ -15,7 +18,7 @@
     - stop_all_edx_services
 
 - name: Server retirement workflow
-  hosts: Terminating_Wait
+  hosts: "{{TARGET}}"
   sudo: True
   gather_facts: False
   tasks:
@@ -38,7 +41,7 @@
       command: /edx/bin/send-logs-to-s3 -d "{{ COMMON_LOG_DIR }}/tracking/*" -b "{{ COMMON_AWS_SYNC_BUCKET }}/logs/tracking"
     
 - name: Run minos verification
-  hosts: Terminating_Wait
+  hosts: "{{TARGET}}"
   sudo: True
   gather_facts: False
   tasks:
