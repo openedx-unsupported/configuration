@@ -11,6 +11,25 @@
     - restart notifier-scheduler
     - restart notifier-celery-workers
 
+# Optional auth for git
+- name: create ssh script for git (not authenticated)
+  template: >
+    src=git_ssh_noauth.sh.j2 dest={{ notifier_git_ssh }}
+    owner={{ NOTIFIER_USER }} mode=750
+  when: not NOTIFIER_USE_GIT_IDENTITY
+
+- name: create ssh script for git (authenticated)
+  template: >
+    src=git_ssh_auth.sh.j2 dest={{ notifier_git_ssh }}
+    owner={{ NOTIFIER_USER }} mode=750
+  when: NOTIFIER_USE_GIT_IDENTITY
+
+- name: install read-only ssh key
+  copy: >
+    content="{{ NOTIFIER_GIT_IDENTITY }}" dest={{ notifier_git_identity }}
+    force=yes owner={{ NOTIFIER_USER }} mode=0600
+  when: NOTIFIER_USE_GIT_IDENTITY
+
 - name: checkout theme
   git: >
     dest={{ NOTIFIER_CODE_DIR }}/{{NOTIFIER_THEME_NAME}}
@@ -20,12 +39,13 @@
   when: NOTIFIER_THEME_NAME != ''
   sudo_user: "{{ NOTIFIER_USER }}"
   environment:
-    GIT_SSH: "{{ NOTIFIER_GIT_SSH }}"
+    GIT_SSH: "{{ notifier_git_ssh }}"
 
 - name: write notifier local settings
   template: >
     src=settings_local.py.j2
-    dest={{ NOTIFIER_CODE_DIR }}/settings_local.py
+    dest={{ NOTIFIER_CODE_DIR }}/notifier/settings_local.py
+    mode=0555
   when: NOTIFIER_THEME_NAME != ''
   notify:
     - restart notifier-celery-workers
