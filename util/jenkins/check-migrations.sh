@@ -33,7 +33,7 @@ if [[ -f ${WORKSPACE}/configuration-secure/ansible/vars/${deployment}.yml ]]; th
     extra_var_args+=" -e@${WORKSPACE}/configuration-secure/ansible/vars/${deployment}.yml"
 fi
 
-if [[ -z $sync_db ]]; then
+if [[ -z $syncdb ]]; then
     syncdb="false"
 fi
 
