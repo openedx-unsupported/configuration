@@ -24,7 +24,7 @@ pip install --exists-action w -r requirements/edx/github.txt
 pip install --exists-action w -r requirements/edx/local.txt
 
 if [[ $openid_workaround == "true" ]]; then
-    sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/'  "$VIRTUALENV/lib/python2.7/site-packages/django_openid_auth/models.py"
+    sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/'  "$VIRTUAL_ENV/lib/python2.7/site-packages/django_openid_auth/models.py"
 fi
 
 cd "$WORKSPACE/configuration/playbooks/edx-east"
