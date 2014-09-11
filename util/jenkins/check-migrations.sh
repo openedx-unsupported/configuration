@@ -33,7 +33,11 @@ if [[ $db_dry_run == "false" ]]; then
     # Set this to an empty string if db_dry_run is 
     # not set.  By default the db_dry_run var is
     # set to --db-dry-run
+
     extra_var_args+=" -e db_dry_run=''"
+else
+    # always skip syncdb unless dry run is unchecked
+    syncdb="false"
 fi
 
 if [[ -f ${WORKSPACE}/configuration-secure/ansible/vars/${environment}-${deployment}.yml ]]; then
@@ -47,6 +51,7 @@ done
 extra_var_args+=" -e edxapp_app_dir=${WORKSPACE}"
 extra_var_args+=" -e edxapp_code_dir=${WORKSPACE}/edx-platform"
 extra_var_args+=" -e edxapp_user=jenkins"
+extra_var_args+=" -e syncdb=$syncdb"
 
 # Generate the json configuration files
 ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml
