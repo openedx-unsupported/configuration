@@ -25,6 +25,8 @@ import logging
 import os
 from distutils import spawn
 
+class MissingHostError(Exception):
+    pass
 
 class LifecycleHandler:
 
@@ -72,35 +74,46 @@ class LifecycleHandler:
                 asg = as_message['AutoScalingGroupName']
                 token = as_message['LifecycleActionToken']
 
-                if self.verify_ok_to_retire(as_message['EC2InstanceId']):
+                try:
 
-                    logging.info("Host is marked as OK to retire, retiring {instance}".format(
-                        instance=instance_id))
+                    if self.verify_ok_to_retire(as_message['EC2InstanceId']):
 
-                    self.continue_lifecycle(asg, token, self.hook)
+                        logging.info("Host is marked as OK to retire, retiring {instance}".format(
+                            instance=instance_id))
 
-                    if not self.dry_run:
-                        logging.info("Deleting message with body {message}".format(message=as_message))
-                        self.sqs_con.delete_message(queue, sqs_message)
+                        self.continue_lifecycle(asg, token, self.hook)
+
+                        if not self.dry_run:
+                            logging.info("Deleting message with body {message}".format(message=as_message))
+                            self.sqs_con.delete_message(queue, sqs_message)
+                        else:
+                            logging.info("Would have deleted message with body {message}".format(message=as_message))
+
                     else:
-                        logging.info("Would have deleted message with body {message}".format(message=as_message))
+                        logging.info("Recording lifecycle heartbeat for instance {instance}".format(
+                            instance=instance_id))
 
-                else:
-                    logging.info("Recording lifecycle heartbeat for instance {instance}".format(
-                        instance=instance_id))
+                        self.record_lifecycle_action_heartbeat(asg, token, self.hook)
+                except MissingHostError as mhe:
+                    logging.exception(mhe)
+                    # There is nothing we can do to recover from this, so we
+                    # still delete the message
+                    self.delete_sqs_message(self,queue,sqs_message,as_message)
 
-                    self.record_lifecycle_action_heartbeat(asg, token, self.hook)
-            # These notifications are send when configuring a new lifecycle hook, they can be
+            # These notifications are sent when configuring a new lifecycle hook, they can be
             # deleted safely
             elif as_message['Event'] == LifecycleHandler.TEST_NOTIFICATION:
-                    if not self.dry_run:
-                        logging.info("Deleting message with body {message}".format(message=as_message))
-                        self.sqs_con.delete_message(queue, sqs_message)
-                    else:
-                        logging.info("Would have deleted message with body {message}".format(message=as_message))
+                self.delete_sqs_message(self,queue,sqs_message,as_message)
             else:
                 raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
                     message_id=as_message['MessageId']))
+
+    def delete_sqs_message(self,queue, sqs_message, as_message, dry_run):
+        if not self.dry_run:
+            logging.info("Deleting message with body {message}".format(message=as_message))
+            self.sqs_con.delete_message(queue, sqs_message)
+        else:
+            logging.info("Would have deleted message with body {message}".format(message=as_message))
 
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
@@ -160,8 +173,9 @@ class LifecycleHandler:
         else:
             # No instance for id in SQS message this can happen if something else
             # has terminated the instances outside of this workflow
-            logging.warn("Instance with id {id} is referenced in an SQS message, but does not exist.")
-            return True
+            message = "Instance with id {id} is referenced in an SQS message, but does not exist.".\
+                format(id=instance_id)
+            raise MissingHostError(message)
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
