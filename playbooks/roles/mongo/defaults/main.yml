@@ -31,7 +31,7 @@ mongo_logpath: "{{ mongo_log_dir }}/mongodb.log"
 mongo_dbpath: "{{ mongo_data_dir }}/mongodb"
 
 # Have to use this conditional instead of ignore errors
-# because the mongo_user module fails and doesn't ginore errors.
+# because the mongo_user module fails and doesn't ignore errors.
 mongo_create_users: !!null
 
 # If the system is running out of an Amazon Web Services
@@ -42,3 +42,21 @@ mongo_aws_stack_name: "tag_aws_cloudformation_stack-name_"
 # In environments that do not require durability (devstack / Jenkins)
 # you can disable the journal to reduce disk usage
 mongo_enable_journal: True
+
+# We can do regular backups of MongoDB to S3.
+MONGO_S3_BACKUP: false
+# backup cron time:
+MONGO_S3_BACKUP_HOUR: "*/12"
+MONGO_S3_BACKUP_DAY: "*"
+# override with a secondary node that will perform backups
+MONGO_S3_BACKUP_NODE: "undefined"
+# back up data into a specific S3 bucket
+MONGO_S3_BACKUP_BUCKET: "undefined"
+# temporary directory mongodump will use to store data
+MONGO_S3_BACKUP_TEMPDIR: "{{ mongo_data_dir }}"
+MONGO_S3_NOTIFY_EMAIL: "dummy@example.com"
+mongo_s3_logfile: "{{ COMMON_LOG_DIR }}/mongo/s3-mongo-backup.log"
+MONGO_S3_S3CMD_CONFIG: "{{ COMMON_DATA_DIR }}/mongo-s3-backup.s3cfg"
+MONGO_S3_BACKUP_AWS_ACCESS_KEY: !!null
+MONGO_S3_BACKUP_AWS_SECRET_KEY: !!null
+
