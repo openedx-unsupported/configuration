@@ -83,11 +83,7 @@ class LifecycleHandler:
 
                         self.continue_lifecycle(asg, token, self.hook)
 
-                        if not self.dry_run:
-                            logging.info("Deleting message with body {message}".format(message=as_message))
-                            self.sqs_con.delete_message(queue, sqs_message)
-                        else:
-                            logging.info("Would have deleted message with body {message}".format(message=as_message))
+                        self.delete_sqs_message(queue, sqs_message, as_message, self.dry_run)
 
                     else:
                         logging.info("Recording lifecycle heartbeat for instance {instance}".format(
@@ -98,18 +94,18 @@ class LifecycleHandler:
                     logging.exception(mhe)
                     # There is nothing we can do to recover from this, so we
                     # still delete the message
-                    self.delete_sqs_message(self,queue,sqs_message,as_message)
+                    self.delete_sqs_message(queue, sqs_message, as_message, self.dry_run)
 
             # These notifications are sent when configuring a new lifecycle hook, they can be
             # deleted safely
             elif as_message['Event'] == LifecycleHandler.TEST_NOTIFICATION:
-                self.delete_sqs_message(self,queue,sqs_message,as_message)
+                self.delete_sqs_message(queue, sqs_message, as_message, self.dry_run)
             else:
                 raise NotImplemented("Encountered message, {message_id}, of unexpected type.".format(
                     message_id=as_message['MessageId']))
 
-    def delete_sqs_message(self,queue, sqs_message, as_message, dry_run):
-        if not self.dry_run:
+    def delete_sqs_message(self, queue, sqs_message, as_message, dry_run):
+        if not dry_run:
             logging.info("Deleting message with body {message}".format(message=as_message))
             self.sqs_con.delete_message(queue, sqs_message)
         else:
@@ -135,15 +131,18 @@ class LifecycleHandler:
 
     def run_subprocess_command(self, command, dry_run):
 
-        logging.info("Running command {command}.".format(command=command))
+        message = "Running command {command}.".format(command=command)
 
         if not dry_run:
+            logging.info(message)
             try:
                 output = subprocess.check_output(command.split(' '))
                 logging.info("Output was {output}".format(output=output))
             except Exception as e:
                 logging.exception(e)
                 raise  e
+        else:
+            logging.info("Dry run: {message}".format(message=message))
 
     def get_ec2_instance_by_id(self, instance_id):
         """
