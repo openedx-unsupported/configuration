@@ -320,6 +320,30 @@ EDXAPP_REGISTRATION_EXTRA_FIELDS:
   city: "hidden"
   country: "hidden"
 
+EDXAPP_CELERY_WORKERS:
+  - queue: low
+    service_variant: cms
+    concurrency: 3
+  - queue: default
+    service_variant: cms
+    concurrency: 4
+  - queue: high
+    service_variant: cms
+    concurrency: 1
+  - queue: low
+    service_variant: lms
+    concurrency: 1
+  - queue: default
+    service_variant: lms
+    concurrency: 3
+  - queue: high
+    service_variant: lms
+    concurrency: 4
+  - queue: high_mem
+    service_variant: lms
+    concurrency: 2
+
+
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -351,28 +375,7 @@ edxapp_git_ssh: "/tmp/edxapp_git_ssh.sh"
 # TODO: This can be removed once VPC-122 is resolved
 edxapp_legacy_course_data_dir: "{{ edxapp_app_dir }}/data"
 
-edxapp_workers:
-  - queue: low
-    service_variant: cms
-    concurrency: 3
-  - queue: default
-    service_variant: cms
-    concurrency: 4
-  - queue: high
-    service_variant: cms
-    concurrency: 1
-  - queue: low
-    service_variant: lms
-    concurrency: 1
-  - queue: default
-    service_variant: lms
-    concurrency: 3
-  - queue: high
-    service_variant: lms
-    concurrency: 4
-  - queue: high_mem
-    service_variant: lms
-    concurrency: 2
+edxapp_workers: "{{ EDXAPP_CELERY_WORKERS }}"
 
 # setup for python codejail
 edxapp_sandbox_venv_dir:  '{{ edxapp_venvs_dir }}/edxapp-sandbox'
