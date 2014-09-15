@@ -1,0 +1,63 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role antivirus
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: install antivirus system packages
+  apt: pkg={{ item }} install_recommends=yes state=present
+  with_items: antivirus_debian_pkgs
+
+- name: create antivirus scanner user
+  user: >
+    name="{{ antivirus_user }}"
+    home="{{ antivirus_app_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: create antivirus app and data dirs
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ antivirus_user }}"
+    group="{{ antivirus_user }}"
+  with_items:
+    - "{{ antivirus_app_dir }}"
+    - "{{ antivirus_app_dir }}/data"
+
+- name: install antivirus s3 scanner script
+  template: >
+    src=s3_bucket_virus_scan.sh.j2
+    dest={{ antivirus_app_dir }}/s3_bucket_virus_scan.sh
+    mode=0555
+    owner={{ antivirus_user }}
+    group={{ antivirus_user }}
+
+- name: install antivirus s3 scanner cronjob
+  cron: >
+    name="antivirus-{{ item }}"
+    job="{{ antivirus_app_dir }}/s3_bucket_virus_scan.sh -b '{{ item }}' -m '{{ ANTIVIRUS_MAILTO }}' -f '{{ ANTIVIRUS_MAILFROM }}'"
+    backup=yes
+    cron_file=antivirus-{{ item }}
+    user={{ antivirus_user }}
+    hour="*"
+    minute="0"
+    day="*"
+  with_items: ANTIVIRUS_BUCKETS
