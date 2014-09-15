@@ -1,0 +1,46 @@
+---
+- name: Install newrelic related system packages for Ubuntu
+  apt: pkg={{ item }} install_recommends=yes state=present
+  with_items: newrelic_nginx_pkgs
+
+# the plugin is checked directly into the configuration
+# repo because it's small ~5k
+- name: copy the newrelic nginx agent plugin
+  copy: src=newrelic_nginx_agent.tar.gz dest=/tmp/newrelic_nginx_agent.tar.gz
+
+- name: untar the newrelic nginx agent
+  shell: >
+    chdir=/opt
+    creates=/opt/newrelic_nginx_agent
+    tar xf /tmp/newrelic_nginx_agent.tar.gz
+
+- name: bundle install
+  shell: >
+    chdir=/opt/newrelic_nginx_agent
+    creates=/var/lib/gems/1.8/gems/newrelic_plugin-1.3.1
+    bundle install
+  notify: restart newrelic-nginx-agent
+
+- name: create agent configuration
+  template: >
+    src=opt/newrelic_nginx_agent/config/newrelic_plugin.yml.j2
+    dest=/opt/newrelic_nginx_agent/config/newrelic_plugin.yml
+  notify: restart newrelic-nginx-agent
+
+- name: create directory for the nginx newrelic logging
+  file: >
+    path=/var/log/newrelic-nginx-agent
+    state=directory
+    owner=root
+  notify: restart newrelic-nginx-agent
+
+- template:
+    owner: root
+    src: etc/init/newrelic-nginx-agent.conf.j2
+    dest: /etc/init/newrelic-nginx-agent.conf
+  notify: restart newrelic-nginx-agent
+
+- name: remove nginx agent temp file
+  file: >
+    path=/tmp/newrelic_nginx_agent.tar.gz
+    state=absent
