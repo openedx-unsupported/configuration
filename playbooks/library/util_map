@@ -1,0 +1,128 @@
+#!/usr/bin/env python
+
+DOCUMENTATION = """
+---
+module: util_map
+short_description: Applies a function to input and returns the result with the key function_output
+description:
+  - Applies functions to data structures returning a new data structure.
+version_added: "1.8"
+author: Edward Zarecor
+options:
+  function:
+    description:
+      - The function to apply, currently ['zipToDict','flatten']
+    required: true
+  input:
+    description:
+      - The input
+    required: true
+  args
+    description:
+      - Arguments to the function other than the input, varies by function.
+"""
+
+EXAMPLES = '''
+- name: Apply function to results from ec2_scaling_policies
+  util_map:
+    function: 'zipToDict'
+    input: "{{ created_policies.results }}"
+    args:
+      - "name"
+      - "arn"
+  register: policy_data
+
+- name: Apply function to policy data
+  util_map:
+    function: 'flatten'
+    input:
+      - 'a'
+      - 'b'
+      - 'c'
+      - ['d','e','f']
+  register: flat_list
+'''
+
+from ansible.module_utils.basic import *
+import ast
+import itertools
+
+class ArgumentError(Exception):
+    pass
+
+def flatten(module, input):
+    """
+    Takes an iterable and returns a flat list
+
+    With the input of
+
+    [['a','b','c'],'d',['e','f','g'],{'a','b'}]
+
+    this function will return
+
+    ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'a', 'b']
+
+    :param module: The ansible module
+    :param input: An iterable
+    :return: A flat list.
+    """
+
+    try:
+        flat = list(itertools.chain.from_iterable(input))
+    except TypeError as te:
+        raise ArgumentError("Flatten resulted in a type error, {0}.".format(te.message))
+
+    module.exit_json(function_output = flat)
+
+def zipToDict(module, input, key_key, value_key):
+    """
+    Takes an array of dicts and flattens it to a single dict by extracting the values
+    of a provided key as the keys in the new dict and the values of the second
+    provided key as the corresponding values.
+
+    For example, the input dict of
+
+    [{'name':'fred', 'id':'123'},['name':'bill', 'id':'321'}]
+
+    with an args array of ['id','name']
+
+    would return
+
+    {'123':'fred','321':'bill'}
+
+    :param input: an array of dicts, typically the results of an ansible module
+    :param key_key: a key into the input dict returning a value to be used as a key in the flattened dict
+    :param value_key: a key into the input dict returning a value to be used as a value in the flattened dict
+    :return: the flattened dict
+    """
+
+    results = {}
+
+    for item in input:
+        results[item[unicode(key_key)]]=item[unicode(value_key)]
+
+    module.exit_json(function_output = results)
+
+def main():
+
+    arg_spec = dict(
+        function=dict(required=True,choices=['zipToDict','flatten']),
+        input=dict(required=True, type='str'),
+        args=dict(required=False, type='list'),
+    )
+
+    module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=False)
+
+    target = module.params.get('function')
+    # reify input data
+    input = ast.literal_eval(module.params.get('input'))
+    args = module.params.get('args')
+
+    if target == 'zipToDict':
+        zipToDict(module, input, *args)
+    elif target == 'flatten':
+        flatten(module,input)
+    else:
+        raise NotImplemented("Function {0} is not implemented.".format(target))
+
+main()
