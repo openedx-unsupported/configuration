@@ -1,0 +1,191 @@
+---
+
+- name: Build application artifacts
+  hosts: all
+  connection: local
+  gather_facts: True
+  vars:
+    ansible_python_interpreter: "/home/edward/.virtualenvs/configuration/bin/python"
+    state: "present"
+  tasks:
+    - name: Manage IAM Role and Profile
+      ec2_iam_role:
+        state: "{{ state }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        role_name: "{{ role_name }}"
+        policies: "{{ role_policies }}"
+
+    - name: Manage ELB security group
+      ec2_group_1.7.1:
+        profile: "{{ profile }}"
+        description: "{{ elb_security_group.description }}"
+        name: "{{ elb_security_group.name }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        rules: "{{ elb_security_group.rules }}"
+      register: elb_sec_group
+        
+    - name: Manage service security group
+      ec2_group_1.7.1:
+        profile: "{{ profile }}"
+        description: "{{ service_security_group.description }}"
+        name: "{{ service_security_group.name }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        rules: "{{ service_security_group.rules }}"
+      register: service_sec_group
+      
+    - name: Manage ACLs
+      ec2_acl:
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        rules: "{{ item.rules }}"
+      with_items: acls
+      register: created_acls
+
+    - name: Apply function to acl_data
+      util_map:
+        function: 'zip_to_dict'
+        input: "{{ created_acls.results }}"
+        args:
+          - "name"
+          - "id"
+      register: acl_data
+         
+    - name: Manage ELB Subnets
+      ec2_subnet:
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        cidr: "{{ item.cidr }}"
+        az: "{{ item.az }}"
+        route_table_id: "{{ item.route_table_id }}"
+        tags: "{{ item.tags }}"
+      register: created_elb_subnets
+      with_items: elb_subnets
+
+      #
+      # Hack alert, this registers a list in the global namespace
+      # of just the subnet ids that were created above
+      #
+    - debug: msg="{{ created_elb_subnets.results|map(attribute='subnet_id')| list }}"
+      register: elb_sn_list
+      
+    - name: Manage Service Subnets
+      ec2_subnet:
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        cidr: "{{ item.cidr }}"
+        az: "{{ item.az }}"
+        route_table_id: "{{ item.route_table_id }}"
+        tags: "{{ item.tags }}"
+      register: created_service_subnets
+      with_items: service_subnets
+
+    #
+    # Stubbed out
+    # For now we'll be using an existing route table
+    #
+    - name: Manage Route Table
+      ec2_rt:
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        name: "{{ rt.name }}"
+        vpc_id: "{{ vpc_id }}"
+        destination_cidr: "{{ rt.destination_cidr }}"
+        target: "local" # simplifying generalization of instnace-id, gateway-id or local
+
+    - name: Manage ELB
+      ec2_elb_lb_1.8:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        scheme: "{{ elb_scheme }}"
+        name: "{{ elb_name }}"
+        state: "{{ state }}"
+        security_group_ids: "{{ elb_sec_group.group_id }}"
+        subnets: "{{ elb_sn_list.msg }}"
+        health_check: "{{ elb_healthcheck }}"
+        listeners: "{{ elb_listeners }}"
+      register: elb
+#
+# Service related components
+#
+    - name: Manage the launch configuration
+      ec2_lc_local:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        name: "{{ launch_config.name }}"
+        image_id: "{{ launch_config.ami }}"
+        key_name: "{{ launch_config.key_name }}"
+        security_groups: "{{ service_sec_group.group_id }}"
+        instance_type: "{{ launch_config.instance_type }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        volumes: "{{ launch_config.volumes }}"
+
+      #
+      # Hack alert, this registers a string in the global namespace
+      # of just the subnet ids for the service that were created above
+      #
+    - debug: msg="{{ created_service_subnets.results|map(attribute='subnet_id')| list | join(',') }}"
+      register: service_vpc_zone_identifier_string
+        
+    - name: Manage ASG
+      ec2_asg_1.7.1:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        name: "{{ asg_name }}"
+        launch_config_name: "{{ launch_config.name }}"
+        load_balancers: "{{ elb_name }}"
+        availability_zones: "{{ aws_availability_zones }}"
+        min_size: "{{ asg_min_size }}"
+        max_size: "{{ asg_max_size }}"
+        desired_capacity: "{{ asg_desired_capacity }}"
+        vpc_zone_identifier: "{{ service_vpc_zone_identifier_string.msg }}"
+        tags: "{{ asg_instance_tags }}"
+      register: asg
+
+    - name: Manage scaling policies
+      ec2_scaling_policy:
+        state: "{{ item.state }}"
+        profile: "{{ item.profile }}"
+        region: "{{ item.region }}"
+        name: "{{ item.name }}"
+        adjustment_type: "{{ item.adjustment_type }}"
+        asg_name: "{{ item.asg_name }}"
+        scaling_adjustment: "{{ item.scaling_adjustment }}"
+        min_adjustment_step: "{{ item.min_adjustment_step }}"
+        cooldown: "{{ item.cooldown }}"
+      with_items: asg_policies
+      register: created_policies
+
+    - name: Apply function to policy data
+      util_map:
+        function: 'zip_to_dict'
+        input: "{{ created_policies.results }}"
+        args:
+          - "name"
+          - "arn"
+      register: policy_data
+
+    - name: Manage metric alarms
+      ec2_metric_alarm:
+        state: "{{ item.state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        metric: "{{ item.metric }}"
+        namespace: "{{ item.namespace }}"
+        statistic: "{{ item.statistic }}"
+        comparison: "{{ item.comparison }}"
+        threshold: "{{ item.threshold }}"
+        period: "{{ item.period }}"
+        evaluation_periods: "{{ item.evaluation_periods }}"
+        unit: "{{ item.unit }}"
+        description: "{{ item.description }}"
+        dimensions: "{{ item.dimensions }}"
+        alarm_actions: "{{ policy_data.function_output[item.target_policy] }}"
+      with_items: asg_alarms 
