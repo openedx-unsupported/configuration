@@ -5,6 +5,7 @@
   connection: local
   gather_facts: True
   vars:
+    # TODO remove before merging
     ansible_python_interpreter: "/home/edward/.virtualenvs/configuration/bin/python"
     state: "present"
   tasks:
@@ -60,7 +61,7 @@
         region: "{{ aws_region }}"
         name: "{{ item.name }}"
         vpc_id: "{{ vpc_id }}"
-        cidr: "{{ item.cidr }}"
+        cidr_block: "{{ item.cidr }}"
         az: "{{ item.az }}"
         route_table_id: "{{ item.route_table_id }}"
         tags: "{{ item.tags }}"
@@ -80,7 +81,7 @@
         region: "{{ aws_region }}"
         name: "{{ item.name }}"
         vpc_id: "{{ vpc_id }}"
-        cidr: "{{ item.cidr }}"
+        cidr_block: "{{ item.cidr }}"
         az: "{{ item.az }}"
         route_table_id: "{{ item.route_table_id }}"
         tags: "{{ item.tags }}"
@@ -91,14 +92,14 @@
     # Stubbed out
     # For now we'll be using an existing route table
     #
-    - name: Manage Route Table
-      ec2_rt:
-        state: "{{ state }}"
-        region: "{{ aws_region }}"
-        name: "{{ rt.name }}"
-        vpc_id: "{{ vpc_id }}"
-        destination_cidr: "{{ rt.destination_cidr }}"
-        target: "local" # simplifying generalization of instnace-id, gateway-id or local
+    # - name: Manage Route Table
+    #   ec2_rt:
+    #     state: "{{ state }}"
+    #     region: "{{ aws_region }}"
+    #     name: "{{ rt.name }}"
+    #     vpc_id: "{{ vpc_id }}"
+    #     destination_cidr: "{{ rt.destination_cidr }}"
+    #     target: "local" # simplifying generalization of instnace-id, gateway-id or local
 
     - name: Manage ELB
       ec2_elb_lb_1.8:
@@ -160,7 +161,7 @@
         scaling_adjustment: "{{ item.scaling_adjustment }}"
         min_adjustment_step: "{{ item.min_adjustment_step }}"
         cooldown: "{{ item.cooldown }}"
-      with_items: asg_policies
+      with_items: scaling_policies
       register: created_policies
 
     - name: Apply function to policy data
@@ -188,4 +189,4 @@
         description: "{{ item.description }}"
         dimensions: "{{ item.dimensions }}"
         alarm_actions: "{{ policy_data.function_output[item.target_policy] }}"
-      with_items: asg_alarms 
+      with_items: metric_alarms 
