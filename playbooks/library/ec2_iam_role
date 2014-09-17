@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+# This file is part of Ansible
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Ansible is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+
+DOCUMENTATION = """
+---
+module: ec2_iam_role
+short_description: Create or delete iam roles.
+description:
+  - Can create or delete AwS iam roles.
+version_added: "1.8"
+author: Edward Zarecor
+options:
+  state:
+    description:
+      - create, update or delete the role
+    required: true
+    choices: ['present', 'absent']
+  name:
+    description:
+      - Name for the role
+    required: true
+  vpc_id:
+    description:
+      - The VPC that this acl belongs to
+    required: true
+    default: null
+extends_documentation_fragment: aws
+"""
+
+EXAMPLES = '''
+- ec2_acl:
+    name: public-acls
+    state: present
+    vpc_id: 'vpc-abababab'
+
+'''
+
+from ansible.module_utils.basic import *
+from ansible.module_utils.ec2 import *
+import sys
+try:
+    import boto
+except ImportError:
+    print "failed=True msg='boto required for this module'"
+    sys.exit(1)
+
+def present(connection, module):
+
+    profile_name = module.params.get('instance_profile_name')
+    role_name =  module.params.get('role_name')
+    policies = module.params.get('policies')
+
+    fetched_profile = None
+    fetched_role = None
+
+    profile_arn = None
+    role_arn = None
+
+    try:
+        fetched_profile = connection.get_instance_profile(profile_name)
+    except boto.exception.BotoServerError as bse:
+        pass
+
+    if not fetched_profile:
+        instance_profile = connection.create_instance_profile(profile_name)
+        profile_arn = instance_profile.arn
+    else:
+        profile_arn = fetched_profile.arn
+
+    try:
+        fetched_role = connection.get_role(role_name)
+    except boto.exception.BotoServerError as bse:
+        pass
+
+    if not fetched_role:
+        role = connection.create_role(role_name)
+        role_arn = role.arn
+    else:
+        role_arn = fetched_role.arn
+
+    if not fetched_profile and not fetched_role:
+        connection.add_role_to_instance_profile(profile_name, role_name)
+
+    for policy in policies:
+
+        fetched_policy = None
+
+        try:
+            fetched_policy = connection.get_role_policy(role_name, policy['name'])
+        except boto.exception.BotoServerError as bse:
+            pass
+
+        if not fetched_policy:
+            connection.put_role_policy(role_name, policy['name'], policy['document'])
+        else:
+            # TODO: idempotent?
+            connection.put_role_policy(role_name, policy['name'], policy['document'])
+
+
+    module.exit_json(changed=True,
+                     instance_profile_arn=profile_arn,
+                     role_arn=role_arn)
+
+
+def absent(connection, module):
+
+    profile_name = module.params.get('instance_profile_name')
+    role_name =  module.params.get('role_name')
+    policies = module.params.get('policies')
+
+    for policy in policies:
+        try:
+            connection.delete_role_policy(role_name,policy['name'])
+        except boto.exception.BotoServerError as bse:
+            # TODO: parse code to verify that this is not found case
+            pass
+
+    connection.remove_role_from_instance_profile(profile_name,role_name)
+    connection.delete_role(role_name)
+    connection.delete_instance_profile(profile_name)
+
+    module.exit_json(changed=True)
+
+
+def main():
+    argument_spec = ec2_argument_spec()
+    argument_spec.update(
+        dict(
+            state=dict(default='present', choices=['present', 'absent']),
+            instance_profile_name=dict(required=True, type='str'),
+            role_name=dict(required=True, type='str'),
+            policies=dict(type='list')
+        )
+    )
+
+    module = AnsibleModule(argument_spec=argument_spec)
+    profile = module.params.get('profile')
+
+    try:
+        connection = boto.connect_iam(profile_name=profile)
+    except boto.exception.NoAuthHandlerFound, e:
+        module.fail_json(msg = str(e))
+
+    state = module.params.get('state')
+
+    if state == 'present':
+        present(connection, module)
+    elif state == 'absent':
+        absent(connection, module)
+
+main()
