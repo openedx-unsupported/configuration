@@ -1,3 +1,9 @@
+- Role: nginx
+  - New html templates for server errors added.
+    Defaults for a ratelimiting static page and server error static page.
+    CMS/LMS are set to use them by default, wording can be changed in the
+    Nginx default vars.
+
 - Role: edxapp
   - We now have an all caps variable override for celery workers
 - Role: common

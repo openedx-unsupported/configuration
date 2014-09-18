@@ -18,6 +18,9 @@ limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{
 server {
   # LMS configuration file for nginx, templated by ansible
 
+  # 500 error pages
+  error_page 500 502 504 /server/server-error.html;
+
   {% if NGINX_ENABLE_SSL %}
 
   listen {{EDXAPP_LMS_NGINX_PORT}} {{default_site}};
@@ -77,6 +80,7 @@ server {
     {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
     # Set Limit  
     limit_req zone=cookies burst={{ EDXAPP_COURSE_REQUEST_BURST_RATE }};
+    error_page  503 = /server/rate-limit.html;
     {%- endif -%}
 
     {%- include "basic-auth.j2" %}
