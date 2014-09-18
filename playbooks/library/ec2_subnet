@@ -69,7 +69,7 @@ class NonUniqueSubnetSpecification(Exception):
 
 class SubnetManager:
 
-    def __init__(self, connection, vpc_id, cidr_block, az, name, route_table_id, tags=[]):
+    def __init__(self, connection, vpc_id, cidr_block, az, name, route_table_id, network_acl_id, tags=[]):
 
         self.connection = connection
         self.vpc_id = vpc_id
@@ -77,6 +77,7 @@ class SubnetManager:
         self.az = az
         self.name = name
         self.route_table_id = route_table_id
+        self.network_acl_id = network_acl_id
         self.tags = tags
         self.subnet = None
 
@@ -117,6 +118,8 @@ class SubnetManager:
         self.subnet = self.connection.create_subnet(self.vpc_id, self.cidr_block, availability_zone=self.az)
         self.do_tags()
         self.connection.associate_route_table(self.route_table_id, self.subnet.id)
+        if self.network_acl_id:
+            self.connection.associate_network_acl(self.network_acl_id, self.subnet.id)
         return changed
 
     def update_subnet(self):
@@ -136,6 +139,18 @@ class SubnetManager:
             # unlikely unless manual monkeying around
             self.connection.associate_route_table(self.route_table_id, self.subnet.id)
             changed == True
+
+        if self.network_acl_id:
+            self.connection.associate_network_acl(self.network_acl_id, self.subnet.id)
+
+        # acl_results = self.connection.get_all_network_acls(
+        #     filters={'association.subnet_id': self.subnet.id, 'vpc_id': self.vpc_id})
+        #
+        # if len(acl_results) == 1:
+        #     acl = acl_results[0]
+        #
+        #     if acl.id != self.network_acl_id:
+        #         self.connection.disassociate_network_acl
 
         return changed
 
@@ -176,7 +191,8 @@ def main():
             vpc_id=dict(required=True, type='str'),
             cidr_block=dict(required=True, type='str'),
             az=dict(required=True, type='str'),
-            route_table_id=dict(require=True, type='str'),
+            route_table_id=dict(required=True, type='str'),
+            network_acl_id=dict(type='str'),
             tags=dict(type='list'),
         )
     )
@@ -197,9 +213,10 @@ def main():
     az = module.params.get('az')
     name = module.params.get('name')
     route_table_id = module.params.get('route_table_id')
+    network_acl_id = module.params.get('network_acl_id')
     tags = module.params.get('tags')
 
-    manager = SubnetManager(connection, vpc_id, cidr_block, az, name, route_table_id, tags)
+    manager = SubnetManager(connection, vpc_id, cidr_block, az, name, route_table_id, network_acl_id, tags)
 
     state = module.params.get('state')
 
