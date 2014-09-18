@@ -24,6 +24,7 @@
   with_items:
     - "{{ nginx_data_dir }}"
     - "{{ nginx_log_dir }}"
+    - "{{ nginx_server_static_dir }}"
   notify: restart nginx
 
 - name: Install nginx packages
@@ -112,6 +113,16 @@
     state=link owner=root group=root
   notify: reload nginx
   with_dict: nginx_redirects
+
+  # These are static pages that can be used
+  # for nginx rate limiting, 500 errors, etc.
+
+- name: Create NGINX server templates
+  template: >
+    src=edx/var/nginx/server-static/server-template.j2
+    dest={{ nginx_server_static_dir }}/{{ item.file }}
+    owner=root group={{ common_web_user }} mode=0640
+  with_items: NGINX_SERVER_HTML_FILES
 
 - name: Write out htpasswd file
   htpasswd: >
