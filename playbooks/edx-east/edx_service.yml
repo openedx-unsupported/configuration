@@ -55,25 +55,25 @@
           - "id"
       register: acl_data
          
-    - name: Manage ELB Subnets
-      ec2_subnet:
-        state: "{{ state }}"
-        region: "{{ aws_region }}"
-        name: "{{ item.name }}"
-        vpc_id: "{{ vpc_id }}"
-        cidr_block: "{{ item.cidr }}"
-        az: "{{ item.az }}"
-        route_table_id: "{{ item.route_table_id }}"
-        tags: "{{ item.tags }}"
-      register: created_elb_subnets
-      with_items: elb_subnets
+    # - name: Manage ELB Subnets
+    #   ec2_subnet:
+    #     state: "{{ state }}"
+    #     region: "{{ aws_region }}"
+    #     name: "{{ item.name }}"
+    #     vpc_id: "{{ vpc_id }}"
+    #     cidr_block: "{{ item.cidr }}"
+    #     az: "{{ item.az }}"
+    #     route_table_id: "{{ item.route_table_id }}"
+    #     tags: "{{ item.tags }}"
+    #   register: created_elb_subnets
+    #   with_items: elb_subnets
 
       #
       # Hack alert, this registers a list in the global namespace
       # of just the subnet ids that were created above
       #
-    - debug: msg="{{ created_elb_subnets.results|map(attribute='subnet_id')| list }}"
-      register: elb_sn_list
+    # - debug: msg="{{ created_elb_subnets.results|map(attribute='subnet_id')| list }}"
+    #   register: elb_sn_list
       
     - name: Manage Service Subnets
       ec2_subnet:
@@ -109,7 +109,7 @@
         name: "{{ elb_name }}"
         state: "{{ state }}"
         security_group_ids: "{{ elb_sec_group.group_id }}"
-        subnets: "{{ elb_sn_list.msg }}"
+        subnets: "{{ elb_subnets }}"
         health_check: "{{ elb_healthcheck }}"
         listeners: "{{ elb_listeners }}"
       register: elb
@@ -151,7 +151,7 @@
       register: asg
 
     - name: Manage scaling policies
-      ec2_scaling_policy:
+      ec2_scaling_policy_1.8:
         state: "{{ item.state }}"
         profile: "{{ item.profile }}"
         region: "{{ item.region }}"
