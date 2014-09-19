@@ -105,10 +105,85 @@ class ACLManager():
         self.do_tags()
         return changed
 
+    # TODO refactor out repitition
     def update_rules(self):
-        # TODO implement
-        rules = []
-        return rules
+
+        current_ingress = [x.rule_number for x in self.acl.network_acl_entries if x.egress == 'false']
+        current_egress = [x.rule_number for x in self.acl.network_acl_entries if x.egress == 'true']
+
+        modified_ingress = []
+        modified_egress = []
+
+        for rule in self.rules:
+            egress = True if rule['type'] == "egress" else False
+            protocol = PROTOCOL_NUMBERS[rule['protocol'].upper()]
+
+            if not egress:
+                if rule['number'] not in current_ingress:
+                    # new rule
+                    self.connection.create_network_acl_entry(
+                        self.acl.id,
+                        rule['number'],
+                        protocol,
+                        rule['rule_action'],
+                        rule['cidr_block'],
+                        egress=egress,
+                        port_range_from=rule['from_port'],
+                        port_range_to=rule['to_port'])
+                else:
+                    # blindly replace rather than attempting
+                    # to determine in the entry has changed
+                    modified_ingress.append(rule['number'])
+                    self.connection.replace_network_acl_entry (
+                        self.acl.id,
+                        rule['number'],
+                        protocol,
+                        rule['rule_action'],
+                        rule['cidr_block'],
+                        egress=egress,
+                        port_range_from=rule['from_port'],
+                        port_range_to=rule['to_port'])
+            else:
+                if rule['number'] not in current_egress:
+                    # new rule
+                    self.connection.create_network_acl_entry(
+                        self.acl.id,
+                        rule['number'],
+                        protocol,
+                        rule['rule_action'],
+                        rule['cidr_block'],
+                        egress=egress,
+                        port_range_from=rule['from_port'],
+                        port_range_to=rule['to_port'])
+                else:
+                    # blindly replace rather than attempting
+                    # to determine in the entry has changed
+                    modified_egress.append(rule['number'])
+                    self.connection.replace_network_acl_entry (
+                        self.acl.id,
+                        rule['number'],
+                        protocol,
+                        rule['rule_action'],
+                        rule['cidr_block'],
+                        egress=egress,
+                        port_range_from=rule['from_port'],
+                        port_range_to=rule['to_port'])
+
+        removed_ingress_rule_numbers = [ c for c in current_ingress if c not in modified_ingress ]
+        removed_egress_rule_numbers = [ c for c in current_egress if c not in modified_egress ]
+
+        for number in removed_ingress_rule_numbers:
+            n = int(number)
+            # reserved range for AWS
+            if n <  32767:
+                self.connection.delete_network_acl_entry(self.acl.id, n, False)
+
+        for number in removed_egress_rule_numbers:
+            n = int(number)
+            # reserved range for AWS
+            if n <  32767:
+                self.connection.delete_network_acl_entry(self.acl.id, n, True)
+
 
     def create_rules(self):
 
