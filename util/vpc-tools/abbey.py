@@ -185,7 +185,10 @@ def create_instance_args():
     subnet = vpc.get_all_subnets(
         filters={
             'tag:aws:cloudformation:stack-name': stack_name,
-            'tag:play': args.play}
+            'tag:play': args.play,
+            'tag:cluster': args.play,
+            'tag:environment': args.environment,
+            'tag:deployment': args.deployment }
     )
     if len(subnet) < 1:
         sys.stderr.write("ERROR: Expected at least one subnet, got {}\n".format(
