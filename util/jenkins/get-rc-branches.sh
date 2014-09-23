@@ -7,7 +7,7 @@ usage() {
 
   This will clone a repo and look for release
   candidate branches that will be returned as
-  a sorted list in json to be 
+  a sorted list in json to be
   parsed by the dynamic choice jenkins plugin
 
   Usage: $prog
@@ -62,7 +62,7 @@ fi
 
 $noop cd "/var/tmp/$repo_basename"
 if [[ -z $noop ]]; then
-    for branch in $(git branch -a | sort -r | tr -d ' ' | grep -P "$filter" ); do
+    for branch in $(git branch -a | sort -r | tr -d ' ' | grep -F "$filter" ); do
       echo "origin/${branch}"
     done
 else
