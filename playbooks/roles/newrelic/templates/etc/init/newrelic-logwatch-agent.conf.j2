@@ -4,8 +4,8 @@ stop on runlevel [016]
 respawn
 chdir {{ newrelic_logwatch_dir }} 
 pre-start script
-  instance_id=$(ec2metadata --instance-id)
   ami_id=$(ec2metadata --ami-id)
-  sed -i "s/HOSTNAME/${ami_id}-${instance_id}/" {{ newrelic_logwatch_dir }}/config/newrelic_plugin.yml
+  hostname=$(hostname)
+  sed "s/HOSTNAME/${ami_id}-${hostname}/" {{ newrelic_logwatch_dir }}/config/newrelic_plugin.yml.copy > {{ newrelic_logwatch_dir }}/config/newrelic_plugin.yml
 end script
 exec ruby newrelic_logwatcher_agent.rb
