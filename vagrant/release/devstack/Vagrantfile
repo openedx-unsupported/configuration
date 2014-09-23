@@ -23,7 +23,12 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # this can cause problems (e.g. looking for templates that no longer exist).
 /edx/bin/update configuration release
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release
+# Did we specify an openedx release?
+if [ -n "$1" ]; then
+  EXTRA_VARS="-e OPENEDX_RELEASE=$1"
+fi
+
+ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release $EXTRA_VARS
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
@@ -105,5 +110,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script
+  config.vm.provision "shell", inline: $script, args: ENV['OPENEDX_RELEASE']
 end
