@@ -12,49 +12,77 @@
 # 
 
 INSIGHTS_MEMCACHE: [ 'localhost:11211' ]
+INSIGHTS_FEEDBACK_EMAIL: 'dashboard@example.com'
+INSIGHTS_MKTG_BASE: 'http://example.com'
+INSIGHTS_PRIVACY_POLICY_URL: '{{ INSIGHTS_MKTG_BASE }}/privacy-policy'
+INSIGHTS_TERMS_OF_SERVICE_URL: '{{ INSIGHTS_MKTG_BASE }}/terms-service'
+INSIGHTS_HELP_URL: 'http://{{ INSIGHTS_READTHEDOCS }}/en/latest/'
 
+INSIGHTS_PLATFORM_NAME: 'edX'
+INSIGHTS_APPLICATION_NAME: 'Insights'
+INSIGHTS_SEGMENT_IO_KEY: 'YOUR_KEY'
+INSIGHTS_TIME_ZONE: 'America/New_York'
+INSIGHTS_LANGUAGE_CODE: 'en-us'
+# email config
+INSIGHTS_EMAIL_HOST: 'smtp.example.com'
+INSIGHTS_EMAIL_HOST_PASSWORD: "mail_password"
+INSIGHTS_EMAIL_HOST_USER: "mail_user"
+INSIGHTS_EMAIL_PORT: 587
+
+
+INSIGHTS_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: 'dashboard'
+    USER: 'rosencrantz'
+    PASSWORD: 'secret'
+    HOST: 'localhost'
+    PORT: '3306'
+
+#
+# This block of config is dropped into /edx/etc/insights.yml
+# and is read in by analytics_dashboard/settings/production.py
 INSIGHTS_CONFIG:
-  # assumes you are running https://github.com/edx/edx-analytics-data-api.git
-  # on port 8100
-  DATA_API_URL: 'http://127.0.0.1:8100/api/v0'
-  DATA_API_AUTH_TOKEN: 'edx'
-  SOCIAL_AUTH_EDX_OAUTH2_KEY: 'key'
-  SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'secret'
-  SOCIAL_AUTH_EDX_OAUTH2_URL_ROOT: 'root'
-  SOCIAL_AUTH_EDX_OIDC_KEY: 'key'
-  SOCIAL_AUTH_EDX_OIDC_SECRET: 'secret'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: 'root'
+  SEGMENT_IO_KEY: '{{ INSIGHTS_SEGMENT_IO_KEY }}'
+  FEEDBACK_EMAIL: '{{ INSIGHTS_FEEDBACK_EMAIL }}'
+  PRIVACY_POLICY_URL: '{{ INSIGHTS_PRIVACY_POLICY_URL }}'
+  TERMS_OF_SERVICE_URL: '{{ INSIGHTS_TERMS_OF_SERVICE_URL }}'
+  HELP_URL: '{{ INSIGHTS_HELP_URL }}'
+  SECRET_KEY: '{{ INSIGHTS_SECRET_KEY }}'
+  DATA_API_URL: '{{ ANALYTICS_API_ENDPOINT }}'
+  DATA_API_AUTH_TOKEN: '{{ INSIGHTS_DATA_API_AUTH_TOKEN }}'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: true  
+  SOCIAL_AUTH_EDX_OAUTH2_KEY: '{{ INSIGHTS_OAUTH2_KEY }}'
+  SOCIAL_AUTH_EDX_OAUTH2_SECRET: '{{ INSIGHTS_OAUTH2_SECRET }}'
+  SOCIAL_AUTH_EDX_OAUTH2_URL_ROOT: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
+  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ INSIGHTS_OAUTH2_KEY }}'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ INSIGHTS_OAUTH2_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
   # This value should be the same as SOCIAL_AUTH_EDX_OIDC_SECRET
-  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: 'root'
-  PLATFORM_NAME: 'edX'
-  APPLICATION_NAME: 'Insights'
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ INSIGHTS_OAUTH2_SECRET }}'
+  PLATFORM_NAME: '{{ INSIGHTS_PLATFORM_NAME }}'
+  APPLICATION_NAME: '{{ INSIGHTS_APPLICATION_NAME }}'
   CACHES:
     default: &default_generic_cache
       BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
-      KEY_PREFIX: 'default'
+      KEY_PREFIX: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-insights'
       LOCATION: "{{ INSIGHTS_MEMCACHE }}"
-  TIME_ZONE: 'America/New_York'
-  LANGUAGE_CODE: 'en-us'
+  TIME_ZONE: '{{ INSIGHTS_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{ INSIGHTS_LANGUAGE_CODE }}'
   # email config
-  EMAIL_HOST: 'smtp.example.com'
-  EMAIL_HOST_PASSWORD: ""
-  EMAIL_HOST_USER: ""
-  EMAIL_PORT: 587
+  EMAIL_HOST: '{{ INSIGHTS_EMAIL_HOST }}'
+  EMAIL_HOST_PASSWORD: '{{ INSIGHTS_EMAIL_HOST_PASSWORD }}'
+  EMAIL_HOST_USER: '{{ INSIGHTS_EMAIL_HOST_USER }}'
+  EMAIL_PORT: '{{ INSIGHTS_EMAIL_PORT }}'
   # static file config
-  STATICFILES_DIRS: ["{{ insights_code_dir }}/analytics_dashboard/static"]  
+  STATICFILES_DIRS: ["{{ insights_python_path }}/static"]
   STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ insights_service_name }}/staticfiles"
   # db config
   DATABASE_OPTIONS:
     connect_timeout: 10
-  DATABASES:
-    # rw user
-    default:
-      ENGINE: 'django.db.backends.mysql'
-      NAME: 'dashboard'
-      USER: 'rosencrantz'
-      PASSWORD: 'secret'
-      HOST: 'localhost'
-      PORT: '3306'
+  DATABASES: "{{ INSIGHTS_DATABASES }}"
+
       
 INSIGHTS_VERSION: "master"
 INSIGHTS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
