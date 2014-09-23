@@ -1,0 +1,109 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Defaults for role insights
+# 
+
+INSIGHTS_MEMCACHE: [ 'localhost:11211' ]
+
+INSIGHTS_CONFIG:
+  # assumes you are running https://github.com/edx/edx-analytics-data-api.git
+  # on port 8100
+  DATA_API_URL: 'http://127.0.0.1:8100/api/v0'
+  DATA_API_AUTH_TOKEN: 'edx'
+  SOCIAL_AUTH_EDX_OAUTH2_KEY: 'key'
+  SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'secret'
+  SOCIAL_AUTH_EDX_OAUTH2_URL_ROOT: 'root'
+  SOCIAL_AUTH_EDX_OIDC_KEY: 'key'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: 'secret'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: 'root'
+  # This value should be the same as SOCIAL_AUTH_EDX_OIDC_SECRET
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: 'root'
+  PLATFORM_NAME: 'edX'
+  APPLICATION_NAME: 'Insights'
+  CACHES:
+    default: &default_generic_cache
+      BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
+      KEY_PREFIX: 'default'
+      LOCATION: "{{ INSIGHTS_MEMCACHE }}"
+  TIME_ZONE: 'America/New_York'
+  LANGUAGE_CODE: 'en-us'
+  # email config
+  EMAIL_HOST: 'smtp.example.com'
+  EMAIL_HOST_PASSWORD: ""
+  EMAIL_HOST_USER: ""
+  EMAIL_PORT: 587
+  # static file config
+  STATICFILES_DIRS: ["{{ insights_code_dir }}/analytics_dashboard/static"]  
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ insights_service_name }}/staticfiles"
+  # db config
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES:
+    # rw user
+    default:
+      ENGINE: 'django.db.backends.mysql'
+      NAME: 'dashboard'
+      USER: 'rosencrantz'
+      PASSWORD: 'secret'
+      HOST: 'localhost'
+      PORT: '3306'
+      
+INSIGHTS_VERSION: "master"
+INSIGHTS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
+INSIGHTS_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+INSIGHTS_NGINX_PORT: "18110"
+INSIGHTS_GUNICORN_WORKERS: "2"
+INSIGHTS_GUNICORN_EXTRA: ""
+#
+# vars are namespace with the module name.
+#
+insights_environment:
+  DJANGO_SETTINGS_MODULE: "analytics_dashboard.settings.production"
+  ANALYTICS_DASHBOARD_CFG: "{{ COMMON_CFG_DIR  }}/{{ insights_service_name }}.yaml"
+
+insights_role_name: "insights"
+insights_service_name: "{{ insights_role_name }}"
+insights_user: "{{ insights_role_name }}"
+insights_app_dir: "{{ COMMON_APP_DIR }}/{{ insights_service_name }}"
+insights_home: "{{ COMMON_APP_DIR }}/{{ insights_service_name }}"
+insights_venv_base: "{{ insights_home }}/venvs"
+insights_venv_dir: "{{ insights_venv_base }}/{{ insights_service_name }}"
+insights_venv_bin: "{{ insights_venv_dir }}/bin"
+insights_code_dir: "{{ insights_app_dir }}/edx-analytics-dashboard"
+insights_python_path: "{{ insights_code_dir }}/analytics_dashboard"
+insights_conf_dir: "{{ insights_home }}"
+insights_log_dir: "{{ COMMON_LOG_DIR }}/{{ insights_service_name }}"
+
+insights_gunicorn_host: "127.0.0.1"
+insights_gunicorn_port: "8110"
+insights_gunicorn_timeout: "300"
+insights_wsgi: "analytics_dashboard.wsgi:application"
+
+insights_django_settings: "analytics_dashboard.settings.production"
+insights_source_repo: "git@{{ COMMON_GIT_MIRROR }}:/edx/edx-analytics-dashboard"
+insights_git_ssh_opts: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+insights_git_ssh: "/tmp/insights_git_ssh"
+insights_git_identity_file: "{{ insights_home }}/git_identity"
+insights_manage: "{{ insights_code_dir }}/analytics_dashboard/manage.py"
+
+insights_requirements_base: "{{ insights_code_dir }}/requirements"
+insights_requirements:
+  - production.txt
+
+#
+# OS packages
+#
+insights_debian_pkgs:
+  - 'libmysqlclient-dev'
+  - 'build-essential'
+
+insights_redhat_pkgs:
+  - 'community-mysql-devel'

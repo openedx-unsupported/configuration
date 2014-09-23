@@ -1,0 +1,115 @@
+---
+
+- name: create .ssh directory
+  file:
+    path="{{ insights_home }}/.ssh" mode=2700 state=directory owner={{ insights_user }} group={{ insights_user }}
+
+- name: create ssh script for git (not authenticated)
+  template: >
+    src=tmp/git_ssh_noauth.sh.j2 dest={{ insights_git_ssh }}
+    owner={{ insights_user }} mode=750
+    
+- name: install read-only ssh key
+  copy: >
+    content="{{ COMMON_GIT_IDENTITY }}" dest={{ insights_git_identity_file }}
+    owner={{ insights_user }} group={{ insights_user }} mode=0600
+
+- name: setup the insights env file
+  template: >
+    src="edx/app/insights/insights_env.j2"
+    dest="{{ insights_app_dir }}/insights_env"
+    owner={{ insights_user }}
+    group={{ insights_user }}
+    mode=0644
+
+- name: checkout code
+  git: >
+    dest={{ insights_code_dir }} repo={{ insights_source_repo }} version={{ INSIGHTS_VERSION }}
+    accept_hostkey=yes
+  register: insights_code_checkout
+  notify: restart insights
+  sudo_user: "{{ insights_user }}"
+  environment:
+    GIT_SSH: "{{ insights_git_ssh }}"
+
+- name: write out app config file
+  template: >
+    src=edx/app/insights/insights.yaml.j2
+    dest={{ COMMON_CFG_DIR  }}/{{ insights_service_name }}.yaml
+    mode=0644 owner={{ insights_user }} group={{ insights_user }}
+  notify: restart insights
+
+- name: install application requirements
+  pip: >
+    requirements="{{ insights_requirements_base }}/{{ item }}"
+    virtualenv="{{ insights_venv_dir }}" state=present
+  sudo_user: "{{ insights_user }}"
+  notify: restart insights
+  with_items: insights_requirements
+  environment:
+    GIT_SSH: "{{ insights_git_ssh }}"
+
+- name: syncdb and migrate
+  shell: >
+    chdir={{ insights_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ insights_venv_bin }}/python {{ insights_manage }} syncdb --migrate --noinput
+  sudo_user: "{{ insights_user }}"
+  environment: "{{ insights_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run collectstatic
+  shell: >
+    chdir={{ insights_code_dir }}
+    {{ insights_venv_bin }}/python {{ insights_manage }} {{ item }}
+  sudo_user: "{{ insights_user }}"
+  environment: "{{ insights_environment }}"
+  with_items:
+    - "collectstatic --noinput"
+    - "compress"
+- name: write out the supervisior wrapper
+  template: >
+    src=edx/app/insights/insights.sh.j2
+    dest={{ insights_app_dir }}/{{ insights_service_name }}.sh
+    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  notify: restart insights
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/insights.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ insights_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  notify: restart insights
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ insights_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ insights_service_name }}.conf
+    state=link
+    force=yes
+  notify: restart insights
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the venv bin dir
+  file: >
+    src="{{ insights_venv_bin }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ insights_role_name }}"
+    state=link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create manage.py symlink
+  file: >
+    src="{{ insights_manage }}"
+    dest="{{ COMMON_BIN_DIR }}/manage.{{ insights_role_name }}"
+    state=link
+
+- name: remove read-only ssh key for the content repo
+  file: path={{ insights_git_identity_file }} state=absent
