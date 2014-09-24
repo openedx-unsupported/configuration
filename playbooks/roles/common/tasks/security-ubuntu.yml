@@ -1,8 +1,14 @@
 
-- name: Apply bash security update
-  apt: name=bash state=latest update_cache=true
-
-- name: Check and fail if we are still vulnerable
+- name: Check if we are vulnerable
   shell: executable=bash env x='() { :;}; echo vulnerable'  bash -c "echo this is a test"
+  register: test_vuln
+
+- name: Apply bash security update if we are vulnerable
+  apt: name=bash state=latest update_cache=true
+  when: "'vulnerable' in test_vuln.stdout"
+
+- name: Check again and fail if we are still vulnerable
+  shell: executable=bash env x='() { :;}; echo vulnerable'  bash -c "echo this is a test"
+  when: "'vulnerable' in test_vuln.stdout"
   register: test_vuln
   failed_when: "'vulnerable' in test_vuln.stdout"
