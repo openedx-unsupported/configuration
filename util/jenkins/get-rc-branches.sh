@@ -54,10 +54,10 @@ repo_basename=$(basename "$repo")
 cd /var/tmp
 
 if [[ ! -d $repo_basename ]]; then
-    $noop git clone "$repo" "$repo_basename" --mirror
+    $noop git clone "$repo" "$repo_basename" --mirror > /dev/null 2>&1
 else
     $noop cd "/var/tmp/$repo_basename"
-    $noop git fetch
+    $noop git fetch > /dev/null > /dev/null 2>&1
 fi
 
 $noop cd "/var/tmp/$repo_basename"
