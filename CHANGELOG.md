@@ -45,3 +45,7 @@
 - Role: Edxapp
   - Added EDXAPP_LMS_AUTH_EXTRA and EDXAPP_CMS_AUTH_EXTRA for passing unique AUTH_EXTRA configurations to the LMS and CMS. 
     Both variables default to EDXAPP_AUTH_EXTRA for backward compatibility
+
+- Role: Splunkforwarder
+  - Changed splunkforwarder_output_dir to SPLUNK_HOME and default to /opt/splunk/
+  - Added SPLUNKFORWARDER_WEB_PORT for changing splunkforwarder default httpport.
