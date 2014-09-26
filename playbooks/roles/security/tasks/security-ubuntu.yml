@@ -1,15 +1,19 @@
 #### Bash security vulnerability
 
 - name: Check if we are vulnerable
-  shell: executable=/bin/bash env x='() { :;}; echo vulnerable'  bash -c "echo this is a test"
+  shell: executable=/bin/bash chdir=/tmp env X='() { (a)=>\' bash -c "echo echo check"; [[ "$(cat echo)" == "check" ]] && echo "vulnerable"
   register: test_vuln
+  ignore_errors: yes
 
 - name: Apply bash security update if we are vulnerable
   apt: name=bash state=latest update_cache=true
   when: "'vulnerable' in test_vuln.stdout"
 
+- name: Delete check file
+  file: path=/tmp/echo state=absent
+
 - name: Check again and fail if we are still vulnerable
-  shell: executable=/bin/bash env x='() { :;}; echo vulnerable'  bash -c "echo this is a test"
+  shell: executable=/bin/bash chdir=/tmp env X='() { (a)=>\' bash -c "echo echo check"; [[ "$(cat echo)" == "check" ]] && echo "vulnerable"
   when: "'vulnerable' in test_vuln.stdout"
   register: test_vuln
   failed_when: "'vulnerable' in test_vuln.stdout"
