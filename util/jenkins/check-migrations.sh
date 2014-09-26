@@ -62,9 +62,9 @@ extra_var_args+=" -e edxapp_user=jenkins"
 extra_var_args+=" -e syncdb=$syncdb"
 
 # Generate the json configuration files
-ansible-playbook -c local "$extra_var_args" --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml
+ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml
 
 # Run migrations and replace literal '\n' with actual newlines to make the output
 # easier to read
 
-ansible-playbook -v -c local "$extra_var_args" -i localhost, -s -U jenkins edxapp_migrate.yml | sed 's/\\n/\n/g'
+ansible-playbook -v -c local $extra_var_args -i localhost, -s -U jenkins edxapp_migrate.yml | sed 's/\\n/\n/g'
