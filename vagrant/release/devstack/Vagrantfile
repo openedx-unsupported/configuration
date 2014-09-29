@@ -13,6 +13,7 @@ if [ ! -d /edx/app/edx_ansible ]; then
     echo "Error: Base box is missing provisioning scripts." 1>&2
     exit 1
 fi
+OPENEDX_RELEASE=$1
 export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
@@ -21,14 +22,14 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # The vagrant-devstack.yml playbook will also do this, but only
 # after loading the playbooks into memory.  If these are out of date,
 # this can cause problems (e.g. looking for templates that no longer exist).
-/edx/bin/update configuration release
+/edx/bin/update configuration ${OPENEDX_RELEASE-release}
 
 # Did we specify an openedx release?
-if [ -n "$1" ]; then
-  EXTRA_VARS="-e OPENEDX_RELEASE=$1"
+if [ -n "$OPENEDX_RELEASE" ]; then
+  EXTRA_VARS="-e OPENEDX_RELEASE=$OPENEDX_RELEASE"
 fi
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release $EXTRA_VARS
+ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=${OPENEDX_RELEASE-release} $EXTRA_VARS
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
