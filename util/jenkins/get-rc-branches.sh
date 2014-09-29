@@ -54,17 +54,20 @@ repo_basename=$(basename "$repo")
 cd /var/tmp
 
 if [[ ! -d $repo_basename ]]; then
-    $noop git clone "$repo" "$repo_basename" --mirror
+    $noop git clone "$repo" "$repo_basename" --mirror > /dev/null 2>&1
 else
     $noop cd "/var/tmp/$repo_basename"
-    $noop git fetch
+    $noop git fetch > /dev/null > /dev/null 2>&1
 fi
 
 $noop cd "/var/tmp/$repo_basename"
 if [[ -z $noop ]]; then
     for branch in $(git branch -a | sort -r | tr -d ' ' | grep -E "$filter" ); do
-      echo "origin/${branch}"
+        echo "origin/${branch}"
+    done
+    for tag in $(git tag -l | sort -r | tr -d ' ' | grep -E "$filter"); do
+        echo "$tag"
     done
 else
-    echo "Would have checked for branches using filter $filter"
+    echo "Would have checked for branches or tags using filter $filter"
 fi

@@ -38,7 +38,7 @@ if [[ -z $syncdb ]]; then
 fi
 
 if [[ $db_dry_run == "false" ]]; then
-    # Set this to an empty string if db_dry_run is 
+    # Set this to an empty string if db_dry_run is
     # not set.  By default the db_dry_run var is
     # set to --db-dry-run
 
