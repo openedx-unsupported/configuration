@@ -1,7 +1,7 @@
 """VPC Tools.
 
 Usage:
-    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) [(identity-file <identity_file>)] user <user> [(config-file <config_file>)] [(strict-host-check <strict_host_check>)]
+    vpc-tools.py ssh-config (vpc <vpc_id> | stack-name <stack_name>) [(identity-file <identity_file>)] user <user> [(config-file <config_file>)] [(strict-host-check <strict_host_check>)] [(jump-box <jump_box>)]
     vpc-tools.py (-h --help)
     vpc-tools.py (-v --version)
 
@@ -38,6 +38,16 @@ Host {name}
     StrictHostKeyChecking {strict_host_check}
     {identity_line}
     """
+
+DIRECT_HOST_CONFIG = """# Instance ID: {instance_id}
+Host {name}
+    HostName {ip}
+    ForwardAgent yes
+    User {user}
+    StrictHostKeyChecking {strict_host_check}
+    {identity_line}
+    """
+
 
 BASTION_HOST_CONFIG = """# Instance ID: {instance_id}
 Host {name}
@@ -88,7 +98,11 @@ def _ssh_config(args):
     else:
       config_file = ""
 
-    jump_box = "{stack_name}-bastion".format(stack_name=stack_name)
+    if args.get("jump-box"):
+        jump_box = args.get("<jump_box>")
+    else:
+        jump_box = "{stack_name}-bastion".format(stack_name=stack_name)
+
     friendly = "{stack_name}-{logical_id}-{instance_number}"
     id_type_counter = defaultdict(int)
 
@@ -144,30 +158,55 @@ def _ssh_config(args):
             else:
                 # Print host config even for the bastion box because that is how
                 # ansible accesses it.
-                print HOST_CONFIG.format(
-                    name=instance.private_ip_address,
-                    jump_box=jump_box,
-                    ip=instance.private_ip_address,
-                    user=user,
-                    config_file=config_file,
-                    strict_host_check=strict_host_check,
-                    instance_id=instance.id,
-                    identity_line=identity_line)
+                if jump_box == "none":
+                    print DIRECT_HOST_CONFIG.format(
+                        name=instance.private_ip_address,
+                        ip=instance.private_ip_address,
+                        user=user,
+                        config_file=config_file,
+                        strict_host_check=strict_host_check,
+                        instance_id=instance.id,
+                        identity_line=identity_line)
 
-                #duplicating for convenience with ansible
-                name = friendly.format(stack_name=stack_name,
-                                       logical_id=logical_id,
-                                       instance_number=instance_number)
+                    #duplicating for convenience with ansible
+                    name = friendly.format(stack_name=stack_name,
+                                           logical_id=logical_id,
+                                           instance_number=instance_number)
 
-                print HOST_CONFIG.format(
-                    name=name,
-                    jump_box=jump_box,
-                    ip=instance.private_ip_address,
-                    user=user,
-                    config_file=config_file,
-                    strict_host_check=strict_host_check,
-                    instance_id=instance.id,
-                    identity_line=identity_line)
+                    print DIRECT_HOST_CONFIG.format(
+                        name=name,
+                        ip=instance.private_ip_address,
+                        user=user,
+                        config_file=config_file,
+                        strict_host_check=strict_host_check,
+                        instance_id=instance.id,
+                        identity_line=identity_line)
+
+                else:
+                    print HOST_CONFIG.format(
+                        name=instance.private_ip_address,
+                        jump_box=jump_box,
+                        ip=instance.private_ip_address,
+                        user=user,
+                        config_file=config_file,
+                        strict_host_check=strict_host_check,
+                        instance_id=instance.id,
+                        identity_line=identity_line)
+
+                    #duplicating for convenience with ansible
+                    name = friendly.format(stack_name=stack_name,
+                                           logical_id=logical_id,
+                                           instance_number=instance_number)
+
+                    print HOST_CONFIG.format(
+                        name=name,
+                        jump_box=jump_box,
+                        ip=instance.private_ip_address,
+                        user=user,
+                        config_file=config_file,
+                        strict_host_check=strict_host_check,
+                        instance_id=instance.id,
+                        identity_line=identity_line)
 
 if __name__ == '__main__':
     args = docopt(__doc__, version=VERSION)
