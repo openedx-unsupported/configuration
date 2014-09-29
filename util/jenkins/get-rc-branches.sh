@@ -68,6 +68,6 @@ if [[ -z $noop ]]; then
     for tag in $(git tag -l | sort -r | tr -d ' ' | grep -E "$filter"); do
         echo "$tag"
     done
-    else
-        echo "Would have checked for branches or tags using filter $filter"
+else
+    echo "Would have checked for branches or tags using filter $filter"
 fi
