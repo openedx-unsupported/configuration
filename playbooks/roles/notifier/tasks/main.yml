@@ -90,7 +90,15 @@
   file:
     path="{{ NOTIFIER_HOME }}/.ssh" mode=2700 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_USER }}
 
-
+- name: create service log dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="syslog"
+    group="syslog"
+  with_items:
+    - "{{ COMMON_LOG_DIR }}/notifier"
+    
 - name: write supervisord wrapper for celery workers
   template: >
     src=notifier-celery-workers-supervisor.sh.j2
