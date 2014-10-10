@@ -5,11 +5,24 @@ VAGRANTFILE_API_VERSION = "2"
 MEMORY = 2048
 CPU_COUNT = 2
 
+# map the name of the git branch that we use for a release
+# to a name and a file path, which are used for retrieving
+# a Vagrant box from the internet.
+openedx_releases = {
+  "openedx/rc/aspen-2014-09-10" => {
+    :name => "aspen-fullstack-rc1", :file => "20141010-aspen-fullstack-rc1.box",
+  }
+}
+openedx_releases.default = {
+  :name => "kifli-fullstack", :file => "20140826-kifli-fullstack.box"
+}
+rel = ENV['OPENEDX_RELEASE']
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX fullstack VM from an official release
-  config.vm.box     = "kifli-fullstack"
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140826-kifli-fullstack.box"
+  config.vm.box     = openedx_releases[rel][:name]
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.ssh.insert_key = true
