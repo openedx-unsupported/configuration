@@ -54,11 +54,21 @@ if ENV['VAGRANT_MOUNT_BASE']
 
 end
 
+openedx_releases = {
+  "openedx/rc/aspen-2014-09-10" => {
+    :name => "aspen-rc1", :file => "20141009-aspen-devstack-rc1.box",
+  }
+}
+openedx_releases.default = {
+  :name => "kifli-devstack", :file => "20140826-kifli-devstack.box"
+}
+rel = ENV['OPENEDX_RELEASE']
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
-  config.vm.box     = "kifli-devstack"
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140826-kifli-devstack.box"
+  config.vm.box     = openedx_releases[rel][:name]
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -119,5 +129,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script, args: ENV['OPENEDX_RELEASE']
+  config.vm.provision "shell", inline: $script, args: rel
 end
