@@ -115,10 +115,16 @@
 # won't update if they haven't changed on the github
 # side
 - name: copy github key[s] to .ssh/authorized_keys2
-  get_url: >
-    url=https://github.com/{{ item.name }}.keys
-    force=yes
-    dest=/home/{{ item.name }}/.ssh/authorized_keys2 mode=0640
+  shell: >
+    curl https://github.com/{{ item.name }}.keys -o /home/{{ item.name }}/.ssh/authorized_keys2
+  sudo_user: "{{ item.name }}"
+  when: item.github is defined and item.get('state', 'present') == 'present'
+  with_items: user_info
+
+- name: set permissions on .ssh/authorized_keys2
+  file: >
+    dest=/home/{{ item.name }}/.ssh/authorized_keys2 
+    mode=0640
     owner={{ item.name }}
   when: item.github is defined and item.get('state', 'present') == 'present'
   with_items: user_info
