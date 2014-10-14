@@ -65,6 +65,10 @@ server {
     {% include "basic-auth.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
+  # No basic auth for /segmentio/event
+  location /segmentio/event {
+    try_files $uri @proxy_to_lms_app;
+  }
 
   location /notifier_api {
     try_files $uri @proxy_to_lms_app;
@@ -87,7 +91,7 @@ server {
 
   location /courses {
     {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
-    # Set Limit  
+    # Set Limit
     limit_req zone=cookies burst={{ EDXAPP_COURSE_REQUEST_BURST_RATE }};
     error_page  503 = /server/rate-limit.html;
     {%- endif -%}
