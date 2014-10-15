@@ -1,3 +1,10 @@
+- Role: edxapp
+  - A new var was added to make it easy ot invalidate the default
+    memcache store to make it easier to invalidate sessions. Updating
+    the edxapp env.json files will result in all users getting logged
+    out.  This is a one time penalty as long as the value of `EDXAPP_DEFAULT_CACHE_VERSION`
+    is not explicitly changed.
+
 - Role: nginx
   - New html templates for server errors added.
     Defaults for a ratelimiting static page and server error static page.
