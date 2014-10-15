@@ -346,6 +346,7 @@ EDXAPP_CELERY_WORKERS:
     service_variant: lms
     concurrency: 2
 
+EDXAPP_DEFAULT_CACHE_VERSION: "None"
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -515,6 +516,12 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   THIRD_PARTY_AUTH: $EDXAPP_THIRD_PARTY_AUTH
   AWS_STORAGE_BUCKET_NAME: "{{ EDXAPP_AWS_STORAGE_BUCKET_NAME }}"
 
+generic_cache_config: &default_generic_cache
+  BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
+  KEY_FUNCTION:  'util.memcache.safe_key'
+  KEY_PREFIX: 'default'
+  LOCATION: $EDXAPP_MEMCACHE
+
 generic_env_config:  &edxapp_generic_env
   OAUTH_OIDC_ISSUER: "https://{{ EDXAPP_LMS_BASE }}/oauth2"
   XBLOCK_FS_STORAGE_BUCKET: $EDXAPP_XBLOCK_FS_STORAGE_BUCKET
@@ -559,11 +566,10 @@ generic_env_config:  &edxapp_generic_env
   # repo root for courses
   GITHUB_REPO_ROOT: $edxapp_course_data_dir
   CACHES:
-    default: &default_generic_cache
-      BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
-      KEY_FUNCTION:  'util.memcache.safe_key'
+    default:
+      <<: *default_generic_cache
       KEY_PREFIX: 'default'
-      LOCATION: $EDXAPP_MEMCACHE
+      VERSION: "{{ EDXAPP_DEFAULT_CACHE_VERSION }}"
     general:
       <<: *default_generic_cache
       KEY_PREFIX:  'general'
