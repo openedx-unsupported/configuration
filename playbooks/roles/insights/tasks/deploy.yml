@@ -50,6 +50,21 @@
   environment:
     GIT_SSH: "{{ insights_git_ssh }}"
 
+- name: create nodeenv
+  shell: >
+    {{ insights_venv_bin }}/nodeenv {{ insights_nodeenv_dir }}
+  sudo_user: "{{ insights_user }}"
+
+- name: install node dependencies
+  npm: executable={{ insights_nodeenv_bin }}/npm path={{ insights_code_dir }} production=yes
+  sudo_user: "{{ insights_user }}"
+
+- name: install bower dependencies
+  shell: >
+    chdir={{ insights_code_dir }}
+    {{ insights_node_modules_dir }}/.bin/bower install --production
+  sudo_user: "{{ insights_user }}"
+
 - name: syncdb and migrate
   shell: >
     chdir={{ insights_code_dir }}
