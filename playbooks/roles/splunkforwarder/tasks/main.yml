@@ -31,12 +31,12 @@
 
 - name: download the splunk deb
   get_url: >
-    dest="/tmp/{{SPLUNKFORWARDER_DEB}}"
-    url="{{SPLUNKFORWARDER_PACKAGE_URL}}"
+    dest="/tmp/{{ SPLUNKFORWARDER_DEB }}"
+    url="{{ SPLUNKFORWARDER_PACKAGE_URL }}"
   register: download_deb
 
 - name: install splunk forwarder
-  shell: gdebi -nq /tmp/{{SPLUNKFORWARDER_DEB}}
+  shell: gdebi -nq /tmp/{{ SPLUNKFORWARDER_DEB }}
   when: download_deb.changed
 
 # Create splunk user
@@ -49,27 +49,27 @@
 # to run some of the below commands.
 - name: start splunk manually
   shell: >
-    {{splunkforwarder_output_dir}}/bin/splunk start --accept-license --answer-yes --no-prompt
-      creates={{splunkforwarder_output_dir}}/var/lib/splunk
+    {{ splunkforwarder_output_dir }}/bin/splunk start --accept-license --answer-yes --no-prompt
+    creates={{ splunkforwarder_output_dir }}/var/lib/splunk
   when: download_deb.changed
   register: started_manually
 
 - name: stop splunk manually
   shell: >
-    {{splunkforwarder_output_dir}}/bin/splunk stop --accept-license --answer-yes --no-prompt
+    {{ splunkforwarder_output_dir }}/bin/splunk stop --accept-license --answer-yes --no-prompt
   when: download_deb.changed and started_manually.changed
 
 - name: create boot script
   shell: >
-    {{splunkforwarder_output_dir}}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
-      creates=/etc/init.d/splunk
+    {{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
+    creates=/etc/init.d/splunk
   register: create_boot_script
   when: download_deb.changed
   notify: restart splunkforwarder
 
 # Update credentials
 - name: update admin pasword
-  shell: "{{splunkforwarder_output_dir}}/bin/splunk edit user admin -password {{SPLUNKFORWARDER_PASSWORD}} -auth admin:changeme --accept-license --answer-yes --no-prompt"
+  shell: "{{ splunkforwarder_output_dir }}/bin/splunk edit user admin -password {{ SPLUNKFORWARDER_PASSWORD }} -auth admin:changeme --accept-license --answer-yes --no-prompt"
   when: download_deb.changed
   notify: restart splunkforwarder
 
@@ -80,7 +80,7 @@
 
 # Ensure permissions on splunk content
 - name: ensure splunk forder permissions
-  file: path={{splunkforwarder_output_dir}} state=directory recurse=yes owner=splunk group=splunk
+  file: path={{ splunkforwarder_output_dir }} state=directory recurse=yes owner=splunk group=splunk
   when: download_deb.changed
   notify: restart splunkforwarder
 
