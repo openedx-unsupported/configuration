@@ -6,7 +6,7 @@ ansible="ansible first_in_tag_Name_${environment}-${deployment}-worker -i playbo
 manage="/edx/bin/python.edxapp /edx/bin/manage.edxapp lms change_enrollment --settings aws"
 
 if [ "$noop" = true ]; then
-  $ansible "$manage --noop --course $course --user $name --to $to --from $from"
+  $ansible "$manage --noop --course $course --to $to --from $from"
 else
-  $ansible "$manage --course $course --user $name --to $to --from $from"
+  $ansible "$manage --course $course --to $to --from $from"
 fi
