@@ -62,7 +62,7 @@
 - name: install bower dependencies
   shell: >
     chdir={{ insights_code_dir }}
-    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_modules_dir }}/.bin/bower install --production --config.interactive=false
+    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false
   sudo_user: "{{ insights_user }}"
 
 - name: syncdb and migrate
@@ -74,6 +74,12 @@
   sudo_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run r.js optimizer
+  shell: >
+    chdir={{ insights_code_dir }}
+    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js
+  sudo_user: "{{ insights_user }}"
 
 - name: run collectstatic
   shell: >
