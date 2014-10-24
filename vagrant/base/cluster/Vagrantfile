@@ -1,0 +1,85 @@
+# -*- mode: ruby -*-
+
+# vi: set ft=ruby :
+
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.require_version ">= 1.5.0"
+
+$script = <<SCRIPT
+# Silly Ubuntu 12.04 doesn't have the
+# --stdin option in the passwd utility
+echo root:vagrant | chpasswd
+
+cat << EOF >> /etc/hosts
+192.168.33.100 cluster1
+192.168.33.110 cluster2
+192.168.33.120 cluster3
+EOF
+SCRIPT
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.box     = "precise64"
+  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+
+  # Turn off shared folders
+  #config.vm.synced_folder ".", "/vagrant", id: "vagrant-root", disabled: true
+
+  # Begin cluster1
+  config.vm.define "cluster1" do |cluster1_config|
+    cluster1_config.vm.hostname = "cluster1"
+
+    cluster1_config.vm.provision "shell", inline: $script
+
+    cluster1_config.vm.network :private_network, ip: "192.168.33.100"
+
+    cluster1_config.vm.provider "virtualbox" do |v|
+        v.customize ["modifyvm", :id, "--memory", "2048"]
+        v.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+  end
+  # End cluster1
+
+ # Begin cluster2
+  config.vm.define "cluster2" do |cluster2_config|
+    cluster2_config.vm.hostname = "cluster2"
+
+    cluster2_config.vm.provision "shell", inline: $script
+
+    cluster2_config.vm.network :private_network, ip: "192.168.33.110"
+
+    cluster2_config.vm.provider "virtualbox" do |v|
+        v.customize ["modifyvm", :id, "--memory", "2048"]
+        v.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+  end
+  # End cluster2
+
+
+  # Begin cluster3
+  config.vm.define "cluster3" do |cluster3_config|
+    cluster3_config.vm.hostname = "cluster3"
+
+    cluster3_config.vm.provision "shell", inline: $script
+
+    cluster3_config.vm.network :private_network, ip: "192.168.33.120"
+
+    cluster3_config.vm.provider "virtualbox" do |v|
+        v.customize ["modifyvm", :id, "--memory", "2048"]
+        v.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+    # Now that all machines are up, provision the group
+    # See https://github.com/mitchellh/vagrant/issues/1784 for why
+    # we do it here
+    cluster3_config.vm.provision :ansible do |ansible|
+      # point Vagrant at the location of your playbook you want to run
+      ansible.playbook = "../../../playbooks/vagrant-cluster.yml"
+      ansible.verbose = "vvv"
+      ansible.inventory_path = "inventory.ini"
+      ansible.limit = 'all'
+    end
+    
+  end
+  # End cluster3
+end
