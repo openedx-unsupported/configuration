@@ -11,6 +11,15 @@ if (( $EUID != 0 )); then
     exit 1
 fi
 
+#
+# Ensure the log processors can read without
+# running as root
+if [ ! -f "{{ aws_s3_logfile }}" ]; then
+  sudo -u syslog touch "{{ aws_s3_logfile }}"
+else
+  chown syslog.syslog "{{ aws_s3_logfile }}"
+fi
+
 exec > >(tee -a "{{ aws_s3_logfile }}")
 exec 2>&1
 
