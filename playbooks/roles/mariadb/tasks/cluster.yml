@@ -19,8 +19,7 @@
     dest="/etc/mysql/conf.d/galera.cnf"
     regexp="^wsrep_cluster_address=gcomm://{{ hostvars.keys()|sort|join(',') }}$"
     line="wsrep_cluster_address=gcomm://"
-  when: ansible_ssh_host == hostvars[hostvars.keys()[0]].ansible_ssh_host and not mariadb_bootstrap.stat.exists
-
+  when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
 
 - name: fetch debian.cnf file so start-stop will work properly
   fetch: >
@@ -28,7 +27,7 @@
     dest=/tmp/debian.cnf
     fail_on_missing=yes
     flat=yes
-  when: ansible_ssh_host == hostvars[hostvars.keys()[0]].ansible_ssh_host and not mariadb_bootstrap.stat.exists
+  when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
   register: mariadb_new_debian_cnf
 
 - name: copy fetched file to other cluster members
