@@ -1,17 +1,8 @@
 ---
 
-- name: create .ssh directory
-  file:
-    path="{{ insights_home }}/.ssh" mode=2700 state=directory owner={{ insights_user }} group={{ insights_user }}
-
-- name: create ssh script for git (not authenticated)
-  template: >
-    src=tmp/git_ssh_noauth.sh.j2 dest={{ insights_git_ssh }}
-    owner={{ insights_user }} mode=750
-    
 - name: install read-only ssh key
   copy: >
-    content="{{ COMMON_GIT_IDENTITY }}" dest={{ insights_git_identity_file }}
+    content="{{ INSIGHTS_GIT_IDENTITY }}" dest={{ insights_git_identity_file }}
     owner={{ insights_user }} group={{ insights_user }} mode=0600
 
 - name: setup the insights env file
@@ -26,11 +17,10 @@
   git: >
     dest={{ insights_code_dir }} repo={{ insights_source_repo }} version={{ INSIGHTS_VERSION }}
     accept_hostkey=yes
+    ssh_opts="{{ insights_git_ssh_opts }}"
   register: insights_code_checkout
   notify: restart insights
   sudo_user: "{{ insights_user }}"
-  environment:
-    GIT_SSH: "{{ insights_git_ssh }}"
 
 - name: write out app config file
   template: >
@@ -47,8 +37,6 @@
   sudo_user: "{{ insights_user }}"
   notify: restart insights
   with_items: insights_requirements
-  environment:
-    GIT_SSH: "{{ insights_git_ssh }}"
 
 - name: create nodeenv
   shell: >
@@ -91,6 +79,7 @@
   with_items:
     - "collectstatic --noinput"
     - "compress"
+
 - name: write out the supervisior wrapper
   template: >
     src=edx/app/insights/insights.sh.j2
