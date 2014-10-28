@@ -60,7 +60,7 @@ except ImportError:
 
 from boto.exception import NoAuthHandlerFound
 
-PROTOCOL_NUMBERS = {"ICMP": 1, "TCP": 6, "UPD": 17}
+PROTOCOL_NUMBERS = {"ICMP": 1, "TCP": 6, "UDP": 17, "ALL": -1 }
 
 
 class DuplicateAclError(Exception):
@@ -186,7 +186,8 @@ class ACLManager():
 
 
     def create_rules(self):
-
+        if self.rules is None:
+            return
         for rule in self.rules:
             egress = True if rule['type'] == "egress" else False
             protocol = PROTOCOL_NUMBERS[rule['protocol'].upper()]
@@ -202,12 +203,10 @@ class ACLManager():
 
     def do_tags(self):
 
-        if not self.tags:
-            return
-
         tags = {'Name': self.acl_name}
-        for tag in self.tags:
-            tags[tag['key']] = tag['value']
+        if self.tags:
+            for tag in self.tags:
+                tags[tag['key']] = tag['value']
         self.get_acl().add_tags(tags)
 
     def present(self):
