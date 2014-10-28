@@ -28,11 +28,26 @@ AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
 # vars are namespace with the module name.
 #
 aws_role_name: aws
-aws_data_dir: "{{ COMMON_DATA_DIR }}/aws"
-aws_app_dir: "{{ COMMON_APP_DIR }}/aws"
-aws_s3_sync_script: "{{ aws_app_dir }}/send-logs-to-s3"
-aws_s3_logfile: "{{ aws_log_dir }}/s3-log-sync.log"
-aws_log_dir: "{{ COMMON_LOG_DIR }}/aws"
+
+aws_dirs:
+  home:
+    path: "{{ COMMON_APP_DIR }}/{{ aws_role_name }}"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  logs:
+    path: "{{ COMMON_LOG_DIR }}/{{ aws_role_name }}"
+    owner: "syslog"
+    group: "syslog"
+    mode: "0700"
+  data:
+    path: "{{ COMMON_DATA_DIR }}/{{ aws_role_name }}"
+    owner: "root"
+    group: "root"
+    mode: "0700"
+
+aws_s3_sync_script: "{{ aws_dirs.home.path }}/send-logs-to-s3"
+aws_s3_logfile: "{{ aws_dirs.logs.path }}/s3-log-sync.log"
 aws_region: "us-east-1"
 # default path to the aws binary
 aws_s3cmd: "{{ COMMON_BIN_DIR }}/s3cmd"
