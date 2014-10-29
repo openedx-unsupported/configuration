@@ -32,14 +32,10 @@ options:
     description:
       - Unique name for subnet
     required: true
-  cidr_block:
+  destination_cidr:
     description:
       - The cidr block of the subnet
     aliases: ['cidr']
-  availability_zone
-    description:
-      - The availability zone of the subnet
-    aliases: ['az']
   vpc_id:
     description:
       - The VPC that this acl belongs to
@@ -58,14 +54,139 @@ try:
     import boto.vpc
 except ImportError:
     print "failed=True msg={0}".format(sys.executable)
-    #print "failed=True msg='boto required for this module'"
     sys.exit(1)
 
-def present(connection, module):
-    module.exit_json(id="1")
 
-def absent(connection, module):
-    module.exit_json(id="-1")
+class DuplicateRouteTableError(Exception):
+    pass
+
+class InconsistentRouteError(Exception):
+    pass
+
+class RTManager():
+
+    def __init__(self, connection, vpc_id, route_name, routes, tags):
+        self.connection = connection
+        self.vpc_id = vpc_id
+        self.name = route_name
+        self.routes = routes
+        self.tags = tags
+        self.rt = None
+
+    def get_rt(self):
+        rt_filter = { "vpc_id": self.vpc_id,
+                      "tag:Name": self.name,
+                    }
+        results = self.connection.get_all_route_tables(filters=rt_filter)
+
+        if len(results) == 1:
+            self.rt = results[0]
+        elif len(results) > 1:
+            msg = "Found multiple route tables with name '{}' in vpc with id '{}'"
+            raise DuplicateRouteTableError(msg.format(self.acl_name, self.vpc_id))
+        else:
+            pass
+            # Doesn't exist yet
+
+        return self.rt
+
+    def do_tags(self):
+        tags = { "Name" : self.name }
+        if self.tags:
+            for tag in self.tags:
+                tags[tag['key']] = tag['value']
+        self.rt.add_tags(tags)
+
+    def create_rt(self):
+        self.rt = self.connection.create_route_table(self.vpc_id)
+        changed = True
+        self.do_tags()
+        return changed
+
+    def routes_match(self, new_route, existing_route):
+        # Not the same route
+        if new_route['cidr'] != existing_route.destination_cidr_block:
+            return False
+
+        instance_matches = existing_route.instance_id \
+           and existing_route.instance_id == new_route['instance']
+
+        gateway_matches = existing_route.gateway_id \
+           and existing_route.gateway_id == new_route['gateway']
+
+        return instance_matches or gateway_matches
+
+    def update_routes(self):
+        changed = False
+        existing_routes = { x.destination_cidr_block : x for x in self.rt.routes }
+        
+        for route in self.routes:
+            # Build the args used to call the boto API
+            call_args = {
+                "route_table_id": self.rt.id,
+                "destination_cidr_block": route['cidr'],
+            }
+
+            if "gateway" in route and "instance" in route:
+                msg = "Both gateway and instance specified for route" + \
+                      "with CIDR {}"
+                raise InconsistentRouteError(msg.format(route['cidr']))
+            elif "gateway" in route:
+                call_args['gateway_id'] = route['gateway']
+            elif "instance" in route:
+                call_args['instance_id'] = route['instance']
+            else:
+                msg = "No gateway or instance provided for route with" + \
+                      "CIDR {}"
+                raise InconsistentRouteError(msg.format(route['cidr']))
+
+            if route['cidr'] in existing_routes:
+                # Update the route
+                existing_route = existing_routes[route['cidr']]
+
+                if self.routes_match(route, existing_route):
+                    continue
+
+                self.connection.replace_route(**call_args)
+                changed = True
+            else:
+                # Create a new route
+                self.connection.create_route(**call_args)
+                changed = True
+
+        return changed
+
+    def present(self):
+        changed = False
+        existing = self.get_rt()
+
+        if existing:
+            changed = self.update_routes()
+        else:
+            changed = self.create_rt()
+            self.update_routes()
+
+        results = dict(changed=changed,
+                       id=self.rt.id,
+                       name=self.name,
+                       routes=self.routes,
+                      )
+
+        return results
+
+    def absent(self):
+        rt = self.get_rt()
+        changed = False
+
+        if rt:
+            changed = self.connection.delet_route_table(rt.id)
+
+        results = dict(changed=changed,
+                       id=self.rt.id,
+                       name=self.name,
+                      )
+
+        return results
 
 def main():
     argument_spec = ec2_argument_spec()
@@ -74,8 +195,7 @@ def main():
             name=dict(required=True, type='str'),
             state=dict(default='present', choices=['present', 'absent']),
             vpc_id=dict(required=True, type='str'),
-            destination_cidr=dict(required=True, type='str'),
-            target=dict(required=True, type='str'),
+            routes=dict(required=True, type='list', aliases=['dest_routes']),
             tags=dict(type='list'),
         )
     )
@@ -83,6 +203,11 @@ def main():
     module = AnsibleModule(argument_spec=argument_spec)
     ec2_url, aws_access_key, aws_secret_key, region = get_ec2_creds(module)
     profile = module.params.get('profile')
+    vpc_id = module.params.get('vpc_id')
+    route_name = module.params.get('name')
+    routes = module.params.get('routes')
+    tags = module.params.get('tags')
+
     if region:
         try:
             connection = boto.vpc.connect_to_region(region,profile_name=profile)
@@ -91,12 +216,16 @@ def main():
     else:
         module.fail_json(msg="region must be specified")
 
+    manager = RTManager(connection, vpc_id, route_name, routes, tags)
 
     state = module.params.get('state')
 
+    results = dict()
     if state == 'present':
-        present(connection, module)
+        results = manager.present()
     elif state == 'absent':
-        absent(connection, module)
+        results = manager.absent()
+
+    module.exit_json(**results)
 
 main()
