@@ -1,134 +1,154 @@
 ---
-- hosts: first_in_tag_role_mongo
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - role: 'mongo'
-      mongo_create_users: yes
-#- hosts: tag_role_mongo:!first_in_tag_role_mongo
-#  sudo: True
-#  vars_files:
-#    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-#    - "{{ secure_dir }}/vars/common/common.yml"
-#  roles:
-#    - user
-#    - mongo
-- hosts: first_in_tag_role_edxapp
-  sudo: True
-  serial: 1
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - datadog
-    - role: nginx
-      nginx_sites:
-      - lms
-      - cms
-      - lms-preview
-      nginx_default_sites:
-      - lms
-    - role: 'edxapp'
-      edxapp_lms_env: 'lms.envs.load_test'
-      migrate_db: '{{ RUN_EDXAPP_MIGRATION }}'
-      openid_workaround: 'yes'
-    - splunkforwarder
-- hosts: tag_role_edxapp:!first_in_tag_role_edxapp
-  sudo: True
-  serial: 1
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - datadog
-    - role: nginx
-      nginx_sites:
-      - lms
-      - cms
-      - lms-preview
-      nginx_default_site:
-      - lms
-    - role: 'edxapp'
-      edxapp_lms_env: 'lms.envs.load_test'
-    - splunkforwarder
-- hosts: tag_role_worker
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - datadog
-    - role: nginx
-      nginx_sites:
-      - lms
-      - cms
-      - lms-preview
-      nginx_default_site:
-      - lms
-    - role: 'edxapp'
-      edxapp_lms_env: 'lms.envs.load_test'
-      celery_worker: True
-    - splunkforwarder
-- hosts: tag_role_xserver
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - role: nginx
-      nginx_sites:
-      - xserver
-    - xserver
-    - splunkforwarder
-- hosts: tag_role_rabbitmq
-  serial: 1
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - rabbitmq
-    - splunkforwarder
-- hosts: first_in_tag_role_xqueue
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - role: nginx
-      nginx_sites:
-      - xqueue
-    - role: xqueue
-      migrate_db: '{{ RUN_XQUEUE_MIGRATION }}'
-    - splunkforwarder
-- hosts: tag_role_xqueue:!first_in_tag_role_xqueue
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - role: nginx
-      nginx_sites:
-      - xqueue
-    - xqueue
-    - splunkforwarder
-- hosts: tag_role_forum
-  sudo: True
-  vars_files:
-    - "{{ secure_dir }}/vars/{{ENVIRONMENT}}/{{CLOUDFORMATION_STACK_NAME}}.yml"
-    - "{{ secure_dir }}/vars/common/common.yml"
-  roles:
-    - user
-    - oraclejdk
-    - elasticsearch
-    - forum
+- name: Create a simple empty vpc
+  hosts: all
+  connection: local
+  gather_facts: True
+  vars:
+    vpc_state: present
+  tasks:
+    # DO NOT use the subnet or route table sections of this command.
+    # They will delete any subnets or rts not defined here which is
+    # probably not what you want, since other services were added
+    # to the vpc whose subnets and rts are not enumerated here.
+    - name: create a vpc
+      local_action:
+        module: 'ec2_vpc_1.8'
+        resource_tags: '{{ vpc_tags }}'
+        cidr_block: '{{ vpc_cidr }}'
+        region: '{{ aws_region }}'
+        state: '{{ vpc_state }}'
+        internet_gateway: yes
+        wait: yes
+      register: created_vpc
+
+    # A public network acl is created
+    # when a vpc is created so each VPC
+    # should have one.
+    - name: create public network acl
+      ec2_acl:
+#        profile: "{{ profile }}"
+        name: "{{ vpc_public_acl.name }}"
+        vpc_id: "{{ created_vpc.vpc_id }}"
+        state: "present"
+        region: "{{ aws_region }}"
+        rules: "{{ vpc_public_acl.rules }}"
+      register: created_public_acl
+
+    - name: create public route table
+      ec2_rt:
+        profile: "{{ profile }}"
+        vpc_id: "{{ created_vpc.vpc_id }}"
+        region: "{{ aws_region }}"
+        state: "present"
+        name: "{{ vpc_name }}-public"
+        routes:
+          - cidr: "{{ vpc_cidr }}"
+            gateway: 'local'
+          - cidr: '0.0.0.0/0'
+            gateway: "{{ created_vpc.igw.id }}"
+      register: created_public_rt
+
+    - name: create public subnets
+      ec2_subnet:
+        profile: "{{ profile }}"
+        vpc_id: "{{ created_vpc.vpc_id }}"
+        region: "{{ aws_region }}"
+        state: "present"
+        name: "{{ item.name }}"
+        cidr: "{{ item.cidr }}"
+        az: "{{ item.az }}"
+        route_table_id: "{{ created_public_rt.id }}"
+        network_acl_id: "{{ created_public_acl.id }}"
+      with_items: vpc_public_subnets
+      register: created_public_subnets
+
+    - name: create NAT security group
+      ec2_group:
+        profile: "{{ profile }}"
+        vpc_id: "{{ created_vpc.vpc_id }}"
+        state: "present"
+        region: "{{ aws_region }}"
+        name: "{{ nat_security_group.name }}"
+        rules: "{{ nat_security_group.rules }}"
+        description: "{{ nat_security_group.description }}"
+        rules_egress: "{{ nat_security_group.rules_egress }}"
+      register: created_nat_security_group
+
+    - name: check to see if we already have a nat instance
+      local_action:
+        module: "ec2_lookup"
+        region: "{{ aws_region }}"
+        tags:
+          Name: "{{ vpc_name }}-nat-instance"
+      register: potential_existing_nat
+
+    - debug: msg="{{ potential_existing_nat }}"
+
+    - name: create nat instance
+      local_action:
+        module: 'ec2'
+        state: 'present'
+        wait: "yes"
+        region: "{{ aws_region }}"
+        profile: "{{ profile }}"
+        group_id: "{{ created_nat_security_group.group_id }}"
+        key_name: "{{ vpc_nat_keypair }}"
+        vpc_subnet_id: "{{ created_public_subnets.results[0].subnet_id }}"
+        instance_type: "{{ vpc_nat_instance_type }}"
+        instance_tags:
+          Name: "{{ vpc_name }}-nat-instance"
+        image: "{{ vpc_nat_ami_id }}"
+      register: created_nat_instance
+      when: potential_existing_nat.instances|length == 0
+
+    - name: create private route table
+      ec2_rt:
+        profile: "{{ profile }}"
+        vpc_id: "{{ created_vpc.vpc_id }}"
+        region: "{{ aws_region }}"
+        state: "present"
+        name: "{{ vpc_name }}-private"
+        routes:
+          - cidr: "{{ vpc_cidr }}"
+            gateway: 'local'
+          - cidr: '0.0.0.0/0'
+            instance: "{{ created_nat_instance.instances[0].id }}"
+      register: created_public_rt
+      when: potential_existing_nat.instances|length == 0
+      
+
+#        
+
+#    - name: create public subnets
+#      ec2_subnet:
+#        profile: "{{ profile }}"
+#        name: "{{ item.name }}"
+#        vpc_id: "{{ created_vpc.vpc_id }}"
+#        state: "present"
+#        region: "{{ aws_region }}"
+#        cidr_block: "{{ item.cidr }}"
+#        az: "{{ item.az }}"
+#        route_table_id: "{{ item.route_table_id }}"
+#        tags: "{{ item.tags }}"
+#      register: created_vpc_subnets
+#      with_item: vpc_subnets
+
+#    - name: create public subnets
+#      local_action:
+#        module: 
+#    - name: create public route tables
+#    - name: Create a nat
+#      local_action:
+#        module: ec2
+#        image: '{{ vpc_nat_ami }}'
+#        instance_tags:
+#          environment: test
+#          deployment: test
+#          Name: test-vpc-nat
+#        instance_type: '{{ vpc_nat_instance_type }}'
+#        key_name: '{{ vpc_key_name }}'
+#        region: '{{ aws_region }}'
+#        vpc_subnet_id: '{{ public_subnets[0] }}'
+#        wait: yes
+#      - name: create a nat security group
+
