@@ -49,3 +49,10 @@
 
 - name: touch bootstrap file to confirm we are fully up
   file: path="/etc/mysql/ansible_cluster_started" state=touch
+
+# This is needed for mysql-check in haproxy or other mysql monitor
+# scripts to prevent haproxy checks exceeding `max_connect_errors`.
+- name: create haproxy monitor user
+  command: >
+    mysql -e "INSERT INTO mysql.user (Host,User) values ('{{ item }}','{{ MARIADB_HAPROXY_USER }}'); FLUSH PRIVILEGES;"
+  with_items: MARIADB_HAPROXY_HOSTS
