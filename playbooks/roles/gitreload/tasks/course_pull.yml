@@ -1,0 +1,34 @@
+# Tasks to run if cloning repos to edx-platform.
+
+- name: clone all course repos
+  git: dest={{ GITRELOAD_REPODIR }}/{{ item.name }} repo={{ item.url }} version={{ item.commit }}
+  sudo_user: "{{ common_web_user }}"
+  with_items: GITRELOAD_REPOS
+
+- name: do import of courses
+  shell: >
+    executable=/bin/bash
+    chdir="{{ edxapp_code_dir }}"
+    SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/python manage.py lms --settings=aws git_add_course {{ item.url }} {{ GITRELOAD_REPODIR }}/{{ item.name }}
+  sudo_user: "{{ common_web_user }}"
+  with_items: GITRELOAD_REPOS
+
+- name: change ownership on repos for access by edxapp and www-data
+  file: >
+    path={{ GITRELOAD_REPODIR }}
+    state=directory
+    owner={{ common_web_user }}
+    owner={{ common_web_group }}
+    recurse=yes
+
+- name: change group on repos if using devstack
+  file: >
+    path={{ GITRELOAD_REPODIR }}
+    state=directory
+    group={{ edxapp_user }}
+    recurse=yes
+  when: devstack
+
+- name: change mode on repos with using devstack
+  command: chmod -R o=rwX,g=srwX,o=rX {{ GITRELOAD_REPODIR }}
+  when: devstack

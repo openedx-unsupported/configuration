@@ -1,0 +1,146 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gitreload
+# 
+# Overview: Install gitreload for doing course reload via github Web hooks
+# 
+#
+# Dependencies: supervisor, common
+#
+# 
+# Example playbook:
+#
+# - hosts: all
+#   sudo: True
+#   gather_facts: True
+#   vars:
+#     COMMON_ENABLE_BASIC_AUTH: True
+#   roles:
+#     - gitreload
+#     - role: nginx
+#       nginx_sites:
+#         - gitreload
+#
+
+# grab edxapp vars without being dependent on its tasks
+- include_vars: ../../edxapp/defaults/main.yml
+
+- name: create gitreload user
+  user: >
+    name="{{ gitreload_user }}"
+    home="{{ gitreload_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: ensure home folder exists
+  file: >
+    path={{ gitreload_dir }}
+    state=directory
+    owner={{ gitreload_user }}
+    group={{ gitreload_user }}
+
+- name: ensure repo dir exists
+  file: >
+    path={{ GITRELOAD_REPODIR }}
+    state=directory
+    owner={{ common_web_user }}
+    group={{ common_web_group }}
+
+- name: create ssh dir for the content repos key
+  file: path=~/.ssh state=directory mode=0700
+  sudo_user: "{{ common_web_user }}"
+  tags:
+    - deploy
+
+- name: install ssh key for the content repos
+  copy: content="{{ GITRELOAD_GIT_IDENTITY }}" dest=~/.ssh/id_rsa mode=0600
+  sudo_user: "{{ common_web_user }}"
+  tags:
+    - deploy
+
+- name: grab ssh host keys
+  shell: ssh-keyscan {{ item }}
+  sudo_user: "{{ common_web_user }}"
+  with_items: GITRELOAD_HOSTS
+  register: gitreload_repo_host_keys
+
+- name: add host keys if needed to known_hosts
+  lineinfile: >
+    create=yes
+    dest=~/.ssh/known_hosts
+    line="{{ item.stdout }}"
+  sudo_user: "{{ common_web_user }}"
+  with_items: gitreload_repo_host_keys.results
+
+- name: install gitreload
+  pip: >
+    name=git+{{ gitreload_repo }}@{{ gitreload_version }}#egg=gitreload
+    virtualenv={{ gitreload_venv }}
+    extra_args="--exists-action w"
+  sudo_user: "{{ gitreload_user }}"
+  notify: restart gitreload
+  tags:
+    - deploy
+
+- name: copy configuration
+  template: src=edx/app/gitreload/gr.env.json.j2 dest={{ gitreload_dir }}/gr.env.json
+  sudo_user: "{{ gitreload_user }}"
+  notify: restart gitreload
+  tags:
+    - deploy
+
+- include: course_pull.yml
+  when: GITRELOAD_COURSE_CHECKOUT|bool
+  tags: course_pull
+
+- name: "writing supervisor script"
+  template: >
+    src=edx/app/supervisor/conf.available.d/gitreload.conf.j2 dest={{ supervisor_available_dir }}/gitreload.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: "enable supervisor script"
+  file: >
+    src={{ supervisor_available_dir }}/gitreload.conf
+    dest={{ supervisor_cfg_dir }}/gitreload.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+    state=link force=yes
+  when: not disable_edx_services
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+  when: not disable_edx_services
+
+- name: ensure gitreload is started
+  supervisorctl_local: >
+    name=gitreload
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  when: not disable_edx_services
+  tags:
+    - deploy
+
+- name: create a symlink for venv python
+  file: >
+    src="{{ gitreload_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.gitreload
+    state=link
+  with_items:
+  - python
+  - pip

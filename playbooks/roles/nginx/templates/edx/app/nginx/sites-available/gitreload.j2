@@ -1,0 +1,35 @@
+upstream gitreload_app_server {
+    {% for host in nginx_gitreload_gunicorn_hosts %}
+        server {{ host }}:{{ gitreload_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
+server {
+  listen {{ GITRELOAD_NGINX_PORT }} default_server;
+
+  location / {
+     auth_basic            "Restricted";
+     auth_basic_user_file  {{ nginx_htpasswd_file }};
+
+     try_files $uri @proxy_to_app;
+  }
+
+  # No basic auth security on the queue status url, so that it can
+  # checked easily
+  location /queue{
+    try_files $uri @proxy_to_app;
+  }
+
+  {% include "robots.j2" %}
+
+location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://gitreload_app_server;
+  }
+}
+
