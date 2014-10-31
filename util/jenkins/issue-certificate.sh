@@ -11,9 +11,10 @@ if [ "$report" = "true" ]; then
   $ansible "$manage gen_cert_report -c $course_id" | grep -A2 "Looking up certificate states for" | sed 's/rm:.*//'
 elif [ "$regenerate" = "true" ] ; then
     $ansible "$manage regenerate_user -c $course_id -u $username"
-  else
-    $ansible "$manage ungenerated_certs -c $course_id && $manage gen_cert_report -c $course_id" | grep -A2 "Looking up certificate states for" | sed 's/rm:.*//'
-  if [ -n "$force_certificate_state" ]; then
-    $ansible "$manage ungenerated_certs -c $course_id -f $force_certificate_state && $manage gen_cert_report -c $course_id" | grep -A2 "Looking up certificate states for" | sed 's/rm:.*//'
-  fi
+else
+    if [ -n "$force_certificate_state" ]; then
+        $ansible "$manage ungenerated_certs -c $course_id -f $force_certificate_state && $manage gen_cert_report -c $course_id" | grep -A2 "Looking up certificate states for" | sed 's/rm:.*//'
+    else
+        $ansible "$manage ungenerated_certs -c $course_id && $manage gen_cert_report -c $course_id" | grep -A2 "Looking up certificate states for" | sed 's/rm:.*//'
+    fi
 fi
