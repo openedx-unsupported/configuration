@@ -41,11 +41,7 @@
         region: "{{ aws_region }}"
         state: "present"
         name: "{{ vpc_name }}-public"
-        routes:
-          - cidr: "{{ vpc_cidr }}"
-            gateway: 'local'
-          - cidr: '0.0.0.0/0'
-            gateway: "{{ created_vpc.igw.id }}"
+        routes: "{{ vpc_public_route_table }}"
       register: created_public_rt
 
     - name: create public subnets
@@ -108,11 +104,7 @@
         region: "{{ aws_region }}"
         state: "present"
         name: "{{ vpc_name }}-private"
-        routes:
-          - cidr: "{{ vpc_cidr }}"
-            gateway: 'local'
-          - cidr: '0.0.0.0/0'
-            instance: "{{ created_nat_instance.instances[0].id }}"
+        routes: "{{ vpc_private_route_table }}"
       register: created_public_rt
       when: potential_existing_nat.instances|length == 0
       
