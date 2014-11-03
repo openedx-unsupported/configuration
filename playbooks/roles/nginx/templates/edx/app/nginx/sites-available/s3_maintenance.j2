@@ -1,0 +1,15 @@
+{% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
+location @maintenance {
+    rewrite  ^(.*) {{ NGINX_EDXAPP_S3_MAINTENANCE_FILE }} break;
+    proxy_http_version     1.1;
+    proxy_set_header       Host s3.amazonaws.com;
+    proxy_set_header       Authorization '';
+    proxy_hide_header      x-amz-id-2;
+    proxy_hide_header      x-amz-request-id;
+    proxy_hide_header      Set-Cookie;
+    proxy_ignore_headers   "Set-Cookie";
+    proxy_buffering        off;
+    proxy_intercept_errors on;
+    proxy_pass https://s3.amazonaws.com;
+}
+{% endif %}
