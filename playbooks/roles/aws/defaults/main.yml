@@ -23,29 +23,34 @@ AWS_S3_LOGS: false
 # This relies on your server being able to send mail
 AWS_S3_LOGS_NOTIFY_EMAIL: dummy@example.com
 AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
-# Separate buckets for tracking logs and everything else
-# You should be overriding the environment and deployment vars
-# Order of precedence is left to right for exclude and include options
-AWS_S3_LOG_PATHS:
-  - bucket: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}/logs/tracking"
-    path: "{{ COMMON_LOG_DIR }}/tracking/*"
-  - bucket: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}/logs/application"
-    path: "{{ COMMON_LOG_DIR }}/!(*tracking*)"
-  - bucket: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}/logs/system"
-    path: "/var/log/*"
 
 #
 # vars are namespace with the module name.
 #
 aws_role_name: aws
-aws_data_dir: "{{ COMMON_DATA_DIR }}/aws"
-aws_app_dir: "{{ COMMON_APP_DIR }}/aws"
-aws_s3_sync_script: "{{ aws_app_dir }}/send-logs-to-s3"
-aws_s3_logfile: "{{ aws_log_dir }}/s3-log-sync.log"
-aws_log_dir: "{{ COMMON_LOG_DIR }}/aws"
+
+aws_dirs:
+  home:
+    path: "{{ COMMON_APP_DIR }}/{{ aws_role_name }}"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  logs:
+    path: "{{ COMMON_LOG_DIR }}/{{ aws_role_name }}"
+    owner: "syslog"
+    group: "syslog"
+    mode: "0700"
+  data:
+    path: "{{ COMMON_DATA_DIR }}/{{ aws_role_name }}"
+    owner: "root"
+    group: "root"
+    mode: "0700"
+
+aws_s3_sync_script: "{{ aws_dirs.home.path }}/send-logs-to-s3"
+aws_s3_logfile: "{{ aws_dirs.logs.path }}/s3-log-sync.log"
 aws_region: "us-east-1"
 # default path to the aws binary
-s3cmd_cmd: "{{ COMMON_BIN_DIR }}/s3cmd"
+aws_s3cmd: "{{ COMMON_BIN_DIR }}/s3cmd"
 aws_cmd: "/usr/local/bin/aws"
 #
 # OS packages

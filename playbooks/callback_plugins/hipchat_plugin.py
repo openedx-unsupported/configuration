@@ -1,9 +1,14 @@
 import os
-import prettytable
-import hipchat
 import time
-import random
 from ansible import utils
+try:
+    import prettytable
+except ImportError:
+    prettytable = None
+try:
+    import hipchat
+except ImportError:
+    hipchat = None
 
 
 class CallbackModule(object):
@@ -24,30 +29,40 @@ class CallbackModule(object):
     """
 
     def __init__(self):
+        self.enabled = "HIPCHAT_TOKEN" in os.environ
+        if not self.enabled:
+            return
 
-        if 'HIPCHAT_TOKEN' in os.environ:
-            self.start_time = time.time()
-            self.task_report = []
-            self.last_task = None
-            self.last_task_changed = False
-            self.last_task_count = 0
-            self.last_task_delta = 0
-            self.last_task_start = time.time()
-            self.condensed_task_report = (os.getenv('HIPCHAT_CONDENSED', True) == True)
-            self.room = os.getenv('HIPCHAT_ROOM', 'ansible')
-            self.from_name = os.getenv('HIPCHAT_FROM', 'ansible')
-            self.allow_notify = (os.getenv('HIPCHAT_NOTIFY') != 'false')
-            try:
-                self.hipchat_conn = hipchat.HipChat(token=os.getenv('HIPCHAT_TOKEN'))
-            except Exception as e:
-                utils.warning("Unable to connect to hipchat: {}".format(e))
-            self.hipchat_msg_prefix = os.getenv('HIPCHAT_MSG_PREFIX', '')
-            self.hipchat_msg_color = os.getenv('HIPCHAT_MSG_COLOR', '')
-            self.printed_playbook = False
-            self.playbook_name = None
-            self.enabled = True
-        else:
-            self.enabled = False
+        # make sure we got our imports
+        if not hipchat:
+            raise ImportError(
+                "The hipchat plugin requires the hipchat Python module, "
+                "which is not installed or was not found."
+            )
+        if not prettytable:
+            raise ImportError(
+                "The hipchat plugin requires the prettytable Python module, "
+                "which is not installed or was not found."
+            )
+        self.start_time = time.time()
+        self.task_report = []
+        self.last_task = None
+        self.last_task_changed = False
+        self.last_task_count = 0
+        self.last_task_delta = 0
+        self.last_task_start = time.time()
+        self.condensed_task_report = (os.getenv('HIPCHAT_CONDENSED', True) == True)
+        self.room = os.getenv('HIPCHAT_ROOM', 'ansible')
+        self.from_name = os.getenv('HIPCHAT_FROM', 'ansible')
+        self.allow_notify = (os.getenv('HIPCHAT_NOTIFY') != 'false')
+        try:
+            self.hipchat_conn = hipchat.HipChat(token=os.getenv('HIPCHAT_TOKEN'))
+        except Exception as e:
+            utils.warning("Unable to connect to hipchat: {}".format(e))
+        self.hipchat_msg_prefix = os.getenv('HIPCHAT_MSG_PREFIX', '')
+        self.hipchat_msg_color = os.getenv('HIPCHAT_MSG_COLOR', '')
+        self.printed_playbook = False
+        self.playbook_name = None
 
     def _send_hipchat(self, message, room=None, from_name=None, color=None, message_format='text'):
 
@@ -221,7 +236,7 @@ class CallbackModule(object):
                 summary_output = "<b>{}</b>: <i>{}</i> - ".format(self.hipchat_msg_prefix, host)
                 for summary_item in ['ok', 'changed', 'unreachable', 'failures']:
                     if stats[summary_item] != 0:
-                       summary_output += "<b>{}</b> - {} ".format(summary_item, stats[summary_item])
+                        summary_output += "<b>{}</b> - {} ".format(summary_item, stats[summary_item])
                 summary_all_host_output.append(summary_output)
             self._send_hipchat("<br />".join(summary_all_host_output), message_format='html')
             msg = "<b>{description}</b>: Finished Ansible run for <b><i>{play}</i> in {min:02} minutes, {sec:02} seconds</b><br /><br />".format(

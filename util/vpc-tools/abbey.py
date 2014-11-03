@@ -18,7 +18,7 @@ except ImportError:
 
 from pprint import pprint
 
-AMI_TIMEOUT = 1800  # time to wait for AMIs to complete(30 minutes)
+AMI_TIMEOUT = 2700  # time to wait for AMIs to complete(45 minutes)
 EC2_RUN_TIMEOUT = 180  # time to wait for ec2 state transition
 EC2_STATUS_TIMEOUT = 300  # time to wait for ec2 system status checks
 NUM_TASKS = 5  # number of tasks for time summary report
@@ -187,6 +187,19 @@ def create_instance_args():
             'tag:aws:cloudformation:stack-name': stack_name,
             'tag:play': args.play}
     )
+
+    if len(subnet) < 1:
+        #
+        # try scheme for non-cloudformation builds
+        #
+
+        subnet = vpc.get_all_subnets(
+            filters={
+                'tag:cluster': args.play,
+                'tag:environment': args.environment,
+                'tag:deployment': args.deployment}
+        )
+
     if len(subnet) < 1:
         sys.stderr.write("ERROR: Expected at least one subnet, got {}\n".format(
             len(subnet)))

@@ -5,11 +5,16 @@
   vars:
     migrate_db: 'yes'
     openid_workaround: true
-    edx_platform_version: 'master'
     EDXAPP_LMS_NGINX_PORT: '80'
     EDX_ANSIBLE_DUMP_VARS: true
     CERTS_DOWNLOAD_URL: 'http://192.168.33.10:18090'
     CERTS_VERIFY_URL: 'http://192.168.33.10:18090'
+    # used for releases
+    edx_platform_version: '{{ OPENEDX_RELEASE | default("master") }}'
+    ora2_version: '{{ OPENEDX_RELEASE | default("master") }}'
+    certs_version: '{{ OPENEDX_RELEASE | default("master") }}'
+    forum_version: '{{ OPENEDX_RELEASE | default("master") }}'
+    xqueue_version: '{{ OPENEDX_RELEASE | default("master") }}'
   vars_files:
     - "group_vars/all"
   roles:
@@ -19,7 +24,6 @@
       nginx_sites:
       - cms
       - lms
-      - ora
       - forum
       - xqueue
       - certs
@@ -36,7 +40,6 @@
     - elasticsearch
     - forum
     - { role: "xqueue", update_users: True }
-    - ora
     - certs
     - role: analytics-api
       when: ANALYTICS_API_GIT_IDENTITY

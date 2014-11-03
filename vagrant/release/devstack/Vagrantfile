@@ -13,17 +13,31 @@ if [ ! -d /edx/app/edx_ansible ]; then
     echo "Error: Base box is missing provisioning scripts." 1>&2
     exit 1
 fi
+OPENEDX_RELEASE=$1
 export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
+
+# Did we specify an openedx release?
+if [ -n "$OPENEDX_RELEASE" ]; then
+  EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
+    -e ora2_version=$OPENEDX_RELEASE \
+    -e certs_version=$OPENEDX_RELEASE \
+    -e forum_version=$OPENEDX_RELEASE \
+    -e xqueue_version=$OPENEDX_RELEASE \
+  "
+  CONFIG_VER=$OPENEDX_RELEASE
+else
+  CONFIG_VER="release"
+fi
 
 # Need to ensure that the configuration repo is updated
 # The vagrant-devstack.yml playbook will also do this, but only
 # after loading the playbooks into memory.  If these are out of date,
 # this can cause problems (e.g. looking for templates that no longer exist).
-/edx/bin/update configuration release
+/edx/bin/update configuration $CONFIG_VER
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=release
+ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=$CONFIG_VER $EXTRA_VARS
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
@@ -40,11 +54,27 @@ if ENV['VAGRANT_MOUNT_BASE']
 
 end
 
+# map the name of the git branch that we use for a release
+# to a name and a file path, which are used for retrieving
+# a Vagrant box from the internet.
+openedx_releases = {
+  "openedx/rc/aspen-2014-09-10" => {
+    :name => "aspen-devstack-rc1", :file => "20141009-aspen-devstack-rc1.box",
+  },
+  "aspen.1" => {
+    :name => "aspen-devstack-1", :file => "20141028-aspen-devstack-1.box",
+  },
+}
+openedx_releases.default = {
+  :name => "kifli-devstack", :file => "20140826-kifli-devstack.box"
+}
+rel = ENV['OPENEDX_RELEASE']
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
-  config.vm.box     = "kifli-devstack"
-  config.vm.box_url = "http://files.edx.org/vagrant-images/20140826-kifli-devstack.box"
+  config.vm.box     = openedx_releases[rel][:name]
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -105,5 +135,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script
+  config.vm.provision "shell", inline: $script, args: rel
 end

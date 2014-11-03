@@ -131,6 +131,8 @@ if __name__ == '__main__':
     print("Waiting 15 seconds before checking to see if db is available")
     time.sleep(15)
     wait_on_db_status(restore_dbid)
+    print("Waiting another 15 seconds")
+    time.sleep(15)
     if args.clean_wwc:
         # Run the mysql clean sql file
         sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} wwc < {sanitize_wwc_sql_file} """.format(
@@ -157,7 +159,8 @@ if __name__ == '__main__':
         db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, create_dbs.yml """ \
             """{extra_args} -e "edxapp_db_root_user=root xqueue_db_root_user=root" """ \
             """ -e "db_root_pass={root_pass}" """ \
-            """EDXAPP_MYSQL_HOST={db_host}" """.format(
+            """ -e "EDXAPP_MYSQL_HOST={db_host}" """ \
+            """ -e "XQUEUE_MYSQL_HOST={db_host}" """.format(
             root_pass=args.password,
             extra_args=extra_args,
             db_host=db_host,

@@ -174,6 +174,7 @@ EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
+SANDBOX_USERNAME: $github_username
 EOF
 fi
 

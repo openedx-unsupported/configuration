@@ -39,9 +39,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision :ansible do |ansible|
     # point Vagrant at the location of your playbook you want to run
     ansible.playbook = "../../../playbooks/vagrant-fullstack.yml"
+    ansible.verbose = "vvv"
     # set extra-vars here instead of in the vagrant play so that
     # they are written out to /edx/etc/server-vars.yml which can
     # be used later when running ansible locally
-    ansible.verbose = "vvvv"
+    if ENV['OPENEDX_RELEASE']
+      ansible.extra_vars = {
+        edx_platform_version: ENV['OPENEDX_RELEASE'],
+        ora2_version: ENV['OPENEDX_RELEASE'],
+        certs_version: ENV['OPENEDX_RELEASE'],
+        forum_version: ENV['OPENEDX_RELEASE'],
+        xqueue_version: ENV['OPENEDX_RELEASE'],
+      }
+    end
   end
 end

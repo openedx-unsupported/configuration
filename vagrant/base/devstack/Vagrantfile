@@ -102,8 +102,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ansible.playbook = "../../../playbooks/vagrant-devstack.yml"
     ansible.verbose = "vvvv"
 
+    ansible.extra_vars = {}
     if ENV['ENABLE_LEGACY_ORA']
-        ansible.extra_vars = { ENABLE_LEGACY_ORA: true }
+      ansible.extra_vars['ENABLE_LEGACY_ORA'] = true
+    end
+    if ENV['OPENEDX_RELEASE']
+      ansible.extra_vars = {
+        edx_platform_version: ENV['OPENEDX_RELEASE'],
+        ora2_version: ENV['OPENEDX_RELEASE'],
+        certs_version: ENV['OPENEDX_RELEASE'],
+        forum_version: ENV['OPENEDX_RELEASE'],
+        xqueue_version: ENV['OPENEDX_RELEASE'],
+      }
     end
   end
 end

@@ -3,10 +3,11 @@
 ;
 [program:notifier-scheduler]
 
-command={{ NOTIFIER_VENV_DIR }}/bin/python manage.py scheduler
+command={{ NOTIFIER_HOME }}/notifier-scheduler-supervisor.sh
 
 process_name=%(program_name)s
 numprocs=1
+stopasgroup=true
 directory={{ NOTIFIER_CODE_DIR }}
 umask=022
 autostart=true
@@ -25,7 +26,3 @@ stderr_logfile={{ NOTIFIER_SUPERVISOR_LOG_DEST }}/notifier-scheduler-stderr.log
 stderr_logfile_maxbytes=1MB
 stderr_logfile_backups=10
 stderr_capture_maxbytes=1MB
-environment=PID='/var/tmp/notifier-scheduler.pid',LANG=en_US.UTF-8,
-{%- for name,value in notifier_env_vars.items() -%}
-{%- if value -%}{{name}}="{{value}}"{%- if not loop.last -%},{%- endif -%}{%- endif -%}
-{%- endfor -%}

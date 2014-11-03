@@ -7,7 +7,12 @@
 COMMON_ENABLE_BASIC_AUTH: False
 COMMON_HTPASSWD_USER: edx
 COMMON_HTPASSWD_PASS: edx
-
+# Turn on syncing logs on rotation for edx
+# application and tracking logs, must also
+# have the AWS role installed
+COMMON_AWS_SYNC: False
+COMMON_AWS_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
+COMMON_AWS_S3_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-s3"
 COMMON_BASE_DIR: /edx
 COMMON_DATA_DIR: "{{ COMMON_BASE_DIR}}/var"
 COMMON_APP_DIR: "{{ COMMON_BASE_DIR}}/app"
@@ -24,6 +29,7 @@ COMMON_ENVIRONMENT: 'default_env'
 COMMON_DEPLOYMENT: 'default_deployment'
 COMMON_PYPI_MIRROR_URL: 'https://pypi.python.org/simple'
 COMMON_NPM_MIRROR_URL: 'http://registry.npmjs.org'
+COMMON_UBUNTU_APT_KEYSERVER: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search="
 # do not include http/https
 COMMON_GIT_MIRROR: 'github.com'
 # override this var to set a different hostname
@@ -38,6 +44,7 @@ COMMON_CUSTOM_DHCLIENT_CONFIG: false
 COMMON_MOTD_TEMPLATE: "motd.tail.j2"
 COMMON_SSH_PASSWORD_AUTH: "no"
 
+COMMON_SECURITY_UPDATES: no
 # These are three maintenance accounts across all databases
 # the read only user is is granted select privs on all dbs
 # the admin user is granted create user privs on all dbs
@@ -69,6 +76,7 @@ common_debian_pkgs:
   - mosh
   - rsyslog
   - screen
+  - tmux
   - tree
   - git
   - unzip
@@ -101,6 +109,10 @@ disable_edx_services: False
 # Some apps run differently in dev mode(forums)
 # so different start scripts are generated in dev mode.
 devstack: False
+
+# Some cluster apps need special settings when in vagrant
+# due to eth0 always being the same IP address
+vagrant_cluster: False
 
 common_debian_variants:
   - Ubuntu

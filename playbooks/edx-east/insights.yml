@@ -1,0 +1,20 @@
+- name: Deploy Insights
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_SPLUNKFORWARDER: False
+    ENABLE_NEWRELIC: True
+  roles:
+    - role: nginx
+      nginx_sites:
+        - insights
+    - aws
+    - insights 
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC

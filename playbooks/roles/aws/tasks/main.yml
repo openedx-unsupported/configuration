@@ -21,26 +21,14 @@
 #
 #
 
-- name: create data directories
+- name: create all service directories
   file: >
-    path={{ item }}
-    state=directory
-    owner=root
-    group=root
-    mode=0700
-  with_items:
-    - "{{ aws_data_dir }}"
-    - "{{ aws_log_dir }}"
-
-- name: create app directory
-  file: >
-    path={{ item }}
-    state=directory
-    owner=root
-    group=root
-    mode=0755
-  with_items:
-    - "{{ aws_app_dir }}"
+    path="{{ item.value.path }}"
+    state="directory"
+    owner="{{ item.value.owner }}"
+    group="{{ item.value.group }}"
+    mode="{{ item.value.mode }}"
+  with_dict: aws_dirs
 
 - name: install system packages
   apt: >
@@ -57,18 +45,18 @@
 - name: get s3cmd
   get_url: >
     url={{ aws_s3cmd_url }}
-    dest={{ aws_data_dir }}/
+    dest={{ aws_dirs.data.path }}/
 
 - name: untar s3cmd
   shell: >
-    tar xf {{ aws_data_dir }}/{{ aws_s3cmd_version }}.tar.gz
-    creates={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
-    chdir={{ aws_app_dir }}
+    tar xf {{ aws_dirs.data.path }}/{{ aws_s3cmd_version }}.tar.gz
+    creates={{ aws_dirs.data.path }}/{{ aws_s3cmd_version }}/s3cmd
+    chdir={{ aws_dirs.home.path }}
 
 - name: create symlink for s3cmd
   file: >
-    src={{ aws_app_dir }}/{{ aws_s3cmd_version }}/s3cmd
-    dest={{ COMMON_BIN_DIR }}/s3cmd
+    src={{ aws_dirs.home.path }}/{{ aws_s3cmd_version }}/s3cmd
+    dest={{ aws_s3cmd }}
     state=link
 
 - name: create s3 log sync script
@@ -84,7 +72,7 @@
     dest={{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}
   when: AWS_S3_LOGS
 
-- name: run s3 log sync script on supervisor shutdown
+- name: force logrotate on supervisor stop
   template: >
     src=etc/init/sync-on-stop.conf.j2
     dest=/etc/init/sync-on-stop.conf
@@ -99,4 +87,5 @@
     user: root
     minute: 0
     job: "{{ aws_s3_sync_script }} > /dev/null 2>&1"
+    state: absent
   when: AWS_S3_LOGS

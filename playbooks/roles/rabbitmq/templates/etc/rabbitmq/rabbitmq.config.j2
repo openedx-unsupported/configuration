@@ -1,5 +1,7 @@
 % {{ ansible_managed }}
 
+[{rabbit, [
+  {log_levels, [{connection, info}]},
 {% if RABBITMQ_CLUSTERED -%}
   {%- set hosts= [] -%}
 
@@ -7,14 +9,12 @@
     {% do hosts.append("rabbit@ip-" + host.replace('.','-')) %}
   {%- endfor %}
 
-[{rabbit,
-  [{cluster_nodes, {['{{ hosts|join("\',\'") }}'], disc}}]}].
+  {cluster_nodes, {['{{ hosts|join("\',\'") }}'], disc}}
 
 {%- else -%}
 {# If rabbitmq_clustered_hosts is set, use that instead assuming an aws stack.
    Note: That these names should include the node name prefix. eg. 'rabbit@hostname'
 #}
-[{rabbit,
-  [{cluster_nodes, {['{{ rabbitmq_clustered_hosts|join("\',\'") }}'], disc}}]}].
-
-{%- endif -%}
+  {cluster_nodes, {['{{ rabbitmq_clustered_hosts|join("\',\'") }}'], disc}}
+{%- endif %}
+]}].

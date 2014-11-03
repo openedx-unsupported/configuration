@@ -41,6 +41,18 @@ class LifecycleInventory():
         parser = argparse.ArgumentParser()
         self.profile = profile
 
+    def get_e_d_from_tags(self, group):
+
+        environment = "default_environment"
+        deployment = "default_deployment"
+
+        for r in group.tags:
+            if r.key == "environment":
+                environment = r.value
+            elif r.key == "deployment":
+                deployment = r.value
+        return environment,deployment
+
     def get_instance_dict(self):
         ec2 = boto.connect_ec2(profile_name=self.profile)
         reservations = ec2.get_all_instances()
@@ -64,10 +76,12 @@ class LifecycleInventory():
             for instance in group.instances:
 
                 private_ip_address = instances[instance.instance_id].private_ip_address
-
-                inventory[group.name].append(private_ip_address)
-                inventory[group.name + "_" + instance.lifecycle_state].append(private_ip_address)
-                inventory[instance.lifecycle_state.replace(":","_")].append(private_ip_address)
+                if private_ip_address:
+                    environment,deployment = self.get_e_d_from_tags(group)
+                    inventory[environment + "_" + deployment + "_" + instance.lifecycle_state.replace(":","_")].append(private_ip_address)
+                    inventory[group.name].append(private_ip_address)
+                    inventory[group.name + "_" + instance.lifecycle_state.replace(":","_")].append(private_ip_address)
+                    inventory[instance.lifecycle_state.replace(":","_")].append(private_ip_address)
 
         print json.dumps(inventory, sort_keys=True, indent=2)
 
@@ -77,8 +91,8 @@ if __name__=="__main__":
     parser.add_argument('-p', '--profile', help='The aws profile to use when connecting.')
     parser.add_argument('-l', '--list', help='Ansible passes this, we ignore it.', action='store_true', default=True)
     args = parser.parse_args()
-    
+
     LifecycleInventory(args.profile).run()
 
 
-    
+

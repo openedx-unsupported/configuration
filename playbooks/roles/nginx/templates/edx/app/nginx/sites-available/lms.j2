@@ -10,13 +10,21 @@ upstream lms-backend {
     {% endfor %}
 }
 
+{%- if EDXAPP_ENABLE_RATE_LIMITING -%}
+# Make Zone
+limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
+{%- endif -%}
+
 server {
   # LMS configuration file for nginx, templated by ansible
 
+  # 500 error pages
+  error_page 500 502 504 /server/server-error.html;
+
   {% if NGINX_ENABLE_SSL %}
 
-  listen {{EDXAPP_LMS_NGINX_PORT}} {{default_site}};
-  listen {{EDXAPP_LMS_SSL_NGINX_PORT}} {{default_site}} ssl;
+  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
+  listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
@@ -24,10 +32,10 @@ server {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 
   {% else %}
-  listen {{EDXAPP_LMS_NGINX_PORT}} {{default_site}};
+  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
   {% endif %}
 
-  access_log {{ nginx_log_dir }}/access.log;
+  access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
   error_log {{ nginx_log_dir }}/error.log error;
 
   # CS184 requires uploads of up to 4MB for submitting screenshots.
@@ -57,14 +65,38 @@ server {
     {% include "basic-auth.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
+  # No basic auth for /segmentio/event
+  location /segmentio/event {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /notifier_api {
+    try_files $uri @proxy_to_lms_app;
+  }
 
   # No basic auth security on the github_service_hook url, so that github can use it for cms
   location /github_service_hook {
     try_files $uri @proxy_to_lms_app;
   }
 
+  # No basic auth security on oath2 endpoint
+  location /oauth2 {
+    try_files $uri @proxy_to_lms_app;
+  }
+
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /courses {
+    {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
+    # Set Limit
+    limit_req zone=cookies burst={{ EDXAPP_COURSE_REQUEST_BURST_RATE }};
+    error_page  503 = /server/rate-limit.html;
+    {%- endif -%}
+
+    {%- include "basic-auth.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 

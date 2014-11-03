@@ -26,6 +26,7 @@
     - "{{ edxapp_theme_dir }}"
     - "{{ edxapp_staticfile_dir }}"
     - "{{ edxapp_course_static_dir }}"
+    - "{{ edxapp_course_data_dir }}"
 
 # This is a symlink that has to exist because
 # we currently can't override the DATA_DIR var
@@ -38,7 +39,6 @@
     state=link
     owner="{{ edxapp_user }}"
     group="{{ common_web_group }}"
-    
 
 - name: create edxapp log dir
   file: >
@@ -70,6 +70,12 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+- name: set up edxapp .npmrc
+  template:
+    src=.npmrc.j2 dest={{ edxapp_app_dir }}/.npmrc
+    owner={{ edxapp_user }} group={{ common_web_group }}
+    mode=0600
+
 - name: create log directories for service variants
   notify:
   - "restart edxapp"
@@ -81,7 +87,7 @@
   with_items: service_variants_enabled
 
 # Set up the python sandbox execution environment
-- include: python_sandbox_env.yml
+- include: python_sandbox_env.yml tags=deploy
   when: EDXAPP_PYTHON_SANDBOX
 
 - include: deploy.yml tags=deploy

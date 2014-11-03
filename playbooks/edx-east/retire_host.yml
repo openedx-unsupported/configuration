@@ -1,12 +1,15 @@
-# ansible-playbook -i ./lifecycle_inventory.py ./retire_host.yml 
-# -e@/vars/env.yml --limit Terminating_Wait
+# ansible-playbook -i ./lifecycle_inventory.py ./retire_host.yml
+# -e@/vars/env.yml --limit Terminating_Wait -e TARGET="Terminating_Wait"
+#
+# Note that the target now must be specified as an argument
+#
 
 #
 # This is separate because it's use of handlers
 # leads to various race conditions.
 #
 - name: Stop all services
-  hosts: Terminating_Wait
+  hosts: "{{TARGET}}"
   sudo: True
   gather_facts: False
   vars:
@@ -15,41 +18,30 @@
     - stop_all_edx_services
 
 - name: Server retirement workflow
-  hosts: Terminating_Wait
+  hosts: "{{TARGET}}"
   sudo: True
   gather_facts: False
   tasks:
-    - name: Force a log rotation
-      command: /usr/sbin/logrotate -f /etc/logrotate.d/{{ item }}
-      with_items:
-        - "apport"
-        - "apt"
-        - "aptitude"
-        - "dpkg"
-        - "hourly"
-        - "landscape-client"
-        - "newrelic-sysmond"
-        - "nginx"
-        - "nginx-access"
-        - "nginx-error"
-        - "ppp"
-        - "rsyslog"
-        - "ufw"
-        - "unattended-upgrades"
-        - "upstart"
-    - name: Force a log rotation
+    - name: Terminate existing s3 log sync
+      command: /usr/bin/pkill send-logs-to-s3 || true
+    - name: "Ensure send-logs-to-s3 script is in the logrotate file"
+      shell: grep send-logs-to-s3 /etc/logrotate.d/hourly/tracking.log
+    # We only force a rotation of edx logs.
+    # Forced rotation of system logfiles will only
+    # work if there hasn't already been a previous rotation
+    # The logrotate will also call send-logs-to-s3 but hasn't
+    # been updated for all servers yet.
+    - name: Force a log rotation which will call the log sync
       command: /usr/sbin/logrotate -f /etc/logrotate.d/hourly/{{ item }}
       with_items:
         - "tracking.log"
         - "edx-services"
-    - name: Terminate existing s3 log sync
-      command: /usr/bin/pkill send-logs-to-s3 || true
-    - name: Send logs to s3
-      command: /edx/bin/send-logs-to-s3
-
-      
+    # This catches the case where tracking.log is 0b
+    - name: Sync again
+      command: /edx/bin/send-logs-to-s3 -d "{{ COMMON_LOG_DIR }}/tracking/*" -b "{{ COMMON_AWS_SYNC_BUCKET }}/logs/tracking"
+    
 - name: Run minos verification
-  hosts: Terminating_Wait
+  hosts: "{{TARGET}}"
   sudo: True
   gather_facts: False
   tasks:

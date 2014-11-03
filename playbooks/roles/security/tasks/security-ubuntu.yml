@@ -1,0 +1,50 @@
+#### Enable periodic security updates
+
+- name: install security packages
+  apt: name={{ item }} state=latest
+  with_items: security_debian_pkgs 
+
+
+- name: update all system packages
+  apt: upgrade=safe
+  when: SECURITY_UPGRADE_ON_ANSIBLE
+
+- name: configure periodic unattended-upgrades
+  template: >
+    src=etc/apt/apt.conf.d/10periodic
+    dest=/etc/apt/apt.conf.d/10periodic
+    owner=root group=root mode=0644
+  when: SECURITY_UNATTENDED_UPGRADES
+
+- name: disable unattended-upgrades
+  file: path=/etc/apt/apt.conf.d/10periodic state=absent
+  when: not SECURITY_UNATTENDED_UPGRADES
+
+- name: only unattended-upgrade from security repo
+  template: >
+    src=etc/apt/apt.conf.d/20unattended-upgrade
+    dest=/etc/apt/apt.conf.d/20unattended-upgrade
+    owner=root group=root mode=0644
+  when: SECURITY_UNATTENDED_UPGRADES and not SECURITY_UPDATE_ALL_PACKAGES
+
+- name: disable security only updates on unattended-upgrades
+  file: path=/etc/apt/apt.conf.d/20unattended-upgrade state=absent
+  when: SECURITY_UPDATE_ALL_PACKAGES or not SECURITY_UNATTENDED_UPGRADES
+
+
+#### Bash security vulnerability
+
+- name: Check if we are vulnerable
+  shell: executable=/bin/bash chdir=/tmp foo='() { echo vulnerable; }' bash -c foo
+  register: test_vuln
+  ignore_errors: yes
+
+- name: Apply bash security update if we are vulnerable
+  apt: name=bash state=latest update_cache=true
+  when: "'vulnerable' in test_vuln.stdout"
+
+- name: Check again and fail if we are still vulnerable
+  shell: executable=/bin/bash foo='() { echo vulnerable; }' bash -c foo
+  when: "'vulnerable' in test_vuln.stdout"
+  register: test_vuln
+  failed_when: "'vulnerable' in test_vuln.stdout"

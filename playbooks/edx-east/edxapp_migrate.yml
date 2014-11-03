@@ -4,15 +4,27 @@
   gather_facts: False
   vars:
     db_dry_run: "--db-dry-run"
+    syncdb: false
   tasks:
       # Syncdb with migrate when the migrate user is overridden in extra vars
-    - name: syncdb and migrate
+    - name: migrate
       shell: >
         chdir={{ edxapp_code_dir }}
-        python manage.py {{ item }} syncdb --migrate --noinput --settings=aws_migrate {{ db_dry_run }}
+        python manage.py {{ item }} migrate --noinput {{ db_dry_run }} --settings=aws_migrate
       environment:
         DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
         DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+      with_items:
+        - lms
+        - cms
+    - name: syncdb
+      shell: >
+        chdir={{ edxapp_code_dir }}
+        python manage.py {{ item }} syncdb --noinput --settings=aws_migrate
+      environment:
+        DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+      when: syncdb
       with_items:
         - lms
         - cms
