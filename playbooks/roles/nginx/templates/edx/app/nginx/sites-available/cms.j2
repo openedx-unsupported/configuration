@@ -13,8 +13,22 @@ upstream cms-backend {
 server {
   # CMS configuration file for nginx, templated by ansible
       
-  # 500 error pages
-  error_page 500 502 504 /server/server-error.html;
+  # Proxy to a remote maintanence page
+  {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
+
+  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # NGINX_EDXAPP_ENABLE_S3_MAINTENANCE is enabled.
+
+  error_page 502 @maintenance;
+
+    {% include "s3_maintenance.j2" %}
+  
+  {% endif %}
+
+  # error pages
+  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
+error_page {{ k }} {{ v }};
+  {% endfor %}
 
   {% if NGINX_ENABLE_SSL %}
 

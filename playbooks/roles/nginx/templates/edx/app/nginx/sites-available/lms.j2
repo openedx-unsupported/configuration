@@ -18,8 +18,22 @@ limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{
 server {
   # LMS configuration file for nginx, templated by ansible
 
-  # 500 error pages
-  error_page 500 502 504 /server/server-error.html;
+  {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
+
+  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
+
+  error_page 502 @maintenance;
+
+    {% include "s3_maintenance.j2" %}
+  
+  {% endif %}
+
+  # error pages
+  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
+error_page {{ k }} {{ v }};
+  {% endfor %}
+
 
   {% if NGINX_ENABLE_SSL %}
 
