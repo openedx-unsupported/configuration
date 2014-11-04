@@ -1,0 +1,75 @@
+---
+# This task file is for the newrelic s3watcher plugin
+# which is an agent that obtains metrics from S3 for
+# a given bucket
+
+- name: Install newrelic plugin related packages
+  apt: pkg={{ item }} install_recommends=yes state=present
+  with_items: newrelic_debian_plugin_pkgs
+
+- name: Install s3cmd
+  apt: pkg="s3cmd" install_recommends=yes state=present
+
+- name: create {{ newrelic_s3watcher_repo_dir }}
+  file: >
+    path={{ newrelic_s3watcher_repo_dir }} state=directory
+    owner="{{ newrelic_plugin_user }}" group="{{ common_web_group }}"
+    mode=0755
+
+- name: check out the s3 newrelic plugin
+  git: >
+    dest={{ newrelic_s3watcher_repo_dir }}
+    repo={{ newrelic_s3watcher_repo }} version={{ newrelic_s3watcher_version }}
+    accept_hostkey=yes
+  sudo_user: "{{ newrelic_plugin_user }}"
+
+- name: create bundle install shell script
+  template:
+    owner: "{{ newrelic_plugin_user }}"
+    src: s3-watcher-bundle-install.sh.j2
+    dest: "{{ newrelic_s3watcher_repo_dir }}/s3-watcher-bundle-install.sh"
+    mode: 0755
+  sudo_user: "{{ newrelic_plugin_user }}"
+
+- name: execute bundle install via rbenv
+  shell: ./s3-watcher-bundle-install.sh chdir={{ newrelic_s3watcher_repo_dir }}
+
+- name: create agent configuration
+  template: >
+    src=opt/newrelic_platform_plugins/s3_watcher/config/newrelic_plugins.yml.j2
+    dest={{ newrelic_s3watcher_dir }}/config/newrelic_plugin.yml
+  sudo_user: "{{ newrelic_plugin_user }}"
+
+- name: set agent as executable
+  file: >
+    path={{ newrelic_s3watcher_dir }}/newrelic_s3_agent
+    mode=0755
+
+- name: create supervisor wrapper
+  template:
+    src: s3-watcher-supervisor.sh.j2
+    dest: "{{ newrelic_s3watcher_dir }}/s3-watcher-supervisor.sh"
+    mode: 0755
+    owner: "{{ newrelic_plugin_user }}"
+  sudo_user: "{{ newrelic_plugin_user }}"
+
+- name: create supervisor config
+  template:
+    src: s3watcher.conf.j2
+    dest: "{{ supervisor_cfg_dir }}/s3watcher.conf"
+    owner: "{{ supervisor_user }}"
+    mode: 644
+  sudo_user: "{{ supervisor_user }}"
+
+- name: update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+
+- name: ensure s3watcher is started
+  supervisorctl_local: >
+    name=s3watcher
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+
