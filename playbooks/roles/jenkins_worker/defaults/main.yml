@@ -32,3 +32,21 @@ jscover_version: "1.0.2"
 
 # packer direct download URL
 packer_url: "https://dl.bintray.com/mitchellh/packer/0.6.1_linux_amd64.zip"
+
+# Pip-accel itself and other workarounds that need to be installed with pip
+pip_accel_reqs:
+  # Install Shapely with pip as it does not install cleanly
+  # with pip-accel because it has a weird setup.py
+  - "Shapely==1.2.16"
+  # Install unittest2 which is needed by lettuce
+  # but also pip-accel has trouble with determining that.
+  # unittest2>=0.8.0 (from testtools>=0.9.34->python-subunit->lettuce==0.2.20)
+  - "unittest2>=0.8.0"
+  # There is a bug in pip 1.4.1 by which --exists-action is broken.
+  # This is fixed in pip 1.5.x, but alas pip-accel is not yet compatible with pip 1.5.x.
+  # Remove when we can upgrade to a version of pip-accel that supports pip 1.5.x.
+  - "git+https://github.com/jzoldak/pip.git@v1.4.1patch772#egg=pip"
+  # Install pip-accel itself (using pip)
+  - "pip-accel==0.21.1"
+  # pip-accel only makes the s3 functionality available if boto is installed
+  - "boto==2.34.0"

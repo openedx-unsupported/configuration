@@ -30,12 +30,24 @@
     depth=1
   sudo_user: "{{ jenkins_user }}"
 
-- name: Install edx-platform requirements
+- name: Pip installs that are needed for pip-accel to work for us
   pip: >
-    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
-    extra_args="--exists-action w"
+    name="{{ item }}"
     virtualenv={{ jenkins_home }}/edx-venv
     virtualenv_command=virtualenv-2.7
+  sudo_user: "{{ jenkins_user }}"
+  with_items: pip_accel_reqs
+
+# Install the platform requirements using pip-accel.
+# This will allow the binary distributions to be downloaded from S3
+# rather than compiled each time.
+- name: Install edx-platform requirements using pip-accel
+  pip: >
+    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
+    extra_args="--exists-action=w"
+    virtualenv={{ jenkins_home }}/edx-venv
+    virtualenv_command=virtualenv-2.7
+    executable=pip-accel
   with_items:
     - pre.txt
     - github.txt
