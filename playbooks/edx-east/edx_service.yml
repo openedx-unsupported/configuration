@@ -5,9 +5,8 @@
   connection: local
   gather_facts: True
   vars:
-    # TODO remove before merging
-    ansible_python_interpreter: "/home/edward/.virtualenvs/configuration/bin/python"
     state: "present"
+    auto_scaling_service: True
   tasks:
     - name: Manage IAM Role and Profile
       ec2_iam_role:
@@ -125,13 +124,14 @@
       ec2_lc_local:
         profile: "{{ profile }}"
         region: "{{ aws_region }}"
-        name: "{{ launch_config.name }}"
-        image_id: "{{ launch_config.ami }}"
-        key_name: "{{ launch_config.key_name }}"
+        name: "{{ service_config.name }}"
+        image_id: "{{ service_config.ami }}"
+        key_name: "{{ service_config.key_name }}"
         security_groups: "{{ service_sec_group.group_id }}"
-        instance_type: "{{ launch_config.instance_type }}"
+        instance_type: "{{ service_config.instance_type }}"
         instance_profile_name: "{{ instance_profile_name }}"
-        volumes: "{{ launch_config.volumes }}"
+        volumes: "{{ service_config.volumes }}"
+      when: auto_scaling_service
 
       #
       # Hack alert, this registers a string in the global namespace
@@ -145,7 +145,7 @@
         profile: "{{ profile }}"
         region: "{{ aws_region }}"
         name: "{{ asg_name }}"
-        launch_config_name: "{{ launch_config.name }}"
+        launch_config_name: "{{ service_config.name }}"
         load_balancers: "{{ elb_name }}"
         availability_zones: "{{ aws_availability_zones }}"
         min_size: "{{ asg_min_size }}"
@@ -154,6 +154,7 @@
         vpc_zone_identifier: "{{ service_vpc_zone_identifier_string.msg }}"
         tags: "{{ asg_instance_tags }}"
       register: asg
+      when: auto_scaling_service
 
     - name: Manage scaling policies
       ec2_scaling_policy_devel:
@@ -168,6 +169,7 @@
         cooldown: "{{ item.cooldown }}"
       with_items: scaling_policies
       register: created_policies
+      when: auto_scaling_service
 
     - name: Apply function to policy data
       util_map:
@@ -177,6 +179,7 @@
           - "name"
           - "arn"
       register: policy_data
+      when: auto_scaling_service
 
     - name: Manage metric alarms
       ec2_metric_alarm:
@@ -196,3 +199,28 @@
         dimensions: "{{ item.dimensions }}"
         alarm_actions: "{{ policy_data.function_output[item.target_policy] }}"
       with_items: metric_alarms 
+      when: auto_scaling_service
+
+    - name: See if instances already exist
+      local_action:
+        module: "ec2_lookup"
+        region: "{{ aws_region }}"
+        tags: "{{ asg_instance_tags }}"
+      register: potential_existing_instances
+
+    - name: Manage instances
+      ec2:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        wait: "yes"
+        group_id: "{{ service_sec_group.group_id }}"
+        key_name: "{{ service_config.key_name }}"
+        vpc_subnet_id: "{{ item.subnet_id }}"
+        instance_type: "{{ service_config.instance_type }}"
+        instance_tags: "{{ asg_instance_tags }}"
+        image: "{{ service_config.ami }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        volumes: "{{ service_config.volumes }}"
+      with_items: created_service_subnets.results
+      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+
