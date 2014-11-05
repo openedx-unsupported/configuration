@@ -85,6 +85,7 @@
         module: 'ec2'
         state: 'present'
         wait: "yes"
+        source_dest_check: false
         region: "{{ aws_region }}"
         profile: "{{ profile }}"
         group_id: "{{ created_nat_security_group.group_id }}"
@@ -97,6 +98,15 @@
       register: created_nat_instance
       when: potential_existing_nat.instances|length == 0
 
+    - name: assign eip to nat
+      ec2_eip:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        instance_id: "{{ created_nat_instance.instances[0].id }}"
+        in_vpc: true
+        reuse_existing_ip_allowed: true
+      when: potential_existing_nat.instances|length == 0
+
     - name: create private route table
       ec2_rt:
         profile: "{{ profile }}"
@@ -107,4 +117,4 @@
         routes: "{{ vpc_private_route_table }}"
       register: created_public_rt
       when: potential_existing_nat.instances|length == 0
-      
+
