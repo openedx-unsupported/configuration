@@ -38,3 +38,17 @@
     regexp="browsermob_dir"
     line="browsermob_dir: /usr/local"
     state=present
+
+- name: create validation shell script
+  template:
+    owner: "{{ harprofiler_user }}"
+    src: validate_harprofiler_install.sh.j2
+    dest: "{{ harprofiler_dir }}/{{ harprofiler_validation_script }}"
+    mode: 0755
+  sudo_user: "{{ harprofiler_user }}"
+
+
+- name: test install
+  shell: >
+    ./{{ harprofiler_validation_script }} chdir={{ harprofiler_dir }}
+  sudo_user: "{{ harprofiler_user }}"
