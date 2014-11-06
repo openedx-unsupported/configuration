@@ -1,0 +1,35 @@
+---
+
+- name: cdh-datanode | packages
+  apt: pkg=hadoop-hdfs-datanode
+  tags:
+    - cdh-datanode
+
+- name: cdh-datanode | data directory configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/hdfs-site.xml property=dfs.datanode.data.dir value={{ cdh_hdfs_datanode_dir }}
+  tags:
+    - cdh-datanode
+
+- name: cdh-datanode | remove data directory
+  file: path={{ item }} owner=hdfs group=hadoop state=absent
+  with_items: cdh_hdfs_datanode_dir.split(',')
+  when: hdfs_format is defined
+  tags:
+    - cdh-datanode
+    - unsafe
+
+- name: cdh-datanode | data directory
+  file: path={{ item }} owner=hdfs group=hdfs mode=0700 state=directory
+  with_items: cdh_hdfs_datanode_dir.split(',')
+  tags:
+    - cdh-datanode
+
+- name: cdh-datanode | log directory permissions
+  file: path=/var/log/hadoop-hdfs owner=hdfs group=hdfs mode=0775 state=directory
+  tags:
+    - cdh-datanode
+
+- name: cdh-datanode | data node started
+  service: name=hadoop-hdfs-datanode state=started enabled=yes
+  tags:
+    - cdh-datanode

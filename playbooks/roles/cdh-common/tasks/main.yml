@@ -1,0 +1,189 @@
+---
+
+- name: cdh-common | playbook requirements
+  apt: pkg={{ item }}
+  with_items:
+    - curl
+    - python-pycurl
+    - groovy
+  tags:
+    - cdh-common
+
+- name: cdh-common | cloudera repository key
+  apt_key: url=http://archive.cloudera.com/cdh4/ubuntu/precise/amd64/cdh/archive.key state=present
+  tags:
+    - cdh-common
+
+- name: cdh-common | cloudera repository
+  apt_repository: repo='deb [arch=amd64] http://archive.cloudera.com/cdh4/ubuntu/precise/amd64/cdh precise-cdh4 contrib' state=present
+  tags:
+    - cdh-common
+
+- name: cdh-common | cloudera src repository
+  apt_repository: repo='deb-src http://archive.cloudera.com/cdh4/ubuntu/precise/amd64/cdh precise-cdh4 contrib' state=present
+  tags:
+    - cdh-common
+
+- name: cdh-common | update apt cache
+  apt: update_cache=yes
+  tags:
+    - cdh-common
+
+- name: cdh-common | hadoop groups
+  group: name={{ item }} system=yes state=present
+  with_items:
+    - hadoop
+    - hdfs
+    - mapred
+  tags:
+    - cdh-common
+
+- name: cdh-common | users
+  user: name={{ item.name }} group={{ item.name }} groups=hadoop home={{ item.home }} shell=/bin/bash createhome=no system=yes state=present
+  with_items:
+    - { name: hdfs,   home: /var/lib/hadoop-hdfs }
+    - { name: mapred, home: /usr/lib/hadoop-0.20-mapreduce }
+  tags:
+    - cdh-common
+
+- name: cdh-common | configuration directory
+  file: path={{ cdh_hadoop_conf_path }} state=directory owner=root group=root mode=0755
+  tags:
+    - cdh-common
+
+- name: cdh-common | configuration files
+  copy: src={{ item }} dest={{ cdh_hadoop_conf_path }} owner=root group=root mode=0644
+  with_items:
+    - configuration.xsl
+    - hadoop-env.sh
+    - hadoop-policy.xml
+    - log4j.properties
+    - hadoop-hdfs-datanode
+  tags:
+    - cdh-common
+
+- name: cdh-common | datanode default files
+  copy: src=hadoop-hdfs-datanode dest=/etc/default/hadoop-hdfs-datanode owner=root group=root mode=0644
+  tags:
+    - cdh-common
+
+- name: cdh-common | templated configuration files
+  template: src={{ item }}.j2 dest={{ cdh_hadoop_conf_path }}/{{ item }} owner=root group=root mode=0644
+  with_items:
+    - hadoop-metrics.properties
+    - hadoop-metrics2.properties
+    - taskcontroller.cfg
+    - mapred.exclude
+    - hdfs.exclude
+  tags:
+    - cdh-common
+
+- name: cdh-common | core configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/core-site.xml property={{ item.key }} value={{ item.value }}
+  with_items:
+    - { key: fs.defaultFS, value: "hdfs://{{ groups['cdh_namenode'][0] }}/" }
+    - { key: mapred.hosts.exclude, value: "{{ cdh_hadoop_conf_path }}/mapred.exclude" }
+    - { key: dfs.hosts.exclude, value: "{{ cdh_hadoop_conf_path }}/hdfs.exclude" }
+    - { key: hadoop.security.authentication, value: kerberos }
+    - { key: hadoop.security.authorization, value: true }
+    - { key: hadoop.rpc.protection, value: privacy }
+    - { key: hadoop.ssl.enabled, value: true }
+  tags:
+    - cdh-common
+
+- name: cdh-common | job tracker address configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/mapred-site.xml property=mapred.job.tracker value={{ groups['cdh_jobtracker'][0] }}:{{ cdh_job_tracker_port }}
+  tags:
+    - cdh-common
+
+- name: cdh-common | S3 access key id configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/core-site.xml property=fs.s3n.awsAccessKeyId value={{ cdh_s3_access_key_id }}
+  when: cdh_s3_access_key_id is defined
+  tags:
+    - cdh-common
+
+- name: cdh-common | S3 secret access key configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/core-site.xml property=fs.s3n.awsSecretAccessKey value={{ cdh_s3_secret_access_key }}
+  when: cdh_s3_secret_access_key is defined
+  tags:
+    - cdh-common
+
+- name: cdh-common | hdfs security configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/hdfs-site.xml property={{ item.key }} value={{ item.value }}
+  with_items:
+    - { key: dfs.block.access.token.enable, value: true }
+    - { key: dfs.namenode.keytab.file, value: /etc/hadoop/conf/hdfs.keytab }
+    - { key: dfs.namenode.kerberos.principal, value: "hdfs/_HOST@{{ kerberos_realm }}" }
+    - { key: dfs.namenode.kerberos.internal.spnego.principal, value: "HTTP/_HOST@{{ kerberos_realm }}" }
+    - { key: dfs.datanode.data.dir.perm, value: 700 }
+    - { key: dfs.datanode.address, value: '0.0.0.0:1004' }
+    - { key: dfs.datanode.http.address, value: '0.0.0.0:1006' }
+    - { key: dfs.datanode.keytab.file, value: /etc/hadoop/conf/hdfs.keytab }
+    - { key: dfs.datanode.kerberos.principal, value: "hdfs/_HOST@{{ kerberos_realm }}" }
+    - { key: dfs.web.authentication.kerberos.keytab, value: /etc/hadoop/conf/hdfs.keytab }
+    - { key: dfs.web.authentication.kerberos.principal, value: "hdfs/_HOST@{{ kerberos_realm }}" }
+    - { key: dfs.encrypt.data.transfer, value: 'true' }
+  tags:
+    - cdh-common
+    - cdh-secure
+
+- name: cdh-common | local mapred directories created
+  file: path={{ item }} state=directory owner=mapred group=mapred mode=0777
+  with_items: cdh_mapred_local_dir.split(',')
+  tags:
+    - cdh-common
+
+- name: cdh-common | mapred config file modified
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/mapred-site.xml property={{ item.key }} value={{ item.value }}
+  with_items:
+    - { key: mapreduce.jobtracker.kerberos.principal, value: "mapred/_HOST@{{ kerberos_realm }}" }
+    - { key: mapreduce.jobtracker.keytab.file, value: /etc/hadoop/conf/mapred.keytab }
+    - { key: mapreduce.tasktracker.kerberos.principal, value: "mapred/_HOST@{{ kerberos_realm }}" }
+    - { key: mapreduce.tasktracker.keytab.file, value: /etc/hadoop/conf/mapred.keytab }
+    - { key: mapreduce.tasktracker.group, value: mapred }
+    - { key: mapred.task.tracker.task-controller, value: org.apache.hadoop.mapred.LinuxTaskController }
+    - { key: mapred.local.dir, value: "{{ cdh_mapred_local_dir }}" }
+    - { key: mapred.child.java.opts, value: "-Xmx{{ cdh_task_jvm_heap }}" }
+  tags:
+    - cdh-common
+    - cdh-secure
+
+- name: cdh-common | ssl client config file modified
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/ssl-client.xml property={{ item.key }} value={{ item.value }}
+  with_items:
+    - { key: ssl.client.keystore.type, value: jks }
+    - { key: ssl.client.keystore.location, value: "/etc/hadoop/conf/https.keystore" }
+    - { key: ssl.client.keystore.password, value: hadoop }
+    - { key: ssl.client.truststore.type, value: jks }
+    - { key: ssl.client.truststore.location, value: "/etc/hadoop/conf/hadoop.truststore" }
+    - { key: ssl.client.truststore.password, value: hadoop }
+  tags:
+    - cdh-common
+    - cdh-secure
+
+- name: cdh-common | ssl server config file modified
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/ssl-server.xml property={{ item.key }} value={{ item.value }}
+  with_items:
+    - { key: ssl.server.keystore.type, value: jks }
+    - { key: ssl.server.keystore.location, value: "/etc/hadoop/conf/https.keystore" }
+    - { key: ssl.server.keystore.password, value: hadoop }
+    - { key: ssl.server.truststore.type, value: jks }
+    - { key: ssl.server.truststore.location, value: "/etc/hadoop/conf/hadoop.truststore" }
+    - { key: ssl.server.truststore.password, value: hadoop }
+  tags:
+    - cdh-common
+    - cdh-secure
+
+- name: cdh-common | permissions
+  file: path={{ cdh_hadoop_conf_path }}/{{ item.name }} owner=mapred group=hadoop mode={{ item.mode }}
+  with_items:
+    - { name: ssl-client.xml, mode: '0444' }
+    - { name: ssl-server.xml, mode: '0440' }
+  tags:
+    - cdh-common
+    - cdh-secure
+
+- name: cdh-common | alternatives link
+  alternatives: name=hadoop-conf link=/etc/hadoop/conf path={{ cdh_hadoop_conf_path }}
+  tags:
+    - cdh-common

@@ -1,0 +1,59 @@
+---
+
+- hosts: cdh_all
+  sudo: True
+  roles:
+    - inventory-hosts
+  tasks:
+    - name: update facts
+      action: setup
+
+- hosts: cdh_all
+  sudo: True
+  roles:
+    - openjdk
+    - ntp
+    - kerberos-client
+    - cdh-common
+
+- hosts: kerberos_server
+  sudo: True
+  vars:
+    - kdc_format: yes
+  roles:
+    - kerberos-server
+
+- include: credentials.yml
+
+- hosts: cdh_zookeeper
+  sudo: True
+  vars:
+    - zookeeper_format: yes
+  roles:
+    - cdh-zookeeper
+
+- hosts: cdh_namenode
+  sudo: True
+  vars:
+    - hdfs_format: yes
+  roles:
+    - cdh-namenode
+
+- hosts: cdh_datanode
+  sudo: True
+  vars:
+    - hdfs_format: yes
+  roles:
+    - cdh-datanode
+
+- hosts: cdh_jobtracker
+  sudo: True
+  roles:
+    - cdh-jobtracker
+    - cdh-mrjob
+    - cdh-edx-hadoop
+
+- hosts: cdh_tasktracker
+  sudo: True
+  roles:
+    - cdh-tasktracker

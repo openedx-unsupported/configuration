@@ -1,0 +1,17 @@
+---
+- name: inventory-hosts | /etc/hostname
+  template: src=hostname.j2 dest=/etc/hostname
+  register: hostname_file
+  tags:
+    - inventory-hosts
+
+- name: inventory-hosts | hostname set
+  command: /bin/hostname -F /etc/hostname
+  when: hostname_file.changed
+  tags:
+    - inventory-hosts
+
+- name: inventory-hosts | /etc/hosts
+  template: src=hosts.j2 dest=/etc/hosts
+  tags:
+    - inventory-hosts

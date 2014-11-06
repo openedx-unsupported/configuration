@@ -1,0 +1,53 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import subprocess
+
+UPDATE_ALTERNATIVES = '/usr/sbin/update-alternatives'
+
+def main():
+
+    module = AnsibleModule(
+        argument_spec = dict(
+            name = dict(required=True),
+            path  = dict(required=True),
+            link = dict(required=False),
+            priority = dict(required=False, default=50),
+        )
+    )
+
+    params = module.params
+    name = params['name']
+    path = params['path']
+    link = params['link']
+    priority = params['priority']
+
+    current_path = None
+    all_alternatives = []
+    try:
+        query_output = subprocess.check_output([UPDATE_ALTERNATIVES, '--query', name])
+        for line in query_output.splitlines():
+            split_line = line.split(':')
+            if len(split_line) == 2:
+                key = split_line[0]
+                value = split_line[1].strip()
+                if key == 'Value':
+                    current_path = value
+                elif key == 'Alternative':
+                    all_alternatives.append(value)
+    except subprocess.CalledProcessError:
+        pass
+
+    if current_path != path:
+        if path not in all_alternatives:
+            subprocess.check_call([UPDATE_ALTERNATIVES, '--install', link, name, path, str(priority)])
+
+        subprocess.check_call([UPDATE_ALTERNATIVES, '--set', name, path])
+        module.exit_json(changed=True)
+    else:
+        module.exit_json(changed=False)
+
+# this is magic, see lib/ansible/module_common.py
+#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+main()
+
