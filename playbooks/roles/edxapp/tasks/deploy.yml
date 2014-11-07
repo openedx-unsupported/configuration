@@ -252,6 +252,20 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+# Install any custom extra requirements if defined in EDXAPP_EXTRA_REQUIREMENTS.
+- name: install python extra requirements
+  pip: >
+    name="{{ item.name }}"
+    {% if 'version' in item %}version="{{ item.version }}"{% endif %}
+    extra_args="--exists-action w --use-mirrors {{ item.extra_args|default('') }}"
+    virtualenv="{{ edxapp_venv_dir }}"
+    state=present
+  with_items: EDXAPP_EXTRA_REQUIREMENTS
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
 - name: install CAS attribute module
