@@ -10,7 +10,6 @@
       - "cluster3"
     MONGO_CLUSTERED: yes
     MONGO_CLUSTER_KEY: 'password'
-    mongo_create_users: no
     ELASTICSEARCH_CLUSTERED: yes
     MARIADB_CLUSTERED: yes
     MARIADB_CREATE_DBS: no
@@ -41,8 +40,7 @@
   roles:
     - rabbitmq
 
-# Mongo user doesn't handle slave's gracefully when
-# creating users and there are race conditions
+# There are race conditions creating DBs
 # in MariaDB occasionally so this play will work
 # but will also show as failed
 - name: Configure group with tasks that will always fail
@@ -50,19 +48,10 @@
   sudo: True
   gather_facts: True
   vars:
-    mongo_cluster_members:
-      - "cluster1"
-      - "cluster2"
-      - "cluster3"
-    MONGO_CLUSTERED: yes
-    MONGO_CLUSTER_KEY: 'password'
-    mongo_create_users: yes
-    RABBITMQ_CLUSTERED: yes
     MARIADB_CLUSTERED: yes
     MARIADB_CREATE_DBS: yes
   vars_files:
     - "group_vars/all"
     - "roles/analytics-api/defaults/main.yml"
   roles:
-    - mongo
     - mariadb
