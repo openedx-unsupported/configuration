@@ -77,7 +77,7 @@ if [[ -z $elb ]]; then
 fi
 
 if [[ -z $dns_name ]]; then
-  dns_name=$github_username
+  dns_name=${github_username}
 fi
 
 if [[ -z $name_tag ]]; then
@@ -101,6 +101,9 @@ fi
 if [[ -z $enable_monitoring ]]; then
   enable_monitoring="false"
 fi
+
+# Lowercase the dns name to deal with an ansible bug
+dns_name="${dns_name,,}"
 
 deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
