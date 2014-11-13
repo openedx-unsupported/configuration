@@ -1,3 +1,6 @@
+- Role: analytics-api, insights
+  - Using Django 1.7 migrate command.
+
 - Role: edxapp
   - A new var was added to make it easy ot invalidate the default
     memcache store to make it easier to invalidate sessions. Updating
