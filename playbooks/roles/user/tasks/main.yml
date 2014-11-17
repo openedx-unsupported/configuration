@@ -114,28 +114,21 @@
 # 2014/10/14 - using curl instead of get_url because
 # get_url was failing due to certificate verification errors
 
-- name: copy github key[s] to .ssh/authorized_keys2
+- name: get github key[s]
   shell: >
-    curl https://github.com/{{ item.name }}.keys -o /home/{{ item.name }}/.ssh/authorized_keys2
+    curl https://github.com/{{ item.name }}.keys
   sudo_user: "{{ item.name }}"
   when: item.github is defined and item.get('state', 'present') == 'present'
   with_items: user_info
+  register: github_keys
 
-- name: set permissions on .ssh/authorized_keys2
-  file: >
-    dest=/home/{{ item.name }}/.ssh/authorized_keys2 
-    mode=0640
-    owner={{ item.name }}
-  when: item.github is defined and item.get('state', 'present') == 'present'
-  with_items: user_info
-
-- name: copy additional authorized keys
-  copy: >
-    content="{{ '\n'.join(item.authorized_keys) }}"
-    dest=/home/{{ item.name }}/.ssh/authorized_keys mode=0640
-    owner={{ item.name }}
-    mode=0440
-  when: item.authorized_keys is defined and item.get('state', 'present') == 'present'
+- name: update the authorized_keys file
+  template:
+    src="authorized_keys.j2"
+    dest="/home/{{ item.name }}/.ssh/authorized_keys"
+    owner="{{ item.name }}"
+    mode="600"
+  when: item.get('state', 'present') == 'present'
   with_items: user_info
 
 - name: create bashrc file for normal users
