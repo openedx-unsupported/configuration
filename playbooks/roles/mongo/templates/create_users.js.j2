@@ -1,0 +1,32 @@
+// Now create the rest of the users
+conn = new Mongo();
+db = conn.getDB("admin");
+db.auth( "{{ MONGO_USER_SUPER }}", "{{ MONGO_PASSWORD_SUPER }}");
+{% if MONGO_CLUSTERED %}
+if(rs.isMaster().ismaster) {
+{% endif %}
+
+    {% for user in MONGO_USERS %}
+    db = conn.getDB("{{ user.database }}");
+    if(db.getUser("{{ user.user }}") == null) {
+        db.createUser(
+            {
+                "user": "{{ user.user }}",
+                "pwd": "{{ user.password }}",
+                "roles": {{ user.roles|to_nice_json }}
+            }
+        );
+    } else {
+        db.updateUser(
+            "{{ user.user }}",
+            {
+                "pwd": "{{ user.password }}",
+                "roles": {{ user.roles|to_nice_json }}
+            }
+        );
+    }
+    {% endfor %}
+
+{% if MONGO_CLUSTERED %}
+}
+{% endif %}

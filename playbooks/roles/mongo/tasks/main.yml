@@ -8,12 +8,6 @@
   fail: msg="MongoDB 2.4 is currently installed. If on a stand alone host (devstack), apt-get remove mongodb-10gen and re-run ansible. if on a cluster, read http://docs.mongodb.org/manual/release-notes/2.6-upgrade/#upgrade-considerations and upgrade to 2.6."
   when: mongodb_needs_upgrade.stat.exists 
 
-
-- name: install python pymongo for mongo_user ansible module
-  pip: >
-    name=pymongo state=present
-    version=2.6.3 extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
-
 - name: add the mongodb signing key
   apt_key: >
     id=7F0CEB10
@@ -68,24 +62,41 @@
 - name: wait for mongo server to start
   wait_for: port=27017 delay=2
 
+- name: drop super user script
+  template: src="create_root.js.j2" dest="/tmp/create_root.js"
+  when: not MONGO_CLUSTERED
+
+- name: create super user with js
+  shell: >
+    /usr/bin/mongo admin /tmp/create_root.js
+  when: not MONGO_CLUSTERED
+
+- name: delete super user script
+  file: path=/tmp/create_root.js state=absent
+  when: not MONGO_CLUSTERED
+
 - name: Create the file to initialize the mongod replica set
-  template: src=repset_init.j2 dest=/tmp/repset_init.js
+  template: src=repset_init.js.j2 dest=/tmp/repset_init.js
   when: MONGO_CLUSTERED
 
 - name: Initialize the replication set
-  shell: /usr/bin/mongo  /tmp/repset_init.js
+  shell: >
+    /usr/bin/mongo /tmp/repset_init.js
   when: MONGO_CLUSTERED
 
-# Ignore errors doesn't work because the module throws an exception
-# it doesn't catch.
-- name: create a mongodb user
-  mongodb_user: >
-    database={{ item.database }}
-    name={{ item.user }}
-    password={{ item.password }}
-    state=present
-  with_items: MONGO_USERS
-  when: mongo_create_users
+- name: delete repset script
+  file: path=/tmp/repset_init.js state=absent
+  when: MONGO_CLUSTERED
+
+- name: drop create users script
+  template: src="create_users.js.j2" dest="/tmp/create_users.js"
+
+- name: create users with js
+  shell: >
+    /usr/bin/mongo /tmp/create_users.js
+
+- name: delete user creation script
+  file: path=/tmp/create_users.js state=absent
 
 - name: install s3cmd
   pip: >

@@ -1,3 +1,7 @@
+conn = new Mongo();
+db = conn.getDB("admin");
+db.auth( '{{ MONGO_USER_SUPER }}', '{{ MONGO_PASSWORD_SUPER }}');
+
 {# Generate a list of hosts if no cluster members are give. Otherwise use the
    hosts provided in the variable.
 #}
@@ -20,9 +24,9 @@
 {%- endif -%}
 
 config = {_id: '{{ mongo_repl_set }}', members: [
-	   {%- for host in hosts -%}
-	   {_id: {{ loop.index }}, host: '{{ host }}'}{% if not loop.last %},{% endif %}
-	   {%- endfor -%}
+       {%- for host in hosts -%}
+       {_id: {{ loop.index }}, host: '{{ host }}'}{% if not loop.last %},{% endif %}
+       {%- endfor -%}
            ]};
 rs.initiate(config)
 
@@ -47,4 +51,27 @@ if(rs.isMaster().ismaster) {
             throw 'Could not add all members to cluster'
         }
     }
+    // Now add super user to cluster
+    conn = new Mongo();
+    db = conn.getDB("admin");
+    db.auth( '{{ MONGO_USER_SUPER }}', '{{ MONGO_PASSWORD_SUPER }}');
+
+    if(db.getUser("{{ MONGO_USER_SUPER }}") == null) {
+        db.createUser(
+            {
+                "user": "{{ MONGO_USER_SUPER }}",
+                "pwd": "{{ MONGO_PASSWORD_SUPER }}",
+                "roles": ["root"]
+            }
+        );
+    } else {
+        db.updateUser(
+            "{{ MONGO_USER_SUPER }}",
+            {
+                "pwd": "{{ MONGO_PASSWORD_SUPER }}",
+                "roles": ["root"]
+            }
+        );
+		
+	}
 }
