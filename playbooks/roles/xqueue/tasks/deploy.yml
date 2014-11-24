@@ -13,6 +13,12 @@
   with_items: ['xqueue', 'xqueue_consumer']
   when: not disable_edx_services
 
+- name: "add gunicorn configuration file"
+  template: >
+    src=xqueue_gunicorn.py.j2 dest={{ xqueue_app_dir }}/xqueue_gunicorn.py
+  sudo_user: "{{ xqueue_user }}"
+  notify:
+    - restart xqueue
 
 - name: create xqueue application config
   template: src=xqueue.env.json.j2 dest={{ xqueue_app_dir }}/xqueue.env.json mode=0644
