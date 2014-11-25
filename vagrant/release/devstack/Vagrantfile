@@ -27,17 +27,17 @@ if [ -n "$OPENEDX_RELEASE" ]; then
     -e xqueue_version=$OPENEDX_RELEASE \
   "
   CONFIG_VER=$OPENEDX_RELEASE
+  # Need to ensure that the configuration repo is updated
+  # The vagrant-devstack.yml playbook will also do this, but only
+  # after loading the playbooks into memory.  If these are out of date,
+  # this can cause problems (e.g. looking for templates that no longer exist).
+  /edx/bin/update configuration $CONFIG_VER
 else
   CONFIG_VER="release"
 fi
 
-# Need to ensure that the configuration repo is updated
-# The vagrant-devstack.yml playbook will also do this, but only
-# after loading the playbooks into memory.  If these are out of date,
-# this can cause problems (e.g. looking for templates that no longer exist).
-/edx/bin/update configuration $CONFIG_VER
-
 ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=$CONFIG_VER $EXTRA_VARS
+
 SCRIPT
 
 edx_platform_mount_dir = "edx-platform"
@@ -66,7 +66,7 @@ openedx_releases = {
   },
 }
 openedx_releases.default = {
-  :name => "kifli-devstack", :file => "20140826-kifli-devstack.box"
+  :name => "lavash-devstack", :file => "20141118-lavash-devstack.box"
 }
 rel = ENV['OPENEDX_RELEASE']
 
