@@ -1,0 +1,46 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role analytics_pipeline
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: create config directory
+  file: >
+    path="{{ ANALYTICS_PIPELINE_CONFIG_DIR }}"
+    mode=0755 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+    state=directory
+
+- name: store output database credentials for analytics pipeline
+  copy: >
+    content="{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE | to_json }}"
+    dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/output.json
+    mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+
+- name: store input database credentials for analytics pipeline
+  copy: >
+    content="{{ ANALYTICS_PIPELINE_INPUT_DATABASE | to_json }}"
+    dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/input.json
+    mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+
+- name: cron job syncs tracking log file to hdfs
+  cron: >
+    user={{ hadoop_common_user }}
+    name="Sync tracking log to HDFS"
+    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f /edx/var/log/tracking/tracking.log hdfs://localhost:9000/data/tracking.log"

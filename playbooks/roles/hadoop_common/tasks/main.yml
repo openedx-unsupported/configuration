@@ -1,0 +1,217 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role hadoop_common
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: install system packages
+  apt: >
+    pkg={{ ','.join(hadoop_common_debian_pkgs) }}
+    state=present
+
+- name: ensure group exists
+  group: name={{ hadoop_common_group }} system=yes state=present
+
+- name: ensure user exists
+  user: >
+    name={{ hadoop_common_user }}
+    group={{ hadoop_common_group }}
+    home={{ HADOOP_COMMON_USER_HOME }} createhome=yes
+    shell=/bin/bash system=yes generate_ssh_key=yes
+    state=present
+
+- name: own key authorized
+  file: >
+    src={{ HADOOP_COMMON_USER_HOME }}/.ssh/id_rsa.pub
+    dest={{ HADOOP_COMMON_USER_HOME }}/.ssh/authorized_keys
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+
+- name: ssh configured
+  template: >
+    src=hadoop_user_ssh_config.j2
+    dest={{ HADOOP_COMMON_USER_HOME }}/.ssh/config
+    mode=0600 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+
+- name: ensure user is in sudoers
+  lineinfile: >
+    dest=/etc/sudoers state=present 
+    regexp='^%hadoop ALL\=' line='%hadoop ALL=(ALL) NOPASSWD:ALL'
+    validate='visudo -cf %s'
+
+- name: check if downloaded and extracted
+  stat: path={{ HADOOP_COMMON_HOME }}
+  register: extracted_hadoop_dir
+
+- name: distribution downloaded
+  get_url: >
+    url={{ hadoop_common_dist.url }}
+    sha256sum={{ hadoop_common_dist.sha256sum }}
+    validate_certs=no
+    dest=/tmp
+  when: not extracted_hadoop_dir.stat.exists
+
+- name: distribution extracted
+  shell: >
+    chdir={{ HADOOP_COMMON_USER_HOME }}
+    tar -xzf /tmp/{{ hadoop_common_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hadoop-{{ HADOOP_COMMON_VERSION }}
+  when: not extracted_hadoop_dir.stat.exists
+
+- name: versioned directory symlink created
+  file: >
+    src={{ HADOOP_COMMON_USER_HOME }}/hadoop-{{ HADOOP_COMMON_VERSION }}
+    dest={{ HADOOP_COMMON_HOME }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+
+- name: configuration installed
+  template: >
+    src={{ item }}.j2
+    dest={{ HADOOP_COMMON_CONF_DIR }}/{{ item }}
+    mode=0640 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  with_items:
+    - hadoop-env.sh
+    - mapred-site.xml
+    - core-site.xml
+    - hdfs-site.xml
+    - yarn-site.xml
+
+- name: hadoop env file exists
+  file: >
+    path={{ hadoop_common_env }} state=touch
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+
+- name: env vars sourced in bashrc
+  lineinfile: >
+    dest={{ HADOOP_COMMON_USER_HOME }}/.bashrc
+    state=present
+    regexp="^. {{ hadoop_common_env }}"
+    line=". {{ hadoop_common_env }}"
+    insertbefore=BOF
+
+- name: env vars sourced in hadoop env
+  lineinfile: >
+    dest={{ hadoop_common_env }} state=present
+    regexp="^. {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh" line=". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh"
+
+- name: check if native libraries need to be built
+  stat: path={{ HADOOP_COMMON_USER_HOME }}/.native_libs_built
+  register: native_libs_built
+
+- name: protobuf downloaded
+  get_url: >
+    url={{ hadoop_common_protobuf_dist.url }}
+    sha256sum={{ hadoop_common_protobuf_dist.sha256sum }}
+    validate_certs=no
+    dest=/tmp
+  when: not native_libs_built.stat.exists
+
+- name: protobuf extracted
+  shell: >
+    chdir=/tmp
+    tar -xzf {{ hadoop_common_protobuf_dist.filename }}
+  when: not native_libs_built.stat.exists
+
+- name: protobuf installed
+  shell: >
+    chdir=/tmp/protobuf-{{ HADOOP_COMMON_PROTOBUF_VERSION }}
+    ./configure --prefix=/usr/local && make && make install
+  when: not native_libs_built.stat.exists
+
+- name: native lib source downloaded
+  get_url: >
+    url={{ hadoop_common_native_dist.url }}
+    sha256sum={{ hadoop_common_native_dist.sha256sum }}
+    validate_certs=no
+    dest=/tmp/{{ hadoop_common_native_dist.filename }}
+  when: not native_libs_built.stat.exists
+
+- name: native lib source extracted
+  shell: >
+    chdir=/tmp
+    tar -xzf {{ hadoop_common_native_dist.filename }}
+  when: not native_libs_built.stat.exists
+
+- name: native lib built
+  shell: >
+    chdir=/tmp/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project
+    mvn package -X -Pnative -DskipTests
+  environment:
+    LD_LIBRARY_PATH: /usr/local/lib
+  when: not native_libs_built.stat.exists
+
+- name: old native libs renamed
+  shell: >
+    mv {{ HADOOP_COMMON_HOME }}/lib/native/{{ item.name }} {{ HADOOP_COMMON_HOME }}/lib/native/{{ item.new_name }}
+  with_items:
+    - { name: libhadoop.a, new_name: libhadoop32.a }
+    - { name: libhadoop.so, new_name: libhadoop32.so }
+    - { name: libhadoop.so.1.0.0, new_name: libhadoop32.so.1.0.0 }
+  when: not native_libs_built.stat.exists
+
+- name: new native libs installed
+  shell: >
+    chdir=/tmp/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project/hadoop-common/target/native/target/usr/local/lib
+    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ item }} && cp {{ item }} {{ HADOOP_COMMON_HOME }}/lib/native/{{ item }}
+  with_items:
+    - libhadoop.a
+    - libhadoop.so
+    - libhadoop.so.1.0.0
+  when: not native_libs_built.stat.exists
+
+- name: native lib marker touched
+  file: >
+    path={{ HADOOP_COMMON_USER_HOME }}/.native_libs_built
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=touch
+  when: not native_libs_built.stat.exists
+
+- name: util library source checked out
+  git: >
+    dest={{ hadoop_common_util_library.path }} repo={{ hadoop_common_util_library.repo }}
+    version={{ hadoop_common_util_library.version }}
+
+- name: lib directory created
+  file: >
+    path={{ HADOOP_COMMON_USER_HOME }}/lib
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+
+- name: check if the util library needs to be built
+  stat: path={{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar
+  register: util_lib_built
+
+- name: util library built
+  shell: >
+    chdir={{ hadoop_common_util_library.path }}
+    {{ hadoop_common_java_home }}/bin/javac -cp `{{ HADOOP_COMMON_HOME }}/bin/hadoop classpath` org/edx/hadoop/input/ManifestTextInputFormat.java &&
+    {{ hadoop_common_java_home }}/bin/jar cf {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar org/edx/hadoop/input/ManifestTextInputFormat.class &&
+    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar
+  when: not util_lib_built.stat.exists
+
+- name: service directory exists
+  file: >
+    path={{ HADOOP_COMMON_SERVICES_DIR }}
+    mode=0750 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+    state=directory
+
+- name: management script installed
+  template: >
+    src={{ item }}.j2
+    dest={{ COMMON_BIN_DIR }}/{{ item }}
+    mode=0755 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  with_items:
+    - edx-analytics-hadoop.sh

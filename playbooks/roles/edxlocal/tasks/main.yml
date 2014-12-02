@@ -102,6 +102,13 @@
     encoding=utf8
   when: INSIGHTS_DATABASES is defined
 
+- name: create database user for insights
+  mysql_user: >
+    name="{{ INSIGHTS_DATABASES.default.USER }}"
+    password="{{ INSIGHTS_DATABASES.default.PASSWORD }}"
+    priv='{{ INSIGHTS_DATABASES.default.NAME }}.*:ALL'
+  when: INSIGHTS_DATABASES is defined
+
 - name: create database for ecommerce
   mysql_db: >
     db="{{ ECOMMERCE_DEFAULT_DB_NAME }}"
@@ -128,6 +135,13 @@
     name=reports001
     password="{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
     priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create pipeline user for the analytics reports database
+  mysql_user: >
+    name="pipeline001"
+    password="password"
+    priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:ALL'
   when: ANALYTICS_API_SERVICE_CONFIG is defined
 
 - name: setup the edx-notes-api db user
