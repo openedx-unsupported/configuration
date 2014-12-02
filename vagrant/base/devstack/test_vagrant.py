@@ -1,9 +1,6 @@
 # Copyright (c) 2014 edx
 #
 #
-# Run this file with
-#
-#
 # The tests in this file are a smoke test against the different kinds of
 # tests that are run on a devstack instance. It should hit the various system packages
 # underneath (e.g., ensure firefox is installed by running acceptance tests)
@@ -81,7 +78,10 @@ class TestVagrant(unittest.TestCase):
         self.verify_cmd("paver test_bokchoy -t lms/test_lms_matlab_problem.py:MatlabProblemTest --fasttest")
 
     def test_acceptance(self):
-        """Acceptance tests"""
+        """Run some acceptance tests to ensure their basic functionality is available"""
         self.verify_cmd("paver test_acceptance -s lms --extra_args='lms/djangoapps/courseware/features/problems.feature -s 1'")
         self.verify_cmd("paver test_acceptance -s cms --extra_args='cms/djangoapps/contentstore/features/html-editor.feature -s 1'")
 
+    def test_codejail(self):
+        """Ensures codejail infrastructure is in place (e.g., apparmor installed and configured)"""
+        self.verify_cmd("paver test_lib -t common/lib/capa/capa/safe_exec/tests/test_safe_exec.py")
