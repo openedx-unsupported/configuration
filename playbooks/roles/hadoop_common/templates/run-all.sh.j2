@@ -1,0 +1,19 @@
+#!/bin/bash
+
+sudo /etc/init.d/ssh start
+
+{% raw %}
+    if [ -z ${GITHUB_USERNAME+x} ]
+    then
+        echo "The GITHUB_USERNAME environment variable must be set to enable SSH access to the specified github user"
+    else
+        ansible-playbook -c local create_user.yml -e "user=$GITHUB_USERNAME" -e "give_sudo=true"
+    fi
+{% endraw %}
+
+. {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh
+
+start-dfs.sh
+start-yarn.sh
+
+tail -f {{ HADOOP_COMMON_HOME }}/logs/*
