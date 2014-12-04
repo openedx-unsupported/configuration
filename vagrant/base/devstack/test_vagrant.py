@@ -28,14 +28,14 @@ env.hosts = ["default"]
 
 @task
 def generic_test(paver_command):
-"""
-Via fabric, excutes given commands on a vagrant instance.
-Description of fabric contexts used:
-  hide is for cleaner output in the test runner
-  cd sets the directory to execute on the target machine
-  prefix will prepend all statements
-  settings/command_timeout sets a timeout for the test command being used
-"""
+    """
+    Via fabric, excutes given commands on a vagrant instance.
+    Description of fabric contexts used:
+      hide is for cleaner output in the test runner
+      cd sets the directory to execute on the target machine
+      prefix will prepend all statements
+      settings/command_timeout sets a timeout for the test command being used
+    """
     with hide("commands"):
         with cd("/edx/app/edxapp/edx-platform"):
             with prefix("source '/edx/app/edxapp/edxapp_env' && export DISPLAY=':1'"):
