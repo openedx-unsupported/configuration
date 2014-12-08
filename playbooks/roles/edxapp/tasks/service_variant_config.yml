@@ -20,6 +20,29 @@
   - "restart edxapp_workers"
   with_items: service_variants_enabled
 
+- name: "create {{ item }} application config"
+  template: >
+    src={{ item }}.env.yaml.j2
+    dest={{ EDXAPP_CFG_DIR }}/{{ item }}.env.yaml
+  sudo_user: "{{ edxapp_user }}"
+  tags: edxapp_cfg
+  with_items: service_variants_enabled
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
+- name: "create {{ item }} auth file"
+  template: >
+    src={{ item }}.auth.yaml.j2
+    dest={{ EDXAPP_CFG_DIR }}/{{ item }}.auth.yaml
+  sudo_user: "{{ edxapp_user }}"
+  tags: edxapp_cfg
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  with_items: service_variants_enabled
+
+
 # write the supervisor scripts for the service variants
 
 - name: "writing {{ item }} supervisor script"
