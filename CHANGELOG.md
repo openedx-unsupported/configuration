@@ -1,3 +1,10 @@
+- Role: gitreload
+  - New role added for running
+    [gitreload](https://github.com/mitodl/gitreload) that can be used
+    for importing courses via github/gitlab Web hooks, or more
+    generally updating any git repository that is already checked out
+    on disk via a hook.
+
 - Role: analytics-api, edxapp, ora, xqueue, xserver
   - Switched gunicorn from using an entirely command argument based
     configuration to usign python configuration files. Variables for
