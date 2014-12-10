@@ -1,0 +1,19 @@
+"""
+gunicorn configuration file: http://docs.gunicorn.org/en/develop/configure.html
+
+{{ ansible_managed }}
+"""
+import multiprocessing
+
+preload_app = True
+timeout = 300
+bind = "{{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }}"
+pythonpath = "{{ xqueue_code_dir }}"
+
+{% if XQUEUE_WORKERS %}
+workers = {{ XQUEUE_WORKERS }}
+{% else %}
+workers = (multiprocessing.cpu_count()-1) * 2 + 2
+{% endif %}
+
+{{ XQUEUE_GUNICORN_WORKERS_EXTRA_CONF }}

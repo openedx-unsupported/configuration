@@ -1,3 +1,9 @@
+- Role: analytics-api, edxapp, ora, xqueue, xserver
+  - Switched gunicorn from using an entirely command argument based
+    configuration to usign python configuration files. Variables for
+    extra configuration in the configuration file template, and
+    command line argument overrides are available.
+
 - Role: analytics-api, insights
   - Using Django 1.7 migrate command.
 
