@@ -33,6 +33,9 @@
 
 # grab edxapp vars without being dependent on its tasks
 - include_vars: ../../edxapp/defaults/main.yml
+  tags:
+    - course_pull
+    - deploy
 
 - name: create gitreload user
   user: >
@@ -55,18 +58,6 @@
     owner={{ common_web_user }}
     group={{ common_web_group }}
 
-- name: create ssh dir for the content repos key
-  file: path=~/.ssh state=directory mode=0700
-  sudo_user: "{{ common_web_user }}"
-  tags:
-    - deploy
-
-- name: install ssh key for the content repos
-  copy: content="{{ GITRELOAD_GIT_IDENTITY }}" dest=~/.ssh/id_rsa mode=0600
-  sudo_user: "{{ common_web_user }}"
-  tags:
-    - deploy
-
 - name: grab ssh host keys
   shell: ssh-keyscan {{ item }}
   sudo_user: "{{ common_web_user }}"
@@ -81,61 +72,6 @@
   sudo_user: "{{ common_web_user }}"
   with_items: gitreload_repo_host_keys.results
 
-- name: install gitreload
-  pip: >
-    name=git+{{ gitreload_repo }}@{{ gitreload_version }}#egg=gitreload
-    virtualenv={{ gitreload_venv }}
-    extra_args="--exists-action w"
-  sudo_user: "{{ gitreload_user }}"
-  notify: restart gitreload
-  tags:
-    - deploy
-
-- name: copy configuration
-  template: src=edx/app/gitreload/gr.env.json.j2 dest={{ gitreload_dir }}/gr.env.json
-  sudo_user: "{{ gitreload_user }}"
-  notify: restart gitreload
-  tags:
-    - deploy
-
-- include: course_pull.yml
-  when: GITRELOAD_COURSE_CHECKOUT|bool
-  tags: course_pull
-
-- name: "writing supervisor script"
-  template: >
-    src=edx/app/supervisor/conf.available.d/gitreload.conf.j2 dest={{ supervisor_available_dir }}/gitreload.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-
-- name: "enable supervisor script"
-  file: >
-    src={{ supervisor_available_dir }}/gitreload.conf
-    dest={{ supervisor_cfg_dir }}/gitreload.conf
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-    state=link force=yes
-  when: not disable_edx_services
-
-  # call supervisorctl update. this reloads
-  # the supervisorctl config and restarts
-  # the services if any of the configurations
-  # have changed.
-  #
-- name: update supervisor configuration
-  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
-  register: supervisor_update
-  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
-  when: not disable_edx_services
-
-- name: ensure gitreload is started
-  supervisorctl_local: >
-    name=gitreload
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=started
-  when: not disable_edx_services
-  tags:
-    - deploy
-
 - name: create a symlink for venv python
   file: >
     src="{{ gitreload_venv_bin }}/{{ item }}"
@@ -144,3 +80,5 @@
   with_items:
   - python
   - pip
+
+- include: deploy.yml tags=deploy
