@@ -1,0 +1,77 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role create_pkg
+#
+# Overview:
+# Creates packages from edX single server installation
+#
+#
+
+- name: create script directory
+  file: >
+    path="{{ create_pkg_script_dir }}"
+    state=directory
+    owner=root
+
+- name: Install apt package dependencies
+  apt: pkg={{ item }}
+  with_items: create_pkg_debian_pkgs
+
+- name: Install fpm
+  shell: >
+    gem install fpm
+    creates=/usr/local/bin/fpm
+
+- name: create temporary scripts needed to create mongo users
+  template: >
+    src=../../mongo/templates/{{ item }}.j2
+    dest=/var/tmp/{{ item }}
+    owner=root mode=0700
+  with_items:
+    - create_users.js
+    - create_root.js
+    - install-mongo.sh
+
+- name: create temporary script needed to create mysql users
+  template: >
+    src=configure-mysql.sh.j2
+    dest=/var/tmp/configure-mysql.sh
+    owner=root mode=0700
+
+- name: Create fpm templates
+  template: >
+    src={{ item }}.sh.j2
+    dest={{ create_pkg_script_dir }}/{{ item }}.sh
+    owner=root
+  with_items:
+    - fpm-base
+    - fpm-edxapp
+    - fpm-local
+
+- name: Create fpm before scripts
+  template: >
+    src={{ item }}.before.j2
+    dest={{ create_pkg_script_dir }}/{{ item }}.before
+    owner=root
+  with_items:
+    - fpm-base
+    - fpm-edxapp
+
+- name: Create fpm after scripts
+  template: >
+    src={{ item }}.after.j2
+    dest={{ create_pkg_script_dir }}/{{ item }}.after
+    owner=root
+  with_items:
+    - fpm-base
+    - fpm-edxapp
+    - fpm-local

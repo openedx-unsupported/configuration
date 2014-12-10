@@ -1,0 +1,64 @@
+#!/bin/bash
+echo "Creating supervisor links"
+{% for type in ['lms', 'workers', 'cms', 'edxapp'] -%}
+if [[ ! -e {{ supervisor_cfg_dir }}/{{ type }}.conf ]]; then
+    ln -s  {{ supervisor_available_dir }}/{{ type }}.conf {{ supervisor_cfg_dir }}/{{ type }}.conf
+fi
+{% endfor -%}
+
+echo "Creating nginx links"
+rm -f {{ nginx_sites_enabled_dir }}/default
+{% for variant in ['lms', 'cms'] -%}
+if [[ ! -e {{ nginx_sites_enabled_dir }}/{{ variant }} ]]; then
+    ln -s {{ nginx_sites_available_dir }}/{{ variant }} {{ nginx_sites_enabled_dir }}/{{ variant }}
+fi
+{% endfor -%}
+
+echo "Creating data directories"
+
+{% for data_dir in [edxapp_course_data_dir, edxapp_course_static_dir, edxapp_upload_dir, edxapp_theme_dir] -%}
+mkdir -p {{ data_dir }}
+chown edxapp:www-data {{ data_dir }}
+{% endfor -%}
+
+echo "Creating staticfiles dir"
+mkdir -p {{ edxapp_staticfile_dir }}
+chown edxapp:www-data {{ edxapp_staticfile_dir }}
+
+cat<<EOL
+
+********************************************************************************
+* !! IMPORTANT !! - Complete the following steps to complete your installation *
+********************************************************************************
+
+1) Edit the following files to configure the following:
+        - memcache
+        - mysql
+        - mongo
+
+    {% for variant in ['lms', 'cms'] -%}
+    {% for type in ['env', 'auth'] -%}
+    {{ EDXAPP_CFG_DIR }}/{{ variant }}.{{ type }}.yaml
+    {% endfor -%}
+    {% endfor %}
+
+    If you are running a single server with local mysql, mongo and memcache
+    you must install the edx-local package.
+
+2) Run migrations
+
+    /edx/bin/edxapp-syncdb-lms
+    /edx/bin/edxapp-syncdb-cms
+
+3) Collect static assets
+
+    /edx/bin/edxapp-update-assets-cms
+    /edx/bin/edxapp-update-assets-lms
+
+4) Restart the lms and cms
+
+    service supervisor restart
+    /edx/bin/supervisorctl restart edxapp:
+    /edx/bin/supervisorctl restart edxapp_worker:
+
+EOL

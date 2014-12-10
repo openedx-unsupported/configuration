@@ -1,0 +1,24 @@
+#!/bin/bash
+
+echo -n "Creating mysql databases and users, please enter the root mysql password:"
+read -s password
+echo
+
+
+{% for db_name in [EDXAPP_MYSQL_DB_NAME, 
+              XQUEUE_MYSQL_DB_NAME,
+              ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'], 
+              ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME']] -%}
+
+echo "Creating {{ db_name }} database"
+mysql -p${password} -Bse "CREATE DATABASE IF NOT EXISTS \`{{ db_name }}\` CHARACTER SET utf8 COLLATE utf8_general_ci;"
+{% endfor %}
+
+echo "Creating users"
+
+mysql -p${password} -Bse "GRANT ALL ON \`{{ EDXAPP_MYSQL_DB_NAME }}\`.* TO \`{{ EDXAPP_MYSQL_USER }}\`@localhost IDENTIFIED BY '{{ EDXAPP_MYSQL_PASSWORD }}'"
+mysql -p${password} -Bse "GRANT ALL ON \`{{ XQUEUE_MYSQL_DB_NAME }}\`.* TO \`{{ XQUEUE_MYSQL_USER }}\`@localhost IDENTIFIED BY '{{ XQUEUE_MYSQL_PASSWORD }}'"
+mysql -p${password} -Bse "GRANT ALL ON \`{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}\`.* TO \`{{ ANALYTICS_API_CONFIG['DATABASES']['default']['USER'] }}\`@localhost IDENTIFIED BY '{{ ANALYTICS_API_CONFIG['DATABASES']['default']['PASSWORD'] }}'"
+mysql -p${password} -Bse "GRANT ALL ON \`{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}\`.* TO \`{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['USER'] }}\`@localhost IDENTIFIED BY '{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['PASSWORD'] }}'"
+
+

@@ -1,0 +1,28 @@
+
+echo "Creating base edX package"
+
+time fpm -s dir -t deb -n edx-base --description "edX base config" -v 1.0 -a native --deb-use-file-permissions \
+  --before-install {{ create_pkg_script_dir }}/fpm-base.before \
+  --after-install {{ create_pkg_script_dir }}/fpm-base.after \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude {{ exclude }} \
+  {% endfor -%}
+  --exclude "**/supervisor/conf.d/**" \
+  --exclude "**/supervisor/conf.available.d/**" \
+  {% for pkg in common_debian_pkgs -%}
+  -d {{ pkg }} \
+  {% endfor -%}
+  {% for pkg in nginx_debian_pkgs -%}
+  -d {{ pkg }} \
+  {% endfor -%}
+  /etc/sudoers.d/ssh_key_forward \
+  /etc/rsyslog.d/99-edx.conf \
+  /etc/logrotate.d/hourly/tracking.log \
+  /etc/logrotate.d/hourly/edx-services \
+  /etc/cron.hourly/logrotate \
+  {{ supervisor_app_dir }} \
+  /etc/init/supervisor.conf \
+  {{ nginx_htpasswd_file }} \
+  /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }} \
+  /etc/ssl/private/{{ NGINX_SSL_KEY|basename }} \
+  /etc/nginx/conf.d/edx.conf

@@ -1,0 +1,39 @@
+echo "Creating application package"
+
+time fpm -s dir -t deb -n edx-edxapp-code --description "edX edxapp code" -v 1.0 -a native --deb-use-file-permissions --template-scripts \
+  --before-install {{ create_pkg_script_dir }}/fpm-edxapp.before \
+  --after-install {{ create_pkg_script_dir }}/fpm-edxapp.after \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude "{{ exclude }}" \
+  {% endfor -%}
+  --exclude "**/venvs" \
+  {% for pkg in edxapp_debian_pkgs -%}  {# Depend on the debian packages for the edxapp role #}
+  -d {{ pkg }} \
+  {% endfor -%}
+  {% for variant in ['lms', 'cms'] -%}  {# Configuration files are the yaml files in the config dir #}
+  {% for type in ['env', 'auth'] -%}
+  --config-files {{ EDXAPP_CFG_DIR }}/{{ variant }}.{{ type }}.yaml \
+  {% endfor -%}
+  {% endfor -%}
+  {% for type in ['lms', 'workers', 'cms', 'edxapp'] -%}
+  {{ supervisor_available_dir }}/{{ type }}.conf \
+  {% endfor -%}
+  {{ nginx_sites_available_dir }}/lms \
+  {{ nginx_sites_available_dir }}/cms \
+  {% for helper in edxapp_helper_scripts -%}
+  {% for variant in service_variants_enabled -%}
+  {{ COMMON_BIN_DIR }}/{{ helper }}-{{ variant }} \
+  {% endfor -%}
+  {% endfor -%}
+  {{ edxapp_app_dir }} \
+  {{ EDXAPP_CFG_DIR }}
+
+echo "Creating venv package"
+
+time fpm -s dir -t deb -n edx-edxapp-venvs --description "edX edxapp venvs" -v 1.0 -a native --deb-use-file-permissions --template-scripts \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude "{{ exclude }}" \
+  {% endfor -%}
+  {{ edxapp_venvs_dir }}
+
+

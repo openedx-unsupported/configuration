@@ -38,8 +38,16 @@
   notify: reload nginx
 
 - name: Server configuration file
+  # This is the default packaged nginx conf, overrides
+  # are handled in the next task
   template: >
     src=etc/nginx/nginx.conf.j2 dest=/etc/nginx/nginx.conf
+    owner=root group={{ common_web_user }} mode=0644
+  notify: restart nginx
+
+- name: edX nginx configuration file
+  template: >
+    src=etc/nginx/conf.d/edx.conf.j2 dest=/etc/nginx/conf.d/edx.conf
     owner=root group={{ common_web_user }} mode=0644
   notify: restart nginx
 

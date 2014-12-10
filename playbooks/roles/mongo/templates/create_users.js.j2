@@ -1,0 +1,8 @@
+// Create application users (alternative to ansible's mongo_user)
+conn = new Mongo();
+{% for user in MONGO_USERS -%}
+db = conn.getDB("{{ user.database }}");
+if(db.getUser('{{ user.user }}') == null) {
+  db.createUser({"user": "{{ user.user }}", "pwd": "{{ user.password }}", "roles": [{ "role": "{{ user.roles }}", "db": "{{ user.database }}"}], });
+}
+{% endfor %}

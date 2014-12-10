@@ -1,0 +1,15 @@
+echo "Creating local package"
+
+time fpm -s dir -t deb -n edx-local --description "edX configuration for local servers" -v 1.0 -a native --deb-use-file-permissions --template-scripts \
+  --after-install {{ create_pkg_script_dir }}/fpm-local.after \
+  {% for exclude in create_pkg_excludes -%}
+  --exclude "{{ exclude }}" \
+  {% endfor -%}
+  {% for pkg in create_pkg_local_server_debian_pkgs -%} 
+  -d {{ pkg }} \
+  {% endfor -%}
+  /etc/apt/sources.list.d/downloads_distro_mongodb_org_repo_ubuntu_upstart.list \
+  /var/tmp/create_root.js \
+  /var/tmp/create_users.js \
+  /var/tmp/install-mongo.sh  \
+  /var/tmp/configure-mysql.sh

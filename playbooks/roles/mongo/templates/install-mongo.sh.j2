@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+cat<<EOL
+
+*************************************************
+Installing Mongo and creating
+users for a single server installation
+
+IMPORTANT - this is not intended for production!
+
+*************************************************
+
+Press any key to continue
+EOL
+
+read
+
+echo "Adding apt key for mongo"
+curl http://docs.mongodb.org/10gen-gpg-key.asc 2>/dev/null | apt-key add -
+echo "Installing mongo package"
+apt-get update
+apt-get install -y mongodb-org={{ mongo_version}}
+echo "Waiting 5 seconds before adding mongo users"
+sleep 5
+/usr/bin/mongo admin /var/tmp/create_root.js
+/usr/bin/mongo admin /var/tmp/create_users.js
