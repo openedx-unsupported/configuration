@@ -57,7 +57,7 @@ extra_var_arg="-e@${extra_vars_file}"
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${extra_vars_file} -e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
+    extra_var_arg="-e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml -e@${extra_vars_file}"
 fi
 
 if [[ -z $region ]]; then
