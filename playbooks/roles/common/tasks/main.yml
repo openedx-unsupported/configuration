@@ -95,18 +95,18 @@
 
 - name: update /etc/hosts
   template: src=hosts.j2 dest=/etc/hosts
-  when: COMMON_HOSTNAME
+  when: COMMON_HOSTNAME|length > 0
   register: etc_hosts
 
 - name: update /etc/hostname
   template: src=hostname.j2 dest=/etc/hostname
-  when: COMMON_HOSTNAME
+  when: COMMON_HOSTNAME|length > 0
   register: etc_hostname
 
 - name: run hostname
   shell: >
     hostname -F /etc/hostname
-  when: COMMON_HOSTNAME and (etc_hosts.changed or etc_hostname.changed)
+  when: COMMON_HOSTNAME|length >0 and (etc_hosts.changed or etc_hostname.changed)
 
 - name: update /etc/dhcp/dhclient.conf
   template: src=etc/dhcp/dhclient.conf.j2 dest=/etc/dhcp/dhclient.conf
