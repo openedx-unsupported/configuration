@@ -106,16 +106,24 @@
   when: celery_worker is defined and not disable_edx_services
   sudo_user: "{{ supervisor_user }}"
 
+- name: create helper scripts for managing edxapp
+  template: >
+    src=edx/bin/{{ item[0] }}-{{ item[1] }}.j2
+    dest={{ COMMON_BIN_DIR }}/{{ item[0] }}-{{ item[1] }}
+    owner={{ edxapp_user }}
+    mode=0755
+  with_nested:
+    - edxapp_helper_scripts
+    - service_variants_enabled
+
 # Syncdb with migrate when the migrate user is overridden in extra vars
 - name: syncdb and migrate
-  shell: >
-    chdir={{ edxapp_code_dir }}
-    {{ edxapp_venv_bin}}/python manage.py {{ item }} syncdb --migrate --noinput --settings=aws_migrate
+  command: "{{ COMMON_BIN_DIR }}/edxapp-syncdb-{{ item }}"
   when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and item != "lms-preview"
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
-  sudo_user: "{{ edxapp_user }}"
+    EDX_PLATFORM_SETTINGS_OVERRIDE: "aws_migrate"
   with_items: service_variants_enabled
   notify:
   - "restart edxapp"
@@ -124,15 +132,9 @@
 # Gather assets using paver if possible
 
 - name: gather {{ item }} static assets with paver
-  shell: >
-    SERVICE_VARIANT={{ item }} paver update_assets {{ item }} --settings=aws
-    executable=/bin/bash
-    chdir={{ edxapp_code_dir }}
-  sudo_user: "{{ edxapp_user }}"
+  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
   when: celery_worker is not defined and not devstack and item != "lms-preview"
   with_items: service_variants_enabled
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
-  environment: "{{ edxapp_environment }}"
-
