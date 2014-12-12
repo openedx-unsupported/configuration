@@ -53,6 +53,16 @@
   environment:
     GIT_SSH: "{{ certs_git_ssh }}"
   register: certs_checkout
+  when: CERTS_GIT_IDENTITY != "none"
+  notify: restart certs
+
+- name: checkout certificates repo into {{ certs_code_dir }}
+  git: >
+    dest={{ certs_code_dir }} repo={{ CERTS_REPO }} version={{ certs_version }}
+    accept_hostkey=yes
+  sudo_user: "{{ certs_user }}"
+  register: certs_checkout
+  when: CERTS_GIT_IDENTITY == "none"
   notify: restart certs
 
 - name: remove read-only ssh key for the certs repo
