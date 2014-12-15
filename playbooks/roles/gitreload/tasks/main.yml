@@ -1,0 +1,84 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gitreload
+# 
+# Overview: Install gitreload for doing course reload via github Web hooks
+# 
+#
+# Dependencies: supervisor, common
+#
+# 
+# Example playbook:
+#
+# - hosts: all
+#   sudo: True
+#   gather_facts: True
+#   vars:
+#     COMMON_ENABLE_BASIC_AUTH: True
+#   roles:
+#     - gitreload
+#     - role: nginx
+#       nginx_sites:
+#         - gitreload
+#
+
+# grab edxapp vars without being dependent on its tasks
+- include_vars: ../../edxapp/defaults/main.yml
+  tags:
+    - course_pull
+    - deploy
+
+- name: create gitreload user
+  user: >
+    name="{{ gitreload_user }}"
+    home="{{ gitreload_dir }}"
+    createhome=no
+    shell=/bin/false
+
+- name: ensure home folder exists
+  file: >
+    path={{ gitreload_dir }}
+    state=directory
+    owner={{ gitreload_user }}
+    group={{ gitreload_user }}
+
+- name: ensure repo dir exists
+  file: >
+    path={{ GITRELOAD_REPODIR }}
+    state=directory
+    owner={{ common_web_user }}
+    group={{ common_web_group }}
+
+- name: grab ssh host keys
+  shell: ssh-keyscan {{ item }}
+  sudo_user: "{{ common_web_user }}"
+  with_items: GITRELOAD_HOSTS
+  register: gitreload_repo_host_keys
+
+- name: add host keys if needed to known_hosts
+  lineinfile: >
+    create=yes
+    dest=~/.ssh/known_hosts
+    line="{{ item.stdout }}"
+  sudo_user: "{{ common_web_user }}"
+  with_items: gitreload_repo_host_keys.results
+
+- name: create a symlink for venv python
+  file: >
+    src="{{ gitreload_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.gitreload
+    state=link
+  with_items:
+  - python
+  - pip
+
+- include: deploy.yml tags=deploy
