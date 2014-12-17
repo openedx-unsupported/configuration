@@ -70,6 +70,13 @@
   - "restart edxapp"
   - "restart edxapp_workers"
 
+- name: install extra custom system packages on which LMS and CMS rely
+  apt: pkg={{','.join(edxapp_custom_debian_pkgs)}} state=present update_cache=yes
+  when: edxapp_custom_debian_pkgs
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+
 - name: set up edxapp .npmrc
   template:
     src=.npmrc.j2 dest={{ edxapp_app_dir }}/.npmrc
