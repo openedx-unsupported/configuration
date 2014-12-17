@@ -10,6 +10,36 @@
 #  http://downloads.mysql.com/archives/mysql-5.1/mysql-5.1.62.tar.gz
 #
 ---
+
+# Install PPA for installing MySQL 5.6 on Ubuntu 12.04LTS
+- name: install ppa key
+  apt_key:
+    id=E5267A6C
+    url='{{ COMMON_UBUNTU_APT_KEYSERVER }}0x14AA40EC0831756756D7F66C4F4EA0AAE5267A6C'
+    state=present
+
+- name: install apt repository
+  apt_repository_1.8:
+    repo='deb http://ppa.launchpad.net/ondrej/mysql-5.6/ubuntu precise main'
+    update_cache=yes validate_certs=no
+  
+- name: look for mysql 5.5
+  shell: dpkg -L mysql-server-5.5
+  ignore_errors: true
+  register: mysql_55_installed
+
+- include: remove_mysql_55.yml
+  when: mysql_55_installed.rc != 1
+
+- name: install mysql 56 and dependencies
+  apt: pkg={{ item }} install_recommends=yes force=yes state=present
+  with_items:
+    - software-properties-common
+    - mysql-server
+
+- name: start mysql
+  service: name=mysql state=started
+    
 - name: install packages needed for single server
   apt: pkg={{','.join(edxlocal_debian_pkgs)}} install_recommends=yes state=present
 
