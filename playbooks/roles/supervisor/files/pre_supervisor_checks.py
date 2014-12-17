@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Enable all services that are in the services tag of this ec2 instance.")
     parser.add_argument("-a","--available",
-        help="The location of the available services.")
+                        help="The location of the available services.")
     parser.add_argument("-e","--enabled",
         help="The location of the enabled services.")
 
@@ -114,7 +114,21 @@ if __name__ == '__main__':
             play=play,
             instance_id=instance_id)
     except:
-        print("Failed to get EDP for {}".format(instance_id))
+        print("Failed to get EDP for {}".format(instance=instance_id))
+
+    #get the hostname of the sandbox
+    hostname = socket.gethostname()
+
+    #get the list of the volumes, that are attached to the instance
+    volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
+
+    for volume in volumes:
+        volume.add_tags({"hostname": hostname,
+                         "environment": environment,
+                         "deployment": deployment,
+                         "cluster": play,
+                         "instance-id": instance_id,
+                         "created": volume.create_time })
 
     try:
         for service in services_for_instance(instance_id):
