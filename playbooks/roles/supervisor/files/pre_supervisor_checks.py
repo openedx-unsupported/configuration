@@ -6,6 +6,7 @@ import hipchat
 import os
 import subprocess
 import traceback
+import socket
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
@@ -116,6 +117,20 @@ if __name__ == '__main__':
     except:
         print("Failed to get EDP for {}".format(instance_id))
 
+    #get the hostname of the sandbox
+    hostname = socket.gethostname()
+
+    #get the list of the volumes, that are attached to the instance
+    volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
+
+    for volume in volumes:
+        volume.add_tags({"hostname": hostname,
+                         "environment": environment,
+                         "deployment": deployment,
+                         "cluster": play,
+                         "instance-id": instance_id,
+                         "created": volume.create_time })
+        
     try:
         for service in services_for_instance(instance_id):
             if service in MIGRATION_COMMANDS:
