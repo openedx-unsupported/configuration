@@ -16,19 +16,19 @@
   template: >
     src=git_ssh_noauth.sh.j2 dest={{ notifier_git_ssh }}
     owner={{ NOTIFIER_USER }} mode=750
-  when: not NOTIFIER_USE_GIT_IDENTITY
+  when: NOTIFIER_GIT_IDENTITY == ""
 
 - name: create ssh script for git (authenticated)
   template: >
     src=git_ssh_auth.sh.j2 dest={{ notifier_git_ssh }}
     owner={{ NOTIFIER_USER }} mode=750
-  when: NOTIFIER_USE_GIT_IDENTITY
+  when: NOTIFIER_GIT_IDENTITY != ""
 
 - name: install read-only ssh key
   copy: >
     content="{{ NOTIFIER_GIT_IDENTITY }}" dest={{ notifier_git_identity }}
     force=yes owner={{ NOTIFIER_USER }} mode=0600
-  when: NOTIFIER_USE_GIT_IDENTITY
+  when: NOTIFIER_GIT_IDENTITY != ""
 
 - name: checkout theme
   git: >
