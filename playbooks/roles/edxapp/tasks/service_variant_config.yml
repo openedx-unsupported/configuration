@@ -5,9 +5,6 @@
   sudo_user: "{{ edxapp_user }}"
   tags: edxapp_cfg
   with_items: service_variants_enabled
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
 
 - name: "create {{ item }} auth file"
   template: >
@@ -15,9 +12,6 @@
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
   tags: edxapp_cfg
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
   with_items: service_variants_enabled
 
 - name: "create {{ item }} application config"
@@ -27,9 +21,6 @@
   sudo_user: "{{ edxapp_user }}"
   tags: edxapp_cfg
   with_items: service_variants_enabled
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
 
 - name: "create {{ item }} auth file"
   template: >
@@ -37,9 +28,6 @@
     dest={{ EDXAPP_CFG_DIR }}/{{ item }}.auth.yaml
   sudo_user: "{{ edxapp_user }}"
   tags: edxapp_cfg
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
   with_items: service_variants_enabled
 
 
@@ -65,8 +53,6 @@
     src={{ item }}_gunicorn.py.j2 dest={{ edxapp_app_dir }}/{{ item }}_gunicorn.py
   with_items: service_variants_enabled
   sudo_user: "{{ edxapp_user }}"
-  notify:
-    - restart edxapp
 
 # write the supervisor script for celery workers
 
@@ -125,9 +111,6 @@
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
     EDX_PLATFORM_SETTINGS_OVERRIDE: "aws_migrate"
   with_items: service_variants_enabled
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
 
 # Gather assets using paver if possible
 
@@ -135,6 +118,3 @@
   command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
   when: celery_worker is not defined and not devstack and item != "lms-preview"
   with_items: service_variants_enabled
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
