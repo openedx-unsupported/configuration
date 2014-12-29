@@ -380,7 +380,8 @@ rm -rf $base_dir
                 secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id)
 
-    mapping = BlockDeviceMapping()
+    mapping = BlockDeviceMapping(delete_on_termination=True,
+                                 volume_type='gp2')
     root_vol = BlockDeviceType(size=args.root_vol_size)
     mapping['/dev/sda1'] = root_vol
 
