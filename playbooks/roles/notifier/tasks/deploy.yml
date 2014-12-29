@@ -6,7 +6,7 @@
     version={{ NOTIFIER_VERSION }}
     accept_hostkey=yes
   sudo: true
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
   notify:
     - restart notifier-scheduler
     - restart notifier-celery-workers
@@ -15,19 +15,19 @@
 - name: create ssh script for git (not authenticated)
   template: >
     src=git_ssh_noauth.sh.j2 dest={{ notifier_git_ssh }}
-    owner={{ NOTIFIER_USER }} mode=750
+    owner={{ notifier_user }} mode=750
   when: NOTIFIER_GIT_IDENTITY == ""
 
 - name: create ssh script for git (authenticated)
   template: >
     src=git_ssh_auth.sh.j2 dest={{ notifier_git_ssh }}
-    owner={{ NOTIFIER_USER }} mode=750
+    owner={{ notifier_user }} mode=750
   when: NOTIFIER_GIT_IDENTITY != ""
 
 - name: install read-only ssh key
   copy: >
     content="{{ NOTIFIER_GIT_IDENTITY }}" dest={{ notifier_git_identity }}
-    force=yes owner={{ NOTIFIER_USER }} mode=0600
+    force=yes owner={{ notifier_user }} mode=0600
   when: NOTIFIER_GIT_IDENTITY != ""
 
 - name: checkout theme
@@ -37,7 +37,7 @@
     version={{ NOTIFIER_THEME_VERSION }}
     accept_hostkey=yes
   when: NOTIFIER_THEME_NAME != ''
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
   environment:
     GIT_SSH: "{{ notifier_git_ssh }}"
 
@@ -59,7 +59,7 @@
     requirements="{{ NOTIFIER_REQUIREMENTS_FILE }}"
     virtualenv="{{ NOTIFIER_VENV_DIR }}" state=present
   sudo: true
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
   notify:
     - restart notifier-scheduler
     - restart notifier-celery-workers
@@ -69,7 +69,7 @@
 # place with proper perms first.
 - name: fix permissions on notifer db file
   file: >
-    path={{ NOTIFIER_DB_DIR }}/notifier.db state=touch owner={{ NOTIFIER_USER }} group={{ NOTIFIER_WEB_USER }}
+    path={{ NOTIFIER_DB_DIR }}/notifier.db state=touch owner={{ notifier_user }} group={{ NOTIFIER_WEB_USER }}
     mode=0664
   sudo: true
   notify:
@@ -82,7 +82,7 @@
   shell: >
     cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
   sudo: true
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
   environment: notifier_env_vars
   notify:
     - restart notifier-scheduler

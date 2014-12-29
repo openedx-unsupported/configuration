@@ -57,20 +57,20 @@
 - name: setup the notifier env
   template:
     src=notifier_env.j2 dest={{ notifier_app_dir }}/notifier_env
-    owner="{{ NOTIFIER_USER }}" group="{{ NOTIFIER_USER }}"
+    owner="{{ notifier_user }}" group="{{ notifier_user }}"
     mode=655
 
 - name: drop a bash_profile
   copy: >
     src=../../common/files/bash_profile
     dest={{ notifier_app_dir }}/.bash_profile
-    owner={{ NOTIFIER_USER }}
-    group={{ NOTIFIER_USER }}
+    owner={{ notifier_user }}
+    group={{ notifier_user }}
 
 - name: ensure .bashrc exists
   shell: touch {{ notifier_app_dir }}/.bashrc
   sudo: true
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
 
 - name: add source of notifier_env to .bashrc
   lineinfile:
@@ -86,15 +86,15 @@
 
 - name: create notifier DB directory
   file:
-    path="{{ NOTIFIER_DB_DIR }}" mode=2775 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_WEB_USER }}
+    path="{{ NOTIFIER_DB_DIR }}" mode=2775 state=directory owner={{ notifier_user }} group={{ NOTIFIER_WEB_USER }}
 
 - name: create notifier/bin directory
   file:
-    path="{{ notifier_app_dir }}/bin" mode=2775 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_USER }}
+    path="{{ notifier_app_dir }}/bin" mode=2775 state=directory owner={{ notifier_user }} group={{ notifier_user }}
 
 - name: create notifier/.ssh directory
   file:
-    path="{{ notifier_app_dir }}/.ssh" mode=2700 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_USER }}
+    path="{{ notifier_app_dir }}/.ssh" mode=2700 state=directory owner={{ notifier_user }} group={{ notifier_user }}
 
 - name: create service log dir
   file: >
@@ -110,14 +110,14 @@
     src=notifier-celery-workers-supervisor.sh.j2
     dest="{{ notifier_app_dir }}/notifier-celery-workers-supervisor.sh"
     mode=0775
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
 
 - name: write supervisord wrapper for scheduler
   template: >
     src=notifier-scheduler-supervisor.sh.j2
     dest="{{ notifier_app_dir }}/notifier-scheduler-supervisor.sh"
     mode=0775
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
 
 - name: write supervisord config for celery workers
   template: >
