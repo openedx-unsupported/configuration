@@ -43,10 +43,16 @@
 - name: update ca certs globally
   shell: update-ca-certificates
 
-- name: create notifier user {{ NOTIFIER_USER }}
-  user:
-    name={{ NOTIFIER_USER }} state=present shell=/bin/bash
-    home={{ NOTIFIER_HOME }} createhome=yes
+- name: create notifier user {{ notifier_user }}
+  user: >
+    name="{{ notifier_user }}" state=present shell=/bin/false
+    home="{{ notifier_app_dir }}" createhome=no
+
+- name: create notifier app dir
+  file: >
+    path="{{ notifier_app_dir }}" state=directory
+    owner="{{ notifier_user }}" group="{{ common_web_group }}"
+  notify: [restart notifier-scheduler, restart notifier-celery-workers]
 
 - name: setup the notifier env
   template:
