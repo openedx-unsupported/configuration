@@ -1,6 +1,6 @@
 input {
   tcp {
-  	port => {{ logstash_syslog_port }}
+    port => {{ logstash_syslog_port }}
     type => syslog
   }
   udp {
@@ -20,6 +20,16 @@ filter {
     date {
       match => [ "syslog_timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
     }
+    # Try and parse the tracking log json
+    # 142 is syslog facility 17 (local1) and Informational.
+    # This is used to reduce the number of errors in json parsing as
+    # tracking uses that facility and priority by default.
+    if "142" in [syslog_pri] {
+      json {
+        source => "syslog_message"
+        target => "tracking"
+      }
+    }
     if !("_grokparsefailure" in [tags]) {
       mutate {
         replace => [ "@source_host", "%{syslog_hostname}" ]
@@ -37,8 +47,8 @@ output {
   elasticsearch { }
   # And gzip for each host and program
   file {
-  	   path => '{{ logstash_data_dir }}/%{@source_host}/all.%{+yyyyMMdd}.gz'
-	   gzip => true
+       path => '{{ logstash_data_dir }}/%{@source_host}/all.%{+yyyyMMdd}.gz'
+       gzip => true
   }
   # Should add option for S3 as well.
 }
