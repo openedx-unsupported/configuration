@@ -1,3 +1,6 @@
+- Role: notifier
+  - Refactored `NOTIFIER_HOME` and `NOTIFIER_USER` to `notifier_app_dir` and `notifier_user` to match other roles. This shouldn't change anything since users should've only been overriding COMMON_HOME.
+
 - Role: gitreload
   - New role added for running
     [gitreload](https://github.com/mitodl/gitreload) that can be used

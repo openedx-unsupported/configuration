@@ -43,52 +43,58 @@
 - name: update ca certs globally
   shell: update-ca-certificates
 
-- name: create notifier user {{ NOTIFIER_USER }}
-  user:
-    name={{ NOTIFIER_USER }} state=present shell=/bin/bash
-    home={{ NOTIFIER_HOME }} createhome=yes
+- name: create notifier user {{ notifier_user }}
+  user: >
+    name="{{ notifier_user }}" state=present shell=/bin/false
+    home="{{ notifier_app_dir }}" createhome=no
+
+- name: create notifier app dir
+  file: >
+    path="{{ notifier_app_dir }}" state=directory
+    owner="{{ notifier_user }}" group="{{ common_web_group }}"
+  notify: [restart notifier-scheduler, restart notifier-celery-workers]
 
 - name: setup the notifier env
   template:
-    src=notifier_env.j2 dest={{ NOTIFIER_HOME }}/notifier_env
-    owner="{{ NOTIFIER_USER }}" group="{{ NOTIFIER_USER }}"
+    src=notifier_env.j2 dest={{ notifier_app_dir }}/notifier_env
+    owner="{{ notifier_user }}" group="{{ notifier_user }}"
     mode=655
 
 - name: drop a bash_profile
   copy: >
     src=../../common/files/bash_profile
-    dest={{ NOTIFIER_HOME }}/.bash_profile
-    owner={{ NOTIFIER_USER }}
-    group={{ NOTIFIER_USER }}
+    dest={{ notifier_app_dir }}/.bash_profile
+    owner={{ notifier_user }}
+    group={{ notifier_user }}
 
 - name: ensure .bashrc exists
-  shell: touch {{ NOTIFIER_HOME }}/.bashrc
+  shell: touch {{ notifier_app_dir }}/.bashrc
   sudo: true
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
 
 - name: add source of notifier_env to .bashrc
   lineinfile:
-    dest={{ NOTIFIER_HOME }}/.bashrc
-    regexp='. {{ NOTIFIER_HOME }}/notifier_env'
-    line='. {{ NOTIFIER_HOME }}/notifier_env'
+    dest={{ notifier_app_dir }}/.bashrc
+    regexp='. {{ notifier_app_dir }}/notifier_env'
+    line='. {{ notifier_app_dir }}/notifier_env'
 
 - name: add source venv to .bashrc
   lineinfile:
-    dest={{ NOTIFIER_HOME }}/.bashrc
+    dest={{ notifier_app_dir }}/.bashrc
     regexp='. {{ NOTIFIER_VENV_DIR }}/bin/activate'
     line='. {{ NOTIFIER_VENV_DIR }}/bin/activate'
 
 - name: create notifier DB directory
   file:
-    path="{{ NOTIFIER_DB_DIR }}" mode=2775 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_WEB_USER }}
+    path="{{ NOTIFIER_DB_DIR }}" mode=2775 state=directory owner={{ notifier_user }} group={{ NOTIFIER_WEB_USER }}
 
 - name: create notifier/bin directory
   file:
-    path="{{ NOTIFIER_HOME }}/bin" mode=2775 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_USER }}
+    path="{{ notifier_app_dir }}/bin" mode=2775 state=directory owner={{ notifier_user }} group={{ notifier_user }}
 
 - name: create notifier/.ssh directory
   file:
-    path="{{ NOTIFIER_HOME }}/.ssh" mode=2700 state=directory owner={{ NOTIFIER_USER }} group={{ NOTIFIER_USER }}
+    path="{{ notifier_app_dir }}/.ssh" mode=2700 state=directory owner={{ notifier_user }} group={{ notifier_user }}
 
 - name: create service log dir
   file: >
@@ -98,20 +104,20 @@
     group="syslog"
   with_items:
     - "{{ COMMON_LOG_DIR }}/notifier"
-    
+
 - name: write supervisord wrapper for celery workers
   template: >
     src=notifier-celery-workers-supervisor.sh.j2
-    dest="{{ NOTIFIER_HOME }}/notifier-celery-workers-supervisor.sh"
+    dest="{{ notifier_app_dir }}/notifier-celery-workers-supervisor.sh"
     mode=0775
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
 
 - name: write supervisord wrapper for scheduler
   template: >
     src=notifier-scheduler-supervisor.sh.j2
-    dest="{{ NOTIFIER_HOME }}/notifier-scheduler-supervisor.sh"
+    dest="{{ notifier_app_dir }}/notifier-scheduler-supervisor.sh"
     mode=0775
-  sudo_user: "{{ NOTIFIER_USER }}"
+  sudo_user: "{{ notifier_user }}"
 
 - name: write supervisord config for celery workers
   template: >
