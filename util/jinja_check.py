@@ -9,6 +9,10 @@ from yaml.representer import RepresenterError
 
 input_file = sys.argv[1]
 
+if not os.path.exists(input_file):
+    print('{0}: deleted in diff'.format(input_file))
+    sys.exit(0)
+
 # Setup jinja to include ansible filters
 j_e = j(trim_blocks=True, extensions=_get_extensions())
 j_e.loader = FileSystemLoader(['.', os.path.dirname(input_file)])
