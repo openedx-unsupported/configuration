@@ -115,6 +115,7 @@ cat << EOF > $extra_vars_file
 ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
+notifier_version: $notifier_version
 xqueue_version: $xqueue_version
 xserver_version: $xserver_version
 ora_version: $ora_version
@@ -221,7 +222,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum notifier xqueue xserver ora discern certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
