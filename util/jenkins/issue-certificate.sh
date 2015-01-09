@@ -5,7 +5,7 @@ pip install -r requirements.txt
 env
 
 ansible="ansible first_in_tag_Name_${environment}-${deployment}-worker -i playbooks/ec2.py -u ubuntu -s -U www-data -m shell -a"
-manage="/edx/bin/python.edxapp /edx/bin/manage.edxapp lms --settings aws"
+manage="cd /edx/app/edxapp/edx-platform && /edx/bin/python.edxapp /edx/bin/manage.edxapp lms --settings aws"
 
 if [ "$report" = "true" ]; then
   $ansible "$manage gen_cert_report -c $course_id" | grep -A2 "Looking up certificate states for" | sed 's/rm:.*//'
