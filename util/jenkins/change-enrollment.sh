@@ -2,7 +2,7 @@ cd configuration
 pip install -r requirements.txt
 env
 
-ansible="ansible first_in_tag_Name_${environment}-${deployment}-worker -i playbooks/ec2.py -u ubuntu -s -U www-data -a"
+ansible="ansible -v first_in_tag_Name_${environment}-${deployment}-worker -i playbooks/ec2.py -u ubuntu -s -U www-data -a"
 manage="cd /edx/app/edxapp/edx-platform && /edx/bin/python.edxapp /edx/bin/manage.edxapp lms change_enrollment --settings=aws"
 noop_switch=""
 
