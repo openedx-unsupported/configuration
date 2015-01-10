@@ -1,3 +1,5 @@
+#!/bin/bash
+
 cd configuration
 pip install -r requirements.txt
 env
