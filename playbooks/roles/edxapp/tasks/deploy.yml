@@ -34,6 +34,13 @@
     force=yes owner={{ edxapp_user }} mode=0600
   when: EDXAPP_USE_GIT_IDENTITY
 
+- name: git prune before checking out
+  shell: cd {{ edxapp_code_dir }} && git prune origin
+  sudo_user: "{{ edxapp_user }}"
+  notify:
+  - "restart edxapp"
+  - "restart edxapp_workers"
+  
 # Do A Checkout
 - name: checkout edx-platform repo into {{ edxapp_code_dir }}
   git: >
