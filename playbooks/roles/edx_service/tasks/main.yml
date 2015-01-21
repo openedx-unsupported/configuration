@@ -91,7 +91,7 @@
 
 
 - name: check if git repo exists before pruning
-  stat: path={{item.DESTINATION}}/.git
+  stat: path={{ item.DESTINATION }}/.git
   register: git_dir_exists
   with_items: edx_service_config.GIT
 
@@ -114,17 +114,17 @@
 
 - name: checkout code over ssh
   git: >
-    repo=git@{{item.DOMAIN}}:{{item.PATH}}/{{item.REPO}}
+    repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
     dest={{ item.DESTINATION }}  version={{ item.VERSION }}
     accept_hostkey=yes key_file={{ edx_notes_api_home }}/.ssh/id_rsa
   sudo_user: "{{ edx_role_name }}"
-  register: "{{edx_service_name}}_code_checkout"
+  register: code_checkout
   when: item.PROTOCOL == "ssh"
   with_items: edx_service_config.GIT
 
 - name: checkout code over https
   git: >
-    repo=https://{{item.DOMAIN}}/{{item.PATH}}/{{item.REPO}}
+    repo=https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}
     dest={{ item.DESTINATION }}  version={{ item.VERSION }}
   sudo_user: "{{ edx_role_name }}"
   register: code_checkout
@@ -140,7 +140,7 @@
   ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
   args:
     tags:
-      "version:{{edx_service_name}}" : "{{item.0.DOMAIN}}/{{item.0.PATH}}/{{item.0.REPO}} {{ item.1.after |truncate(7,True,'')}}"
+      "version:{{edx_service_name}}" : "{{ item.0.DOMAIN }}/{{ item.0.PATH }}/{{ item.0.REPO }} {{ item.1.after |truncate(7,True,'') }}"
   when: item.1.after is defined
   with_together: 
     - edx_service_config.GIT
