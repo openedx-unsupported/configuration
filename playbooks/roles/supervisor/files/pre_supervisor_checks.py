@@ -137,7 +137,8 @@ if __name__ == '__main__':
     if environment is None or deployment is None or play is None:
         msg = "Unable to retrieve environment, deployment, or play tag."
         print(msg)
-        notify("{} : {}".format(prefix, msg))
+        if notify:
+            notify("{} : {}".format(prefix, msg))
         exit(0)
 
     #get the hostname of the sandbox
@@ -157,7 +158,8 @@ if __name__ == '__main__':
     except:
         msg = "Failed to tag volumes associated with {}".format(instance_id)
         print(msg)
-        notify(msg)
+        if notify:
+            notify(msg)
 
     try:
         for service in services_for_instance(instance_id):
