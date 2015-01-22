@@ -127,7 +127,10 @@ if __name__ == '__main__':
             break
         except:
             print("Failed to get EDP for {}".format(instance_id))
+            # With the time limit being 2 minutes we will
+            # try 5 times before giving up.
             time.sleep(backoff)
+            time_left -= backoff
             backoff = backoff * 2
 
     if environment is None or deployment is None or play is None:
@@ -139,16 +142,21 @@ if __name__ == '__main__':
     #get the hostname of the sandbox
     hostname = socket.gethostname()
 
-    #get the list of the volumes, that are attached to the instance
-    volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
-
-    for volume in volumes:
-        volume.add_tags({"hostname": hostname,
-                         "environment": environment,
-                         "deployment": deployment,
-                         "cluster": play,
-                         "instance-id": instance_id,
-                         "created": volume.create_time })
+    try:
+        #get the list of the volumes, that are attached to the instance
+        volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
+    
+        for volume in volumes:
+            volume.add_tags({"hostname": hostname,
+                             "environment": environment,
+                             "deployment": deployment,
+                             "cluster": play,
+                             "instance-id": instance_id,
+                             "created": volume.create_time })
+    except:
+        msg = "Failed to tag volumes associated with {}".format(instance_id)
+        print(msg)
+        notify(msg)
 
     try:
         for service in services_for_instance(instance_id):
@@ -193,6 +201,7 @@ if __name__ == '__main__':
         if notify:
             notify(msg)
         traceback.print_exc()
+        raise e
     else:
         msg = "{}: {}".format(prefix, " | ".join(report))
         print(msg)
