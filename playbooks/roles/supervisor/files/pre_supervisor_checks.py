@@ -19,6 +19,7 @@ HIPCHAT_USER = "PreSupervisor"
 
 # Max amount of time to wait for tags to be applied.
 MAX_BACKOFF = 120
+INITIAL_BACKOFF = 1
 
 def services_for_instance(instance_id):
     """
