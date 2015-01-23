@@ -34,6 +34,10 @@
     force=yes owner={{ edxapp_user }} mode=0600
   when: EDXAPP_USE_GIT_IDENTITY
 
+- name: check if git repo exists before pruning
+  stat: path={{ edxapp_code_dir }}/.git
+  register: git_dir
+
 - name: git prune before checking out
   shell: cd {{ edxapp_code_dir }} && git remote prune origin
   environment:
@@ -42,7 +46,8 @@
   notify:
   - "restart edxapp"
   - "restart edxapp_workers"
-  
+  when: git_dir.stat.exists and (git_dir.isdir is defined) and git_dir.stat.isdir
+
 # Do A Checkout
 - name: checkout edx-platform repo into {{ edxapp_code_dir }}
   git: >
