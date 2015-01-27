@@ -23,6 +23,7 @@
 # file.  The including role should add the following
 # depency definition.
 #
+# TODO: FIX THIS
 # dependencies:
 #   - { role: edx_service, edx_service_name: "hotg" }
 #
@@ -81,22 +82,6 @@
   when: ansible_distribution in common_redhat_variants
 
 
-- name: check if git repo exists before pruning
-  stat: path={{ item.DESTINATION }}/.git
-  register: git_dir_exists
-  with_items: edx_service_repos
-
-- name: git prune before checking out
-  shell: cd {{ item.0.DESTINATION }} && git remote prune origin
-  sudo_user: "{{ edx_service_name }}"
-  when: >
-    (item.1.stat.exists) and 
-    (item.1.stat.isdir is defined) and
-    item.1.stat.isdir
-  with_together:
-    - edx_service_repos
-    - git_dir_exists.results
-
 - name: validate git protocol
   fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh")
@@ -104,7 +89,7 @@
 
 - name: install read-only ssh key
   copy: >
-    dest="{{ edx_service_home }}.ssh/{{ item.REPO }}"
+    dest="{{ edx_service_home }}/.ssh/{{ item.REPO }}"
     content="{{ item.SSH_KEY }}" owner={{ edx_service_user }}
     group={{ edx_service_user }} mode=0600
   when: item.PROTOCOL == "ssh"
@@ -113,9 +98,9 @@
 - name: checkout code over ssh
   git: >
     repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
-    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
-    accept_hostkey=yes key_file={{ edx_service_home }}.ssh/{{ item.REPO }}
-  sudo_user: "{{ edx_role_name }}"
+    dest={{ item.DESTINATION }}  version={{ item.VERSION }} depth=1
+    accept_hostkey=yes key_file={{ edx_service_home }}/.ssh/{{ item.REPO }}
+  sudo_user: "{{ edx_service_user }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh"
   with_items: edx_service_repos
@@ -124,7 +109,7 @@
   git: >
     repo=https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}
     dest={{ item.DESTINATION }}  version={{ item.VERSION }}
-  sudo_user: "{{ edx_role_name }}"
+  sudo_user: "{{ edx_service_user }}"
   register: code_checkout
   when: item.PROTOCOL == "https"
   with_items: edx_service_repos

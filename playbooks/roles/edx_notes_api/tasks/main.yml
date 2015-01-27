@@ -47,8 +47,8 @@
 - name: install application requirements
   pip: >
     requirements="{{ edx_notes_api_requirements_base }}/{{ item }}"
-    virtualenv="{{ edx_notes_api_home }}/venvs" state=present
-    extra_args="--exists-action w"
+    virtualenv="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
+    state=present extra_args="--exists-action w"
   sudo_user: "{{ edx_notes_api_user }}"
   with_items: edx_notes_api_requirements
 
@@ -65,8 +65,8 @@
 
 - name: write out gunicorn.py
   template: >
-    src=edx/app/edx-notes-api/{{ edx_notes_api_service_name }}-gunicorn.py.j2
-    dest={{ edx_notes_api_app_dir }}/{{ edx_notes_api_service_name }}-gunicorn.py
+    src=edx/app/edx_notes_api/edx_notes_api_gunicorn.py.j2
+    dest={{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}_gunicorn.py
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
   tags:
     - deploy
@@ -108,7 +108,7 @@
 - name: create symlinks from the venv bin dir
   file: >
     src="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/{{ item }}"
-    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_notes_api_role_name }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_notes_api_service_name }}"
     state=link
   with_items:
   - python
