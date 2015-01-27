@@ -44,13 +44,6 @@
 #   - role: newrelic
 #     when: COMMON_ENABLE_NEWRELIC
 
-- name: checkout code
-  git: >
-    dest={{ edx_notes_api_code_dir }} repo={{ edx_notes_api_source_repo }} version={{ EDX_NOTES_API_VERSION }}
-    accept_hostkey=yes key_file="{{ edx_notes_api_home }}/.ssh/id_rsa"
-  register: edx_notes_api_code_checkout
-  sudo_user: "{{ edx_notes_api_role_name }}"
-  
 - name: install application requirements
   pip: >
     requirements="{{ edx_notes_api_requirements_base }}/{{ item }}"
@@ -58,7 +51,7 @@
     extra_args="--exists-action w"
   sudo_user: "{{ edx_notes_api_user }}"
   with_items: edx_notes_api_requirements
-  
+
 - name: migrate
   shell: >
     chdir={{ edx_notes_api_code_dir }}
@@ -77,7 +70,7 @@
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
   tags:
     - deploy
-    
+
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/edx_notes_api.conf.j2
@@ -111,7 +104,7 @@
   when: not disable_edx_services
   tags:
     - deploy
-    
+
 - name: create symlinks from the venv bin dir
   file: >
     src="{{ edx_notes_api_venv_bin }}/{{ item }}"
@@ -127,6 +120,3 @@
     src="{{ edx_notes_api_manage }}"
     dest="{{ COMMON_BIN_DIR }}/manage.{{ edx_notes_api_role_name }}"
     state=link
-
-- include: tag_ec2.yml tags=deploy
-  when: COMMON_TAG_EC2_INSTANCE
