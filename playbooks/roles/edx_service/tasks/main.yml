@@ -93,7 +93,7 @@
 - name: check if git repo exists before pruning
   stat: path={{ item.DESTINATION }}/.git
   register: git_dir_exists
-  with_items: edx_service_config.GIT
+  with_items: edx_service_repos
 
 - name: git prune before checking out
   shell: cd {{ item.0.DESTINATION }} && git remote prune origin
@@ -103,14 +103,14 @@
     (item.1.stat.isdir is defined) and
     item.1.stat.isdir
   with_together:
-    - edx_service_config.GIT
+    - edx_service_repos
     - git_dir_exists.results
 
 
 - name: validate GIT.PROTOCOL
   fail: msg='GIT.PROTOCOL must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh")
-  with_items: edx_service_config.GIT
+  with_items: edx_service_repos
 
 - name: checkout code over ssh
   git: >
@@ -120,7 +120,7 @@
   sudo_user: "{{ edx_role_name }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh"
-  with_items: edx_service_config.GIT
+  with_items: edx_service_repos
 
 - name: checkout code over https
   git: >
@@ -129,7 +129,7 @@
   sudo_user: "{{ edx_role_name }}"
   register: code_checkout
   when: item.PROTOCOL == "https"
-  with_items: edx_service_config.GIT
+  with_items: edx_service_repos
 
 
 - name: get instance information
@@ -143,7 +143,7 @@
       "version:{{edx_service_name}}" : "{{ item.0.DOMAIN }}/{{ item.0.PATH }}/{{ item.0.REPO }} {{ item.1.after |truncate(7,True,'') }}"
   when: item.1.after is defined
   with_together: 
-    - edx_service_config.GIT
+    - edx_service_repos
     - code_checkout.results
 
 #TODO: restart supervisor- depends on supervisor being refactored into this role
