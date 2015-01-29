@@ -33,31 +33,22 @@
 - name: create application user
   user: >
     name="{{ edx_service_name }}"
-    home="{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
+    home="{{ edx_service_home }}"
     createhome=yes
     shell=/bin/false
     generate_ssh_key=yes
 
 # Assumes that the home directory has been created above.
-- name: create edx_service app and venv dir
+- name: create edx_service app, venv, data, and staticfiles dirs
   file: >
-    path="{{ item }}"
+    path="{{ edx_service_home }}/{{ item }}"
     state=directory
     owner="{{ edx_service_name }}"
     group="{{ common_web_group }}"
   with_items:
-    - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}/venvs"
-
-- name: create edx_service data and staticfiles dir
-  file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ edx_service_name }}"
-    group="{{ common_web_group }}"
-  with_items:
-    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/data"
-    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/staticfiles"
-
+    - "venvs"
+    - "data"
+    - "staticfiles"
 
 - name: create edx_service log dir
   file: >
@@ -113,8 +104,9 @@
 
 - name: install read-only ssh key
   copy: >
-    content="{{ item.SSH_KEY }}" dest={{ edx_service_home }}.ssh/{{ item.REPO }}
-    owner={{ edx_service_user }} group={{ edx_service_user }} mode=0600
+    dest="{{ edx_service_home }}.ssh/{{ item.REPO }}"
+    content="{{ item.SSH_KEY }}" owner={{ edx_service_user }}
+    group={{ edx_service_user }} mode=0600
   when: item.PROTOCOL == "ssh"
   with_items: edx_service_repos
 

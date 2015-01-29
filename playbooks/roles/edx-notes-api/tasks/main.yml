@@ -47,7 +47,7 @@
 - name: install application requirements
   pip: >
     requirements="{{ edx_notes_api_requirements_base }}/{{ item }}"
-    virtualenv="{{ edx_notes_api_venv_dir }}" state=present
+    virtualenv="{{ edx_notes_api_home }}/venvs" state=present
     extra_args="--exists-action w"
   sudo_user: "{{ edx_notes_api_user }}"
   with_items: edx_notes_api_requirements
@@ -57,7 +57,7 @@
     chdir={{ edx_notes_api_code_dir }}
     DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
     DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ edx_notes_api_venv_bin }}/python {{ edx_notes_api_manage }} migrate --noinput --settings="notesserver.settings.yaml_config"
+    {{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/python {{ edx_notes_api_manage }} migrate --noinput --settings="notesserver.settings.yaml_config"
   sudo_user: "{{ edx_notes_api_user }}"
   environment:
     EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
@@ -107,7 +107,7 @@
 
 - name: create symlinks from the venv bin dir
   file: >
-    src="{{ edx_notes_api_venv_bin }}/{{ item }}"
+    src="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/{{ item }}"
     dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_notes_api_role_name }}"
     state=link
   with_items:
