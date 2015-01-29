@@ -106,17 +106,23 @@
     - edx_service_repos
     - git_dir_exists.results
 
-
-- name: validate GIT.PROTOCOL
-  fail: msg='GIT.PROTOCOL must be "https" or "ssh"'
+- name: validate git protocol
+  fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh")
+  with_items: edx_service_repos
+
+- name: install read-only ssh key
+  copy: >
+    content="{{ item.SSH_KEY }}" dest={{ edx_service_home }}.ssh/{{ item.REPO }}
+    owner={{ edx_service_user }} group={{ edx_service_user }} mode=0600
+  when: item.PROTOCOL == "ssh"
   with_items: edx_service_repos
 
 - name: checkout code over ssh
   git: >
     repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
     dest={{ item.DESTINATION }}  version={{ item.VERSION }}
-    accept_hostkey=yes key_file={{ edx_notes_api_home }}/.ssh/id_rsa
+    accept_hostkey=yes key_file={{ edx_service_home }}.ssh/{{ item.REPO }}
   sudo_user: "{{ edx_role_name }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh"
