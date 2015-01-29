@@ -33,31 +33,22 @@
 - name: create application user
   user: >
     name="{{ edx_service_name }}"
-    home="{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
+    home="{{ edx_service_home }}"
     createhome=yes
     shell=/bin/false
     generate_ssh_key=yes
 
 # Assumes that the home directory has been created above.
-- name: create edx_service app and venv dir
+- name: create edx_service app, venv, data, and staticfiles dirs
   file: >
-    path="{{ item }}"
+    path="{{ edx_service_home }}/{{ item }}"
     state=directory
     owner="{{ edx_service_name }}"
     group="{{ common_web_group }}"
   with_items:
-    - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}/venvs"
-
-- name: create edx_service data and staticfiles dir
-  file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ edx_service_name }}"
-    group="{{ common_web_group }}"
-  with_items:
-    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/data"
-    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/staticfiles"
-
+    - "venvs"
+    - "data"
+    - "staticfiles"
 
 - name: create edx_service log dir
   file: >
@@ -106,17 +97,24 @@
     - edx_service_repos
     - git_dir_exists.results
 
-
-- name: validate GIT.PROTOCOL
-  fail: msg='GIT.PROTOCOL must be "https" or "ssh"'
+- name: validate git protocol
+  fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh")
+  with_items: edx_service_repos
+
+- name: install read-only ssh key
+  copy: >
+    dest="{{ edx_service_home }}.ssh/{{ item.REPO }}"
+    content="{{ item.SSH_KEY }}" owner={{ edx_service_user }}
+    group={{ edx_service_user }} mode=0600
+  when: item.PROTOCOL == "ssh"
   with_items: edx_service_repos
 
 - name: checkout code over ssh
   git: >
     repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
     dest={{ item.DESTINATION }}  version={{ item.VERSION }}
-    accept_hostkey=yes key_file={{ edx_notes_api_home }}/.ssh/id_rsa
+    accept_hostkey=yes key_file={{ edx_service_home }}.ssh/{{ item.REPO }}
   sudo_user: "{{ edx_role_name }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh"
