@@ -48,3 +48,24 @@
   when: "'vulnerable' in test_vuln.stdout"
   register: test_vuln
   failed_when: "'vulnerable' in test_vuln.stdout"
+
+#### GHOST security vulnerability
+
+- name: GHOST.c
+  copy: >
+    src=tmp/GHOST.c
+    dest=/tmp/GHOST.c
+    owner=root group=root
+
+- name: compile GHOST
+  shell: gcc -o /tmp/GHOST /tmp/GHOST.c
+
+- name: Check if we are vulnerable
+  shell: /tmp/GHOST
+  register: test_ghost_vuln
+  ignore_errors: yes
+
+- name: Apply glibc security update if we are vulnerable
+  apt: name=libc6 state=latest update_cache=true
+  when: "'vulnerable' in test_ghost_vuln.stdout"
+
