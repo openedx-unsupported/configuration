@@ -71,6 +71,7 @@
 
 # Replace dashes with underscores to support roles that use
 # dashes (the role vars will contain underscores)
+#TODO: REMOVE UNDERSCORE-TO-DASH CONVERSION ONCE ALL ROLES ARE NORMALIZED
 - name: install a bunch of system packages on which edx_service relies
   apt: pkg={{ item }} state=present
   with_items: "{{ edx_service_name.replace('-', '_') }}_debian_pkgs"
@@ -108,7 +109,7 @@
 - name: checkout code over https
   git: >
     repo=https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}
-    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
+    dest={{ item.DESTINATION }}  version={{ item.VERSION }} depth=1
   sudo_user: "{{ edx_service_user }}"
   register: code_checkout
   when: item.PROTOCOL == "https"
