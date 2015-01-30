@@ -8,12 +8,29 @@ upstream lms-backend {
     {% for host in nginx_lms_gunicorn_hosts %}
         server {{ host }}:{{ edxapp_lms_gunicorn_port }} fail_timeout=0;
     {% endfor %}
+
 }
 
 {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
 # Make Zone
 limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
-{%- endif -%}
+{%- endif %}
+
+
+{% if NGINX_EDXAPP_EMBARGO_CIDRS %}
+  {%- if NGINX_SET_X_FORWARDED_HEADERS %}
+geo $remote_addr $embargo {
+  {%- else %}
+geo $http_x_forwarded_for $embargo {
+  {% endif -%}
+  default 0;
+
+  {% for cidr in NGINX_EDXAPP_EMBARGO_CIDRS -%}
+  {{ cidr }} 1;
+  {% endfor %}
+
+}
+{%- endif %}
 
 server {
   # LMS configuration file for nginx, templated by ansible
@@ -77,8 +94,20 @@ error_page {{ k }} {{ v }};
 
   location / {
     {% include "basic-auth.j2" %}
+    {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
+    if ( $embargo ) {
+      rewrite ^ /embargo;
+    }
+    {% endif -%}
     try_files $uri @proxy_to_lms_app;
   }
+
+{% if NGINX_EDXAPP_EMBARGO_CIDRS %}
+  location /embargo {
+    try_files $uri @proxy_to_lms_app;
+  }
+{% endif %}
+
   # No basic auth for /segmentio/event
   location /segmentio/event {
     try_files $uri @proxy_to_lms_app;
