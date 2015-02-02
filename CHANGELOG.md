@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Enabled combined login registration feature by default
+
 - Role: notifier
   - Refactored `NOTIFIER_HOME` and `NOTIFIER_USER` to `notifier_app_dir` and `notifier_user` to match other roles. This shouldn't change anything since users should've only been overriding COMMON_HOME.
 
