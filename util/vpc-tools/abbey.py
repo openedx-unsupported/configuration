@@ -595,7 +595,16 @@ def launch_and_configure(ec2_args):
         "Waiting for instance {} to reach running status:".format(instance_id)),
     status_start = time.time()
     for _ in xrange(EC2_RUN_TIMEOUT):
-        res = ec2.get_all_instances(instance_ids=[instance_id])
+        try:
+            res = ec2.get_all_instances(instance_ids=[instance_id])
+        except EC2ResponseError as e:
+            if e.code == "InvalidInstanceID.NotFound":
+                print("Instance not found({}), will try again.".format(
+                    instance_id))
+                time.sleep(1)
+                continue
+            else:
+                raise(e)
         if res[0].instances[0].state == 'running':
             status_delta = time.time() - status_start
             run_summary.append(('EC2 Launch', status_delta))
