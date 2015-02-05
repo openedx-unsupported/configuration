@@ -96,6 +96,10 @@
   when: ansible_distribution in common_redhat_variants
 
 
+- name: set git fetch.prune to ignore deleted remote refs
+  shell: git config --global fetch.prune true
+  sudo_user: "{{ edx_service_user }}"
+
 - name: validate git protocol
   fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh")
@@ -112,7 +116,7 @@
 - name: checkout code over ssh
   git: >
     repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
-    dest={{ item.DESTINATION }}  version={{ item.VERSION }} depth=1
+    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
     accept_hostkey=yes key_file={{ edx_service_home }}/.ssh/{{ item.REPO }}
   sudo_user: "{{ edx_service_user }}"
   register: code_checkout
@@ -122,7 +126,7 @@
 - name: checkout code over https
   git: >
     repo=https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}
-    dest={{ item.DESTINATION }}  version={{ item.VERSION }} depth=1
+    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
   sudo_user: "{{ edx_service_user }}"
   register: code_checkout
   when: item.PROTOCOL == "https"
