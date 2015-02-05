@@ -15,7 +15,7 @@ EDX_NOTES_API_GUNICORN_WORKERS_EXTRA: ""
 EDX_NOTES_API_WORKERS_EXTRA_CONF: ""
 EDX_NOTES_API_LANG: en-us
 EDX_NOTES_API_WORKERS: !!null
-EDX_NOTES_API_DATASTORE_NAME: edx-notes-api
+EDX_NOTES_API_DATASTORE_NAME: "{{ edx_notes_api_service_name }}"
 EDX_NOTES_API_MYSQL_DB_USER: notes001
 EDX_NOTES_API_MYSQL_DB_NAME: "{{ EDX_NOTES_API_DATASTORE_NAME }}"
 EDX_NOTES_API_MYSQL_DB_PASS: secret
@@ -24,8 +24,8 @@ EDX_NOTES_API_ELASTICSEARCH_URL: http://127.0.0.1:9200
 EDX_NOTES_API_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-notes"
 # Change these values!!
 EDX_NOTES_API_SECRET_KEY: "i^,9%i=e=y/Nlpb=Mkx!j&,HD9d/17F][9P,FLdwM2+G6|]BEU"
-EDX_NOTES_API_CLIENT_ID: edx-notes-id
-EDX_NOTES_API_CLIENT_SECRET: edx-notes-secret
+EDX_NOTES_API_CLIENT_ID: edx_notes_id
+EDX_NOTES_API_CLIENT_SECRET: edx_notes_secret
 EDX_NOTES_API_GIT_SSH_KEY: !!null
 
 EDX_NOTES_API_DATABASES:
@@ -41,12 +41,12 @@ EDX_NOTES_API_ALLOWED_HOSTS:
   - localhost
 
 EDX_NOTES_API_REPOS:
-  - PROTOCOL: "{{COMMON_GIT_PROTOCOL}}"
-    DOMAIN: "{{COMMON_GIT_MIRROR}}"
-    PATH: "{{COMMON_GIT_PATH}}"
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
     REPO: edx-notes-api.git
-    VERSION: e0d/migration-overrides
-    DESTINATION: "{{edx_notes_api_code_dir}}"
+    VERSION: master
+    DESTINATION: "{{ edx_notes_api_code_dir }}"
     SSH_KEY: "{{ EDX_NOTES_API_GIT_SSH_KEY }}"
 
 #
@@ -61,7 +61,7 @@ edx_notes_api_service_config:
   CLIENT_ID: "{{ EDX_NOTES_API_CLIENT_ID }}"
   CLIENT_SECRET: "{{ EDX_NOTES_API_CLIENT_SECRET }}"
   ELASTICSEARCH_URL: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
-  ELASTICSEARCH_INDEX: "edx-notes"
+  ELASTICSEARCH_INDEX: "edx_notes"
   # Number of rows to return by default in result.
   RESULTS_DEFAULT_SIZE: 25
   # Max number of rows to return in result.
@@ -79,18 +79,10 @@ edx_notes_api_service_config:
 #
 # vars are namespace with the module name.
 #
-edx_notes_api_code_dir: "{{ edx_notes_api_app_dir }}/edx-notes-api"
-edx_notes_api_role_name: edx-notes-api
-edx_notes_api_service_name: "{{ edx_notes_api_role_name }}"
-# underscore name
-edx_notes_api_role_name_safe: "{{ edx_notes_api_role_name.replace('-', '_') }}"
-
-edx_notes_api_source_repo: https://{{ COMMON_GIT_MIRROR }}/edx/edx-notes-api.git
-
-edx_notes_api_user: "{{ edx_notes_api_role_name }}"
-edx_notes_api_app_dir: "{{ COMMON_APP_DIR }}/{{ edx_notes_api_service_name }}"
+edx_notes_api_service_name: edx_notes_api
+edx_notes_api_user: "{{ edx_notes_api_service_name }}"
 edx_notes_api_home: "{{ COMMON_APP_DIR }}/{{ edx_notes_api_service_name }}"
-edx_notes_api_python_path: "{{ edx_notes_api_code_dir }}/edx-notes-api"
+edx_notes_api_code_dir: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}"
 edx_notes_api_conf_dir: "{{ edx_notes_api_home }}"
 
 edx_notes_api_gunicorn_host: "127.0.0.1"
