@@ -37,6 +37,17 @@
   register: forum_checkout
   notify: restart the forum service
 
+- name: Updating Gemfile for rubygems mirror
+  command: |
+    /bin/sed -i -e 's/https:\/\/rubygems.org/{{ COMMON_RUBYGEMS_MIRROR_URL }}/g' {{ forum_code_dir }}/Gemfile
+  sudo_user: "{{ forum_user }}"
+
+# Make sure www-data can update Gemfile.lock
+- name: Updating Gemfile.lock mode
+  command: |
+    /bin/chmod 0646 {{ forum_code_dir }}/Gemfile.lock
+  sudo_user: "{{ forum_user }}"
+
 # TODO: This is done as the common_web_user
 # since the process owner needs write access
 # to the rbenv
