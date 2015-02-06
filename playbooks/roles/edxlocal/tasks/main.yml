@@ -110,6 +110,20 @@
     priv='{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT'
   when: ANALYTICS_API_CONFIG is defined
 
+- name: setup the edx-notes-api db user
+  mysql_user: >
+    name={{ EDX_NOTES_API_MYSQL_DB_USER }}
+    password={{ EDX_NOTES_API_MYSQL_DB_PASS }}
+    priv='{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE'
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+
+- name: create a database for edx-notes-api
+  mysql_db: >
+    db={{ EDX_NOTES_API_MYSQL_DB_NAME }}
+    state=present
+    encoding=utf8
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+
 - name: setup the migration db user
   mysql_user: >
     name={{ COMMON_MYSQL_MIGRATE_USER }}
@@ -121,6 +135,7 @@
     - "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
     - "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
     - "{{ ORA_MYSQL_DB_NAME|default('None') }}"
+    - "{{ EDX_NOTES_API_MYSQL_DB_NAME|default('None') }}"
 
 - name: setup the migration db user for analytics
   mysql_user: >
