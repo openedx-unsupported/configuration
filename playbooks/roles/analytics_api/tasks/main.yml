@@ -45,7 +45,6 @@
     src=edx/app/analytics_api/analytics_api_gunicorn.py.j2
     dest={{ analytics_api_home }}/analytics_api_gunicorn.py
   sudo_user: "{{ analytics_api_user }}"
-  notify: "restart the analytics service"
 
 - name: install application requirements
   pip: >
@@ -85,14 +84,12 @@
     src=edx/app/analytics_api/analytics_api.sh.j2
     dest={{ analytics_api_home }}/{{ analytics_api_service_name }}.sh
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
-  notify: restart the analytics service
 
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/analytics_api.conf.j2
     dest="{{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf"
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
-  notify: restart the analytics service
 
 - name: enable supervisor script
   file: >
@@ -100,7 +97,6 @@
     dest={{ supervisor_cfg_dir }}/{{ analytics_api_service_name }}.conf
     state=link
     force=yes
-  notify: restart the analytics service
   when: not disable_edx_services
 
 - name: update supervisor configuration
