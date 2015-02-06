@@ -1,3 +1,10 @@
+- Role: analytics_api
+  - Refactored name from `analytics-api` to `analytics_api`. This will require additional migrations when upgrading an existing server. While we recommend building from scratch, you can also run the following command:
+  
+      ```
+      rm -rf /edx/app/analytics-api /edx/app/ /edx/app/nginx/sites-available/analytics-api.j2 /edx/app/supervisor/conf.d.available/analytics_api.conf
+      ```
+
 - Role: notifier
   - Refactored `NOTIFIER_HOME` and `NOTIFIER_USER` to `notifier_app_dir` and `notifier_user` to match other roles. This shouldn't change anything since users should've only been overriding COMMON_HOME.
 
