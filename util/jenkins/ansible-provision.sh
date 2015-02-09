@@ -203,7 +203,7 @@ instance_tags:
     Name: $name_tag
     source: jenkins
     owner: $BUILD_USER
-    instance_launch_time: $DATE_TIME
+    instance_termination_time: $DATE_TIME
     datadog: monitored
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
