@@ -512,6 +512,14 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
         OPTIONS:
           mappings: "{{ EDXAPP_XML_MAPPINGS }}"
           stores:
+            - &edxapp_generic_split_modulestore
+              NAME: 'split'
+              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
+              DOC_STORE_CONFIG: *edxapp_generic_default_docstore
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  "{{ edxapp_course_data_dir }}"
+                render_template: 'edxmako.shortcuts.render_to_string'
             - &edxapp_generic_draft_modulestore
               NAME: 'draft'
               ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
@@ -526,14 +534,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
               OPTIONS:
                 data_dir: "{{ edxapp_course_data_dir }}"
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
-            - &edxapp_generic_split_modulestore
-              NAME: 'split'
-              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
-              DOC_STORE_CONFIG: *edxapp_generic_default_docstore
-              OPTIONS:
-                default_class: 'xmodule.hidden_module.HiddenDescriptor'
-                fs_root:  "{{ edxapp_course_data_dir }}"
-                render_template: 'edxmako.shortcuts.render_to_string'
+
   DATABASES:
     read_replica:
       ENGINE: 'django.db.backends.mysql'
@@ -711,10 +712,10 @@ cms_auth_config:
 #          mappings: "{{ EDXAPP_XML_MAPPINGS }}"
           mappings: {}
           stores:
+            - *edxapp_generic_split_modulestore
             - *edxapp_generic_draft_modulestore
 # Commented for now so that it can be tested first: LMS-11258
 #            - *edxapp_generic_xml_modulestore
-            - *edxapp_generic_split_modulestore
 cms_env_config:
   <<: *edxapp_generic_env
   SITE_NAME:  "{{ EDXAPP_CMS_SITE_NAME }}"
