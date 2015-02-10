@@ -8,7 +8,7 @@
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
 ##
-# Defaults for role analytics-api
+# Defaults for role analytics_api
 #
 
 ANALYTICS_API_GIT_IDENTITY: !!null
@@ -51,7 +51,7 @@ ANALYTICS_API_EMAIL_HOST_PASSWORD: 'mail_password'
 ANALYTICS_API_EMAIL_PORT: 587
 ANALYTICS_API_AUTH_TOKEN: 'put-your-api-token-here'
 
-ANALYTICS_API_CONFIG:
+ANALYTICS_API_SERVICE_CONFIG:
   ANALYTICS_DATABASE: 'reports'
   SECRET_KEY: '{{ ANALYTICS_API_SECRET_KEY }}'
   TIME_ZONE: '{{ ANALYTICS_API_TIME_ZONE }}'
@@ -69,6 +69,15 @@ ANALYTICS_API_CONFIG:
     connect_timeout: 10
   DATABASES: '{{ ANALYTICS_API_DATABASES }}'
 
+ANALYTICS_API_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-analytics-data-api.git
+    VERSION: "{{ ANALYTICS_API_VERSION }}"
+    DESTINATION: "{{ analytics_api_code_dir }}"
+    SSH_KEY: "{{ ANALYTICS_API_GIT_IDENTITY }}"
+
 ANALYTICS_API_GUNICORN_WORKERS: "2"
 ANALYTICS_API_GUNICORN_EXTRA: ""
 ANALYTICS_API_GUNICORN_EXTRA_CONF: ""
@@ -78,27 +87,19 @@ ANALYTICS_API_GUNICORN_EXTRA_CONF: ""
 
 analytics_api_environment:
   DJANGO_SETTINGS_MODULE: "analyticsdataserver.settings.production"
-  ANALYTICS_API_CFG: "{{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yaml"
+  ANALYTICS_API_CFG: "{{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yml"
 
-analytics_api_role_name: "analytics-api"
-analytics_api_service_name: "analytics-api"
-analytics_api_user: "analytics-api"
-
-analytics_api_app_dir: "{{ COMMON_APP_DIR }}/{{ analytics_api_service_name }}"
+analytics_api_service_name: "analytics_api"
+analytics_api_user: "{{ analytics_api_service_name }}"
 analytics_api_home: "{{ COMMON_APP_DIR }}/{{ analytics_api_service_name }}"
-analytics_api_venv_base: "{{ analytics_api_home }}/venvs"
-analytics_api_venv_dir: "{{ analytics_api_venv_base }}/{{ analytics_api_service_name }}"
-analytics_api_venv_bin: "{{ analytics_api_venv_dir }}/bin"
-analytics_api_code_dir: "{{ analytics_api_app_dir }}/edx-analytics-data-api"
+analytics_api_code_dir: "{{ analytics_api_home }}/{{ analytics_api_service_name }}"
 analytics_api_conf_dir: "{{ analytics_api_home }}"
+
 analytics_api_gunicorn_host: "127.0.0.1"
 analytics_api_gunicorn_port: "8100"
 analytics_api_gunicorn_timeout: "300"
 
 analytics_api_django_settings: "production"
-analytics_api_source_repo: "git@{{ COMMON_GIT_MIRROR }}:edx/edx-analytics-data-api"
-analytics_api_git_ssh_opts: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {{ analytics_api_git_identity_file }}"
-analytics_api_git_identity_file: "{{ analytics_api_app_dir }}/git-identity"
 
 analytics_api_log_dir: "{{ COMMON_LOG_DIR }}/{{ analytics_api_service_name }}"
 
