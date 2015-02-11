@@ -1,0 +1,135 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role edx_ecommerce
+# 
+
+EDX_ECOMMERCE_GIT_IDENTITY: !!null
+
+# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
+# and a key being provided via NEWRELIC_LICENSE_KEY
+EDX_ECOMMERCE_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_ecommerce_service_name }}"
+EDX_ECOMMERCE_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+EDX_ECOMMERCE_NGINX_PORT: "18130"
+
+EDX_ECOMMERCE_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: 'edx_ecommerce'
+    USER: 'ecomm001'
+    PASSWORD: 'password'
+    HOST: 'localhost'
+    PORT: '3306'
+  # read-only user
+  reports:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: 'edx_ecommerce'
+    USER: 'ecomm001'
+    PASSWORD: 'password'
+    HOST: 'localhost'
+    PORT: '3306'
+
+EDX_ECOMMERCE_VERSION: "master"
+# Default dummy user, override this!!
+EDX_ECOMMERCE_USERS:
+  "dummy-api-user": "changeme"
+
+EDX_ECOMMERCE_SECRET_KEY: 'Your secret key here'
+EDX_ECOMMERCE_TIME_ZONE: 'UTC'
+EDX_ECOMMERCE_LANGUAGE_CODE: 'en-us'
+EDX_ECOMMERCE_EMAIL_HOST: 'localhost'
+EDX_ECOMMERCE_EMAIL_HOST_USER: 'mail_user'
+EDX_ECOMMERCE_EMAIL_HOST_PASSWORD: 'mail_password'
+EDX_ECOMMERCE_EMAIL_PORT: 587
+EDX_ECOMMERCE_AUTH_TOKEN: 'put-your-api-token-here'
+
+EDX_ECOMMERCE_SERVICE_CONFIG:
+  EDX_ECOMMERCE_DATABASE: 'reports'
+  SECRET_KEY: '{{ EDX_ECOMMERCE_SECRET_KEY }}'
+  TIME_ZONE: '{{ EDX_ECOMMERCE_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{EDX_ECOMMERCE_LANGUAGE_CODE }}'
+  # email config
+  EMAIL_HOST: '{{ EDX_ECOMMERCE_EMAIL_HOST }}'
+  EMAIL_HOST_PASSWORD: '{{ EDX_ECOMMERCE_EMAIL_HOST_PASSWORD }}'
+  EMAIL_HOST_USER: '{{ EDX_ECOMMERCE_EMAIL_HOST_USER }}'
+  EMAIL_PORT: $EDX_ECOMMERCE_EMAIL_PORT
+  API_AUTH_TOKEN: '{{ EDX_ECOMMERCE_AUTH_TOKEN }}'
+  STATICFILES_DIRS: ['static']
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ edx_ecommerce_service_name }}/staticfiles"
+  # db config
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES: '{{ EDX_ECOMMERCE_DATABASES }}'
+
+EDX_ECOMMERCE_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-ecommerce.git
+    VERSION: "{{ EDX_ECOMMERCE_VERSION }}"
+    DESTINATION: "{{ edx_ecommerce_code_dir }}"
+    SSH_KEY: "{{ EDX_ECOMMERCE_GIT_IDENTITY }}"
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: django-oscar.git
+    VERSION: "{{ EDX_ECOMMERCE_VERSION }}"
+    DESTINATION: "{{ edx_ecommerce_home }}/depends/django-oscar"
+    SSH_KEY: "{{ EDX_ECOMMERCE_GIT_IDENTITY }}"
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: django-oscar-extensions.git
+    VERSION: "{{ EDX_ECOMMERCE_VERSION }}"
+    DESTINATION: "{{ edx_ecommerce_home }}/depends/django-oscar-extensions"
+    SSH_KEY: "{{ EDX_ECOMMERCE_GIT_IDENTITY }}"
+
+    
+EDX_ECOMMERCE_GUNICORN_WORKERS: "2"
+EDX_ECOMMERCE_GUNICORN_EXTRA: ""
+EDX_ECOMMERCE_GUNICORN_EXTRA_CONF: ""
+
+#
+# vars are namespace with the module name.
+#
+edx_ecommerce_environment:
+  DJANGO_SETTINGS_MODULE: "settings.production"
+  EDX_ECOMMERCE_SERVICE_CONFIG: "{{ COMMON_CFG_DIR  }}/{{ edx_ecommerce_service_name }}.yml"
+
+edx_ecommerce_service_name: "edx_ecommerce"
+edx_ecommerce_user: "{{ edx_ecommerce_service_name }}"
+edx_ecommerce_home: "{{ COMMON_APP_DIR }}/{{ edx_ecommerce_service_name }}"
+edx_ecommerce_code_dir: "{{ edx_ecommerce_home }}/{{ edx_ecommerce_service_name }}"
+edx_ecommerce_conf_dir: "{{ edx_ecommerce_home }}"
+
+edx_ecommerce_gunicorn_host: "127.0.0.1"
+edx_ecommerce_gunicorn_port: "8130"
+edx_ecommerce_gunicorn_timeout: "300"
+
+edx_ecommerce_django_settings: "production"
+
+edx_ecommerce_log_dir: "{{ COMMON_LOG_DIR }}/{{ edx_ecommerce_service_name }}"
+
+edx_ecommerce_requirements_base: "{{ edx_ecommerce_code_dir }}/requirements"
+edx_ecommerce_requirements:
+  - base.txt
+  - production.txt
+  #- optional.txt
+
+#
+# OS packages
+#
+
+edx_ecommerce_debian_pkgs:
+  - 'libmysqlclient-dev'
+  - 'libjpeg-dev'
+
+edx_ecommerce_redhat_pkgs: []

@@ -1,0 +1,104 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_ecommerce
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: "add gunicorn configuration file"
+  template: >
+    src=edx/app/edx_ecommerce/edx_ecommerce_gunicorn.py.j2
+    dest={{ edx_ecommerce_home }}/edx_ecommerce_gunicorn.py
+  sudo_user: "{{ edx_ecommerce_user }}"
+
+- name: install application requirements
+  pip: >
+    requirements="{{ edx_ecommerce_requirements_base }}/{{ item }}"
+    virtualenv="{{ edx_ecommerce_home }}/venvs/{{ edx_ecommerce_service_name }}"
+    state=present
+  sudo_user: "{{ edx_ecommerce_user }}"
+  with_items: edx_ecommerce_requirements
+
+- name: migrate
+  shell: >
+    chdir={{ edx_ecommerce_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ edx_ecommerce_home }}/venvs/{{ edx_ecommerce_service_name }}/bin/python ./manage.py migrate --noinput
+  sudo_user: "{{ edx_ecommerce_user }}"
+  environment: "{{ edx_ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+# - name: run collectstatic
+#   shell: >
+#     chdir={{ edx_ecommerce_code_dir }}
+#     {{ edx_ecommerce_home }}/venvs/{{ edx_ecommerce_service_name }}/bin/python manage.py collectstatic  --noinput
+#   sudo_user: "{{ edx_ecommerce_user }}"
+#   environment: "{{ edx_ecommerce_environment }}"
+
+- name: write out the supervisor wrapper
+  template: >
+    src=edx/app/edx_ecommerce/edx_ecommerce.sh.j2
+    dest={{ edx_ecommerce_home }}/{{ edx_ecommerce_service_name }}.sh
+    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/edx_ecommerce.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ edx_ecommerce_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ edx_ecommerce_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ edx_ecommerce_service_name }}.conf
+    state=link
+    force=yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the-er venv bin dir
+  file: >
+    src="{{ edx_ecommerce_home }}/venvs/{{ edx_ecommerce_service_name }}/bin/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edx_ecommerce"
+    state=link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file: >
+    src="{{ edx_ecommerce_code_dir }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.edx_ecommerce"
+    state=link
+  with_items:
+  - manage.py
+
+- name: restart the applicaton
+  supervisorctl_local: >
+    state=restarted
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name={{ edx_ecommerce_service_name }}
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"

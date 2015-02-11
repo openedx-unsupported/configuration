@@ -1,0 +1,20 @@
+- name: Deploy edX Ecommerce
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_SPLUNKFORWARDER: False
+    ENABLE_NEWRELIC: False
+  roles:
+    - role: nginx
+      nginx_sites:
+        - edx_ecommerce
+    - aws
+    - edx_ecommerce
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
