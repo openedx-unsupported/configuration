@@ -23,8 +23,7 @@ export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 # This DATE_TIME will be used as instance launch time tag
-
-DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
+TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
 
 if [[ -z $BUILD_USER ]]; then
     BUILD_USER=jenkins
@@ -203,7 +202,7 @@ instance_tags:
     Name: $name_tag
     source: jenkins
     owner: $BUILD_USER
-    instance_termination_time: $DATE_TIME
+    instance_termination_time: $TERMINATION_DATE_TIME
     datadog: monitored
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
