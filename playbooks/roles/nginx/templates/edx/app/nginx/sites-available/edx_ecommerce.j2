@@ -1,0 +1,34 @@
+#
+# {{ ansible_managed }}
+#
+upstream edx_ecommerce_app_server {
+    {% for host in nginx_edx_ecommerce_gunicorn_hosts %}
+        server {{ host }}:{{ edx_ecommerce_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
+server {
+  listen {{ EDX_ECOMMERCE_NGINX_PORT }} default_server;
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ edx_ecommerce_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+  {% include "robots.j2" %}
+
+location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://edx_ecommerce_app_server;
+  }
+}
+
