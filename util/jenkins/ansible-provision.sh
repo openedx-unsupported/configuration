@@ -23,7 +23,7 @@ export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 # This DATE_TIME will be used as instance launch time tag
-TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
+export TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
 
 if [[ -z $BUILD_USER ]]; then
     BUILD_USER=jenkins
