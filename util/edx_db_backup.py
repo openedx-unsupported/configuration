@@ -68,7 +68,7 @@ def compress_backup(backup_filename):
 
 def dump_service(service_name, compress=True):
     SERVICES = {
-        'mysql': 'mysqldump -u root --all-databases > {0}',
+        'mysql': 'mysqldump -u root --all-databases --single-transaction > {0}',
         'mongodb': 'mongodump -o {0}',
     }
 
