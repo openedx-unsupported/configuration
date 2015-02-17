@@ -125,6 +125,7 @@ ora_version: $ora_version
 ease_version: $ease_version
 certs_version: $certs_version
 discern_version: $discern_version
+insights_version: $insights_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
@@ -226,7 +227,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum notifier xqueue xserver ora discern certs demo testcourses insights"
 for role in $roles; do
     deploy[$role]=${!role}
 done
