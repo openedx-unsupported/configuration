@@ -110,10 +110,11 @@
 - name: set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   sudo_user: "{{ edx_service_user }}"
+  when: edx_service_repos is defined
 
 - name: validate git protocol
   fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
-  when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh")
+  when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and edx_service_repos is defined
   with_items: edx_service_repos
 
 - name: install read-only ssh key
@@ -121,7 +122,7 @@
     dest="{{ edx_service_home }}/.ssh/{{ item.REPO }}"
     content="{{ item.SSH_KEY }}" owner={{ edx_service_user }}
     group={{ edx_service_user }} mode=0600
-  when: item.PROTOCOL == "ssh"
+  when: item.PROTOCOL == "ssh" and edx_service_repos is defined
   with_items: edx_service_repos
 
 - name: checkout code over ssh
@@ -131,7 +132,7 @@
     accept_hostkey=yes key_file={{ edx_service_home }}/.ssh/{{ item.REPO }}
   sudo_user: "{{ edx_service_user }}"
   register: code_checkout
-  when: item.PROTOCOL == "ssh"
+  when: item.PROTOCOL == "ssh" and edx_service_repos is defined
   with_items: edx_service_repos
 
 - name: checkout code over https
@@ -140,7 +141,7 @@
     dest={{ item.DESTINATION }}  version={{ item.VERSION }}
   sudo_user: "{{ edx_service_user }}"
   register: code_checkout
-  when: item.PROTOCOL == "https"
+  when: item.PROTOCOL == "https" and edx_service_repos is defined
   with_items: edx_service_repos
 
 
@@ -153,7 +154,7 @@
   args:
     tags:
       "version:{{edx_service_name}}" : "{{ item.0.DOMAIN }}/{{ item.0.PATH }}/{{ item.0.REPO }} {{ item.1.after |truncate(7,True,'') }}"
-  when: item.1.after is defined and ansible_ec2_instance_id is defined
+  when: item.1.after is defined and ansible_ec2_instance_id is defined and edx_service_repos is defined
   with_together: 
     - edx_service_repos
     - code_checkout.results
