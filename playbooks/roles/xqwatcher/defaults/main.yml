@@ -51,10 +51,17 @@ XQWATCHER_COURSES:
           KWARGS:
             grader_root: "../data/exampleX-202x/graders/"
 
-XQWATCHER_GIT_IDENTITY: |
-  -----BEGIN RSA PRIVATE KEY-----
-  Your key if you need to access any private repositories
-  -----END RSA PRIVATE KEY-----
+XQWATCHER_GIT_IDENTITY: !!null
+XQWATCHER_VERSION: "master"
+
+XQWATCHER_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: xqueue-watcher.git
+    VERSION: "{{ XQWATCHER_VERSION }}"
+    DESTINATION: "{{ xqwatcher_code_dir }}"
+    SSH_KEY: "{{ XQWATCHER_GIT_IDENTITY }}"
 
 # depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
 # and a key being provided via NEWRELIC_LICENSE_KEY
@@ -64,25 +71,23 @@ XQWATCHER_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
 #
 # vars are namespace with the module name.
 #
-xqwatcher_role_name: "xqwatcher"
 xqwatcher_service_name: "xqwatcher"
-xqwatcher_user: "xqwatcher"
-xqwatcher_module: "xqueue_watcher"
-
+xqwatcher_user: "{{ xqwatcher_service_name }}"
 xqwatcher_app_dir: "{{ COMMON_APP_DIR }}/{{ xqwatcher_service_name }}"
 xqwatcher_app_data: "{{ xqwatcher_app_dir }}/data"
-xqwatcher_venv_base: "{{ xqwatcher_app_dir }}/venvs"
-xqwatcher_venv_dir: "{{ xqwatcher_venv_base }}/{{ xqwatcher_service_name }}"
 xqwatcher_code_dir: "{{ xqwatcher_app_dir }}/src"
-xqwatcher_conf_dir: "{{ xqwatcher_app_dir }}"
 
-xqwatcher_source_repo: "git@{{ COMMON_GIT_MIRROR }}:edx/xqueue-watcher.git"
-xqwatcher_git_ssh_opts: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {{ xqwatcher_git_identity }}"
-XQWATCHER_VERSION: "master"
-xqwatcher_git_identity: "{{ xqwatcher_app_dir }}/git-identity"
+#change this to /edx/etc after pulling xqwatcher.json out
+xqwatcher_conf_dir: "{{ xqwatcher_app_dir }}"
 
 xqwatcher_requirements_file: "{{ xqwatcher_code_dir }}/requirements.txt"
 xqwatcher_log_dir: "{{ COMMON_LOG_DIR }}/{{ xqwatcher_service_name }}"
+xqwatcher_module: "xqueue_watcher"
+
+#Do not reference these outside of this file
+xqwatcher_venv_base: "{{ xqwatcher_app_dir }}/venvs"
+xqwatcher_venv_dir: "{{ xqwatcher_venv_base }}/{{ xqwatcher_service_name }}"
+
 
 #
 # supervisor related config
