@@ -30,24 +30,30 @@
     depth=1
   sudo_user: "{{ jenkins_user }}"
 
-- name: Pip installs that are needed for pip-accel to work for us
-  pip: >
-    name="{{ item }}"
-    virtualenv={{ jenkins_home }}/edx-venv
-    virtualenv_command=virtualenv-2.7
-  sudo_user: "{{ jenkins_user }}"
-  with_items: pip_accel_reqs
+# pip-accel skipped due to conflicting versions of pip required
+# by the pip-accel package and edx-platform
+# - name: Pip installs that are needed for pip-accel to work for us
+#   pip: >
+#     name="{{ item }}"
+#     virtualenv={{ jenkins_home }}/edx-venv
+#     virtualenv_command=virtualenv-2.7
+#   sudo_user: "{{ jenkins_user }}"
+#   with_items: pip_accel_reqs
 
-# Install the platform requirements using pip-accel.
-# This will allow the binary distributions to be downloaded from S3
-# rather than compiled each time.
-- name: Install edx-platform requirements using pip-accel
+# Install the platform requirements using pip.
+# Installing the platform requirements using pip-accel
+# would allow the binary distributions to be downloaded from S3
+# rather than compiled each time. This was previously enabled,
+# but reverted back to pip because the current version of pip-accel
+# (0.22.4) is only compatible with pip >= 1.4, < 1.5 and the current
+# version of pip in edx-platform is 6.0.8.
+- name: Install edx-platform requirements using pip
   pip: >
     requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
     extra_args="--exists-action=w"
     virtualenv={{ jenkins_home }}/edx-venv
     virtualenv_command=virtualenv-2.7
-    executable=pip-accel
+    executable=pip
   with_items:
     - pre.txt
     - github.txt
