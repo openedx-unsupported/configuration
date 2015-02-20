@@ -34,9 +34,6 @@
 #     - minos 
 #
 
-- name: gather ec2 facts
-  action: ec2_facts
-
 - name: create minos config directory
   file: >
     path={{ minos_voter_cfg }}
@@ -44,12 +41,6 @@
     owner=root
     group=root
     mode=0755
-
-- name: create minos config
-  template: >
-    dest={{ minos_cfg_file }}
-    src=edx/etc/minos/minos.yml.j2
-    mode=0755 owner=root group=root
   
 - name: create minos voters configs
   template: >
@@ -81,13 +72,13 @@
 
 - name: install read-only ssh key
   copy: >
-    content="{{ COMMON_GIT_IDENTITY }}" dest="{{ minos_git_identity }}"
+    content="{{ MINOS_GIT_IDENTITY }}" dest="{{ minos_git_identity }}"
     force=yes mode=0600
 
-- name : install python custom-requirements
+- name: install python custom-requirements
   pip: >
     name="{{ item }}"
-    virtualenv="{{ minos_venv_dir }}"
+    virtualenv="{{ minos_app_dir }}/venvs/"
     state=present
     extra_args="--exists-action w"
   environment:

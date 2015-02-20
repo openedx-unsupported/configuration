@@ -90,25 +90,39 @@
     db={{ item }}
     state=present
     encoding=utf8
-  when: ANALYTICS_API_CONFIG is defined
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
   with_items:
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
+    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['default']['NAME'] }}"
+    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['reports']['NAME'] }}"
 
 
 - name: create api user for the analytics api
   mysql_user: >
     name=api001
     password=password
-    priv='{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}.*:ALL/reports.*:SELECT'
-  when: ANALYTICS_API_CONFIG is defined
+    priv='{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['default']['NAME'] }}.*:ALL/reports.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
 
 - name: create read-only reports user for the analytics-api
   mysql_user: >
     name=reports001
     password=password
-    priv='{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT'
-  when: ANALYTICS_API_CONFIG is defined
+    priv='{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: setup the edx-notes-api db user
+  mysql_user: >
+    name={{ EDX_NOTES_API_MYSQL_DB_USER }}
+    password={{ EDX_NOTES_API_MYSQL_DB_PASS }}
+    priv='{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE'
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+
+- name: create a database for edx-notes-api
+  mysql_db: >
+    db={{ EDX_NOTES_API_MYSQL_DB_NAME }}
+    state=present
+    encoding=utf8
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
 - name: setup the migration db user
   mysql_user: >
@@ -121,18 +135,10 @@
     - "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
     - "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
     - "{{ ORA_MYSQL_DB_NAME|default('None') }}"
-
-- name: setup the migration db user for analytics
-  mysql_user: >
-    name={{ COMMON_MYSQL_MIGRATE_USER }}
-    password={{ COMMON_MYSQL_MIGRATE_PASS }}
-    priv='{{ item }}.*:ALL'
-    append_privs=yes
-  when: ANALYTICS_API_CONFIG is defined
-  with_items:
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
-
+    - "{{ EDX_NOTES_API_MYSQL_DB_NAME|default('None') }}"
+    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['default']['NAME']|default('None') }}"
+    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['reports']['NAME']|default('None') }}"
+    - "{{ INSIGHTS_DATABASES.default.NAME|default('None') }}"
 
 - name: setup the read-only db user
   mysql_user: >

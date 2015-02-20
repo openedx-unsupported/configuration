@@ -19,41 +19,64 @@
 # Example play:
 #
 # Rather than being included in the play, this role
-# is included as a dependency by other roles in the meta/mail.yml
+# is included as a dependency by other roles in the meta/main.yml
 # file.  The including role should add the following
 # depency definition.
 #
 # dependencies:
-#   - { role: edx_service, edx_service_name: "hotg" }
+#   - role: edx_service
+#     edx_service_name: "hotg"
+#     edx_service_config: "{{ structure_to_be_written_to_config_file_in_/edx/etc }}"
+#     edx_service_repos:
+#       - PROTOCOL: [https/ssh]
+#         DOMAIN: github.com
+#         PATH: edx
+#         REPO: hotg
+#         VERSION: master
+#         DESTINATION: "/edx/app/hotg/hotg"
+#         SSH_KEY: <required if PROTOCOL==ssh>
+#       - PROTOCOL
+#         ...
+#     edx_service_user: hotg_system_user
+#     edx_service_home: "/edx/app/hotg"
+#     edx_service_packages:
+#       debian: [ pkg1, pkg2, pkg3 ]      
+#       redhat: [ pkg4, pkg5 ]
 #
 
+# Generating an ssh key so service users can do a git
+# clone over ssh for public repositories without any
+# additional configuration
 - name: create application user
   user: >
     name="{{ edx_service_name }}"
-    home="{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
-    createhome=no
+    home="{{ edx_service_home }}"
+    createhome=yes
     shell=/bin/false
+    generate_ssh_key=yes
 
-- name: create edx_service app and venv dir
+# Assumes that the home directory has been created above.
+- name: create edx_service app, venv, data, and staticfiles dirs
   file: >
-    path="{{ item }}"
+    path="{{ edx_service_home }}/{{ item }}"
     state=directory
     owner="{{ edx_service_name }}"
     group="{{ common_web_group }}"
   with_items:
-    - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}"
-    - "{{ COMMON_APP_DIR }}/{{ edx_service_name }}/venvs"
+    - "venvs"
+    - "data"
+    - "staticfiles"
 
-- name: create edx_service data and staticfiles dir
+- name: create /edx/var and /edx/etc dirs
   file: >
-    path="{{ item }}"
+    path="{{ item }}/{{ edx_service_name }}"
     state=directory
-    owner="{{ edx_service_name }}"
-    group="{{ common_web_group }}"
+    owner={{ edx_service_user }}
+    group={{ common_web_group }}
+    mode=0755
   with_items:
-    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/data"
-    - "{{ COMMON_DATA_DIR }}/{{ edx_service_name }}/staticfiles"
-
+    - /edx/var
+    - /edx/etc
 
 - name: create edx_service log dir
   file: >
@@ -64,14 +87,76 @@
   with_items:
     - "{{ COMMON_LOG_DIR }}/{{ edx_service_name }}"
 
-# Replace dashes with underscores to support roles that use
-# dashes (the role vars will contain underscores)
+- name: write out app config file
+  template: >
+    src=config.yml.j2
+    dest={{ COMMON_CFG_DIR  }}/{{ edx_service_name }}.yml
+    mode=0644
+  tags:
+    - deploy
+  when: edx_service_config is defined
+
 - name: install a bunch of system packages on which edx_service relies
   apt: pkg={{ item }} state=present
-  with_items: "{{ edx_service_name.replace('-', '_') }}_debian_pkgs"
+  with_items: edx_service_packages.debian
   when: ansible_distribution in common_debian_variants
 
 - name: install a bunch of system packages on which edx_service relies
   yum: pkg={{ item }} state=present
-  with_items: "{{ edx_service_name.replace('-', '_') }}_redhat_pkgs"
+  with_items: edx_service_name.redhat
   when: ansible_distribution in common_redhat_variants
+
+
+- name: set git fetch.prune to ignore deleted remote refs
+  shell: git config --global fetch.prune true
+  sudo_user: "{{ edx_service_user }}"
+  when: edx_service_repos is defined
+
+- name: validate git protocol
+  fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
+  when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and edx_service_repos is defined
+  with_items: edx_service_repos
+
+- name: install read-only ssh key
+  copy: >
+    dest="{{ edx_service_home }}/.ssh/{{ item.REPO }}"
+    content="{{ item.SSH_KEY }}" owner={{ edx_service_user }}
+    group={{ edx_service_user }} mode=0600
+  when: item.PROTOCOL == "ssh" and edx_service_repos is defined
+  with_items: edx_service_repos
+
+- name: checkout code over ssh
+  git: >
+    repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
+    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
+    accept_hostkey=yes key_file={{ edx_service_home }}/.ssh/{{ item.REPO }}
+  sudo_user: "{{ edx_service_user }}"
+  register: code_checkout
+  when: item.PROTOCOL == "ssh" and edx_service_repos is defined
+  with_items: edx_service_repos
+
+- name: checkout code over https
+  git: >
+    repo=https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}
+    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
+  sudo_user: "{{ edx_service_user }}"
+  register: code_checkout
+  when: item.PROTOCOL == "https" and edx_service_repos is defined
+  with_items: edx_service_repos
+
+
+- name: get instance information
+  action: ec2_facts
+  #old syntax - should be fixed
+
+- name: tag instance
+  ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
+  args:
+    tags:
+      "version:{{edx_service_name}}" : "{{ item.0.DOMAIN }}/{{ item.0.PATH }}/{{ item.0.REPO }} {{ item.1.after |truncate(7,True,'') }}"
+  when: item.1.after is defined and ansible_ec2_instance_id is defined and edx_service_repos is defined
+  with_together: 
+    - edx_service_repos
+    - code_checkout.results
+
+#TODO: restart supervisor- depends on supervisor being refactored into this role

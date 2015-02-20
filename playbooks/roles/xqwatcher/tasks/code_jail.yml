@@ -31,27 +31,27 @@
 
 - name: create jail virtualenv
   shell: >
-    /usr/local/bin/virtualenv --no-site-packages {{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
+    /usr/local/bin/virtualenv --no-site-packages {{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
   with_items: XQWATCHER_COURSES
 
 - name: write out requirements.txt
   template: >
     src=edx/app/xqwatcher/data/requirements.txt.j2
-    dest={{ xqwatcher_app_data }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt
+    dest={{ xqwatcher_app_dir }}/data/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt
     mode=0440 owner=root group=root
   with_items: XQWATCHER_COURSES
 
-- name : install course specific python requirements
+- name: install course specific python requirements
   pip: >
     requirements="{{ xqwatcher_app_data }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt"
-    virtualenv="{{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+    virtualenv="{{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
     state=present
     extra_args="{{ XQWATCHER_PIP_EXTRA_ARGS }}"
   with_items: XQWATCHER_COURSES
 
 - name: give other read permissions to the virtualenv
   shell: >
-    chown -R {{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }} {{ xqwatcher_venv_base }}/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
+    chown -R {{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }} {{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
   with_items: XQWATCHER_COURSES
 
 - name: start apparmor service
