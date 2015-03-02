@@ -45,12 +45,12 @@
   environment: "{{ edx_ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
-# - name: run collectstatic
-#   shell: >
-#     chdir={{ edx_ecommerce_code_dir }}
-#     {{ edx_ecommerce_home }}/venvs/{{ edx_ecommerce_service_name }}/bin/python manage.py collectstatic  --noinput
-#   sudo_user: "{{ edx_ecommerce_user }}"
-#   environment: "{{ edx_ecommerce_environment }}"
+- name: run collectstatic
+  shell: >
+    chdir={{ edx_ecommerce_code_dir }}
+    {{ edx_ecommerce_home }}/venvs/{{ edx_ecommerce_service_name }}/bin/python manage.py collectstatic  --noinput
+  sudo_user: "{{ edx_ecommerce_user }}"
+  environment: "{{ edx_ecommerce_environment }}"
 
 - name: write out the supervisor wrapper
   template: >
@@ -63,6 +63,14 @@
     src=edx/app/supervisor/conf.d.available/edx_ecommerce.conf.j2
     dest="{{ supervisor_available_dir }}/{{ edx_ecommerce_service_name }}.conf"
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: setup the ecommence env file
+  template: >
+    src="./{{ edx_ecommerce_home }}/{{ edx_ecommerce_service_name }}_env.j2"
+    dest="{{ edx_ecommerce_home }}/edx_ecommerce_env"
+    owner={{ edx_ecommerce_user }}
+    group={{ edx_ecommerce_user }}
+    mode=0644
 
 - name: enable supervisor script
   file: >
