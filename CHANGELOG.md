@@ -1,11 +1,17 @@
 - Role: edxapp
   - Enabled combined login registration feature by default
 
-- Role: analytics_api
-  - Refactored name from `analytics-api` to `analytics_api`. This will require additional migrations when upgrading an existing server. While we recommend building from scratch, running the following command might work:
+- Role: analytics_api, xqwatcher, insights, minos, edx_notes_api
+  - Expanded `edx_service` role to do git checkout and ec2 tagging
+  - Refactored roles that depend on `edx_service` to use the new interface: `minos`, `analytics_api`, `insights`, and `xqwatcher`
+  - Refactored name from `analytics-api` to `analytics_api`
+  - Changed location of minos' config file from `/edx/etc/minos/minos.yml` to `/edx/etc/minos.yml`
+  - Added new `edx_notes_api` role for forthcoming notes api
+  - This is a __BACKWARDS INCOMPATABLE__ change and will require additional migrations when upgrading an existing server. While we recommend building from scratch, running the following command _might_ work:
   
       ```
       rm -rf /edx/app/analytics-api /edx/app/ /edx/app/nginx/sites-available/analytics-api.j2 /edx/app/supervisor/conf.d.available/analytics_api.conf
+      rm -rf /edx/etc/minos
       ```
 
 - Role: notifier
