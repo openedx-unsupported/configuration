@@ -10,46 +10,47 @@
 ##
 # Defaults for role xqwatcher
 #
+# Courses can be defined by overriding XQWATCHER_COURSES with values like so:
+# - COURSE: "exampleX-101x"
+#   GIT_REPO: "git@github.com:foo/graders-exampleX-101x.git"
+#   GIT_REF: "master"
+#   PYTHON_REQUIREMENTS: []
+#   QUEUE_NAME: "exampleX-101x"
+#   QUEUE_CONFIG:
+#     SERVER: "https://xqueue.example.com"
+#     CONNECTIONS: 5
+#     AUTH: ["user", "password"]
+#     HANDLERS:
+#       - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+#         CODEJAIL:
+#           name: "exampleX-101x"
+#           python_bin: "{{ xqwatcher_venv_base }}/exampleX-101x/bin/python"
+#           user: "exampleX-101x"
+#         KWARGS:
+#           grader_root: "../data/exampleX-101x/graders/"
+# - COURSE: "exampleX-202x"
+#   GIT_REPO: "git@github.com:foo/graders-exampleX-202x.git"
+#   GIT_REF: "master"
+#   PYTHON_REQUIREMENTS: []
+#   QUEUE_NAME: "exampleX-202x"
+#   QUEUE_CONFIG:
+#     SERVER: "https://xqueue.example.com"
+#     CONNECTIONS: 5
+#     AUTH: ["user", "password"]
+#     HANDLERS:
+#       - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+#         CODEJAIL:
+#           name: "exampleX-202x"
+#           python_bin: "{{ xqwatcher_venv_base }}/exampleX-202x/bin/python"
+#           user: "exampleX-202x"
+#         KWARGS:
+#           grader_root: "../data/exampleX-202x/graders/"
 
 XQWATCHER_CONFIG:
   HTTP_BASIC_AUTH: ["{{ COMMON_HTPASSWD_USER }}","{{ COMMON_HTPASSWD_PASS }}"]
   POLL_TIME: 10
 
-XQWATCHER_COURSES:
-  - COURSE: "exampleX-101x"
-    GIT_REPO: "git@github.com:foo/graders-exampleX-101x.git"
-    GIT_REF: "master"
-    PYTHON_REQUIREMENTS: []
-    QUEUE_NAME: "exampleX-101x"
-    QUEUE_CONFIG:
-      SERVER: "https://xqueue.example.com"
-      CONNECTIONS: 5
-      AUTH: ["user", "password"]
-      HANDLERS:
-        - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
-          CODEJAIL:
-            name: "exampleX-101x"
-            python_bin: "{{ xqwatcher_venv_base }}/exampleX-101x/bin/python"
-            user: "exampleX-101x"
-          KWARGS:
-            grader_root: "../data/exampleX-101x/graders/"
-  - COURSE: "exampleX-202x"
-    GIT_REPO: "git@github.com:foo/graders-exampleX-202x.git"
-    GIT_REF: "master"
-    PYTHON_REQUIREMENTS: []
-    QUEUE_NAME: "exampleX-202x"
-    QUEUE_CONFIG:
-      SERVER: "https://xqueue.example.com"
-      CONNECTIONS: 5
-      AUTH: ["user", "password"]
-      HANDLERS:
-        - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
-          CODEJAIL:
-            name: "exampleX-202x"
-            python_bin: "{{ xqwatcher_venv_base }}/exampleX-202x/bin/python"
-            user: "exampleX-202x"
-          KWARGS:
-            grader_root: "../data/exampleX-202x/graders/"
+XQWATCHER_COURSES: []
 
 XQWATCHER_GIT_IDENTITY: !!null
 XQWATCHER_VERSION: "master"
@@ -58,7 +59,7 @@ XQWATCHER_REPOS:
   - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
     DOMAIN: "{{ COMMON_GIT_MIRROR }}"
     PATH: "{{ COMMON_GIT_PATH }}"
-    REPO: xqueue-watcher.git
+    REPO: "{{ xqwatcher_repo_name }}"
     VERSION: "{{ XQWATCHER_VERSION }}"
     DESTINATION: "{{ xqwatcher_code_dir }}"
     SSH_KEY: "{{ XQWATCHER_GIT_IDENTITY }}"
@@ -77,8 +78,13 @@ xqwatcher_app_dir: "{{ COMMON_APP_DIR }}/{{ xqwatcher_service_name }}"
 xqwatcher_app_data: "{{ xqwatcher_app_dir }}/data"
 xqwatcher_code_dir: "{{ xqwatcher_app_dir }}/src"
 
-#change this to /edx/etc after pulling xqwatcher.json out
+xqwatcher_repo_name: xqueue-watcher.git
+
+#TODO: change this to /edx/etc after pulling xqwatcher.json out
 xqwatcher_conf_dir: "{{ xqwatcher_app_dir }}"
+
+#TODO: remove after refactoring out all the git stuff
+xqwatcher_course_git_ssh_opts: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {{ xqwatcher_app_dir }}/.ssh/{{ xqwatcher_service_name }}-courses"
 
 xqwatcher_requirements_file: "{{ xqwatcher_code_dir }}/requirements.txt"
 xqwatcher_log_dir: "{{ COMMON_LOG_DIR }}/{{ xqwatcher_service_name }}"

@@ -21,6 +21,24 @@
 #
 #
 
+#
+# Start dealing with Jumbo frames issue in mixed MTU deployements in AWS
+#
+- shell: >
+    /sbin/ifconfig eth0 mtu 1500 up
+  when: ansible_distribution in common_debian_variants
+
+- lineinfile: >
+    dest=/etc/dhcp/dhclient.conf
+    regexp="^supercede interfact-mtu"
+    line="supercede interface-mtu 1500;"
+    insertbefore="^request"
+  when: ansible_distribution in common_debian_variants
+  
+#
+# End dealing with Jumbo frames issue in mixed MTU deployements in AWS
+#
+
 - name: create all service directories
   file: >
     path="{{ item.value.path }}"

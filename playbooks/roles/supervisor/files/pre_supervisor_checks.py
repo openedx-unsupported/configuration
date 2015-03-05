@@ -7,6 +7,7 @@ import os
 import subprocess
 import traceback
 import socket
+import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
@@ -15,6 +16,10 @@ MIGRATION_COMMANDS = {
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
     }
 HIPCHAT_USER = "PreSupervisor"
+
+# Max amount of time to wait for tags to be applied.
+MAX_BACKOFF = 120
+INITIAL_BACKOFF = 1
 
 def services_for_instance(instance_id):
     """
@@ -106,31 +111,56 @@ if __name__ == '__main__':
         # Needs to exit with 1 instead of 0 to prevent
         # services from starting.
         exit(1)
+    time_left = MAX_BACKOFF
+    backoff = INITIAL_BACKOFF
 
-    try:
-        environment, deployment, play = edp_for_instance(instance_id)
-        prefix = "{environment}-{deployment}-{play}-{instance_id}".format(
-            environment=environment,
-            deployment=deployment,
-            play=play,
-            instance_id=instance_id)
-    except:
-        print("Failed to get EDP for {}".format(instance_id))
+    environment = None
+    deployment = None
+    play = None
+    while time_left > 0:
+        try:
+            environment, deployment, play = edp_for_instance(instance_id)
+            prefix = "{environment}-{deployment}-{play}-{instance_id}".format(
+                environment=environment,
+                deployment=deployment,
+                play=play,
+                instance_id=instance_id)
+            break
+        except:
+            print("Failed to get EDP for {}".format(instance_id))
+            # With the time limit being 2 minutes we will
+            # try 5 times before giving up.
+            time.sleep(backoff)
+            time_left -= backoff
+            backoff = backoff * 2
+
+    if environment is None or deployment is None or play is None:
+        msg = "Unable to retrieve environment, deployment, or play tag."
+        print(msg)
+        if notify:
+            notify("{} : {}".format(prefix, msg))
+        exit(0)
 
     #get the hostname of the sandbox
     hostname = socket.gethostname()
 
-    #get the list of the volumes, that are attached to the instance
-    volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
+    try:
+        #get the list of the volumes, that are attached to the instance
+        volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
+    
+        for volume in volumes:
+            volume.add_tags({"hostname": hostname,
+                             "environment": environment,
+                             "deployment": deployment,
+                             "cluster": play,
+                             "instance-id": instance_id,
+                             "created": volume.create_time })
+    except:
+        msg = "Failed to tag volumes associated with {}".format(instance_id)
+        print(msg)
+        if notify:
+            notify(msg)
 
-    for volume in volumes:
-        volume.add_tags({"hostname": hostname,
-                         "environment": environment,
-                         "deployment": deployment,
-                         "cluster": play,
-                         "instance-id": instance_id,
-                         "created": volume.create_time })
-        
     try:
         for service in services_for_instance(instance_id):
             if service in MIGRATION_COMMANDS:
@@ -153,7 +183,7 @@ if __name__ == '__main__':
                         output = subprocess.check_output(cmd, shell=True)
                         if 'Migrating' in output:
                             raise Exception("Migrations have not been run for {}".format(service))
-    
+
             # Link to available service.
             available_file = os.path.join(args.available, "{}.conf".format(service))
             link_location = os.path.join(args.enabled, "{}.conf".format(service))
@@ -174,6 +204,7 @@ if __name__ == '__main__':
         if notify:
             notify(msg)
         traceback.print_exc()
+        raise e
     else:
         msg = "{}: {}".format(prefix, " | ".join(report))
         print(msg)

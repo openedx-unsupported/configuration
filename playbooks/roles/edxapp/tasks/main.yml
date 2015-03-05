@@ -6,17 +6,11 @@
   user: >
     name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
     createhome=no shell=/bin/false
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
 
 - name: create edxapp user dirs
   file: >
     path="{{ item }}" state=directory
     owner="{{ edxapp_user }}" group="{{ common_web_group }}"
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_app_dir }}"
     # needed for the ansible 1.5 git module
@@ -44,18 +38,12 @@
   file: >
     path="{{ edxapp_log_dir }}" state=directory
     owner="{{ common_log_user }}" group="{{ common_log_user }}"
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
 
 - name: create web-writable edxapp data dirs
   file: >
     path="{{ item }}" state=directory
     owner="{{ common_web_user }}" group="{{ edxapp_user }}"
     mode="0775"
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
   with_items:
     - "{{ edxapp_course_data_dir }}"
     - "{{ edxapp_upload_dir }}"
@@ -66,9 +54,6 @@
 
 - name: install system packages on which LMS and CMS rely
   apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present update_cache=yes
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
 
 - name: set up edxapp .npmrc
   template:
@@ -77,9 +62,6 @@
     mode=0600
 
 - name: create log directories for service variants
-  notify:
-  - "restart edxapp"
-  - "restart edxapp_workers"
   file: >
     path={{ edxapp_log_dir }}/{{ item }} state=directory
     owner={{ common_log_user }} group={{ common_log_user }}

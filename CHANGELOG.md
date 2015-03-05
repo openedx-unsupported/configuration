@@ -1,5 +1,8 @@
+- Role: edxapp
+  - Enabled combined login registration feature by default
+
 - Role: analytics_api
-  - Refactored name from `analytics-api` to `analytics_api`. This will require additional migrations when upgrading an existing server. While we recommend building from scratch, you can also run the following command:
+  - Refactored name from `analytics-api` to `analytics_api`. This will require additional migrations when upgrading an existing server. While we recommend building from scratch, running the following command might work:
   
       ```
       rm -rf /edx/app/analytics-api /edx/app/ /edx/app/nginx/sites-available/analytics-api.j2 /edx/app/supervisor/conf.d.available/analytics_api.conf
