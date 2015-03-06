@@ -11,8 +11,6 @@
 # Defaults for role insights
 # 
 
-INSIGHTS_GIT_IDENTITY: !!null
-
 INSIGHTS_MEMCACHE: [ 'localhost:11211' ]
 INSIGHTS_FEEDBACK_EMAIL: 'dashboard@example.com'
 INSIGHTS_MKTG_BASE: 'http://example.com'
@@ -107,30 +105,38 @@ INSIGHTS_CONFIG:
   LMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL }}"
   COURSE_API_URL: "{{ INSIGHTS_COURSE_API_URL }}"
 
-INSIGHTS_VERSION: "master"
 INSIGHTS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
 INSIGHTS_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
 INSIGHTS_NGINX_PORT: "18110"
 INSIGHTS_GUNICORN_WORKERS: "2"
 INSIGHTS_GUNICORN_EXTRA: ""
 INSIGHTS_COURSE_API_URL: "URL FOR COURSE API"
+
+INSIGHTS_VERSION: "master"
+INSIGHTS_GIT_IDENTITY: !!null
+
+INSIGHTS_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-analytics-dashboard.git
+    VERSION: "{{ INSIGHTS_VERSION }}"
+    DESTINATION: "{{ insights_code_dir }}"
+    SSH_KEY: "{{ INSIGHTS_GIT_IDENTITY }}"
+
 #
 # vars are namespace with the module name.
 #
 insights_environment:
   DJANGO_SETTINGS_MODULE: "analytics_dashboard.settings.production"
-  ANALYTICS_DASHBOARD_CFG: "{{ COMMON_CFG_DIR  }}/{{ insights_service_name }}.yaml"
+  ANALYTICS_DASHBOARD_CFG: "{{ COMMON_CFG_DIR  }}/{{ insights_service_name }}.yml"
 
-insights_role_name: "insights"
-insights_service_name: "{{ insights_role_name }}"
-insights_user: "{{ insights_role_name }}"
+insights_service_name: insights
+insights_user: "{{ insights_service_name }}"
 insights_app_dir: "{{ COMMON_APP_DIR }}/{{ insights_service_name }}"
 insights_home: "{{ COMMON_APP_DIR }}/{{ insights_service_name }}"
-insights_venv_base: "{{ insights_home }}/venvs"
-insights_venv_dir: "{{ insights_venv_base }}/{{ insights_service_name }}"
-insights_venv_bin: "{{ insights_venv_dir }}/bin"
-insights_code_dir: "{{ insights_app_dir }}/edx-analytics-dashboard"
-insights_python_path: "{{ insights_code_dir }}"
+insights_code_dir: "{{ insights_app_dir }}/edx_analytics_dashboard"
+insights_python_path: "{{ insights_code_dir }}/analytics_dashboard"
 insights_static_path: "{{ insights_code_dir }}/analytics_dashboard/static"
 insights_conf_dir: "{{ insights_home }}"
 insights_log_dir: "{{ COMMON_LOG_DIR }}/{{ insights_service_name }}"
@@ -146,9 +152,6 @@ insights_gunicorn_timeout: "300"
 insights_wsgi: "analytics_dashboard.wsgi:application"
 
 insights_django_settings: "analytics_dashboard.settings.production"
-insights_source_repo: "git@{{ COMMON_GIT_MIRROR }}:/edx/edx-analytics-dashboard"
-insights_git_ssh_opts: "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {{ insights_git_identity_file }}"
-insights_git_identity_file: "{{ insights_home }}/git-identity"
 insights_manage: "{{ insights_code_dir }}/manage.py"
 
 insights_requirements_base: "{{ insights_code_dir }}/requirements"
