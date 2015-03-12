@@ -1,0 +1,130 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role ecommerce
+# 
+
+ECOMMERCE_GIT_IDENTITY: !!null
+
+# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
+# and a key being provided via NEWRELIC_LICENSE_KEY
+ECOMMERCE_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ ecommerce_service_name }}"
+ECOMMERCE_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+ECOMMERCE_NGINX_PORT: "18130"
+
+ECOMMERCE_DEFAULT_DB_NAME: 'ecommerce'
+
+ECOMMERCE_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
+    USER: 'ecomm001'
+    PASSWORD: 'password'
+    HOST: 'localhost'
+    PORT: '3306'
+
+ECOMMERCE_VERSION: "master"
+EDX_DJANGO_OSCAR_VERSION: "master"
+EDX_DJANGO_OSCAR_EXTENSIONS_VERSION: "master"
+
+# Default dummy user, override this!!
+ECOMMERCE_USERS:
+  "dummy-api-user": "changeme"
+
+ECOMMERCE_SECRET_KEY: 'Your secret key here'
+ECOMMERCE_TIME_ZONE: 'UTC'
+ECOMMERCE_LANGUAGE_CODE: 'en-us'
+ECOMMERCE_EMAIL_HOST: 'localhost'
+ECOMMERCE_EMAIL_HOST_USER: 'mail_user'
+ECOMMERCE_EMAIL_HOST_PASSWORD: 'mail_password'
+ECOMMERCE_EMAIL_PORT: 587
+ECOMMERCE_AUTH_TOKEN: 'put-your-api-token-here'
+
+ECOMMERCE_SERVICE_CONFIG:
+  ECOMMERCE_DATABASE: 'reports'
+  SECRET_KEY: '{{ ECOMMERCE_SECRET_KEY }}'
+  TIME_ZONE: '{{ ECOMMERCE_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{ECOMMERCE_LANGUAGE_CODE }}'
+  # email config
+  EMAIL_HOST: '{{ ECOMMERCE_EMAIL_HOST }}'
+  EMAIL_HOST_PASSWORD: '{{ ECOMMERCE_EMAIL_HOST_PASSWORD }}'
+  EMAIL_HOST_USER: '{{ ECOMMERCE_EMAIL_HOST_USER }}'
+  EMAIL_PORT: $ECOMMERCE_EMAIL_PORT
+  API_AUTH_TOKEN: '{{ ECOMMERCE_AUTH_TOKEN }}'
+  STATICFILES_DIRS: []
+#  STATICFILES_DIRS: ['{{ ecommerce_static_path }}']
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ ecommerce_service_name }}/staticfiles"
+  # db config
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES: '{{ ECOMMERCE_DATABASES }}'
+
+ECOMMERCE_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-ecommerce.git
+    VERSION: "{{ ECOMMERCE_VERSION }}"
+    DESTINATION: "{{ ecommerce_code_dir }}"
+    SSH_KEY: "{{ ECOMMERCE_GIT_IDENTITY }}"
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: django-oscar.git
+    VERSION: "{{ EDX_DJANGO_OSCAR_VERSION }}"
+    DESTINATION: "{{ ecommerce_home }}/depends/django-oscar"
+    SSH_KEY: "{{ ECOMMERCE_GIT_IDENTITY }}"
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: django-oscar-extensions.git
+    VERSION: "{{ EDX_DJANGO_OSCAR_EXTENSIONS_VERSION }}"
+    DESTINATION: "{{ ecommerce_home }}/depends/django-oscar-extensions"
+    SSH_KEY: "{{ ECOMMERCE_GIT_IDENTITY }}"
+
+    
+ECOMMERCE_GUNICORN_WORKERS: "2"
+ECOMMERCE_GUNICORN_EXTRA: ""
+ECOMMERCE_GUNICORN_EXTRA_CONF: ""
+
+#
+# vars are namespace with the module name.
+#
+ecommerce_environment:
+  DJANGO_SETTINGS_MODULE: "ecommerce.settings.production"
+  ECOMMERCE_CFG: "{{ COMMON_CFG_DIR  }}/{{ ecommerce_service_name }}.yml"
+
+ecommerce_service_name: "ecommerce"
+ecommerce_user: "{{ ecommerce_service_name }}"
+ecommerce_home: "{{ COMMON_APP_DIR }}/{{ ecommerce_service_name }}"
+ecommerce_code_dir: "{{ ecommerce_home }}/{{ ecommerce_service_name }}"
+ecommerce_static_path: "{{ ecommerce_code_dir }}/ecommerce/static"
+
+ecommerce_gunicorn_host: "127.0.0.1"
+ecommerce_gunicorn_port: "8130"
+ecommerce_gunicorn_timeout: "300"
+
+ecommerce_log_dir: "{{ COMMON_LOG_DIR }}/{{ ecommerce_service_name }}"
+
+ecommerce_requirements_base: "{{ ecommerce_code_dir }}/requirements"
+ecommerce_requirements:
+  - production.txt
+  #- optional.txt
+
+#
+# OS packages
+#
+
+ecommerce_debian_pkgs:
+  - libmysqlclient-dev
+  - libjpeg-dev
+
+ecommerce_redhat_pkgs: []

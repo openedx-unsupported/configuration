@@ -1,17 +1,17 @@
 #
 # {{ ansible_managed }}
 #
-upstream edx_ecommerce_app_server {
-    {% for host in nginx_edx_ecommerce_gunicorn_hosts %}
-        server {{ host }}:{{ edx_ecommerce_gunicorn_port }} fail_timeout=0;
+upstream ecommerce_app_server {
+    {% for host in nginx_ecommerce_gunicorn_hosts %}
+        server {{ host }}:{{ ecommerce_gunicorn_port }} fail_timeout=0;
     {% endfor %}
 }
 
 server {
-  listen {{ EDX_ECOMMERCE_NGINX_PORT }} default_server;
+  listen {{ ECOMMERCE_NGINX_PORT }} default_server;
 
   location ~ ^/static/(?P<file>.*) {
-    root {{ COMMON_DATA_DIR }}/{{ edx_ecommerce_service_name }};
+    root {{ COMMON_DATA_DIR }}/{{ ecommerce_service_name }};
     try_files /staticfiles/$file =404;
   }
 
@@ -28,7 +28,7 @@ location @proxy_to_app {
     proxy_set_header Host $http_host;
 
     proxy_redirect off;
-    proxy_pass http://edx_ecommerce_app_server;
+    proxy_pass http://ecommerce_app_server;
   }
 }
 
