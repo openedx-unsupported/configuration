@@ -10,14 +10,16 @@ MEMORY = 4096
 CPU_COUNT = 2
 
 edx_platform_mount_dir = "edx-platform"
-edx_ecommerce_mount_dir = "edx-ecommerce"
+ecommerce_mount_dir = "ecommerce"
 oscar_extensions_mount_dir = "django-oscar-extensions"
+django_oscar_mount_dir = "django-oscar"
 
 if ENV['VAGRANT_MOUNT_BASE']
 
   edx_platform_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_platform_mount_dir
-  edx_ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_ecommerce_mount_dir
+  ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_mount_dir
   oscar_extensions_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + oscar_extensions_mount_dir
+  django_oscar_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + django_oscar_mount_dir
 
 end
 
@@ -43,16 +45,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   if ENV['VAGRANT_USE_VBOXFS'] == 'true'
     config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
       create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{edx_ecommerce_mount_dir}", "/edx/app/edx_ecommerce/edx_ecommerce",
-      create: true, owner: "edx_ecommerce", group: "www-data"
-    config.vm.synced_folder "#{oscar_extensions_mount_dir}", "/edx/app/edx_ecommerce/depends/django-oscar-extensions",
-      create: true, owner: "edx_ecommerce", group: "www-data"
+    config.vm.synced_folder "#{ecommerce_mount_dir}", "/edx/app/ecommerce/ecommerce",
+      create: true, owner: "ecommerce", group: "www-data"
+    config.vm.synced_folder "#{oscar_extensions_mount_dir}", "/edx/app/ecommerce/depends/django-oscar-extensions",
+      create: true, owner: "ecommerce", group: "www-data"
+    config.vm.synced_folder "#{django_oscar_mount_dir}", "/edx/app/ecommerce/depends/django-oscar",
+      create: true, owner: "ecommerce", group: "www-data"
   else
     config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
       create: true, nfs: true
-    config.vm.synced_folder "#{edx_ecommerce_mount_dir}", "/edx/app/edx_ecommerce/edx_ecommerce",
+    config.vm.synced_folder "#{ecommerce_mount_dir}", "/edx/app/ecommerce/ecommerce",
       create: true, nfs: true
-    config.vm.synced_folder "#{oscar_extensions_mount_dir}", "/edx/app/edx_ecommerce/depends/django-oscar-extensions",
+    config.vm.synced_folder "#{oscar_extensions_mount_dir}", "/edx/app/ecommerce/depends/django-oscar-extensions",
+      create: true, nfs: true
+    config.vm.synced_folder "#{django_oscar_mount_dir}", "/edx/app/ecommerce/depends/django-oscar",
       create: true, nfs: true
   end
 
