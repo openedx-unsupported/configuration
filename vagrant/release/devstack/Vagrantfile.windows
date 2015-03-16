@@ -36,6 +36,8 @@ else
 fi
 
 ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=$CONFIG_VER $EXTRA_VARS
+echo "edxapp:testpassword"|chpasswd
+mkdir /edx/app/edxapp/edx-platform/.pycharm_helpers
 
 SCRIPT
 
@@ -128,6 +130,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
     vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
+    vb.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/v-root", "1"]
+    vb.customize ["setextradata", :id, "VBoxInternal2/SharedFoldersEnableSymlinksCreate/vagrant", "1"]
 
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
