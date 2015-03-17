@@ -7,7 +7,7 @@ directory={{ edxapp_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 
-command={{ edxapp_venv_bin}}/python {{ edxapp_code_dir }}/manage.py {{ w.service_variant }} --settings=aws celery worker --loglevel=info --queues=edx.{{ w.service_variant }}.core.{{ w.queue }} --hostname=edx.{{ w.service_variant }}.core.{{ w.queue }}.%%h --concurrency={{ w.concurrency }}
+command={{ edxapp_venv_dir + '/bin/newrelic-admin run-program ' if w.monitor and COMMON_ENABLE_NEWRELIC_APP else ''}}{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py {{ w.service_variant }} --settings=aws celery worker --loglevel=info --queues=edx.{{ w.service_variant }}.core.{{ w.queue }} --hostname=edx.{{ w.service_variant }}.core.{{ w.queue }}.%%h --concurrency={{ w.concurrency }}
 killasgroup=true
 stopasgroup=true
 stopwaitsecs=432000
