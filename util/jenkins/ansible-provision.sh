@@ -22,6 +22,12 @@ env
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
+run_ansible() {
+  ansible-playbook $@
+  ret=$?
+  [ $ret -ne 0 ] && exit $ret
+}
+
 # This DATE_TIME will be used as instance launch time tag
 TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
 
@@ -215,13 +221,13 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    ansible-playbook edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
+    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        ansible-playbook rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-        ansible-playbook restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
@@ -235,7 +241,7 @@ done
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    ansible-playbook edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
@@ -243,15 +249,15 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            ansible-playbook ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
         fi
     done
 fi
 
 # deploy the edx_ansible role
-ansible-playbook edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 # set the hostname
-ansible-playbook set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 rm -f "$extra_vars_file"
