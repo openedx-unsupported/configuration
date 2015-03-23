@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added newrelic monitoring capabilities to edxapp workers. Note that this is a BACKWARDS-INCOMPATABLE CHANGE, as it introduces a new key, `monitor`, to each item in `EDXAPP_CELERY_WORKERS` in `defaults/main.yml`, and plays including this role will fail if that key is not set.
+
+- Role: edxapp
   - Enabled combined login registration feature by default
 
 - Role: analytics_api, xqwatcher, insights, minos, edx_notes_api
