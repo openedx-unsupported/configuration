@@ -120,6 +120,12 @@ error_page {{ k }} {{ v }};
     try_files $uri @proxy_to_lms_app;
   }
 
+  # Need a separate location for the image uploads endpoint to limit upload sizes
+  location ~ ^/api/profile_images/[^/]*/[^/]*/upload$ {
+    try_files $uri @proxy_to_lms_app;
+    client_max_body_size {{ EDXAPP_PROFILE_IMAGE_MAX_BYTES }};
+  }
+
   location /notifier_api {
     try_files $uri @proxy_to_lms_app;
   }
@@ -149,6 +155,12 @@ error_page {{ k }} {{ v }};
     {%- include "basic-auth.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
+
+location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
+    root {{ edxapp_media_dir }};
+    try_files /$file =404;
+    expires {{ EDXAPP_PROFILE_IMAGE_MAX_AGE }}s;
+}
 
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
