@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+db_hosts={{ ",".join(item.db_hosts) }}
+from_port={{ item.db_port }}
+
+
+for host in ${db_hosts//,/ }; do
+    if [[ $(mongo ${host}:{{ item.db_port }}/{{ item.db_name }} -u {{ COMMON_MONGO_READ_ONLY_USER }} -p"{{ COMMON_MONGO_READ_ONLY_PASS }}"  --eval "printjson(db.isMaster())") =~ secondary\"\ \:\ true ]]; then
+        replica=$host
+    fi
+done
+
+if [[ -z $replica ]]; then
+    echo "No replica found for $from_db_hosts!"
+    exit 1
+fi
+
+mongo ${replica}:{{ item.db_port }}/{{ item.db_name }} -u {{ COMMON_MONGO_READ_ONLY_USER }} -p"{{ COMMON_MONGO_READ_ONLY_PASS }}"
