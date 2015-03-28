@@ -4,11 +4,20 @@
 #
 #  This script can be called from logrotate
 #  to sync logs to s3
-# 
+#
 
 if (( $EUID != 0 )); then
     echo "Please run as the root user"
     exit 1
+fi
+
+#
+# Ensure the log processors can read without
+# running as root
+if [ ! -f "{{ aws_s3_logfile }}" ]; then
+  sudo -u syslog touch "{{ aws_s3_logfile }}"
+else
+  chown syslog.syslog "{{ aws_s3_logfile }}"
 fi
 
 exec > >(tee -a "{{ aws_s3_logfile }}")
@@ -90,7 +99,7 @@ onerror() {
       {"Subject": { "Data": "$message_string" }, "Body": { "Text": { "Data": "!! ERROR !! no logfile" } } }
 EOF
     fi
-    echo "ERROR: syncing $s3_path on $instance_id"
+    echo "Error syncing $s3_path on $instance_id"
     {{ aws_cmd }} ses send-email --from {{ AWS_S3_LOGS_FROM_EMAIL }} --to {{ AWS_S3_LOGS_NOTIFY_EMAIL }} --message file://$message_file --region {{ aws_region }}
   else
     echo "Error syncing $s3_path on $instance_id"
@@ -105,7 +114,7 @@ instance_id=$(ec2metadata --instance-id)
 ip=$(ec2metadata --local-ipv4)
 availability_zone=$(ec2metadata --availability-zone)
 # region isn't available via the metadata service
-region=${availability_zone:0:${{lb}}#availability_zone{{rb}} - 1}
+region=${availability_zone:0:${{ lb }}#availability_zone{{ rb }} - 1}
 
 s3_path="${2}/$sec_grp/"
 $noop {{ aws_s3cmd }} --multipart-chunk-size-mb 5120 --disable-multipart sync $directory "s3://${bucket_path}/${sec_grp}/${instance_id}-${ip}/"

@@ -35,10 +35,10 @@ paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
 paver test_js_run -s xmodule
 
 # Run some of the bok-choy tests
-paver test_bokchoy -t test_lms.py:RegistrationTest
+paver test_bokchoy -t lms/test_lms.py:RegistrationTest
 paver test_bokchoy -t discussion/test_discussion.py:DiscussionTabSingleThreadTest --fasttest
 paver test_bokchoy -t studio/test_studio_with_ora_component.py:ORAComponentTest --fasttest
-paver test_bokchoy -t test_matlab_problem.py:MatlabProblemTest --fasttest
+paver test_bokchoy -t lms/test_lms_matlab_problem.py:MatlabProblemTest --fasttest
 
 # Run some of the lettuce acceptance tests
 paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature -s 1"

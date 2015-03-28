@@ -97,13 +97,13 @@
 
 - name: install supervisor in its venv
   pip: >
-    name=supervisor virtualenv="{{supervisor_venv_dir}}" state=present
+    name=supervisor virtualenv="{{ supervisor_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ supervisor_user }}"
 
 - name: install supervisor in its venv
   pip: >
-    name={{ item }} virtualenv="{{supervisor_venv_dir}}" state=present
+    name={{ item }} virtualenv="{{ supervisor_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ supervisor_user }}"
   with_items: supervisor_pip_pkgs
@@ -138,25 +138,35 @@
     mode=0644
 
 - name: create a symlink for supervisortctl
+  # these links are deprecated in favor of the shell wrapper
   file: >
     src={{ supervisor_ctl }}
     dest={{ COMMON_BIN_DIR }}/{{ supervisor_ctl|basename }}
-    state=link
+    state=absent
   when: supervisor_service == "supervisor"
 
 - name: create a symlink for supervisor cfg
+  # these links are deprecated in favor of the shell wrapper
   file: >
     src={{ item }}
     dest={{ COMMON_CFG_DIR }}/{{ item|basename }}
-    state=link
+    state=absent
   when: supervisor_service == "supervisor"
   with_items:
   - "{{ supervisor_cfg }}"
   - "{{ supervisor_cfg_dir }}"
 
+- name: create helper script for running supervisor
+  template: >
+    src=edx/bin/supervisorctl.j2
+    dest={{ COMMON_BIN_DIR }}/supervisorctl
+    owner={{ supervisor_service_user }}
+    mode=0755
+  when: supervisor_service == "supervisor"
+
 - name: start supervisor
   service: >
-    name={{supervisor_service}}
+    name={{ supervisor_service }}
     state=started
   register: start_supervisor
 

@@ -10,11 +10,14 @@
     "type": "amazon-ebs",
     "access_key": "{{user `aws_access_key`}}",
     "secret_key": "{{user `aws_secret_key`}}",
+    "ami_name": "jenkins_worker-{{isotime | clean_ami_name}}",
+    "instance_type": "m3.large",
     "region": "us-east-1",
     "source_ami": "{{user `ami`}}",
-    "instance_type": "m3.large",
     "ssh_username": "ubuntu",
-    "ami_name": "jenkins_worker-{{isotime | clean_ami_name}}"
+    "ami_description": "jenkins worker",
+    "iam_instance_profile": "jenkins-worker",
+    "security_group_id": "sg-75af5e18"
   }],
   "provisioners": [{
     "type": "shell",
@@ -35,7 +38,7 @@
       "pip install -q -r requirements.txt",
       "echo '[jenkins_worker]' > inventory.ini",
       "echo 'localhost' >> inventory.ini",
-      "ansible-playbook edx-east/jenkins_worker.yml -i inventory.ini -c local -e 'github_oauth_token={{user `github_oauth_token` }}' -vvvv"]
+      "ansible-playbook edx-east/jenkins_worker.yml -i inventory.ini -c local -e 'github_oauth_token={{ user `github_oauth_token` }}' -vvvv"]
   }, {
     "type": "shell",
     "inline": ["cd {{user `playbook_remote_dir`}}",

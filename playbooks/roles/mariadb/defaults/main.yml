@@ -1,0 +1,118 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role mariadb
+# 
+MARIADB_APT_KEY_ID: '0xcbcb082a1bb943db'
+# Note: version is determined by repo
+MARIADB_REPO: "deb http://mirrors.syringanetworks.net/mariadb/repo/10.0/ubuntu precise main"
+
+MARIADB_CREATE_DBS: yes
+MARIADB_CLUSTERED: no
+MARIADB_CLUSTER_USER_ADMIN: "mariadb_clu_root"
+MARIADB_CLUSTER_PASSWORD_ADMIN: "password"
+MARIADB_HOST_PRIV: '%'
+
+MARIADB_HAPROXY_USER: 'haproxy'
+MARIADB_HAPROXY_HOSTS: 
+  - '192.168.33.100'
+  - '192.168.33.110'
+  - '192.168.33.120'
+
+MARIADB_LISTEN_ALL: false
+
+MARIADB_DATABASES:
+  - "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}"
+  - "{{ XQUEUE_MYSQL_DB_NAME|default('xqueue') }}"
+  - "{{ ORA_MYSQL_DB_NAME|default('ora') }}"
+
+MARIADB_ANALYTICS_DATABASES:
+  - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME']|default('analytics-api') }}"
+  - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME']|default('reports') }}"
+
+MARIADB_USERS:
+  - name: "{{ EDXAPP_MYSQL_USER|default('edxapp001') }}"
+    pass: "{{ EDXAPP_MYSQL_PASSWORD|default('password') }}"
+    priv: "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ XQUEUE_MYSQL_USER|default('xqueue001') }}"
+    pass: "{{ XQUEUE_MYSQL_PASSWORD|default('password') }}"
+    priv: "{{ XQUEUE_MYSQL_DB_NAME|default('xqueue') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ ORA_MYSQL_USER|default('ora001') }}"
+    pass: "{{ ORA_MYSQL_PASSWORD|default('password') }}"
+    priv: "{{ ORA_MYSQL_DB_NAME|default('ora') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
+    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
+    priv: "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
+    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
+    priv: "{{ XQUEUE_MYSQL_DB_NAME|default('xqueue') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
+    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
+    priv: "{{ ORA_MYSQL_DB_NAME|default('ora') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_READ_ONLY_USER|default('read_only') }}"
+    pass: "{{ COMMON_MYSQL_READ_ONLY_PASS|default('password') }}"
+    priv: "*.*:SELECT"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_ADMIN_USER|default('admin') }}"
+    pass: "{{ COMMON_MYSQL_ADMIN_PASS|default('password') }}"
+    priv: "*.*:CREATE USER"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+MARIADB_ANALYTICS_USERS:
+  - name: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['USER']|default('api001') }}"
+    pass: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['PASSWORD']|default('password') }}"
+    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}.*:ALL/reports.*:SELECT"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['USER']|default('reports001') }}"
+    pass: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['PASSWORD']|default('password') }}"
+    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
+    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
+    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME']|default('analytics-api') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
+    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
+    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME']|default('reports') }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+
+#
+# OS packages
+#
+mariadb_debian_pkgs:
+  - python-software-properties
+  - python-mysqldb
+
+mariadb_redhat_pkgs: []
+
+mariadb_apt_repository:
+
+mariadb_solo_packages:
+  - mariadb-server
+
+mariadb_cluster_packages:
+  - mariadb-galera-server
+  - galera

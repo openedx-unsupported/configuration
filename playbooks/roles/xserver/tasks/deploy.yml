@@ -11,9 +11,16 @@
     state=link force=yes
   when: not disable_edx_services
 
+- name: "add gunicorn configuration file"
+  template: >
+    src=xserver_gunicorn.py.j2 dest={{ xserver_app_dir }}/xserver_gunicorn.py
+  sudo_user: "{{ xserver_user }}"
+  notify:
+    - restart xserver
+
 - name: checkout code
   git: >
-    dest={{xserver_code_dir}} repo={{xserver_source_repo}} version={{xserver_version}}
+    dest={{ xserver_code_dir }} repo={{ xserver_source_repo }} version={{xserver_version}}
     accept_hostkey=yes
   sudo_user: "{{ xserver_user }}"
   register: xserver_checkout
@@ -21,14 +28,14 @@
 
 - name: install requirements
   pip: >
-    requirements="{{xserver_requirements_file}}" virtualenv="{{ xserver_venv_dir }}" state=present
+    requirements="{{ xserver_requirements_file }}" virtualenv="{{ xserver_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ xserver_user }}"
   notify: restart xserver
 
 - name: install sandbox requirements
   pip: >
-    requirements="{{xserver_requirements_file}}" virtualenv="{{xserver_venv_sandbox_dir}}" state=present
+    requirements="{{ xserver_requirements_file }}" virtualenv="{{ xserver_venv_sandbox_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ xserver_user }}"
   notify: restart xserver

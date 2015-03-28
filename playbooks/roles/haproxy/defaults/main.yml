@@ -49,11 +49,30 @@ haproxy_default_config: |
 # desired applications
 haproxy_applications:
   - |
-    listen rabbitmq 127.0.0.1:5672
+    listen rabbitmq 127.0.0.1:35672
     mode    tcp
     balance roundrobin
     option  tcplog
     option  tcpka
-    server  rabbit01 172.23.128.10:5672 check inter 5000 rise 2 fall 3
-    server  rabbit02 172.23.129.10:5672 backup check inter 5000 rise 2 fall 3
-    server  rabbit03 172.23.130.10:5672 backup check inter 5000 rise 2 fall 3
+    server  rabbit01 192.168.33.100:5672 check inter 5000 rise 2 fall 3
+    server  rabbit02 192.168.33.110:5672 check inter 5000 rise 2 fall 3
+    server  rabbit03 192.168.33.120:5672 check inter 5000 rise 2 fall 3
+
+    listen mariadb 127.0.0.1:13306
+    mode    tcp
+    balance roundrobin
+    option  tcplog
+    option  tcpka
+    option mysql-check user haproxy
+    server  galera1 192.168.33.100:3306 check weight 1
+    server  galera2 192.168.33.110:3306 check weight 1
+    server  galera3 192.168.33.120:3306 check weight 1
+
+    listen elasticsearch 127.0.0.1:19200
+    mode    tcp
+    balance roundrobin
+    option  tcplog
+    option  tcpka
+    server  galera1 192.168.33.100:9200 check weight 1
+    server  galera2 192.168.33.110:9200 check weight 1
+    server  galera3 192.168.33.120:9200 check weight 1

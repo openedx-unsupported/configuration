@@ -6,26 +6,11 @@
 {% set executable = edxapp_venv_dir + '/bin/gunicorn' -%}
 {% endif -%}
 
-{% if EDXAPP_LMS_MAX_REQ -%}
-{% set max_req = '--max-requests ' + EDXAPP_LMS_MAX_REQ|string -%}
-{% else -%}
-{% set max_req = '' -%}
-{% endif -%}
-
-{% if EDXAPP_WORKERS -%}
-command={{ executable }} {{ max_req }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ EDXAPP_WORKERS.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} lms.wsgi
-{% else -%}
-{# This is for backwards compatibility, set workers explicitely using EDXAPP_WORKERS #}
-{% if ansible_processor|length > 0 -%}
-command={{ executable }} {{ max_req }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ ansible_processor|length * worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} {{ EDXAPP_LMS_GUNICORN_EXTRA }} lms.wsgi
-{% else -%}
-command={{ executable }} {{ max_req }} --preload -b {{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }} -w {{ worker_core_mult.lms }} --timeout=300 --pythonpath={{ edxapp_code_dir }} {{ EDXAPP_LMS_GUNICORN_EXTRA }} lms.wsgi
-{% endif %}
-{% endif %}
+command={{ executable }} -c {{ edxapp_app_dir }}/lms_gunicorn.py lms.wsgi
 
 user={{ common_web_user }}
 directory={{ edxapp_code_dir }}
-environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_LMS_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}  PORT={{edxapp_lms_gunicorn_port}},ADDRESS={{edxapp_lms_gunicorn_host}},LANG={{ EDXAPP_LANG }},DJANGO_SETTINGS_MODULE={{ EDXAPP_LMS_ENV }},SERVICE_VARIANT="lms",PATH="{{ edxapp_deploy_path }}"
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_LMS_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}  PORT={{ edxapp_lms_gunicorn_port }},ADDRESS={{ edxapp_lms_gunicorn_host }},LANG={{ EDXAPP_LANG }},DJANGO_SETTINGS_MODULE={{ EDXAPP_LMS_ENV }},SERVICE_VARIANT="lms",PATH="{{ edxapp_deploy_path }}"
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
 killasgroup=true

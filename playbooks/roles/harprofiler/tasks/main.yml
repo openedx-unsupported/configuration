@@ -1,0 +1,54 @@
+---
+# Installs the harprofiler
+- name: create harprofiler user
+  user: >
+    name="{{ harprofiler_user }}"
+    createhome=no
+    home={{ harprofiler_dir }}
+    shell=/bin/bash
+
+- name: create harprofiler repo
+  file: >
+    path={{ harprofiler_dir }} state=directory
+    owner="{{ harprofiler_user }}" group="{{ common_web_group }}"
+    mode=0755
+
+- name: check out the harprofiler
+  git: >
+    dest={{ harprofiler_dir }}
+    repo={{ harprofiler_github_url }} version={{ harprofiler_version }}
+    accept_hostkey=yes
+  sudo_user: "{{ harprofiler_user }}"
+
+- name: set bashrc for harprofiler user
+  template: >
+    src=bashrc.j2 dest="{{ harprofiler_dir }}/.bashrc" owner="{{ harprofiler_user }}"
+    mode=0755
+
+- name: install requirements
+  pip: >
+    requirements="{{ harprofiler_dir }}/requirements.txt" virtualenv="{{ harprofiler_venv_dir }}"
+  sudo_user: "{{ harprofiler_user }}"
+
+- name: update config file
+# harprofiler ships with a default config file. Doing a line-replace for the default
+# configuration that does not match what this machine will have
+  lineinfile: >
+    dest={{ harprofiler_dir }}/config.yaml
+    regexp="browsermob_dir"
+    line="browsermob_dir: /usr/local"
+    state=present
+
+- name: create validation shell script
+  template:
+    owner: "{{ harprofiler_user }}"
+    src: validate_harprofiler_install.sh.j2
+    dest: "{{ harprofiler_dir }}/{{ harprofiler_validation_script }}"
+    mode: 0755
+  sudo_user: "{{ harprofiler_user }}"
+
+
+- name: test install
+  shell: >
+    ./{{ harprofiler_validation_script }} chdir={{ harprofiler_dir }}
+  sudo_user: "{{ harprofiler_user }}"

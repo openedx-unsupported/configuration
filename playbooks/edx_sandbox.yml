@@ -18,6 +18,7 @@
     # These should stay false for the public AMI
     COMMON_ENABLE_DATADOG: False
     COMMON_ENABLE_SPLUNKFORWARDER: False
+    ENABLE_LEGACY_ORA: !!null
   roles:
     - role: nginx
       nginx_sites:
@@ -37,8 +38,10 @@
     - oraclejdk
     - elasticsearch
     - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
-    - ora
+    - role: ora
+      when: ENABLE_LEGACY_ORA
     - certs
     - edx_ansible
     - role: datadog

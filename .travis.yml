@@ -24,6 +24,16 @@ script:
       fi
     done
   - |
+    pushd playbooks
+    for j2 in $(git diff --name-only refs/heads/master..$(git rev-parse --abbrev-ref HEAD) |grep -E '.+\.j2$|.+\.yml'); do
+      python ../util/jinja_check.py ../$j2
+      if [[ $? -ne 0 ]]; then
+          echo "Jinja parsing error on $j2"
+          exit 1
+      fi
+    done
+    popd
+  - |
     set -e
     cd playbooks/edx-east
     ROLE_DIRS=$(/bin/ls -d roles/*)

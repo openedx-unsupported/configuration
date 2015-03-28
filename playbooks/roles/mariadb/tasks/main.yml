@@ -1,0 +1,93 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role mariadb
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: Install pre-req debian packages
+  apt: name={{ item }} state=present
+  with_items: mariadb_debian_pkgs
+
+- name: Add mongo key
+  apt_key: url="{{ COMMON_UBUNTU_APT_KEYSERVER }}{{ MARIADB_APT_KEY_ID }}"
+
+- name: add the mariadb repo to the sources list
+  apt_repository: >
+    repo='{{ MARIADB_REPO }}'
+    state=present
+
+- name: install mariadb solo packages
+  apt: name={{ item }} update_cache=yes
+  with_items: mariadb_solo_packages
+  when: not MARIADB_CLUSTERED|bool
+
+- name: install mariadb cluster packages
+  apt: name={{ item }} update_cache=yes
+  with_items: mariadb_cluster_packages
+  when: MARIADB_CLUSTERED|bool
+
+- name: remove bind-address
+  lineinfile: >
+    dest=/etc/mysql/my.cnf
+    regexp="^bind-address\s+=\s+127\.0\.0\.1$"
+    state=absent
+  when: MARIADB_LISTEN_ALL|bool or MARIADB_CLUSTERED|bool
+
+- include: cluster.yml
+  when: MARIADB_CLUSTERED|bool
+
+- name: start everything
+  service: name=mysql state=started
+
+- name: create all databases
+  mysql_db: >
+    db={{ item }}
+    state=present
+    encoding=utf8
+  with_items: MARIADB_DATABASES
+  when: MARIADB_CREATE_DBS|bool
+
+- name: create all analytics dbs
+  mysql_db: >
+    db={{ item }}
+    state=present
+    encoding=utf8
+  with_items: MARIADB_ANALYTICS_DATABASES
+  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined
+
+- name: create all users/privs
+  mysql_user: >
+    name="{{ item.name }}"
+    password="{{ item.pass }}"
+    priv="{{ item.priv }}"
+    host="{{ item.host }}"
+    append_privs=yes
+  with_items: MARIADB_USERS
+  when: MARIADB_CREATE_DBS|bool
+
+- name: create all analytics users/privs
+  mysql_user: >
+    name="{{ item.name }}"
+    password="{{ item.pass }}"
+    priv="{{ item.priv }}"
+    host="{{ item.host }}"
+    append_privs=yes
+  with_items: MARIADB_ANALYTICS_USERS
+  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined

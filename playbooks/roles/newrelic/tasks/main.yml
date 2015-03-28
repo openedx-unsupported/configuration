@@ -27,7 +27,7 @@
 
 - name: add apt key
   apt_key: >
-    id="{{ NEWRELIC_DEBIAN_KEY_ID }}" url="{{ NEWRELIC_DEBIAN_KEY_URL }}"
+    id="{{ NEWRELIC_DEBIAN_KEY_ID }}" url="{{ NEWRELIC_DEBIAN_KEY_URL }}" validate_certs=no
     state=present
   when: ansible_distribution == 'Ubuntu'
 
@@ -70,4 +70,9 @@
 - include: newrelic-logwatcher.yml tags=deploy
   when:
   - NEWRELIC_LOGWATCH
+  - ansible_distribution == 'Ubuntu'
+
+- include: s3-watcher.yml tags=deploy
+  when:
+  - NEWRELIC_S3_WATCHER
   - ansible_distribution == 'Ubuntu'

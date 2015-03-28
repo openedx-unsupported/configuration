@@ -1,17 +1,8 @@
 ---
 
-- name: create .ssh directory
-  file:
-    path="{{ insights_home }}/.ssh" mode=2700 state=directory owner={{ insights_user }} group={{ insights_user }}
-
-- name: create ssh script for git (not authenticated)
-  template: >
-    src=tmp/git_ssh_noauth.sh.j2 dest={{ insights_git_ssh }}
-    owner={{ insights_user }} mode=750
-    
 - name: install read-only ssh key
   copy: >
-    content="{{ COMMON_GIT_IDENTITY }}" dest={{ insights_git_identity_file }}
+    content="{{ INSIGHTS_GIT_IDENTITY }}" dest={{ insights_git_identity_file }}
     owner={{ insights_user }} group={{ insights_user }} mode=0600
 
 - name: setup the insights env file
@@ -26,11 +17,10 @@
   git: >
     dest={{ insights_code_dir }} repo={{ insights_source_repo }} version={{ INSIGHTS_VERSION }}
     accept_hostkey=yes
+    ssh_opts="{{ insights_git_ssh_opts }}"
   register: insights_code_checkout
   notify: restart insights
   sudo_user: "{{ insights_user }}"
-  environment:
-    GIT_SSH: "{{ insights_git_ssh }}"
 
 - name: write out app config file
   template: >
@@ -47,18 +37,38 @@
   sudo_user: "{{ insights_user }}"
   notify: restart insights
   with_items: insights_requirements
-  environment:
-    GIT_SSH: "{{ insights_git_ssh }}"
 
-- name: syncdb and migrate
+- name: create nodeenv
+  shell: >
+    creates={{ insights_nodeenv_dir }}
+    {{ insights_venv_bin }}/nodeenv {{ insights_nodeenv_dir }}
+  sudo_user: "{{ insights_user }}"
+
+- name: install node dependencies
+  npm: executable={{ insights_nodeenv_bin }}/npm path={{ insights_code_dir }} production=yes
+  sudo_user: "{{ insights_user }}"
+
+- name: install bower dependencies
+  shell: >
+    chdir={{ insights_code_dir }}
+    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false
+  sudo_user: "{{ insights_user }}"
+
+- name: migrate
   shell: >
     chdir={{ insights_code_dir }}
     DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
     DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ insights_venv_bin }}/python {{ insights_manage }} syncdb --migrate --noinput
+    {{ insights_venv_bin }}/python {{ insights_manage }} migrate --noinput
   sudo_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run r.js optimizer
+  shell: >
+    chdir={{ insights_code_dir }}
+    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js
+  sudo_user: "{{ insights_user }}"
 
 - name: run collectstatic
   shell: >
@@ -69,6 +79,13 @@
   with_items:
     - "collectstatic --noinput"
     - "compress"
+
+- name: compile translations
+  shell: >
+    chdir={{ insights_code_dir }}/analytics_dashboard
+    . {{ insights_venv_bin }}/activate && i18n_tool generate -v
+  sudo_user: "{{ insights_user }}"
+
 - name: write out the supervisior wrapper
   template: >
     src=edx/app/insights/insights.sh.j2

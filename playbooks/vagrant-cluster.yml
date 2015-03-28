@@ -1,0 +1,57 @@
+- name: Configure group cluster 
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    vagrant_cluster: yes
+    mongo_cluster_members:
+      - "cluster1"
+      - "cluster2"
+      - "cluster3"
+    MONGO_CLUSTERED: yes
+    MONGO_CLUSTER_KEY: 'password'
+    ELASTICSEARCH_CLUSTERED: yes
+    MARIADB_CLUSTERED: yes
+    MARIADB_CREATE_DBS: no
+  vars_files:
+    - "group_vars/all"
+  roles:
+    - user
+    - mongo
+    - oraclejdk
+    - elasticsearch
+    - mariadb
+    - edx_ansible
+
+# Rabbit needs to be built serially
+- name: Configure group cluster serial roles 
+  hosts: all
+  sudo: True
+  serial: 1
+  gather_facts: True
+  vars:
+    rabbitmq_clustered_hosts: 
+      - "rabbit@cluster1"
+      - "rabbit@cluster2"
+      - "rabbit@cluster3"
+    rabbitmq_ip: ""
+  vars_files:
+    - "group_vars/all"
+  roles:
+    - rabbitmq
+
+# There are race conditions creating DBs
+# in MariaDB occasionally so this play will work
+# but will also show as failed
+- name: Configure group with tasks that will always fail
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    MARIADB_CLUSTERED: yes
+    MARIADB_CREATE_DBS: yes
+  vars_files:
+    - "group_vars/all"
+    - "roles/analytics-api/defaults/main.yml"
+  roles:
+    - mariadb

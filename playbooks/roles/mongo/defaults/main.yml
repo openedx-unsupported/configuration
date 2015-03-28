@@ -1,10 +1,11 @@
 mongo_logappend: true
-mongo_version: 2.4.7
+mongo_version: 2.6.5
 mongo_port: "27017"
 mongo_extra_conf: ''
 mongo_key_file: '/etc/mongodb_key'
 mongo_repl_set: rs0
 mongo_cluster_members: []
+pymongo_version: 2.7.2
 
 mongo_data_dir: "{{ COMMON_DATA_DIR }}/mongo"
 mongo_log_dir: "{{ COMMON_LOG_DIR }}/mongo"
@@ -14,13 +15,17 @@ MONGODB_APT_KEY: "http://docs.mongodb.org/10gen-gpg-key.asc"
 MONGODB_REPO: "deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen"
 
 # Vars Meant to be overridden
+MONGO_ADMIN_USER: 'admin'
+MONGO_ADMIN_PASSWORD: 'password'
 MONGO_USERS:
   - user: cs_comments_service
     password: password
     database: cs_comments_service
+    roles: readWrite
   - user: edxapp
     password: password
     database: edxapp
+    roles: readWrite
 
 MONGO_CLUSTERED: !!null
 MONGO_BIND_IP: 127.0.0.1
@@ -29,10 +34,6 @@ MONGO_BIND_IP: 127.0.0.1
 
 mongo_logpath: "{{ mongo_log_dir }}/mongodb.log"
 mongo_dbpath: "{{ mongo_data_dir }}/mongodb"
-
-# Have to use this conditional instead of ignore errors
-# because the mongo_user module fails and doesn't ignore errors.
-mongo_create_users: !!null
 
 # If the system is running out of an Amazon Web Services
 # cloudformation stack, this group name can used to pull out

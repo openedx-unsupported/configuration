@@ -31,11 +31,17 @@
   apt: pkg={{','.join(nginx_debian_pkgs)}} state=present
   notify: restart nginx
 
+- name: Remove the default site
+  file: >
+    path=/etc/nginx/sites-enabled/default
+    state=absent
+  notify: reload nginx
+
 - name: Server configuration file
   template: >
     src=etc/nginx/nginx.conf.j2 dest=/etc/nginx/nginx.conf
     owner=root group={{ common_web_user }} mode=0644
-  notify: reload nginx
+  notify: restart nginx
 
 - name: Creating common nginx configuration
   template: >

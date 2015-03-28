@@ -19,14 +19,21 @@
   with_items: ['ora', 'ora_celery']
   when: not disable_edx_services
 
+- name: "add gunicorn configuration file"
+  template: >
+    src=ora_gunicorn.py.j2 dest={{ ora_app_dir }}/ora_gunicorn.py
+  sudo_user: "{{ ora_user }}"
+  notify:
+    - restart ora
+
 - include: ease.yml
 
 - name: create ora application config
-  template: src=ora.env.json.j2 dest={{ora_app_dir}}/ora.env.json
+  template: src=ora.env.json.j2 dest={{ ora_app_dir }}/ora.env.json
   sudo_user: "{{ ora_user }}"
 
 - name: create ora auth file
-  template: src=ora.auth.json.j2 dest={{ora_app_dir}}/ora.auth.json
+  template: src=ora.auth.json.j2 dest={{ ora_app_dir }}/ora.auth.json
   sudo_user: "{{ ora_user }}"
 
 - name: setup the ora env
@@ -80,7 +87,7 @@
     - restart ora_celery
 
 - name: syncdb and migrate
-  shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  shell: SERVICE_VARIANT=ora {{ ora_venv_dir }}/bin/django-admin.py syncdb --migrate --noinput --settings=edx_ora.aws --pythonpath={{ ora_code_dir }}
   when: migrate_db is defined and migrate_db|lower == "yes"
   sudo_user: "{{ ora_user }}"
   notify:
@@ -88,7 +95,7 @@
     - restart ora_celery
 
 - name: create users
-  shell: SERVICE_VARIANT=ora {{ora_venv_dir}}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ora_code_dir}}
+  shell: SERVICE_VARIANT=ora {{ ora_venv_dir }}/bin/django-admin.py update_users --settings=edx_ora.aws --pythonpath={{ ora_code_dir }}
   sudo_user: "{{ ora_user }}"
   notify:
     - restart ora

@@ -1,0 +1,24 @@
+"""
+gunicorn configuration file: http://docs.gunicorn.org/en/develop/configure.html
+
+{{ ansible_managed }}
+"""
+import multiprocessing
+
+preload_app = True
+timeout = 300
+bind = "{{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }}"
+pythonpath = "{{ edxapp_code_dir }}"
+
+{% if EDXAPP_LMS_MAX_REQ -%}
+max_requests = {{ EDXAPP_LMS_MAX_REQ }}
+{% endif -%}
+
+{% if EDXAPP_WORKERS %}
+workers = {{ EDXAPP_WORKERS.lms }}
+{% else %}
+workers = (multiprocessing.cpu_count()-1) * {{ worker_core_mult.lms }} + {{ worker_core_mult.lms }}
+{% endif %}
+
+
+{{ EDXAPP_LMS_GUNICORN_EXTRA_CONF }}

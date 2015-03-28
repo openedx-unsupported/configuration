@@ -22,6 +22,13 @@
   notify: "restart the analytics service"
   sudo_user: "{{ analytics_api_user }}"
 
+- name: "add gunicorn configuration file"
+  template: >
+    src=edx/app/analytics-api/analytics_api_gunicorn.py.j2
+    dest={{ analytics_api_app_dir }}/analytics_api_gunicorn.py
+  sudo_user: "{{ analytics_api_user }}"
+  notify: "restart the analytics service"
+
 - name: write out app config file
   template: >
     src=edx/app/analytics-api/analytics-api.yaml.j2
@@ -37,12 +44,12 @@
   notify: restart the analytics service
   with_items: analytics_api_requirements
 
-- name: syncdb and migrate
+- name: migrate
   shell: >
     chdir={{ analytics_api_code_dir }}
     DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
     DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ analytics_api_venv_bin }}/python ./manage.py syncdb --migrate --noinput
+    {{ analytics_api_venv_bin }}/python ./manage.py migrate --noinput
   sudo_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"

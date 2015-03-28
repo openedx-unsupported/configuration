@@ -6,15 +6,7 @@
 {% set executable = xqueue_venv_bin + '/gunicorn' %}
 {% endif %}
 
-{% if XQUEUE_WORKERS -%}
-command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ XQUEUE_WORKERS }} --timeout=300 --pythonpath={{ xqueue_code_dir }} {{ XQUEUE_GUNICORN_WORKERS_EXTRA }} xqueue.wsgi
-{% else -%}
-{% if ansible_processor|length > 0 %}
-command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w {{ ansible_processor|length * 2 }} --timeout=300 --pythonpath={{ xqueue_code_dir }} {{ XQUEUE_GUNICORN_EXTRA }} xqueue.wsgi
-{% else -%}
-command={{ executable }} --preload -b {{ xqueue_gunicorn_host }}:{{ xqueue_gunicorn_port }} -w 2 --timeout=300 --pythonpath={{ xqueue_code_dir }} {{ XQUEUE_GUNICORN_EXTRA }} xqueue.wsgi
-{% endif -%}
-{% endif -%}
+command={{ executable }} -c {{ xqueue_app_dir }}/xqueue_gunicorn.py {{ XQUEUE_GUNICORN_WORKERS_EXTRA }} xqueue.wsgi
 
 user={{ common_web_user }}
 directory={{ xqueue_code_dir }}
