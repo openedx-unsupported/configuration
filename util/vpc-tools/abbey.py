@@ -382,7 +382,6 @@ rm -rf $base_dir
 
     mapping = BlockDeviceMapping()
     root_vol = BlockDeviceType(size=args.root_vol_size,
-                               delete_on_termination=True,
                                volume_type='gp2')
     mapping['/dev/sda1'] = root_vol
 
