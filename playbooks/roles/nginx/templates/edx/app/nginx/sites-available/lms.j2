@@ -157,6 +157,37 @@ error_page {{ k }} {{ v }};
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
 
+{%- if NGINX_MOD_PAGESPEED -%}
+
+location /ngx_pagespeed_statistics { allow all; }
+location /ngx_pagespeed_global_statistics { allow all; }
+location /ngx_pagespeed_message { allow all; }
+location /pagespeed_console { allow all; }
+location ~ ^/pagespeed_admin { allow all; }
+location ~ ^/pagespeed_global_admin { allow all; }
+
+pagespeed Statistics on;
+pagespeed StatisticsLogging on;
+pagespeed LogDir /var/log/pagespeed;
+pagespeed AdminPath /pagespeed_admin;
+
+pagespeed StatisticsPath /ngx_pagespeed_statistics;
+pagespeed MessagesPath /ngx_pagespeed_message;
+pagespeed ConsolePath /pagespeed_console;
+pagespeed AdminPath /pagespeed_admin;
+
+pagespeed RewriteLevel CoreFilters;
+
+# Ensure requests for pagespeed optimized resources go to the pagespeed handler
+# and no extraneous headers get set.
+location ~ "\.pagespeed\.([a-z]\.)?[a-z]{2}\.[^.]{10}\.[^.]+" {
+  add_header "" "";
+}
+location ~ "^/pagespeed_static/" { }
+location ~ "^/ngx_pagespeed_beacon$" { }
+
+{%- endif -%}
+
   # Forward to HTTPS if we're an HTTP request...
   if ($http_x_forwarded_proto = "http") {
     set $do_redirect "true";
