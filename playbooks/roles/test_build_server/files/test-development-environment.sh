@@ -18,11 +18,12 @@ cd edx-platform-clone
 
 # This will run all of the setup it usually runs, but none of the
 # tests because TEST_SUITE isn't defined.
-source scripts/all-tests.sh
+source scripts/jenkins-common.sh
 
 # Now we can run a subset of the tests via paver.
 # Run some of the common/lib unit tests
-paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
+# TODO: The following verification is waiting on a fix for SOL-570.
+# paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
 
 # Generate some coverage reports
 paver coverage
