@@ -21,9 +21,19 @@
 
 - name: create flower environment script
   template: >
-    src=flower_env.j2 dest={{ flower_app_dir }}/flower_env
+    src=edx/app/flower/flower_env.j2
+    dest={{ flower_app_dir }}/flower_env
     owner={{ FLOWER_USER }} group={{ common_web_group }}
-    mode=0644
+    mode=0640
+  notify:
+    - "restart flower"
+
+- name: create flower configuration file
+  template: >
+    src=edx/app/flower/flowerconfig.py.j2
+    dest={{ flower_conf_dir }}/flowerconfig.py
+    owner={{ FLOWER_USER }} group={{ common_web_group }}
+    mode=0640
   notify:
     - "restart flower"
 
@@ -41,7 +51,8 @@
 
 - name: create supervisor configuration
   template: >
-    src=flower.conf.j2 dest={{ supervisor_available_dir }}/{{ FLOWER_USER }}.conf
+    src=edx/app/supervisor/conf.d.available/flower.conf.j2
+    dest={{ supervisor_available_dir }}/{{ FLOWER_USER }}.conf
     owner={{ supervisor_user }}
     group={{ supervisor_user }}
   sudo_user: "{{ supervisor_user }}"
