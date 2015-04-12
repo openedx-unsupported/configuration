@@ -1,3 +1,6 @@
+-Role: edx-ansible
+  - `/edx/bin/update` no longer runs the ansible command with `--tags deploy`
+
 - Role: edxapp
   - Added newrelic monitoring capabilities to edxapp workers. Note that this is a BACKWARDS-INCOMPATABLE CHANGE, as it introduces a new key, `monitor`, to each item in `EDXAPP_CELERY_WORKERS` in `defaults/main.yml`, and plays including this role will fail if that key is not set.
 
