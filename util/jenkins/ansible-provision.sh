@@ -25,7 +25,9 @@ export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 run_ansible() {
   ansible-playbook $@
   ret=$?
-  [ $ret -ne 0 ] && exit $ret
+  if [[ $ret -ne 0 ]]; then
+    exit $ret
+  fi
 }
 
 # This DATE_TIME will be used as instance launch time tag
