@@ -76,7 +76,7 @@ if __name__ == '__main__':
     xq_migration_args = parser.add_argument_group("xqueue_migrations",
             "Args for running xqueue migration checks.")
     xq_migration_args.add_argument("--xqueue-code-dir",
-            help="Location of the edx-platform code.")
+            help="Location of the xqueue code.")
     xq_migration_args.add_argument("--xqueue-python",
             help="Path to python to use for executing migration check.")
 
