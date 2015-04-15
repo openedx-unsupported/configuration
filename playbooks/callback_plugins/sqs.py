@@ -133,7 +133,10 @@ class CallbackModule(object):
                     if output in payload[msg_type]:
                         # only keep the last 1000 characters
                         # of stderr and stdout
-                        if len(payload[msg_type][output]) > 1000:
+                        # Some modules set the value of stdout or stderr to booleans in
+                        # which case the len will fail. Check to see if there is content
+                        # before trying to clip it.
+                        if payload[msg_type][output] and len(payload[msg_type][output]) > 1000:
                             payload[msg_type][output] = "(clipping) ... " \
                                     + payload[msg_type][output][-1000:]
                 if 'stdout_lines' in payload[msg_type]:
