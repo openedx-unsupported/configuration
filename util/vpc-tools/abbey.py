@@ -338,6 +338,7 @@ fi
 
 
 cd $base_dir/$git_repo_name
+sudo pip install -r pre-requirements.txt
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
