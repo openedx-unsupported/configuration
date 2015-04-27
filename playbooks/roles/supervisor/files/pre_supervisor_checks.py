@@ -14,9 +14,9 @@ MIGRATION_COMMANDS = {
         'lms':    "{python} {code_dir}/manage.py lms migrate --noinput --settings=aws --db-dry-run --merge",
         'cms':    "{python} {code_dir}/manage.py cms migrate --noinput --settings=aws --db-dry-run --merge",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
-        'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list"
+#        'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+#        'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+#        'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list"
     }
 HIPCHAT_USER = "PreSupervisor"
 
@@ -220,7 +220,7 @@ if __name__ == '__main__':
                         "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir}
                     }
 
-                    if service in new_services and all(arg!=None for arg in new_services[service].values()):
+                    if service in new_services and all(arg!=None for arg in new_services[service].values()) and service in MIGRATION_COMMANDS:
                         serv_vars = new_services[service]
 
                         cmd = MIGRATION_COMMANDS[service].format(**serv_vars)
