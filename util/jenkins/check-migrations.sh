@@ -22,6 +22,7 @@ pip install --exists-action w -r requirements/edx/post.txt
 pip install --exists-action w -r requirements/edx/repo.txt
 pip install --exists-action w -r requirements/edx/github.txt
 pip install --exists-action w -r requirements/edx/local.txt
+pip install --exists-action w -r requirements/edx/edx-private.txt
 
 if [[ $openid_workaround == "true" ]]; then
     sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/'  "$VIRTUAL_ENV/lib/python2.7/site-packages/django_openid_auth/models.py"
