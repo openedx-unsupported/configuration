@@ -66,6 +66,29 @@
       db_name: "{{ XQUEUE_MYSQL_DB_NAME }}"
       script_name: xqueue-mysql.sh
   when: COMMON_MYSQL_READ_ONLY_PASS is defined and XQUEUE_MYSQL_DB_HOST is defined
+
+- name: install analytics api mysql replica scripts
+  template: >
+    src=edx/bin/mysql.sh.j2
+    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode=0755 owner=root group=root
+  with_items:
+    - db_host: "{{ ANALYTICS_API_REPORTS_REPLICA_HOST }}"
+      db_name: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
+      script_name: analytics-mysql.sh
+  when: COMMON_MYSQL_READ_ONLY_PASS is defined and XQUEUE_MYSQL_DB_HOST is defined
+
+- name: install ecommerce mysql replica scripts
+  template: >
+    src=edx/bin/mysql.sh.j2
+    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode=0755 owner=root group=root
+  with_items:
+    - db_host: "{{ ECOMMERCE_REPLICA_DB_HOST }}"
+      db_name: "{{ ECOMMERCE_DEFAULT_DB_NAME }}"
+      script_name: ecommerce-mysql.sh
+  when: COMMON_MYSQL_READ_ONLY_PASS is defined and XQUEUE_MYSQL_DB_HOST is defined
+
   
 # These templates rely on there being a global
 # read_only mongo user, you must override the default
