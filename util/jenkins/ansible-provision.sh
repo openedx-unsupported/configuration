@@ -133,6 +133,7 @@ ora_version: $ora_version
 ease_version: $ease_version
 certs_version: $certs_version
 discern_version: $discern_version
+configuration_version: $configuration_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
@@ -259,8 +260,12 @@ fi
 
 # deploy the edx_ansible role
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+cat $extra_vars_file | grep -v "_version" > ${extra_vars_file}_clean
+cat ${extra_vars_file}_clean
+scp ${extra_vars_file}_clean ubuntu@${deploy_host}:/edx/app/edx_ansible/server-vars.yml
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 rm -f "$extra_vars_file"
+rm -f ${extra_vars_file}_clean
