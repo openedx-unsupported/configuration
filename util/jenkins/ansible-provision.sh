@@ -262,7 +262,11 @@ fi
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $extra_vars_file | grep -v "_version" > ${extra_vars_file}_clean
 cat ${extra_vars_file}_clean
-scp ${extra_vars_file}_clean ubuntu@${deploy_host}:/edx/app/edx_ansible/server-vars.yml
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
+ret=$?
+if [[ $ret -ne 0 ]]; then
+  exit $ret
+fi
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
