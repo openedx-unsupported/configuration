@@ -1,0 +1,57 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role locust
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: install application requirements
+  pip: >
+    requirements="{{ locust_requirements_base }}/{{ item }}"
+    virtualenv="{{ locust_home }}/venvs/{{ locust_service_name }}"
+    state=present
+  sudo_user: "{{ locust_user }}"
+  with_items: locust_requirements
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/locust.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ locust_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ locust_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ locust_service_name }}.conf
+    state=link
+    force=yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: restart the applicaton
+  supervisorctl_local: >
+    state=restarted
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name={{ locust_service_name }}
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"
