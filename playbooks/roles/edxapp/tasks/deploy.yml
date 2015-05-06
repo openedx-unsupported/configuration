@@ -127,6 +127,10 @@
   environment: "{{ edxapp_environment }}"
   sudo_user: "{{ edxapp_user }}"
 
+- stat: path="{{ post_requirements_file }}"
+  register: post_requirements
+  sudo_user: "{{ edxapp_user }}"
+
 # Install the python post requirements into {{ edxapp_venv_dir }}
 - name : install python post-requirements
   pip: >
@@ -136,6 +140,7 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  when: post_requirements.stat.exists
 
 # Install the python paver requirements into {{ edxapp_venv_dir }}
 - name : install python paver-requirements
