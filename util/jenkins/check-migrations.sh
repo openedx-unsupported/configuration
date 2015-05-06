@@ -18,7 +18,9 @@ cd "$WORKSPACE/edx-platform"
 
 pip install --exists-action w -r requirements/edx/pre.txt
 pip install --exists-action w -r requirements/edx/base.txt
-pip install --exists-action w -r requirements/edx/post.txt
+if [[ -f requiremnets/edx/post.txt ]]; then
+  pip install --exists-action w -r requirements/edx/post.txt
+fi
 pip install --exists-action w -r requirements/edx/repo.txt
 pip install --exists-action w -r requirements/edx/github.txt
 pip install --exists-action w -r requirements/edx/local.txt
