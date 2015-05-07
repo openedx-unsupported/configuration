@@ -63,12 +63,13 @@ if [[ ! -f $BOTO_CONFIG ]]; then
 fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
+sandbox_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml -e@${extra_vars_file}"
+    extra_var_arg="-e@${sandbox_vars_file} -e@${extra_vars_file}"
 fi
 
 if [[ -z $region ]]; then
@@ -261,7 +262,7 @@ fi
 
 # deploy the edx_ansible role
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-cat $extra_vars_file | grep -v -E "_version|migrate_db" | tee ${extra_vars_file}_clean
+cat $extra_vars_file $sandbox_vars_file| grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
