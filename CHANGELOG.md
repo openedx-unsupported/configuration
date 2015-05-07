@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Removed post.txt from the list of files that will have its github urls replaced with git mirror urls.
+
+- Role: edxapp
   - The edxapp role no longer uses checksums to bypass pip installs.
     - pip install will always run for all known requirements files.
 
