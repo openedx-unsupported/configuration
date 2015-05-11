@@ -1,3 +1,6 @@
+- Updated ansible fork with small bug fix.
+  - https://github.com/ansible/ansible/pull/10957
+
 - Role: edxapp
   - Removed post.txt from the list of files that will have its github urls replaced with git mirror urls.
 
