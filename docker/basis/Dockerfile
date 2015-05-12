@@ -15,7 +15,7 @@ RUN apt-get update
 RUN apt-get install -y sudo python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 git openssh-server
 
 # download tools
-RUN git clone http://github.com/edx/configuration.git /tmp/configuration
+RUN git clone --branch gabe/analytics-docker http://github.com/edx/configuration.git /tmp/configuration
 
 # setup configuration
 WORKDIR /tmp/configuration
