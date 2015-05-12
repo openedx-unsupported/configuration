@@ -12,7 +12,7 @@ FROM ubuntu:precise
 MAINTAINER mulby
 
 RUN apt-get update
-RUN apt-get install -y sudo python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 git openssh-server
+RUN apt-get install -y sudo apt-utils net-tools python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 git openssh-server
 
 # download tools
 RUN git clone --branch gabe/analytics-docker http://github.com/edx/configuration.git /tmp/configuration
