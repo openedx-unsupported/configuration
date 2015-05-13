@@ -72,6 +72,8 @@ def parse_args(args=sys.argv[1:]):
                         help="create a sql dump after launching it into the vpc")
     parser.add_argument('-s', '--secret-var-files', action="append", required=True,
                         help="use one or more secret var files to run ansible against the host to update db users")
+    parser.add_argument('-o', '--dest-option-group', default="default:mysql-5-6",
+                        help="the option group for the new rds.")
 
     return parser.parse_args(args)
 
@@ -103,6 +105,7 @@ if __name__ == '__main__':
         target_db_instance_identifier=restore_dbid,
         use_latest_restorable_time=True,
         db_instance_class=args.type,
+        option_group_name=args.dest_option_group,
     )
     if args.vpc:
         restore_args['db_subnet_group_name'] = args.subnet
