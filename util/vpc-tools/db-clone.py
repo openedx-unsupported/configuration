@@ -103,6 +103,7 @@ if __name__ == '__main__':
         target_db_instance_identifier=restore_dbid,
         use_latest_restorable_time=True,
         db_instance_class=args.type,
+        option_group_name='default:mysql-5-6'
     )
     if args.vpc:
         restore_args['db_subnet_group_name'] = args.subnet
