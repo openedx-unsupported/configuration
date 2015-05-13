@@ -10,7 +10,6 @@ ENV PATH /edx/app/edx_ansible/venvs/edx_ansible/bin:/bin:/sbin:/usr/sbin:/usr/bi
 ENV PYTHONUNBUFFERED 1
 WORKDIR /edx/app/edx_ansible/edx_ansible/playbooks/edx-east
 RUN apt-get update
-RUN apt-get install ca-certificates
 RUN ansible-playbook -c local analytics_single.yml
 
 EXPOSE 22
