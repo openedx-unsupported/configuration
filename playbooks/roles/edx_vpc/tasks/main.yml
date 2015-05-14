@@ -91,9 +91,9 @@
     region: "{{ aws_region }}"
     tags:
       - Name: "{{ vpc_name }}-nat-instance"
-  register: potential_existing_nat
+  register: nat_instance
 
-- debug: msg="{{ potential_existing_nat }}"
+- debug: msg="{{ nat_instance }}"
 
 - name: create nat instance
   local_action:
@@ -110,17 +110,28 @@
     instance_tags:
       Name: "{{ vpc_name }}-nat-instance"
     image: "{{ vpc_nat_ami_id }}"
-  register: created_nat_instance
-  when: potential_existing_nat.instances|length == 0
+  register: new_nat_instance
+  when: nat_instance.instances|length == 0
+
+# We need to do this instead of registering the output of the above
+# command because if the above command get skipped, the output does
+# not contain information about the instance.
+- name: lookup the created nat_instance
+  local_action:
+    module: "ec2_lookup"
+    region: "{{ aws_region }}"
+    tags:
+      - Name: "{{ vpc_name }}-nat-instance"
+  register: nat_instance
 
 - name: assign eip to nat
   ec2_eip:
     profile: "{{ profile }}"
     region: "{{ aws_region }}"
-    instance_id: "{{ created_nat_instance.instances[0].id }}"
+    instance_id: "{{ nat_instance.instances[0].id }}"
     in_vpc: true
     reuse_existing_ip_allowed: true
-  when: potential_existing_nat.instances|length == 0
+  when: new_nat_instance.changed
 
 - name: create private route table
   ec2_rt:
@@ -130,5 +141,49 @@
     state: "present"
     name: "{{ vpc_name }}-private"
     routes: "{{ vpc_private_route_table }}"
-  register: created_public_rt
-  when: potential_existing_nat.instances|length == 0
+  register: created_private_rt
+
+- name: create db network acl
+  ec2_acl:
+    profile: "{{ profile }}"
+    name: "{{ vpc_db_acl.name }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    state: "present"
+    region: "{{ aws_region }}"
+    rules: "{{ vpc_db_acl.rules }}"
+  register: created_db_acl
+
+- name: create db subnets
+  ec2_subnet:
+    profile: "{{ profile }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    region: "{{ aws_region }}"
+    state: "present"
+    name: "{{ item.name }}"
+    cidr: "{{ item.cidr }}"
+    az: "{{ item.az }}"
+    route_table_id: "{{ created_private_rt.id }}"
+    network_acl_id: "{{ created_db_acl.id }}"
+  with_items: vpc_db_subnets
+  register: created_db_subnets
+
+- name: extract the subnet ids
+  util_map:
+    function: 'zip_to_list'
+    input: "{{ created_db_subnets.results }}"
+    args:
+      - "subnet_id"
+  register: db_subnet_ids
+
+- debug: msg="{{ db_subnet_ids }}"
+
+- name: create db subnet group
+  rds_subnet_group:
+    profile: "{{ profile }}"
+    region: "{{ aws_region }}"
+    state: "present"
+    name: "{{ vpc_db_subnet_group.name }}"
+    description: "{{ vpc_db_subnet_group.description }}"
+    subnets: "{{ db_subnet_ids.function_output }}"
+  
+  
