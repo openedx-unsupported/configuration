@@ -103,10 +103,37 @@ def zip_to_dict(module, input, key_key, value_key):
 
     module.exit_json(function_output = results)
 
+def zip_to_list(module, input, key):
+    """
+    Takes an array of dicts and flattens it to a single list by extracting the value
+    of a provided key as an item in the new list.
+
+    For example, the input list of dicts like
+
+    [{'name':'fred', 'id':'123'},{'name':'bill', 'id':'321'}]
+
+    with an args array of ['name']
+
+    would return
+
+    ['fred','bill']
+
+    :param input: an array of dicts, typically the results of an ansible module
+    :param key: a key into the input dict returning a value to be used as an item in the flattend list
+    :return: the flattened list
+    """
+
+    results = []
+
+    for item in input:
+        results.append(item[key])
+
+    module.exit_json(function_output = results)
+
 def main():
 
     arg_spec = dict(
-        function=dict(required=True,choices=['zip_to_dict','flatten']),
+        function=dict(required=True, type='str'),
         input=dict(required=True, type='str'),
         args=dict(required=False, type='list'),
     )
@@ -122,6 +149,8 @@ def main():
         zip_to_dict(module, input, *args)
     elif target == 'flatten':
         flatten(module,input)
+    elif target == 'zip_to_list':
+        zip_to_list(module, input, *args)
     else:
         raise NotImplemented("Function {0} is not implemented.".format(target))
 
