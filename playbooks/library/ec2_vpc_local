@@ -14,6 +14,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+# Taken from version: 1.9 - PR to push up the changes here:
+# https://github.com/ansible/ansible-modules-core/pull/1323
+
+
 DOCUMENTATION = '''
 ---
 module: ec2_vpc
@@ -96,33 +100,12 @@ options:
     aliases: []
   region:
     description:
-      - region in which the resource exists.
-    required: false
+      - The AWS region to use. If not specified then the value of the AWS_REGION or EC2_REGION environment variable, if any, is used.
+    required: true
     default: null
     aliases: ['aws_region', 'ec2_region']
-  aws_secret_key:
-    description:
-      - AWS secret key. If not set then the value of the AWS_SECRET_KEY environment variable is used.
-    required: false
-    default: None
-    aliases: ['ec2_secret_key', 'secret_key' ]
-  aws_access_key:
-    description:
-      - AWS access key. If not set then the value of the AWS_ACCESS_KEY environment variable is used.
-    required: false
-    default: None
-    aliases: ['ec2_access_key', 'access_key' ]
-  validate_certs:
-    description:
-      - When set to "no", SSL certificates will not be validated for boto versions >= 2.6.0.
-    required: false
-    default: "yes"
-    choices: ["yes", "no"]
-    aliases: []
-    version_added: "1.5"
-
-requirements: [ "boto" ]
 author: Carson Gee
+extends_documentation_fragment: aws
 '''
 
 EXAMPLES = '''
@@ -130,16 +113,14 @@ EXAMPLES = '''
 # It is assumed that their matching environment variables are set.
 
 # Basic creation example:
-      local_action:
-        module: ec2_vpc
+      ec2_vpc:
         state: present
         cidr_block: 172.23.0.0/16
         resource_tags: { "Environment":"Development" }
         region: us-west-2
 # Full creation example with subnets and optional availability zones.
 # The absence or presence of subnets deletes or creates them respectively.
-      local_action:
-        module: ec2_vpc
+      ec2_vpc:
         state: present
         cidr_block: 172.22.0.0/16
         resource_tags: { "Environment":"Development" }
@@ -170,8 +151,7 @@ EXAMPLES = '''
       register: vpc
 
 # Removal of a VPC by id
-      local_action:
-        module: ec2_vpc
+      ec2_vpc:
         state: absent
         vpc_id: vpc-aaaaaaa
         region: us-west-2
@@ -180,16 +160,17 @@ the delete will fail until those dependencies are removed.
 '''
 
 
-import sys
 import time
 
 try:
     import boto.ec2
     import boto.vpc
     from boto.exception import EC2ResponseError
+
+    HAS_BOTO = True
 except ImportError:
-    print "failed=True msg='boto required for this module'"
-    sys.exit(1)
+    HAS_BOTO = False
+
 
 def get_vpc_info(vpc):
     """
@@ -260,6 +241,100 @@ def find_vpc(module, vpc_conn, vpc_id=None, cidr=None):
         module.fail_json(msg='Found more than one vpc based on the supplied criteria, aborting')
 
     return (found_vpc)
+
+def routes_match(rt_list=None, rt=None, igw=None):
+
+    """
+    Check if the route table has all routes as in given list
+    
+    rt_list      : A list if routes provided in the module 
+    rt           : The Remote route table object
+    igw          : The internet gateway object for this vpc
+
+    Returns:
+        True when there provided routes and remote routes are the same. 
+        False when provided routes and remote routes are diffrent.
+    """
+
+    local_routes = []
+    remote_routes = []
+    for route in rt_list:
+        route_kwargs = {}
+        if route['gw'] == 'igw':
+            route_kwargs['gateway_id'] = igw.id
+            route_kwargs['instance_id'] = None
+            route_kwargs['state'] = 'active'
+        elif route['gw'].startswith('i-'):
+            route_kwargs['instance_id'] = route['gw']
+            route_kwargs['gateway_id'] = None
+            route_kwargs['state'] = 'active'
+        else:
+            route_kwargs['gateway_id'] = route['gw']
+            route_kwargs['instance_id'] = None
+            route_kwargs['state'] = 'active'
+        route_kwargs['destination_cidr_block'] = route['dest']
+        local_routes.append(route_kwargs)
+    for j in rt.routes:
+        remote_routes.append(j.__dict__)
+    match = []
+    for i in local_routes:
+        change = "false"
+        for j in remote_routes:
+            if set(i.items()).issubset(set(j.items())):
+                change = "true"
+        match.append(change)
+    if 'false' in match:
+        return False
+    else:
+        return True
+
+def rtb_changed(route_tables=None, vpc_conn=None, module=None, vpc=None, igw=None):
+    """
+    Checks if the remote routes match the local routes.
+
+    route_tables : Route_tables parameter in the module
+    vpc_conn     : The VPC conection object
+    module       : The module object
+    vpc          : The vpc object for this route table
+    igw          : The internet gateway object for this vpc
+
+    Returns:
+        True when there is diffrence beween the provided routes and remote routes and if subnet assosications are diffrent.
+        False when both routes and subnet associations matched.
+ 
+    """
+    #We add a one for the main table
+    rtb_len = len(route_tables) + 1
+    remote_rtb_len = len(vpc_conn.get_all_route_tables(filters={'vpc_id': vpc.id}))
+    if remote_rtb_len != rtb_len:
+        return True
+    for rt in route_tables:
+        rt_id = None
+        for sn in rt['subnets']:
+            rsn = vpc_conn.get_all_subnets(filters={'cidr': sn, 'vpc_id': vpc.id })
+            if len(rsn) != 1:
+                module.fail_json(
+                    msg='The subnet {0} to associate with route_table {1} ' \
+                    'does not exist, aborting'.format(sn, rt)
+                )
+            nrt  = vpc_conn.get_all_route_tables(filters={'vpc_id': vpc.id, 'association.subnet-id': rsn[0].id})
+            if not nrt:
+                return True
+            else:
+                nrt = nrt[0]
+                if not rt_id:
+                    rt_id = nrt.id
+                    if not routes_match(rt['routes'], nrt, igw):
+                        return True
+                    continue
+                else:
+                    if rt_id == nrt.id:
+                        continue
+                    else:
+                        return True
+            return True
+    return False
+
 
 def create_vpc(module, vpc_conn):
     """
@@ -425,6 +500,8 @@ def create_vpc(module, vpc_conn):
     # the replace-route-table API to make this smoother and
     # allow control of the 'main' routing table.
     if route_tables is not None:
+        rtb_needs_change = rtb_changed(route_tables, vpc_conn, module, vpc, igw)
+    if route_tables is not None and rtb_needs_change:
         if not isinstance(route_tables, list):
             module.fail_json(msg='route tables need to be a list of dictionaries')
 
@@ -521,6 +598,16 @@ def create_vpc(module, vpc_conn):
             'id': sn.id,
         })
 
+    if subnets is not None:
+        # Sort subnets by the order they were listed in the play
+        order = {}
+        for idx, val in enumerate(subnets):
+            order[val['cidr']] = idx
+
+        # Number of subnets in the play
+        subnets_in_play = len(subnets)
+        returned_subnets.sort(key=lambda x: order.get(x['cidr'], subnets_in_play))
+
     return (vpc_dict, created_vpc_id, returned_subnets, igw_dict, changed)
 
 def terminate_vpc(module, vpc_conn, vpc_id=None, cidr=None):
@@ -603,23 +690,26 @@ def main():
         argument_spec=argument_spec,
     )
 
+    if not HAS_BOTO:
+        module.fail_json(msg='boto required for this module')
+
     state = module.params.get('state')
 
-    ec2_url, aws_access_key, aws_secret_key, region = get_ec2_creds(module)
+    region, ec2_url, aws_connect_kwargs = get_aws_connection_info(module)
 
     # If we have a region specified, connect to its endpoint.
     if region:
         try:
             vpc_conn = boto.vpc.connect_to_region(
                 region,
-                aws_access_key_id=aws_access_key,
-                aws_secret_access_key=aws_secret_key
+                **aws_connect_kwargs
             )
         except boto.exception.NoAuthHandlerFound, e:
             module.fail_json(msg = str(e))
     else:
         module.fail_json(msg="region must be specified")
 
+    igw_dict = {}
     if module.params.get('state') == 'absent':
         vpc_id = module.params.get('vpc_id')
         cidr = module.params.get('cidr_block')
