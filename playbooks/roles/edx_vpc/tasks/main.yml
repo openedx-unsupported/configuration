@@ -165,23 +165,6 @@
   with_items: vpc_db_subnets
   register: created_db_subnets
 
-- name: extract the subnet ids
-  util_map:
-    function: 'zip_to_list'
-    input: "{{ created_db_subnets.results }}"
-    args:
-      - "subnet_id"
-  register: db_subnet_ids
-
-- name: create db subnet group
-  rds_subnet_group:
-    profile: "{{ vpc_aws_profile }}"
-    region: "{{ vpc_aws_region }}"
-    state: "present"
-    name: "{{ vpc_db_subnet_group.name }}"
-    description: "{{ vpc_db_subnet_group.description }}"
-    subnets: "{{ db_subnet_ids.function_output }}"
-  
 - name: output a vpc_config for using to build services
   local_action:
     module: template
