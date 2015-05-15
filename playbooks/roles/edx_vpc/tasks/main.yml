@@ -30,7 +30,7 @@
     module: 'ec2_vpc_local'
     resource_tags: '{{ vpc_tags }}'
     cidr_block: '{{ vpc_cidr }}'
-    region: '{{ aws_region }}'
+    region: '{{ vpc_aws_region }}'
     state: '{{ vpc_state }}'
     internet_gateway: yes
     wait: yes
@@ -41,19 +41,19 @@
 # outside world using the internet gateway.
 - name: create public network acl
   ec2_acl:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     name: "{{ vpc_public_acl.name }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
     state: "present"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     rules: "{{ vpc_public_acl.rules }}"
   register: created_public_acl
 
 - name: create public route table
   ec2_rt:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     state: "present"
     name: "{{ vpc_name }}-public"
     routes: "{{ vpc_public_route_table }}"
@@ -61,9 +61,9 @@
 
 - name: create public subnets
   ec2_subnet:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     state: "present"
     name: "{{ item.name }}"
     cidr: "{{ item.cidr }}"
@@ -75,10 +75,10 @@
 
 - name: create NAT security group
   ec2_group:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
     state: "present"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     name: "{{ nat_security_group.name }}"
     rules: "{{ nat_security_group.rules }}"
     description: "{{ nat_security_group.description }}"
@@ -88,7 +88,7 @@
 - name: check to see if we already have a nat instance
   local_action:
     module: "ec2_lookup"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     tags:
       - Name: "{{ vpc_name }}-nat-instance"
   register: nat_instance
@@ -99,10 +99,10 @@
     state: 'present'
     wait: "yes"
     source_dest_check: false
-    region: "{{ aws_region }}"
-    profile: "{{ profile }}"
+    region: "{{ vpc_aws_region }}"
+    profile: "{{ vpc_aws_profile }}"
     group_id: "{{ created_nat_security_group.group_id }}"
-    key_name: "{{ vpc_nat_keypair }}"
+    key_name: "{{ vpc_keypair }}"
     vpc_subnet_id: "{{ created_public_subnets.results[0].subnet_id }}"
     instance_type: "{{ vpc_nat_instance_type }}"
     instance_tags:
@@ -117,15 +117,15 @@
 - name: lookup the created nat_instance
   local_action:
     module: "ec2_lookup"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     tags:
       - Name: "{{ vpc_name }}-nat-instance"
   register: nat_instance
 
 - name: assign eip to nat
   ec2_eip:
-    profile: "{{ profile }}"
-    region: "{{ aws_region }}"
+    profile: "{{ vpc_aws_profile }}"
+    region: "{{ vpc_aws_region }}"
     instance_id: "{{ nat_instance.instances[0].id }}"
     in_vpc: true
     reuse_existing_ip_allowed: true
@@ -133,9 +133,9 @@
 
 - name: create private route table
   ec2_rt:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     state: "present"
     name: "{{ vpc_name }}-private"
     routes: "{{ vpc_private_route_table }}"
@@ -143,19 +143,19 @@
 
 - name: create db network acl
   ec2_acl:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     name: "{{ vpc_db_acl.name }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
     state: "present"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     rules: "{{ vpc_db_acl.rules }}"
   register: created_db_acl
 
 - name: create db subnets
   ec2_subnet:
-    profile: "{{ profile }}"
+    profile: "{{ vpc_aws_profile }}"
     vpc_id: "{{ created_vpc.vpc_id }}"
-    region: "{{ aws_region }}"
+    region: "{{ vpc_aws_region }}"
     state: "present"
     name: "{{ item.name }}"
     cidr: "{{ item.cidr }}"
@@ -175,8 +175,8 @@
 
 - name: create db subnet group
   rds_subnet_group:
-    profile: "{{ profile }}"
-    region: "{{ aws_region }}"
+    profile: "{{ vpc_aws_profile }}"
+    region: "{{ vpc_aws_region }}"
     state: "present"
     name: "{{ vpc_db_subnet_group.name }}"
     description: "{{ vpc_db_subnet_group.description }}"
