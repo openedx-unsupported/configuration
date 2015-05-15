@@ -1,0 +1,69 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role flume
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: check if downloaded and extracted
+  stat: path={{ FLUME_HOME }}/bin/flume-ng
+  register: installed
+
+- name: distribution downloaded
+  get_url: >
+    url={{ flume_dist.url }}
+    sha256sum={{ flume_dist.sha256sum }}
+    validate_certs=no
+    dest=/tmp
+  when: not installed.stat.exists
+
+- name: distribution extracted
+  shell: >
+    chdir={{ HADOOP_COMMON_USER_HOME }}
+    tar -xzf /tmp/{{ flume_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} apache-flume-{{ FLUME_VERSION }}-bin
+  when: not installed.stat.exists
+
+- name: versioned directory symlink created
+  file: >
+    src={{ HADOOP_COMMON_USER_HOME }}/apache-flume-{{ FLUME_VERSION }}-bin
+    dest={{ FLUME_HOME }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+
+- name: configuration installed
+  template: >
+    src={{ item }}.j2
+    dest={{ FLUME_CONF }}/{{ item }}
+    mode=0640 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  with_items:
+    - flume-dist-env.sh
+    - log4j.properties
+    - hdfs-agent.conf
+
+- name: service installed
+  template: >
+    src={{ item }}.j2
+    dest={{ HADOOP_COMMON_SERVICES_DIR }}/{{ item }}
+    mode=0750 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  with_items:
+    - 005-flume-agent.sh
+
+- name: env vars sourced in hadoop env
+  lineinfile: >
+    dest={{ hadoop_common_env }} state=present
+    regexp="^. {{ FLUME_CONF }}/flume-dist-env.sh" line=". {{ FLUME_CONF }}/flume-dist-env.sh"
