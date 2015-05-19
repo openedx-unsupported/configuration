@@ -1,0 +1,167 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_service_rds
+# 
+# Overview:
+#
+# Creates a VPC RDS instance and related network infrastructure, e.g.,
+# subnets, subnet groups, acls, as well as an instance specific
+# parameter group.
+#
+# NB: When using a boto profile other than the default, you will need
+# to export AWS_PROFILE because some tasks do not properly process
+# the profile argument.
+#
+# NB: You should currently not use this play for deleting databases as
+# the final snapshot functionality doesn't work properly in the ansible
+# module.  First it default to not taking a final snapshot and
+# when you specify one, it throw a key error.
+#
+# Dependencies:
+#
+# Assumes a working VPC, ideally created via the edx_vpc role as this
+# role will produce configuration output that this role requires
+# like the VPC, route table and subnet IDs.
+# 
+# Example play:
+#
+# export AWS_PROFILE=sandbox
+# ansible-playbook -c local -i 'localhost,' edx_service_rds.yml -e@~/vpc-test.yml -e@~/e0dTest-edx.yml -e 'cluster=test'
+#
+# TODO:
+# - handle db deletes and updates
+# - handle DNS updates, consider that a different profile may be required for this.
+#
+
+- name: create database route table
+  ec2_rt:
+    profile: "{{ profile }}"
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ aws_region }}"
+    state: "{{ edx_service_rds_state }}"
+    name: "{{ e_d_c }}-db"
+    routes: "{{ EDX_SERVICE_RDS_VPC_DB_ROUTE_TABLE }}"
+  register: created_db_rt
+
+- name: create db network acl
+  ec2_acl:
+    profile: "{{ profile }}"
+    name: "{{ EDX_SERVICE_RDS_VPC_DB_ACL.name }}"
+    vpc_id: "{{ vpc_id }}"
+    state: "{{ edx_service_rds_state }}"
+    region: "{{ aws_region }}"
+    rules: "{{ EDX_SERVICE_RDS_VPC_DB_ACL.rules }}"
+  register: created_db_acl
+
+- name: create db subnets
+  ec2_subnet:
+    profile: "{{ profile }}"
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ aws_region }}"
+    state: "{{ edx_service_rds_state }}"
+    name: "{{ item.name }}"
+    cidr: "{{ item.cidr }}"
+    az: "{{ item.az }}"
+    route_table_id: "{{ created_db_rt.id }}"
+    network_acl_id: "{{ created_db_acl.id }}"
+  with_items: edx_service_rds_vpc_db_subnets
+  register: created_db_subnets
+
+- name: Apply function to subnet data
+  util_map:
+    function: 'zip_to_list'
+    input: "{{ created_db_subnets.results }}"
+    args:
+      - "subnet_id"
+  register: subnet_data
+
+- name:
+  rds_subnet_group:
+    state: "{{ edx_service_rds_state }}"
+    profile: "{{ profile }}"
+    region: "{{ aws_region }}"
+    name: "{{ e_d_c }}"
+    description: "{{ e_d_c }}"
+    subnets: "{{ subnet_data.function_output }}"
+
+- name: create RDS security group
+  ec2_group:
+    profile: "{{ profile }}"
+    vpc_id: "{{ vpc_id }}"
+    state: "{{ edx_service_rds_state }}"
+    region: "{{ aws_region }}"
+    name: "{{ EDX_SERVICE_RDS_SECURITY_GROUP.name }}"
+    rules: "{{ EDX_SERVICE_RDS_SECURITY_GROUP.rules }}"
+    description: "{{ EDX_SERVICE_RDS_SECURITY_GROUP.description }}"
+    rules_egress: "{{ EDX_SERVICE_RDS_SECURITY_GROUP.rules_egress }}"
+  register: created_rds_security_group
+
+- name: create instance parameter group
+  rds_param_group:
+    state: "{{ edx_service_rds_state }}"
+    region: "{{ aws_region }}"
+    name: "{{ edx_service_rds_db.param_group.name }}"
+    description: "{{ edx_service_rds_db.param_group.name }}"
+    engine: "{{ edx_service_rds_db.param_group.engine }}"
+    params: "{{ edx_service_rds_db.param_group.params }}"
+  register: created_param_group
+
+  #  
+  # Create the database
+  #
+- name: Create service database
+  rds:
+    command: "create"
+    region: "{{ aws_region }}"
+    instance_name: "{{ edx_service_rds_db.name }}"
+    db_engine: "{{ edx_service_rds_db.engine }}"
+    engine_version: "{{ edx_service_rds_db.engine_version }}"
+    size: "{{ edx_service_rds_db.size }}"
+    instance_type: "{{ edx_service_rds_db.instance_type }}"
+    username: "{{ edx_service_rds_db.root_user }}"
+    password: "{{ edx_service_rds_db.root_password }}"
+    subnet: "{{ e_d_c }}"
+    vpc_security_groups: "{{ created_rds_security_group.group_id }}"
+    multi_zone: "{{ edx_service_rds_db.multi_az }}"
+    maint_window: "{{ edx_service_rds_db.maint_window }}"
+    backup_window: "{{ edx_service_rds_db.backup_window }}"
+    backup_retention: "{{ edx_service_rds_db.backup_days }}"
+    parameter_group: "{{ edx_service_rds_db.param_group.name }}"
+    tags:
+      Environment: "{{ env }}"
+      Application: "{{ deployment }}"
+  when: edx_service_rds_db.state == 'present'
+  register: created_db
+
+  # 
+  # Delete the database, need to debug module for this to
+  # full work.
+  #
+- name: Delete service database
+  rds:
+    command: "delete"
+    region: "{{ aws_region }}"
+    instance_name: "{{ edx_service_rds_db.name }}"
+    # bug inthe module related to final snapshots
+    #snapshot: "{{ edx_service_rds_db.name }}-final-{{ ansible_date_time.epoch }}"
+    snapshot: "red-blue"
+  when: edx_service_rds_db.state == 'absent'
+
+  #
+  # Output the basis for a db config file that
+  # includes the yaml connection defintion
+  #
+- name: output a step db config file
+  local_action:
+    module: template
+    src: "db_config.yml.j2"
+    dest: "~/{{ e_d_c }}-db.yml"
