@@ -106,19 +106,41 @@
     #     vpc_id: "{{ vpc_id }}"
     #     destination_cidr: "{{ rt.destination_cidr }}"
     #     target: "local" # simplifying generalization of instnace-id, gateway-id or local
+    #
+    - name: Manage Private ELB Subnets
+      ec2_subnet:
+        profile: "{{ profile }}"
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        cidr_block: "{{ item.cidr }}"
+        az: "{{ item.az }}"
+        route_table_id: "{{ item.route_table_id }}"
+        tags: "{{ item.tags }}"
+      register: created_elb_private_subnets
+      with_items: elb_private_subnets
+      when: private_elb_subnet_1 is defined and private_elb_subnet_2 is defined
+
+    - name: Check that internal ELBs have subnets
+      fail: msg="If you set an elb scheme to 'internal' you must also define private_elb_subnet_1 and private_elb_subnet_2"
+      when: private_elb_subnet_1 is not defined and private_elb_subnet_2 is not defined and elbs is defined and 'internal' in elbs|map(attribute='scheme')|list
 
     - name: Manage ELB
       ec2_elb_lb:
         profile: "{{ profile }}"
         region: "{{ aws_region }}"
-        scheme: "{{ elb_scheme }}"
-        name: "{{ elb_name }}"
+        scheme: "{{ item.scheme }}"
+        name: "{{ item.name}}"
         state: "{{ state }}"
         security_group_ids: "{{ elb_sec_group.group_id }}"
-        subnets: "{{ elb_subnets }}"
+        subnets: "{{ created_elb_private_subnets.results|map(attribute='subnet_id')| list if ( item.scheme == 'internal' ) else elb_subnets}}"
         health_check: "{{ elb_healthcheck }}"
         listeners: "{{ elb_listeners }}"
-      register: elb
+      register: created_elbs
+      with_items: elbs
+      when: elbs is defined
+
 #
 # Service related components
 #
