@@ -20,7 +20,7 @@ UPDATE student_passwordhistory
 UPDATE auth_user
     set 
         email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com'),
-        username = concat('user-',cast(id AS CHAR)),
+        username = SUBSTRING(SHA1(CONCAT(username,CAST(id as CHAR))) FROM 1 FOR 30),
         first_name = concat('user-',cast(id AS CHAR)),
         last_name = concat('user-',cast(id AS CHAR)),
         last_login = null,
