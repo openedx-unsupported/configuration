@@ -6,11 +6,11 @@ SET FOREIGN_KEY_CHECKS=0;
 
 UPDATE auth_user
     set
-        password = null;
+        password = '!';
 
 UPDATE student_passwordhistory
     set
-        password = null;
+        password = '!';
 
 /*
   Rewrite all emails to used the SES simulator, simulating success.
