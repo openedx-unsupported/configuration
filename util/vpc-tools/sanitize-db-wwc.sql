@@ -6,11 +6,11 @@ SET FOREIGN_KEY_CHECKS=0;
 
 UPDATE auth_user
     set
-        password = null;
+        password = '!';
 
 UPDATE student_passwordhistory
     set
-        password = null;
+        password = '!';
 
 /*
   Rewrite all emails to used the SES simulator, simulating success.
@@ -20,7 +20,7 @@ UPDATE student_passwordhistory
 UPDATE auth_user
     set 
         email = concat('success+',cast(id AS CHAR),'@simulator.amazonses.com'),
-        username = concat('user-',cast(id AS CHAR)),
+        username = SUBSTRING(SHA1(CONCAT(username,CAST(id as CHAR))) FROM 1 FOR 30),
         first_name = concat('user-',cast(id AS CHAR)),
         last_name = concat('user-',cast(id AS CHAR)),
         last_login = null,
