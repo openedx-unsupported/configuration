@@ -163,7 +163,7 @@
       #
     - debug: msg="{{ created_service_subnets.results|map(attribute='subnet_id')| list | join(',') }}"
       register: service_vpc_zone_identifier_string
-        
+
     - name: Manage ASG
       ec2_asg:
         profile: "{{ profile }}"
@@ -177,6 +177,7 @@
         desired_capacity: "{{ asg_desired_capacity }}"
         vpc_zone_identifier: "{{ service_vpc_zone_identifier_string.msg }}"
         tags: "{{ asg_instance_tags }}"
+        load_balancers: "{{ created_elbs.results|map(attribute='elb.name')|list }}"
       register: asg
       when: auto_scaling_service
 
