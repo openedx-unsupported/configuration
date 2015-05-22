@@ -14,9 +14,9 @@ MIGRATION_COMMANDS = {
         'lms':    "{python} {code_dir}/manage.py lms migrate --noinput --settings=aws --db-dry-run --merge",
         'cms':    "{python} {code_dir}/manage.py cms migrate --noinput --settings=aws --db-dry-run --merge",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
-#        'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-#        'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-#        'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list"
+        'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+        'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+        'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list"
     }
 HIPCHAT_USER = "PreSupervisor"
 
