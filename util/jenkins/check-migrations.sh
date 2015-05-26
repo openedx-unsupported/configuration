@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -x
+set -e
 
 if [[ -z $WORKSPACE ]]; then
     echo "Environment incorrect for this wrapper script"
