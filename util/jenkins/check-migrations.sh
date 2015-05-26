@@ -22,9 +22,13 @@ pip install --exists-action w -r requirements/edx/base.txt
 if [[ -f requiremnets/edx/post.txt ]]; then
   pip install --exists-action w -r requirements/edx/post.txt
 fi
-pip install --exists-action w -r requirements/edx/repo.txt
+if [[ -f requiremnets/edx/repo.txt ]]; then
+  pip install --exists-action w -r requirements/edx/repo.txt
+fi
 pip install --exists-action w -r requirements/edx/github.txt
-pip install --exists-action w -r requirements/edx/local.txt
+if [[ -f requiremnets/edx/local.txt ]]; then
+  pip install --exists-action w -r requirements/edx/local.txt
+fi
 pip install --exists-action w -r requirements/edx/edx-private.txt
 
 if [[ $openid_workaround == "true" ]]; then
