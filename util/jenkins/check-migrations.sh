@@ -19,14 +19,14 @@ cd "$WORKSPACE/edx-platform"
 
 pip install --exists-action w -r requirements/edx/pre.txt
 pip install --exists-action w -r requirements/edx/base.txt
-if [[ -f requiremnets/edx/post.txt ]]; then
+if [[ -f requirements/edx/post.txt ]]; then
   pip install --exists-action w -r requirements/edx/post.txt
 fi
-if [[ -f requiremnets/edx/repo.txt ]]; then
+if [[ -f requirements/edx/repo.txt ]]; then
   pip install --exists-action w -r requirements/edx/repo.txt
 fi
 pip install --exists-action w -r requirements/edx/github.txt
-if [[ -f requiremnets/edx/local.txt ]]; then
+if [[ -f requirements/edx/local.txt ]]; then
   pip install --exists-action w -r requirements/edx/local.txt
 fi
 pip install --exists-action w -r requirements/edx/edx-private.txt
@@ -68,6 +68,7 @@ extra_var_args+=" -e edxapp_app_dir=${WORKSPACE}"
 extra_var_args+=" -e edxapp_code_dir=${WORKSPACE}/edx-platform"
 extra_var_args+=" -e edxapp_user=jenkins"
 extra_var_args+=" -e syncdb=$syncdb"
+extra_var_args+=" -e EDXAPP_CFG_DIR=${WORKSPACE}"
 
 # Generate the json configuration files
 ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml
