@@ -1,3 +1,7 @@
+- Role: edxapp
+  - Removed deprecated variables EDXAPP_PLATFORM_TWITTER_URL, EDXAPP_PLATFORM_MEETUP_URL, EDXAPP_PLATFORM_LINKEDIN_URL, and EDXAPP_PLATFORM_GOOGLE_PLUS_URL in favor of EDXAPP_SOCIAL_MEDIA_FOOTER_URLS.  These variables haven't been used in edx-platform since March 17, 2015 (when https://github.com/edx/edx-platform/pull/7383 was merged).  This change is backwards incompatible with versions of edx-platform from before March 17, 2015.
+  - Added EDXAPP_MOBILE_STORE_URLS and EDXAPP_FOOTER_ORGANIZATION_IMAGE variables, used in https://github.com/edx/edx-platform/pull/8175 (v3 version of the edx.org footer).
+
 - Updated ansible fork with small bug fix.
   - https://github.com/ansible/ansible/pull/10957
 
@@ -24,7 +28,7 @@
   - Changed location of minos' config file from `/edx/etc/minos/minos.yml` to `/edx/etc/minos.yml`
   - Added new `edx_notes_api` role for forthcoming notes api
   - This is a __BACKWARDS INCOMPATABLE__ change and will require additional migrations when upgrading an existing server. While we recommend building from scratch, running the following command _might_ work:
-  
+
       ```
       rm -rf /edx/app/analytics-api /edx/app/ /edx/app/nginx/sites-available/analytics-api.j2 /edx/app/supervisor/conf.d.available/analytics_api.conf
       rm -rf /edx/etc/minos
@@ -65,7 +69,7 @@
 - Role: edxapp
   - We now have an all caps variable override for celery workers
 - Role: common
-  - We now remove the default syslog.d conf file (50-default.conf) this will 
+  - We now remove the default syslog.d conf file (50-default.conf) this will
   break people who have hand edited that file.
 
 - Role: edxapp
@@ -101,5 +105,5 @@
     by changing mongo_clustered to MONGO_CLUSTERED.
 
 - Role: Edxapp
-  - Added EDXAPP_LMS_AUTH_EXTRA and EDXAPP_CMS_AUTH_EXTRA for passing unique AUTH_EXTRA configurations to the LMS and CMS. 
+  - Added EDXAPP_LMS_AUTH_EXTRA and EDXAPP_CMS_AUTH_EXTRA for passing unique AUTH_EXTRA configurations to the LMS and CMS.
     Both variables default to EDXAPP_AUTH_EXTRA for backward compatibility
