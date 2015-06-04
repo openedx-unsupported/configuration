@@ -147,30 +147,6 @@
     routes: "{{ vpc_private_route_table }}"
   register: created_private_rt
 
-- name: create db network acl
-  ec2_acl:
-    profile: "{{ vpc_aws_profile }}"
-    name: "{{ vpc_db_acl.name }}"
-    vpc_id: "{{ created_vpc.vpc_id }}"
-    state: "present"
-    region: "{{ vpc_aws_region }}"
-    rules: "{{ vpc_db_acl.rules }}"
-  register: created_db_acl
-
-- name: create db subnets
-  ec2_subnet:
-    profile: "{{ vpc_aws_profile }}"
-    vpc_id: "{{ created_vpc.vpc_id }}"
-    region: "{{ vpc_aws_region }}"
-    state: "present"
-    name: "{{ item.name }}"
-    cidr: "{{ item.cidr }}"
-    az: "{{ item.az }}"
-    route_table_id: "{{ created_private_rt.id }}"
-    network_acl_id: "{{ created_db_acl.id }}"
-  with_items: vpc_db_subnets
-  register: created_db_subnets
-
 - name: output a vpc_config for using to build services
   local_action:
     module: template
