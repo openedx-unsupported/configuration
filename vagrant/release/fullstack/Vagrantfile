@@ -34,6 +34,14 @@ openedx_releases = {
 openedx_releases.default = {
   :name => "kifli-fullstack", :file => "20140826-kifli-fullstack.box"
 }
+openedx_releases_vmware = {
+  "named-release/birch" => {
+    :name => "birch-fullstack-vmware", :file => "20150610-birch-fullstack-vmware.box",
+  },
+}
+openedx_releases_vmware.default = {
+  :name => "kifli-fullstack-vmware", :file => "20140829-kifli-fullstack-vmware.box",
+}
 rel = ENV['OPENEDX_RELEASE']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -59,8 +67,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   ["vmware_fusion", "vmware_workstation"].each do |vmware_provider|
     config.vm.provider vmware_provider do |v, override|
-      override.vm.box     = "kifli-fullstack-vmware"
-      override.vm.box_url = "http://files.edx.org/vagrant-images/20140829-kifli-fullstack-vmware.box"
+      override.vm.box     = openedx_releases_vmware[rel][:name]
+      override.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases_vmware[rel][:file]}"
       v.vmx["memsize"] = MEMORY.to_s
       v.vmx["numvcpus"] = CPU_COUNT.to_s
     end
