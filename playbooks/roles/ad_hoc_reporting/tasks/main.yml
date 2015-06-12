@@ -44,9 +44,11 @@
   tags:
     - scripts
     
-# These templates rely on there being a global
+#These templates rely on there being a global
 # read_only mysql user, you must override the default
-# in order for these templates to be written out
+# in order for these templates to be written out.
+#Also, all of the *_REPLICA_DB_HOST vars are only defined
+# in secure config files.
 - name: install common mysql replica scripts
   template: >
     src=edx/bin/mysql.sh.j2
@@ -59,6 +61,7 @@
     - db_host: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
       db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
       script_name: edxapp-mysql.sh
+      #depends on no other vars
       depends_on: True
     
     - db_host: "{{ AD_HOC_REPORTING_XQUEUE_MYSQL_REPLICA_HOST }}"
@@ -70,11 +73,21 @@
       db_name: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
       script_name: analytics-mysql.sh
       depends_on: "{{ AD_HOC_REPORTING_ANALYTICS_API_REPORTS_REPLICA_DB_HOST | default(None) }}"
-    
+
+    - db_host: "{{ AD_HOC_REPORTING_ANALYTICS_API_DEFAULT_DB_HOST }}"
+      db_name: "{{ ANALYTICS_API_DEFAULT_DB_NAME }}"
+      script_name: analytics-django-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_ANALYTICS_API_DEFAULT_DB_HOST | default(None) }}"
+
     - db_host: "{{ AD_HOC_REPORTING_ECOMMERCE_REPLICA_DB_HOST }}"
       db_name: "{{ ECOMMERCE_DEFAULT_DB_NAME }}"
       script_name: ecommerce-mysql.sh
       depends_on: "{{ AD_HOC_REPORTING_ECOMMERCE_REPLICA_DB_HOST | default(None) }}"
+
+    - db_host: "{{ AD_HOC_REPORTING_INSIGHTS_REPLICA_DB_HOST }}"
+      db_name: "{{ INSIGHTS_DATABASE_NAME }}"
+      script_name: insights-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_INSIGHTS_REPLICA_DB_HOST | default(None) }}"
   
 # These templates rely on there being a global
 # read_only mongo user, you must override the default
