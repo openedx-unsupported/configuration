@@ -52,52 +52,29 @@
     src=edx/bin/mysql.sh.j2
     dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
     mode=0755 owner=root group=root
+  when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on
+  tags:
+    - scripts
   with_items:
     - db_host: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
       db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
       script_name: edxapp-mysql.sh
-  when: COMMON_MYSQL_READ_ONLY_PASS is defined
-  tags:
-    - scripts
-  
-- name: install xqueue mysql replica scripts
-  template: >
-    src=edx/bin/mysql.sh.j2
-    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
-    mode=0755 owner=root group=root
-  with_items:
+      depends_on: True
+    
     - db_host: "{{ XQUEUE_MYSQL_REPLICA_HOST }}"
       db_name: "{{ XQUEUE_MYSQL_DB_NAME }}"
       script_name: xqueue-mysql.sh
-  when: COMMON_MYSQL_READ_ONLY_PASS is defined and XQUEUE_MYSQL_REPLICA_HOST is defined
-  tags:
-    - scripts
+      depends_on: "{{ XQUEUE_MYSQL_REPLICA_HOST | default(None) }}"
     
-- name: install analytics api mysql replica scripts
-  template: >
-    src=edx/bin/mysql.sh.j2
-    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
-    mode=0755 owner=root group=root
-  with_items:
     - db_host: "{{ ANALYTICS_API_REPORTS_REPLICA_DB_HOST }}"
       db_name: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
       script_name: analytics-mysql.sh
-  when: COMMON_MYSQL_READ_ONLY_PASS is defined and ANALYTICS_API_REPORTS_REPLICA_DB_HOST is defined
-  tags:
-    - scripts
+      depends_on: "{{ ANALYTICS_API_REPORTS_REPLICA_DB_HOST | default(None) }}"
     
-- name: install ecommerce mysql replica scripts
-  template: >
-    src=edx/bin/mysql.sh.j2
-    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
-    mode=0755 owner=root group=root
-  with_items:
     - db_host: "{{ ECOMMERCE_REPLICA_DB_HOST }}"
       db_name: "{{ ECOMMERCE_DEFAULT_DB_NAME }}"
       script_name: ecommerce-mysql.sh
-  when: COMMON_MYSQL_READ_ONLY_PASS is defined and ECOMMERCE_REPLICA_DB_HOST is defined
-  tags:
-    - scripts
+      depends_on: "{{ ECOMMERCE_REPLICA_DB_HOST | default(None) }}"
   
 # These templates rely on there being a global
 # read_only mongo user, you must override the default
