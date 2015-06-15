@@ -98,11 +98,11 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-867d3bee"
+    ami="ami-87ea1aec"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-e2bbff8a"
+    ami="ami-b92bdfd2"
   elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
-    ami="ami-88562de0"
+    ami="ami-3b6a8050"
   fi
 fi
 
