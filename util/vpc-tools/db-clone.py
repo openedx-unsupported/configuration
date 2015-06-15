@@ -1,181 +1,250 @@
-#!/usr/bin/env python -u
-import boto
-import boto.route53
-import boto.route53.record
-import boto.ec2.elb
-import boto.rds2
-import time
-from argparse import ArgumentParser, RawTextHelpFormatter
-import datetime
-import sys
-from vpcutil import rds_subnet_group_name_for_stack_name, all_stack_names
-import os
+#!/usr/bin/env python
+import boto, boto.route53, boto.rds2
+import pymysql, yaml
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from datetime import datetime
+import os, time, json, subprocess
+
+#Config vars
+CREATE_DBS_AND_USERS = "../../playbooks/edx-east/create_db_and_users.yml"
+VENV_ACTIVATE = "../../venv/bin/activate"
 
 description = """
-
    Creates a new RDS instance using restore
    from point in time using the latest available backup.
-   The new db will be the same size as the original.
-   The name of the db will remain the same, the master db password
-   will be changed and is set on the command line.
-
-   If stack-name is provided the RDS instance will be launched
-   in the VPC that corresponds to that name.
-
-   New db name defaults to "from-<source db name>-<human date>-<ts>"
-   A new DNS entry will be created for the RDS when provided
-   on the command line
-
 """
 
-RDS_SIZES = [
-    'db.m1.small',
-    'db.m1.large',
-    'db.m1.xlarge',
-    'db.m2.xlarge',
-    'db.m2.2xlarge',
-    'db.m2.4xlarg',
-]
+def parse_args():
+    parser = ArgumentParser(description=description, formatter_class=ArgumentDefaultsHelpFormatter)
 
-def parse_args(args=sys.argv[1:]):
+    #Required args
+    parser.add_argument('-s', '--source-db', dest='source_db', help="Identifier of RDS instance to clone (requried)", required=True)
+    
+    parser.add_argument('-n', '--subnet-group', dest='subnet', required=True,
+                        help='RDS subnet group name that should be used for the RDS instance (required)')
 
-    stack_names = all_stack_names()
-    rds = boto.rds2.connect_to_region('us-east-1')
-    dbs = [db['DBInstanceIdentifier']
-           for db in rds.describe_db_instances()['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']]
+    #Optional args
+    parser.add_argument('-P', '--profile', dest='profile',
+                        help='boto profile to use. Defaults to default boto profile.')
 
-    parser = ArgumentParser(description=description, formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--vpc', default=None, action="store_true",
-                        help='this is for a vpc')
-    parser.add_argument('--security-group', default=None,
-                        help='security group name that should be assigned to the new RDS instance (vpc only!)')
-    parser.add_argument('--subnet', default=None,
-                        help='subnet that should be used for the RDS instance (vpc only!)')
-    parser.add_argument('-t', '--type', choices=RDS_SIZES,
-                        default='db.m1.small', help='RDS size to create instances of')
-    parser.add_argument('-d', '--db-source', choices=dbs,
-                        default=u'stage-edx', help="source db to clone")
-    parser.add_argument('-p', '--password',
-                        help="password for the new database", metavar="NEW PASSWORD")
-    parser.add_argument('-r', '--region', default='us-east-1',
-                        help="region to connect to")
-    parser.add_argument('--dns',
-                        help="dns entry for the new rds instance")
-    parser.add_argument('--clean-wwc', action="store_true",
-                        default=False,
-                        help="clean the wwc db after launching it into the vpc, removing sensitive data")
-    parser.add_argument('--clean-prod-grader', action="store_true",
-                        default=False,
-                        help="clean the prod_grader db after launching it into the vpc, removing sensitive data")
-    parser.add_argument('--dump', action="store_true",
-                        default=False,
-                        help="create a sql dump after launching it into the vpc")
-    parser.add_argument('-s', '--secret-var-files', action="append", required=True,
-                        help="use one or more secret var files to run ansible against the host to update db users")
-    parser.add_argument('-o', '--dest-option-group', default="default:mysql-5-6",
-                        help="the option group for the new rds.")
+    parser.add_argument('-d', '--destination-db', dest='target_db', metavar='DEST_DB',
+                        help=("identifier for new cloned RDS instance. Defaults to "
+                        '"from-<source db id>-<year>-<month>-<day>-<hours>-<minutes>-<seconds>"'))
+    #default gets set later so we can use args.source_db
 
-    return parser.parse_args(args)
+    parser.add_argument('-u', '--user', dest='user', default='root',
+                        help='master username to connect to the DB with')
+    
+    parser.add_argument('-p', '--password', dest='password',
+                        help=("new master password for the new RDS instance. "
+                        "If not set, the password will be unchanged."))
+    
+    parser.add_argument('-t', '--type', default='db.m3.medium', dest='instance_type', 
+                        help='instance type to be used for clone')
+    
+    parser.add_argument('-o', '--option-group', default="default:mysql-5-6", dest='option_group',
+                        help="RDS option group for the new instance.")
+    
+    parser.add_argument('-g', '--security-groups', nargs='+', dest='security_groups',
+                        help='ids one or more security groups that should be assigned to the new RDS instance')
+    
+    parser.add_argument('-x', '--sql-script', action='append', nargs=2,
+                        dest='sql_scripts', metavar=('DBNAME', 'SCRIPTFILE'),
+                        help=("runs SCRIPTFILE (a SQL script) against DBNAME on the cloned instance. "
+                        "This option can be specified multiple times for multiple scripts. "
+                        "NB: if you don't specify --password, scripts can only be run "
+                        "if the source instance has no password."))
+
+    parser.add_argument('-c', '--dns', dest='dns', 
+                        help="dns entry (CNAME) for the new instance (e.g. foo-bar.edx.org)")
+    
+    parser.add_argument('-f', '--db-file', dest='db_file',
+                        help=("path to YAML file used for create_dbs_and_users play. "
+                        "If not specified, no users/passwords other than the root one will be changed. "
+                        'Note that the "database_connection" section of the file will be ignored.'))
+
+    parser.add_argument('--skip-dbs', action='store_true', dest='ansible_skip_dbs',
+                        help=("don't run the part of the create_dbs_and_users play that creates dbs. "
+                        'Equivalent to "--skip-tags dbs"'))
+
+    parser.add_argument('--skip-users', action='store_true', dest='ansible_skip_users',
+                        help=("don't run the part of the create_dbs_and_users play that creates users. "
+                        'Equivalent to "--skip-tags users"'))
+    
+
+    args = parser.parse_args()
+    if not args.target_db:
+        args.target_db = 'from-{}-{:%Y-%m-%d-%H-%M-%S}'.format(args.source_db, datetime.now())
+
+    return args
 
 
-def wait_on_db_status(db_name, region='us-east-1', wait_on='available', aws_id=None, aws_secret=None):
-    rds = boto.rds2.connect_to_region(region)
+def wait_on_db_status(db_name, wait_on='available', wait_time=60):
+    '''Block until RDS DB <db_name> reaches status <wait_on>.
+    Args:
+        db_name: Identifier of RDS instance
+        rds: boto RDSConnection object
+        wait_on: status to wait for
+        wait_time: time in between retries
+    '''
     while True:
-        statuses = rds.describe_db_instances(db_name)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']
-        if len(statuses) > 1:
-            raise Exception("More than one instance returned for {0}".format(db_name))
-        if statuses[0]['DBInstanceStatus'] == wait_on:
-            print("Status is: {}".format(wait_on))
-            break
-        sys.stdout.write("status is {}..\n".format(statuses[0]['DBInstanceStatus']))
-        sys.stdout.flush()
-        time.sleep(10)
-    return
+        status = get_instance(db_name)['DBInstanceStatus']
+        
+        if status == wait_on:
+            print 'Instance has reached status "{}"'.format(status)
+            return
+        else:
+            print 'Waiting for instance to reach status "{}". Status is currently "{}".'.format(wait_on, status)
+            time.sleep(wait_time)
+
+
+def get_instance(db_name):
+    '''Returns boto data about an instance
+    Args:
+        db_name: Identifier of an RDS instance
+    '''
+    instances = rds.describe_db_instances(db_name)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances']
+    
+    #This shouldn't ever be True
+    if len(instances) > 1:
+        raise Exception("More than one instance returned for {0}".format(db_name))
+
+    return instances[0]
+
+
+def run_sql(host, user, password, db, script):
+    '''Run a sql script file against a DB
+    Args:
+        host: hostname of an MySQL instance
+        user: user to run the script as
+        password: password to use
+        db: database to use
+        script: name of file containing SQL script to run
+    '''
+    print "Running {} against {}:{}".format(script, host, db)
+    connection = pymysql.connect(host=host, database=db, user=user, password=password,
+                                 cursorclass=pymysql.cursors.DictCursor)
+    try:
+        with open(script) as f:
+            cur = connection.cursor()
+            cur.execute(f.read())
+            return cur.fetchall()
+    finally:
+        connection.close()
+
+
+def run_create_dbs_and_users(db_file, host, user, password, args):
+    '''Run the create_dbs_and_users.yml ansible play
+    Args:
+        db_file: name of file containing data structure required by create_dbs_and_users
+    '''
+    print "Setting users and passwords per " + db_file
+    
+    play = os.path.basename(CREATE_DBS_AND_USERS)
+    play_path = os.path.dirname(CREATE_DBS_AND_USERS)
+
+    overrides = {
+        'database_connection': {
+            'login_host': host,
+            'login_user': user,
+            'login_password': password,
+        }
+    }
+
+    skip_tags = ','.join(tag for flag,tag in 
+        [[args.ansible_skip_users,'users'], [args.ansible_skip_dbs,'dbs']] if flag)
+
+    cmd = "source {}; ansible-playbook -c local -i localhost, {} -e@{} -e '{}'".format(
+        VENV_ACTIVATE, play, db_file, json.dumps(overrides), '--skip-tags ' + (skip_tags or ''))
+    
+    sp = subprocess.Popen(cmd, shell=True, executable='/bin/bash', cwd=play_path, 
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    while sp.poll() is None:
+        print sp.stdout.read()
+
+    if sp.returncode > 0:
+        raise Exception(cmd + ' exited with status ' + str(sp.returncode))
+
+
+def add_cname(source, dest, wait_time=10):
+    '''Add or overwrite a cname in Route53
+    Args:
+        source: CNAME points to this FQDN
+        dest: FQDN of CNAME
+    '''
+    print "Adding CNAME from {} to {}".format(args.dns, dbhost)
+    route53 = boto.connect_route53()
+    
+    domain = '.'.join(dest.split('.')[-2:])
+    zone = route53.get_zone(domain)
+    
+    entry = zone.get_cname(dest)
+    f = zone.update_cname if entry else zone.add_cname
+    status = f(dest, source, ttl=300)
+    
+    while status.status != 'INSYNC':
+        print 'Waiting for instance to reach status "{}". Status is currently "{}"'.format('INSYNC', status.status)
+        status.update()
+        time.sleep(wait_time)
+    else:
+        print "Route53 has updated"
+
+
+def main():
+    args = parse_args()
+
+    global rds      #so we don't have to pass it into every function
+    rds = boto.connect_rds2(profile_name=args.profile)
+
+    ### Create Instance ###
+    create_args = dict(
+        source_db_instance_identifier = args.source_db,
+        target_db_instance_identifier = args.target_db,
+        use_latest_restorable_time = True,
+        db_instance_class = args.instance_type,
+        option_group_name = args.option_group,
+        db_subnet_group_name = args.subnet,
+    )
+    
+    print "Cloning instance: {}".format(create_args)
+    rds.restore_db_instance_to_point_in_time(**create_args)
+
+    wait_on_db_status(args.target_db)
+    
+
+    ### Set Instance Config ###    
+    modify_args = dict(
+        apply_immediately = True,
+        master_user_password = args.password,
+        vpc_security_group_ids = args.security_groups,
+    )
+
+    print "Updating db instance configuration: {}".format(modify_args)    
+    rds.modify_db_instance(args.target_db, **modify_args)
+    
+    time.sleep(15)
+    wait_on_db_status(args.target_db)
+    time.sleep(15)
+
+
+    ### Run SQL Scripts ###
+    dbhost = get_instance(args.target_db)['Endpoint']['Address']
+    if args.sql_scripts:
+        for pair in args.sql_scripts:
+            print run_sql(host=dbhost, user=args.user,
+                password=args.password, db=pair[0], script=pair[1])
+
+
+    ### Run create_dbs_and_users play to set users for desired target environment ###
+    if args.db_file:
+        run_create_dbs_and_users(args.db_file, dbhost, args.user, args.password, args)
+
+
+    ### Create CNAME for new instance ###
+    if args.dns:
+        add_cname(dbhost, args.dns)
+
 
 if __name__ == '__main__':
-    args = parse_args()
-    sanitize_wwc_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sanitize-db-wwc.sql")
-    sanitize_prod_grader_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sanitize-db-prod_grader.sql")
-    play_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../playbooks/edx-east")
-
-    rds = boto.rds2.connect_to_region(args.region)
-    restore_dbid = 'from-{0}-{1}-{2}'.format(args.db_source, datetime.date.today(), int(time.time()))
-    restore_args = dict(
-        source_db_instance_identifier=args.db_source,
-        target_db_instance_identifier=restore_dbid,
-        use_latest_restorable_time=True,
-        db_instance_class=args.type,
-        option_group_name=args.dest_option_group,
-    )
-    if args.vpc:
-        restore_args['db_subnet_group_name'] = args.subnet
-    rds.restore_db_instance_to_point_in_time(**restore_args)
-    wait_on_db_status(restore_dbid)
-    print("Getting db host")
-    db_host = rds.describe_db_instances(restore_dbid)['DescribeDBInstancesResponse']['DescribeDBInstancesResult']['DBInstances'][0]['Endpoint']['Address']
-
-    modify_args = dict(
-        apply_immediately=True
-    )
-    if args.password:
-        modify_args['master_user_password'] = args.password
-
-    if args.vpc:
-        modify_args['vpc_security_group_ids'] = [args.security_group]
-    else:
-        # dev-edx is the default security group for dbs that
-        # are not in the vpc, it allows connections from the various
-        # NAT boxes and from sandboxes
-        modify_args['db_security_groups'] = ['dev-edx']
-
-    # Update the db immediately
-    print("Updating db instance: {}".format(modify_args))
-    rds.modify_db_instance(restore_dbid, **modify_args)
-    print("Waiting 15 seconds before checking to see if db is available")
-    time.sleep(15)
-    wait_on_db_status(restore_dbid)
-    print("Waiting another 15 seconds")
-    time.sleep(15)
-    if args.clean_wwc:
-        # Run the mysql clean sql file
-        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} wwc < {sanitize_wwc_sql_file} """.format(
-            root_pass=args.password,
-            db_host=db_host,
-            sanitize_wwc_sql_file=sanitize_wwc_sql_file)
-        print("Running {}".format(sanitize_cmd))
-        os.system(sanitize_cmd)
-
-    if args.clean_prod_grader:
-        # Run the mysql clean sql file
-        sanitize_cmd = """mysql -u root -p{root_pass} -h{db_host} prod_grader < {sanitize_prod_grader_sql_file} """.format(
-            root_pass=args.password,
-            db_host=db_host,
-            sanitize_prod_grader_sql_file=sanitize_prod_grader_sql_file)
-        print("Running {}".format(sanitize_cmd))
-        os.system(sanitize_cmd)
-
-    if args.secret_var_files:
-        extra_args = ""
-        for secret_var_file in args.secret_var_files:
-            extra_args += " -e@{}".format(secret_var_file)
-
-        db_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, create_dbs.yml """ \
-            """{extra_args} -e "edxapp_db_root_user=root xqueue_db_root_user=root" """ \
-            """ -e "db_root_pass={root_pass}" """ \
-            """ -e "EDXAPP_MYSQL_HOST={db_host}" """ \
-            """ -e "XQUEUE_MYSQL_HOST={db_host}" """.format(
-            root_pass=args.password,
-            extra_args=extra_args,
-            db_host=db_host,
-            play_path=play_path)
-        print("Running {}".format(db_cmd))
-        os.system(db_cmd)
-
-    if args.dns:
-        dns_cmd = """cd {play_path} && ansible-playbook -c local -i 127.0.0.1, create_cname.yml """ \
-            """-e "dns_zone=edx.org dns_name={dns} sandbox={db_host}" """.format(
-            play_path=play_path,
-            dns=args.dns,
-            db_host=db_host)
-        print("Running {}".format(dns_cmd))
-        os.system(dns_cmd)
+    main()
