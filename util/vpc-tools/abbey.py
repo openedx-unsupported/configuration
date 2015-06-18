@@ -5,6 +5,7 @@ import time
 import json
 import yaml
 import os
+import requests
 try:
     import boto.ec2
     import boto.sqs
@@ -124,6 +125,9 @@ def parse_args():
     parser.add_argument("--hipchat-api-token", required=False,
                         default=None,
                         help="The API token for Hipchat integration")
+    parser.add_argument("--callback-url", required=False,
+                        default=None,
+                        help="The callback URL to send notifications to")
     parser.add_argument("--root-vol-size", required=False,
                         default=50,
                         help="The size of the root volume to use for the "
@@ -138,7 +142,6 @@ def parse_args():
                        default=False)
 
     return parser.parse_args()
-
 
 def get_instance_sec_group(vpc_id):
 
@@ -669,6 +672,9 @@ def launch_and_configure(ec2_args):
 
 def send_hipchat_message(message):
     print(message)
+    if args.callback_url:
+        r=requests.get("{}/{}".format(args.callback_url, message))
+
     #If hipchat is configured send the details to the specified room
     if args.hipchat_api_token and args.hipchat_room_id:
         import hipchat
