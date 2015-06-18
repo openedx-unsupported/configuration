@@ -45,6 +45,22 @@
   with_items: ecommerce_dev_requirements
   when: devstack
 
+- name: create nodeenv
+  shell: >
+    creates={{ ecommerce_nodeenv_dir }}
+    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/nodeenv {{ ecommerce_nodeenv_dir }}
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: install node dependencies
+  npm: executable={{ ecommerce_nodeenv_bin }}/npm path={{ ecommerce_code_dir }} production=yes
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: install bower dependencies
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/bower install --production --config.interactive=false
+  sudo_user: "{{ ecommerce_user }}"
+
 - name: migrate
   shell: >
     chdir={{ ecommerce_code_dir }}
@@ -54,6 +70,12 @@
   sudo_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run r.js optimizer
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js
+  sudo_user: "{{ ecommerce_user }}"
 
 - name: run collectstatic
   shell: >
