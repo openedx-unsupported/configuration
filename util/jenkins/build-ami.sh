@@ -101,7 +101,7 @@ notification_params=""
 if [[ ! -z "$callback_url" ]]; then
   if [[ ! -z "$jobid" ]]; then
     notification_params="--callback-url $callback_url$jobid"
-    curl "$callback_url$jobid/starting%20abbey%20for%20$jobid"
+    curl "$callback_url$jobid/starting%20ansible"
   fi
 fi
 
