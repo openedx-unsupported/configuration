@@ -5,10 +5,6 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from datetime import datetime
 import os, time, json, subprocess
 
-#Config vars
-CREATE_DBS_AND_USERS = "../../playbooks/edx-east/create_db_and_users.yml"
-VENV_ACTIVATE = "../../venv/bin/activate"
-
 description = """
    Creates a new RDS instance using restore
    from point in time using the latest available backup.
@@ -70,6 +66,13 @@ def parse_args():
     parser.add_argument('--skip-users', action='store_true', dest='ansible_skip_users',
                         help=("don't run the part of the create_dbs_and_users play that creates users. "
                         'Equivalent to "--skip-tags users"'))
+
+    parser.add_argument('--ansible-venv', dest='ansible_venv', default="../../venv/bin/activate",
+                        help="path to the virtualenv activate script that should be run before ansible is run")
+
+    parser.add_argument('--create-dbs-and-users', dest='create_dbs_and_users',
+                        default="../../playbooks/edx-east/create_db_and_users.yml",
+                        help='path to the create_dbs_and_users.yml ansible play')
     
 
     args = parser.parse_args()
@@ -131,6 +134,7 @@ def run_sql(host, user, password, db, script):
             return cur.fetchall()
     finally:
         connection.close()
+        print "Done"
 
 
 def run_create_dbs_and_users(db_file, host, user, password, args):
@@ -140,8 +144,8 @@ def run_create_dbs_and_users(db_file, host, user, password, args):
     '''
     print "Setting users and passwords per " + db_file
     
-    play = os.path.basename(CREATE_DBS_AND_USERS)
-    play_path = os.path.dirname(CREATE_DBS_AND_USERS)
+    play = os.path.basename(args.create_dbs_and_users)
+    play_path = os.path.dirname(args.create_dbs_and_users)
 
     overrides = {
         'database_connection': {
@@ -154,8 +158,9 @@ def run_create_dbs_and_users(db_file, host, user, password, args):
     skip_tags = ','.join(tag for flag,tag in 
         [[args.ansible_skip_users,'users'], [args.ansible_skip_dbs,'dbs']] if flag)
 
-    cmd = "source {}; ansible-playbook -c local -i localhost, {} -e@{} -e '{}'".format(
-        VENV_ACTIVATE, play, db_file, json.dumps(overrides), '--skip-tags ' + (skip_tags or ''))
+    cmd = "source {venv}; ansible-playbook -c local -i localhost, {play} -e@{dbfile} -e '{overrides}' {skiptags}".format(
+        venv=args.ansible_venv, play=play, dbfile=db_file, overrides=json.dumps(overrides),
+        skiptags=('--skip-tags ' + skip_tags) if skip_tags else '')
     
     sp = subprocess.Popen(cmd, shell=True, executable='/bin/bash', cwd=play_path, 
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -165,6 +170,8 @@ def run_create_dbs_and_users(db_file, host, user, password, args):
 
     if sp.returncode > 0:
         raise Exception(cmd + ' exited with status ' + str(sp.returncode))
+
+    print "Done"
 
 
 def add_cname(source, dest, wait_time=10):
