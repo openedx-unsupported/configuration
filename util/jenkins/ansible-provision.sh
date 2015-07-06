@@ -173,9 +173,9 @@ if [[ $edx_internal == "true" ]]; then
     # user and set edx_internal to True so that
     # xserver is installed
     cat << EOF >> $extra_vars_file
-EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
+EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio.${deploy_host}
+EDXAPP_CMS_BASE: studio-${deploy_host}
 EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
