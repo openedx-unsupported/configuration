@@ -174,7 +174,7 @@ def restore_mysql(backup_filename, uncompress=True):
         print 'error while restoring the mysql database'
         return False  # write to logs or send email???
 
-    cmd = 'source /edx/app/edxapp/edxapp_env && /edx/bin/manage.edxapp lms migrate --settings=docker --delete-ghost-migrations'
+    cmd = 'source /edx/app/edxapp/edxapp_env && /edx/bin/manage.edxapp lms migrate --settings=aws_appsembler --delete-ghost-migrations'
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
     if ret:  # if non-zero return
         print 'error while running edx migrations'
