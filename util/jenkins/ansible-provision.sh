@@ -76,6 +76,7 @@ if [[ -z $region ]]; then
   region="us-east-1"
 fi
 
+# edX has reservations for sandboxes in this zone, don't change without updating reservations.
 if [[ -z $zone ]]; then
   zone="us-east-1c"
 fi
