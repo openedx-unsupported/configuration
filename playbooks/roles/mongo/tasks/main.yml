@@ -7,6 +7,15 @@
   fail: msg="MongoDB 2.4 is currently installed and cannot be safely upgraded in a clustered configuration.  Please read http://docs.mongodb.org/manual/release-notes/2.6-upgrade/#upgrade-considerations and upgrade to 2.6."
   when: mongodb_needs_upgrade.stat.exists and MONGO_CLUSTERED
   
+- name: check to see if MongoDB is already installed
+  stat: path=/etc/init.d/mongod
+  register: mongodb_already_installed
+  when: MONGO_CLUSTERED
+
+- name: verify MongoDB not installed (clustered upgrades)
+  fail: msg="MongoDB is currently installed and cannot be safely upgraded in a clustered configuration.  FIXME"
+  when: mongodb_already_installed.stat.exists and MONGO_CLUSTERED
+
 - name: remove mongo 2.4 if present
   apt: >
     pkg=mongodb-10gen
