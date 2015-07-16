@@ -16,12 +16,14 @@
   user: name={{ forum_user }} groups={{ common_web_group }} append=yes
   when: forum_user is defined
 
+# Need this in order for the forum user to install and uninstall
+# gems using 'bundle' or 'gem'.  Can't make it 760 because that
+# would break the bin directory under .gem
 - name: set forum rbenv and gem permissions
   file:
-    path={{ item }} state=directory recurse=yes mode=770
+    path={{ item }} state=directory recurse=yes mode="g+rw"
   with_items:
     - "{{ forum_app_dir }}/.gem"
-    - "{{ forum_app_dir }}/.rbenv"
   when: forum_user is defined
 
 # Create scripts to configure environment
