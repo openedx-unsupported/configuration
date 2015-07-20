@@ -78,13 +78,16 @@ TEMPDIR=`mktemp -d`
 chmod 777 $TEMPDIR
 cd $TEMPDIR
 git clone https://github.com/edx/configuration.git --depth=1 --single-branch --branch=$TARGET
+virtualenv venv
+source venv/bin/activate
+pip install -r configuration/requirements.txt
 echo "edx_platform_version: $TARGET" >> vars.yml
 echo "ora2_version: $TARGET" >> vars.yml
 echo "certs_version: $TARGET" >> vars.yml
 echo "forum_version: $TARGET" >> vars.yml
 echo "xqueue_version: $TARGET" >> vars.yml
 cd configuration/playbooks
-sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook \
+sudo ansible-playbook \
     --inventory-file=localhost, \
     --connection=local \
     --extra-vars=\"@../../vars.yml\" \
