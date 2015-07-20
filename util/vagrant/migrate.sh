@@ -2,7 +2,7 @@
 
 # defaults
 CONFIGURATION="fullstack"
-TARGET="named-release/birch"
+TARGET="named-release/cypress.rc"
 INTERACTIVE=true
 
 read -d '' HELP_TEXT <<- EOM
