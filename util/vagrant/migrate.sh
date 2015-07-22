@@ -70,6 +70,33 @@ EOM
   fi
 fi
 
+if [[ $TARGET == *cypress* && $INTERACTIVE == true ]] ; then
+  cat <<"EOM"
+          WARNING WARNING WARNING WARNING WARNING
+The Cypress release of Open edX upgraded the version of Celery used
+by edx-platform workers.  This change was introduced to fix the fact
+that or restart the celery worker sometimes blocks indefinitely and
+does not get shutdon.  In order to reduce the risks during the upgrade
+we will pre-emptively kill all celery workers on this machine.
+
+Birch also introduced a change that breaks the newer version of
+ansible when it tries to update the forums rbenv repository. In order
+to fix the issue, uncommited modifications made to the /edx/app/forum/.rbenv
+repo will be reverted.
+
+Do you wish to proceed?
+EOM
+  read input
+  if [ "$input" != "yes" -a "$input" != "y" ]; then
+    echo "Quitting"
+    exit 1
+  else
+    echo "Killing all celery worker processes."
+    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+    sudo -u forum git -C /edx/app/forum/.rbenv reset --hard
+  fi
+fi
+
 if [ -f /edx/app/edx_ansible/server-vars.yml ]; then
   SERVER_VARS="--extra-vars=\"@/edx/app/edx_ansible/server-vars.yml\""
 fi
