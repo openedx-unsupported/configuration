@@ -80,23 +80,10 @@ fi
 if [[ $TARGET == *cypress* && $INTERACTIVE == true ]] ; then
   cat <<"EOM"
           WARNING WARNING WARNING WARNING WARNING
-The Cypress release of Open edX upgraded the version of Celery used
-by the edx-platform workers.  This change was introduced to fix the fact
-that when trying to restart the celery worker, the process hangs while
-trying to shutdown.  This will cause it to block indefinitely. In order
-to prevent this from happening during the upgrade we will pre-emptively
-kill all celery workers on this machine.
+Due to the changes introduced between Birch and Cypress, you may encounter
+some problems in this migration. If so, check this webpage for solutions:
 
-Birch also introduced a change that breaks the newer version of
-ansible when it tries to update the forums rbenv repository. In order
-to fix the issue, uncommited modifications made to the /edx/app/forum/.rbenv
-repo will be reverted.
-
-Note: that this script assumes the standard location for all tools
-installed by edx-ansible (under the '/edx') directory if this is
-not the case for you please re-run this script after setting the
-'OPENEDX_ROOT' environment variable to your equivalent of '/edx'
-and re-running this script.
+https://openedx.atlassian.net/wiki/display/OpenOPS/Potential+Problems+Migrating+from+Birch+to+Cypress
 
 Do you wish to proceed?
 EOM
