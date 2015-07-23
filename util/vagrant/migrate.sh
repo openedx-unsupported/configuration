@@ -16,8 +16,9 @@ Attempts to migrate your Open edX installation to a different release.
     Migrate to the given git ref. Defaults to \"$TARGET\"
 -y
     Run in non-interactive mode (reply \"yes\" to all questions)
--r EDX_ROOT
-    The root directory under which all edx applications are installed.
+-r OPENEDX_ROOT
+    The root directory under which all Open edX applications are installed.
+    Defaults to \"$OPENEDX_ROOT\"
 -h
     Show this help and exit.
 EOM
@@ -120,7 +121,7 @@ EOM
 fi
 
 if [ -f /edx/app/edx_ansible/server-vars.yml ]; then
-  SERVER_VARS="--extra-vars=\"@/edx/app/edx_ansible/server-vars.yml\""
+  SERVER_VARS="--extra-vars=\"@${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml\""
 fi
 
 TEMPDIR=`mktemp -d`
