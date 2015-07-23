@@ -4,6 +4,7 @@
 CONFIGURATION="fullstack"
 TARGET="named-release/cypress.rc"
 INTERACTIVE=true
+OPENEDX_ROOT="/edx"
 
 read -d '' HELP_TEXT <<- EOM
 Attempts to migrate your Open edX installation to a different release.
@@ -15,6 +16,8 @@ Attempts to migrate your Open edX installation to a different release.
     Migrate to the given git ref. Defaults to \"$TARGET\"
 -y
     Run in non-interactive mode (reply \"yes\" to all questions)
+-r EDX_ROOT
+    The root directory under which all edx applications are installed.
 -h
     Show this help and exit.
 EOM
@@ -34,6 +37,9 @@ while getopts "hc:t:y" opt; do
       ;;
     y)
       INTERACTIVE=false
+      ;;
+    r)
+      OPENEDX_ROOT=$OPTARG
       ;;
   esac
 done
@@ -74,15 +80,22 @@ if [[ $TARGET == *cypress* && $INTERACTIVE == true ]] ; then
   cat <<"EOM"
           WARNING WARNING WARNING WARNING WARNING
 The Cypress release of Open edX upgraded the version of Celery used
-by edx-platform workers.  This change was introduced to fix the fact
-that or restart the celery worker sometimes blocks indefinitely and
-does not get shutdon.  In order to reduce the risks during the upgrade
-we will pre-emptively kill all celery workers on this machine.
+by the edx-platform workers.  This change was introduced to fix the fact
+that when trying to restart the celery worker, the process hangs while
+trying to shutdown.  This will cause it to block indefinitely. In order
+to prevent this from happening during the upgrade we will pre-emptively
+kill all celery workers on this machine.
 
 Birch also introduced a change that breaks the newer version of
 ansible when it tries to update the forums rbenv repository. In order
 to fix the issue, uncommited modifications made to the /edx/app/forum/.rbenv
 repo will be reverted.
+
+Note: that this script assumes the standard location for all tools
+installed by edx-ansible (under the '/edx') directory if this is
+not the case for you please re-run this script after setting the
+'OPENEDX_ROOT' environment variable to your equivalent of '/edx'
+and re-running this script.
 
 Do you wish to proceed?
 EOM
@@ -92,8 +105,16 @@ EOM
     exit 1
   else
     echo "Killing all celery worker processes."
+    sudo ${OPENEDX_ROOT}/bin/supervisorctl stop edxapp_worker:* &
+    # Supervisor restarts the process a couple of times so we have to kill it multiple times.
     sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
-    sudo -u forum git -C /edx/app/forum/.rbenv reset --hard
+    sleep 2
+    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+    sleep 2
+    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+    sleep 2
+    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+    sudo -u forum git -C ${OPENEDX_ROOT}/app/forum/.rbenv reset --hard
   fi
 fi
 
@@ -126,5 +147,5 @@ if [ $exitcode != 0 ]; then
   exit $exitcode;
 fi
 cd /
-rm -rf $TEMPDIR
+sudo rm -rf $TEMPDIR
 echo "Migration complete. Please reboot your machine."
