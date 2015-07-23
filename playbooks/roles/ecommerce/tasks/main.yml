@@ -34,16 +34,6 @@
     state=present
   sudo_user: "{{ ecommerce_user }}"
   with_items: ecommerce_requirements
-  when: not devstack
-
-- name: install application requirements
-  pip: >
-    requirements="{{ ecommerce_requirements_base }}/{{ item }}"
-    virtualenv="{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}"
-    state=present
-  sudo_user: "{{ ecommerce_user }}"
-  with_items: ecommerce_dev_requirements
-  when: devstack
 
 - name: create nodeenv
   shell: >
@@ -145,3 +135,18 @@
     name={{ ecommerce_service_name }}
   when: not disable_edx_services
   sudo_user: "{{ supervisor_service_user }}"
+
+- name: create OAuth2 Client
+  shell: >
+    {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings=aws
+    create_oauth2_client
+    "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
+    "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}/complete/edx-oidc/"
+    confidential
+    --client_name "{{ ecommerce_service_name }}"
+    --client_id "{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }}"
+    --client_secret "{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}"
+    --trusted
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  when: create_oauth2_clients
