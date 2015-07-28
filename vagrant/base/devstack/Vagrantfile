@@ -13,6 +13,8 @@ themes_mount_dir = "themes"
 forum_mount_dir = "cs_comments_service"
 ora_mount_dir = "ora"
 ecommerce_mount_dir = "ecommerce"
+insights_mount_dir = "insights"
+analytics_api_mount_dir = "analytics_api"
 
 if ENV['VAGRANT_MOUNT_BASE']
 
@@ -21,6 +23,8 @@ if ENV['VAGRANT_MOUNT_BASE']
   forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
   ora_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ora_mount_dir
   ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_mount_dir
+  insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
+  analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
 
 end
 
@@ -40,6 +44,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 8765, host: 8765
   config.vm.network :forwarded_port, guest: 9200, host: 9200
   config.vm.network :forwarded_port, guest: 18080, host: 18080
+  config.vm.network :forwarded_port, guest: 8100, host: 8100  # Insights
+  config.vm.network :forwarded_port, guest: 8110, host: 8110  # Analytics Data API
   config.ssh.insert_key = true
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
@@ -63,6 +69,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
           create: true, owner: "ora", group: "www-data"
     end
+    config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
+      create: true, owner: "insights", group: "www-data"
+    config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
+      create: true, owner: "analytics_api", group: "www-data"
   else
     config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
       create: true, nfs: true
@@ -77,6 +87,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
           create: true, nfs: true
     end
+
+    config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
+      create: true, nfs: true
+    config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
+      create: true, nfs: true
   end
 
 
