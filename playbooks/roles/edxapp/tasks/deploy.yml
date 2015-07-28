@@ -60,12 +60,19 @@
     GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_theme_checkout
 
+- name: Stat each requirements file to ensure it exists
+  stat: path="{{ item }}"
+  with_items: "{{ edxapp_requirements_with_github_urls }}"
+  register: requirement_file_stats
+
 # Substitute github mirror in all requirements files
 # This is run on every single deploy
 - name: Updating requirement files for git mirror
   command: |
-    /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ " ".join(edxapp_requirements_with_github_urls) }}
+    /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ item.item }}
   sudo_user: "{{ edxapp_user }}"
+  when: item.stat.exists
+  with_items: "{{ requirement_file_stats.results }}"
 
 # Ruby plays that need to be run after platform updates.
 - name: gem install bundler
