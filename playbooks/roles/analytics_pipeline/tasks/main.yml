@@ -39,8 +39,61 @@
     dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/input.json
     mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
 
+- name: util library source checked out
+  git: >
+    dest={{ analytics_pipeline_util_library.path }} repo={{ analytics_pipeline_util_library.repo }}
+    version={{ analytics_pipeline_util_library.version }}
+
+- name: lib directory created
+  file: >
+    path={{ HADOOP_COMMON_USER_HOME }}/lib
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+
+- name: check if the util library needs to be built
+  stat: >
+    path={{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar
+  register: util_lib_built
+
+- name: util library built
+  shell: >
+    chdir={{ analytics_pipeline_util_library.path }}
+    {{ hadoop_common_java_home }}/bin/javac -cp `{{ HADOOP_COMMON_HOME }}/bin/hadoop classpath` org/edx/hadoop/input/ManifestTextInputFormat.java &&
+    {{ hadoop_common_java_home }}/bin/jar cf {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar org/edx/hadoop/input/ManifestTextInputFormat.class &&
+    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar
+  when: not util_lib_built.stat.exists
+
+- name: ensure hdfs services are started
+  service: >
+    name=hdfs
+    state=started
+
+- name: ensure map reduce services are started
+  service: >
+    name=yarn
+    state=started
+
+- name: ensure package dir exists in HDFS
+  shell: >
+    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/
+  sudo_user: "{{ hadoop_common_user }}"
+
+- name: ensure util library is in HDFS
+  shell: >
+    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/
+  sudo_user: "{{ hadoop_common_user }}"
+
+- name: ensure the data directory exists
+  shell: >
+    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}
+  sudo_user: "{{ hadoop_common_user }}"
+
+- name: ensure tracking log file can be read
+  file: >
+    path={{ COMMON_LOG_DIR }}/tracking/tracking.log
+    mode=0644
+
 - name: cron job syncs tracking log file to hdfs
   cron: >
     user={{ hadoop_common_user }}
     name="Sync tracking log to HDFS"
-    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f /edx/var/log/tracking/tracking.log hdfs://localhost:9000/data/tracking.log"
+    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
