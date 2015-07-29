@@ -55,6 +55,18 @@
     dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/input.json
     mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
 
+- name: luigi configuration directory created
+  file: >
+    path=/etc/luigi
+    state=directory
+    mode=755
+
+- name: luigi configuration file written
+  template: >
+    src=client.cfg.j2
+    dest=/etc/luigi/client.cfg
+    mode=644
+
 - name: util library source checked out
   git: >
     dest={{ analytics_pipeline_util_library.path }} repo={{ analytics_pipeline_util_library.repo }}
@@ -112,4 +124,4 @@
   cron: >
     user={{ hadoop_common_user }}
     name="Sync tracking log to HDFS"
-    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
