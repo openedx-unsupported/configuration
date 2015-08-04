@@ -674,16 +674,16 @@ def send_hipchat_message(message):
     print(message)
     if args.callback_url:
         r=requests.get("{}/{}".format(args.callback_url, message))
-
-    #If hipchat is configured send the details to the specified room
-    if args.hipchat_api_token and args.hipchat_room_id:
-        import hipchat
-        try:
-            hipchat = hipchat.HipChat(token=args.hipchat_api_token)
-            hipchat.message_room(args.hipchat_room_id, 'AbbeyNormal',
-                                 message)
-        except Exception as e:
-            print("Hipchat messaging resulted in an error: %s." % e)
+    else:
+        #If hipchat is configured send the details to the specified room
+        if args.hipchat_api_token and args.hipchat_room_id:
+            import hipchat
+            try:
+                hipchat = hipchat.HipChat(token=args.hipchat_api_token)
+                hipchat.message_room(args.hipchat_room_id, 'AbbeyNormal',
+                                     message)
+            except Exception as e:
+                print("Hipchat messaging resulted in an error: %s." % e)
 
 if __name__ == '__main__':
 
