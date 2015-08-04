@@ -248,4 +248,51 @@
         volumes: "{{ service_config.volumes }}"
       with_sequence: count={{create_instances|default(created_service.subnets.results|length) }}
       when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+      register: created_instances
 
+    - name: Add new instances to host group
+      add_host:
+        hostname: "{{ item.1.public_ip }}"
+        groups: created_instances
+        #might need ansible_ssh_private_key_file and/or ansible_ssh_user
+        volumes: "{{ service_config.volumes }}"
+      with_subelements:
+        - created_instances.results
+        - instances
+      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+
+
+- name: Configure launched instances
+  hosts: created_instances
+  gather_facts: False
+  become: True
+  tasks:
+    #Wait in this play so it can multiplex across all launched hosts
+    - name: Wait for hosts to be ready
+      become: False
+      local_action:
+        module: wait_for
+        host: "{{ inventory_hostname }}"
+        port: 22
+
+    - name: Gather facts
+      setup:
+
+    - name: Unmount disks mounted to the wrong place
+      mount:
+        name: "{{ item[0].mount }}"
+        src: "{{ item[0].device }}"
+        fstype: "{{ item[0].fstype }}"
+        state: unmounted
+      when: item[1].device_name == item[0].device and item[1].mount != item[0].mount
+      with_nested:
+        - ansible_mounts
+        - volumes
+
+    - name: Mount ephemeral disks
+      mount:
+        fstype: ext4
+        name: "{{ item.mount }}"
+        src: "{{ item.device_name }}"
+        state: mounted
+      with_items: volumes
