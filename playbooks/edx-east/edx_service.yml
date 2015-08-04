@@ -240,12 +240,12 @@
         wait: "yes"
         group_id: "{{ service_sec_group.group_id }}"
         key_name: "{{ service_config.key_name }}"
-        vpc_subnet_id: "{{ item.subnet_id }}"
+        vpc_subnet_id: "{{ created_service.subnets.results[item|int % created_service.subnets.results|length].subnet_id }}"
         instance_type: "{{ service_config.instance_type }}"
         instance_tags: "{{ asg_instance_tags }}"
         image: "{{ service_config.ami }}"
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
-      with_items: created_service_subnets.results
+      with_sequence: count={{create_instances|default(created_service.subnets.results|length) }}
       when: not auto_scaling_service and potential_existing_instances.instances|length == 0
 
