@@ -2,7 +2,7 @@
 
 # defaults
 CONFIGURATION="fullstack"
-TARGET="named-release/birch.1"
+TARGET="named-release/birch.2"
 INTERACTIVE=true
 
 read -d '' HELP_TEXT <<- EOM
