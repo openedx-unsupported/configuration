@@ -96,14 +96,21 @@ def main():
             aws_secret_key=dict(aliases=['ec2_secret_key', 'secret_key'],
                                 no_log=True),
             aws_access_key=dict(aliases=['ec2_access_key', 'access_key']),
-            tags=dict(default=None, type='list'),
+            tags=dict(default=None),
         )
     )
 
+    tags_param = module.params.get('tags')
     tags = {}
-    for item in module.params.get('tags'):
-        for k,v in item.iteritems():
-            tags[k] = v
+    if isinstance(tags_param, list):
+      for item in module.params.get('tags'):
+          for k,v in item.iteritems():
+              tags[k] = v
+    elif isinstance(tags_param, dict):
+        tags = tags_param
+    else:
+        module.fail_json(msg="Invalid format for tags")
+
 
     aws_secret_key = module.params.get('aws_secret_key')
     aws_access_key = module.params.get('aws_access_key')

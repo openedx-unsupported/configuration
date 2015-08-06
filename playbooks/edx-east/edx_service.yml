@@ -6,7 +6,6 @@
   gather_facts: False
   vars:
     state: "present"
-    auto_scaling_service: True
   tasks:
     - name: Manage IAM Role and Profile
       ec2_iam_role:
@@ -226,13 +225,23 @@
       with_items: metric_alarms 
       when: auto_scaling_service
 
+    - name: Transform tags into dict format for the modules that expect it
+      util_map:
+        function: zip_to_dict
+        input: "{{ asg_instance_tags }}"
+        args: ['key', 'value']
+      register: reformatted_asg_instance_tags
+
     - name: See if instances already exist
-      local_action:
-        module: "ec2_lookup"
+      ec2_lookup:
         region: "{{ aws_region }}"
-        tags: "{{ asg_instance_tags }}"
+        tags: "{{ reformatted_asg_instance_tags.function_output }}"
       register: potential_existing_instances
 
+    #This task will create the number of instances requested (create_instances parameter). 
+    # By default, it will create instances equaling the number of subnets specified.
+    #Modulo logic explained: The subnet specified will be the instance number modulo the number of subnets, 
+    # so that instances are balanced across subnets.
     - name: Manage instances
       ec2:
         profile: "{{ profile }}"
@@ -240,12 +249,72 @@
         wait: "yes"
         group_id: "{{ service_sec_group.group_id }}"
         key_name: "{{ service_config.key_name }}"
-        vpc_subnet_id: "{{ item.subnet_id }}"
+        vpc_subnet_id: "{{ created_service_subnets.results[item | int % created_service_subnets.results | length].subnet_id }}"
         instance_type: "{{ service_config.instance_type }}"
-        instance_tags: "{{ asg_instance_tags }}"
+        instance_tags: "{{ reformatted_asg_instance_tags.function_output }}"
         image: "{{ service_config.ami }}"
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
-      with_items: created_service_subnets.results
+      with_sequence: count={{ create_instances | default(created_service_subnets.results | length) }}
+      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+      register: created_instances
+
+    - name: Add new instances to host group
+      add_host:
+        hostname: "{{ item.1.private_ip }}"
+        groups: created_instances_group
+        #might need ansible_ssh_private_key_file and/or ansible_ssh_user
+        ansible_ssh_user: ubuntu
+        volumes: "{{ service_config.volumes }}"
+      with_subelements:
+        - created_instances.results
+        - instances
       when: not auto_scaling_service and potential_existing_instances.instances|length == 0
 
+
+- name: Configure launched instances
+  hosts: created_instances_group
+  gather_facts: False
+  become: True
+  tasks:
+    #Wait in this play so it can multiplex across all launched hosts
+    - name: Wait for hosts to be ready
+      become: False
+      local_action:
+        module: wait_for
+        host: "{{ inventory_hostname }}"
+        port: 22
+
+    #Must wait for the instance to be ready before gathering facts
+    - name: Gather facts
+      setup:
+
+    - name: Unmount all specified disks that are currently mounted
+      mount:
+        name: "{{ item[0].mount }}"
+        src: "{{ item[0].device }}"
+        fstype: "{{ item[0].fstype }}"
+        state: absent
+      when: item[1].device_name == item[0].device
+      with_nested:
+        - ansible_mounts
+        - volumes
+
+    #Must use force=yes because AWS gives some ephemeral disks the wrong fstype and mounts them by default.
+    #Since we don't do this task if any prior instances were found in the ec2_lookup task, it's safe to force.
+    - name: Create filesystems
+      filesystem:
+        dev: "{{ item.device_name }}"
+        fstype: ext4
+        force: yes
+      with_items: volumes
+
+    - name: Mount disks
+      mount:
+        fstype: ext4
+        name: "{{ item.mount }}"
+        src: "{{ item.device_name }}"
+        state: mounted
+        fstype: "{{ item.fstype | default('ext4') }}"
+        opts: "{{ item.options | default('defaults') }}"
+      with_items: volumes
