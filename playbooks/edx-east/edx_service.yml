@@ -225,19 +225,18 @@
       with_items: metric_alarms 
       when: auto_scaling_service
 
-    - name: See if instances already exist
-      local_action:
-        module: "ec2_lookup"
-        region: "{{ aws_region }}"
-        tags: "{{ asg_instance_tags }}"
-      register: potential_existing_instances
-
-    - name: Transform tags to the format ec2 module expects
+    - name: Transform tags into dict format for the modules that expect it
       util_map:
         function: zip_to_dict
         input: "{{ asg_instance_tags }}"
         args: ['key', 'value']
       register: reformatted_asg_instance_tags
+
+    - name: See if instances already exist
+      ec2_lookup:
+        region: "{{ aws_region }}"
+        tags: "{{ reformatted_asg_instance_tags.function_output }}"
+      register: potential_existing_instances
 
     #This task will create the number of instances requested (create_instances parameter). 
     # By default, it will create instances equaling the number of subnets specified.
@@ -290,13 +289,13 @@
     - name: Gather facts
       setup:
 
-    - name: Unmount disks mounted to the wrong place
+    - name: Unmount all specified disks that are currently mounted
       mount:
         name: "{{ item[0].mount }}"
         src: "{{ item[0].device }}"
         fstype: "{{ item[0].fstype }}"
-        state: unmounted
-      when: item[1].device_name == item[0].device and item[1].mount != item[0].mount
+        state: absent
+      when: item[1].device_name == item[0].device
       with_nested:
         - ansible_mounts
         - volumes
