@@ -262,6 +262,7 @@
     - name: Add new instances to host group
       add_host:
         hostname: "{{ item.1.private_ip }}"
+        instance_id: "{{ item.1.id }}"
         groups: created_instances_group
         #might need ansible_ssh_private_key_file and/or ansible_ssh_user
         ansible_ssh_user: ubuntu
@@ -318,3 +319,34 @@
         fstype: "{{ item.fstype | default('ext4') }}"
         opts: "{{ item.options | default('defaults') }}"
       with_items: volumes
+
+
+#Currently only supported in non-asg mode, when auto_scaling_service==false
+#<http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/enhanced-networking.html#enable-enhanced-networking>
+#Done with local actions to avoid blocking on iteration
+- name: Enable enhanced networking
+  hosts: created_instances_group
+  gather_facts: False
+  tasks:
+    - name: Shut down instances
+      local_action:
+        module: ec2
+        instance_ids: "{{ instance_id }}"
+        state: stopped
+        region: "{{ aws_region }}"
+        wait: yes
+      when: enhanced_networking == true
+
+    - name: Set enhanced networking instance attribute
+      local_action:
+        module: shell aws ec2 modify-instance-attribute --instance-id {{ instance_id }} --sriov-net-support simple
+      when: enhanced_networking == true
+
+    - name: Start instances
+      local_action:
+        module: ec2
+        instance_ids: "{{ instance_id }}"
+        state: running
+        region: "{{ aws_region }}"
+        wait: yes
+      when: enhanced_networking == true
