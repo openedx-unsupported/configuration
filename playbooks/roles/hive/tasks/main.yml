@@ -28,14 +28,13 @@
   get_url: >
     url={{ hive_dist.url }}
     sha256sum={{ hive_dist.sha256sum }}
-    validate_certs=no
-    dest=/tmp
+    dest={{ hive_temporary_dir }}
   when: not extracted_dir.stat.exists
 
 - name: distribution extracted
   shell: >
     chdir={{ HADOOP_COMMON_USER_HOME }}
-    tar -xzf /tmp/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hive-{{ HIVE_VERSION }}-bin
+    tar -xzf {{ hive_temporary_dir }}/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hive-{{ HIVE_VERSION }}-bin
   when: not extracted_dir.stat.exists
 
 - name: versioned directory symlink created

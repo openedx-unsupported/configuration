@@ -64,14 +64,13 @@
   get_url: >
     url={{ hadoop_common_dist.url }}
     sha256sum={{ hadoop_common_dist.sha256sum }}
-    validate_certs=no
-    dest=/tmp
+    dest={{ hadoop_common_temporary_dir }}
   when: not extracted_hadoop_dir.stat.exists
 
 - name: distribution extracted
   shell: >
     chdir={{ HADOOP_COMMON_USER_HOME }}
-    tar -xzf /tmp/{{ hadoop_common_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hadoop-{{ HADOOP_COMMON_VERSION }}
+    tar -xzf {{ hadoop_common_temporary_dir }}/{{ hadoop_common_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hadoop-{{ HADOOP_COMMON_VERSION }}
   when: not extracted_hadoop_dir.stat.exists
 
 - name: versioned directory symlink created
@@ -127,19 +126,18 @@
   get_url: >
     url={{ hadoop_common_protobuf_dist.url }}
     sha256sum={{ hadoop_common_protobuf_dist.sha256sum }}
-    validate_certs=no
-    dest=/tmp
+    dest={{ hadoop_common_temporary_dir }}
   when: not native_libs_built.stat.exists
 
 - name: protobuf extracted
   shell: >
-    chdir=/tmp
+    chdir={{ hadoop_common_temporary_dir }}
     tar -xzf {{ hadoop_common_protobuf_dist.filename }}
   when: not native_libs_built.stat.exists
 
 - name: protobuf installed
   shell: >
-    chdir=/tmp/protobuf-{{ HADOOP_COMMON_PROTOBUF_VERSION }}
+    chdir={{ hadoop_common_temporary_dir }}/protobuf-{{ HADOOP_COMMON_PROTOBUF_VERSION }}
     ./configure --prefix=/usr/local && make && make install
   when: not native_libs_built.stat.exists
 
@@ -147,19 +145,18 @@
   get_url: >
     url={{ hadoop_common_native_dist.url }}
     sha256sum={{ hadoop_common_native_dist.sha256sum }}
-    validate_certs=no
-    dest=/tmp/{{ hadoop_common_native_dist.filename }}
+    dest={{ hadoop_common_temporary_dir }}/{{ hadoop_common_native_dist.filename }}
   when: not native_libs_built.stat.exists
 
 - name: native lib source extracted
   shell: >
-    chdir=/tmp
+    chdir={{ hadoop_common_temporary_dir }}
     tar -xzf {{ hadoop_common_native_dist.filename }}
   when: not native_libs_built.stat.exists
 
 - name: native lib built
   shell: >
-    chdir=/tmp/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project
+    chdir={{ hadoop_common_temporary_dir }}/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project
     mvn package -X -Pnative -DskipTests
   environment:
     LD_LIBRARY_PATH: /usr/local/lib
@@ -176,7 +173,7 @@
 
 - name: new native libs installed
   shell: >
-    chdir=/tmp/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project/hadoop-common/target/native/target/usr/local/lib
+    chdir={{ hadoop_common_temporary_dir }}/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project/hadoop-common/target/native/target/usr/local/lib
     chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ item }} && cp {{ item }} {{ HADOOP_COMMON_HOME }}/lib/native/{{ item }}
   with_items:
     - libhadoop.a
