@@ -29,18 +29,18 @@
     url={{ sqoop_dist.url }}
     sha256sum={{ sqoop_dist.sha256sum }}
     validate_certs=no
-    dest=/tmp
+    dest={{ sqoop_temporary_dir }}
   when: not installed.stat.exists
 
 - name: distribution extracted
   shell: >
     chdir={{ HADOOP_COMMON_USER_HOME }}
-    tar -xzf /tmp/{{ sqoop_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} sqoop-{{ SQOOP_VERSION }}.bin__hadoop-2.0.4-alpha
+    tar -xzf {{ sqoop_temporary_dir }}/{{ sqoop_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ sqoop_base_filename }}
   when: not installed.stat.exists
 
 - name: versioned directory symlink created
   file: >
-    src={{ HADOOP_COMMON_USER_HOME }}/sqoop-{{ SQOOP_VERSION }}.bin__hadoop-2.0.4-alpha
+    src={{ HADOOP_COMMON_USER_HOME }}/{{ sqoop_base_filename }}
     dest={{ SQOOP_HOME }}
     owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
 
@@ -49,13 +49,13 @@
     url={{ sqoop_mysql_connector_dist.url }}
     sha256sum={{ sqoop_mysql_connector_dist.sha256sum }}
     validate_certs=no
-    dest=/tmp
+    dest={{ sqoop_temporary_dir }}
   when: not installed.stat.exists
 
 - name: mysql connector distribution extracted
   shell: >
-    chdir=/tmp
-    tar -xzf /tmp/{{ sqoop_mysql_connector_dist.filename }}
+    chdir={{ sqoop_temporary_dir }}
+    tar -xzf {{ sqoop_temporary_dir }}/{{ sqoop_mysql_connector_dist.filename }}
   when: not installed.stat.exists
 
 - name: sqoop lib exists
@@ -65,7 +65,7 @@
 
 - name: mysql connector installed
   shell: >
-    chdir=/tmp/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}
+    chdir=/{{ sqoop_temporary_dir }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}
     cp mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ SQOOP_LIB }} &&
     chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar
   when: not installed.stat.exists
