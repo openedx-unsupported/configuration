@@ -38,7 +38,7 @@ if [ -n "$OPENEDX_RELEASE" ]; then
   "
   CONFIG_VER=$OPENEDX_RELEASE
 else
-  CONFIG_VER="release"
+  CONFIG_VER="master"
 fi
 
 ##
