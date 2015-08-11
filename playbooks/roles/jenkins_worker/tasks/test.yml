@@ -30,24 +30,6 @@
     dddac0b5dddf00c0950daf324e603e4935994954 success
     https://jenkins.testeng.edx.org/ \"Tests Passed\" \"CI Test Results\""
 
-# Run the github_pr_auth script to confirm it reports
-# An expected error when there is nothing in the whitelist
-- name: ensure github_pr_auth fails as expected
-  shell:
-    "github_pr_auth.py edx edx-platform 2498"
-  ignore_errors: True
-  register: pr_auth_result
-- assert:
-    that:
-      - "'You can update the whitelist by' in '{{ pr_auth_result.stdout_lines[1] }}'"
-
-# Run the github_pr_auth script with a value in the whitelist
-# to ensure a passing run
-- name: ensure github_pr_auth fails as expected
-  shell:
-    "export GITHUB_OWNER_WHITELIST=edx &&
-    github_pr_auth.py edx edx-platform 2498"
-
 # Verify the virtualenv tar is newly-built
 - name: Get info on virtualenv tar
   stat: path={{ jenkins_home }}/edx-venv_clean.tar.gz
