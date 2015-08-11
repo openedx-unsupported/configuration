@@ -31,11 +31,16 @@
 - name: Add git apt repository
   apt_repository: repo="{{ common_git_ppa }}"
 
+# Ensure that we get the latest version of python 2.7
+- name: Add python 2.7 apt repository
+  apt_repository: repo="{{ common_python_ppa }}"
+
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
   apt: >
-    pkg={{','.join(common_debian_pkgs)}} install_recommends=yes
+    pkg="{{ item }}" install_recommends=yes
     state=present update_cache=yes
+  with_items: common_debian_pkgs
 
 - name: Create common log directory
   file: >
@@ -118,4 +123,4 @@
     dest=/etc/ssh/sshd_config
     src=sshd_config.j2 mode=0644 owner=root group=root
   notify: restart ssh
-  
+
