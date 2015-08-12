@@ -2,8 +2,6 @@ conn = new Mongo();
 db = conn.getDB("admin");
 db.auth( '{{ MONGO_ADMIN_USER }}', '{{ MONGO_ADMIN_PASSWORD }}');
 
-{%- if MONGO_PRIMARY == ansible_default_ipv4["address"] -%}
-
 {# Generate a list of hosts if no cluster members are give. Otherwise use the
    hosts provided in the variable.
 #}
@@ -25,19 +23,23 @@ db.auth( '{{ MONGO_ADMIN_USER }}', '{{ MONGO_ADMIN_PASSWORD }}');
   {%- set hosts = mongo_cluster_members -%}
 {%- endif -%}
 
-
-config = {_id: '{{ mongo_repl_set }}', members: [{% for host in mongo_cluster_members %}
-{%- if host == ansible_default_ipv4["address"] -%}
-{_id: {{ loop.index }}, host: '{{ host }}'}
-{%- endif -%}
-{% endfor %}
-]};
-rs.initiate(config)
-
-sleep(30000)
-rs.slaveOk()
-printjson(rs.status())
-
 // Check that the cluster is ok
 if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
-{%- endif -%}
+
+// Check that the cluster has the right number of members
+// and add them if we are the master
+if(rs.isMaster().ismaster) {
+    if(rs.status().members.length!={{ hosts|length }}) {
+        {% for host in mongo_cluster_members %}
+          {%- if host != ansible_default_ipv4["address"] -%}
+            rs.add({_id: {{ loop.index }}, host: '{{ host }}'});
+          {%- endif -%}
+        {% endfor %}
+        sleep(30000);
+        // Check status and member account, throw exception if not
+        if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
+        if(rs.status().members.length!={{ hosts|length }}) {
+            throw 'Could not add all members to cluster'
+        }
+    }
+}

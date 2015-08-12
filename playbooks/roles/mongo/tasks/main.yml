@@ -7,6 +7,15 @@
   fail: msg="MongoDB 2.4 is currently installed and cannot be safely upgraded in a clustered configuration.  Please read http://docs.mongodb.org/manual/release-notes/2.6-upgrade/#upgrade-considerations and upgrade to 2.6."
   when: mongodb_needs_upgrade.stat.exists and MONGO_CLUSTERED
   
+- name: check to see if MongoDB is already installed
+  stat: path=/etc/init.d/mongod
+  register: mongodb_already_installed
+  when: MONGO_CLUSTERED
+
+- name: verify MongoDB not installed (clustered upgrades)
+  fail: msg="MongoDB is currently installed and cannot be safely upgraded in a clustered configuration.  FIXME"
+  when: mongodb_already_installed.stat.exists and MONGO_CLUSTERED
+
 - name: remove mongo 2.4 if present
   apt: >
     pkg=mongodb-10gen
@@ -21,8 +30,8 @@
 
 - name: add the mongodb signing key
   apt_key: >
-    id=7F0CEB10
-    url={{ MONGODB_APT_KEY }}
+    id={{ MONGODB_APT_KEY }}
+    keyserver={{ MONGODB_APT_KEYSERVER }}
     state=present
 
 - name: add the mongodb repo to the sources list
@@ -32,7 +41,8 @@
 
 - name: install mongo server and recommends
   apt: >
-    pkg=mongodb-org={{ mongo_version }}
+  apt: 
+    pkg={{','.join(mongodb_debian_pkgs)}}
     state=present install_recommends=yes
     force=yes update_cache=yes
 
@@ -45,6 +55,7 @@
     - "{{ mongo_data_dir }}"
     - "{{ mongo_dbpath }}"
     - "{{ mongo_log_dir }}"
+    - "{{ mongo_journal_dir }}"
 
 - name: stop mongod service
   service: name=mongod state=stopped
@@ -64,7 +75,7 @@
   when: MONGO_CLUSTERED
 
 - name: copy configuration template
-  template: src=mongodb.conf.j2 dest=/etc/mongod.conf backup=yes
+  template: src=mongodb-standalone.conf.j2 dest=/etc/mongod.conf backup=yes
   notify: restart mongo
 
 - name: start mongo service
@@ -75,29 +86,51 @@
 
 - name: drop super user script
   template: src="create_root.js.j2" dest="/tmp/create_root.js"
-  when: not MONGO_CLUSTERED
 
 - name: create super user with js
   shell: >
     /usr/bin/mongo admin /tmp/create_root.js
-  when: not MONGO_CLUSTERED
 
 - name: delete super user script
   file: path=/tmp/create_root.js state=absent
-  when: not MONGO_CLUSTERED
+
+- name: copy custered configuration template
+  template: src=mongodb-clustered.conf.j2 dest=/etc/mongod.conf backup=yes
+  when: MONGO_CLUSTERED
+
+- name: restart mongo service
+  service: name=mongod state=restarted
+  when: MONGO_CLUSTERED
+
+- name: wait for mongo server to start
+  wait_for: port=27017 delay=2
+  when: MONGO_CLUSTERED
 
 - name: Create the file to initialize the mongod replica set
   template: src=repset_init.js.j2 dest=/tmp/repset_init.js
-  when: MONGO_CLUSTERED
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
 
 - name: Initialize the replication set
   shell: >
     /usr/bin/mongo /tmp/repset_init.js
-  when: MONGO_CLUSTERED
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
 
-#- name: delete repset script
-#  file: path=/tmp/repset_init.js state=absent
-#  when: MONGO_CLUSTERED
+- name: delete repset script
+  file: path=/tmp/repset_init.js state=absent
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
+
+- name: Create the file to add hosts to the mongod replica set
+  template: src=repset_add_secondaries.js.j2 dest=/tmp/repset_add_secondaries.js
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
+
+- name: Initialize the replication set
+  shell: >
+    /usr/bin/mongo /tmp/repset_add_secondaries.js
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
+
+- name: delete repset script
+  file: path=/tmp/repset_add_secondaries.js state=absent
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
 
 - name: create a mongodb user
   mongodb_user: >
@@ -122,41 +155,6 @@
     state=present
     replica_set={{ mongo_repl_set }}
   with_items: MONGO_USERS
-  when: MONGO_CLUSTERED
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
 
-- name: install s3cmd
-  pip: >
-    name="s3cmd"
-    state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
-  when: MONGO_S3_BACKUP
 
-- name: configure s3cmd
-  template: >
-    dest="{{ MONGO_S3_S3CMD_CONFIG }}"
-    src=mongo-s3-backup-s3cfg.j2
-    owner=root
-    group=root
-    mode=0600
-  when: MONGO_S3_BACKUP
-
-- name: install backup-mongo-to-s3 script
-  template: >
-    src=backup-mongo-to-s3.j2
-    dest=/edx/bin/backup-mongo-to-s3.sh
-    owner=root
-    group=root
-    mode=0700
-  when: MONGO_S3_BACKUP
-
-- name: schedule backup-mongo-to-3s crontab
-  cron: 
-    name="backup-mongo-to-s3"
-    job="/edx/bin/backup-mongo-to-s3.sh"
-    backup=yes
-    cron_file=backup-mongo-to-s3
-    user=root
-    hour="{{ MONGO_S3_BACKUP_HOUR }}"
-    minute="0"
-    day="{{ MONGO_S3_BACKUP_DAY }}"
-  when: MONGO_S3_BACKUP
