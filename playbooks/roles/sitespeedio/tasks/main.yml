@@ -10,15 +10,15 @@
 #
 #
 # Tasks for role sitespeedio
-# 
+#
 # Overview:
 #   Install the sitespeed.io package along with it's dependencies.
 #   See http://sitespeed.io/ for details on running.
-# 
+#
 #
 # Dependencies:
 #  none
-# 
+#
 # Example play:
 #  role:
 #    - sitespeedio
@@ -26,11 +26,26 @@
 
 # adding chris-lea nodejs repo
 - name: add ppas for current versions of nodejs
-  apt_repository: repo="{{ sitespeedio_chrislea_ppa }}"
+  apt_repository: "repo={{ sitespeedio_chrislea_ppa }}"
 
 # Install Sitespeed Dependencies
 - name: install sitespeed.io specific system packages
   apt: pkg={{','.join(sitespeedio_debian_pkgs)}} state=present
 
-- name: install sitespeed.io
-  npm: name=sitespeed.io global=yes state=latest
+# Install released version of sitespeedio
+#- name: install sitespeed.io
+#  npm: name=sitespeed.io global=yes state=latest
+
+# Temporary workaround to get an unreleased fix for sitespeed.io
+- name: Create a clone of the sitespeed.io repo
+  git: >
+    repo=https://github.com/sitespeedio/sitespeed.io.git
+    dest=/tmp/sitespeedio
+    version=master
+    depth=1
+
+- name: Install sitespeed.io from master
+  shell: >
+    npm install -g
+    chdir=/tmp/sitespeedio
+  sudo: yes
