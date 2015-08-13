@@ -43,6 +43,31 @@
     dest={{ HIVE_HOME }}
     owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
 
+- name: hive mysql connector distribution downloaded
+  get_url: >
+    url={{ hive_mysql_connector_dist.url }}
+    sha256sum={{ hive_mysql_connector_dist.sha256sum }}
+    dest={{ hive_temporary_dir }}
+  when: not extracted_dir.stat.exists
+
+- name: hive mysql connector distribution extracted
+  shell: >
+    chdir={{ hive_temporary_dir }}
+    tar -xzf {{ hive_temporary_dir }}/{{ hive_mysql_connector_dist.filename }}
+  when: not extracted_dir.stat.exists
+
+- name: hive lib exists
+  file: >
+    path={{ HIVE_LIB }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+
+- name: hive mysql connector installed
+  shell: >
+    chdir=/{{ hive_temporary_dir }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}
+    cp mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ HIVE_LIB }} &&
+    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HIVE_LIB }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar
+  when: not extracted_dir.stat.exists
+
 - name: configuration installed
   template: >
     src={{ item }}.j2
@@ -50,6 +75,7 @@
     mode=0640 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
   with_items:
     - hive-env.sh
+    - hive-site.xml
 
 - name: env vars sourced in hadoop env
   lineinfile: >
