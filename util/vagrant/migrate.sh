@@ -2,7 +2,7 @@
 
 # defaults
 CONFIGURATION="fullstack"
-TARGET="named-release/cypress.rc"
+TARGET="named-release/cypress"
 INTERACTIVE=true
 OPENEDX_ROOT="/edx"
 
