@@ -24,7 +24,7 @@ UPDATE auth_user
         first_name = concat('user-',cast(id AS CHAR)),
         last_name = concat('user-',cast(id AS CHAR)),
         last_login = null,
-        date_joined = null
+        date_joined = "1970-01-01 00:00:00"
             where email not like ('%@edx.org');
 
 /*
