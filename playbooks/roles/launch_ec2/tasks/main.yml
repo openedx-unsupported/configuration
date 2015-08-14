@@ -66,7 +66,7 @@
     value: "{{ item.public_dns_name }}"
   with_items: ec2.instances
 
-- name: Add DNS name studio
+- name: Add DNS names for services
   local_action:
     module: route53
     overwrite: yes
@@ -74,21 +74,11 @@
     zone: "{{ dns_zone }}"
     type: CNAME
     ttl: 300
-    record: "studio-{{ dns_name }}.{{ dns_zone }}"
-    value: "{{ item.public_dns_name }}"
-  with_items: ec2.instances
-
-- name: Add DNS name preview
-  local_action:
-    module: route53
-    overwrite: yes
-    command: create
-    zone: "{{ dns_zone }}"
-    type: CNAME
-    ttl: 300
-    record: "preview-{{ dns_name }}.{{ dns_zone }}"
-    value: "{{ item.public_dns_name }}"
-  with_items: ec2.instances
+    record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
+    value: "{{ item[0].public_dns_name }}"
+  with_nested:
+    - ec2.instances
+    - ['studio', 'ecommerce', 'preview']
 
 
 - name: Add new instance to host group
