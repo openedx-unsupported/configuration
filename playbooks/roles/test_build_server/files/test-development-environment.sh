@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -e
 ################################################################################
 # This executes a small subset of the edx-platform tests.  It is intended as
 # a means of testing newly provisioned AMIs for our jenkins workers.
