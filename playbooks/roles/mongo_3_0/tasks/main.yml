@@ -57,6 +57,22 @@
     - "{{ mongo_log_dir }}"
     - "{{ mongo_journal_dir }}"
 
+- name: add mongostat logging script
+  template:
+    src="edx/bin/log-mongostat.sh.j2"
+    dest="{{ COMMON_BIN_DIR }}/log-mongostat.sh"
+    owner="{{ mongo_user }}"
+    group="{{ mongo_user }}"
+    mode=0700
+  when: MONGO_LOG_MONGOSTAT
+
+- name: add mongostat logging script to cron
+  cron:
+    name: "mongostat logging job"
+    job: /edx/bin/log-mongostat.sh >{{ mongo_log_dir }}/mongostat.log 2>&1
+  become: yes
+  when: MONGO_LOG_MONGOSTAT
+
 - name: stop mongod service
   service: name=mongod state=stopped
 
