@@ -1,0 +1,82 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role sqoop
+# 
+# Overview:
+# 
+# Install and configure Sqoop. This tool is used by the analytics stack to take database snapshots.
+#
+# Dependencies:
+#
+# hadoop_common: Sqoop can distribute snapshotting work out to a cluster of workers, it uses Hadoop to do so.
+
+
+- name: check if downloaded and extracted
+  stat: path={{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar
+  register: installed
+
+- name: distribution downloaded
+  get_url: >
+    url={{ sqoop_dist.url }}
+    sha256sum={{ sqoop_dist.sha256sum }}
+    dest={{ sqoop_temporary_dir }}
+  when: not installed.stat.exists
+
+- name: distribution extracted
+  shell: >
+    chdir={{ HADOOP_COMMON_USER_HOME }}
+    tar -xzf {{ sqoop_temporary_dir }}/{{ sqoop_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ sqoop_base_filename }}
+  when: not installed.stat.exists
+
+- name: versioned directory symlink created
+  file: >
+    src={{ HADOOP_COMMON_USER_HOME }}/{{ sqoop_base_filename }}
+    dest={{ SQOOP_HOME }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+
+- name: mysql connector distribution downloaded
+  get_url: >
+    url={{ sqoop_mysql_connector_dist.url }}
+    sha256sum={{ sqoop_mysql_connector_dist.sha256sum }}
+    dest={{ sqoop_temporary_dir }}
+  when: not installed.stat.exists
+
+- name: mysql connector distribution extracted
+  shell: >
+    chdir={{ sqoop_temporary_dir }}
+    tar -xzf {{ sqoop_temporary_dir }}/{{ sqoop_mysql_connector_dist.filename }}
+  when: not installed.stat.exists
+
+- name: sqoop lib exists
+  file: >
+    path={{ SQOOP_LIB }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+
+- name: mysql connector installed
+  shell: >
+    chdir=/{{ sqoop_temporary_dir }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}
+    cp mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ SQOOP_LIB }} &&
+    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar
+  when: not installed.stat.exists
+
+- name: configuration installed
+  template: >
+    src={{ item }}.j2
+    dest={{ SQOOP_CONF }}/{{ item }}
+    mode=0640 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  with_items:
+    - sqoop-env.sh
+
+- name: env vars sourced in hadoop env
+  lineinfile: >
+    dest={{ hadoop_common_env }} state=present
+    regexp="^. {{ SQOOP_CONF }}/sqoop-env.sh" line=". {{ SQOOP_CONF }}/sqoop-env.sh"

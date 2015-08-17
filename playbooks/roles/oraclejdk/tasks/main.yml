@@ -36,22 +36,14 @@
   file: src=/usr/lib/jvm/{{ oraclejdk_base }} dest={{ oraclejdk_link }} state=link
 
 - name: update alternatives java
-  shell: >
-    update-alternatives --install "/usr/bin/java" "java" "/usr/lib/jvm/{{ oraclejdk_base }}/bin/java" 1
-  register: update_alt
-  changed_when: update_alt.stdout != ""
-
-- name: update alternatives javac
-  shell: >
-    update-alternatives --install "/usr/bin/javac" "javac" "/usr/lib/jvm/{{ oraclejdk_base }}/bin/javac" 1
-  register: update_alt
-  changed_when: update_alt.stdout != ""
-
-- name: update alternatives javaws
-  shell: >
-    update-alternatives --install "/usr/bin/javaws" "javaws" "/usr/lib/jvm/{{ oraclejdk_base }}/bin/javaws" 1
-  register: update_alt
-  changed_when: update_alt.stdout != ""
+  alternatives: >
+    name={{ item }}
+    link="/usr/bin/{{ item }}"
+    path="/usr/lib/jvm/{{ oraclejdk_base }}/bin/{{ item }}"
+  with_items:
+    - java
+    - javac
+    - javaws
 
 - name: add JAVA_HOME for Oracle Java
   template: src=java.sh.j2 dest=/etc/profile.d/java.sh owner=root group=root mode=0755

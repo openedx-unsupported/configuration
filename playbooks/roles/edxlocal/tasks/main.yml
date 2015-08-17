@@ -102,6 +102,13 @@
     encoding=utf8
   when: INSIGHTS_DATABASES is defined
 
+- name: create database user for insights
+  mysql_user: >
+    name="{{ INSIGHTS_DATABASES.default.USER }}"
+    password="{{ INSIGHTS_DATABASES.default.PASSWORD }}"
+    priv='{{ INSIGHTS_DATABASES.default.NAME }}.*:ALL'
+  when: INSIGHTS_DATABASES is defined
+
 - name: create database for ecommerce
   mysql_db: >
     db="{{ ECOMMERCE_DEFAULT_DB_NAME }}"
@@ -129,6 +136,27 @@
     password="{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
     priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
   when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create pipeline user for the analytics reports database
+  mysql_user: >
+    name="pipeline001"
+    password="password"
+    priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:ALL'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create a database for thie hive metastore
+  mysql_db: >
+    db={{ HIVE_METASTORE_DATABASE.name }}
+    state=present
+    encoding=latin1
+  when: HIVE_METASTORE_DATABASE is defined
+
+- name: setup the edxapp db user
+  mysql_user: >
+    name={{ HIVE_METASTORE_DATABASE.user }}
+    password={{ HIVE_METASTORE_DATABASE.password }}
+    priv='{{ HIVE_METASTORE_DATABASE.name }}.*:ALL'
+  when: HIVE_METASTORE_DATABASE is defined
 
 - name: setup the edx-notes-api db user
   mysql_user: >
