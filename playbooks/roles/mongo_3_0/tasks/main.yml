@@ -57,21 +57,21 @@
     - "{{ mongo_log_dir }}"
     - "{{ mongo_journal_dir }}"
 
-- name: add mongostat logging script
+- name: add serverStatus logging script
   template:
-    src="log-mongostat.sh.j2"
-    dest="{{ COMMON_BIN_DIR }}/log-mongostat.sh"
+    src="log-mongo-serverStatus.sh.j2"
+    dest="{{ COMMON_BIN_DIR }}/log-mongo-serverStatus.sh"
     owner="{{ mongo_user }}"
     group="{{ mongo_user }}"
     mode=0700
-  when: MONGO_LOG_MONGOSTAT
+  when: MONGO_LOG_SERVERSTATUS
 
-- name: add mongostat logging script to cron
+- name: add serverStatus logging script to cron
   cron:
     name: "mongostat logging job"
-    job: /edx/bin/log-mongostat.sh >{{ mongo_log_dir }}/mongostat.log 2>&1
+    job: /edx/bin/log-mongo-serverStatus.sh >> {{ mongo_log_dir }}/serverStatus.log 2>&1
   become: yes
-  when: MONGO_LOG_MONGOSTAT
+  when: MONGO_LOG_SERVERSTATUS
 
 - name: stop mongod service
   service: name=mongod state=stopped
