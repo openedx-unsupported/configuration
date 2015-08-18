@@ -42,8 +42,9 @@
 - name: stop mongodb
   service: name=mongodb state=stopped arguments="{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
 
+# Celery and Supervisord should not be killed because they may have long running tasks that need to finish
 - name: kill processes by user
-  shell: pkill -u {{ item }} || true
+  shell: pgrep -u {{ item }} -lf | grep -v celery | grep -v supervisord | grep -v gunicorn |  awk '{ print $1}' | xargs -I {} kill {} || true
   with_items:
   - www-data
   - devpi.supervisor

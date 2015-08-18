@@ -60,6 +60,7 @@
   roles:
     # rerun common to set the hostname, nginx to set basic auth
     - common
+    - edx-sandbox
     - role: nginx
       nginx_sites:
       - cms
@@ -76,13 +77,13 @@
         module: ec2_lookup
         region: us-east-1
         tags:
-          Name: "{{ name_tag }}"
+          - Name: "{{ name_tag }}"
       register: ec2_info
       when: elb
       sudo: False
     - name: register instance into an elb if one was provided
       local_action:
-        module: ec2_elb_local_1.3
+        module: ec2_elb
         region: "{{ region }}"
         instance_id: "{{ ec2_info.instance_ids[0] }}"
         state: present

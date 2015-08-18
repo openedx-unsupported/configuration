@@ -96,11 +96,15 @@ def main():
             aws_secret_key=dict(aliases=['ec2_secret_key', 'secret_key'],
                                 no_log=True),
             aws_access_key=dict(aliases=['ec2_access_key', 'access_key']),
-            tags=dict(default=None, type='dict'),
+            tags=dict(default=None, type='list'),
         )
     )
 
-    tags = module.params.get('tags')
+    tags = {}
+    for item in module.params.get('tags'):
+        for k,v in item.iteritems():
+            tags[k] = v
+
     aws_secret_key = module.params.get('aws_secret_key')
     aws_access_key = module.params.get('aws_access_key')
     region = module.params.get('region')

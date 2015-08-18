@@ -1,0 +1,111 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Creates scripts and users to enable ad-hoc reporting using MySQL
+# read replicas and MongoDB secondary nodes.
+#
+# Overview:
+# Creates users and scripts for ad-hoc reporting environments from your
+# ansible var files.  You would run this role as follows
+#
+# ansible-playbook -i 'reporting.example.com,' ./ad_hoc_reporting.yml -e@/var/path/common.yml -e@/vars/path/environnment-deployment.yml
+#
+# Dependencies:
+#   - aws
+#   - user
+
+- name: install system packages
+  apt: >
+    pkg={{ item }}
+    state=present
+  with_items: ad_hoc_reporting_debian_pkgs
+
+- name: install python packages
+  pip: >
+    name="{{ item }}" state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: ad_hoc_reporting_pip_pkgs
+
+- name: create directories
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner=root
+    group=root
+    mode=0755
+  with_items:
+    - /edx/bin
+  tags:
+    - scripts
+    
+#These templates rely on there being a global
+# read_only mysql user, you must override the default
+# in order for these templates to be written out.
+#Also, all of the *_REPLICA_DB_HOST vars are only defined
+# in secure config files.
+- name: install common mysql replica scripts
+  template: >
+    src=edx/bin/mysql.sh.j2
+    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode=0755 owner=root group=root
+  when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on
+  tags:
+    - scripts
+  with_items:
+    - db_host: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
+      db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
+      script_name: edxapp-mysql.sh
+      #depends on no other vars
+      depends_on: True
+    
+    - db_host: "{{ AD_HOC_REPORTING_XQUEUE_MYSQL_REPLICA_HOST }}"
+      db_name: "{{ XQUEUE_MYSQL_DB_NAME }}"
+      script_name: xqueue-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_XQUEUE_MYSQL_REPLICA_HOST | default(None) }}"
+    
+    - db_host: "{{ AD_HOC_REPORTING_ANALYTICS_API_REPORTS_REPLICA_DB_HOST }}"
+      db_name: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
+      script_name: analytics-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_ANALYTICS_API_REPORTS_REPLICA_DB_HOST | default(None) }}"
+
+    - db_host: "{{ AD_HOC_REPORTING_ANALYTICS_API_DEFAULT_DB_HOST }}"
+      db_name: "{{ ANALYTICS_API_DEFAULT_DB_NAME }}"
+      script_name: analytics-django-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_ANALYTICS_API_DEFAULT_DB_HOST | default(None) }}"
+
+    - db_host: "{{ AD_HOC_REPORTING_ECOMMERCE_REPLICA_DB_HOST }}"
+      db_name: "{{ ECOMMERCE_DEFAULT_DB_NAME }}"
+      script_name: ecommerce-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_ECOMMERCE_REPLICA_DB_HOST | default(None) }}"
+
+    - db_host: "{{ AD_HOC_REPORTING_INSIGHTS_REPLICA_DB_HOST }}"
+      db_name: "{{ INSIGHTS_DATABASE_NAME }}"
+      script_name: insights-mysql.sh
+      depends_on: "{{ AD_HOC_REPORTING_INSIGHTS_REPLICA_DB_HOST | default(None) }}"
+  
+# These templates rely on there being a global
+# read_only mongo user, you must override the default
+# in order for these templates to be written out
+- name: install mongodb replica scripts
+  template: >
+    src=edx/bin/mongo.sh.j2
+    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode=0755 owner=root group=root
+  with_items:
+    - db_hosts: "{{ EDXAPP_MONGO_HOSTS }}"
+      db_name: "{{ EDXAPP_MONGO_DB_NAME }}"
+      db_port: "{{ EDXAPP_MONGO_PORT }}"
+      script_name: edxapp-mongo.sh
+    - db_hosts: "{{ FORUM_MONGO_HOSTS }}"
+      db_name: "{{ FORUM_MONGO_DATABASE }}"
+      db_port: "{{ FORUM_MONGO_PORT }}"
+      script_name: forum-mongo.sh
+  when: COMMON_MONGO_READ_ONLY_PASS is defined
+  tags:
+    - scripts

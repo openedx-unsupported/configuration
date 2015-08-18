@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -x
+set -e
 
 if [[ -z $WORKSPACE ]]; then
     echo "Environment incorrect for this wrapper script"
@@ -18,10 +19,17 @@ cd "$WORKSPACE/edx-platform"
 
 pip install --exists-action w -r requirements/edx/pre.txt
 pip install --exists-action w -r requirements/edx/base.txt
-pip install --exists-action w -r requirements/edx/post.txt
-pip install --exists-action w -r requirements/edx/repo.txt
+if [[ -f requirements/edx/post.txt ]]; then
+  pip install --exists-action w -r requirements/edx/post.txt
+fi
+if [[ -f requirements/edx/repo.txt ]]; then
+  pip install --exists-action w -r requirements/edx/repo.txt
+fi
 pip install --exists-action w -r requirements/edx/github.txt
-pip install --exists-action w -r requirements/edx/local.txt
+if [[ -f requirements/edx/local.txt ]]; then
+  pip install --exists-action w -r requirements/edx/local.txt
+fi
+pip install --exists-action w -r requirements/edx/edx-private.txt
 
 if [[ $openid_workaround == "true" ]]; then
     sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/'  "$VIRTUAL_ENV/lib/python2.7/site-packages/django_openid_auth/models.py"
@@ -60,6 +68,7 @@ extra_var_args+=" -e edxapp_app_dir=${WORKSPACE}"
 extra_var_args+=" -e edxapp_code_dir=${WORKSPACE}/edx-platform"
 extra_var_args+=" -e edxapp_user=jenkins"
 extra_var_args+=" -e syncdb=$syncdb"
+extra_var_args+=" -e EDXAPP_CFG_DIR=${WORKSPACE}"
 
 # Generate the json configuration files
 ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml

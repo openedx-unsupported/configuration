@@ -1,0 +1,131 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Tasks for role edx-notes-api
+# 
+# Overview:
+#
+# Role for installing the edx-notes-api Django application, https://github.com/edx/edx-notes-api.
+#
+# Dependencies:
+#
+# For a complete picture of dependencies, see:
+#
+#  configuration/playbooks/role/edx-notes-api/meta/main.yml
+#  configuration/playbooks/edx-east/notes.yml
+#
+# Example play:
+#
+# - name: Deploy edX Notes API
+# hosts: all
+# sudo: True
+# gather_facts: True
+# vars:
+#   ENABLE_DATADOG: False
+#   ENABLE_SPLUNKFORWARDER: False
+#   ENABLE_NEWRELIC: True
+# roles:
+#   - role: nginx
+#     nginx_sites:
+#       - edx-notes-api
+#   - aws
+#   - edx-notes-api 
+#   - role: datadog
+#     when: COMMON_ENABLE_DATADOG
+#   - role: splunkforwarder
+#     when: COMMON_ENABLE_SPLUNKFORWARDER
+#   - role: newrelic
+#     when: COMMON_ENABLE_NEWRELIC
+
+- name: install application requirements
+  pip: >
+    requirements="{{ edx_notes_api_requirements_base }}/{{ item }}"
+    virtualenv="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
+    state=present extra_args="--exists-action w"
+  sudo_user: "{{ edx_notes_api_user }}"
+  with_items: edx_notes_api_requirements
+
+- name: migrate
+  shell: >
+    chdir={{ edx_notes_api_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/python {{ edx_notes_api_manage }} migrate --noinput --settings="notesserver.settings.yaml_config"
+  sudo_user: "{{ edx_notes_api_user }}"
+  environment:
+    EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: write out gunicorn.py
+  template: >
+    src=edx/app/edx_notes_api/edx_notes_api_gunicorn.py.j2
+    dest={{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}_gunicorn.py
+    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  tags:
+    - deploy
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/edx_notes_api.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ edx_notes_api_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+    - deploy
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ edx_notes_api_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ edx_notes_api_service_name }}.conf
+    state=link
+    force=yes
+  when: not disable_edx_services
+  tags:
+    - deploy
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+  tags:
+    - deploy
+
+- name: restart supervisor
+  supervisorctl: >
+    name={{ edx_notes_api_service_name }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
+  when: not disable_edx_services
+  tags:
+    - deploy
+
+- name: create symlinks from the venv bin dir
+  file: >
+    src="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_notes_api_service_name }}"
+    state=link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create manage.py symlink
+  file: >
+    src="{{ edx_notes_api_manage }}"
+    dest="{{ COMMON_BIN_DIR }}/manage.{{ edx_notes_api_service_name }}"
+    state=link
+
+- name: restart edx_notes_api
+  supervisorctl: >
+    state=restarted
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name={{ edx_notes_api_service_name }}
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"

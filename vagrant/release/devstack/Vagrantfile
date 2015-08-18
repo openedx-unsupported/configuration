@@ -5,7 +5,7 @@ end
 
 VAGRANTFILE_API_VERSION = "2"
 
-MEMORY = 2048
+MEMORY = 4096
 CPU_COUNT = 2
 
 $script = <<SCRIPT
@@ -21,7 +21,6 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 # Did we specify an openedx release?
 if [ -n "$OPENEDX_RELEASE" ]; then
   EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
-    -e ora2_version=$OPENEDX_RELEASE \
     -e certs_version=$OPENEDX_RELEASE \
     -e forum_version=$OPENEDX_RELEASE \
     -e xqueue_version=$OPENEDX_RELEASE \
@@ -36,7 +35,7 @@ else
   CONFIG_VER="release"
 fi
 
-ansible-playbook -i localhost, -c local vagrant-devstack.yml --tags=deploy -e configuration_version=$CONFIG_VER $EXTRA_VARS
+ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
 
 SCRIPT
 
@@ -79,12 +78,29 @@ openedx_releases = {
   "named-release/birch" => {
     :name => "birch-devstack", :file => "20150224-birch-devstack.box",
   },
-  "named-release/birch.1" => {
-    :name => "birch-devstack-1", :file => "birch-1-devstack.box",
+  "named-release/cypress.rc1" => {
+    :name => "cypress-devstack-rc1", :file => "20150714-cypress-devstack-rc1.box",
+  },
+  "named-release/cypress.rc2" => {
+    :name => "cypress-devstack-rc2", :file => "20150717-cypress-devstack-rc2.box",
+  },
+  "named-release/cypress.rc3" => {
+    :name => "cypress-devstack-rc3", :file => "20150724-cypress-devstack-rc3.box",
+  },
+  "named-release/cypress.rc4" => {
+    :name => "cypress-devstack-rc4", :file => "cypress-rc4-devstack.box",
   },
 }
 openedx_releases.default = {
-  :name => "lavash-devstack", :file => "20141118-lavash-devstack.box"
+  :name => "cypress-devstack-rc4", :file => "cypress-rc4-devstack.box",
+}
+openedx_releases_vmware = {
+  "named-release/birch" => {
+    :name => "birch-devstack-vmware", :file => "20150610-birch-devstack-vmware.box",
+  },
+}
+openedx_releases_vmware.default = {
+  :name => "kifli-devstack-vmware", :file => "20140829-kifli-devstack-vmware.box",
 }
 rel = ENV['OPENEDX_RELEASE']
 
@@ -140,8 +156,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   ["vmware_fusion", "vmware_workstation"].each do |vmware_provider|
     config.vm.provider vmware_provider do |v, override|
-      override.vm.box     = "kifli-devstack-vmware"
-      override.vm.box_url = "http://files.edx.org/vagrant-images/20140829-kifli-devstack-vmware.box"
+      override.vm.box     = openedx_releases_vmware[rel][:name]
+      override.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases_vmware[rel][:file]}"
       v.vmx["memsize"] = MEMORY.to_s
       v.vmx["numvcpus"] = CPU_COUNT.to_s
     end

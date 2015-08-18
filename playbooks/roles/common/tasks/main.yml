@@ -25,15 +25,11 @@
   stat: path=/home/vagrant
   register: vagrant_home_dir
 
-# Need to install python-pycurl to use Ansible's apt_repository module
-- name: Install python-pycurl
-  apt: pkg=python-pycurl state=present update_cache=yes
-
 # Ensure that we get a current version of Git
 # GitHub requires version 1.7.10 or later
 # https://help.github.com/articles/https-cloning-errors
 - name: Add git apt repository
-  apt_repository_1.8: repo="{{ common_git_ppa }}" validate_certs=no
+  apt_repository: repo="{{ common_git_ppa }}"
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -112,21 +108,6 @@
   template: src=etc/dhcp/dhclient.conf.j2 dest=/etc/dhcp/dhclient.conf
   when: COMMON_CUSTOM_DHCLIENT_CONFIG
 
-  # Remove some of the default motd display on ubuntu
-  # and add a custom motd.  These do not require an
-  # ssh restart
-  # Only needed for EC2 instances.
-- name: update the ssh motd on Ubuntu
-  file: >
-    mode=0644
-    path={{ item }}
-  when: vagrant_home_dir.stat.exists == false
-  with_items:
-  - "/etc/update-motd.d/10-help-text"
-  - "/usr/share/landscape/landscape-sysinfo.wrapper"
-  - "/etc/update-motd.d/51-cloudguest"
-  - "/etc/update-motd.d/91-release-upgrade"
-
 - name: add ssh-warning banner motd
   template: >
     dest=/etc/motd.tail
@@ -137,3 +118,4 @@
     dest=/etc/ssh/sshd_config
     src=sshd_config.j2 mode=0644 owner=root group=root
   notify: restart ssh
+  

@@ -1,0 +1,125 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role edx_service_rds
+# 
+
+#
+# vars are namespaced with the module name.
+#
+edx_service_rds_role_name: edx_service_rds
+
+E_D_C: "prod-sample-app"
+EDX_SERVICE_RDS_INSTANCE_SIZE: 10
+EDX_SERVICE_RDS_INSTANCE_TYPE: "db.m1.small"
+EDX_SERVICE_RDS_ROOT_USER: "root"
+# no unicode, c cedilla , passwords
+EDX_SERVICE_RDS_ROOT_PASSWORD: "plus_ca_change"
+EDX_SERVICE_RDS_ENGINE: "MySQL"
+EDX_SERVICE_RDS_ENGINE_VERSION: "5.6.22"
+EDX_SERVICE_RDS_PARAM_GROUP_ENGINE: "mysql5.6"
+# will vary depending upon engine, examples assume
+# MySQL 56
+EDX_SERVICE_RDS_PARAM_GROUP_PARAMS:
+  character_set_client: "utf8"
+  character_set_connection: "utf8"
+  character_set_database: "utf8"
+  character_set_filesystem: "utf8"
+  character_set_results: "utf8"
+  character_set_server: "utf8"
+  collation_connection: "utf8_unicode_ci"
+  collation_server: "utf8_unicode_ci"
+EDX_SERVICE_RDS_MULTI_AZ: No
+EDX_SERVICE_RDS_MAINT_WINDOW: "Mon:00:00-Mon:01:15"
+EDX_SERVICE_RDS_BACKUP_DAYS: 30
+EDX_SERVICE_RDS_BACKUP_WINDOW: "02:00-03:00"
+
+EDX_SERVICE_RDS_SUBNET_1_AZ: "us-east-1c"
+EDX_SERVICE_RDS_SUBNET_1_CIDR: "{{ vpc_class_b }}.50.0/24"
+EDX_SERVICE_RDS_SUBNET_2_AZ: "us-east-1d"
+EDX_SERVICE_RDS_SUBNET_2_CIDR: "{{ vpc_class_b }}.51.0/24"
+
+# The defaults are permissive, override
+EDX_SERVICE_RDS_SECURITY_GROUP:
+  name: "{{ e_d_c }}-rds-sg"
+  description: "RDS ingress and egress."
+  rules:
+    - proto: "tcp"
+      from_port: "3306"
+      to_port: "3306"
+      cidr_ip: "0.0.0.0/0"
+  rules_egress:
+    - proto: "tcp"
+      from_port: "3306"
+      to_port: "3306"
+      cidr_ip: "0.0.0.0/0"
+
+# The defaults are permissive, override
+EDX_SERVICE_RDS_VPC_DB_ACL:
+  name: "{{ e_d_c }}-db"
+  rules:
+    - number: "100"
+      type: "ingress"
+      protocol: "tcp"
+      from_port: 3306
+      to_port: 3306
+      cidr_block: "0.0.0.0/0"
+      rule_action: "allow"
+    - number: "100"
+      type: "egress"
+      protocol: "all"
+      from_port: 0
+      to_port: 65535
+      cidr_block: "0.0.0.0/0"
+      rule_action: "allow"
+
+EDX_SERVICE_RDS_VPC_DB_ROUTE_TABLE:
+  - cidr: "{{ vpc_class_b }}.0.0/16"
+    gateway: 'local'
+      
+# typically override the all caps vars, but may
+# be convenient to override the entire structure
+# if you spanning more than two subnets
+edx_service_rds_vpc_db_subnets:
+  - name: "{{ E_D_C }}-db-{{ EDX_SERVICE_RDS_SUBNET_1_AZ }}"
+    cidr: "{{ EDX_SERVICE_RDS_SUBNET_1_CIDR }}"
+    az: "{{ EDX_SERVICE_RDS_SUBNET_1_AZ }}"
+  - name: "{{ E_D_C }}-db-{{ EDX_SERVICE_RDS_SUBNET_2_AZ }}"
+    cidr: "{{ EDX_SERVICE_RDS_SUBNET_2_CIDR }}"
+    az: "{{ EDX_SERVICE_RDS_SUBNET_2_AZ }}"
+      
+edx_service_rds_state: "present"
+
+edx_service_rds_db:
+  state: "{{ edx_service_rds_state }}"
+  name: "{{ E_D_C }}-primary"
+  size: "{{ EDX_SERVICE_RDS_INSTANCE_SIZE }}"
+  instance_type: "{{ EDX_SERVICE_RDS_INSTANCE_TYPE }}"
+  root_user: "{{ EDX_SERVICE_RDS_ROOT_USER }}"
+  root_password: "{{ EDX_SERVICE_RDS_ROOT_PASSWORD }}"
+  engine: "{{ EDX_SERVICE_RDS_ENGINE }}"
+  engine_version: "{{ EDX_SERVICE_RDS_ENGINE_VERSION }}"
+  multi_az: "{{ EDX_SERVICE_RDS_MULTI_AZ }}"
+  maint_window: "{{ EDX_SERVICE_RDS_MAINT_WINDOW }}"
+  backup_days: "{{ EDX_SERVICE_RDS_BACKUP_DAYS }}"
+  backup_window: "{{ EDX_SERVICE_RDS_BACKUP_WINDOW }}"
+  param_group:
+    name: "{{ E_D_C}}"
+    engine: "{{ EDX_SERVICE_RDS_PARAM_GROUP_ENGINE }}"
+    params: "{{ EDX_SERVICE_RDS_PARAM_GROUP_PARAMS }}"
+      
+
+#
+# OS packages
+#
+
+edx_service_rds_debian_pkgs: []
+
+edx_service_rds_redhat_pkgs: []

@@ -1,0 +1,147 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role ecommerce
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: "add gunicorn configuration file"
+  template: >
+    src=edx/app/ecommerce/ecommerce_gunicorn.py.j2
+    dest={{ ecommerce_home }}/ecommerce_gunicorn.py
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: install application requirements
+  pip: >
+    requirements="{{ ecommerce_requirements_base }}/{{ item }}"
+    virtualenv="{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}"
+    state=present
+  sudo_user: "{{ ecommerce_user }}"
+  with_items: ecommerce_requirements
+  when: not devstack
+
+- name: install application requirements
+  pip: >
+    requirements="{{ ecommerce_requirements_base }}/{{ item }}"
+    virtualenv="{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}"
+    state=present
+  sudo_user: "{{ ecommerce_user }}"
+  with_items: ecommerce_dev_requirements
+  when: devstack
+
+- name: create nodeenv
+  shell: >
+    creates={{ ecommerce_nodeenv_dir }}
+    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/nodeenv {{ ecommerce_nodeenv_dir }}
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: install node dependencies
+  npm: executable={{ ecommerce_nodeenv_bin }}/npm path={{ ecommerce_code_dir }} production=yes
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: install bower dependencies
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/bower install --production --config.interactive=false
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: migrate
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/python ./manage.py migrate --noinput
+  sudo_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run r.js optimizer
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js
+  sudo_user: "{{ ecommerce_user }}"
+
+- name: run collectstatic
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/python manage.py {{ item }}
+  sudo_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  with_items:
+    - "collectstatic --noinput"
+    - "compress"
+
+- name: write out the supervisor wrapper
+  template: >
+    src=edx/app/ecommerce/ecommerce.sh.j2
+    dest={{ ecommerce_home }}/{{ ecommerce_service_name }}.sh
+    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+
+- name: write supervisord config
+  template: >
+    src=edx/app/supervisor/conf.d.available/ecommerce.conf.j2
+    dest="{{ supervisor_available_dir }}/{{ ecommerce_service_name }}.conf"
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+
+- name: setup the ecommence env file
+  template: >
+    src="./{{ ecommerce_home }}/{{ ecommerce_service_name }}_env.j2"
+    dest="{{ ecommerce_home }}/ecommerce_env"
+    owner={{ ecommerce_user }}
+    group={{ ecommerce_user }}
+    mode=0644
+
+- name: enable supervisor script
+  file: >
+    src={{ supervisor_available_dir }}/{{ ecommerce_service_name }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ ecommerce_service_name }}.conf
+    state=link
+    force=yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the-er venv bin dir
+  file: >
+    src="{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.ecommerce"
+    state=link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file: >
+    src="{{ ecommerce_code_dir }}/{{ item }}"
+    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.ecommerce"
+    state=link
+  with_items:
+  - manage.py
+
+- name: restart the applicaton
+  supervisorctl: >
+    state=restarted
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name={{ ecommerce_service_name }}
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"

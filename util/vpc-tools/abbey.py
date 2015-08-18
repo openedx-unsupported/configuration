@@ -5,6 +5,7 @@ import time
 import json
 import yaml
 import os
+import requests
 try:
     import boto.ec2
     import boto.sqs
@@ -124,6 +125,9 @@ def parse_args():
     parser.add_argument("--hipchat-api-token", required=False,
                         default=None,
                         help="The API token for Hipchat integration")
+    parser.add_argument("--callback-url", required=False,
+                        default=None,
+                        help="The callback URL to send notifications to")
     parser.add_argument("--root-vol-size", required=False,
                         default=50,
                         help="The size of the root volume to use for the "
@@ -138,7 +142,6 @@ def parse_args():
                        default=False)
 
     return parser.parse_args()
-
 
 def get_instance_sec_group(vpc_id):
 
@@ -338,6 +341,7 @@ fi
 
 
 cd $base_dir/$git_repo_name
+sudo pip install -r pre-requirements.txt
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
@@ -382,7 +386,6 @@ rm -rf $base_dir
 
     mapping = BlockDeviceMapping()
     root_vol = BlockDeviceType(size=args.root_vol_size,
-                               delete_on_termination=True,
                                volume_type='gp2')
     mapping['/dev/sda1'] = root_vol
 
@@ -595,7 +598,16 @@ def launch_and_configure(ec2_args):
         "Waiting for instance {} to reach running status:".format(instance_id)),
     status_start = time.time()
     for _ in xrange(EC2_RUN_TIMEOUT):
-        res = ec2.get_all_instances(instance_ids=[instance_id])
+        try:
+            res = ec2.get_all_instances(instance_ids=[instance_id])
+        except EC2ResponseError as e:
+            if e.code == "InvalidInstanceID.NotFound":
+                print("Instance not found({}), will try again.".format(
+                    instance_id))
+                time.sleep(1)
+                continue
+            else:
+                raise(e)
         if res[0].instances[0].state == 'running':
             status_delta = time.time() - status_start
             run_summary.append(('EC2 Launch', status_delta))
@@ -660,6 +672,9 @@ def launch_and_configure(ec2_args):
 
 def send_hipchat_message(message):
     print(message)
+    if args.callback_url:
+        r=requests.get("{}/{}".format(args.callback_url, message))
+
     #If hipchat is configured send the details to the specified room
     if args.hipchat_api_token and args.hipchat_room_id:
         import hipchat

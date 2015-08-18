@@ -19,9 +19,9 @@
     state=present
 
 - name: install apt repository
-  apt_repository_1.8:
+  apt_repository:
     repo='deb http://ppa.launchpad.net/ondrej/mysql-5.6/ubuntu precise main'
-    update_cache=yes validate_certs=no
+    update_cache=yes
   
 - name: look for mysql 5.5
   shell: dpkg -L mysql-server-5.5
@@ -90,25 +90,59 @@
     db={{ item }}
     state=present
     encoding=utf8
-  when: ANALYTICS_API_CONFIG is defined
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
   with_items:
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
+    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['default']['NAME'] }}"
+    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['reports']['NAME'] }}"
 
+- name: create database for insights
+  mysql_db: >
+    db={{ INSIGHTS_DATABASES.default.NAME }}
+    state=present
+    encoding=utf8
+  when: INSIGHTS_DATABASES is defined
+
+- name: create database for ecommerce
+  mysql_db: >
+    db="{{ ECOMMERCE_DEFAULT_DB_NAME }}"
+    state=present
+    encoding=utf8
+  when: ECOMMERCE_DEFAULT_DB_NAME is defined
+
+- name: setup users for ecommerce
+  mysql_user: >
+    name="{{ ECOMMERCE_DEFAULT_DB_NAME }}"
+    password="{{ ECOMMERCE_DATABASES.default.PASSWORD }}"
+    priv='{{ ECOMMERCE_DEFAULT_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE'
+  when: ECOMMERCE_DEFAULT_DB_NAME is defined
 
 - name: create api user for the analytics api
   mysql_user: >
     name=api001
-    password=password
-    priv='{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}.*:ALL/reports.*:SELECT'
-  when: ANALYTICS_API_CONFIG is defined
+    password="{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
+    priv='{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
 
 - name: create read-only reports user for the analytics-api
   mysql_user: >
     name=reports001
-    password=password
-    priv='{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT'
-  when: ANALYTICS_API_CONFIG is defined
+    password="{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
+    priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: setup the edx-notes-api db user
+  mysql_user: >
+    name={{ EDX_NOTES_API_MYSQL_DB_USER }}
+    password={{ EDX_NOTES_API_MYSQL_DB_PASS }}
+    priv='{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE'
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+
+- name: create a database for edx-notes-api
+  mysql_db: >
+    db={{ EDX_NOTES_API_MYSQL_DB_NAME }}
+    state=present
+    encoding=utf8
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
 - name: setup the migration db user
   mysql_user: >
@@ -121,18 +155,11 @@
     - "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
     - "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
     - "{{ ORA_MYSQL_DB_NAME|default('None') }}"
-
-- name: setup the migration db user for analytics
-  mysql_user: >
-    name={{ COMMON_MYSQL_MIGRATE_USER }}
-    password={{ COMMON_MYSQL_MIGRATE_PASS }}
-    priv='{{ item }}.*:ALL'
-    append_privs=yes
-  when: ANALYTICS_API_CONFIG is defined
-  with_items:
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}"
-    - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}"
-
+    - "{{ EDX_NOTES_API_MYSQL_DB_NAME|default('None') }}"
+    - "{{ ANALYTICS_API_DEFAULT_DB_NAME|default('None') }}"
+    - "{{ ANALYTICS_API_REPORTS_DB_NAME|default('None') }}"
+    - "{{ INSIGHTS_DATABASE_NAME|default('None') }}"
+    - "{{ ECOMMERCE_DEFAULT_DB_NAME|default('None') }}"
 
 - name: setup the read-only db user
   mysql_user: >

@@ -2,7 +2,7 @@
 
 - name: create application user
   user: >
-    name="{{ flower_user }}" home="{{ flower_app_dir }}"
+    name="{{ FLOWER_USER }}" home="{{ flower_app_dir }}"
     createhome=no shell=/bin/false
   notify:
     - "restart flower"
@@ -10,7 +10,7 @@
 - name: create flower user dirs
   file: >
     path="{{ item }}" state=directory
-    owner="{{ flower_user }}" group="{{ common_web_group }}"
+    owner="{{ FLOWER_USER }}" group="{{ common_web_group }}"
   notify:
     - "restart flower"
   with_items:
@@ -21,9 +21,19 @@
 
 - name: create flower environment script
   template: >
-    src=flower_env.j2 dest={{ flower_app_dir }}/flower_env
-    owner={{ flower_user }} group={{ common_web_group }}
-    mode=0644
+    src=edx/app/flower/flower_env.j2
+    dest={{ flower_app_dir }}/flower_env
+    owner={{ FLOWER_USER }} group={{ common_web_group }}
+    mode=0640
+  notify:
+    - "restart flower"
+
+- name: create flower configuration file
+  template: >
+    src=edx/app/flower/flowerconfig.py.j2
+    dest={{ flower_conf_dir }}/flowerconfig.py
+    owner={{ FLOWER_USER }} group={{ common_web_group }}
+    mode=0640
   notify:
     - "restart flower"
 
@@ -33,7 +43,7 @@
     virtualenv="{{ flower_venv_dir }}"
     state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
-  sudo_user: "{{ flower_user }}"
+  sudo_user: "{{ FLOWER_USER }}"
   environment: "{{ flower_environment }}"
   with_items: "flower_python_reqs"
   notify:
@@ -41,7 +51,8 @@
 
 - name: create supervisor configuration
   template: >
-    src=flower.conf.j2 dest={{ supervisor_available_dir }}/flower.conf
+    src=edx/app/supervisor/conf.d.available/flower.conf.j2
+    dest={{ supervisor_available_dir }}/{{ FLOWER_USER }}.conf
     owner={{ supervisor_user }}
     group={{ supervisor_user }}
   sudo_user: "{{ supervisor_user }}"
@@ -50,8 +61,8 @@
 
 - name: enable supervisor configuration
   file: >
-    src={{ supervisor_available_dir }}/flower.conf
-    dest={{ supervisor_cfg_dir }}/flower.conf
+    src={{ supervisor_available_dir }}/{{ FLOWER_USER }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ FLOWER_USER }}.conf
     state=link
     force=yes
   sudo_user: "{{ supervisor_user }}"

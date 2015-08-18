@@ -1,0 +1,75 @@
+#
+# Configuration for the environment-deployment
+#
+profile: "{{ vpc_aws_profile }}"
+vpc_id: "{{ created_vpc.vpc_id }}"
+vpc_cidr: "{{ vpc_cidr }}"
+vpc_class_b: "{{ vpc_class_b }}"
+
+env: "{{ vpc_environment }}"
+deployment: "{{ vpc_deployment }}"
+e_d_c: "{{ vpc_environment }}-{{ vpc_deployment }}-{{ '{{' }} cluster {{ '}}' }}"
+aws_region: "{{ vpc_aws_region }}"
+
+
+aws_availability_zones:
+{% for subnet in vpc_public_subnets %}
+  - {{ subnet.az }}
+{% endfor %}
+
+# Should this be service specific
+ssl_cert: "{{ vpc_ssl_cert }}"
+
+# used for ELB
+public_route_table: "{{ created_public_rt.id }}"
+# used for service subnet
+private_route_table: "{{ created_private_rt.id }}"
+instance_key_name: "{{ vpc_keypair }}"
+
+# subject to change #TODO: provide the correct var for the eni
+nat_device: "{{ nat_instance.instances[0].id }}"
+
+public_subnet_1: "{{ vpc_public_subnets[0].cidr }}"
+public_subnet_2: "{{ vpc_public_subnets[1].cidr }}"
+
+# /28 per AZ NEEDE?
+# private_subnet_1: "{{ vpc_class_b }}.110.16/28"
+# private_subnet_2: "{{ vpc_class_b }}.120.16/28"
+
+elb_subnets:
+{% for subnet in created_public_subnets.results %}
+  - "{{ subnet.subnet_id }}"
+{% endfor %}
+
+#
+# Do not use vars in policies :(
+# Should be specific to the service right?
+role_policies: []
+#   - name: "{{ '{{ ' + 'e_d_c' + '}}' }}-s3-policy"
+#     document: |
+#       {
+#         "Statement":[
+#           {
+#             "Effect":"Allow",
+#             "Action":["s3:*"],
+#             "Resource":["arn:aws:s3:::edx-stage-edx"]
+#           }
+#         ]
+#         }  
+#   - name: "{{ '{{ ' + 'e_d_c' + '}}' }}-create-instance-tags"
+#     document: |
+#       {
+#         "Statement": [
+#           {
+#             "Effect": "Allow",
+#             "Action": ["ec2:CreateTags"],
+#             "Resource": ["arn:aws:ec2:us-east-1:xxxxxxxxxxxx:instance/*"]
+#           }
+#         ]
+#         }        
+#   - name: "{{ '{{ ' + 'e_d_c' + '}}' }}-describe-ec2"
+#     document: |
+#         {"Statement":[
+#         {"Resource":"*",
+#         "Action":["ec2:DescribeInstances","ec2:DescribeTags","ec2:DescribeVolumes"],
+#         "Effect":"Allow"}]}

@@ -1,0 +1,251 @@
+---
+
+- name: Build application artifacts
+  hosts: all
+  connection: local
+  gather_facts: False
+  vars:
+    state: "present"
+    auto_scaling_service: True
+  tasks:
+    - name: Manage IAM Role and Profile
+      ec2_iam_role:
+        profile: "{{ profile }}"
+        state: "{{ state }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        role_name: "{{ role_name }}"
+        policies: "{{ role_policies }}"
+
+    - name: Manage ELB security group
+      ec2_group_local:
+        profile: "{{ profile }}"
+        description: "{{ elb_security_group.description }}"
+        name: "{{ elb_security_group.name }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        rules: "{{ elb_security_group.rules }}"
+        tags: "{{ elb_security_group.tags }}"
+      register: elb_sec_group
+
+    - debug: msg="{{ service_security_group.rules }}"
+
+    - name: Manage service security group
+      ec2_group_local:
+        profile: "{{ profile }}"
+        description: "{{ service_security_group.description }}"
+        name: "{{ service_security_group.name }}"
+        vpc_id: "{{ vpc_id }}"
+        region: "{{ aws_region }}"
+        rules: "{{ service_security_group.rules }}"
+        tags: "{{ service_security_group.tags }}"
+      register: service_sec_group
+      
+    - name: Manage ACLs
+      ec2_acl:
+        profile: "{{ profile }}"
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        rules: "{{ item.rules }}"
+      with_items: acls
+      register: created_acls
+
+    - name: Apply function to acl_data
+      util_map:
+        function: 'zip_to_dict'
+        input: "{{ created_acls.results }}"
+        args:
+          - "name"
+          - "id"
+      register: acl_data
+         
+    # - name: Manage ELB Subnets
+    #   ec2_subnet:
+    #     state: "{{ state }}"
+    #     region: "{{ aws_region }}"
+    #     name: "{{ item.name }}"
+    #     vpc_id: "{{ vpc_id }}"
+    #     cidr_block: "{{ item.cidr }}"
+    #     az: "{{ item.az }}"
+    #     route_table_id: "{{ item.route_table_id }}"
+    #     tags: "{{ item.tags }}"
+    #   register: created_elb_subnets
+    #   with_items: elb_subnets
+
+      #
+      # Hack alert, this registers a list in the global namespace
+      # of just the subnet ids that were created above
+      #
+    # - debug: msg="{{ created_elb_subnets.results|map(attribute='subnet_id')| list }}"
+    #   register: elb_sn_list
+      
+    - name: Manage Service Subnets
+      ec2_subnet:
+        profile: "{{ profile }}"
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        cidr_block: "{{ item.cidr }}"
+        az: "{{ item.az }}"
+        route_table_id: "{{ item.route_table_id }}"
+        tags: "{{ item.tags }}"
+      register: created_service_subnets
+      with_items: service_subnets
+
+    #
+    # Stubbed out
+    # For now we'll be using an existing route table
+    #
+    # - name: Manage Route Table
+    #   ec2_rt:
+    #     state: "{{ state }}"
+    #     region: "{{ aws_region }}"
+    #     name: "{{ rt.name }}"
+    #     vpc_id: "{{ vpc_id }}"
+    #     destination_cidr: "{{ rt.destination_cidr }}"
+    #     target: "local" # simplifying generalization of instnace-id, gateway-id or local
+    #
+    - name: Manage Private ELB Subnets
+      ec2_subnet:
+        profile: "{{ profile }}"
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        vpc_id: "{{ vpc_id }}"
+        cidr_block: "{{ item.cidr }}"
+        az: "{{ item.az }}"
+        route_table_id: "{{ item.route_table_id }}"
+        tags: "{{ item.tags }}"
+      register: created_elb_private_subnets
+      with_items: elb_private_subnets
+      when: private_elb_subnet_1 is defined and private_elb_subnet_2 is defined
+
+    - name: Check that internal ELBs have subnets
+      fail: msg="If you set an elb scheme to 'internal' you must also define private_elb_subnet_1 and private_elb_subnet_2"
+      when: private_elb_subnet_1 is not defined and private_elb_subnet_2 is not defined and elbs is defined and 'internal' in elbs|map(attribute='scheme')|list
+
+    - name: Manage ELB
+      ec2_elb_lb:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        scheme: "{{ item.scheme }}"
+        name: "{{ item.name}}"
+        state: "{{ state }}"
+        security_group_ids: "{{ elb_sec_group.group_id }}"
+        subnets: "{{ created_elb_private_subnets.results|map(attribute='subnet_id')| list if ( item.scheme == 'internal' ) else elb_subnets}}"
+        health_check: "{{ elb_healthcheck }}"
+        listeners: "{{ elb_listeners }}"
+      register: created_elbs
+      with_items: elbs
+      when: elbs is defined
+
+#
+# Service related components
+#
+    - name: Manage the launch configuration
+      ec2_lc:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        name: "{{ service_config.name }}"
+        image_id: "{{ service_config.ami }}"
+        key_name: "{{ service_config.key_name }}"
+        security_groups: "{{ service_sec_group.group_id }}"
+        instance_type: "{{ service_config.instance_type }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        volumes: "{{ service_config.volumes }}"
+      when: auto_scaling_service
+
+      #
+      # Hack alert, this registers a string in the global namespace
+      # of just the subnet ids for the service that were created above
+      #
+    - debug: msg="{{ created_service_subnets.results|map(attribute='subnet_id')| list | join(',') }}"
+      register: service_vpc_zone_identifier_string
+
+    - name: Manage ASG
+      ec2_asg:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        name: "{{ asg_name }}"
+        launch_config_name: "{{ service_config.name }}"
+        load_balancers: "{{ elb_name }}"
+        availability_zones: "{{ aws_availability_zones }}"
+        min_size: "{{ asg_min_size }}"
+        max_size: "{{ asg_max_size }}"
+        desired_capacity: "{{ asg_desired_capacity }}"
+        vpc_zone_identifier: "{{ service_vpc_zone_identifier_string.msg }}"
+        tags: "{{ asg_instance_tags }}"
+        load_balancers: "{{ created_elbs.results|map(attribute='elb.name')|list }}"
+      register: asg
+      when: auto_scaling_service
+
+    - name: Manage scaling policies
+      ec2_scaling_policy:
+        state: "{{ item.state }}"
+        profile: "{{ item.profile }}"
+        region: "{{ item.region }}"
+        name: "{{ item.name }}"
+        adjustment_type: "{{ item.adjustment_type }}"
+        asg_name: "{{ item.asg_name }}"
+        scaling_adjustment: "{{ item.scaling_adjustment }}"
+        min_adjustment_step: "{{ item.min_adjustment_step }}"
+        cooldown: "{{ item.cooldown }}"
+      with_items: scaling_policies
+      register: created_policies
+      when: auto_scaling_service
+
+    - name: Apply function to policy data
+      util_map:
+        function: 'zip_to_dict'
+        input: "{{ created_policies.results }}"
+        args:
+          - "name"
+          - "arn"
+      register: policy_data
+      when: auto_scaling_service
+
+    - name: Manage metric alarms
+      ec2_metric_alarm:
+        profile: "{{ profile }}"
+        state: "{{ item.state }}"
+        region: "{{ aws_region }}"
+        name: "{{ item.name }}"
+        metric: "{{ item.metric }}"
+        namespace: "{{ item.namespace }}"
+        statistic: "{{ item.statistic }}"
+        comparison: "{{ item.comparison }}"
+        threshold: "{{ item.threshold }}"
+        period: "{{ item.period }}"
+        evaluation_periods: "{{ item.evaluation_periods }}"
+        unit: "{{ item.unit }}"
+        description: "{{ item.description }}"
+        dimensions: "{{ item.dimensions }}"
+        alarm_actions: "{{ policy_data.function_output[item.target_policy] }}"
+      with_items: metric_alarms 
+      when: auto_scaling_service
+
+    - name: See if instances already exist
+      local_action:
+        module: "ec2_lookup"
+        region: "{{ aws_region }}"
+        tags: "{{ asg_instance_tags }}"
+      register: potential_existing_instances
+
+    - name: Manage instances
+      ec2:
+        profile: "{{ profile }}"
+        region: "{{ aws_region }}"
+        wait: "yes"
+        group_id: "{{ service_sec_group.group_id }}"
+        key_name: "{{ service_config.key_name }}"
+        vpc_subnet_id: "{{ item.subnet_id }}"
+        instance_type: "{{ service_config.instance_type }}"
+        instance_tags: "{{ asg_instance_tags }}"
+        image: "{{ service_config.ami }}"
+        instance_profile_name: "{{ instance_profile_name }}"
+        volumes: "{{ service_config.volumes }}"
+      with_items: created_service_subnets.results
+      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+
