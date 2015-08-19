@@ -8,6 +8,19 @@ VAGRANTFILE_API_VERSION = "2"
 MEMORY = 4096
 CPU_COUNT = 2
 
+$script = <<SCRIPT
+if [ ! -d /edx/app/edx_ansible ]; then
+    echo "Error: Base box is missing provisioning scripts." 1>&2
+    exit 1
+fi
+export PYTHONUNBUFFERED=1
+source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
+cd /edx/app/edx_ansible/edx_ansible/playbooks
+
+ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=master
+
+SCRIPT
+
 edx_platform_mount_dir = "edx-platform"
 themes_mount_dir = "themes"
 forum_mount_dir = "cs_comments_service"
@@ -29,7 +42,8 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates an edX devstack VM from an official release
-  config.vm.box     = "analyticstack-beta"
+  config.vm.box     = "analyticstack"
+  config.vm.box_url = "http://files.edx.org/vagrant-images/analyticstack.box"
 
   config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.network :forwarded_port, guest: 8000, host: 8000
@@ -90,4 +104,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
   config.vbguest.auto_reboot = true
   config.vbguest.auto_update = true
+
+  # Assume that the base box has the edx_ansible role installed
+  # We can then tell the Vagrant instance to update itself.
+  config.vm.provision "shell", inline: $script
 end
