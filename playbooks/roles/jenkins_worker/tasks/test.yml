@@ -2,43 +2,10 @@
 # Tests for this role
 
 
-# Set up #
-
-# To get a baseline comparison for timestamp comparisons
-# create a testfile and register its stat info
-- name: Create test file
-  file: path=testfile state=touch
-- name: Stat test file
-  stat: path=testfile
-  register: testfile
-
-
-# Tests #
+### Tests ###
 - name: Verify java cmd is using v 1.7
   shell: java -version
   register: java_version
 - assert:
     that:
       - "'1.7.0' in java_version.stderr"
-
-# The role is run with a github oauth token passed in
-# as github_oauth_token var value.
-# This test confirms that the key being used will work
-- name: ensure github token works
-  shell:
-    "github_post_status.py edx edx-platform
-    dddac0b5dddf00c0950daf324e603e4935994954 success
-    https://jenkins.testeng.edx.org/ \"Tests Passed\" \"CI Test Results\""
-
-# Verify the virtualenv tar is newly-built
-- name: Get info on virtualenv tar
-  stat: path={{ jenkins_home }}/edx-venv_clean.tar.gz
-  register: edxvenv
-- assert:
-    that:
-# Assert that it was modified at least within the hour
-      - "{{ testfile.stat.mtime }} - {{ edxvenv.stat.mtime }} < 3600"
-
-# Tear Down #
-- name: Remove test file
-  file: path=testfile state=absent
