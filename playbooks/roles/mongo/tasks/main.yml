@@ -73,31 +73,31 @@
 - name: wait for mongo server to start
   wait_for: port=27017 delay=2
 
-- name: drop super user script
-  template: src="create_root.js.j2" dest="/tmp/create_root.js"
-  when: not MONGO_CLUSTERED
-
-- name: create super user with js
-  shell: >
-    /usr/bin/mongo admin /tmp/create_root.js
-  when: not MONGO_CLUSTERED
-
-- name: delete super user script
-  file: path=/tmp/create_root.js state=absent
-  when: not MONGO_CLUSTERED
-
 - name: Create the file to initialize the mongod replica set
   template: src=repset_init.js.j2 dest=/tmp/repset_init.js
-  when: MONGO_CLUSTERED
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
 
 - name: Initialize the replication set
   shell: >
     /usr/bin/mongo /tmp/repset_init.js
-  when: MONGO_CLUSTERED
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
 
 #- name: delete repset script
 #  file: path=/tmp/repset_init.js state=absent
-#  when: MONGO_CLUSTERED
+#  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
+
+- name: drop super user script
+  template: src="create_root.js.j2" dest="/tmp/create_root.js"
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
+
+- name: create super user with js
+  shell: >
+    /usr/bin/mongo admin /tmp/create_root.js
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
+
+- name: delete super user script
+  file: path=/tmp/create_root.js state=absent
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
 
 - name: create a mongodb user
   mongodb_user: >
@@ -122,7 +122,7 @@
     state=present
     replica_set={{ mongo_repl_set }}
   with_items: MONGO_USERS
-  when: MONGO_CLUSTERED
+  when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"]
 
 - name: install s3cmd
   pip: >
