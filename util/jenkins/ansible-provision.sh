@@ -104,6 +104,8 @@ if [[ -z $ami ]]; then
     ami="ami-93fb34f8"
   elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
     ami="ami-c135f3aa"
+  elif [[ $server_type == "ubuntu_12.04_python_2.7.10" ]]; then
+    ami="ami-cfbc07a4"
   fi
 fi
 
