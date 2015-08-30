@@ -64,5 +64,21 @@ http {
 
         include {{ nginx_conf_dir }}/*.conf;
         include {{ nginx_sites_enabled_dir }}/*;
+
+    {%- if NGINX_MOD_PAGESPEED -%}
+
+        pagespeed on;
+        pagespeed FileCachePath /var/ngx_pagespeed_cache;
+        pagespeed GlobalStatisticsPath /ngx_pagespeed_global_statistics;
+        pagespeed GlobalAdminPath /pagespeed_global_admin;
+        pagespeed MessageBufferSize 100000;
+        
+        pagespeed StickyQueryParameters supersecrettoken;
+        # requests that take longer than 3 hours will lose their pagespeed cookie
+        pagespeed OptionCookiesDurationMs 10000000;
+
+    {%- endif -%}
+
+
 }
 
