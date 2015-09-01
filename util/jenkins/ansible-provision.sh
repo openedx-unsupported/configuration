@@ -111,8 +111,12 @@ if [[ -z $instance_type ]]; then
   instance_type="t2.medium"
 fi
 
-if [[ -z $enable_monitoring ]]; then
-  enable_monitoring="false"
+if [[ -z $enable_newrelic ]]; then
+  enable_newrelic="false"
+fi
+
+if [[ -z $enable_datadog ]]; then
+  enable_datadog="false"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
@@ -186,9 +190,9 @@ COMMON_USER_INFO:
     github: true
     type: admin
 USER_CMD_PROMPT: '[$name_tag] '
-COMMON_ENABLE_NEWRELIC_APP: $enable_monitoring
-COMMON_ENABLE_DATADOG: $enable_monitoring
-FORUM_NEW_RELIC_ENABLE: $enable_monitoring
+COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
+COMMON_ENABLE_DATADOG: $enable_datadog
+FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
