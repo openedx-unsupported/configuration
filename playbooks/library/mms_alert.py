@@ -38,6 +38,20 @@ class CloudManagerClient(object):
         pass
 
 
+class Alert(object):
+    def __init(self, id, group_id, alert_config_id, type_name, event_type_name, status):
+        self.id = id
+        self.group_id = group_id
+        self.alert_config_id = alert_config_id
+        self.type_name = type_name
+        self.event_type_name = event_type_name
+        self.status = status
+
+
+class AlertConfiguration(object):
+    
+
+
 class ArgumentError(Exception):
     pass
 
