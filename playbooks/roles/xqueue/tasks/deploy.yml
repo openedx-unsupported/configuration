@@ -3,6 +3,8 @@
     src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
+  tags:
+    - install:configuration
 
 - name: "enabling supervisor scripts - xqueue, xqueue consumer"
   file: >
@@ -12,6 +14,8 @@
     mode=0644 state=link force=yes
   with_items: ['xqueue', 'xqueue_consumer']
   when: not disable_edx_services
+  tags:
+    - install:configuration
 
 - name: "add gunicorn configuration file"
   template: >
@@ -19,18 +23,24 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - restart xqueue
+  tags:
+    - install:configuration
 
 - name: create xqueue application config
   template: src=xqueue.env.json.j2 dest={{ xqueue_app_dir }}/xqueue.env.json mode=0644
   sudo_user: "{{ xqueue_user }}"
   notify:
     - restart xqueue
+  tags:
+    - install:configuration
 
 - name: create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{ xqueue_app_dir }}/xqueue.auth.json mode=0644
   sudo_user: "{{ xqueue_user }}"
   notify:
     - restart xqueue
+  tags:
+    - install:configuration
 
 # Do A Checkout
 - name: git checkout xqueue repo into xqueue_code_dir
@@ -41,6 +51,8 @@
   register: xqueue_checkout
   notify:
     - restart xqueue
+  tags:
+    - install:code
 
 
 # Install the python pre requirements into {{ xqueue_venv_dir }}
@@ -51,6 +63,8 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - restart xqueue
+  tags:
+    - install:application-requirements
 
 # Install the python post requirements into {{ xqueue_venv_dir }}
 - name : install python post-requirements
@@ -60,6 +74,8 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - restart xqueue
+  tags:
+    - install:application-requirements
 
 # If there is a common user for migrations run migrations using his username
 # and credentials. If not we use the xqueue mysql user
@@ -73,6 +89,8 @@
   when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
   notify:
     - restart xqueue
+  tags:
+    - migrate:db
 
 - name: create users
   shell: >
@@ -80,6 +98,8 @@
   sudo_user: "{{ xqueue_user }}"
   notify:
     - restart xqueue
+  tags:
+    - manage:app-users
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -102,6 +122,8 @@
   - xqueue
   - xqueue_consumer
   when: not disable_edx_services
+  tags:
+    - manage:start
 
 - name: create a symlink for venv python
   file: >
@@ -111,5 +133,7 @@
   with_items:
   - python
   - pip
+  tags:
+    - install:base
 
 - set_fact: xqueue_installed=true
