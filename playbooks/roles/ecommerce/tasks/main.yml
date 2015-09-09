@@ -61,6 +61,23 @@
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
+- name: populate countries
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/python ./manage.py oscar_populate_countries
+  sudo_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  # the `register` and `failed_when` directives below are here to emulate idempotency for this oscar command.
+  # if and when https://github.com/django-oscar/django-oscar/pull/1841 is merged, the directives can be removed
+  # in favor of the (proposed) --initial-only command option.
+  register: command_result
+  failed_when:
+    - "'You already have countries in your database' not in command_result.stderr"
+    - "command_result.rc != 0"
+
 - name: run r.js optimizer
   shell: >
     chdir={{ ecommerce_code_dir }}
