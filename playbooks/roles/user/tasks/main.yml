@@ -74,6 +74,15 @@
 - name: create the edxadmin group
   group: name=edxadmin state=present
 
+- name: Install role-independent useful system packages
+  # do this before log dir setup; rsyslog package guarantees syslog user present
+  apt:
+    pkg: "{{ item }}"
+    install_recommends: yes
+    state: present
+    update_cache: yes
+  with_items: user_debian_pkgs
+
 # some AMIs (such as EMR master nodes) don't read the config files out of /etc/sudoers.d by default
 - name: ensure sudoers.d is read
   lineinfile: >

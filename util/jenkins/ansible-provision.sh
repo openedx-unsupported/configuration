@@ -119,6 +119,10 @@ if [[ -z $enable_datadog ]]; then
   enable_datadog="false"
 fi
 
+if [[ -z $enable_client_profiling ]]; then
+  enable_client_profiling="false"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -171,6 +175,12 @@ else
 COMMON_ENABLE_BASIC_AUTH: False
 EOF_AUTH
 
+fi
+
+if [[ $enable_client_profiling == "true" ]]; then
+    cat << EOF_PROFILING >> $extra_vars_file
+EDXAPP_SESSION_SAVE_EVERY_REQUEST: True
+EOF_PROFILING
 fi
 
 if [[ $edx_internal == "true" ]]; then

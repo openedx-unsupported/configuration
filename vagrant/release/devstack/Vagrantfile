@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.6.5"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
@@ -43,6 +43,7 @@ edx_platform_mount_dir = "edx-platform"
 themes_mount_dir = "themes"
 forum_mount_dir = "cs_comments_service"
 ora_mount_dir = "ora"
+ecommerce_mount_dir = "ecommerce"
 insights_mount_dir = "insights"
 analytics_api_mount_dir = "analytics_api"
 
@@ -52,6 +53,7 @@ if ENV['VAGRANT_MOUNT_BASE']
   themes_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + themes_mount_dir
   forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
   ora_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ora_mount_dir
+  ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_mount_dir
   insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
   analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
 
@@ -124,11 +126,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
-  config.vm.network :forwarded_port, guest: 8000, host: 8000
-  config.vm.network :forwarded_port, guest: 8001, host: 8001
-  config.vm.network :forwarded_port, guest: 18080, host: 18080
+  config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
+  config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
+  config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
+  config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
+  config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
+  config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
   config.vm.network :forwarded_port, guest: 8765, host: 8765
-  config.vm.network :forwarded_port, guest: 9200, host: 9200
+  config.vm.network :forwarded_port, guest: 9200, host: 9200  # Elasticsearch
+  config.vm.network :forwarded_port, guest: 18080, host: 18080  # Forums
   config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
   config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
   config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
@@ -149,6 +155,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, owner: "edxapp", group: "www-data"
     config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
       create: true, owner: "forum", group: "www-data"
+    config.vm.synced_folder "#{ecommerce_mount_dir}", "/edx/app/ecommerce/ecommerce",
+      create: true, owner: "ecommerce", group: "www-data"
     config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
       create: true, owner: "ora", group: "www-data"
     config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
@@ -161,6 +169,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
       create: true, nfs: true
     config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
+      create: true, nfs: true
+    config.vm.synced_folder "#{ecommerce_mount_dir}", "/edx/app/ecommerce/ecommerce",
       create: true, nfs: true
     config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
       create: true, nfs: true

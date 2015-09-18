@@ -71,6 +71,13 @@ EDXAPP_MYSQL_REPLICA_PORT: "{{ EDXAPP_MYSQL_PORT }}"
 EDXAPP_MYSQL_HOST: 'localhost'
 EDXAPP_MYSQL_PORT: '3306'
 
+# list of dictionaries of the format
+# { 'host': 'hostname', 'port': 'portnumber', 'otherconfigsuchas use_ssl': 'True' }
+# http://elasticsearch-py.readthedocs.org/en/master/api.html#elasticsearch
+EDXAPP_ELASTIC_SEARCH_CONFIG:
+    - host: "localhost"
+      port: 9200
+
 EDXAPP_LMS_ENV: 'lms.envs.aws'
 EDXAPP_CMS_ENV: 'cms.envs.aws'
 
@@ -96,6 +103,8 @@ EDXAPP_OEE_PASSWORD: 'password'
 
 EDXAPP_ANALYTICS_API_KEY:  ""
 EDXAPP_LTI_USER_EMAIL_DOMAIN: "lti.example.com"
+# 900s, or 15 mins
+EDXAPP_LTI_AGGREGATE_SCORE_PASSBACK_DELAY: 900
 EDXAPP_PAYMENT_SUPPORT_EMAIL: "billing@example.com"
 EDXAPP_YOUTUBE_API_KEY: "PUT_YOUR_API_KEY_HERE"
 EDXAPP_ZENDESK_USER: ""
@@ -241,6 +250,11 @@ EDXAPP_JWT_EXPIRATION: 30  # Number of seconds until expiration
 
 EDXAPP_PLATFORM_TWITTER_ACCOUNT: '@YourPlatformTwitterAccount'
 EDXAPP_PLATFORM_FACEBOOK_ACCOUNT: 'http://www.facebook.com/YourPlatformFacebookAccount'
+EDXAPP_FACEBOOK_APP_ID: "FACEBOOK_APP_ID"
+EDXAPP_FACEBOOK_APP_SECRET: "FACEBOOK_APP_SECRET"
+EDXAPP_FACEBOOK_API_VERSION: "v2.1"
+
+
 
 EDXAPP_SOCIAL_MEDIA_FOOTER_URLS: {}
 EDXAPP_MOBILE_STORE_URLS: {}
@@ -525,6 +539,10 @@ EDXAPP_COMP_THEME_DIR: ""
 EDXAPP_SOCIAL_AUTH_SAML_SP_PRIVATE_KEY: ''
 EDXAPP_SOCIAL_AUTH_SAML_SP_PUBLIC_CERT: ''
 
+# Session cookie setting
+# Only set this to true for client side profiling, never for production
+EDXAPP_SESSION_SAVE_EVERY_REQUEST: false
+
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -686,6 +704,9 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   CREDIT_PROVIDER_SECRET_KEYS: "{{ EDXAPP_CREDIT_PROVIDER_SECRET_KEYS }}"
   SOCIAL_AUTH_SAML_SP_PRIVATE_KEY: "{{ EDXAPP_SOCIAL_AUTH_SAML_SP_PRIVATE_KEY }}"
   SOCIAL_AUTH_SAML_SP_PUBLIC_CERT: "{{ EDXAPP_SOCIAL_AUTH_SAML_SP_PUBLIC_CERT }}"
+  FACEBOOK_APP_ID: "{{ EDXAPP_FACEBOOK_APP_ID }}"
+  FACEBOOK_APP_SECRET: "{{ EDXAPP_FACEBOOK_APP_SECRET }}"
+  FACEBOOK_API_VERSION: "{{ EDXAPP_FACEBOOK_API_VERSION }}"
 
 generic_cache_config: &default_generic_cache
   BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
@@ -821,6 +842,7 @@ generic_env_config:  &edxapp_generic_env
   XBLOCK_SETTINGS: "{{ EDXAPP_XBLOCK_SETTINGS }}"
   EDXMKTG_USER_INFO_COOKIE_NAME: "{{ EDXAPP_EDXMKTG_USER_INFO_COOKIE_NAME }}"
   COMP_THEME_DIR: "{{ EDXAPP_COMP_THEME_DIR }}"
+  SESSION_SAVE_EVERY_REQUEST: "{{ EDXAPP_SESSION_SAVE_EVERY_REQUEST }}"
 
 lms_auth_config:
   <<: *edxapp_generic_auth
@@ -887,8 +909,10 @@ lms_env_config:
   EDXNOTES_PUBLIC_API: "{{ EDXAPP_EDXNOTES_PUBLIC_API }}"
   EDXNOTES_INTERNAL_API: "{{ EDXAPP_EDXNOTES_INTERNAL_API }}"
   LTI_USER_EMAIL_DOMAIN: "{{ EDXAPP_LTI_USER_EMAIL_DOMAIN }}"
+  LTI_AGGREGATE_SCORE_PASSBACK_DELAY: "{{ EDXAPP_LTI_AGGREGATE_SCORE_PASSBACK_DELAY }}"
   PROCTORING_SETTINGS: "{{ EDXAPP_PROCTORING_SETTINGS }}"
   CREDIT_HELP_LINK_URL: "{{ EDXAPP_CREDIT_HELP_LINK_URL }}"
+  ELASTIC_SEARCH_CONFIG: "{{ EDXAPP_ELASTIC_SEARCH_CONFIG }}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
