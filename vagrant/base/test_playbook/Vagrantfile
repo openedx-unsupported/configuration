@@ -1,4 +1,7 @@
-# Use this Vagrantfile to test individual Ansible roles.
+# Vagrantfile for testing throwaway Ansible playbooks. To use, create a playbook
+# under /playbooks (e.g., "foo.yml"), export its name (e.g., "foo") as the value
+# of the environment variable VAGRANT_ANSIBLE_PLAYBOOK, and execute `vagrant provision`
+# from within this directory.
 MEMORY = 2048
 CPU_COUNT = 2
 
@@ -31,14 +34,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision :ansible do |ansible|
-    # point Vagrant at the location of your playbook you want to run
-    ansible.playbook = "../../../playbooks/run_role.yml"
+    ansible.playbook = "../../../playbooks/" + ENV['VAGRANT_ANSIBLE_PLAYBOOK'] + ".yml"
     ansible.verbose = "extra"
-    ansible.extra_vars = {
-      role: ENV['VAGRANT_ANSIBLE_ROLE']
-    }
-    if ENV['VAGRANT_ANSIBLE_VARS_FILE']
-      ansible.raw_arguments = [ '-e@' + ENV['VAGRANT_ANSIBLE_VARS_FILE']]
-    end
   end
 end
