@@ -1,0 +1,109 @@
+---
+{% include 'roles/ansible-role/templates/header.j2' %}
+#
+# Defaults for role {{ role_name }}
+# 
+{{ role_name|upper }}_GIT_IDENTITY: !!null
+
+# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
+# and a key being provided via NEWRELIC_LICENSE_KEY
+{{ role_name|upper }}_NEWRELIC_APPNAME: "{{ '{{ COMMON_ENVIRONMENT }}' }}-{{ '{{ COMMON_DEPLOYMENT }}' }}-{{ '{{' }} {{ role_name }}_service_name }}"
+{{ role_name|upper }}_PIP_EXTRA_ARGS: "-i {{ '{{ COMMON_PYPI_MIRROR_URL }}' }}"
+{{ role_name|upper }}_NGINX_PORT: "XXX" # TODO Change this!!!
+
+{{ role_name|upper }}_DEFAULT_DB_NAME: '{{ role_name }}'
+
+{{ role_name|upper }}_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}'
+    USER: '{{ role_name }}001'
+    PASSWORD: 'password'
+    HOST: 'localhost'
+    PORT: '3306'
+    ATOMIC_REQUESTS: true
+    CONN_MAX_AGE: 60
+
+{{ role_name|upper }}_VERSION: "master"
+
+{{ role_name|upper }}_SECRET_KEY: 'Your secret key here'
+{{ role_name|upper }}_TIME_ZONE: 'UTC'
+{{ role_name|upper }}_LANGUAGE_CODE: 'en-us'
+
+# Used to automatically configure OAuth2 Client
+{{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_KEY : 'some-secret'
+{{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET : 'some-secret'
+{{ role_name|upper }}_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+{{ role_name|upper }}_PLATFORM_NAME: 'Your Platform Name Here'
+
+{{ role_name|upper }}_SERVICE_CONFIG:
+  SECRET_KEY: '{{ '{{' }} {{ role_name|upper }}_SECRET_KEY }}'
+  TIME_ZONE: '{{ '{{' }} {{ role_name|upper }}_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{ '{{' }} {{ role_name|upper }}_LANGUAGE_CODE }}'
+
+  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_KEY }}'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ '{{' }} {{ role_name|upper }}_LMS_URL_ROOT }}/oauth2'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
+
+  STATIC_ROOT: "{{ '{{' }} COMMON_DATA_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}/staticfiles"
+  # db config
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES: '{{ '{{' }} {{ role_name|upper }}_DATABASES }}'
+
+  PLATFORM_NAME: '{{ '{{' }} {{ role_name|upper }}_PLATFORM_NAME }}'
+
+
+{{ role_name|upper }}_REPOS:
+  - PROTOCOL: "{{ '{{' }} COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ '{{' }} COMMON_GIT_MIRROR }}"
+    PATH: "{{ '{{' }} COMMON_GIT_PATH }}"
+    REPO: {{ role_name }}.git
+    VERSION: "{{ '{{' }} {{ role_name|upper }}_VERSION }}"
+    DESTINATION: "{{ '{{' }} {{ role_name }}_code_dir }}"
+    SSH_KEY: "{{ '{{' }} {{ role_name|upper }}_GIT_IDENTITY }}"
+
+
+{{ role_name|upper }}_GUNICORN_WORKERS: "2"
+{{ role_name|upper }}_GUNICORN_EXTRA: ""
+{{ role_name|upper }}_GUNICORN_EXTRA_CONF: ""
+{{ role_name|upper }}_GUNICORN_WORKER_CLASS: "gevent"
+
+#
+# vars are namespace with the module name.
+#
+{{ role_name }}_role_name: {{ role_name }}
+{{ role_name }}_environment:
+  DJANGO_SETTINGS_MODULE: "{{ role_name }}.settings.production"
+  {{ role_name|upper }}_CFG: "{{ '{{' }} COMMON_CFG_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}.yml"
+
+{{ role_name }}_service_name: "{{ role_name }}"
+{{ role_name }}_user: "{{ '{{' }} {{ role_name }}_service_name }}"
+{{ role_name }}_home: "{{ '{{' }} COMMON_APP_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}"
+{{ role_name }}_code_dir: "{{ '{{' }} {{ role_name }}_home }}/{{ '{{' }} {{ role_name }}_service_name }}"
+
+{{ role_name }}_gunicorn_host: "127.0.0.1"
+{{ role_name }}_gunicorn_port: "XXX" # TODO Change this!!!
+{{ role_name }}_gunicorn_timeout: "300"
+
+{{ role_name }}_log_dir: "{{ '{{' }} COMMON_LOG_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}"
+
+{{ role_name }}_requirements_base: "{{ '{{' }} {{ role_name }}_code_dir }}/requirements"
+{{ role_name }}_requirements:
+  - production.txt
+  - optional.txt
+
+
+#
+# OS packages
+#
+
+{{ role_name }}_debian_pkgs:
+  - libmysqlclient-dev
+  - libssl-dev
+
+{{ role_name }}_redhat_pkgs: []

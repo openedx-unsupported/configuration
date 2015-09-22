@@ -1,0 +1,102 @@
+---
+{% include 'roles/ansible-role/templates/header.j2' %}
+
+#
+# Tasks for role {{ role_name }}
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: add gunicorn configuration file
+  template:
+    src: edx/app/{{ role_name }}/{{ role_name }}_gunicorn.py.j2
+    dest: {{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_gunicorn.py
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+
+- name: install application requirements
+  pip:
+    requirements: "{{ '{{' }} {{ role_name }}_requirements_base }}/{{ '{{' }} item }}"
+    virtualenv: "{{ '{{' }} {{ role_name }}_home }}/venvs/{{ '{{' }} {{ role_name }}_service_name }}"
+    state: present
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  with_items: {{ '{{' }} role_name }}_requirements
+
+- name: migrate
+  shell: >
+    chdir={{ '{{' }} {{ role_name }}_code_dir }}
+    DB_MIGRATION_USER={{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}
+    {{ '{{' }} {{ role_name }}_home }}/venvs/{{ '{{' }} {{ role_name }}_service_name }}/bin/python ./manage.py migrate --noinput
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: write out the supervisor wrapper
+  template:
+    src: edx/app/{{ role_name }}/{{ role_name }}.sh.j2
+    dest: {{ '{{' }} {{ role_name }}_home }}/{{ '{{' }} {{ role_name }}_service_name }}.sh
+    mode: 0650
+    owner: {{ '{{' }} supervisor_user }}
+    group: {{ '{{' }} common_web_user }}
+
+- name: write supervisord config
+  template:
+    src: edx/app/supervisor/conf.d.available/{{ role_name }}.conf.j2
+    dest: "{{ '{{' }} supervisor_available_dir }}/{{ '{{' }} {{ role_name }}_service_name }}.conf"
+    owner: {{ '{{' }} supervisor_user }}
+    group: {{ '{{' }} common_web_user }}
+    mode: 0644
+
+- name: setup the {{ role_name }} env file
+  template:
+    src: "./{{ '{{' }} {{ role_name }}_home }}/{{ '{{' }} {{ role_name }}_service_name }}_env.j2"
+    dest: "{{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_env"
+    owner: {{ '{{' }} {{ role_name }}_user }}
+    group: {{ '{{' }} {{ role_name }}_user }}
+    mode: 0644
+
+- name: enable supervisor script
+  file:
+    src: {{ '{{' }} supervisor_available_dir }}/{{ '{{' }} {{ role_name }}_service_name }}.conf
+    dest: {{ '{{' }} supervisor_cfg_dir }}/{{ '{{' }} {{ role_name }}_service_name }}.conf
+    state: link
+    force: yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the-er venv bin dir
+  file:
+    src: "{{ '{{' }} {{ role_name }}_home }}/venvs/{{ '{{' }} {{ role_name }}_service_name }}/bin/{{ '{{' }} item }}"
+    dest: "{{ '{{' }} COMMON_BIN_DIR }}/{{ '{{' }} item.split('.')[0] }}.{{ role_name }}"
+    state: link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ '{{' }} {{ role_name }}_code_dir }}/{{ item }}"
+    dest: "{{ '{{' }} COMMON_BIN_DIR }}/{{ '{{' }} item.split('.')[0] }}.{{ role_name }}"
+    state: link
+  with_items:
+  - manage.py
+
+- name: restart the applicaton
+  supervisorctl: 
+    state: restarted
+    supervisorctl_path: {{ '{{' }} supervisor_ctl }}
+    config: {{ '{{' }} supervisor_cfg }}
+    name: {{ '{{' }} {{ role_name }}_service_name }}
+  when: not disable_edx_services
+  sudo_user: "{{ '{{' }} supervisor_service_user }}"
