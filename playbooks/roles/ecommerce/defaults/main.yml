@@ -35,6 +35,7 @@ ECOMMERCE_DATABASES:
     CONN_MAX_AGE: 60
 
 ECOMMERCE_VERSION: "master"
+ECOMMERCE_DJANGO_SETTINGS_MODULE: "ecommerce.settings.production"
 
 ECOMMERCE_SECRET_KEY: 'Your secret key here'
 ECOMMERCE_TIME_ZONE: 'UTC'
@@ -163,14 +164,11 @@ ECOMMERCE_GUNICORN_WORKER_CLASS: "gevent"
 #
 # vars are namespace with the module name.
 #
-ecommerce_environment:
-  DJANGO_SETTINGS_MODULE: "ecommerce.settings.production"
-  ECOMMERCE_CFG: "{{ COMMON_CFG_DIR }}/{{ ecommerce_service_name }}.yml"
-
 ecommerce_service_name: "ecommerce"
 ecommerce_user: "{{ ecommerce_service_name }}"
 ecommerce_home: "{{ COMMON_APP_DIR }}/{{ ecommerce_service_name }}"
 ecommerce_code_dir: "{{ ecommerce_home }}/{{ ecommerce_service_name }}"
+ecommerce_venv_dir: "{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}"
 
 ecommerce_nodeenv_dir: "{{ ecommerce_home }}/nodeenvs/{{ ecommerce_service_name }}"
 ecommerce_nodeenv_bin: "{{ ecommerce_nodeenv_dir }}/bin"
@@ -187,6 +185,11 @@ ecommerce_requirements_base: "{{ ecommerce_code_dir }}/requirements"
 ecommerce_requirements:
   - production.txt
   - optional.txt
+
+ecommerce_environment:
+  DJANGO_SETTINGS_MODULE: "{{ ECOMMERCE_DJANGO_SETTINGS_MODULE }}"
+  ECOMMERCE_CFG: "{{ COMMON_CFG_DIR }}/{{ ecommerce_service_name }}.yml"
+  PATH: "{{ ecommerce_venv_dir }}/bin:${PATH}"
 
 #
 # OS packages
