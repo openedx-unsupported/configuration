@@ -24,10 +24,10 @@
 # https://issues.jenkins-ci.org/browse/JENKINS-20407
 - name: workaround for JENKINS-20407
   file:
-    path="/var/run/jenkins"
-    state=directory
-    owner="{{ jenkins_user }}"
-    group="{{ jenkins_group }}"
+    path: "/var/run/jenkins"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
   
 - name: download Jenkins package
   get_url: url="{{ jenkins_deb_url }}" dest="/tmp/{{ jenkins_deb }}"
@@ -62,62 +62,36 @@
 
 - name: make plugins directory
   file:
-    path="{{ jenkins_home }}/plugins"
-    state=directory
-    owner="{{ jenkins_user }}"
-    group="{{ jenkins_group }}"
+    path: "{{ jenkins_home }}/plugins"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
 
 # We first download the plugins to a temp directory and include
 # the version in the file name.  That way, if we increment
 # the version, the plugin will be updated in Jenkins
 - name: download Jenkins plugins
-  get_url: url=http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
-           dest=/tmp/{{ item.name }}_{{ item.version }}
+  get_url:
+    url: http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
+    dest: /tmp/{{ item.name }}_{{ item.version }}
   with_items: jenkins_plugins
   register: jenkins_plugin_downloads
 
 - name: install Jenkins plugins
-  command: cp {{ item.dest }} {{ jenkins_home }}/plugins/{{ item.item.name }}.hpi
+  command: "cp {{ item.dest }} {{ jenkins_home }}/plugins/{{ item.item.name }}.hpi"
   with_items: jenkins_plugin_downloads.results
   when: item.changed
 
 - name: set Jenkins plugin permissions
-  file: path={{ jenkins_home }}/plugins/{{ item.item.name }}.hpi
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  file:
+    path: "{{ jenkins_home }}/plugins/{{ item.item.name }}.hpi"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 700
   with_items: jenkins_plugin_downloads.results
   when: item.changed
   notify:
     - restart Jenkins
-
-# We had to fork some plugins to workaround
-# certain issues.  If these changes get merged
-# upstream, we may be able to use the regular plugin install process.
-# Until then, we compile and install the forks ourselves.
-- name: checkout custom plugin repo
-  git: >
-    repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
-    accept_hostkey=yes
-  with_items: jenkins_custom_plugins
-  register: jenkins_custom_plugins_checkout
-
-- name: compile custom plugins
-  command: mvn -Dmaven.test.skip=true install chdir=/tmp/{{ item.item.repo_name }}
-  with_items: jenkins_custom_plugins_checkout.results
-  when: item.changed 
-
-- name: install custom plugins
-  command: mv /tmp/{{ item.item.repo_name }}/target/{{ item.item.package }}
-           {{ jenkins_home }}/plugins/{{ item.item.package }}
-  with_items: jenkins_custom_plugins_checkout.results
-  when: item.changed 
-  notify:
-    - restart Jenkins
-
-- name: set custom plugin permissions
-  file: path={{ jenkins_home }}/plugins/{{ item.item.package }}
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
-  with_items: jenkins_custom_plugins_checkout.results
-  when: item.changed 
 
 # Plugins that are bundled with Jenkins are "pinned".
 # Jenkins will overwrite updated plugins with its built-in version
