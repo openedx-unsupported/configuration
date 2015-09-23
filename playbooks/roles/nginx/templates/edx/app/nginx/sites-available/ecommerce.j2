@@ -1,14 +1,36 @@
 #
 # {{ ansible_managed }}
 #
+
+
+{% if "ecommerce" in nginx_default_sites %}
+  {% set default_site = "default" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
 upstream ecommerce_app_server {
-    {% for host in nginx_ecommerce_gunicorn_hosts %}
-        server {{ host }}:{{ ecommerce_gunicorn_port }} fail_timeout=0;
-    {% endfor %}
+{% for host in nginx_ecommerce_gunicorn_hosts %}
+    server {{ host }}:{{ ecommerce_gunicorn_port }} fail_timeout=0;
+{% endfor %}
 }
 
 server {
-  listen {{ ECOMMERCE_NGINX_PORT }} default_server;
+  server_name {{ ECOMMERCE_HOSTNAME }};
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ ECOMMERCE_NGINX_PORT }} {{ default_site }};
+  listen {{ ECOMMERCE_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+  listen {{ ECOMMERCE_NGINX_PORT }} {{ default_site }};
+  {% endif %}
 
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ ecommerce_service_name }};

@@ -76,19 +76,3 @@
 - name: add preview.localhost to /etc/hosts
   shell: sed -i -r 's/^127.0.0.1\s+.*$/127.0.0.1 localhost preview.localhost/' /etc/hosts
   sudo: yes
-
-- name: create OAuth2 Clients
-  shell: >
-    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings=aws
-    create_oauth2_client
-    {{ item.url_root }}
-    "{{ item.url_root }}/complete/edx-oidc/"
-    confidential
-    --client_name {{ item.name }}
-    --client_id {{ item.id }}
-    --client_secret {{ item.secret }}
-    --trusted
-  sudo_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  with_items: localdev_oauth2_clients
-  when: item.name != 'None'
