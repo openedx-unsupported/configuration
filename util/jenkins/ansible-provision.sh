@@ -261,7 +261,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum ecommerce notifier xqueue xserver ora discern certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
