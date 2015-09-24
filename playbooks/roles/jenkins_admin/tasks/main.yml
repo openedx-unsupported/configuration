@@ -138,6 +138,45 @@
     user_install=no
   with_items: jenkins_admin_gem_pkgs
 
+- name: get s3 one time url
+  local_action:
+    module: "s3"
+    bucket: "{{ JENKINS_ADMIN_BACKUP_BUCKET }}"
+    object: "{{ JENKINS_ADMIN_BACKUP_S3_KEY }}"
+    mode: "geturl"
+    expiration: 30
+  register: s3_one_time_url
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+- name: download s3 backup
+  get_url:
+    url: "{{ s3_one_time_url.url }}"
+    dest: "/tmp/{{ JENKINS_ADMIN_BACKUP_S3_KEY | basename }}"
+    mode: "0644"
+    owner: "{{ jenkins_user }}"
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+- name: stop jenkins
+  service:
+    name: "jenkins"
+    state: "stopped"
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+- name: restore the backup
+  unarchive:
+    src: "/tmp/jenkins_backup.tar.gz"
+    dest: "{{ jenkins_home }}/.."
+    owner: "{{ jenkins_user }}"
+    copy: false
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+# When testing consider commenting this out
+- name: start jenkins
+  service:
+    name: "jenkins"
+    state: "started"
+  when: JENKINS_ADMIN_BACKUP_BUCKET and JENKINS_BACKUP_S3_KEY
+
 - include: nat_monitor.yml
   tags:
     - nat-monitor
