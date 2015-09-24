@@ -21,14 +21,14 @@
 
 - name: import the test courses
   shell: >
-    {{ demo_edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ demo_edxapp_course_data_dir }} /var/tmp/{{ item.path|basename }}/{{ item.course_id.split('/')[2] }}
+    {{ demo_edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ demo_edxapp_course_data_dir }} /var/tmp/{{ item.path|basename }}/{{ item.xml_path }}
     chdir={{ demo_edxapp_code_dir }}
   sudo_user: "{{ common_web_user }}"
   with_items: TESTCOURSES_EXPORTS
 
 - shell: >
     chdir={{ demo_edxapp_code_dir }}
-    echo "from student.models import CourseEnrollment; from django.contrib.auth.models import User; from opaque_keys.edx.locations import SlashSeparatedCourseKey; course = SlashSeparatedCourseKey.from_deprecated_string('{{ item[0].course_id }}'); user = User.objects.get(email='{{ item[1].email }}'); CourseEnrollment.enroll(user, course, mode='{{ item[1].mode }}');" | {{ demo_edxapp_venv_bin }}/python ./manage.py lms shell --settings=aws
+    echo "from student.models import CourseEnrollment; from django.contrib.auth.models import User; from opaque_keys.edx.keys import CourseKey; course = CourseKey.from_string('{{ item[0].course_id }}'); user = User.objects.get(email='{{ item[1].email }}'); CourseEnrollment.enroll(user, course, mode='{{ item[1].mode }}');" | {{ demo_edxapp_venv_bin }}/python ./manage.py lms shell --settings=aws
   sudo_user: "{{ common_web_user }}"
   with_nested:
     - TESTCOURSES_EXPORTS
