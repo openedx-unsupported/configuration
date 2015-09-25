@@ -1,0 +1,73 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role ecommerce_worker.
+# 
+
+- name: install application requirements
+  pip:
+    requirements: '{{ ecommerce_worker_requirements_base }}/{{ item }}'
+    virtualenv: '{{ ecommerce_worker_home }}/venvs/{{ ecommerce_worker_service_name }}'
+    state: present
+  sudo_user: '{{ ecommerce_worker_user }}'
+  with_items: ecommerce_worker_requirements
+
+- name: write out the supervisor wrapper
+  template:
+    src: edx/app/ecommerce_worker/ecommerce_worker.sh.j2
+    dest: '{{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}.sh'
+    mode: 0650
+    owner: '{{ supervisor_user }}'
+    group: '{{ common_web_user }}'
+
+- name: write supervisord config
+  template:
+    src: edx/app/supervisor/conf.d.available/ecommerce_worker.conf.j2
+    dest: '{{ supervisor_available_dir }}/{{ ecommerce_worker_service_name }}.conf'
+    owner: '{{ supervisor_user }}'
+    group: '{{ common_web_user }}'
+    mode: 0644
+
+- name: setup the ecommerce_worker env file
+  template:
+    src: './{{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}_env.j2'
+    dest: '{{ ecommerce_worker_home }}/ecommerce_worker_env'
+    owner: '{{ ecommerce_worker_user }}'
+    group: '{{ ecommerce_worker_user }}'
+    mode: 0644
+
+- name: enable supervisor script
+  file:
+    src: '{{ supervisor_available_dir }}/{{ ecommerce_worker_service_name }}.conf'
+    dest: '{{ supervisor_cfg_dir }}/{{ ecommerce_worker_service_name }}.conf'
+    state: link
+    force: yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: '{{ supervisor_ctl }} -c {{ supervisor_cfg }} update'
+  when: not disable_edx_services
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: '{{ ecommerce_worker_home }}/venvs/{{ ecommerce_worker_service_name }}/bin/{{ item }}'
+    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.ecommerce_worker'
+    state: link
+  with_items:
+  - python
+  - pip
+
+- name: restart the applicaton
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: '{{ supervisor_ctl }}'
+    config: '{{ supervisor_cfg }}'
+    name: '{{ ecommerce_worker_service_name }}'
+  when: not disable_edx_services
+  sudo_user: '{{ supervisor_service_user }}'
