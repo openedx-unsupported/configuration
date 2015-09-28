@@ -30,7 +30,7 @@
 - name: install application requirements
   pip: >
     requirements="{{ ecommerce_requirements_base }}/{{ item }}"
-    virtualenv="{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}"
+    virtualenv="{{ ecommerce_venv_dir }}"
     state=present
   sudo_user: "{{ ecommerce_user }}"
   with_items: ecommerce_requirements
@@ -38,7 +38,7 @@
 - name: create nodeenv
   shell: >
     creates={{ ecommerce_nodeenv_dir }}
-    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt
+    {{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt
   sudo_user: "{{ ecommerce_user }}"
 
 - name: install node dependencies
@@ -56,7 +56,7 @@
     chdir={{ ecommerce_code_dir }}
     DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
     DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/python ./manage.py migrate --noinput
+    {{ ecommerce_venv_dir }}/bin/python ./manage.py migrate --noinput
   sudo_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -66,7 +66,7 @@
     chdir={{ ecommerce_code_dir }}
     DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
     DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/python ./manage.py oscar_populate_countries
+    {{ ecommerce_venv_dir }}/bin/python ./manage.py oscar_populate_countries
   sudo_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -83,16 +83,18 @@
     chdir={{ ecommerce_code_dir }}
     . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js
   sudo_user: "{{ ecommerce_user }}"
+  when: not devstack
 
 - name: run collectstatic
   shell: >
     chdir={{ ecommerce_code_dir }}
-    {{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/python manage.py {{ item }}
+    {{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}
   sudo_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   with_items:
     - "collectstatic --noinput"
     - "compress"
+  when: not devstack
 
 - name: write out the supervisor wrapper
   template: >
@@ -128,7 +130,7 @@
 
 - name: create symlinks from the-er venv bin dir
   file: >
-    src="{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}/bin/{{ item }}"
+    src="{{ ecommerce_venv_dir }}/bin/{{ item }}"
     dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.ecommerce"
     state=link
   with_items:
