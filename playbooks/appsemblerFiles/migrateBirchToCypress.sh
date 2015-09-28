@@ -54,12 +54,16 @@ echo "ora2_version: $TARGET" >> vars.yml
 echo "certs_version: $TARGET" >> vars.yml
 echo "forum_version: $TARGET" >> vars.yml
 echo "xqueue_version: $TARGET" >> vars.yml
+echo "edx_platform_repo: https://github.com/appsembler/edx-platform.git" >> vars.yml
+echo "edx_ansible_source_repo: https://github.com/appsembler/configuration.git" >> vars.yml
+
 cd configuration/playbooks
 sudo ansible-playbook \
     --inventory-file=localhost, \
     --connection=local \
     --extra-vars=\"@../../vars.yml\" \
     $SERVER_VARS \
+#    -e edx_platform_repo=https://github.com/appsembler/edx-platform.git -e edx_platform_version=metalogix/feature/mergeCypress \
     edx_sandbox.yml
 # if this failed, bail out early
 exitcode=$?
