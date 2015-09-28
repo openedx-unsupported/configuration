@@ -14,6 +14,7 @@ forum_mount_dir = "cs_comments_service"
 ora_mount_dir = "ora"
 ecommerce_mount_dir = "ecommerce"
 ecommerce_worker_mount_dir = "ecommerce-worker"
+programs_mount_dir = "programs"
 insights_mount_dir = "insights"
 analytics_api_mount_dir = "analytics_api"
 
@@ -25,6 +26,7 @@ if ENV['VAGRANT_MOUNT_BASE']
   ora_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ora_mount_dir
   ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_mount_dir
   ecommerce_worker_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_worker_mount_dir
+  programs_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + programs_mount_dir
   insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
   analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
 
@@ -41,6 +43,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
   config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
   config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
+  config.vm.network :forwarded_port, guest: 8004, host: 8004  # Programs
   config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
   config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
   config.vm.network :forwarded_port, guest: 8765, host: 8765
@@ -70,6 +73,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, owner: "ecommerce", group: "www-data"
     config.vm.synced_folder "#{ecommerce_worker_mount_dir}", "/edx/app/ecommerce_worker/ecommerce_worker",
       create: true, owner: "ecommerce_worker", group: "www-data"
+    config.vm.synced_folder "#{programs_mount_dir}", "/edx/app/programs/programs",
+          create: true, owner: "programs", group: "www-data"
 
     if ENV['ENABLE_LEGACY_ORA']
         config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
@@ -90,6 +95,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, nfs: true
     config.vm.synced_folder "#{ecommerce_worker_mount_dir}", "/edx/app/ecommerce_worker/ecommerce_worker",
       create: true, nfs: true
+    config.vm.synced_folder "#{programs_mount_dir}", "/edx/app/programs/programs",
+          create: true, nfs: true
 
     if ENV['ENABLE_LEGACY_ORA']
         config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
@@ -156,6 +163,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
     if ENV['ECOMMERCE_VERSION']
       ansible.extra_vars['ECOMMERCE_VERSION'] = ENV['ECOMMERCE_VERSION']
+    end
+    if ENV['PROGRAMS_VERSION']
+      ansible.extra_vars['PROGRAMS_VERSION'] = ENV['PROGRAMS_VERSION']
     end
   end
 end
