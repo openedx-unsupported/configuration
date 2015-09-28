@@ -1,0 +1,56 @@
+#
+# {{ ansible_managed }}
+#
+
+
+{% if "programs" in nginx_default_sites %}
+  {% set default_site = "default" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
+upstream programs_app_server {
+{% for host in nginx_programs_gunicorn_hosts %}
+    server {{ host }}:{{ programs_gunicorn_port }} fail_timeout=0;
+{% endfor %}
+}
+
+server {
+  server_name {{ PROGRAMS_HOSTNAME }};
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ PROGRAMS_NGINX_PORT }} {{ default_site }};
+  listen {{ PROGRAMS_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+  listen {{ PROGRAMS_NGINX_PORT }} {{ default_site }};
+  {% endif %}
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ programs_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+  {% include "robots.j2" %}
+
+location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://programs_app_server;
+  }
+}
+
