@@ -143,19 +143,20 @@ ease_version: $ease_version
 certs_version: $certs_version
 discern_version: $discern_version
 configuration_version: $configuration_version
-ECOMMERCE_VERSION: $ecommerce_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
 ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
+ECOMMERCE_VERSION: $ecommerce_version
 NGINX_SET_X_FORWARDED_HEADERS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 openid_workaround: True
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
+sandbox: True
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
@@ -212,11 +213,12 @@ EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
-ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
+ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 EOF
 fi
 
