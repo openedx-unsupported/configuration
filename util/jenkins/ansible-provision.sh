@@ -292,6 +292,9 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
+# Setup the OAuth2 clients
+run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
