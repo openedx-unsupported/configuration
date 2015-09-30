@@ -119,7 +119,9 @@ error_page {{ k }} {{ v }};
   }
 
   location / {
-    {% include "basic-auth.j2" %}
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
     {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
     if ( $embargo ) {
       return 302 /embargo;
@@ -206,7 +208,9 @@ error_page {{ k }} {{ v }};
     error_page  503 = /server/rate-limit.html;
     {%- endif -%}
 
-    {%- include "basic-auth.j2" %}
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {%- include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_lms_app;
   }
 
