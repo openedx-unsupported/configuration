@@ -1,0 +1,109 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role programs
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: add gunicorn configuration file
+  template:
+    src: edx/app/programs/programs_gunicorn.py.j2
+    dest: "{{ programs_home }}/programs_gunicorn.py"
+  sudo_user: "{{ programs_user }}"
+
+- name: install application requirements
+  pip:
+    requirements: "{{ programs_requirements_base }}/{{ item }}"
+    virtualenv: "{{ programs_venv_dir }}"
+    state: present
+  sudo_user: "{{ programs_user }}"
+  with_items: "{{ programs_requirements }}"
+
+- name: migrate
+  shell: >
+    chdir={{ programs_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ programs_venv_dir }}/bin/python ./manage.py migrate --noinput
+  sudo_user: "{{ programs_user }}"
+  environment: "{{ programs_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/programs/programs.sh.j2"
+    dest: "{{ programs_home }}/{{ programs_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+
+- name: write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/programs.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ programs_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+
+- name: setup the programs env file
+  template:
+    src: "./{{ programs_home }}/{{ programs_service_name }}_env.j2"
+    dest: "{{ programs_home }}/programs_env"
+    owner: "{{ programs_user }}"
+    group: "{{ programs_user }}"
+    mode: 0644
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ programs_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ programs_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: "{{ programs_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.programs"
+    state: link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ programs_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.programs"
+    state: link
+  with_items:
+  - manage.py
+
+- name: restart the application
+  supervisorctl: 
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "{{ programs_service_name }}"
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"
