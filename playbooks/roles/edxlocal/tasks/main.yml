@@ -43,47 +43,30 @@
 - name: install packages needed for single server
   apt: pkg={{','.join(edxlocal_debian_pkgs)}} install_recommends=yes state=present
 
-- name: setup the edxapp db user
-  mysql_user: >
-    name={{ EDXAPP_MYSQL_USER }}
-    password={{ EDXAPP_MYSQL_PASSWORD }}
-    priv='{{ EDXAPP_MYSQL_DB_NAME }}.*:ALL'
-  when: EDXAPP_MYSQL_USER is defined
+- name: create databases
+  mysql_db:
+    db: "{{ item }}"
+    state: present
+    encoding: utf8
+  when: item != None and item != ''
+  with_items: "{{ edxlocal_databases }}"
 
-- name: create a database for edxapp
-  mysql_db: >
-    db=edxapp
-    state=present
-    encoding=utf8
-  when: EDXAPP_MYSQL_USER is defined
+- name: create database users
+  mysql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.db }}.*:ALL"
+  when: item.db != None and item.db != ''
+  with_items: "{{ edxlocal_database_users }}"
 
-- name: setup the xqueue db user
-  mysql_user: >
-    name={{ XQUEUE_MYSQL_USER }}
-    password={{ XQUEUE_MYSQL_PASSWORD }}
-    priv='{{ XQUEUE_MYSQL_DB_NAME }}.*:ALL'
-  when: XQUEUE_MYSQL_USER is defined
-
-- name: create a database for xqueue
-  mysql_db: >
-    db=xqueue
-    state=present
-    encoding=utf8
-  when: XQUEUE_MYSQL_USER is defined
-
-- name: setup the ora db user
-  mysql_user: >
-    name={{ ORA_MYSQL_USER }}
-    password={{ ORA_MYSQL_PASSWORD }}
-    priv='{{ ORA_MYSQL_DB_NAME }}.*:ALL'
-  when: ORA_MYSQL_USER is defined
-
-- name: create a database for ora
-  mysql_db: >
-    db=ora
-    state=present
-    encoding=utf8
-  when: ORA_MYSQL_USER is defined
+- name: setup the migration db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    priv: "{{ item }}.*:ALL"
+    append_privs: yes
+  when: item != None and item != ''
+  with_items: "{{ edxlocal_databases }}"
 
 - name: create databases for analytics api
   mysql_db: >
@@ -94,34 +77,6 @@
   with_items:
     - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['default']['NAME'] }}"
     - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['reports']['NAME'] }}"
-
-- name: create database for insights
-  mysql_db: >
-    db={{ INSIGHTS_DATABASES.default.NAME }}
-    state=present
-    encoding=utf8
-  when: INSIGHTS_DATABASES is defined
-
-- name: create database user for insights
-  mysql_user: >
-    name="{{ INSIGHTS_DATABASES.default.USER }}"
-    password="{{ INSIGHTS_DATABASES.default.PASSWORD }}"
-    priv='{{ INSIGHTS_DATABASES.default.NAME }}.*:ALL'
-  when: INSIGHTS_DATABASES is defined
-
-- name: create database for ecommerce
-  mysql_db: >
-    db="{{ ECOMMERCE_DEFAULT_DB_NAME }}"
-    state=present
-    encoding=utf8
-  when: ECOMMERCE_DEFAULT_DB_NAME is defined
-
-- name: setup users for ecommerce
-  mysql_user: >
-    name="{{ ECOMMERCE_DATABASES.default.USER }}"
-    password="{{ ECOMMERCE_DATABASES.default.PASSWORD }}"
-    priv='{{ ECOMMERCE_DEFAULT_DB_NAME }}.*:ALL'
-  when: ECOMMERCE_DEFAULT_DB_NAME is defined
 
 - name: create api user for the analytics api
   mysql_user: >
@@ -151,13 +106,6 @@
     encoding=latin1
   when: HIVE_METASTORE_DATABASE is defined
 
-- name: setup the edxapp db user
-  mysql_user: >
-    name={{ HIVE_METASTORE_DATABASE.user }}
-    password={{ HIVE_METASTORE_DATABASE.password }}
-    priv='{{ HIVE_METASTORE_DATABASE.name }}.*:ALL'
-  when: HIVE_METASTORE_DATABASE is defined
-
 - name: setup the edx-notes-api db user
   mysql_user: >
     name={{ EDX_NOTES_API_MYSQL_DB_USER }}
@@ -165,29 +113,6 @@
     priv='{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE'
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
-- name: create a database for edx-notes-api
-  mysql_db: >
-    db={{ EDX_NOTES_API_MYSQL_DB_NAME }}
-    state=present
-    encoding=utf8
-  when: EDX_NOTES_API_MYSQL_DB_USER is defined
-
-- name: setup the migration db user
-  mysql_user: >
-    name={{ COMMON_MYSQL_MIGRATE_USER }}
-    password={{ COMMON_MYSQL_MIGRATE_PASS }}
-    priv='{{ item }}.*:ALL'
-    append_privs=yes
-  when: item != 'None'
-  with_items:
-    - "{{ EDXAPP_MYSQL_DB_NAME|default('None') }}"
-    - "{{ XQUEUE_MYSQL_DB_NAME|default('None') }}"
-    - "{{ ORA_MYSQL_DB_NAME|default('None') }}"
-    - "{{ EDX_NOTES_API_MYSQL_DB_NAME|default('None') }}"
-    - "{{ ANALYTICS_API_DEFAULT_DB_NAME|default('None') }}"
-    - "{{ ANALYTICS_API_REPORTS_DB_NAME|default('None') }}"
-    - "{{ INSIGHTS_DATABASE_NAME|default('None') }}"
-    - "{{ ECOMMERCE_DEFAULT_DB_NAME|default('None') }}"
 
 - name: setup the read-only db user
   mysql_user: >
