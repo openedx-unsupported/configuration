@@ -68,16 +68,6 @@
   when: item != None and item != ''
   with_items: "{{ edxlocal_databases }}"
 
-- name: create databases for analytics api
-  mysql_db: >
-    db={{ item }}
-    state=present
-    encoding=utf8
-  when: ANALYTICS_API_SERVICE_CONFIG is defined
-  with_items:
-    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['default']['NAME'] }}"
-    - "{{ ANALYTICS_API_SERVICE_CONFIG['DATABASES']['reports']['NAME'] }}"
-
 - name: create api user for the analytics api
   mysql_user: >
     name=api001
@@ -90,13 +80,6 @@
     name=reports001
     password="{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
     priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
-  when: ANALYTICS_API_SERVICE_CONFIG is defined
-
-- name: create pipeline user for the analytics reports database
-  mysql_user: >
-    name="pipeline001"
-    password="password"
-    priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:ALL'
   when: ANALYTICS_API_SERVICE_CONFIG is defined
 
 - name: create a database for thie hive metastore
