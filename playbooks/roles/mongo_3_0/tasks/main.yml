@@ -22,7 +22,21 @@
     state=absent purge=yes
     force=yes
   when: mongodb_needs_upgrade.stat.exists and not MONGO_CLUSTERED
-  
+
+- name: disable transparent huge pages on startup (http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/)
+  copy: >
+    src=disable-transparent-hugepages
+    dest=/etc/init.d/disable-transparent-hugepages
+    owner=root
+    group=root
+    mode=0755
+
+- name: disable transparent huge pages
+  service: >
+    name=disable-transparent-hugepages
+    enabled=yes
+    state=started
+
 - name: install python pymongo for mongo_user ansible module
   pip: >
     name=pymongo state=present
