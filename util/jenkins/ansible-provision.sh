@@ -212,11 +212,15 @@ EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
-ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
+ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
+PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 EOF
 fi
 
@@ -261,7 +265,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum ecommerce programs notifier xqueue xserver ora discern certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
