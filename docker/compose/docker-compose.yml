@@ -6,13 +6,12 @@ db:
     - DNSDOCK_IMAGE=db
 
 mongo:
-  image: mongo:2.6
- volumes: 
-   - /var/devstack/mongo/data:/data
+  image: edxops/mongo:v1
+  volumes: 
+    - /var/devstack/mongo/data:/data
 
 es:
- build: ../build/elasticsearch
-  image: edxops/elasticsearch:v1
+ image: edxops/elasticsearch:v1
  volumes:
    - /tmp/elasticsearch/data:/es-data
 
@@ -20,13 +19,19 @@ memcache:
  image: memcached:1.4.24
 
 forums:
- build: ../build/forums
- image: edxops/forums:v2 
+ image: edxops/forums:v3
  volumes:
-   - /home/edward/Documents/git/edx/configuration:/configuration
+   - ../../:/configuration
+ links: 
+   - db:forums-mysql.local.edx.org
+   - mongo:forums-mongo.local.edx.org
+   - es:forums-elasticsearch.local.edx.org
 
 nginx:
  build: ../build/nginx
+ links:
+   - lms:lms.local.edx.org
+   - cms:cms.local.edx.org
     
 rabbitmq:
  image: rabbitmq:3.5.3
@@ -36,5 +41,30 @@ xqueue:
   environment:
       - DNSDOCK_IMAGE=xqueue
  
-edxapp:
+lms:
  build: ../build/edxapp
+ links: 
+   - db:lms-mysql.local.edx.org
+   - mongo:lms-mongo.local.edx.org
+   - rabbitmq:lms-rabbitmq.local.edx.org
+   - xqueue:xqueue.local.edx.org
+   - es:lms-elasticsearch.local.edx.org
+   - memcache:lms-memcache.local.edx.org
+cms:
+ build: ../build/edxapp
+ links: 
+   - db:cms-mysql.local.edx.org
+   - mongo:cms-mongo.local.edx.org
+   - xqueue:xqueue.local.edx.org
+   - es:cms-elasticsearch.local.edx.org
+   - rabbitmq:cms-rabbitmq.local.edx.org
+   - memcache:cms-memcache.local.edx.org
+gp:
+ image: edxops/precise-common:v1
+ volumes:
+   - ../../:/configuration
+ links: 
+   - db:lms-mysql.local.edx.org
+   - mongo:lms-mongo.local.edx.org
+   - rabbitmq:lms-rabbitmq.local.edx.org
+   - memcache:lms-memcache.local.edx.org
