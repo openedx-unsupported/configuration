@@ -4,6 +4,7 @@
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
   tags:
+    - install
     - install:configuration
 
 - name: "enabling supervisor scripts - xqueue, xqueue consumer"
@@ -15,6 +16,7 @@
   with_items: ['xqueue', 'xqueue_consumer']
   when: not disable_edx_services
   tags:
+    - install
     - install:configuration
 
 - name: "add gunicorn configuration file"
@@ -24,6 +26,7 @@
   notify:
     - restart xqueue
   tags:
+    - install
     - install:configuration
 
 - name: create xqueue application config
@@ -32,6 +35,7 @@
   notify:
     - restart xqueue
   tags:
+    - install
     - install:configuration
 
 - name: create xqueue auth file
@@ -40,6 +44,7 @@
   notify:
     - restart xqueue
   tags:
+    - install
     - install:configuration
 
 # Do A Checkout
@@ -52,6 +57,7 @@
   notify:
     - restart xqueue
   tags:
+    - install
     - install:code
 
 
@@ -64,6 +70,7 @@
   notify:
     - restart xqueue
   tags:
+    - install
     - install:application-requirements
 
 # Install the python post requirements into {{ xqueue_venv_dir }}
@@ -75,6 +82,7 @@
   notify:
     - restart xqueue
   tags:
+    - install
     - install:application-requirements
 
 # If there is a common user for migrations run migrations using his username
@@ -90,6 +98,7 @@
   notify:
     - restart xqueue
   tags:
+    - migrate
     - migrate:db
 
 - name: create users
@@ -99,6 +108,7 @@
   notify:
     - restart xqueue
   tags:
+    - manage
     - manage:app-users
 
   # call supervisorctl update. this reloads
@@ -111,7 +121,7 @@
   register: supervisor_update
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
-
+  
 - name: ensure xqueue, consumer is running
   supervisorctl: >
     name={{ item }}
@@ -123,6 +133,7 @@
   - xqueue_consumer
   when: not disable_edx_services
   tags:
+    - manage
     - manage:start
 
 - name: create a symlink for venv python
@@ -134,6 +145,7 @@
   - python
   - pip
   tags:
+    - install
     - install:base
 
 - set_fact: xqueue_installed=true

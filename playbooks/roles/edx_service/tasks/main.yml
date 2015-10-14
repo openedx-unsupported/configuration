@@ -55,6 +55,7 @@
     shell=/bin/false
     generate_ssh_key=yes
   tags:
+    - install
     - install:base
 
 # Assumes that the home directory has been created above.
@@ -75,6 +76,7 @@
     - "data"
     - "staticfiles"
   tags:
+    - install
     - install:base
 
 - name: create /edx/var and /edx/etc dirs
@@ -88,6 +90,7 @@
     - /edx/var
     - /edx/etc
   tags:
+    - install
     - install:base
 
 - name: create edx_service log dir
@@ -99,6 +102,7 @@
   with_items:
     - "{{ COMMON_LOG_DIR }}/{{ edx_service_name }}"
   tags:
+    - install
     - install:base
 
 - name: write out app config file
@@ -108,6 +112,7 @@
     mode=0644
   when: edx_service_config is defined
   tags:
+    - install
     - install:configuration
   
 - name: install a bunch of system packages on which edx_service relies
@@ -115,6 +120,7 @@
   with_items: edx_service_packages.debian
   when: ansible_distribution in common_debian_variants
   tags:
+    - install
     - install:system-requirements
 
 - name: install a bunch of system packages on which edx_service relies
@@ -122,6 +128,7 @@
   with_items: edx_service_name.redhat
   when: ansible_distribution in common_redhat_variants
   tags:
+    - install
     - install:system-requirements
 
 - name: set git fetch.prune to ignore deleted remote refs
@@ -129,6 +136,7 @@
   sudo_user: "{{ edx_service_user }}"
   when: edx_service_repos is defined
   tags:
+    - install
     - install:code
 
 - name: validate git protocol
@@ -136,6 +144,7 @@
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and edx_service_repos is defined
   with_items: edx_service_repos
   tags:
+    - install
     - install:code
 
 - name: install read-only ssh key
@@ -146,6 +155,7 @@
   when: item.PROTOCOL == "ssh" and edx_service_repos is defined
   with_items: edx_service_repos
   tags:
+    - install
     - install:code
 
 - name: checkout code over ssh
@@ -158,6 +168,7 @@
   when: item.PROTOCOL == "ssh" and edx_service_repos is defined
   with_items: edx_service_repos
   tags:
+    - install
     - install:code
 
 - name: checkout code over https
@@ -169,6 +180,7 @@
   when: item.PROTOCOL == "https" and edx_service_repos is defined
   with_items: edx_service_repos
   tags:
+    - install
     - install:code
 
 - name: get instance information
