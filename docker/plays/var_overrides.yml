@@ -1,0 +1,49 @@
+o_domain: .local.edx.org
+o_mysql: mysql{{ o_domain }}
+
+#############################################
+# analytics_api overrides
+#############################################
+o_analytics_api: "{{ analytics_api_service_name }}"
+
+ANALYTICS_API_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ ANALYTICS_API_DEFAULT_DB_NAME }}'
+    USER: 'api001'
+    PASSWORD: 'password'
+    HOST: '{{ o_mysql }}'
+    PORT: '3306'
+  # read-only user
+  reports:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ ANALYTICS_API_REPORTS_DB_NAME }}'
+    USER: 'reports001'
+    PASSWORD: 'password'
+    HOST: '{{ o_mysql }}'
+    PORT: '3306'
+ANALYTICS_API_EMAIL_HOST: '{{ o_analytics_api }}-email{{ o_domain }}'
+
+
+#############################################
+# insights overrides
+#############################################
+o_insights: "{{ insights_service_name }}"
+o_insights_sc: "{{ o_insights }}{{ o_domain }}"
+
+INSIGHTS_LMS_BASE: 'http://{{ o_edxapp_lms }}:8000'
+INSIGHTS_BASE_URL: 'http://{{ o_insights_sc }}:8110'
+INSIGHTS_MEMCACHE: [ '{{ o_insights }}-memcache{{ o_domain }}:11211' ]
+INSIGHTS_DOC_BASE: 'http://{{ o_insights_sc }}/en/latest'
+ANALYTICS_API_ENDPOINT: 'http://{{ o_analytics_api }}{{ o_domain }}:8100/api/v0'
+INSIGHTS_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ INSIGHTS_DATABASE_NAME }}'
+    USER: 'rosencrantz'
+    PASSWORD: 'secret'
+    HOST: '{{ o_mysql }}'
+    PORT: '3306'
+insights_gunicorn_host: "{{ o_insights_sc }}"
