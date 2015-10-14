@@ -55,13 +55,19 @@
     name="{{ supervisor_user }}"
     createhome=no
     shell=/bin/false
+  tags:
+    - install
+    - install:base
 
 - name: create supervisor service user
   user: >
     name="{{ supervisor_service_user }}"
     createhome=no
     shell=/bin/false
-
+  tags:
+    - install
+    - install:base
+    
 - name: create supervisor directories
   file: >
     name={{ item }}
@@ -72,6 +78,9 @@
   with_items:
     - "{{ supervisor_app_dir }}"
     - "{{ supervisor_venv_dir }}"
+  tags:
+    - install
+    - install:base
 
 - name: create service user accessible dirs
   file: >
@@ -83,6 +92,9 @@
   with_items:
     - "{{ supervisor_cfg_dir }}"
     - "{{ supervisor_available_dir }}"
+  tags:
+    - install
+    - install:base
 
 - name: create supervisor directories
   file: >
@@ -93,13 +105,18 @@
   with_items:
     - "{{ supervisor_data_dir }}"
     - "{{ supervisor_log_dir }}"
-
+  tags:
+    - install
+    - install:base
 
 - name: install supervisor in its venv
   pip: >
     name=supervisor virtualenv="{{ supervisor_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:base
 
 - name: install supervisor in its venv
   pip: >
@@ -107,11 +124,17 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ supervisor_user }}"
   with_items: supervisor_pip_pkgs
+  tags:
+    - install
+    - install:base
 
 - name: create supervisor upstart job
   template: >
     src=etc/init/supervisor-upstart.conf.j2 dest=/etc/init/{{ supervisor_service }}.conf
     owner=root group=root
+  tags:
+    - install
+    - install:base
 
 # This script is aws specific and looks up instances
 # tags and enables services based on the 'services' tag
@@ -121,6 +144,9 @@
     src=etc/init/pre_supervisor.conf.j2 dest=/etc/init/pre_supervisor.conf
     owner=root group=root
   when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+  tags:
+    - to-remove
+    - aws-specfic
 
 - name: write the pre_suprevisor python script
   copy: >
@@ -130,12 +156,18 @@
     owner={{ supervisor_user }}
     group={{ supervisor_service_user }}
   when: disable_edx_services
+  tags:
+    - to-remove
+    - aws-specfic
 
 - name: create supervisor master config
   template: >
     src=edx/app/supervisor/supervisord.conf.j2 dest={{ supervisor_cfg }}
     owner={{ supervisor_user }} group={{ supervisor_service_user }}
     mode=0644
+  tags:
+    - install
+    - install:config
 
 - name: create a symlink for supervisortctl
   # these links are deprecated in favor of the shell wrapper
@@ -144,7 +176,10 @@
     dest={{ COMMON_BIN_DIR }}/{{ supervisor_ctl|basename }}
     state=absent
   when: supervisor_service == "supervisor"
-
+  tags:
+    - install
+    - install:config
+  
 - name: create a symlink for supervisor cfg
   # these links are deprecated in favor of the shell wrapper
   file: >
@@ -155,6 +190,9 @@
   with_items:
   - "{{ supervisor_cfg }}"
   - "{{ supervisor_cfg_dir }}"
+  tags:
+    - install
+    - install:config
 
 - name: create helper script for running supervisor
   template: >
@@ -163,18 +201,27 @@
     owner={{ supervisor_service_user }}
     mode=0755
   when: supervisor_service == "supervisor"
+  tags:
+    - install
+    - install:config
 
 - name: start supervisor
   service: >
     name={{ supervisor_service }}
     state=started
   register: start_supervisor
+  tags:
+    - manage
+    - manager:start
 
   # calling update on supervisor too soon after it
   # starts will result in an errror.
 - name: wait for web port to be available
   wait_for: port={{ supervisor_http_bind_port }} timeout=5
   when: start_supervisor.changed
+  tags:
+    - manage
+    - manage:start
 
   # call supervisorctl update every time, this reloads
   # the supervisorctl config
@@ -186,3 +233,6 @@
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+  tags:
+    - manage
+    - manage:start
