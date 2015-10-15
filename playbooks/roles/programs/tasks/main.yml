@@ -35,6 +35,22 @@
   sudo_user: "{{ programs_user }}"
   with_items: "{{ programs_requirements }}"
 
+- name: create nodeenv
+  shell: >
+    creates={{ programs_nodeenv_dir }}
+    {{ programs_venv_dir }}/bin/nodeenv {{ programs_nodeenv_dir }} --prebuilt
+  sudo_user: "{{ programs_user }}"
+
+- name: install node dependencies
+  npm: executable={{ programs_nodeenv_bin }}/npm path={{ programs_code_dir }} production=yes
+  sudo_user: "{{ programs_user }}"
+
+- name: install bower dependencies
+  shell: >
+    chdir={{ programs_code_dir }}
+    . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/bower install --production --config.interactive=false
+  sudo_user: "{{ programs_user }}"
+
 - name: migrate
   shell: >
     chdir={{ programs_code_dir }}
@@ -44,6 +60,24 @@
   sudo_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: run r.js optimizer
+  shell: >
+    chdir={{ programs_code_dir }}
+    . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/r.js -o build.js
+  sudo_user: "{{ programs_user }}"
+  when: not devstack
+
+- name: run collectstatic
+  shell: >
+    chdir={{ programs_code_dir }}
+    {{ programs_venv_dir }}/bin/python manage.py {{ item }}
+  sudo_user: "{{ programs_user }}"
+  environment: "{{ programs_environment }}"
+  with_items:
+    - "collectstatic --noinput"
+    - "compress"
+  when: not devstack
 
 - name: write out the supervisor wrapper
   template:
