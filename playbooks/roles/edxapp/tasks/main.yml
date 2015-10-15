@@ -6,6 +6,9 @@
   user: >
     name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
     createhome=no shell=/bin/false
+  tags:
+    - install
+    - install:base
 
 - name: create edxapp user dirs
   file: >
@@ -20,12 +23,18 @@
     - "{{ edxapp_staticfile_dir }}"
     - "{{ edxapp_course_static_dir }}"
     - "{{ edxapp_course_data_dir }}"
-
+  tags:
+    - install
+    - install:base
+    
 # var should have more permissive permissions than the rest
 - name: create edxapp var dir
   file: >
     path={{ edxapp_data_dir }} state=directory mode=0775
     owner="{{ edxapp_user }}" group="{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
 
 # directory to import the courses from github
 - name: create directory to import the courses from github
@@ -43,12 +52,18 @@
     state=link
     owner="{{ edxapp_user }}"
     group="{{ common_web_group }}"
-
+  tags:
+    - install
+    - install:base
+    
 - name: create edxapp log dir
   file: >
     path="{{ edxapp_log_dir }}" state=directory
     owner="{{ common_log_user }}" group="{{ common_log_user }}"
-
+  tags:
+    - install
+    - install:base
+    
 - name: create web-writable edxapp data dirs
   file: >
     path="{{ item }}" state=directory
@@ -58,27 +73,42 @@
     - "{{ edxapp_course_data_dir }}"
     - "{{ edxapp_upload_dir }}"
     - "{{ edxapp_media_dir }}"
-
+  tags:
+    - install
+    - install:base
+    
 # adding chris-lea nodejs repo
 - name: add ppas for current versions of nodejs
   apt_repository: repo="{{ edxapp_chrislea_ppa }}"
-
+  tags:
+    - install
+    - install:base
+  
 - name: install system packages on which LMS and CMS rely
   apt: pkg={{','.join(edxapp_debian_pkgs)}} state=present update_cache=yes
-
+  tags:
+    - install
+    - install:base
+  
 - name: set up edxapp .npmrc
   template:
     src=.npmrc.j2 dest={{ edxapp_app_dir }}/.npmrc
     owner={{ edxapp_user }} group={{ common_web_group }}
     mode=0600
-
+  tags:
+    - install
+    - install:base
+    
 - name: create log directories for service variants
   file: >
     path={{ edxapp_log_dir }}/{{ item }} state=directory
     owner={{ common_log_user }} group={{ common_log_user }}
     mode=0750
   with_items: service_variants_enabled
-
+  tags:
+    - install
+    - install:base
+    
 # Set up the python sandbox execution environment
 - include: python_sandbox_env.yml tags=deploy
   when: EDXAPP_PYTHON_SANDBOX
