@@ -28,6 +28,9 @@
     owner={{ insights_user }}
     group={{ insights_user }}
     mode=0644
+  tags:
+    - install
+    - install:configuration
 
 - name: install application requirements
   pip: >
@@ -36,22 +39,34 @@
     state=present extra_args="--exists-action w"
   sudo_user: "{{ insights_user }}"
   with_items: insights_requirements
+  tags:
+    - install
+    - install:app-requirements
 
 - name: create nodeenv
   shell: >
     creates={{ insights_nodeenv_dir }}
     {{ insights_home }}/venvs/{{ insights_service_name }}/bin/nodeenv {{ insights_nodeenv_dir }}  --prebuilt
   sudo_user: "{{ insights_user }}"
+  tags:
+    - install
+    - install:base
 
 - name: install node dependencies
   npm: executable={{ insights_nodeenv_bin }}/npm path={{ insights_code_dir }} production=yes
   sudo_user: "{{ insights_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: install bower dependencies
   shell: >
     chdir={{ insights_code_dir }}
     . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false
   sudo_user: "{{ insights_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: migrate
   shell: >
@@ -62,12 +77,18 @@
   sudo_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: run r.js optimizer
   shell: >
     chdir={{ insights_code_dir }}
     . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js
   sudo_user: "{{ insights_user }}"
+  tags:
+    - assets
+    - assets:gather
 
 - name: run collectstatic
   shell: >
@@ -78,24 +99,36 @@
   with_items:
     - "collectstatic --noinput"
     - "compress"
+  tags:
+    - assets
+    - assets:gather
 
 - name: compile translations
   shell: >
     chdir={{ insights_code_dir }}/analytics_dashboard
     . {{ insights_home }}/venvs/{{ insights_service_name }}/bin/activate && i18n_tool generate -v
   sudo_user: "{{ insights_user }}"
+  tags:
+    - assets
+    - assets:gather
 
 - name: write out the supervisior wrapper
   template: >
     src=edx/app/insights/insights.sh.j2
     dest={{ insights_app_dir }}/{{ insights_service_name }}.sh
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  tags:
+    - install
+    - install:configuration
 
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/insights.conf.j2
     dest="{{ supervisor_available_dir }}/{{ insights_service_name }}.conf"
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+    - install
+    - install:configuration
 
 - name: enable supervisor script
   file: >
@@ -104,10 +137,16 @@
     state=link
     force=yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: create symlinks from the venv bin dir
   file: >
@@ -118,12 +157,18 @@
   - python
   - pip
   - django-admin.py
+  tags:
+    - install
+    - install:base
 
 - name: create manage.py symlink
   file: >
     src="{{ insights_manage }}"
     dest="{{ COMMON_BIN_DIR }}/manage.{{ insights_service_name }}"
     state=link
+  tags:
+    - install
+    - install:base
 
 - name: restart insights
   supervisorctl: >
@@ -133,3 +178,5 @@
     name={{ insights_service_name }}
   when: not disable_edx_services
   sudo_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage:start
