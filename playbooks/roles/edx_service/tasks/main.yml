@@ -183,6 +183,38 @@
     - install
     - install:code
 
+## install shared nginx template
+- name: Copying nginx configs for {{ edx_service_name }}
+  template: >
+    src=sharednginx.j2
+    dest={{ edx_service_nginx_sites_available }}/{{ edx_service_name }}
+    owner=root group={{ common_web_user }} mode=0640
+  notify: reload nginx
+
+- name: Creating nginx config links for {{ edx_service_name }}
+  file: >
+    src={{ edx_service_nginx_sites_available }}/{{ edx_service_name  }}
+    dest={{ edx_service_nginx_sites_enabled }}/{{ edx_service_name }}
+    state=link owner=root group=root
+  notify: reload nginx
+
+#- name: Copying nginx redirect configs for {{ nginx_redirects }}
+#  template: >
+#    src={{ nginx_template_dir }}/nginx_redirect.j2
+#    dest={{ nginx_sites_available_dir }}/{{ item.key }}
+#    owner=root group={{ common_web_user }} mode=0640
+#  notify: reload nginx
+#  with_dict: nginx_redirects
+#
+#- name: Creating nginx redirect links for {{ nginx_redirects }}
+#  file: >
+#    src={{ nginx_sites_available_dir }}/{{ item.key  }}
+#    dest={{ nginx_sites_enabled_dir }}/{{ item.key }}
+#    state=link owner=root group=root
+#  notify: reload nginx
+#  with_dict: nginx_redirects
+#  TODO: figure out a way to add the redirects
+
 - name: get instance information
   action: ec2_facts
   #old syntax - should be fixed
