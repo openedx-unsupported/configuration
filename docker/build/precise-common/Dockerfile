@@ -1,5 +1,5 @@
 FROM ubuntu:precise 
-MAINTAINER e0d
+MAINTAINER edxops 
 
 RUN apt-get update
 RUN apt-get -y install sudo
@@ -9,7 +9,6 @@ RUN mkdir -p /home/docker && chown -R docker:docker /home/docker
 RUN apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 git
 USER docker
 
-RUN echo "cachebust"
 # bootstrap
 RUN sudo git clone --recursive https://github.com/edx/ansible /tmp/ansible
 WORKDIR /tmp/ansible
@@ -20,11 +19,11 @@ ENV PATH /tmp/ansible/bin:/bin:/sbin:/usr/sbin:/usr/bin
 RUN sudo git clone http://github.com/edx/configuration.git /tmp/configuration
 ADD inventory /etc/ansible/hosts
 WORKDIR /tmp/configuration
-RUN sudo git checkout e0d/sever-aws-deps 
+RUN sudo git checkout e0d/diverse-virtualization-targets
 RUN sudo pip install -r pre-requirements.txt
 RUN sudo pip install -r requirements.txt
 WORKDIR /tmp/configuration/playbooks/edx-east
-RUN sudo /tmp/ansible/bin/ansible-playbook edx_ansible.yml -c local -e "configuration_version=e0d/sever-aws-deps"
+RUN sudo /tmp/ansible/bin/ansible-playbook edx_ansible.yml -c local -e "configuration_version=e0d/diverse-virtualization-targets"
 
 # cleanup
 RUN sudo rm -rf /tmp/ansible
