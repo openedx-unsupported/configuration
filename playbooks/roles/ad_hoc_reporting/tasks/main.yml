@@ -25,12 +25,16 @@
     pkg={{ item }}
     state=present
   with_items: ad_hoc_reporting_debian_pkgs
+  tags:
+    - install:system-requirements
 
 - name: install python packages
   pip: >
     name="{{ item }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: ad_hoc_reporting_pip_pkgs
+  tags:
+    - install:app-requirements
 
 - name: create directories
   file: >
@@ -43,6 +47,7 @@
     - /edx/bin
   tags:
     - scripts
+    - install:base
     
 #These templates rely on there being a global
 # read_only mysql user, you must override the default
@@ -57,6 +62,8 @@
   when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on
   tags:
     - scripts
+    - scripts:mysql
+    - install:code
   with_items:
     - db_host: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
       db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
@@ -109,3 +116,5 @@
   when: COMMON_MONGO_READ_ONLY_PASS is defined
   tags:
     - scripts
+    - scripts:mongo
+    - install:code
