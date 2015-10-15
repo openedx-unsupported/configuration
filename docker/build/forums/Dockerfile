@@ -7,8 +7,8 @@ RUN sudo apt-get update
 
 WORKDIR /edx/app/edx_ansible/edx_ansible
 RUN sudo git fetch --all
-RUN sudo git checkout e0d/diverse-virtualization-targets
-RUN sudo git reset --hard e0d/diverse-virtualization-targets
+RUN sudo git checkout hack2015/docker
+RUN sudo git reset --hard hack2015/docker
 RUN sudo git pull
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
