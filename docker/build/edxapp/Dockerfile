@@ -8,6 +8,7 @@ RUN sudo git checkout e0d/diverse-virtualization-targets
 RUN sudo git reset --hard e0d/diverse-virtualization-targets
 RUN sudo git pull
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
+ADD ansible.cfg /edx/app/edx_ansible/edx_ansible/docker/plays/ansible.cfg 
 RUN sudo ansible-playbook edxapp.yml -c local -e "EDXAPP_PYTHON_SANDBOX=false" -t 'install:base'
 RUN sudo ansible-playbook edxapp.yml -c local -e "EDXAPP_PYTHON_SANDBOX=false" -t 'install:code'
 RUN sudo ansible-playbook edxapp.yml -c local -e "EDXAPP_PYTHON_SANDBOX=false" -t 'install:configuration'
