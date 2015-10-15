@@ -21,28 +21,59 @@
 #   - user
 
 - name: install system packages
-  apt: >
-    pkg={{ item }}
-    state=present
+  apt:
+    pkg: "{{ item }}"
+    state: present
   with_items: ad_hoc_reporting_debian_pkgs
+  tags:
+    - install:system-requirements
+
+- name: add the mongodb signing key
+  apt_key:
+    id: 7F0CEB10
+    url: "{{ MONGODB_APT_KEY }}"
+    state: present
+  tags:
+    - install:system-requirements
+
+- name: add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO }}"
+    state: present
+  tags:
+    - install:system-requirements
+
+- name: install mongo shell
+  apt:
+    pkg: mongodb-org-shell={{ mongo_version }}
+    state: present
+    install_recommends: yes
+    force: yes
+    update_cache: yes
+  tags:
+    - install:system-requirements
 
 - name: install python packages
-  pip: >
-    name="{{ item }}" state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  pip:
+    name: "{{ item }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: ad_hoc_reporting_pip_pkgs
+  tags:
+    - install:app-requirements
 
 - name: create directories
-  file: >
-    path="{{ item }}"
-    state=directory
-    owner=root
-    group=root
-    mode=0755
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
   with_items:
     - /edx/bin
   tags:
     - scripts
+    - install:base
     
 #These templates rely on there being a global
 # read_only mysql user, you must override the default
@@ -50,13 +81,17 @@
 #Also, all of the *_REPLICA_DB_HOST vars are only defined
 # in secure config files.
 - name: install common mysql replica scripts
-  template: >
-    src=edx/bin/mysql.sh.j2
-    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
-    mode=0755 owner=root group=root
+  template:
+    src: edx/bin/mysql.sh.j2
+    dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode: 0755
+    owner: root
+    group: root
   when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on
   tags:
     - scripts
+    - scripts:mysql
+    - install:code
   with_items:
     - db_host: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
       db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
@@ -93,10 +128,12 @@
 # read_only mongo user, you must override the default
 # in order for these templates to be written out
 - name: install mongodb replica scripts
-  template: >
-    src=edx/bin/mongo.sh.j2
-    dest=/edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
-    mode=0755 owner=root group=root
+  template:
+    src: edx/bin/mongo.sh.j2
+    dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode: 0755
+    owner: root
+    group: root
   with_items:
     - db_hosts: "{{ EDXAPP_MONGO_HOSTS }}"
       db_name: "{{ EDXAPP_MONGO_DB_NAME }}"
@@ -109,3 +146,5 @@
   when: COMMON_MONGO_READ_ONLY_PASS is defined
   tags:
     - scripts
+    - scripts:mongo
+    - install:code
