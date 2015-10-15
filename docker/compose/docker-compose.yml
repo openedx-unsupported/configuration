@@ -1,69 +1,98 @@
+dnsdock:
+  # The docker daemon must be run with the following options:
+  #  --bip=172.17.42.1/24
+  #  --dns=172.17.42.1
+  # See https://github.com/tonistiigi/dnsdock#user-content-setup
+  image: tonistiigi/dnsdock:v1.10.0
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+  ports:
+    - 172.17.42.1:53:53/udp
+  command: -domain="local.edx.org"
+
 db:
 #  build: ../build/mysql
   image: edxops/mysql:v1
   environment:
     - MYSQL_ROOT_PASSWORD=''
+    - DNSDOCK_ALIAS=mysql.local.edx.org
 
 mongo:
   image: edxops/mongo:v2
   volumes: 
     - /var/devstack/mongo/data:/data
+  environment:
+    - DNSDOCK_ALIAS=mongo.local.edx.org
 
 es:
- image: edxops/elasticsearch:v1
- volumes:
-   - /tmp/elasticsearch/data:/es-data
+  image: edxops/elasticsearch:v1
+  volumes:
+    - /tmp/elasticsearch/data:/es-data
+  environment:
+    - DNSDOCK_ALIAS=elasticsearch.local.edx.org
 
 memcache:
- image: memcached:1.4.24
+  image: memcached:1.4.24
+  environment:
+    - DNSDOCK_ALIAS=memcache.local.edx.org
 
 forums:
- image: edxops/forums:v3
- volumes:
-   - ../../:/configuration
- links: 
-   - db:forums-mysql.local.edx.org
-   - mongo:forums-mongo.local.edx.org
-   - es:forums-elasticsearch.local.edx.org
+  image: edxops/forums:v3
+  volumes:
+    - ../../:/configuration
+  environment:
+    - DNSDOCK_ALIAS=forums.local.edx.org
+  links: 
+    - db:forums.mysql.local.edx.org
+    - mongo:forums.mongo.local.edx.org
+    - es:forums.elasticsearch.local.edx.org
 
 nginx:
- build: ../build/nginx
- links:
-   - lms:lms.local.edx.org
-   - cms:cms.local.edx.org
+  build: ../build/nginx
+  links:
+    - lms:lms.local.edx.org
+    - cms:cms.local.edx.org
     
 rabbitmq:
- image: rabbitmq:3.5.3
+  image: rabbitmq:3.5.3
+  environment:
+    - DNSDOCK_ALIAS=rabbit.local.edx.org
 
 xqueue:
   build: ../build/xqueue
   environment:
-      - DNSDOCK_IMAGE=xqueue
+    - DNSDOCK_ALIAS=xqueue.local.edx.org
  
 lms:
- image: edxops/edxapp:v2
- links: 
-   - db:lms-mysql.local.edx.org
-   - mongo:lms-mongo.local.edx.org
-   - rabbitmq:lms-rabbitmq.local.edx.org
-   - xqueue:xqueue.local.edx.org
-   - es:lms-elasticsearch.local.edx.org
-   - memcache:lms-memcache.local.edx.org
+  image: edxops/edxapp:v2
+  environment:
+    - DNSDOCK_ALIAS=lms.local.edx.org
+  links: 
+    - db:lms.mysql.local.edx.org
+    - mongo:lms.mongo.local.edx.org
+    - rabbitmq:lms.rabbit.local.edx.org
+    - xqueue:xqueue.local.edx.org
+    - es:lms.elasticsearch.local.edx.org
+    - memcache:lms.memcache.local.edx.org
+    - forums:lms.forums.local.edx.org
 cms:
- image: edxops/edxapp:v2
- links: 
-   - db:cms-mysql.local.edx.org
-   - mongo:cms-mongo.local.edx.org
-   - xqueue:xqueue.local.edx.org
-   - es:cms-elasticsearch.local.edx.org
-   - rabbitmq:cms-rabbitmq.local.edx.org
-   - memcache:cms-memcache.local.edx.org
+  image: edxops/edxapp:v2
+  environment:
+    - DNSDOCK_ALIAS=cms.local.edx.org
+  links: 
+    - db:cms.mysql.local.edx.org
+    - mongo:cms.mongo.local.edx.org
+    - xqueue:xqueue.local.edx.org
+    - es:cms.elasticsearch.local.edx.org
+    - rabbitmq:cms.rabbit.local.edx.org
+    - memcache:cms.memcache.local.edx.org
+    - forums:lms.forums.local.edx.org
 gp:
- image: edxops/precise-common:v1
- volumes:
-   - ../../:/configuration
- links: 
-   - db:lms-mysql.local.edx.org
-   - mongo:lms-mongo.local.edx.org
-   - rabbitmq:lms-rabbitmq.local.edx.org
-   - memcache:lms-memcache.local.edx.org
+  image: edxops/precise-common:v1
+  volumes:
+    - ../../:/configuration
+  links: 
+    - db:lms.mysql.local.edx.org
+    - mongo:lms.mongo.local.edx.org
+    - rabbitmq:lms.rabbit.local.edx.org
+    - memcache:lms.memcache.local.edx.org
