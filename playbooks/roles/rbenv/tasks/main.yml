@@ -39,15 +39,24 @@
     name={{ rbenv_user }} home={{ rbenv_dir }}
     shell=/bin/false createhome=no
   when: rbenv_user != common_web_user
+  tags:
+    - install
+    - install:base
 
 - name: create rbenv dir if it does not exist
   file: >
     path="{{ rbenv_dir }}" owner="{{ rbenv_user }}"
     state=directory
+  tags:
+    - install
+    - install:base
 
 - name: install build depends
   apt: pkg={{ ",".join(rbenv_debian_pkgs) }} state=present install_recommends=no
   with_items: rbenv_debian_pkgs
+  tags:
+    - install
+    - install:base
 
 - name: update rbenv repo
   git: >
@@ -55,22 +64,34 @@
     dest={{ rbenv_dir }}/.rbenv version={{ rbenv_version }}
     accept_hostkey=yes
   sudo_user: "{{ rbenv_user }}"
+  tags:
+    - install
+    - install:base
 
 - name: ensure ruby_env exists
   template: >
     src=ruby_env.j2 dest={{ rbenv_dir }}/ruby_env
   sudo_user: "{{ rbenv_user }}"
+  tags:
+    - install
+    - install:base
 
 - name: check ruby-build installed
   command: test -x /usr/local/bin/ruby-build
   register: rbuild_present
   ignore_errors: yes
+  tags:
+    - install
+    - install:base
 
 - name: if ruby-build exists, which versions we can install
   command: /usr/local/bin/ruby-build --definitions
   when: rbuild_present|success
   register: installable_ruby_vers
   ignore_errors: yes
+  tags:
+    - install
+    - install:base
 
 ### in this block, we (re)install ruby-build if it doesn't exist or if it can't install the requested version
 - name: create temporary directory
@@ -78,6 +99,9 @@
   register: tempdir
   sudo_user: "{{ rbenv_user }}"
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  tags:
+    - install
+    - install:base
 
 - name: clone ruby-build repo
   git: >
@@ -85,14 +109,23 @@
     accept_hostkey=yes
   when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   sudo_user: "{{ rbenv_user }}"
+  tags:
+    - install
+    - install:base
 
 - name: install ruby-build
   command: ./install.sh chdir={{ tempdir.stdout }}/ruby-build
   when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  tags:
+    - install
+    - install:base
 
 - name: remove temporary directory
   file: path={{ tempdir.stdout }} state=absent
   when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  tags:
+    - install
+    - install:base
 
 - name: check ruby {{ rbenv_ruby_version }} installed
   shell: "rbenv versions | grep {{ rbenv_ruby_version }}"
@@ -100,34 +133,55 @@
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   ignore_errors: yes
+  tags:
+    - install
+    - install:base
 
 - name: install ruby {{ rbenv_ruby_version }}
   shell: "rbenv install {{ rbenv_ruby_version }} creates={{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}"
   when: ruby_installed|failed
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
+  tags:
+    - install
+    - install:base
 
 - name: set global ruby {{ rbenv_ruby_version }}
   shell: "rbenv global {{ rbenv_ruby_version }}"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
+  tags:
+    - install
+    - install:base
 
 - name: install bundler
   shell: "gem install bundler -v {{ rbenv_bundler_version }}"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
+  tags:
+    - install
+    - install:base
 
 - name: remove rbenv version of rake
   file: path="{{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}/bin/rake" state=absent
   when: jenkins_worker is not defined or not jenkins_worker
+  tags:
+    - install
+    - install:base  
 
 - name: install rake gem
   shell: "gem install rake -v {{ rbenv_rake_version }}"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   when: jenkins_worker is not defined or not jenkins_worker
-
+  tags:
+    - install
+    - install:base
+    
 - name: rehash
   shell: "rbenv rehash"
   sudo_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
+  tags:
+    - install
+    - install:base
