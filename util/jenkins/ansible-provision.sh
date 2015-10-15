@@ -206,6 +206,8 @@ USER_CMD_PROMPT: '[$name_tag] '
 COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
 COMMON_ENABLE_DATADOG: $enable_datadog
 FORUM_NEW_RELIC_ENABLE: $enable_newrelic
+EDXAPP_CORS_ORIGIN_WHITELIST_EXTRA:
+  -  ecommerce-${deploy_host}
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
