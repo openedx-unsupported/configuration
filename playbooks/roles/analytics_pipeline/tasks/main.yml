@@ -42,45 +42,69 @@
     path="{{ ANALYTICS_PIPELINE_CONFIG_DIR }}"
     mode=0755 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
     state=directory
+  tags:
+    - install
+    - install:configuration
 
 - name: store output database credentials for analytics pipeline
   copy: >
     content="{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE | to_json }}"
     dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/output.json
     mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  tags:
+    - install
+    - install:configuration
 
 - name: store input database credentials for analytics pipeline
   copy: >
     content="{{ ANALYTICS_PIPELINE_INPUT_DATABASE | to_json }}"
     dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/input.json
     mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  tags:
+    - install
+    - install:configuration
 
 - name: luigi configuration directory created
   file: >
     path=/etc/luigi
     state=directory
     mode=755
+  tags:
+    - install
+    - install:configuration
 
 - name: luigi configuration file written
   template: >
     src=client.cfg.j2
     dest=/etc/luigi/client.cfg
     mode=644
+  tags:
+    - install
+    - install:configuration
 
 - name: util library source checked out
   git: >
     dest={{ analytics_pipeline_util_library.path }} repo={{ analytics_pipeline_util_library.repo }}
     version={{ analytics_pipeline_util_library.version }}
+  tags:
+    - install
+    - install:code
 
 - name: lib directory created
   file: >
     path={{ HADOOP_COMMON_USER_HOME }}/lib
     owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+  tags:
+    - install
+    - install:app-requirements
 
 - name: check if the util library needs to be built
   stat: >
     path={{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar
   register: util_lib_built
+  tags:
+    - install
+    - install:app-requirements
 
 - name: util library built
   shell: >
@@ -89,40 +113,64 @@
     {{ hadoop_common_java_home }}/bin/jar cf {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar org/edx/hadoop/input/ManifestTextInputFormat.class &&
     chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar
   when: not util_lib_built.stat.exists
+  tags:
+    - install
+    - install:app-requirements
 
 - name: ensure hdfs services are started
   service: >
     name=hdfs
     state=started
+  tags:
+    - manage
+    - manage:start
 
 - name: ensure map reduce services are started
   service: >
     name=yarn
     state=started
+  tags:
+    - manage
+    - manage:start
 
 - name: ensure package dir exists in HDFS
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/
   sudo_user: "{{ hadoop_common_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: ensure util library is in HDFS
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/
   sudo_user: "{{ hadoop_common_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: ensure the data directory exists
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}
   sudo_user: "{{ hadoop_common_user }}"
+  tags:
+    - install
+    - install:base
 
 - name: ensure tracking log file can be read
   file: >
     path={{ COMMON_LOG_DIR }}/tracking/tracking.log
     mode=0644
   ignore_errors: yes
+  tags:
+    - install
+    - install:configuration
 
 - name: cron job syncs tracking log file to hdfs
   cron: >
     user={{ hadoop_common_user }}
     name="Sync tracking log to HDFS"
     job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+  tags:
+    - install
+    - install:configuration
