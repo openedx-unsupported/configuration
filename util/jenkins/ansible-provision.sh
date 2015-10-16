@@ -144,6 +144,7 @@ certs_version: $certs_version
 discern_version: $discern_version
 configuration_version: $configuration_version
 ECOMMERCE_VERSION: $ecommerce_version
+PROGRAMS_VERSION: $programs_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
