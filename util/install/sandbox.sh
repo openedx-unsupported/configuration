@@ -17,6 +17,12 @@ if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
 fi
 
 ##
+## Set ppa repository source for gcc/g++ 4.8 in order to install insights properly
+##
+sudo apt-get install -y python-software-properties
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+
+##
 ## Update and Upgrade apt packages
 ##
 sudo apt-get update -y
@@ -25,9 +31,15 @@ sudo apt-get upgrade -y
 ##
 ## Install system pre-requisites
 ##
-sudo apt-get install -y build-essential software-properties-common python-software-properties curl git-core libxml2-dev libxslt1-dev python-pip python-apt python-dev
+sudo apt-get install -y build-essential software-properties-common python-software-properties curl git-core libxml2-dev libxslt1-dev python-pip python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc-4.8 g++-4.8
 sudo pip install --upgrade pip
 sudo -H pip install --upgrade virtualenv
+
+##
+## Update alternatives so that gcc/g++ 4.8 is the default compiler
+##
+sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
+sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
 
 ## Did we specify an openedx release?
 if [ -n "$OPENEDX_RELEASE" ]; then
