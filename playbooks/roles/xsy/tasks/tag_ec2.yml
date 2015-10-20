@@ -1,0 +1,15 @@
+---
+
+- name: get instance information
+  action: ec2_facts
+  tags:
+  - deploy
+
+- name: tag instance
+  ec2_tag: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
+  args:
+    tags:
+      "version:xsy" : "{{ xsy_source_repo }} {{ xsy_checkout.after |truncate(7,True,'')}}"
+  when: xsy_checkout.after is defined
+  tags:
+  - deploy

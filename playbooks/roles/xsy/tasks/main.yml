@@ -1,0 +1,103 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role xsy
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: create application user
+  user: >
+    name="{{ xsy_user }}" home="{{ xsy_app_dir }}"
+    createhome=no shell=/bin/false
+
+- name: create xsy user dirs
+  file: >
+    path="{{ item }}" state=directory
+    owner="{{ xsy_user }}" group="{{ common_web_group }}"
+  with_items:
+    - "{{ xsy_app_dir }}"
+    - "{{ xsy_venvs_dir }}"
+
+- name: setup the xsy env
+  template: >
+    src="xsy_env.j2" dest="{{ xsy_app_dir }}/xsy_env"
+    owner="{{ xsy_user }}" group="{{ common_web_user }}"
+    mode=0644
+  notify: restart xsy
+
+- name: checkout the code
+  git: >
+    dest="{{ xsy_code_dir }}" repo="{{ xsy_source_repo }}"
+    version="{{ xsy_version }}" accept_hostkey=yes
+  sudo_user: "{{ xsy_user }}"
+  register: xsy_checkout
+  notify: restart xsy
+
+- name: install the requirements
+  pip: >
+    requirements="{{ xsy_requirements_file }}"
+    virtualenv="{{ xsy_venv_dir }}"
+    state=present
+    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  sudo_user: "{{ xsy_user }}"
+  notify: restart xsy
+
+- name: create the supervisor wrapper
+  template: >
+    src="{{ xsy_supervisor_wrapper|basename }}.j2"
+    dest="{{ xsy_supervisor_wrapper }}"
+    mode=0755
+  sudo_user: "{{ xsy_user }}"
+  notify: restart xsy
+
+- name: create a supervisor config
+  template: >
+    src=xsy.conf.j2 dest="{{ supervisor_available_dir }}/xsy.conf"
+    owner="{{ supervisor_user }}"
+    group="{{ supervisor_user }}"
+  sudo_user: "{{ supervisor_user }}"
+  notify: restart xsy
+
+- name: enable the supervisor config
+  file: >
+    src="{{ supervisor_available_dir }}/xsy.conf"
+    dest="{{ supervisor_cfg_dir }}/xsy.conf"
+    state=link
+    force=yes
+    mode=0644
+  sudo_user: "{{ supervisor_user }}"
+  when: not disable_edx_services
+  notify: restart xsy
+
+- name: update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+  when: not disable_edx_services
+
+- name: ensure xsy is started
+  supervisorctl: >
+    name=xsy
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  when: not disable_edx_services
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE
