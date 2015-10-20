@@ -32,4 +32,14 @@ location @proxy_to_app {
     proxy_redirect off;
     proxy_pass http://insights_app_server;
   }
+  
+# Forward to HTTPS if we're an HTTP request...
+  if ($http_x_forwarded_proto = "http") {
+    set $do_redirect "true";
+  }
+
+  # Run our actual redirect...
+  if ($do_redirect = "true") {
+    rewrite ^ https://$host$request_uri? permanent;
+  }
 }
