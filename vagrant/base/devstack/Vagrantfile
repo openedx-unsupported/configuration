@@ -17,6 +17,7 @@ ecommerce_worker_mount_dir = "ecommerce-worker"
 programs_mount_dir = "programs"
 insights_mount_dir = "insights"
 analytics_api_mount_dir = "analytics_api"
+src_mount_dir = "src"
 
 if ENV['VAGRANT_MOUNT_BASE']
 
@@ -29,6 +30,9 @@ if ENV['VAGRANT_MOUNT_BASE']
   programs_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + programs_mount_dir
   insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
   analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
+  # This src directory won't have useful permissions. You can set them from the
+  # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
+  src_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + src_mount_dir
 
 end
 
@@ -84,6 +88,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, owner: "insights", group: "www-data"
     config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
       create: true, owner: "analytics_api", group: "www-data"
+    config.vm.synced_folder "#{src_mount_dir}", "/edx/src",
+      create: true, owner: "root", group: "root"
   else
     config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
       create: true, nfs: true
@@ -106,6 +112,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
       create: true, nfs: true
     config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
+      create: true, nfs: true
+    config.vm.synced_folder "#{src_mount_dir}", "/edx/src",
       create: true, nfs: true
   end
 
