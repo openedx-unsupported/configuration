@@ -23,10 +23,19 @@
     force=yes
   when: mongodb_needs_upgrade.stat.exists and not MONGO_CLUSTERED
 
+- name: remove old init script for hugepages
+  file: >
+    path=/etc/init.d/disable-transparent-hugepages
+    state=absent
+  tags:
+    - "hugepages"
+    - "install"
+    - "install:system-requirements"
+
 - name: disable transparent huge pages on startup (http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/)
   copy: >
-    src=disable-transparent-hugepages
-    dest=/etc/init.d/disable-transparent-hugepages
+    src=disable-transparent-hugepages.conf
+    dest=/etc/init/disable-transparent-hugepages.conf
     owner=root
     group=root
     mode=0755
