@@ -1,5 +1,5 @@
 FROM edxops/precise-common:v1
-MAINTAINER rraposa@edx.org
+MAINTAINER edxops
 
 USER root
 

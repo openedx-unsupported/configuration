@@ -1,5 +1,5 @@
 FROM edxops/precise-common:v2
-MAINTAINER e0d
+MAINTAINER edxops
 
 USER docker
 WORKDIR /edx/app/edx_ansible
