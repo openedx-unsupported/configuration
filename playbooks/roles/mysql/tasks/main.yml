@@ -5,20 +5,98 @@
   register: mysql_56_installed
   changed_when: no
 
-- name: Important message
-  debug:
-    msg: |
-      "MySQL experimental is already installed, make 'remove_experimental_mysql: true' in defaults/main.yml, 
-      if you want to remove it and install the stable version of MySQL"
-  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+# Install PPA for installing MySQL 5.6 on Ubuntu 12.04LTS
+- name: install ppa key
+  apt_key:
+    id=E5267A6C
+    url='{{ COMMON_UBUNTU_APT_KEYSERVER }}0x14AA40EC0831756756D7F66C4F4EA0AAE5267A6C'
+    state=present
+  tags:
+    - install:system-requirements
 
-- pause:
-    seconds: 10
-  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+- name: install apt repository
+  apt_repository:
+    repo='deb http://ppa.launchpad.net/ondrej/mysql-5.6/ubuntu precise main'
+    update_cache=yes
+  tags:
+    - install:system-requirements
+  
+- name: look for mysql 5.5
+  shell: dpkg -L mysql-server-5.5
+  ignore_errors: true
+  register: mysql_55_installed
+  tags:
+    - install:system-requirements
 
-# remove this, once the new devstack is out
-- include: remove_mysql_experimental.yml
-  when: remove_experimental_mysql
+- include: remove_mysql_55.yml
+  when: mysql_55_installed.rc != 1
+  tags:
+    - install:system-requirements
 
-- include: mysql.yml
-  when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)
+- name: install mysql 56 and dependencies
+  apt: pkg={{ item }} install_recommends=yes force=yes state=present
+  with_items:
+    - software-properties-common
+    - mysql-server
+  tags:
+    - install:system-requirements
+
+- name: install mysql debian packages
+  apt: pkg={{ item }} install_recommends=yes state=present
+  with_items: mysql_debian_pkgs
+
+- name: start mysql
+  service: name=mysql state=started
+  tags:
+    - manage:start
+
+- name: install packages needed for single server
+  apt: pkg={{','.join(mysql_debian_pkgs)}} install_recommends=yes state=present
+  tags:
+    - install:app-requirements
+
+##### Create the DBs
+# TODO: Add a test to make sure mysql is running.
+
+- name: create databases
+  mysql_db:
+    db: '{{ item.db }}'
+    state: present
+    encoding: '{{ item.encoding | default("utf8") }}'
+    login_user: '{{ MYSQL_LOGIN_USER }}'
+    login_password: '{{ MYSQL_LOGIN_PASSWORD }}'
+    login_host: '{{ MYSQL_LOGIN_HOST }}'
+    login_port: '{{ MYSQL_LOGIN_PORT }}'
+  when: item.db != None and item.db != ''
+  with_items: "{{ mysql_databases }}"
+    
+##### Create the users
+
+- name: setup the migration db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    priv: "{{ item }}.*:SELECT"
+    # ANY REASON TO KEEP append_privs?
+    append_privs: yes
+    login_user: '{{ MYSQL_LOGIN_USER }}'
+    login_password: '{{ MYSQL_LOGIN_PASSWORD }}'
+    login_host: '{{ MYSQL_LOGIN_HOST }}'
+    login_port: '{{ MYSQL_LOGIN_PORT }}'
+  when: item != None and item != ''
+  with_items: "{{ mysql_databases }}"
+#TODO: Tag me
+#
+
+- name: create database users
+  mysql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.pass }}"
+    # Should we be giving these users ALL?
+    priv: "{{ item.priv }}"
+    login_user: '{{ MYSQL_LOGIN_USER }}'
+    login_password: '{{ MYSQL_LOGIN_PASSWORD }}'
+    login_host: '{{ MYSQL_LOGIN_HOST }}'
+    login_port: '{{ MYSQL_LOGIN_PORT }}'
+  when: item.db != None and item.db != ''
+  with_items: "{{ mysql_database_users }}"
