@@ -27,11 +27,14 @@
 
 - name: add key to monitoring-agent.config
   lineinfile: >
-    dest=/etc/mongodb-mms/monitoring-agent.config
+    dest="{{ item.config }}"
     regexp="^mmsApiKey="
     line="mmsApiKey={{ MMSAPIKEY }}"
   notify: restart mms
+  with_items:
+    agents
 
 - name: start mms service
-  service: name=mongodb-mms-monitoring-agent state=started
-
+  service: name="{{ item.agent }}" state=started
+  with_items:
+    agents
