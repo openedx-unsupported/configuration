@@ -1,0 +1,57 @@
+
+{% if edx_service_is_default_sites %}
+  {% set default_site = "default" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
+upstream {{ edx_service_name }}_app_server {
+{% for host in edx_service_gunicorn_service_hosts %}
+    server {{ host.host }}:{{ host.port }} fail_timeout=0;
+{% endfor %}
+}
+
+server {
+  server_name {{ EDX_SERVICE_HOSTNAME }};
+
+  {% if EDX_SERVICE_ENABLE_SSL == true %}
+
+  listen {{ EDX_SERVICE_NGINX_PORT }} {{ default_site }};
+  listen {{ EDX_SERVICE_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ EDX_SERVICE_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ EDX_SERVICE_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+  listen {{ EDX_SERVICE_NGINX_PORT }} {{ default_site }};
+  {% endif %}
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ edx_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+  # No basic auth security on the heartbeat url, so that ELB can use it
+  location /status {
+    try_files $uri @proxy_to_app;
+  }
+
+{%  include "robots.j2" %}
+
+location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://{{ edx_service_name }}_app_server;
+  }
+}
+
