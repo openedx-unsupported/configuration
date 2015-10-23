@@ -1,12 +1,21 @@
-- name: setup the edxapp env
+- name: setup the lms env
   template: >
-    src=edxapp_env.j2 dest={{ edxapp_app_dir }}/edxapp_env
+    src=lms_env.j2 dest={{ edxapp_app_dir }}/{{ EDXAPP_LMS_ENV_FILE }}
     owner={{ edxapp_user }}  group={{ common_web_user }}
     mode=0644
   tags:
     - install
     - install:configuration
-    
+
+- name: setup the cms env
+  template: >
+    src=cms_env.j2 dest={{ edxapp_app_dir }}/{{ EDXAPP_CMS_ENV_FILE }}
+    owner={{ edxapp_user }}  group={{ common_web_user }}
+    mode=0644
+  tags:
+    - install
+    - install:configuration
+
 - name: create edxapp configuration dir
   file: >
     path="{{ EDXAPP_CFG_DIR }}" state=directory
@@ -14,7 +23,7 @@
   tags:
     - install
     - install:configuration
-    
+
 # Optional auth for git
 - name: create ssh script for git (not authenticated)
   template: >
@@ -24,7 +33,7 @@
   tags:
     - install
     - install:base
-  
+
 - name: create ssh script for git (authenticated)
   template: >
     src=git_ssh_auth.sh.j2 dest={{ edxapp_git_ssh }}
