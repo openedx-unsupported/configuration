@@ -283,7 +283,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         fi
     done
 fi
