@@ -130,6 +130,31 @@ def zip_to_list(module, input, key):
 
     module.exit_json(function_output = results)
 
+def zip_to_listdict(module, input, key_name, value_name):
+    """
+    Take an array of dicts and build a list of dicts where the name of the key
+    is taken as a value of one of the keys in the input list and the vaule is
+    the value of a different key.
+
+    For example with an input like
+    [{'tag_name': 'Name', 'tag_value': 'stage-edx-edxapp'}, {'tag_name': 'cluster', 'tag_value': 'edxapp'}]
+
+    and an args array of ['tag_name', 'tag_value']
+
+    would return
+
+    [{'Name': 'stage-edx-edxapp'}, {'cluster': 'edxapp'}]
+
+    NB: This is used to work around the fact that we can template out the names
+    of keys in dictionaries in ansible.
+    """
+
+    results = []
+    for item in input:
+        results.append({ item[key_name]: item[value_name]})
+
+    module.exit_json(function_output=results)
+
 def main():
 
     arg_spec = dict(
@@ -151,6 +176,8 @@ def main():
         flatten(module,input)
     elif target == 'zip_to_list':
         zip_to_list(module, input, *args)
+    elif target == 'zip_to_listdict':
+        zip_to_listdict(module, input, *args)
     else:
         raise NotImplemented("Function {0} is not implemented.".format(target))
 
