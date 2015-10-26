@@ -163,19 +163,27 @@
     - debug: msg="{{ created_service_subnets.results|map(attribute='subnet_id')| list | join(',') }}"
       register: service_vpc_zone_identifier_string
 
+    - name: Transform tags into list dict format for the modules that expect it
+      util_map:
+        function: zip_to_listdict
+        input: "{{ asg_instance_tags }}"
+        args: ['key', 'value']
+      register: listdict_asg_instance_tags
+
+    - debug: msg="Instance Tags:{{ listdict_asg_instance_tags }}"
+
     - name: Manage ASG
       ec2_asg:
         profile: "{{ profile }}"
         region: "{{ aws_region }}"
         name: "{{ asg_name }}"
         launch_config_name: "{{ service_config.name }}"
-        load_balancers: "{{ elb_name }}"
         availability_zones: "{{ aws_availability_zones }}"
         min_size: "{{ asg_min_size }}"
         max_size: "{{ asg_max_size }}"
         desired_capacity: "{{ asg_desired_capacity }}"
         vpc_zone_identifier: "{{ service_vpc_zone_identifier_string.msg }}"
-        tags: "{{ asg_instance_tags }}"
+        tags: "{{ listdict_asg_instance_tags.function_output }}"
         load_balancers: "{{ created_elbs.results|map(attribute='elb.name')|list }}"
       register: asg
       when: auto_scaling_service
