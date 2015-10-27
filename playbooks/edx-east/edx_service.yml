@@ -4,8 +4,6 @@
   hosts: all
   connection: local
   gather_facts: False
-  vars:
-    state: "present"
   tasks:
     - name: Manage IAM Role and Profile
       ec2_iam_role:
@@ -259,9 +257,10 @@
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
         ebs_optimized: "{{ service_config.ebs_optimized }}"
-      with_sequence: count={{ create_instances | default(created_service_subnets.results | length) }}
-      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+      with_sequence: count={{ (create_instances | int - potential_existing_instances.instances|length) | default(created_service_subnets.results | length) }}
+      when: not auto_scaling_service and (potential_existing_instances.instances|length < create_instances | int)
       register: created_instances
+
 
     - name: Add new instances to host group
       add_host:
@@ -272,9 +271,8 @@
         ansible_ssh_user: ubuntu
         volumes: "{{ service_config.volumes }}"
       with_subelements:
-        - created_instances.results
+        - created_instances.results | default({})
         - instances
-      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
 
 
 - name: Configure launched instances
