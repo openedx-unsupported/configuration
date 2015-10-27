@@ -14,6 +14,8 @@
         instance_profile_name: "{{ instance_profile_name }}"
         role_name: "{{ role_name }}"
         policies: "{{ role_policies }}"
+      tags:
+      - iam
 
     - name: Manage ELB security group
       ec2_group_local:
@@ -136,6 +138,8 @@
         subnets: "{{ created_elb_private_subnets.results|map(attribute='subnet_id')| list if ( item.scheme == 'internal' ) else elb_subnets}}"
         health_check: "{{ elb_healthcheck }}"
         listeners: "{{ elb_listeners }}"
+        cross_az_load_balancing: "{{ elb_enable_cross_zone_loadbalancing }}"
+        connection_draining_timeout: "{{ elb_draining_timeout }}"
       register: created_elbs
       with_items: elbs
       when: elbs is defined
