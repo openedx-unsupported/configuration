@@ -250,6 +250,10 @@
         tags: "{{ reformatted_asg_instance_tags.function_output }}"
       register: potential_existing_instances
 
+    - name: Compare requested instances vs. current instances
+      when: not auto_scaling_service and (potential_existing_instances.instances|length > create_instances | int)
+      fail: msg="This playbook will not shrink the number of instances. {{create_instances }} requested. There are currently {{ potential_existing_instances.instances|length }} instances that match this tag." 
+
     #This task will create the number of instances requested (create_instances parameter). 
     # By default, it will create instances equaling the number of subnets specified.
     #Modulo logic explained: The subnet specified will be the instance number modulo the number of subnets, 
@@ -271,9 +275,10 @@
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
         ebs_optimized: "{{ service_config.ebs_optimized }}"
-      with_sequence: count={{ create_instances | default(created_service_subnets.results | length) }}
-      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
+      with_sequence: count={{ (create_instances | int - potential_existing_instances.instances|length) | default(created_service_subnets.results | length) }}
+      when: not auto_scaling_service and (potential_existing_instances.instances|length < create_instances | int)
       register: created_instances
+
 
     - name: Add new instances to host group
       add_host:
@@ -284,9 +289,8 @@
         ansible_ssh_user: ubuntu
         volumes: "{{ service_config.volumes }}"
       with_subelements:
-        - created_instances.results
+        - created_instances.results | default({})
         - instances
-      when: not auto_scaling_service and potential_existing_instances.instances|length == 0
 
 
 - name: Configure launched instances
