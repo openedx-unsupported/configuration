@@ -15,6 +15,7 @@ MIGRATION_COMMANDS = {
         'cms':    "{python} {code_dir}/manage.py cms migrate --noinput --settings=aws --db-dry-run --merge",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+        'programs':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list"
     }
@@ -89,6 +90,15 @@ if __name__ == '__main__':
     ecom_migration_args.add_argument("--ecommerce-code-dir",
         help="Location to of the ecommerce code.")
 
+    programs_migration_args = parser.add_argument_group("programs_migrations",
+            "Args for running programs migration checks.")
+    programs_migration_args.add_argument("--programs-python",
+        help="Path to python to use for executing migration check.")
+    programs_migration_args.add_argument("--programs-env",
+        help="Location of the programs environment file.")
+    programs_migration_args.add_argument("--programs-code-dir",
+        help="Location to of the programs code.")
+
     insights_migration_args = parser.add_argument_group("insights_migrations",
             "Args for running insights migration checks.")
     insights_migration_args.add_argument("--insights-python",
@@ -156,8 +166,8 @@ if __name__ == '__main__':
                 play=play,
                 instance_id=instance_id)
             break
-        except:
-            print("Failed to get EDP for {}".format(instance_id))
+        except Exception as e:
+            print("Failed to get EDP for {}: {}".format(instance_id, str(e)))
             # With the time limit being 2 minutes we will
             # try 5 times before giving up.
             time.sleep(backoff)
@@ -185,8 +195,8 @@ if __name__ == '__main__':
                              "cluster": play,
                              "instance-id": instance_id,
                              "created": volume.create_time })
-    except:
-        msg = "Failed to tag volumes associated with {}".format(instance_id)
+    except Exception as e:
+        msg = "Failed to tag volumes associated with {}: {}".format(instance_id, str(e))
         print(msg)
         if notify:
             notify(msg)
@@ -216,6 +226,7 @@ if __name__ == '__main__':
                 else:
                     new_services = {
                         "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
+                        "programs": {'python': args.programs_python, 'env_file': args.programs_env, 'code_dir': args.programs_code_dir},
                         "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
                         "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir}
                     }
