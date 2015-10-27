@@ -27,6 +27,8 @@
         rules: "{{ elb_security_group.rules }}"
         tags: "{{ elb_security_group.tags }}"
       register: elb_sec_group
+      tags:
+        - elb
 
     - debug: msg="{{ service_security_group.rules }}"
 
@@ -61,26 +63,6 @@
           - "id"
       register: acl_data
          
-    # - name: Manage ELB Subnets
-    #   ec2_subnet:
-    #     state: "{{ state }}"
-    #     region: "{{ aws_region }}"
-    #     name: "{{ item.name }}"
-    #     vpc_id: "{{ vpc_id }}"
-    #     cidr_block: "{{ item.cidr }}"
-    #     az: "{{ item.az }}"
-    #     route_table_id: "{{ item.route_table_id }}"
-    #     tags: "{{ item.tags }}"
-    #   register: created_elb_subnets
-    #   with_items: elb_subnets
-
-      #
-      # Hack alert, this registers a list in the global namespace
-      # of just the subnet ids that were created above
-      #
-    # - debug: msg="{{ created_elb_subnets.results|map(attribute='subnet_id')| list }}"
-    #   register: elb_sn_list
-      
     - name: Manage Service Subnets
       ec2_subnet:
         profile: "{{ profile }}"
@@ -122,6 +104,8 @@
       register: created_elb_private_subnets
       with_items: elb_private_subnets
       when: private_elb_subnet_1 is defined and private_elb_subnet_2 is defined
+      tags:
+        - elb
 
     - name: Check that internal ELBs have subnets
       fail: msg="If you set an elb scheme to 'internal' you must also define private_elb_subnet_1 and private_elb_subnet_2"
@@ -143,6 +127,23 @@
       register: created_elbs
       with_items: elbs
       when: elbs is defined
+      tags:
+        - elb
+
+    - name: Setup ELB DNS
+      route53:
+        command: "create"
+        zone: "{{ dns_zone_name }}"
+        record: "{{ item.elb.name }}.{{ dns_zone_name }}"
+        type: "A"
+        value: "{{ item.elb.dns_name }}"
+        alias: true
+        alias_hosted_zone_id: "{{ item.elb.hosted_zone_id }}"
+        overwrite: true
+      with_items: created_elbs.results
+      when: elbs is defined
+      tags:
+        - elb
 
 #
 # Service related components
