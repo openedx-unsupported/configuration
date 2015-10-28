@@ -41,4 +41,8 @@ setuid {{ supervisor_user }}
   {% set analytics_api_command = "" %}
 {% endif %}
 
-exec {{ supervisor_venv_dir }}/bin/python {{ supervisor_app_dir }}/pre_supervisor_checks.py --available={{ supervisor_available_dir }} --enabled={{ supervisor_cfg_dir }} {% if SUPERVISOR_HIPCHAT_API_KEY is defined %}--hipchat-api-key {{ SUPERVISOR_HIPCHAT_API_KEY }} --hipchat-room {{ SUPERVISOR_HIPCHAT_ROOM }} {% endif %}  {{ programs_command }} {{ edxapp_command }} {{ xqueue_command }} {{ ecommerce_command }} {{ insights_command }} {{ analytics_api_command }}
+{% if SUPERVISOR_HIPCHAT_API_KEY is defined %}
+  {% set hipchat_command = "--hipchat-api-key {{ SUPERVISOR_HIPCHAT_API_KEY }} --hipchat-room {{ SUPERVISOR_HIPCHAT_ROOM }}" %}
+{% endif %}
+
+exec {{ supervisor_venv_dir }}/bin/python {{ supervisor_app_dir }}/pre_supervisor_checks.py --available={{ supervisor_available_dir }} --enabled={{ supervisor_cfg_dir }} {{ hipchat_command }}  {{ programs_command }} {{ edxapp_command }} {{ xqueue_command }} {{ ecommerce_command }} {{ insights_command }} {{ analytics_api_command }}
