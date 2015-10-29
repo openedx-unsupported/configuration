@@ -11,7 +11,13 @@ resource "aws_iam_policy" "topic_policy" {
         "sns:Publish"
       ],
       "Effect": "Allow",
-      "Resource": "${aws_sns_topic.edx-pipeline-provision.arn}",
+      "Resource": "${aws_sns_topic.edx-pipeline-provision.arn}"
+    },
+    {
+      "Action": [
+        "sns:Publish"
+      ],
+      "Effect": "Allow",
       "Resource": "${aws_sns_topic.edx-pipeline-sitespeed.arn}"
     }
   ]
