@@ -44,7 +44,7 @@ resource "aws_sqs_queue" "edx-pipeline-provision" {
 }
 
 resource "aws_sns_topic" "edx-pipeline-provision" {
-  name = "user-updates-topic"
+  name = "edx-pipeline-provision-topic"
   policy = "topic_policy"
 }
 
@@ -66,7 +66,7 @@ resource "aws_sqs_queue" "edx-pipeline-sitespeed" {
 }
 
 resource "aws_sns_topic" "edx-pipeline-sitespeed" {
-  name = "user-updates-topic"
+  name = "edx-pipeline-sitespeed-topic"
   policy = "topic_policy"
 }
 
