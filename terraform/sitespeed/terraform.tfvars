@@ -2,7 +2,11 @@ environment = "prod"
 deployment = "edx"
 service = "jenkins"
 
-# SQS variables 
+# AWS variables
+aws_access_key = "FOOBARAIAIAIA"
+aws_secret_key = "FOOBAT01010101"
+
+# SQS variables
 queue_name = "my-queue"
 queue_delay_seconds = 90
 queue_max_message_size = 2048
