@@ -155,20 +155,14 @@ ease_version: $ease_version
 certs_version: $certs_version
 discern_version: $discern_version
 configuration_version: $configuration_version
-
+ECOMMERCE_VERSION: $ecommerce_version
+PROGRAMS_VERSION: $programs_version
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
-
 ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
-ECOMMERCE_VERSION: $ecommerce_version
-
-PROGRAMS_NGINX_PORT: 80
-PROGRAMS_SSL_NGINX_PORT: 443
-PROGRAMS_VERSION: $programs_version
-
 NGINX_SET_X_FORWARDED_HEADERS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
