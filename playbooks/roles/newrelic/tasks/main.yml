@@ -55,10 +55,13 @@
   with_items: newrelic_redhat_pkgs
   when: ansible_distribution == 'Amazon'
 
-- name: configure the agent with the license key
-  shell: >
-    nrsysmond-config --set license_key="{{ NEWRELIC_LICENSE_KEY }}"
-    ssl=true
+- name: configure the agent
+  template:
+    src: "etc/newrelic/nrsysmond.cfg.j2"
+    dest: "/etc/newrelic/nrsysmond.cfg"
+    owner: "newrelic"
+    group: "newrelic"
+    mode: 0640
 
 - name: ensure started and enabled
   service: name=newrelic-sysmond state=restarted enabled=yes
