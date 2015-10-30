@@ -6,6 +6,7 @@ provider "aws" {
     region = "us-east-1"
 }
 
+
 # pipeline-provision infrastructure
 resource "aws_sqs_queue" "edx-pipeline-provision" {
 	name = "${var.queue_name_pipeline}"
@@ -45,3 +46,40 @@ resource "aws_sns_topic_subscription" "edx-pipeline-sitespeed_sqs_target" {
   protocol  = "sqs"
   endpoint  = "${aws_sqs_queue.edx-pipeline-sitespeed.arn}"
 }
+
+
+# Create IAM policy, user
+resource "aws_iam_user" "build_pipeline_user" {
+    name = "build_pipeline_user"
+}
+
+resource "aws_iam_access_key" "build_pipeline_user_key" {
+    user = "${aws_iam_user.build_pipeline_user.name}"
+}
+
+resource "aws_iam_user_policy" "sns_publish_policy" {
+    name = "${var.environment}-${var.deployment}-${var.service}-sender"
+    user = "${aws_iam_user.build_pipeline_user.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "sns:Publish"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_sns_topic.edx-pipeline-provision.arn}"
+    },
+    {
+      "Action": [
+        "sns:Publish"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_sns_topic.edx-pipeline-sitespeed.arn}"
+    }
+  ]
+}
+EOF
+}
+
