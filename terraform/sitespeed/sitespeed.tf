@@ -8,7 +8,7 @@ provider "aws" {
 
 
 # pipeline-provision infrastructure
-resource "aws_sqs_queue" "edx-pipeline-provision" {
+resource "aws_sqs_queue" "edx-pipeline-provision-queue" {
 	name = "${var.queue_name_pipeline}"
 	delay_seconds = "${var.queue_delay_seconds}"
 	max_message_size = "${var.queue_max_message_size}"
@@ -23,13 +23,13 @@ resource "aws_sns_topic" "edx-pipeline-provision" {
 resource "aws_sns_topic_subscription" "edx-pipeline-provision_sqs_target" {
   topic_arn = "${aws_sns_topic.edx-pipeline-provision.arn}"
   protocol  = "sqs"
-  endpoint  = "${aws_sqs_queue.edx-pipeline-provision.arn}"
+  endpoint  = "${aws_sqs_queue.edx-pipeline-provision-queue.arn}"
 }
 
 
 
 # pipeline-sitespeed infrastructure
-resource "aws_sqs_queue" "edx-pipeline-sitespeed" {
+resource "aws_sqs_queue" "edx-pipeline-sitespeed-queue" {
   name = "${var.queue_name_sitespeed}"
   delay_seconds = "${var.queue_delay_seconds}"
   max_message_size = "${var.queue_max_message_size}"
@@ -44,7 +44,7 @@ resource "aws_sns_topic" "edx-pipeline-sitespeed" {
 resource "aws_sns_topic_subscription" "edx-pipeline-sitespeed_sqs_target" {
   topic_arn = "${aws_sns_topic.edx-pipeline-sitespeed.arn}"
   protocol  = "sqs"
-  endpoint  = "${aws_sqs_queue.edx-pipeline-sitespeed.arn}"
+  endpoint  = "${aws_sqs_queue.edx-pipeline-sitespeed-queue.arn}"
 }
 
 
