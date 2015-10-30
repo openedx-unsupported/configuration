@@ -1,29 +1,3 @@
-resource "aws_iam_policy" "topic_policy" {
-    name = "${var.environment}-${var.deployment}-${var.service}-sender"
-    path = "/"
-    description = "Sender policy"
-    policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "sns:Publish"
-      ],
-      "Effect": "Allow",
-      "Resource": "${aws_sns_topic.edx-pipeline-provision.arn}"
-    },
-    {
-      "Action": [
-        "sns:Publish"
-      ],
-      "Effect": "Allow",
-      "Resource": "${aws_sns_topic.edx-pipeline-sitespeed.arn}"
-    }
-  ]
-}
-EOF
-}
 
 # Configure the AWS Provider
 provider "aws" {
@@ -31,8 +5,6 @@ provider "aws" {
     secret_key = "${var.aws_secret_key}"
     region = "us-east-1"
 }
-
-
 
 # pipeline-provision infrastructure
 resource "aws_sqs_queue" "edx-pipeline-provision" {
@@ -45,7 +17,6 @@ resource "aws_sqs_queue" "edx-pipeline-provision" {
 
 resource "aws_sns_topic" "edx-pipeline-provision" {
   name = "edx-pipeline-provision-topic"
-  policy = "topic_policy"
 }
 
 resource "aws_sns_topic_subscription" "edx-pipeline-provision_sqs_target" {
@@ -67,7 +38,6 @@ resource "aws_sqs_queue" "edx-pipeline-sitespeed" {
 
 resource "aws_sns_topic" "edx-pipeline-sitespeed" {
   name = "edx-pipeline-sitespeed-topic"
-  policy = "topic_policy"
 }
 
 resource "aws_sns_topic_subscription" "edx-pipeline-sitespeed_sqs_target" {
