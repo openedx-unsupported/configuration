@@ -1,0 +1,25 @@
+# Run newrelic against a set of machines by tag.
+# ansible-playbook -i ec2.py --limit "tag_cluster_mongo" newrelic.yml -e NEWRELIC_LICENSE_KEY='SET_ME' -v
+- name: Deploy Newrelic Server Monitoring
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    CLUSTER_NAME: 'edxapp'
+    ec2_region: 'us-east-1'
+  pre_tasks:
+    - name: Get instance info
+      action: ec2_facts
+    - name: Get instance tags
+      ec2_tag:
+        resource: "{{ ansible_ec2_instance_id }}"
+        region: "{{ ec2_region }}"
+        state: "list"
+      register: instance_tags
+    - name: Set labels from EDC
+      set_fact:
+        COMMON_ENVIRONMENT: "{{ instance_tags.tags.environment }}"
+        COMMON_DEPLOYMENT: "{{ instance_tags.tags.deployment }}"
+        CLUSTER_NAME: "{{ instance_tags.tags.cluster }}"
+  roles:
+    - role: newrelic
