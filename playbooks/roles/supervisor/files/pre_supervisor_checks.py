@@ -11,8 +11,8 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'cms':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+        'lms':     ". {env_file}; {python} {code_dir}/manage.py lms migrate --noinput --list",
+        'cms':     ". {env_file}; {python} {code_dir}/manage.py cms migrate --noinput --list",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'programs':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
