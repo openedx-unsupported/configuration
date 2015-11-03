@@ -19,6 +19,7 @@
 # 
 # Example play:
 #
+# ansible-playbook -u e0d -i '10.2.91.79,10.2.92.37,10.2.90.108,' ./run_role.yml -e "role=munin_node"
 #
 
 - name: install OS packages
@@ -50,6 +51,15 @@
     dest="/etc/munin/plugin-conf.d/munin-edx"
     owner=root group=root mode="644"
 
+#
+# Assumes a single allow line
+#
+- name: add source cidr
+  lineinfile:
+    dest=/etc/munin/munin-node.conf
+    regexp='^cidr_allow'
+    line='cidr_allow {{ MUNIN_MONITOR_CIDR }}'
+    
 - name: restart munin-mode
   service: >
     name=munin-node
