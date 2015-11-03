@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Removed ECOMMERCE_ORDER_NUMBER_PREFIX variable
+
 - Role: edxapp
   - All of the following changes are BACKWARDS-INCOMPATABLE:
     - Renamed two top level variables SEGMENT_IO_LMS_KEY and SEGMENT_IO_KEY to SEGMENT_KEY in {lms|cms].auth.json.
