@@ -22,7 +22,7 @@
   apt_repository:
     repo='deb http://ppa.launchpad.net/ondrej/mysql-5.6/ubuntu precise main'
     update_cache=yes
-  
+
 - name: look for mysql 5.5
   shell: dpkg -L mysql-server-5.5
   ignore_errors: true
@@ -37,8 +37,9 @@
     - software-properties-common
     - mysql-server
 
+- name: install mysql debian packages
+  apt: pkg={{ item }} install_recommends=yes state=present
+  with_items: mysql_debian_pkgs
+
 - name: start mysql
   service: name=mysql state=started
-    
-- name: install packages needed for single server
-  apt: pkg={{','.join(mysql_debian_pkgs)}} install_recommends=yes state=present
