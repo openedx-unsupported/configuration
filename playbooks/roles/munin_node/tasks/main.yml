@@ -1,0 +1,56 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role munin-node
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: install OS packages
+  apt: >
+  apt: 
+    pkg={{ item }}
+    state=present
+    update_cache=yes
+  tags:
+    - install
+    - install:system-requirements
+  with_items: munin_node_debian_pkgs
+
+- name: link munin-node iostat
+  file: >
+    src="/usr/share/munin/plugins/iostat"
+    dest="/etc/munin/plugins/iostat"
+    state="link" owner=root group=root
+
+- name: link munin-node iostat-ios
+  file: >
+    src="/usr/share/munin/plugins/iostat_ios"
+    dest="/etc/munin/plugins/iostat_ios"
+    state="link" owner=root group=root
+
+- name: copy munin iostat config
+  copy: > 
+    src="munin-edx"
+    dest="/etc/munin/plugin-conf.d/munin-edx"
+    owner=root group=root mode="644"
+
+- name: restart munin-mode
+  service: >
+    name=munin-node
+    state=restarted
