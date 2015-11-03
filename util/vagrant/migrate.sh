@@ -91,20 +91,22 @@ EOM
   if [ "$input" != "yes" -a "$input" != "y" ]; then
     echo "Quitting"
     exit 1
-  else
-    echo "Killing all celery worker processes."
-    sudo ${OPENEDX_ROOT}/bin/supervisorctl stop edxapp_worker:* &
-    sleep 3
-    # Supervisor restarts the process a couple of times so we have to kill it multiple times.
-    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
-    sleep 3
-    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
-    sleep 3
-    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
-    sleep 3
-    sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
-    sudo -u forum git -C ${OPENEDX_ROOT}/app/forum/.rbenv reset --hard
   fi
+fi
+
+if [[ $TARGET == *cypress* ]] ; then
+  echo "Killing all celery worker processes."
+  sudo ${OPENEDX_ROOT}/bin/supervisorctl stop edxapp_worker:* &
+  sleep 3
+  # Supervisor restarts the process a couple of times so we have to kill it multiple times.
+  sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+  sleep 3
+  sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+  sleep 3
+  sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+  sleep 3
+  sudo pgrep -lf celery | grep worker | awk '{ print $1}' | sudo xargs -I {} kill -9 {}
+  sudo -u forum git -C ${OPENEDX_ROOT}/app/forum/.rbenv reset --hard
 fi
 
 if [ -f /edx/app/edx_ansible/server-vars.yml ]; then
