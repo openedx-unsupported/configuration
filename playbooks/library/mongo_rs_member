@@ -96,7 +96,7 @@ def get_replset(module, client):
 
 def reconfig_replset(module, client, rs_config):
     # Update the config version
-    try: 
+    try:
         client.admin.command("replSetReconfig", rs_config)
     except OperationFailure as e:
         raise
@@ -132,7 +132,7 @@ def remove_member(module, client, rs_config):
 
     existing_member_names = [ member['host'] for member in rs_config['members'] ]
     dead_member_name = "{}:{}".format(host,port)
-   
+
     if dead_member_name in existing_member_names:
         # Member is in config and needs to be removed.
         new_member_list = filter(lambda member: member['host'] != dead_member_name, rs_config['members'])
@@ -142,19 +142,19 @@ def remove_member(module, client, rs_config):
 
         # Get status again.
         status = client.admin.command("replSetGetConfig")['config']
-    
+
         # Validate that your instance is in there.
         existing_member_names = [ member['host'] for member in rs_config['members'] ]
-    
-        if new_member_name not in existing_member_names:
-            module.exit_json(changed=changed, config=rs_config)
+
+        if dead_member_name not in existing_member_names:
+            module.exit_json(changed=True, config=rs_config)
         else:
             module.fail_json(msg="Failed to remove member from the replica set.", config=rs_config)
     else:
         # Member is not in the list.
         module.exit_json(
                 changed=False,
-                msg="Member({}) was not in the replica set.".format(new_member_name),
+                msg="Member({}) was not in the replica set.".format(dead_member_name),
         )
 
 def upsert_member(module, client, rs_config):
@@ -207,7 +207,13 @@ def upsert_member(module, client, rs_config):
 
         # First we build the config we need.
         new_member_id = max([ member['_id'] for member in rs_config['members']]) + 1
-        new_member_config = { 'host': new_member_name, 'priority': priority, 'hidden': hidden, '_id': new_member_id }
+        new_member_config = { 'host': new_member_name , '_id': new_member_id }
+
+        if priority != None:
+            new_member_config['priority'] = priority
+
+        if hidden != None:
+            new_member_config['hidden'] =  hidden
 
         # Update the config.
         rs_config['members'].append(new_member_config)
