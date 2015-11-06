@@ -22,11 +22,11 @@ db.auth( '{{ MONGO_ADMIN_USER }}', '{{ MONGO_ADMIN_PASSWORD }}');
     {%- endif -%}
   {%- endfor -%}
 {%- else -%}
-  {%- set hosts = mongo_cluster_members -%}
+  {%- set hosts = mongo_cluster_members|map("name") -%}
 {%- endif -%}
 
 
-config = {_id: '{{ mongo_repl_set }}', members: [{% for host in mongo_cluster_members %}
+config = {_id: '{{ mongo_repl_set }}', members: [{% for host in hosts %}
 {%- if host == ansible_default_ipv4["address"] -%}
 {_id: {{ loop.index }}, host: '{{ host }}'}
 {%- endif -%}
