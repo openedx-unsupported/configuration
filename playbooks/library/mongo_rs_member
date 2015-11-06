@@ -48,8 +48,12 @@ options:
     required: false
   state:
     description:
-      - Whether or not the member exists in the replica set. The membere
+      - Whether or not the member exists in the replica set. The member
         will be added or removed to reach this state.
+    choices:
+        - present
+        - absent
+    default: present
     required: false
 """
 
@@ -121,6 +125,7 @@ def primary_client(module, some_host, some_port, username, password):
 
     # Connect to the primary if this is not the primary.
     if primary_host != some_host or primary_port != some_port:
+        client.close()
         new_uri = get_mongo_uri(primary_host, primary_port, username, password)
         client = MongoClient(new_uri)
 
@@ -179,7 +184,8 @@ def upsert_member(module, client, rs_config):
 
     # See if member is already in the replica set
     if new_member_name in existing_member_names:
-        # Make sure its config is the same.
+        # Make sure its config is the same. Grab a pointer to the current settings
+        # inside of the rs_config.
         current_settings = filter(lambda member: member['host'] == new_member_name, rs_config['members'])[0]
 
         need_to_update = False
