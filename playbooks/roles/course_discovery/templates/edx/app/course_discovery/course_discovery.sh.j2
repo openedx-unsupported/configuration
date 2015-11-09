@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set course_discovery_venv_bin = course_discovery_home + "/venvs/" + course_discovery_service_name + "/bin" %}
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = course_discovery_venv_bin + '/newrelic-admin run-program ' + course_discovery_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = course_discovery_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ COURSE_DISCOVERY_NEWRELIC_APPNAME }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+source {{ course_discovery_home }}/course_discovery_env
+{{ executable }} -c {{ course_discovery_home }}/course_discovery_gunicorn.py {{ COURSE_DISCOVERY_GUNICORN_EXTRA }} course_discovery.wsgi:application
