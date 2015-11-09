@@ -189,7 +189,7 @@
         desired_capacity: "{{ asg_desired_capacity }}"
         vpc_zone_identifier: "{{ service_vpc_zone_identifier_string.msg }}"
         tags: "{{ listdict_asg_instance_tags.function_output }}"
-        load_balancers: "{{ created_elbs.results|map(attribute='elb.name')|list }}"
+        load_balancers: "{% if elb is defined %}{{ created_elbs.results|map(attribute='elb.name')|list }}{% else %}[]{% endif %}"
       register: asg
       when: auto_scaling_service
 
@@ -276,7 +276,7 @@
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
         ebs_optimized: "{{ service_config.ebs_optimized }}"
-      with_sequence: count={{ (create_instances | int - potential_existing_instances.instances|length) | default(created_service_subnets.results | length) }}
+      with_sequence: count={% if not auto_scaling_service %}{{ (create_instances | int - potential_existing_instances.instances|length) | default(created_service_subnets.results | length) }}{% else %}0{% endif %}
       when: not auto_scaling_service and (potential_existing_instances.instances|length < create_instances | int)
       register: created_instances
 
