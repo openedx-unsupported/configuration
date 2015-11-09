@@ -1,0 +1,109 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role course_discovery
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: add gunicorn configuration file
+  template:
+    src: edx/app/course_discovery/course_discovery_gunicorn.py.j2
+    dest: "{{ course_discovery_home }}/course_discovery_gunicorn.py"
+  sudo_user: "{{ course_discovery_user }}"
+
+- name: install application requirements
+  pip:
+    requirements: "{{ course_discovery_requirements_base }}/{{ item }}"
+    virtualenv: "{{ course_discovery_venv_dir }}"
+    state: present
+  sudo_user: "{{ course_discovery_user }}"
+  with_items: "{{ course_discovery_requirements }}"
+
+- name: migrate
+  shell: >
+    chdir={{ course_discovery_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ course_discovery_venv_dir }}/bin/python ./manage.py migrate --noinput
+  sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/course_discovery/course_discovery.sh.j2"
+    dest: "{{ course_discovery_home }}/{{ course_discovery_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+
+- name: write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/course_discovery.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ course_discovery_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+
+- name: setup the course_discovery env file
+  template:
+    src: "./{{ course_discovery_home }}/{{ course_discovery_service_name }}_env.j2"
+    dest: "{{ course_discovery_home }}/course_discovery_env"
+    owner: "{{ course_discovery_user }}"
+    group: "{{ course_discovery_user }}"
+    mode: 0644
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ course_discovery_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ course_discovery_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: "{{ course_discovery_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.course_discovery"
+    state: link
+  with_items:
+  - python
+  - pip
+  - django-admin.py
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ course_discovery_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.course_discovery"
+    state: link
+  with_items:
+  - manage.py
+
+- name: restart the application
+  supervisorctl: 
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "{{ course_discovery_service_name }}"
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"
