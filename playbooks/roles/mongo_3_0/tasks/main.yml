@@ -12,9 +12,9 @@
   register: mongodb_already_installed
   when: MONGO_CLUSTERED
 
-- name: verify MongoDB not installed (clustered upgrades)
-  fail: msg="MongoDB is currently installed and cannot be safely upgraded in a clustered configuration.  FIXME"
-  when: mongodb_already_installed.stat.exists and MONGO_CLUSTERED
+#- name: verify MongoDB not installed (clustered upgrades)
+#  fail: msg="MongoDB is currently installed and cannot be safely upgraded in a clustered configuration.  FIXME"
+#  when: mongodb_already_installed.stat.exists and MONGO_CLUSTERED
 
 - name: remove mongo 2.4 if present
   apt: >
@@ -189,6 +189,19 @@
 - name: delete repset script
   file: path=/tmp/repset_add_secondaries.js state=absent
   when: MONGO_CLUSTERED and MONGO_PRIMARY == ansible_default_ipv4["address"] 
+
+- name: ensure all members are in replica set
+  mongo_rs_member:
+    rs_host: "{{ MONGO_PRIMARY }}"
+    rs_port: 27017
+    host: "{{ ansible_default_ipv4['address'] }}"
+    port: 27017
+    username: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+    state: "{{ item.state }}"
+    hidden: "{{ item.hidden }}"
+  with_items: mongo_cluster_members
+  when: item.name == ansible_default_ipv4["address"]
 
 - name: create a mongodb user
   mongodb_user: >

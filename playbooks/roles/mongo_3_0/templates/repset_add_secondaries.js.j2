@@ -20,7 +20,7 @@ db.auth( '{{ MONGO_ADMIN_USER }}', '{{ MONGO_ADMIN_PASSWORD }}');
     {%- endif -%}
   {%- endfor -%}
 {%- else -%}
-  {%- set hosts = mongo_cluster_members -%}
+  {%- set hosts = mongo_cluster_members|map(attribute="name") -%}
 {%- endif -%}
 
 // Check that the cluster is ok
@@ -30,7 +30,7 @@ if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
 // and add them if we are the master
 if(rs.isMaster().ismaster) {
     if(rs.status().members.length!={{ hosts|length }}) {
-        {% for host in mongo_cluster_members %}
+        {% for host in hosts %}
           {%- if host != ansible_default_ipv4["address"] -%}
             rs.add({_id: {{ loop.index }}, host: '{{ host }}'});
           {%- endif -%}
