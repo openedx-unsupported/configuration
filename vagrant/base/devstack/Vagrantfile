@@ -8,30 +8,23 @@ VAGRANTFILE_API_VERSION = "2"
 MEMORY = 4096
 CPU_COUNT = 2
 
-edx_platform_mount_dir = "edx-platform"
-themes_mount_dir = "themes"
-forum_mount_dir = "cs_comments_service"
-ora_mount_dir = "ora"
-ecommerce_mount_dir = "ecommerce"
-ecommerce_worker_mount_dir = "ecommerce-worker"
-programs_mount_dir = "programs"
-course_discovery_mount_dir = "course-discovery"
-insights_mount_dir = "insights"
-analytics_api_mount_dir = "analytics_api"
+MOUNT_DIRS = {
+  :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
+  :themes => {:repo => "themes", :local => "/edx/app/edxapp/themes", :owner => "edxapp"}
+  :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
+  :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
+  :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
+  :programs => {:repo => "programs", :local => "/edx/app/programs/programs", :owner => "programs"},
+  :course_discovery => {:repo => "course-discovery", :local => "/edx/app/course-discovery/course-discovery", :owner => "course-discovery"},
+  :insights => {:repo => "insights", :local => "/edx/app/insights/edx_analytics_dashboard", :owner => "insights"},
+  :analytics_api => {:repo => "analytics_api", :local => "/edx/app/analytics_api/analytics_api", :owner => "analytics_api"},
+}
+if ENV['ENABLE_LEGACY_ORA']
+  MOUNT_DIRS[:ora] = {:repo => "ora", :local => "/edx/app/ora/ora", :owner => "ora"}
+end
 
 if ENV['VAGRANT_MOUNT_BASE']
-
-  edx_platform_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_platform_mount_dir
-  themes_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + themes_mount_dir
-  forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
-  ora_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ora_mount_dir
-  ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_mount_dir
-  ecommerce_worker_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_worker_mount_dir
-  programs_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + programs_mount_dir
-  course_discovery_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + course_discovery_mount_dir
-  insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
-  analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
-
+  MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
 end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -66,57 +59,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   if ENV['VAGRANT_USE_VBOXFS'] == 'true'
-    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
-      create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
-      create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
-      create: true, owner: "forum", group: "www-data"
-    config.vm.synced_folder "#{ecommerce_mount_dir}", "/edx/app/ecommerce/ecommerce",
-      create: true, owner: "ecommerce", group: "www-data"
-    config.vm.synced_folder "#{ecommerce_worker_mount_dir}", "/edx/app/ecommerce_worker/ecommerce_worker",
-      create: true, owner: "ecommerce_worker", group: "www-data"
-    config.vm.synced_folder "#{programs_mount_dir}", "/edx/app/programs/programs",
-          create: true, owner: "programs", group: "www-data"
-    config.vm.synced_folder "#{course_discovery_mount_dir}", "/edx/app/course-discovery/course-discovery",
-      create: true, owner: "course-discovery", group: "www-data"
-
-
-    if ENV['ENABLE_LEGACY_ORA']
-        config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
-          create: true, owner: "ora", group: "www-data"
-    end
-    config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
-      create: true, owner: "insights", group: "www-data"
-    config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
-      create: true, owner: "analytics_api", group: "www-data"
+    MOUNT_DIRS.each { |k, v|
+      config.vm.synced_folder v[:repo], v[:local], create: true, owner: v[:owner], group: "www-data"
+    }
   else
-    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
-      create: true, nfs: true
-    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
-      create: true, nfs: true
-    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
-      create: true, nfs: true
-    config.vm.synced_folder "#{ecommerce_mount_dir}", "/edx/app/ecommerce/ecommerce",
-      create: true, nfs: true
-    config.vm.synced_folder "#{ecommerce_worker_mount_dir}", "/edx/app/ecommerce_worker/ecommerce_worker",
-      create: true, nfs: true
-    config.vm.synced_folder "#{programs_mount_dir}", "/edx/app/programs/programs",
-          create: true, nfs: true
-    config.vm.synced_folder "#{course_discovery_mount_dir}", "/edx/app/course-discovery/course-discovery",
-       create: true, nfs: true
-
-    if ENV['ENABLE_LEGACY_ORA']
-        config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
-          create: true, nfs: true
-    end
-
-    config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
-      create: true, nfs: true
-    config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
-      create: true, nfs: true
+    MOUNT_DIRS.each { |k, v|
+      config.vm.synced_folder v[:repo], v[:local], create: true, nfs: true
+    }
   end
-
 
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
