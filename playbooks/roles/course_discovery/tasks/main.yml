@@ -1,0 +1,216 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role course_discovery
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: add gunicorn configuration file
+  template:
+    src: edx/app/course_discovery/course_discovery_gunicorn.py.j2
+    dest: "{{ course_discovery_home }}/course_discovery_gunicorn.py"
+  sudo_user: "{{ course_discovery_user }}"
+  tags:
+    - install:configuration
+
+- name: install application requirements
+  shell: >
+    chdir=/edx/app/course_discovery/course_discovery
+    . {{ course_discovery_venv_dir }}/bin/activate;
+    make requirements
+  sudo_user: "{{ course_discovery_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install development requirements
+  shell: >
+    chdir=/edx/app/course_discovery/course_discovery
+    . {{ course_discovery_venv_dir }}/bin/activate;
+    make local-requirements
+  sudo_user: "{{ course_discovery_user }}"
+  tags:
+    - install
+    - install:devstack
+
+- name: wait for database
+  wait_for:
+    host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
+    port: "{{ COURSE_DISCOVERY_DATABASES.default.PORT }}"
+    delay: 2
+  tags:
+    - migrate:devstack
+
+- name: create databases
+  mysql_db:
+    login_host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
+    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN.default.USER }}"
+    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN.default.PASSWORD }}"
+    db: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}"
+    state: present
+    encoding: utf8
+  tags:
+    - migrate:devstack
+
+- name: create database users
+  mysql_user:
+    login_host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
+    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN.default.USER }}"
+    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN.default.PASSWORD }}"
+    name: "{{ item.name }}"
+    host: "%"
+    name: "{{ item.password }}"
+    priv: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}.*:ALL"
+  with_items:
+    - name: "{{ COURSE_DISCOVERY_DATABASES.default.USER }}"
+      password: "{{ COURSE_DISCOVERY_DATABASES.default.PASSWORD }}"
+    - name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+      password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+  tags:
+    - migrate:devstack
+
+- name: migrate
+  shell: >
+    chdir={{ course_discovery_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ course_discovery_venv_dir }}/bin/python ./manage.py migrate --noinput
+  sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+    - migrate:devstack
+
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/course_discovery/course_discovery.sh.j2"
+    dest: "{{ course_discovery_home }}/{{ course_discovery_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/course_discovery.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ course_discovery_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/course_discovery/devstack.sh.j2"
+    dest: "{{ course_discovery_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  tags:
+    - install:devstack
+
+- name: setup the course_discovery env file
+  template:
+    src: "./{{ course_discovery_home }}/{{ course_discovery_service_name }}_env.j2"
+    dest: "{{ course_discovery_home }}/course_discovery_env"
+    owner: "{{ course_discovery_user }}"
+    group: "{{ course_discovery_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ course_discovery_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ course_discovery_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: "{{ course_discovery_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.course_discovery"
+    state: link
+  with_items:
+    - python
+    - pip
+    - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ course_discovery_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.course_discovery"
+    state: link
+  with_items:
+    - manage.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: restart the application
+  supervisorctl: 
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "{{ course_discovery_service_name }}"
+  when: not disable_edx_services
+  sudo_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
+
+- name: Copying nginx configs for course_discovery
+  template: >
+    src=edx/app/nginx/sites-available/course_discovery.j2
+    dest={{ nginx_sites_available_dir }}/course_discovery
+    owner=root group={{ common_web_user }} mode=0640
+  notify: reload nginx
+  tags:
+    - install:vhosts
+
+- name: Creating nginx config links for course_discovery
+  file: >
+    src={{ nginx_sites_available_dir }}/course_discovery
+    dest={{ nginx_sites_enabled_dir }}/course_discovery
+    state=link owner=root group=root
+  notify: reload nginx
+  tags:
+    - install:vhosts
+

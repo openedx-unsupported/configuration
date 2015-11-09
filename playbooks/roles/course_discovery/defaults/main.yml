@@ -1,0 +1,143 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role course_discovery
+# 
+COURSE_DISCOVERY_GIT_IDENTITY: !!null
+
+# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
+# and a key being provided via NEWRELIC_LICENSE_KEY
+COURSE_DISCOVERY_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ course_discovery_service_name }}"
+COURSE_DISCOVERY_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+COURSE_DISCOVERY_NGINX_PORT: 18381
+COURSE_DISCOVERY_SSL_NGINX_PORT: 48381
+
+COURSE_DISCOVERY_DEFAULT_DB_NAME: 'course_discovery'
+COURSE_DISCOVERY_MYSQL: 'db'
+# MySQL usernames are limited to 16 characters
+COURSE_DISCOVERY_MYSQL_USER: 'course_discov001'
+COURSE_DISCOVERY_MYSQL_PASSWORD: 'password'
+
+COURSE_DISCOVERY_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}'
+    USER: '{{ COURSE_DISCOVERY_MYSQL_USER }}'
+    PASSWORD: '{{ COURSE_DISCOVERY_MYSQL_PASSWORD }}'
+    HOST: '{{ COURSE_DISCOVERY_MYSQL }}'
+    PORT: '3306'
+    ATOMIC_REQUESTS: true
+    CONN_MAX_AGE: 60
+
+COURSE_DISCOVERY_DB_ADMIN_USER: 'root'
+COURSE_DISCOVERY_DB_ADMIN_PASSWORD: ''
+
+COURSE_DISCOVERY_MEMCACHE: [ 'memcache' ]
+
+COURSE_DISCOVERY_CACHES:
+  default:
+    BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
+    KEY_PREFIX: 'default'
+    LOCATION: '{{ COURSE_DISCOVERY_MEMCACHE }}'
+
+COURSE_DISCOVERY_VERSION: "master"
+COURSE_DISCOVERY_DJANGO_SETTINGS_MODULE: "course_discovery.settings.production"
+COURSE_DISCOVERY_URL_ROOT: 'http://course_discovery:18381'
+COURSE_DISCOVERY_OAUTH_URL_ROOT: 'http://127.0.0.1:8000'
+
+COURSE_DISCOVERY_SECRET_KEY: 'Your secret key here'
+COURSE_DISCOVERY_TIME_ZONE: 'UTC'
+COURSE_DISCOVERY_LANGUAGE_CODE: 'en-us'
+
+# Used to automatically configure OAuth2 Client
+COURSE_DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY : 'course_discovery-key'
+COURSE_DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET : 'course_discovery-secret'
+COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+COURSE_DISCOVERY_PLATFORM_NAME: 'Your Platform Name Here'
+
+COURSE_DISCOVERY_SERVICE_CONFIG:
+  SECRET_KEY: '{{ COURSE_DISCOVERY_SECRET_KEY }}'
+  TIME_ZONE: '{{ COURSE_DISCOVERY_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{ COURSE_DISCOVERY_LANGUAGE_CODE }}'
+
+  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ COURSE_DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY }}'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ COURSE_DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ COURSE_DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ COURSE_DISCOVERY_OAUTH_URL_ROOT }}/oauth2'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
+
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ course_discovery_service_name }}/staticfiles"
+  # db config
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES: '{{ COURSE_DISCOVERY_DATABASES }}'
+
+  PLATFORM_NAME: '{{ COURSE_DISCOVERY_PLATFORM_NAME }}'
+
+
+COURSE_DISCOVERY_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: course-discovery.git
+    VERSION: "{{ COURSE_DISCOVERY_VERSION }}"
+    DESTINATION: "{{ course_discovery_code_dir }}"
+    SSH_KEY: "{{ COURSE_DISCOVERY_GIT_IDENTITY }}"
+
+
+COURSE_DISCOVERY_GUNICORN_WORKERS: "2"
+COURSE_DISCOVERY_GUNICORN_EXTRA: ""
+COURSE_DISCOVERY_GUNICORN_EXTRA_CONF: ""
+COURSE_DISCOVERY_GUNICORN_WORKER_CLASS: "gevent"
+
+COURSE_DISCOVERY_HOSTNAME: '~^((stage|prod)-)?course-discovery.*'
+
+nginx_course_discovery_gunicorn_hosts:
+  - 127.0.0.1
+
+#
+# vars are namespace with the module name.
+#
+course_discovery_role_name: course_discovery
+course_discovery_venv_dir: "{{ course_discovery_home }}/venvs/{{ course_discovery_service_name }}"
+
+course_discovery_environment:
+  DJANGO_SETTINGS_MODULE: "{{ COURSE_DISCOVERY_DJANGO_SETTINGS_MODULE }}"
+  COURSE_DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ course_discovery_service_name }}.yml"
+  PATH: "{{ course_discovery_venv_dir }}/bin:${PATH}"
+
+course_discovery_service_name: "course_discovery"
+course_discovery_user: "{{ course_discovery_service_name }}"
+course_discovery_home: "{{ COMMON_APP_DIR }}/{{ course_discovery_service_name }}"
+course_discovery_code_dir: "{{ course_discovery_home }}/{{ course_discovery_service_name }}"
+
+course_discovery_gunicorn_host: "127.0.0.1"
+course_discovery_gunicorn_port: 8381
+course_discovery_gunicorn_timeout: 300
+
+course_discovery_log_dir: "{{ COMMON_LOG_DIR }}/{{ course_discovery_service_name }}"
+
+course_discovery_requirements_base: "{{ course_discovery_code_dir }}/requirements"
+course_discovery_requirements:
+  - production.txt
+  - optional.txt
+
+
+#
+# OS packages
+#
+
+course_discovery_debian_pkgs:
+  - libmysqlclient-dev
+  - libssl-dev
+
+course_discovery_redhat_pkgs: []
