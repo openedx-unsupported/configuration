@@ -15,6 +15,7 @@ ora_mount_dir = "ora"
 ecommerce_mount_dir = "ecommerce"
 ecommerce_worker_mount_dir = "ecommerce-worker"
 programs_mount_dir = "programs"
+course_discovery_mount_dir = "course-discovery"
 insights_mount_dir = "insights"
 analytics_api_mount_dir = "analytics_api"
 
@@ -27,6 +28,7 @@ if ENV['VAGRANT_MOUNT_BASE']
   ecommerce_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_mount_dir
   ecommerce_worker_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ecommerce_worker_mount_dir
   programs_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + programs_mount_dir
+  course_discovery_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + course_discovery_mount_dir
   insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
   analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
 
@@ -48,6 +50,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
   config.vm.network :forwarded_port, guest: 8765, host: 8765
   config.vm.network :forwarded_port, guest: 9200, host: 9200
+  config.vm.network :forwarded_port, guest: 9222, host: 9222  # Course Discovery
   config.vm.network :forwarded_port, guest: 18080, host: 18080
   config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
   config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
@@ -75,6 +78,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, owner: "ecommerce_worker", group: "www-data"
     config.vm.synced_folder "#{programs_mount_dir}", "/edx/app/programs/programs",
           create: true, owner: "programs", group: "www-data"
+    config.vm.synced_folder "#{course_discovery_mount_dir}", "/edx/app/course-discovery/course-discovery",
+      create: true, owner: "course-discovery", group: "www-data"
+
 
     if ENV['ENABLE_LEGACY_ORA']
         config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
@@ -97,6 +103,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       create: true, nfs: true
     config.vm.synced_folder "#{programs_mount_dir}", "/edx/app/programs/programs",
           create: true, nfs: true
+    config.vm.synced_folder "#{course_discovery_mount_dir}", "/edx/app/course-discovery/course-discovery",
+       create: true, nfs: true
 
     if ENV['ENABLE_LEGACY_ORA']
         config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
@@ -166,6 +174,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
     if ENV['PROGRAMS_VERSION']
       ansible.extra_vars['PROGRAMS_VERSION'] = ENV['PROGRAMS_VERSION']
+    end
+    if ENV['COURSE_DISCOVERY_VERSION']
+      ansible.extra_vars['COURSE_DISCOVERY_VERSION'] = ENV['COURSE_DISCOVERY_VERSION']
     end
   end
 end
