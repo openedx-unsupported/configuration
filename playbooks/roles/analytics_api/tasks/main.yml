@@ -39,12 +39,18 @@
     owner={{ analytics_api_user }}
     group={{ analytics_api_user }}
     mode=0644
+  tags:
+    - install
+    - install:configuration
 
 - name: "add gunicorn configuration file"
   template: >
     src=edx/app/analytics_api/analytics_api_gunicorn.py.j2
     dest={{ analytics_api_home }}/analytics_api_gunicorn.py
   sudo_user: "{{ analytics_api_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: install application requirements
   pip: >
@@ -53,6 +59,9 @@
     state=present
   sudo_user: "{{ analytics_api_user }}"
   with_items: analytics_api_requirements
+  tags:
+    - install
+    - install:app-requirements
 
 - name: migrate
   shell: >
@@ -63,6 +72,9 @@
   sudo_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: run collectstatic
   shell: >
@@ -70,6 +82,9 @@
     {{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py collectstatic  --noinput
   sudo_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
+  tags:
+    - assets
+    - assets:gather
 
 - name: create api users
   shell: >
@@ -78,18 +93,27 @@
   sudo_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   with_dict: ANALYTICS_API_USERS
+  tags:
+    - manage
+    - manage:app-users
 
 - name: write out the supervisor wrapper
   template: >
     src=edx/app/analytics_api/analytics_api.sh.j2
     dest={{ analytics_api_home }}/{{ analytics_api_service_name }}.sh
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  tags:
+    - install
+    - install:configuration
 
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/analytics_api.conf.j2
     dest="{{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf"
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+    - install
+    - install:configuration
 
 - name: enable supervisor script
   file: >
@@ -98,10 +122,16 @@
     state=link
     force=yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: create symlinks from the venv bin dir
   file: >
@@ -112,6 +142,9 @@
   - python
   - pip
   - django-admin.py
+  tags:
+    - install
+    - install:base
 
 - name: create symlinks from the repo dir
   file: >
@@ -120,6 +153,9 @@
     state=link
   with_items:
   - manage.py
+  tags:
+    - install
+    - install:base
 
 - name: restart analytics_api
   supervisorctl: >
@@ -129,3 +165,5 @@
     name={{ analytics_api_service_name }}
   when: not disable_edx_services
   sudo_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage:start
