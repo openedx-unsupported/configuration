@@ -30,7 +30,15 @@
       tags:
         - elb
 
-    - debug: msg="{{ service_security_group.rules }}"
+    - name: Set Base Security Rules
+      set_fact: 
+        service_security_group_rules: "{{ service_security_group.rules }}"
+      when: service_port is not defined
+
+    - name: Merge Base and Service Port Security Rules
+      set_fact: 
+        service_security_group_rules: "{{ service_security_group.rules + service_port_rules }}"
+      when: service_port is defined
 
     - name: Manage service security group
       ec2_group_local:
@@ -39,25 +47,58 @@
         name: "{{ service_security_group.name }}"
         vpc_id: "{{ vpc_id }}"
         region: "{{ aws_region }}"
-        rules: "{{ service_security_group.rules }}"
+        rules: "{{ service_security_group_rules }}"
         tags: "{{ service_security_group.tags }}"
       register: service_sec_group
-      
-    - name: Manage ACLs
+
+    - name: Set public Base ACLs
+      set_fact: 
+        service_public_acl_rules: "{{ public_acls.rules }}"
+      when: service_port is not defined
+
+    - name: Merge public Base and Service Port ACLs
+      set_fact: 
+        service_public_acl_rules: "{{ public_acls.rules + service_port_public_acls }}"
+      when: service_port is defined
+
+    - name: Manage Public ACLs
       ec2_acl:
         profile: "{{ profile }}"
-        name: "{{ item.name }}"
+        name: "{{ public_acls.name }}"
         vpc_id: "{{ vpc_id }}"
         state: "{{ state }}"
         region: "{{ aws_region }}"
-        rules: "{{ item.rules }}"
-      with_items: acls
-      register: created_acls
+        rules: "{{ service_public_acl_rules }}"
+      register: created_public_acls
+
+    - name: Set private Base ACLs
+      set_fact: 
+        service_private_acl_rules: "{{ private_acls.rules }}"
+      when: service_port is not defined
+
+    - name: Merge private Base and Service Port ACLs
+      set_fact: 
+        service_private_acl_rules: "{{ private_acls.rules + service_port_private_acls }}"
+      when: service_port is defined
+
+    - name: Manage Private ACLs
+      ec2_acl:
+        profile: "{{ profile }}"
+        name: "{{ private_acls.name }}"
+        vpc_id: "{{ vpc_id }}"
+        state: "{{ state }}"
+        region: "{{ aws_region }}"
+        rules: "{{ service_private_acl_rules }}"
+      register: created_private_acls
+
+    - name: Merge created ACLs
+      set_fact: 
+        created_acls: "{{ created_public_acls.results | default([]) + created_private_acls.results | default([]) }}"
 
     - name: Apply function to acl_data
       util_map:
         function: 'zip_to_dict'
-        input: "{{ created_acls.results }}"
+        input: "{{ created_acls }}"
         args:
           - "name"
           - "id"
