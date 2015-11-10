@@ -248,6 +248,10 @@ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
 PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
+COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
+COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 EOF
 fi
 
@@ -292,7 +296,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce programs notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum ecommerce programs course_discovery notifier xqueue xserver ora discern certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
