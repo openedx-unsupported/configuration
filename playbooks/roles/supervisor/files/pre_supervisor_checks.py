@@ -11,8 +11,8 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':    "{python} {code_dir}/manage.py lms migrate --noinput --settings=aws --db-dry-run --merge",
-        'cms':    "{python} {code_dir}/manage.py cms migrate --noinput --settings=aws --db-dry-run --merge",
+        'lms':     ". {env_file}; {python} {code_dir}/manage.py lms migrate --noinput --list --settings=aws",
+        'cms':     ". {env_file}; {python} {code_dir}/manage.py cms migrate --noinput --list --settings=aws",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'programs':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
@@ -73,6 +73,8 @@ if __name__ == '__main__':
             help="Location of the edx-platform code.")
     migration_args.add_argument("--edxapp-python",
             help="Path to python to use for executing migration check.")
+    migration_args.add_argument("--edxapp-env",
+            help="Location of the ecommerce environment file.")
 
     xq_migration_args = parser.add_argument_group("xqueue_migrations",
             "Args for running xqueue migration checks.")
@@ -205,16 +207,7 @@ if __name__ == '__main__':
         for service in services_for_instance(instance_id):
             if service in MIGRATION_COMMANDS:
                 # Do extra migration related stuff.
-                if (service == 'lms' or service == 'cms') and args.edxapp_code_dir:
-                    cmd = MIGRATION_COMMANDS[service].format(python=args.edxapp_python,
-                        code_dir=args.edxapp_code_dir)
-                    if os.path.exists(args.edxapp_code_dir):
-                        os.chdir(args.edxapp_code_dir)
-                        # Run migration check command.
-                        output = subprocess.check_output(cmd, shell=True)
-                        if 'Migrating' in output:
-                            raise Exception("Migrations have not been run for {}".format(service))
-                elif service == 'xqueue' and args.xqueue_code_dir:
+                if service == 'xqueue' and args.xqueue_code_dir:
                     cmd = MIGRATION_COMMANDS[service].format(python=args.xqueue_python,
                         code_dir=xqueue_code_dir)
                     if os.path.exists(args.xqueue_code_dir):
@@ -225,6 +218,8 @@ if __name__ == '__main__':
                             raise Exception("Migrations have not been run for {}".format(service))
                 else:
                     new_services = {
+                        "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
+                        "cms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
                         "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
                         "programs": {'python': args.programs_python, 'env_file': args.programs_env, 'code_dir': args.programs_code_dir},
                         "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
