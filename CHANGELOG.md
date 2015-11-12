@@ -1,3 +1,7 @@
+- Role: edxapp
+  - Removed XmlModuleStore from the default list of modulestores for the LMS.
+  - EDXAPP_XML_MAPPINGS variable no longer exists by default and is not used by the edxapp role.
+
 - Role: ecommerce
   - Removed ECOMMERCE_ORDER_NUMBER_PREFIX variable
 
