@@ -9,8 +9,8 @@
 
 - name: install jenkins extra system packages
   apt:
-    pkg={{','.join(JENKINS_EXTRA_PKGS)}}
-    state=present update_cache=yes
+    pkg={{ item }} state=present update_cache=yes
+  with_items: JENKINS_EXTRA_PKGS
   tags:
   - jenkins
 
@@ -28,7 +28,7 @@
     state: directory
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
-  
+
 - name: download Jenkins package
   get_url: url="{{ jenkins_deb_url }}" dest="/tmp/{{ jenkins_deb }}"
 
@@ -37,6 +37,18 @@
 
 - name: stop Jenkins
   service: name=jenkins state=stopped
+
+- name: set jvm args
+  lineinfile:
+    backup: yes
+    dest: /etc/default/jenkins
+    regexp: '^JAVA_ARGS='
+    line: 'JAVA_ARGS=\"{{ jenkins_jvm_args }}\"'
+  notify:
+    - restart Jenkins
+  tags:
+    - java
+    - jenkins
 
 # Move /var/lib/jenkins to Jenkins home (on the EBS)
 - name: move /var/lib/jenkins
