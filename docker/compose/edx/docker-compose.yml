@@ -1,0 +1,123 @@
+# consul:
+#   container_name: consul
+#   image: progrium/consul
+#   command: -server -bootstrap -ui-dir /ui -domain edx.
+#   ports:
+#     - 8300:8300
+#     - 8400:8400
+#     - 8500:8500
+#     - 8600:53/udp
+
+# registrator:
+#   image: gliderlabs/registrator:latest
+#   volumes:
+#     - /var/run/docker.sock:/tmp/docker.sock
+#   command:
+#     - consul://edx_consul_1:8500
+#   expose:
+#     - 8300
+#     - 8400
+#     - 8500
+#   links:
+#     - consul
+    
+db:
+  container_name: db
+  image: edxops/mysql:v1
+  environment:
+    - MYSQL_ROOT_PASSWORD=''
+  hostname: db
+  dns:
+    - 172.19.0.3
+    - 8.8.8.8
+  ports:
+    - 3306:3306
+
+mongo:
+  container_name: mongo
+  image: edxops/mongo:v2
+  dns:
+    - 172.19.0.3
+    - 8.8.8.8
+  volumes: 
+    - /var/devstack/mongo/data:/data
+
+es:
+  container_name: es
+  image: edxops/elasticsearch:v1
+  dns:
+    - 172.19.0.3
+    - 8.8.8.8
+  volumes:
+    - /tmp/elasticsearch/data:/es-data
+
+memcache:
+  container_name: memcache
+  image: memcached:1.4.24
+
+
+forums:
+  container_name: forums
+  image: edxops/forums:opencraft
+  ports:
+    - 4567:4567
+  dns:
+    - 172.19.0.3
+    - 8.8.8.8
+  volumes:
+    - /home/edward/Documents/git/edx/configuration:/edx/app/edx_ansible/edx_ansible
+
+# precise:
+#   image: edxops/precise-common
+#   command: python -m SimpleHTTPServer
+#   expose:
+#     - 8000
+#   dns:
+#     - 172.19.0.3
+#     - 8.8.8.8
+#   volumes:
+#     - /home/edward/Documents/git/edx/configuration:/edx/app/edx_ansible/edx_ansible
+  
+# #nginx:
+# #  build: ../build/nginx
+# ##  links:
+# #    - lms:lms.local.edx.org
+# #    - cms:cms.local.edx.org
+    
+# rabbitmq:
+#   image: rabbitmq:3.5.3
+
+# #xqueue:
+# #  build: ../build/xqueue
+# #  environment:
+# #    - DNSDOCK_ALIAS=xqueue.local.edx.org
+ 
+# lms:
+#   image: edxops/edxapp:v2
+#   links: 
+#     - db:lms.mysql.local.edx.org
+#     - mongo:lms.mongo.local.edx.org
+#     - rabbitmq:lms.rabbit.local.edx.org
+#     #- xqueue:xqueue.local.edx.org
+#     - es:lms.elasticsearch.local.edx.org
+#     - memcache:lms.memcache.local.edx.org
+#     - forums:lms.forums.local.edx.org
+# cms:
+#   image: edxops/edxapp:v2
+#   links: 
+#     - db:cms.mysql.local.edx.org
+#     - mongo:cms.mongo.local.edx.org
+#     #- xqueue:xqueue.local.edx.org
+#     - es:cms.elasticsearch.local.edx.org
+#     - rabbitmq:cms.rabbit.local.edx.org
+#     - memcache:cms.memcache.local.edx.org
+#     - forums:lms.forums.local.edx.org
+# gp:
+#   image: edxops/precise-common:v1
+#   volumes:
+#     - ../../:/configuration
+#   links: 
+#     - db:lms.mysql.local.edx.org
+#     - mongo:lms.mongo.local.edx.org
+#     - rabbitmq:lms.rabbit.local.edx.org
+#     - memcache:lms.memcache.local.edx.org
