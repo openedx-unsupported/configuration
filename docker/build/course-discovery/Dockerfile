@@ -12,7 +12,11 @@ WORKDIR /edx/app/edx_ansible/edx_ansible
 ENV BRANCH=edx-course-discovery
 RUN sudo git fetch --all && sudo git checkout $config_hash
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
-ADD ansible.cfg /edx/app/edx_ansible/edx_ansible/docker/plays/ansible.cfg 
+ADD ansible.cfg /edx/app/edx_ansible/edx_ansible/docker/plays/ansible.cfg
+
+# This is a dirty hack
+RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/pip install MySQL-python
+
 RUN sudo $ansible_playbook course_discovery.yml -c local -t 'install:base'
 RUN sudo $ansible_playbook course_discovery.yml -c local -t 'install:code' \
     --extra-vars="COURSE_DISCOVERY_VERSION=$course_discovery_version" \
