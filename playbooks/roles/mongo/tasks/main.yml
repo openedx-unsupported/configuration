@@ -2,10 +2,16 @@
 - name: check to see that MongoDB 2.4 is not installed
   stat: path=/etc/init.d/mongodb
   register: mongodb_needs_upgrade
+  tags:
+    - install
+    - install:base
 
 - name: verify 2.4 not installed
   fail: msg="MongoDB 2.4 is currently installed and cannot be safely upgraded in a clustered configuration.  Please read http://docs.mongodb.org/manual/release-notes/2.6-upgrade/#upgrade-considerations and upgrade to 2.6."
   when: mongodb_needs_upgrade.stat.exists and MONGO_CLUSTERED
+  tags:
+    - install
+    - install:base
   
 - name: remove mongo 2.4 if present
   apt: >
@@ -13,28 +19,43 @@
     state=absent purge=yes
     force=yes
   when: mongodb_needs_upgrade.stat.exists and not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:base
   
 - name: install python pymongo for mongo_user ansible module
   pip: >
     name=pymongo state=present
     version={{ pymongo_version }} extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  tags:
+    - install
+    - install:base
 
 - name: add the mongodb signing key
   apt_key: >
     id={{ MONGODB_APT_KEY }}
     keyserver={{ MONGODB_APT_KEYSERVER }}
     state=present
+  tags:
+    - install
+    - install:base
 
 - name: add the mongodb repo to the sources list
   apt_repository: >
     repo='{{ MONGODB_REPO }}'
     state=present
+  tags:
+    - install
+    - install:base
 
 - name: install mongo server and recommends
   apt: >
     pkg=mongodb-org={{ mongo_version }}
     state=present install_recommends=yes
     force=yes update_cache=yes
+  tags:
+    - install
+    - install:base
 
 - name: create mongo dirs
   file: >
@@ -46,14 +67,23 @@
     - "{{ mongo_dbpath }}"
     - "{{ mongo_log_dir }}"
     - "{{ mongo_journal_dir }}"
+  tags:
+    - install
+    - install:base
 
 - name: stop mongod service
   service: name=mongod state=stopped
+  tags:
+    - manage
+    - manage:stop
 
 - name: move mongodb to {{ mongo_data_dir }}
   command: >
     mv /var/lib/mongodb  {{ mongo_data_dir}}/.
     creates={{ mongo_data_dir }}/mongodb
+  tags:
+    - install
+    - install:base
 
 - name: copy mongodb key file
   copy: >
@@ -63,38 +93,65 @@
     owner=mongodb
     group=mongodb
   when: MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
 
 - name: copy configuration template
   template: src=mongodb.conf.j2 dest=/etc/mongod.conf backup=yes
   notify: restart mongo
+  tags:
+    - install
+    - install:configuration
 
 - name: start mongo service
   service: name=mongod state=started
+  tags:
+    - manage
+    - manage:start
 
 - name: wait for mongo server to start
   wait_for: port=27017 delay=2
+  tags:
+    - manage
+    - manage:start
 
 - name: drop super user script
   template: src="create_root.js.j2" dest="/tmp/create_root.js"
   when: not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
 
 - name: create super user with js
   shell: >
     /usr/bin/mongo admin /tmp/create_root.js
   when: not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
 
 - name: delete super user script
   file: path=/tmp/create_root.js state=absent
   when: not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
 
 - name: Create the file to initialize the mongod replica set
   template: src=repset_init.js.j2 dest=/tmp/repset_init.js
   when: MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
 
 - name: Initialize the replication set
   shell: >
     /usr/bin/mongo /tmp/repset_init.js
   when: MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
 
 #- name: delete repset script
 #  file: path=/tmp/repset_init.js state=absent
@@ -111,6 +168,9 @@
     state=present
   with_items: MONGO_USERS
   when: not MONGO_CLUSTERED
+  tags:
+    - manage
+    - manage:app-users
 
 - name: create a mongodb user
   mongodb_user: >
@@ -124,6 +184,9 @@
     replica_set={{ mongo_repl_set }}
   with_items: MONGO_USERS
   when: MONGO_CLUSTERED
+  tags:
+    - manage
+    - manage:app-users
 
 - name: install s3cmd
   pip: >
@@ -131,6 +194,9 @@
     state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   when: MONGO_S3_BACKUP
+  tags:
+    - install
+    - install:app-requirements
 
 - name: configure s3cmd
   template: >
@@ -140,6 +206,9 @@
     group=root
     mode=0600
   when: MONGO_S3_BACKUP
+  tags:
+    - install
+    - install:configuration
 
 - name: install backup-mongo-to-s3 script
   template: >
@@ -149,6 +218,9 @@
     group=root
     mode=0700
   when: MONGO_S3_BACKUP
+  tags:
+    - install
+    - install:configuration
 
 - name: schedule backup-mongo-to-3s crontab
   cron: 
@@ -161,3 +233,6 @@
     minute="0"
     day="{{ MONGO_S3_BACKUP_DAY }}"
   when: MONGO_S3_BACKUP
+  tags:
+    - install
+    - install:configuration
