@@ -17,7 +17,8 @@ RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:code' \
     --extra-vars="COMMON_GIT_PATH=$repo_owner"
 RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:system-requirements'
 RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:app-requirements'
-RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:configuration'
+RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:configuration' \
+    --extra-vars="course_discovery_gunicorn_host=0.0.0.0"
 RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:devstack'
 USER root 
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
