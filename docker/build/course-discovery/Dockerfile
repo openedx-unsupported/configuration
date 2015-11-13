@@ -18,5 +18,6 @@ RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:code' \
 RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:system-requirements'
 RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:app-requirements'
 RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:configuration'
+RUN sudo ansible-playbook course_discovery.yml -c local -t 'install:devstack'
 USER root 
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
