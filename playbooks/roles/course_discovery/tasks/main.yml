@@ -39,6 +39,31 @@
   tags:
     - install:app-requirements
 
+- name: create databases
+  mysql_db:
+    db: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}"
+    state: present
+    encoding: utf8
+  tags:
+    - migrate:devstack
+
+- name: create database users
+  mysql_user:
+    name: "{{ COURSE_DISCOVERY_DATABASES.default.USER }}"
+    password: "{{ COURSE_DISCOVERY_DATABASE.default.PASSWORD }}"
+    priv: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}.*:ALL"
+  tags:
+    - migrate:devstack
+
+- name: setup the migration db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    priv: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}.*:ALL"
+    append_privs: yes
+  tags:
+    - migrate:devstack
+
 - name: migrate
   shell: >
     chdir={{ course_discovery_code_dir }}
@@ -50,6 +75,7 @@
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate:db
+    - migrate:devstack
 
 - name: write out the supervisor wrapper
   template:
