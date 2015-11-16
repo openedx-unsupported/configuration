@@ -9,27 +9,42 @@
 # and a key being provided via NEWRELIC_LICENSE_KEY
 {{ role_name|upper }}_NEWRELIC_APPNAME: "{{ '{{ COMMON_ENVIRONMENT }}' }}-{{ '{{ COMMON_DEPLOYMENT }}' }}-{{ '{{' }} {{ role_name }}_service_name }}"
 {{ role_name|upper }}_PIP_EXTRA_ARGS: "-i {{ '{{ COMMON_PYPI_MIRROR_URL }}' }}"
-{{ role_name|upper }}_NGINX_PORT: XXX       # TODO Change this!!!
-{{ role_name|upper }}_SSL_NGINX_PORT: XXX   # TODO Change this!!!
+{{ role_name|upper }}_NGINX_PORT: 18{{ port_suffix }}
+{{ role_name|upper }}_SSL_NGINX_PORT: 48{{ port_suffix }}
 
 {{ role_name|upper }}_DEFAULT_DB_NAME: '{{ role_name }}'
+{{ role_name|upper }}_MYSQL: 'db'
+# MySQL usernames are limited to 16 characters
+{{ role_name|upper }}_MYSQL_USER: '{{ role_name[:13] }}001'
+{{ role_name|upper }}_MYSQL_PASSWORD: 'password'
 
 {{ role_name|upper }}_DATABASES:
   # rw user
   default:
     ENGINE: 'django.db.backends.mysql'
     NAME: '{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}'
-    USER: '{{ role_name }}001'
-    PASSWORD: 'password'
-    HOST: 'localhost'
+    USER: '{{ '{{' }} {{ role_name|upper }}_MYSQL_USER }}'
+    PASSWORD: '{{ '{{' }} {{ role_name|upper }}_MYSQL_PASSWORD }}'
+    HOST: '{{ '{{' }} {{ role_name|upper}}_MYSQL }}'
     PORT: '3306'
     ATOMIC_REQUESTS: true
     CONN_MAX_AGE: 60
 
+{{ role_name|upper }}_DB_ADMIN_USER: 'root'
+{{ role_name|upper }}_DB_ADMIN_PASSWORD: ''
+
+{{ role_name|upper }}_MEMCACHE: [ 'memcache' ]
+
+{{ role_name|upper }}_CACHES:
+  default:
+    BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
+    KEY_PREFIX: 'default'
+    LOCATION: '{{ '{{' }} {{ role_name|upper}}_MEMCACHE }}'
+
 {{ role_name|upper }}_VERSION: "master"
 {{ role_name|upper }}_DJANGO_SETTINGS_MODULE: "{{ role_name }}.settings.production"
-{{ role_name|upper }}_URL_ROOT: 'http://localhost:####'   # TODO Set port number!
-{{ role_name|upper }}_LMS_URL_ROOT: 'http://127.0.0.1:8000'
+{{ role_name|upper }}_URL_ROOT: 'http://{{ role_name }}:18{{ port_suffix }}'
+{{ role_name|upper }}_OAUTH_URL_ROOT: 'http://127.0.0.1:8000'
 
 {{ role_name|upper }}_SECRET_KEY: 'Your secret key here'
 {{ role_name|upper }}_TIME_ZONE: 'UTC'
@@ -50,7 +65,7 @@
   SOCIAL_AUTH_EDX_OIDC_KEY: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_KEY }}'
   SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ '{{' }} {{ role_name|upper }}_LMS_URL_ROOT }}/oauth2'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ '{{' }} {{ role_name|upper }}_OAUTH_URL_ROOT }}/oauth2'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
 
   STATIC_ROOT: "{{ '{{' }} COMMON_DATA_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}/staticfiles"
@@ -66,7 +81,7 @@
   - PROTOCOL: "{{ '{{' }} COMMON_GIT_PROTOCOL }}"
     DOMAIN: "{{ '{{' }} COMMON_GIT_MIRROR }}"
     PATH: "{{ '{{' }} COMMON_GIT_PATH }}"
-    REPO: {{ role_name }}.git
+    REPO: {{ role_name|replace('_', '-') }}.git
     VERSION: "{{ '{{' }} {{ role_name|upper }}_VERSION }}"
     DESTINATION: "{{ '{{' }} {{ role_name }}_code_dir }}"
     SSH_KEY: "{{ '{{' }} {{ role_name|upper }}_GIT_IDENTITY }}"
@@ -76,6 +91,11 @@
 {{ role_name|upper }}_GUNICORN_EXTRA: ""
 {{ role_name|upper }}_GUNICORN_EXTRA_CONF: ""
 {{ role_name|upper }}_GUNICORN_WORKER_CLASS: "gevent"
+
+{{ role_name|upper }}_HOSTNAME: '~^((stage|prod)-)?{{ role_name|replace('_', '-') }}.*'
+
+nginx_{{ role_name }}_gunicorn_hosts:
+  - 127.0.0.1
 
 #
 # vars are namespace with the module name.
@@ -94,7 +114,7 @@
 {{ role_name }}_code_dir: "{{ '{{' }} {{ role_name }}_home }}/{{ '{{' }} {{ role_name }}_service_name }}"
 
 {{ role_name }}_gunicorn_host: "127.0.0.1"
-{{ role_name }}_gunicorn_port: XXX    # TODO Change this!!!
+{{ role_name }}_gunicorn_port: 8{{ port_suffix }}
 {{ role_name }}_gunicorn_timeout: 300
 
 {{ role_name }}_log_dir: "{{ '{{' }} COMMON_LOG_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}"

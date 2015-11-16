@@ -24,15 +24,60 @@
     - install:configuration
 
 - name: install application requirements
-  pip:
-    requirements: "{{ '{{' }} {{ role_name }}_requirements_base }}/{{ '{{' }} item }}"
-    virtualenv: "{{ '{{' }} {{ role_name|lower }}_venv_dir }}"
-    state: present
+  shell: >
+    chdir=/edx/app/{{ role_name }}/{{ role_name }}
+    . {{ '{{' }} {{ role_name }}_venv_dir }}/bin/activate;
+    make requirements
   sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
-  with_items: "{{ '{{' }} {{ role_name }}_requirements }}"
   tags:
     - install
     - install:app-requirements
+
+- name: install development requirements
+  shell: >
+    chdir=/edx/app/{{ role_name }}/{{ role_name }}
+    . {{ '{{' }} {{ role_name }}_venv_dir }}/bin/activate;
+    make local-requirements
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  tags:
+    - install
+    - install:devstack
+
+- name: wait for database
+  wait_for:
+    host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
+    port: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PORT }}"
+    delay: 2
+  tags:
+    - migrate:devstack
+
+- name: create databases
+  mysql_db:
+    login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
+    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.USER }}"
+    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.PASSWORD }}"
+    db: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}"
+    state: present
+    encoding: utf8
+  tags:
+    - migrate:devstack
+
+- name: create database users
+  mysql_user:
+    login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
+    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.USER }}"
+    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.PASSWORD }}"
+    name: "{{ '{{' }} item.name }}"
+    host: "%"
+    name: "{{ '{{' }} item.password }}"
+    priv: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}.*:ALL"
+  with_items:
+    - name: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.USER }}"
+      password: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PASSWORD }}"
+    - name: "{{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}"
+      password: "{{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}"
+  tags:
+    - migrate:devstack
 
 - name: migrate
   shell: >
@@ -46,6 +91,7 @@
   tags:
     - migrate
     - migrate:db
+    - migrate:devstack
 
 - name: write out the supervisor wrapper
   template:
@@ -68,6 +114,16 @@
   tags:
     - install
     - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/{{ role_name }}/devstack.sh.j2"
+    dest: "{{ '{{' }} {{ role_name }}_home }}/devstack.sh"
+    owner: "{{ '{{' }} supervisor_user }}"
+    group: "{{ '{{' }} common_web_user }}"
+    mode: 0744
+  tags:
+    - install:devstack
 
 - name: setup the {{ role_name }} env file
   template:
@@ -95,8 +151,8 @@
   shell: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
-    - install
-    - install:configuration
+    - manage
+    - manage:start
 
 - name: create symlinks from the venv bin dir
   file:
@@ -109,7 +165,7 @@
     - django-admin.py
   tags:
     - install
-    - install:base
+    - install:app-requirements
 
 - name: create symlinks from the repo dir
   file:
@@ -120,7 +176,7 @@
     - manage.py
   tags:
     - install
-    - install:base
+    - install:app-requirements
 
 - name: restart the application
   supervisorctl: 
@@ -133,3 +189,22 @@
   tags:
     - manage
     - manage:start
+
+- name: Copying nginx configs for {{ role_name }}
+  template: >
+    src=edx/app/nginx/sites-available/{{ role_name }}.j2
+    dest={{ '{{' }} nginx_sites_available_dir }}/{{ role_name }}
+    owner=root group={{ '{{' }} common_web_user }} mode=0640
+  notify: reload nginx
+  tags:
+    - install:vhosts
+
+- name: Creating nginx config links for {{ role_name }}
+  file: >
+    src={{ '{{' }} nginx_sites_available_dir }}/{{ role_name  }}
+    dest={{ '{{' }} nginx_sites_enabled_dir }}/{{ role_name }}
+    state=link owner=root group=root
+  notify: reload nginx
+  tags:
+    - install:vhosts
+
