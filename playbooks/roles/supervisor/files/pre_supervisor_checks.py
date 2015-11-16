@@ -243,7 +243,7 @@ if __name__ == '__main__':
             link_location = os.path.join(args.enabled, "{}.conf".format(service))
             if os.path.exists(available_file):
                 subprocess.call("ln -sf {} {}".format(available_file, link_location), shell=True)
-                report.append("Linking service: {}".format(service))
+                report.append("Enabling service: {}".format(service))
             else:
                 raise Exception("No conf available for service: {}".format(link_location))
     except AWSConnectionError as ae:
