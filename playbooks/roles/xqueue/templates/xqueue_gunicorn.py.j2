@@ -16,15 +16,9 @@ workers = {{ XQUEUE_WORKERS }}
 workers = (multiprocessing.cpu_count()-1) * 2 + 2
 {% endif %}
 
+{{ common_close_all_caches }}
+
 def post_fork(server, worker):
-    """
-    Close the cache so that newly forked workers cannot accidentally share the
-    socket with the processes they were forked from. This prevents a race
-    condition in which one worker could get a cache response intended for
-    another worker.
-    """
-    from django.core.cache import cache
-    if hasattr(cache, 'close'):
-        cache.close()
+    close_all_caches()
 
 {{ XQUEUE_GUNICORN_WORKERS_EXTRA_CONF }}

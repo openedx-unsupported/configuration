@@ -128,3 +128,24 @@ common_redhat_variants:
   - CentOS
   - Red Hat Enterprise Linux
   - Amazon
+
+# Code used in gunicorn post_fork functions to be sure we aren't sharing cache
+# connections among forked children.
+common_close_all_caches: |
+    def close_all_caches():
+        # Close the cache so that newly forked workers cannot accidentally share
+        # the socket with the processes they were forked from. This prevents a race
+        # condition in which one worker could get a cache response intended for
+        # another worker.
+        # We do this in a way that is safe for 1.4 and 1.8 while we still have some
+        # 1.4 installations.
+        from django.conf import settings
+        from django.core import cache as django_cache
+        if hasattr(django_cache, 'caches'):
+            get_cache = django_cache.caches.__getitem__
+        else:
+            get_cache = django_cache.get_cache
+        for cache_name in settings.CACHES:
+            cache = get_cache(cache_name)
+            if hasattr(cache, 'close'):
+                cache.close()

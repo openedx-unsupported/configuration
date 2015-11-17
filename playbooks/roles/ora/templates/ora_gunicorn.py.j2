@@ -10,15 +10,9 @@ bind = "{{ ora_gunicorn_host }}:{{ ora_gunicorn_port }}"
 pythonpath = "{{ ora_code_dir }}"
 workers = {{ ora_gunicorn_workers }}
 
+{{ common_close_all_caches }}
+
 def post_fork(server, worker):
-    """
-    Close the cache so that newly forked workers cannot accidentally share the
-    socket with the processes they were forked from. This prevents a race
-    condition in which one worker could get a cache response intended for
-    another worker.
-    """
-    from django.core.cache import cache
-    if hasattr(cache, 'close'):
-        cache.close()
+    close_all_caches()
 
 {{ ORA_GUNICORN_EXTRA_CONF }}
