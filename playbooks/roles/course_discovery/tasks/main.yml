@@ -27,7 +27,31 @@
     dest: "{{ course_discovery_home }}/course_discovery_gunicorn.py"
   sudo_user: "{{ course_discovery_user }}"
   tags:
+    - install
     - install:configuration
+
+- name: add deadsnakes repository
+  apt_repository:
+    repo: "ppa:fkrull/deadsnakes"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install python3.5
+  apt: pkg={{ item }}
+  with_items:
+    - python3.5
+    - python3.5-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv
+  shell: "virtualenv --python=python3.5 {{ course_discovery_venv_dir }}"
+  sudo_user: "{{ course_discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: install application requirements
   shell: >
