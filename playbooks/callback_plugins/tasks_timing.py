@@ -1,3 +1,4 @@
+import os
 import datetime
 import time
 import logging
@@ -32,7 +33,7 @@ class CallbackModule(object):
 
         if self.current_task is not None:
             # Record the running time of the last executed task
-            self.stats[self.current_task] = time.time() - self.stats[self.current_task]
+            self.stats[self.current_task] = (time.time(), time.time() - self.stats[self.current_task])
 
         # Record the start time of the current task
         self.current_task = name
@@ -46,32 +47,40 @@ class CallbackModule(object):
 
         # Record the timing of the very last task, we use it here, because we don't have stop task function by default
         if self.current_task is not None:
-            self.stats[self.current_task] = time.time() - self.stats[self.current_task]
+            self.stats[self.current_task] = (time.time(), time.time() - self.stats[self.current_task])
 
         # Sort the tasks by their running time
-        results = sorted(self.stats.items(), key=lambda value: value[1], reverse=True)
+        results = sorted(self.stats.items(), key=lambda value: value[1][1], reverse=True)
 
-        datadog.initialize(api_key='9775a026f1ca7d1c6c5af9d94d9595a4',
-                           app_key='87ce4a24b5553d2e482ea8a8500e71b8ad4554ff')
+        datadog_api_key = os.getenv('DATADOG_API_KEY')
+        datadog_app_key = os.getenv('DATADOG_APP_KEY')
+        datadog_api_initialized = True
 
-        # Print the timing of each task
+        if datadog_api_key and datadog_app_key:
+                datadog.initialize(api_key=datadog_api_key,
+                                   app_key=datadog_app_key)
+        else:
+            datadog_api_initialized = False
+
+        # send the metric to datadog
+        if datadog_api_initialized:
+            for name, points in results:
+                datadog.api.Metric.send(
+                    metric="edx.ansible.{0}.task_duration".format(name.replace(" | ", ".").replace(" ", "-").lower()),
+                    points=points,
+                )
+
+        # Log the time of each task
         for name, elapsed in results:
-            # send the metric to datadog
-            datadog.api.Metric.send(
-                metric="edx.jenkins.{0}".format(name.replace(" | ", ".").replace(" ", "-").lower()),
-                points=elapsed,
-                host='jenkins',
+            logger.info(
+                "{0:-<80}{1:->8}".format(
+                    '{0} '.format(name),
+                    ' {0:.02f}s'.format(elapsed[1]),
+                )
             )
-            # log the time
-            # logger.info(
-            #     "{0:-<80}{1:->8}".format(
-            #         '{0} '.format(name),
-            #         ' {0:.02f}s'.format(elapsed),
-            #     )
-            # )
 
         # Total time to run the complete playbook
-        total_seconds = sum([x[1] for x in self.stats.items()])
+        total_seconds = sum([x[1][1] for x in self.stats.items()])
         logger.info("\nPlaybook finished: {0}, {1} total tasks.  {2} elapsed. \n".format(
                 time.asctime(),
                 len(self.stats.items()),
