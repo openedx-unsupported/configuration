@@ -14,6 +14,9 @@
     - "{{ nginx_sites_enabled_dir }}"
     - "{{ nginx_conf_dir }}"
   notify: restart nginx
+  tags:
+    - install
+    - install:configuration
 
 - name: create nginx data dirs
   file: >
@@ -26,22 +29,34 @@
     - "{{ nginx_log_dir }}"
     - "{{ nginx_server_static_dir }}"
   notify: restart nginx
+  tags:
+    - install
+    - install:configuration
 
 - name: Install nginx packages
   apt: pkg={{','.join(nginx_debian_pkgs)}} state=present
   notify: restart nginx
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Remove the default site
   file: >
     path=/etc/nginx/sites-enabled/default
     state=absent
   notify: reload nginx
+  tags:
+    - install
+    - install:configuration
 
 - name: Server configuration file
   template: >
     src=etc/nginx/nginx.conf.j2 dest=/etc/nginx/nginx.conf
     owner=root group={{ common_web_user }} mode=0644
   notify: restart nginx
+  tags:
+    - install
+    - install:configuration
 
 - name: Creating common nginx configuration
   template: >
@@ -49,6 +64,9 @@
     dest={{ nginx_sites_available_dir }}/edx-release
     owner=root group=root mode=0600
   notify: reload nginx
+  tags:
+    - install
+    - install:configuration
 
 - name: Create robot rules
   template: >
@@ -56,6 +74,9 @@
     owner=root group={{ common_web_user }} mode=0644
   notify: reload nginx
   when: NGINX_ROBOT_RULES|length > 0
+  tags:
+    - install
+    - install:configuration
 
 - name: Creating link for common nginx configuration
   file: >
@@ -63,6 +84,9 @@
     dest={{ nginx_sites_enabled_dir }}/edx-release
     state=link owner=root group=root
   notify: reload nginx
+  tags:
+    - install
+    - install:configuration
 
 - name: Copying nginx configs for {{ nginx_sites }}
   template: >
@@ -71,6 +95,9 @@
     owner=root group={{ common_web_user }} mode=0640
   notify: reload nginx
   with_items: nginx_sites
+  tags:
+    - install
+    - install:configuration
 
 - name: Creating nginx config links for {{ nginx_sites }}
   file: >
@@ -79,6 +106,9 @@
     state=link owner=root group=root
   notify: reload nginx
   with_items: nginx_sites
+  tags:
+    - install
+    - install:configuration
 
 - name: Copying nginx extra configs
   template: >
@@ -87,6 +117,9 @@
     owner=root group={{ common_web_user }} mode=0640
   notify: reload nginx
   with_items: nginx_extra_sites
+  tags:
+    - install
+    - install:configuration
 
 - name: Creating links for nginx extra configs
   file: >
@@ -95,6 +128,9 @@
     state=link owner=root group=root
   notify: reload nginx
   with_items: nginx_extra_sites
+  tags:
+    - install
+    - install:configuration
 
 - name: Copying custom nginx config
   template: >
@@ -103,6 +139,9 @@
     owner=root group={{ common_web_user }} mode=0640
   notify: reload nginx
   with_items: nginx_extra_configs
+  tags:
+    - install
+    - install:configuration
 
 - name: Copying nginx redirect configs for {{ nginx_redirects }}
   template: >
@@ -111,6 +150,9 @@
     owner=root group={{ common_web_user }} mode=0640
   notify: reload nginx
   with_dict: nginx_redirects
+  tags:
+    - install
+    - install:configuration
 
 - name: Creating nginx redirect links for {{ nginx_redirects }}
   file: >
@@ -119,6 +161,9 @@
     state=link owner=root group=root
   notify: reload nginx
   with_dict: nginx_redirects
+  tags:
+    - install
+    - install:configuration
 
   # These are static pages that can be used
   # for nginx rate limiting, 500 errors, etc.
@@ -129,6 +174,9 @@
     dest={{ nginx_server_static_dir }}/{{ item.file }}
     owner=root group={{ common_web_user }} mode=0640
   with_items: NGINX_SERVER_HTML_FILES
+  tags:
+    - install
+    - install:configuration
 
 - name: Write out htpasswd file
   htpasswd: >
@@ -136,11 +184,17 @@
     password={{ COMMON_HTPASSWD_PASS }}
     path={{ nginx_htpasswd_file }}
   when: COMMON_ENABLE_BASIC_AUTH
+  tags:
+    - install
+    - install:configuration
 
 - name: Create nginx log file location (just in case)
   file: >
     path={{ nginx_log_dir}} state=directory
     owner={{ common_web_user }} group={{ common_web_user }}
+  tags:
+    - install
+    - install:configuration
 
 # Check to see if the ssl cert/key exists before copying.
 # This extra check is done to prevent failures when
@@ -150,12 +204,18 @@
     path: "{{ NGINX_SSL_CERTIFICATE }}"
   sudo: False
   register: ssl_cert
+  tags:
+    - install
+    - install:configuration
 
 - local_action:
     module: stat
     path: "{{ NGINX_SSL_KEY }}"
   sudo: False
   register: ssl_key
+  tags:
+    - install
+    - install:configuration
 
 - name: copy ssl cert
   copy: >
@@ -163,6 +223,9 @@
     dest=/etc/ssl/certs/
     owner=root group=root mode=0644
   when: ssl_cert.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
+  tags:
+    - install
+    - install:configuration
 
 - name: copy ssl key
   copy: >
@@ -170,11 +233,17 @@
     dest=/etc/ssl/private/
     owner=root group=root mode=0640
   when: ssl_key.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_KEY != 'ssl-cert-snakeoil.key'
+  tags:
+    - install
+    - install:configuration
 
 # removing default link
 - name: Removing default nginx config and restart (enabled)
   file: path={{ nginx_sites_enabled_dir }}/default state=absent
   notify: reload nginx
+  tags:
+    - install
+    - install:configuration
 
 # Note that nginx logs to /var/log until it reads its configuration, so /etc/logrotate.d/nginx is still good
 
@@ -183,12 +252,18 @@
     src=etc/logrotate.d/edx_logrotate_nginx_access.j2
     dest=/etc/logrotate.d/nginx-access
     owner=root group=root mode=644
+  tags:
+    - install
+    - install:configuration
 
 - name: Set up nginx access log rotation
   template: >
     src=etc/logrotate.d/edx_logrotate_nginx_error.j2
     dest=/etc/logrotate.d/nginx-error
     owner=root group=root mode=644
+  tags:
+    - install
+    - install:configuration
 
 # If tasks that notify restart nginx don't change the state of the remote system
 # their corresponding notifications don't get run.  If nginx has been stopped for
