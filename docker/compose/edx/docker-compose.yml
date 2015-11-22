@@ -1,77 +1,129 @@
+#
+# Single Docker Compose cluster that will eventually start
+# all edX services in a single flock of coordinated containers
+#
+# This work is currently experimental and a number of services
+# are missing entirely.  Containers that are present will not
+# currently work without manual steps.  We are working on
+# addressing that.
+#
+# When running compose you must pass in two environment variables
+#
+# DOCKER_EDX_ROOT which points to the directory into which you checkout
+# your edX source code.  For example, assuming the following directory
+# structure under /home/me
+#
+# ├── edx-src
+# │   ├── configuration
+# │   ├── cs_comments_service
+# │   ├── edx-platform
+# │   ├── xqueue
+#
+# you would define DOCKER_EDX_ROOT="/home/me/edx-src"
+#
+# DOCKER_DATA_ROOT is the location on your host machine where Docker
+# guests can access your local filesystem for storing persistent data
+# files, say MongoDB or MySQL data files.
+#
+
 db:
   container_name: db
-  image: edxops/mysql:v1
+  image: mysql:5.6
   environment:
-    - MYSQL_ROOT_PASSWORD=''
-  hostname: db
+    - MYSQL_ROOT_PASSWORD='password'
+    #- MYSQL_DATABASE=''
+    - MYSQL_USER='migrate'
+    - MYSQL_PASSWORD='password'
+  volumes:
+    - ${DOCKER_DATA_ROOT}/mysql/data:/data
   ports:
     - 3306:3306
 
+
 mongo:
   container_name: mongo
-  image: edxops/mongo:v2
-  volumes: 
-    - /var/devstack/mongo/data:/data
+  image: mongo:3.0
+  volumes:
+    - ${DOCKER_DATA_ROOT}/mongo/data:/data
+  ports:
+    - 27017:27017
 
+
+# Need to build our own for ES 0.9
 es:
   container_name: es
   image: edxops/elasticsearch:v1
   volumes:
-    - /tmp/elasticsearch/data:/es-data
+    - ${DOCKER_DATA_ROOT}/elasticsearch/data:/data
+  ports:
+    - 9100:9100
+    - 9200:9200
+    - 9300:9300
+
 
 memcache:
   container_name: memcache
   image: memcached:1.4.24
+  volumes:
+    - ${DOCKER_DATA_ROOT}/memcache/data:/data
+  ports:
+    - 11211:11211
+
+
+nginx:
+  containter_name: nginx
+  image:
+  ports:
+    - 80:80
+    - 443:443
+
+
+rabbitmq:
+  container_name: rabbitmq
+  image: rabbitmq:3.5.3
+  volumes:
+    - ${DOCKER_DATA_ROOT}/rabbitmq/data:/data
+  ports:
+    - 5672:5672
 
 
 forums:
   container_name: forums
-  image: edxops/forums:opencraft
+  # Image built from the opencraft fork as it fixes
+  # an auth bug.  Update when the change merges
+  # upstream
+  image: edxops/forums:opencraft-v2
+  volumes:
+    - ${DOCKER_EDX_ROOT}/cs_comments_service:/edx/app/forum/cs_comments_service
   ports:
     - 4567:4567
+
+
+xqueue:
+  container_name: xqueue
+  image: edxops/xqueue:v1
+  ports:
+    - 8040:8040
+    - 18040:18040
   volumes:
-    - /home/edward/Documents/git/edx/configuration:/edx/app/edx_ansible/edx_ansible
+    - ${DOCKER_EDX_ROOT}/xqueue:/edx/app/edxapp/xqueue
 
-# #nginx:
-# #  build: ../build/nginx
-# ##  links:
-# #    - lms:lms.local.edx.org
-# #    - cms:cms.local.edx.org
-    
-# rabbitmq:
-#   image: rabbitmq:3.5.3
 
-# #xqueue:
-# #  build: ../build/xqueue
-# #  environment:
-# #    - DNSDOCK_ALIAS=xqueue.local.edx.org
- 
-# lms:
-#   image: edxops/edxapp:v2
-#   links: 
-#     - db:lms.mysql.local.edx.org
-#     - mongo:lms.mongo.local.edx.org
-#     - rabbitmq:lms.rabbit.local.edx.org
-#     #- xqueue:xqueue.local.edx.org
-#     - es:lms.elasticsearch.local.edx.org
-#     - memcache:lms.memcache.local.edx.org
-#     - forums:lms.forums.local.edx.org
-# cms:
-#   image: edxops/edxapp:v2
-#   links: 
-#     - db:cms.mysql.local.edx.org
-#     - mongo:cms.mongo.local.edx.org
-#     #- xqueue:xqueue.local.edx.org
-#     - es:cms.elasticsearch.local.edx.org
-#     - rabbitmq:cms.rabbit.local.edx.org
-#     - memcache:cms.memcache.local.edx.org
-#     - forums:lms.forums.local.edx.org
-# gp:
-#   image: edxops/precise-common:v1
-#   volumes:
-#     - ../../:/configuration
-#   links: 
-#     - db:lms.mysql.local.edx.org
-#     - mongo:lms.mongo.local.edx.org
-#     - rabbitmq:lms.rabbit.local.edx.org
-#     - memcache:lms.memcache.local.edx.org
+lms:
+  container_name: lms
+  image: edxops/edxapp:v2
+  ports:
+    - 8000:8000
+    - 18000:18000
+  volumes:
+    - ${DOCKER_EDX_ROOT}/edx-platform:/edx/app/edxapp/edx-platform
+
+
+cms:
+  container_name: cms
+  image: edxops/edxapp:v2
+  ports:
+    - 8010:8010
+    - 18010:18010
+  volumes:
+    - ${DOCKER_EDX_ROOT}/edx-platform:/edx/app/edxapp/edx-platform
