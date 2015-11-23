@@ -20,13 +20,13 @@ ENV PATH /tmp/ansible/bin:/bin:/sbin:/usr/sbin:/usr/bin
 
 # Install the configuration repository to install 
 # edx-ansible role
-RUN sudo git clone http://github.com/edx/configuration.git /tmp/configuration
+RUN sudo git clone ${CONFIGURATION_REPO} /tmp/configuration
 WORKDIR /tmp/configuration
-RUN sudo git checkout hack2015/docker
+RUN sudo git checkout ${CONFIGURATION_VERSION}
 RUN sudo pip install -r pre-requirements.txt
 RUN sudo pip install -r requirements.txt
 WORKDIR /tmp/configuration/playbooks/edx-east
-RUN sudo /tmp/ansible/bin/ansible-playbook edx_ansible.yml -c local -i '127.0.0.1,' -e "configuration_version=hack2015/docker"
+RUN sudo /tmp/ansible/bin/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
 WORKDIR /edx/app/edx_ansible
 
 # cleanup
