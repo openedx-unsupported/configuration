@@ -67,7 +67,8 @@ class CallbackModule(object):
             for name, points in results:
                 datadog.api.Metric.send(
                     metric="edx.ansible.{0}.task_duration".format(name.replace(" | ", ".").replace(" ", "-").lower()),
-                    points=points,
+                    date_happened=[0],
+                    points=points[1],
                 )
 
         # Log the time of each task
