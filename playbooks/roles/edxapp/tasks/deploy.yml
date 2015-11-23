@@ -171,7 +171,7 @@
   environment: "{{ edxapp_environment }}"
   tags:
     - install
-    - install:code
+    - install:app-requirements
 
 # Install the python modules into {{ edxapp_venv_dir }}
 - name : install python base-requirements
@@ -185,14 +185,14 @@
   sudo_user: "{{ edxapp_user }}"
   tags:
     - install
-    - install:code
-    
+    - install:app-requirements
+        
 - stat: path="{{ post_requirements_file }}"
   register: post_requirements
   sudo_user: "{{ edxapp_user }}"
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Install the python post requirements into {{ edxapp_venv_dir }}
 - name : install python post-requirements
@@ -206,7 +206,7 @@
   when: post_requirements.stat.exists
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Install the python paver requirements into {{ edxapp_venv_dir }}
 - name : install python paver-requirements
@@ -219,7 +219,7 @@
   environment: "{{ edxapp_environment }}"
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Install the python custom requirements into {{ edxapp_venv_dir }}
 
@@ -228,7 +228,7 @@
   sudo_user: "{{ edxapp_user }}"
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 - name : install python custom-requirements
   pip: >
@@ -241,7 +241,7 @@
   when: custom_requirements.stat.exists
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Install the final python modules into {{ edxapp_venv_dir }}
 - name : install python post-post requirements
@@ -257,7 +257,7 @@
   sudo_user: "{{ edxapp_user }}"
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Private requriements require a ssh key to install, use the same key as the private key for edx-platform
 # If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
@@ -276,7 +276,7 @@
   when: EDXAPP_INSTALL_PRIVATE_REQUIREMENTS
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Install any custom extra requirements if defined in EDXAPP_EXTRA_REQUIREMENTS.
 - name: install python extra requirements
@@ -290,7 +290,7 @@
   sudo_user: "{{ edxapp_user }}"
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
@@ -304,7 +304,7 @@
   when: EDXAPP_CAS_ATTRIBUTE_PACKAGE|length > 0
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
 - name : install sandbox requirements into regular venv
@@ -322,7 +322,7 @@
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
     - install
-    - install:code
+    - install:app-requirements
     
 # The next few tasks set up the python code sandbox
 
@@ -334,7 +334,7 @@
   tags:
   - edxapp-sandbox
   - install
-  - install:code
+  - install:app-requirements
 
 - name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip: >
@@ -347,7 +347,7 @@
   tags:
   - edxapp-sandbox
   - install
-  - install:code
+  - install:app-requirements
 
 - name: code sandbox | Install sandbox requirements into sandbox venv
   shell: >
@@ -363,7 +363,7 @@
   tags:
   - edxapp-sandbox
   - install
-  - install:code
+  - install:app-requirements
 
 - name: code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
@@ -371,7 +371,7 @@
   tags:
   - edxapp-sandbox
   - install
-  - install:code
+  - install:app-requirements
 
 - name: compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall -x .git/.* {{ edxapp_code_dir }}"
