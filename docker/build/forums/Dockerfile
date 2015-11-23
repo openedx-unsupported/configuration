@@ -1,18 +1,21 @@
 FROM edxops/precise-common:v2
 MAINTAINER edxops
 
+ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
+ENV CONFIGURATION_VERSION="hack2015/docker"
+
 USER docker
 
 RUN sudo apt-get update
 
 WORKDIR /edx/app/edx_ansible/edx_ansible
 RUN sudo git fetch --all
-RUN sudo git checkout hack2015/docker
-RUN sudo git reset --hard hack2015/docker
+RUN sudo git checkout ${CONFIGURATION_VERSION}
+RUN sudo git reset --hard origin/${CONFIGURATION_VERSION}
 RUN sudo git pull
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
-
-RUN sudo ansible-playbook forum.yml -c local -t 'install:base,install:configuration,install:code' -e '{"FORUM_MONGO_HOSTS":["mongo.forums"]}' -e FORUM_ELASTICSEARCH_HOST='es.forums' -e forum_source_repo='https://github.com/open-craft/cs_comments_service.git' -e forum_version='mongoid5' -e FORUM_USE_TCP='true' -e FORUM_RACK_ENV='staging' -e FORUM_SINATRA_ENV='staging'
-USER root 
+COPY ansible_overrides.yml /
+RUN sudo ansible-playbook forum.yml -i '127.0.0.1,' -c local -t "install:base,install:configuration,install:code" -e@/ansible_overrides.yml
+WORKDIR /edx/app
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
-EXPOSE 18080
+EXPOSE 4567
