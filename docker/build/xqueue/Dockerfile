@@ -1,18 +1,23 @@
 FROM edxops/precise-common:v2
 MAINTAINER edxops
 
+ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
+ENV CONFIGURATION_VERSION="hack2015/docker"
+
 USER docker
+
+RUN sudo apt-get update
 
 WORKDIR /edx/app/edx_ansible/edx_ansible
 RUN sudo git fetch --all
-RUN sudo git checkout e0d/docker-latest
-RUN sudo git reset --hard origin/e0d/docker-latest
+RUN sudo git checkout ${CONFIGURATION_VERSION}
+RUN sudo git reset --hard origin/${CONFIGURATION_VERSION}
 RUN sudo git pull
 
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
-RUN echo "bust-cache"
-RUN sudo ansible-playbook xqueue.yml -c local
+COPY ansible_overrides.yml /
+RUN sudo ansible-playbook xqueue.yml -i '127.0.0.1,' -c local -t "install:base,install:system-requirements,install:configuration,install:application-requirements,install:code" -e@/ansible_overrides.yml
 USER root 
-COPY ./docker-run.sh /
+COPY docker-run.sh /
 ENTRYPOINT ["/docker-run.sh"]
-EXPOSE 18040 8040
+EXPOSE 8110 18110
