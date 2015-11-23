@@ -26,7 +26,7 @@ RUN sudo git checkout hack2015/docker
 RUN sudo pip install -r pre-requirements.txt
 RUN sudo pip install -r requirements.txt
 WORKDIR /tmp/configuration/playbooks/edx-east
-RUN sudo /tmp/ansible/bin/ansible-playbook edx_ansible.yml -c local -i '127.0.0.1,' -e "configuration_version=hack2015/docker"
+RUN sudo /tmp/ansible/bin/ansible-playbook edx_ansible.yml -c local -i '127.0.0.1,' -e "configuration_version=${CONFIGURATION_VERSION}"
 WORKDIR /edx/app/edx_ansible
 
 # cleanup
