@@ -1,4 +1,4 @@
-FROM edxops/precise-common:v2
+FROM edxops/precise-common:latest
 MAINTAINER edxops
 
 ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"

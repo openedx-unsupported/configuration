@@ -1,4 +1,4 @@
-FROM edxops/precise-common:v1
+FROM edxops/precise-common:latest
 MAINTAINER edxops
 
 USER docker
