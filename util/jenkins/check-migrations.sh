@@ -48,7 +48,7 @@ fi
 if [[ $db_dry_run == "false" ]]; then
     # Set this to an empty string if db_dry_run is
     # not set.  By default the db_dry_run var is
-    # set to --db-dry-run
+    # set to --list
 
     extra_var_args+=" -e db_dry_run=''"
 else
