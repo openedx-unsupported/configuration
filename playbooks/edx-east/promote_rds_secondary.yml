@@ -1,0 +1,63 @@
+# Step 2 of migrating to the MySQL separate-database StudentModuleHistory backend
+# Step 1 is in create_edxapp_history_db.yml
+#
+# Usage: AWS_PROFILE=myprofile ansible-playbook promote_csmh_db.yml -i localhost, -e 'rds_name=env-dep-csm admin_password=SUPERSECRET'
+
+#NB: should this do tags?
+
+- name: Promote new edxapp history RDS instance
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    rds_name:
+    region: us-east-1
+    admin_password:
+    backup_retention_days: 30
+    backup_window: 02:00-03:00
+    maint_window: Mon:00:00-Mon:01:15
+
+  tasks:
+    - name: Validate arguments
+      fail:
+        msg: "One or more arguments were not set correctly: {{ item }}"
+      when: not {{ item }}
+      with_items:
+        - rds_name
+        - admin_password
+
+    - name: Validate boto version >= 1.9.9
+      shell: |
+        version=$(aws --version 2>&1 | sed -r 's|.*aws-cli/([0-9]+\.[0-9]+\.[0-9]).*|\1|')
+        if [ $version != '1.9.9' ]; then
+          cmp=$(echo -e "$version\n1.9.9" | sort -rV | head -n1)
+          [ $cmp = "1.9.9" ] && exit 1 || exit 0
+        fi
+      changed_when: False
+
+    - name: Promote edxapp history RDS to primary instance
+      #Use local module for promoting only because of this issue:
+      #<https://github.com/ansible/ansible-modules-core/issues/2150>
+      rds_local:
+        command: promote
+        instance_name: "{{ rds_name }}"
+        region: "{{ region }}"
+        wait: yes
+        wait_timeout: 900
+
+    #Can't use the module if you want to be able to set storage types until this PR lands:
+    #<https://github.com/ansible/ansible-modules-core/issues/633>
+    #The StorageType option isn't in boto, but it is in boto3
+    #Requires awscli>=1.9.9
+    - name: Modify edxapp history RDS
+      shell: >
+        aws rds modify-db-instance
+        --db-instance-identifier {{ rds_name }}        
+        --apply-immediately
+        --multi-az
+        --master-user-password {{ admin_password }}
+        --publicly-accessible
+        --backup-retention-period {{ backup_retention_days }}
+        --preferred-backup-window {{ backup_window }}
+        --preferred-maintenance-window {{ maint_window }}
+        --storage-type gp2
