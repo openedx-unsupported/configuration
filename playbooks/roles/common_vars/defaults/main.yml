@@ -162,3 +162,12 @@ common_close_all_caches: |
             cache = get_cache(cache_name)
             if hasattr(cache, 'close'):
                 cache.close()
+
+        # The 1.4 global default cache object needs to be closed also: 1.4
+        # doesn't ensure you get the same object when requesting the same
+        # cache. The global default is a separate Python object from the cache
+        # you get with get_cache("default"), so it will have its own connection
+        # that needs to be closed.
+        cache = django_cache.cache
+        if hasattr(cache, 'close'):
+            cache.close()
