@@ -1,17 +1,11 @@
-- name: setup the lms env
+- name: setup the env files
   template: >
-    src=lms_env.j2 dest={{ edxapp_app_dir }}/{{ EDXAPP_LMS_ENV_FILE }}
+    src={{ item.template }} dest={{ edxapp_app_dir }}/{{ item.file }}
     owner={{ edxapp_user }}  group={{ common_web_user }}
     mode=0644
-  tags:
-    - install
-    - install:configuration
-
-- name: setup the cms env
-  template: >
-    src=cms_env.j2 dest={{ edxapp_app_dir }}/{{ EDXAPP_CMS_ENV_FILE }}
-    owner={{ edxapp_user }}  group={{ common_web_user }}
-    mode=0644
+  with_items:
+    - { template: lms_env.j2, file: "{{ EDXAPP_LMS_ENV_FILE }}" }
+    - { template: cms_env.j2, file: "{{ EDXAPP_CMS_ENV_FILE }}" }
   tags:
     - install
     - install:configuration
