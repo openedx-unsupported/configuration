@@ -87,7 +87,7 @@
     - install
     - install:code
 
-- name: Stat each requirements file to ensure it exists
+- name: Stat each requirements file with Github URLs to ensure it exists
   stat: path="{{ item }}"
   with_items: "{{ edxapp_requirements_with_github_urls }}"
   register: requirement_file_stats
@@ -162,105 +162,41 @@
     - install
     - install:app-requirements
 
-# Install the python pre requirements into {{ edxapp_venv_dir }}
-- name : install python pre-requirements
-  pip: >
-    requirements="{{ pre_requirements_file }}"
-    virtualenv="{{ edxapp_venv_dir }}"
-    state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
+- name: Create the virtualenv to install the Python requirements
+  command: >
+    virtualenv {{ edxapp_venv_dir }}
+    chdir={{ edxapp_code_dir }}
+    creates={{ edxapp_venv_dir }}/bin/pip
   sudo_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   tags:
     - install
     - install:app-requirements
 
-# Install the python modules into {{ edxapp_venv_dir }}
-- name : install python base-requirements
-  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
-  # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
-  # installs everything into that virtual environment.
-  shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ base_requirements_file }}
-    chdir={{ edxapp_code_dir }}
-  environment: "{{ edxapp_environment }}"
-  sudo_user: "{{ edxapp_user }}"
+- name: Stat each Python requirements file to ensure it exists
+  stat: path="{{ item }}"
+  with_items: "{{ edxapp_requirements_files }}"
+  register: python_requirement_files
   tags:
     - install
     - install:app-requirements
-        
-- stat: path="{{ post_requirements_file }}"
-  register: post_requirements
-  sudo_user: "{{ edxapp_user }}"
-  tags:
-    - install
-    - install:app-requirements
-    
-# Install the python post requirements into {{ edxapp_venv_dir }}
-- name : install python post-requirements
-  pip: >
-    requirements="{{ post_requirements_file }}"
-    virtualenv="{{ edxapp_venv_dir }}"
-    state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  when: post_requirements.stat.exists
-  tags:
-    - install
-    - install:app-requirements
-    
-# Install the python paver requirements into {{ edxapp_venv_dir }}
-- name : install python paver-requirements
-  pip: >
-    requirements="{{ paver_requirements_file }}"
-    virtualenv="{{ edxapp_venv_dir }}"
-    state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  tags:
-    - install
-    - install:app-requirements
-    
-# Install the python custom requirements into {{ edxapp_venv_dir }}
 
-- stat: path="{{ custom_requirements_file }}"
-  register: custom_requirements
-  sudo_user: "{{ edxapp_user }}"
-  tags:
-    - install
-    - install:app-requirements
-    
-- name : install python custom-requirements
-  pip: >
-    requirements="{{ custom_requirements_file }}"
-    virtualenv="{{ edxapp_venv_dir }}"
-    state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  when: custom_requirements.stat.exists
-  tags:
-    - install
-    - install:app-requirements
-    
-# Install the final python modules into {{ edxapp_venv_dir }}
-- name : install python post-post requirements
-  # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
+# Install the python requirements into {{ edxapp_venv_dir }}
+- name : install python requirements
+  # Need to use command rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: >
-    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
+  command: >
+    {{ edxapp_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item.item }}
     chdir={{ edxapp_code_dir }}
-  with_items:
-  - "{{ github_requirements_file }}"
-  - "{{ local_requirements_file }}"
   sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  when: item.stat.exists
+  with_items: "{{ python_requirement_files.results }}"
   tags:
     - install
     - install:app-requirements
-    
+
 # Private requriements require a ssh key to install, use the same key as the private key for edx-platform
 # If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
 - name : install python private requirements
@@ -279,7 +215,7 @@
   tags:
     - install
     - install:app-requirements
-    
+
 # Install any custom extra requirements if defined in EDXAPP_EXTRA_REQUIREMENTS.
 - name: install python extra requirements
   pip: >
