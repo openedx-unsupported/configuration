@@ -1,0 +1,21 @@
+- name: Deploy edX Course Discovery Service
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_SPLUNKFORWARDER: False
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'course-discovery'
+  roles:
+    - role: nginx
+      nginx_default_sites:
+        - course-discovery
+    - aws
+    - course_discovery
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC

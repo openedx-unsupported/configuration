@@ -1,0 +1,70 @@
+#
+# {{ ansible_managed }}
+#
+
+
+{% if nginx_default_sites is defined and "course_discovery" in nginx_default_sites %}
+  {% set default_site = "default" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
+upstream course_discovery_app_server {
+{% for host in nginx_course_discovery_gunicorn_hosts %}
+    server {{ host }}:{{ course_discovery_gunicorn_port }} fail_timeout=0;
+{% endfor %}
+}
+
+server {
+  server_name {{ COURSE_DISCOVERY_HOSTNAME }};
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ COURSE_DISCOVERY_NGINX_PORT }} {{ default_site }};
+  listen {{ COURSE_DISCOVERY_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+  listen {{ COURSE_DISCOVERY_NGINX_PORT }} {{ default_site }};
+  {% endif %}
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ course_discovery_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+  {% if NGINX_ROBOT_RULES|length > 0 %}
+  location /robots.txt {
+      root {{ nginx_app_dir }};
+      try_files $uri /robots.txt =404;
+  }
+  {% endif %}
+
+  location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://course_discovery_app_server;
+  }
+
+  # Forward to HTTPS if we're an HTTP request...
+  if ($http_x_forwarded_proto = "http") {
+    set $do_redirect "true";
+  }
+
+  # Run our actual redirect...
+  if ($do_redirect = "true") {
+    rewrite ^ https://$host$request_uri? permanent;
+  }
+}

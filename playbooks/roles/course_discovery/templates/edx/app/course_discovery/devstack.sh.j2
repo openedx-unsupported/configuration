@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+cd /edx/app/edx_ansible/edx_ansible/docker/plays
+sudo ansible-playbook course_discovery.yml -c local -t 'install:app-requirements'
+sudo ansible-playbook course_discovery.yml -c local -t 'migrate:devstack' \
+                      --extra-vars="migrate_db=yes"
+sudo ansible-playbook course_discovery.yml -c local -t 'manage:devstack'
+
+COMMAND=$1
+
+case $COMMAND in
+    start)
+        {% set course_discovery_venv_bin = course_discovery_home + "/venvs/" + course_discovery_service_name + "/bin" %}
+        {% set executable = course_discovery_venv_bin + '/gunicorn' %}
+
+        {{ executable }} -c {{ course_discovery_home }}/course_discovery_gunicorn.py \
+                                 {{ COURSE_DISCOVERY_GUNICORN_EXTRA }} \
+                                 --reload \
+                                 course_discovery.wsgi:application
+
+        ;;
+    open)
+        cd {{ course_discovery_home }}
+        . {{ course_discovery_venv_bin }}/activate
+        /bin/bash
+        ;;
+esac
