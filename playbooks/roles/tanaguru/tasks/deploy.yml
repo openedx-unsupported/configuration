@@ -102,6 +102,12 @@
     state: present
   with_items: tanaguru_parameters
 
+- name: Check that tanaguru app is running
+  shell: >
+    /bin/ps aux | grep -i tanaguru
+  register: tanaguru_app
+  changed_when: no
+
 - name: Install the TanaGuru
   shell: >
     /bin/echo "yes" | ./install.sh --mysql-tg-user "{{ item.tanaguru_db_user }}" \
@@ -117,5 +123,6 @@
   args:
     chdir: "~/{{ tanaguru_download_link | basename | regex_replace('.tar.gz$', '') }}"
   with_items: tanaguru_parameters
+  when: "tanaguru_app.stdout.find('/etc/tanaguru/') == -1"
   notify:
     - restart tomcat6
