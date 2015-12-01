@@ -201,6 +201,7 @@
         instance_type: "{{ service_config.instance_type }}"
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
+        instance_monitoring: "{{ detailed_monitoring }}"
       when: auto_scaling_service
 
       #
@@ -316,6 +317,7 @@
         instance_profile_name: "{{ instance_profile_name }}"
         volumes: "{{ service_config.volumes }}"
         ebs_optimized: "{{ service_config.ebs_optimized }}"
+        monitoring: "{{ detailed_monitoring }}"
       with_sequence: count={% if not auto_scaling_service %}{{ (create_instances | int - potential_existing_instances.instances|length) | default(created_service_subnets.results | length) }}{% else %}0{% endif %}
       when: not auto_scaling_service and (potential_existing_instances.instances|length < create_instances | int)
       register: created_instances
