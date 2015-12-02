@@ -277,7 +277,7 @@ if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
     /usr/bin/apt-get update
     /usr/bin/apt-get install -y git python-pip python-apt \\
         git-core build-essential python-dev libxml2-dev \\
-        libxslt-dev curl --force-yes
+        libxslt-dev curl libmysqlclient-dev --force-yes
 fi
 
 
