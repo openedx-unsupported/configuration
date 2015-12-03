@@ -2,7 +2,7 @@
 # This play expects PyMongo to be installed locally.  You need to provide
 # the hostname or IP address of one of the mongo hosts, 
 #
-# ansible-playbook -i localhost, create_mongo_users.yml -e@edx.yml -e@stage-edx.yml -e@db/edxapp-mongo.yml
+# ansible-playbook -i localhost, create_mongo_users.yml -e@edx.yml -e@stage-edx.yml -e@db/edxapp-mongo.yml -e@playbooks/roles/common_vars/defaults/main.yml
 #
 # edxapp-mongo.yml should define MONGO_USERS with the following format
 #
@@ -27,8 +27,14 @@
   vars:
     ansible_python_interpreter: "/usr/bin/env python"
   tasks:
-    - name: install python mongo module
-      pip: name=pymongo state=present
+    - name: Validate pymongo version
+      shell: |
+        version=$(pip freeze | grep pymongo | sed -r 's|pymongo==([0-9.]+)|\1|')
+        if [ $version != '2.9' ]; then
+          cmp=$(echo -e "$version\n2.9" | sort -rV | head -n1)
+          [ $cmp = "2.9" ] && exit 1 || exit 0
+        fi
+      changed_when: False
 
     - name: create a mongodb user
       mongodb_user:
