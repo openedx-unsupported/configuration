@@ -156,6 +156,9 @@ certs_version: $certs_version
 discern_version: $discern_version
 configuration_version: $configuration_version
 
+edx_ansible_source_repo: ${configuration_source_repo}
+edx_platform_repo: ${edx_platform_repo}
+
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
@@ -256,6 +259,7 @@ PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
 COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
 COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
 EOF
 fi
 
