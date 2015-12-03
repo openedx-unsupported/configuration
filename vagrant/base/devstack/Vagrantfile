@@ -21,9 +21,6 @@ MOUNT_DIRS = {
   # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
   :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
 }
-if ENV['ENABLE_LEGACY_ORA']
-  MOUNT_DIRS[:ora] = {:repo => "ora", :local => "/edx/app/ora/ora", :owner => "ora"}
-end
 
 if ENV['VAGRANT_MOUNT_BASE']
   MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
@@ -102,9 +99,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ansible.verbose = "vvvv"
 
     ansible.extra_vars = {}
-    if ENV['ENABLE_LEGACY_ORA']
-      ansible.extra_vars['ENABLE_LEGACY_ORA'] = true
-    end
     if ENV['OPENEDX_RELEASE']
       ansible.extra_vars = {
         edx_platform_version: ENV['OPENEDX_RELEASE'],
