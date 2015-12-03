@@ -2,9 +2,12 @@ FROM ubuntu:precise
 MAINTAINER edxops 
 ENV ANSIBLE_REPO="https://github.com/edx/ansible"
 ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
-ENV CONFIGURATION_VERSION="hack2015/docker"
+ENV CONFIGURATION_VERSION="e0d/docker-artifacts"
 
 # system bootstrap
+RUN apt-get update
+RUN apt-get -y install software-properties-common python-software-properties
+RUN add-apt-repository ppa:fkrull/deadsnakes-python2.7
 RUN apt-get update
 RUN apt-get -y install sudo
 RUN useradd docker && echo "docker:docker" | chpasswd
