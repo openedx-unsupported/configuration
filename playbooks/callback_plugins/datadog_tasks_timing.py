@@ -24,6 +24,14 @@ class CallbackModule(object):
     def __init__(self):
         self.stats = {}
         self.current_task = None
+        self.datadog_api_key = os.getenv('DATADOG_API_KEY')
+        self.datadog_app_key = os.getenv('DATADOG_APP_KEY')
+        self.datadog_api_initialized = False
+
+        if self.datadog_api_key and self.datadog_app_key:
+            datadog.initialize(api_key=datadog_api_key,
+                               app_key=datadog_app_key)
+            self.datadog_api_initialized = True
 
     def playbook_on_task_start(self, name, is_conditional):
 
@@ -52,18 +60,8 @@ class CallbackModule(object):
         # Sort the tasks by their running time
         results = sorted(self.stats.items(), key=lambda value: value[1][1], reverse=True)
 
-        datadog_api_key = os.getenv('DATADOG_API_KEY')
-        datadog_app_key = os.getenv('DATADOG_APP_KEY')
-        datadog_api_initialized = True
-
-        if datadog_api_key and datadog_app_key:
-                datadog.initialize(api_key=datadog_api_key,
-                                   app_key=datadog_app_key)
-        else:
-            datadog_api_initialized = False
-
         # send the metric to datadog
-        if datadog_api_initialized:
+        if self.datadog_api_initialized:
             for name, points in results:
                 datadog.api.Metric.send(
                     metric="edx.ansible.{0}.task_duration".format(name.replace(" | ", ".").replace(" ", "-").lower()),
