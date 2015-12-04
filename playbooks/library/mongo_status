@@ -2,10 +2,10 @@
 
 DOCUMENTATION = """
 ---
-module: mongo_status
-short_description: Get the status of a mongo cluster.
+module: mongodb_rs_status
+short_description: Get the status of a replica set of a mongo cluster.
 description:
-  - Get the status of a mongo cluster. Provide the same info as rs.status()
+  - Get the status of the replica set of a mongo cluster. Provide the same info as rs.status() or replSetGetStatus.
 version_added: "1.9"
 author: Feanil Patel
 options:
@@ -26,6 +26,10 @@ options:
   password:
     description:
       - The password to use when authenticating.
+    required: false
+  auth_database:
+    description:
+      - The database to authenticate against.
     required: false
 """
 
@@ -49,6 +53,7 @@ else:
     pymongo_found = True
 
 import json
+from urllib import quote_plus
 
 def main():
 
@@ -57,6 +62,7 @@ def main():
         port=dict(required=False, type='int', default=27017),
         username=dict(required=False, type='str'),
         password=dict(required=False, type='str'),
+        auth_database=dict(required=False, type='str')
     )
 
     module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=False)
@@ -69,14 +75,18 @@ def main():
     port = module.params.get('port')
     username = module.params.get('username')
     password = module.params.get('password')
+    auth_database = module.params.get('auth_database')
 
     if (username and not password) or (password and not username):
         module.fail_json(msg="Must provide both username and password or neither.")
 
     if username:
-        mongo_uri += "{}:{}@".format(username,password)
+        mongo_uri += "{}:{}@".format(*map(quote_plus, [username,password]))
 
-    mongo_uri += "{}:{}".format(host,port)
+    mongo_uri += "{}:{}".format(quote_plus(host),port)
+
+    if auth_database:
+        mongo_uri += '/{}'.format(quote_plus(auth_database))
 
     client = MongoClient(mongo_uri)
     status = client.admin.command("replSetGetStatus")
@@ -85,7 +95,7 @@ def main():
     # jsonify function can process and output without throwing errors on bson
     # types that don't exist in JSON
     clean = json.loads(json_util.dumps(status))
-   
+
     module.exit_json(changed=False, status=clean)
 
 if __name__ == '__main__':
