@@ -60,6 +60,9 @@ class CallbackModule(object):
         # Sort the tasks by their running time
         results = sorted(self.stats.items(), key=lambda value: value[1][1], reverse=True)
 
+        # Total time to run the complete playbook
+        total_seconds = sum([x[1][1] for x in self.stats.items()])
+
         # send the metric to datadog
         if self.datadog_api_initialized:
             for name, points in results:
@@ -68,6 +71,11 @@ class CallbackModule(object):
                     date_happened=[0],
                     points=points[1],
                 )
+            datadog.api.Metric.send(
+                metric="edx.ansible.play_duration",
+                date_happened=time.time(),
+                points=total_seconds,
+            )
 
         # Log the time of each task
         for name, elapsed in results:
@@ -78,8 +86,6 @@ class CallbackModule(object):
                 )
             )
 
-        # Total time to run the complete playbook
-        total_seconds = sum([x[1][1] for x in self.stats.items()])
         logger.info("\nPlaybook finished: {0}, {1} total tasks.  {2} elapsed. \n".format(
                 time.asctime(),
                 len(self.stats.items()),
