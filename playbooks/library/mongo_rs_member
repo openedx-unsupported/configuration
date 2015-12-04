@@ -37,6 +37,10 @@ options:
     description:
       - The password to use when authenticating.
     required: false
+  auth_database:
+    description:
+      - The database to authenticate against.
+    requred: false
   priority:
     description:
       - The priority of the member in the replica set.  Ignored if
@@ -81,13 +85,18 @@ else:
     pymongo_found = True
 
 import json
+from urllib import quote_plus
 
-def get_mongo_uri(host, port, username, password):
+def get_mongo_uri(host, port, username, password, auth_database):
     mongo_uri = 'mongodb://'
     if username and password:
-        mongo_uri += "{}:{}@".format(username,password)
+        mongo_uri += "{}:{}@".format(*map(quote_plus, [username,password]))
 
-    mongo_uri += "{}:{}".format(host,port)
+    mongo_uri += "{}:{}".format(quote_plus(host),port)
+
+    if auth_database:
+        mongo_uri += "/{}".format(quote_plus(auth_database))
+
     return mongo_uri
 
 def get_replset(module, client):
@@ -106,13 +115,13 @@ def reconfig_replset(module, client, rs_config):
         raise
         module.fail_json(msg="Failed to reconfigure replSet: {}".format(e.message))
 
-def primary_client(module, some_host, some_port, username, password):
+def primary_client(module, some_host, some_port, username, password, auth_database):
     """
     Given a member of a replica set, find out who the primary is
     and provide a client that is connected to the primary for running
     commands.
     """
-    mongo_uri = get_mongo_uri(some_host, some_port, username, password)
+    mongo_uri = get_mongo_uri(some_host, some_port, username, password, auth_database)
     client = MongoClient(mongo_uri)
     try:
         status = client.admin.command("replSetGetStatus")
@@ -126,7 +135,7 @@ def primary_client(module, some_host, some_port, username, password):
     # Connect to the primary if this is not the primary.
     if primary_host != some_host or primary_port != some_port:
         client.close()
-        new_uri = get_mongo_uri(primary_host, primary_port, username, password)
+        new_uri = get_mongo_uri(primary_host, primary_port, username, password, auth_database)
         client = MongoClient(new_uri)
 
     return client
@@ -247,6 +256,7 @@ def main():
         port=dict(required=False, type='int', default=27017),
         username=dict(required=False, type='str'),
         password=dict(required=False, type='str'),
+        auth_database=dict(required=False, type='str'),
         priority=dict(required=False, type='float'),
         hidden=dict(required=False, type='bool', default=False),
         state=dict(required=False, type="str", default="present"),
@@ -261,12 +271,13 @@ def main():
     rs_port = module.params.get('rs_port')
     username = module.params.get('username')
     password = module.params.get('password')
+    auth_database = module.params.get('auth_database')
     state = module.params.get('state')
 
     if (username and not password) or (password and not username):
         module.fail_json(msg="Must provide both username and password or neither.")
 
-    client = primary_client(module, rs_host, rs_port, username, password)
+    client = primary_client(module, rs_host, rs_port, username, password, auth_database)
 
     rs_config = get_replset(module, client)
 
