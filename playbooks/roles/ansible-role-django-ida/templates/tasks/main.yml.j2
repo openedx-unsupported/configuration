@@ -24,21 +24,21 @@
     - install:configuration
 
 - name: install application requirements
-  shell: >
-    chdir=/edx/app/{{ role_name }}/{{ role_name }}
-    . {{ '{{' }} {{ role_name }}_venv_dir }}/bin/activate;
-    make requirements
+  command: make requirements
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
   sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - install
     - install:app-requirements
 
 - name: install development requirements
-  shell: >
-    chdir=/edx/app/{{ role_name }}/{{ role_name }}
-    . {{ '{{' }} {{ role_name }}_venv_dir }}/bin/activate;
-    make local-requirements
+  command: make local-requirements
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
   sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - install
     - install:devstack
@@ -54,8 +54,8 @@
 - name: create databases
   mysql_db:
     login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.USER }}"
-    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.PASSWORD }}"
+    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_USER }}"
+    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_PASSWORD }}"
     db: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}"
     state: present
     encoding: utf8
@@ -65,11 +65,11 @@
 - name: create database users
   mysql_user:
     login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.USER }}"
-    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.PASSWORD }}"
+    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_USER }}"
+    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_PASSWORD }}"
     name: "{{ '{{' }} item.name }}"
     host: "%"
-    name: "{{ '{{' }} item.password }}"
+    password: "{{ '{{' }} item.password }}"
     priv: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}.*:ALL"
   with_items:
     - name: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.USER }}"
@@ -79,14 +79,12 @@
   tags:
     - migrate:devstack
 
-- name: migrate
-  shell: >
-    chdir={{ '{{' }} {{ role_name }}_code_dir }}
-    DB_MIGRATION_USER={{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}
-    DB_MIGRATION_PASS={{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}
-    {{ '{{' }} {{ role_name|lower }}_venv_dir }}/bin/python ./manage.py migrate --noinput
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
   sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
-  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  environment: "{{ '{{' }} {{ role_name }}_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate
@@ -148,7 +146,7 @@
     - install:configuration
 
 - name: update supervisor configuration
-  shell: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
+  command: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
     - manage
@@ -177,6 +175,16 @@
   tags:
     - install
     - install:app-requirements
+    
+- name: run collectstatic
+  command: make static
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - assets
+    - assets:gather
 
 - name: restart the application
   supervisorctl: 
