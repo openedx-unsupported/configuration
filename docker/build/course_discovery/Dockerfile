@@ -19,7 +19,8 @@ USER docker
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/course_discovery/ansible_overrides.yml /
-RUN sudo ansible-playbook course_discovery.yml -c local \
+RUN sudo ansible-playbook course_discovery.yml \
+    -c local -i '127.0.0.1,' \
     -t 'install:base,install:code,install:system-requirements,install:app-requirements,install:configuration,install:vhosts,install:devstack' \
     --extra-vars="@/ansible_overrides.yml" \
     --extra-vars="COURSE_DISCOVERY_VERSION=$COURSE_DISCOVERY_VERSION" \
