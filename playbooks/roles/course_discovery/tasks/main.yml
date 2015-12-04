@@ -47,7 +47,7 @@
     - install:system-requirements
 
 - name: build virtualenv
-  shell: "virtualenv --python=python3.5 {{ course_discovery_venv_dir }}"
+  command: "virtualenv --python=python3.5 {{ course_discovery_venv_dir }}"
   args:
     creates: "{{ course_discovery_venv_dir }}/bin/pip"
   sudo_user: "{{ course_discovery_user }}"
@@ -56,21 +56,21 @@
     - install:system-requirements
 
 - name: install application requirements
-  shell: >
-    chdir=/edx/app/course_discovery/course_discovery
-    . {{ course_discovery_venv_dir }}/bin/activate;
-    make requirements
+  command: make requirements
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
   sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
   tags:
     - install
     - install:app-requirements
 
 - name: install development requirements
-  shell: >
-    chdir=/edx/app/course_discovery/course_discovery
-    . {{ course_discovery_venv_dir }}/bin/activate;
-    make local-requirements
+  command: make local-requirements
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
   sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
   tags:
     - install
     - install:devstack
@@ -112,14 +112,12 @@
   tags:
     - migrate:devstack
 
-- name: migrate
-  shell: >
-    chdir={{ course_discovery_code_dir }}
-    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
-    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ course_discovery_venv_dir }}/bin/python ./manage.py migrate --noinput
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
   sudo_user: "{{ course_discovery_user }}"
-  environment: "{{ course_discovery_environment }}"
+  environment: "{{ course_discovery_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate
@@ -181,7 +179,7 @@
     - install:configuration
 
 - name: update supervisor configuration
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  command: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
     - manage
