@@ -122,7 +122,7 @@
 
 - name: Create MySQL database for TanaGuru
   mysql_db: 
-    name: "{{ tanaguru_parameters.tanaguru_database }}"
+    name: "{{ tanaguru_parameters.db_name }}"
     state: present 
     encoding: utf8
     collation: utf8_general_ci
@@ -132,10 +132,10 @@
 
 - name: Create MySQL user for TanaGuru
   mysql_user: 
-    name: "{{ tanaguru_parameters.tanaguru_db_user }}"
-    password: "{{ tanaguru_parameters.tanaguru_db_password }}"
+    name: "{{ tanaguru_parameters.db_user }}"
+    password: "{{ tanaguru_parameters.db_password }}"
     host: localhost  
-    priv: "{{ tanaguru_parameters.tanaguru_database }}.*:ALL"
+    priv: "{{ tanaguru_parameters.db_name }}.*:ALL"
     state: present
   tags:
     - install
@@ -151,14 +151,14 @@
 
 - name: Install the TanaGuru
   shell: >
-    /bin/echo "yes" | ./install.sh --mysql-tg-user "{{ tanaguru_parameters.tanaguru_db_user }}" \
-    --mysql-tg-passwd "{{ tanaguru_parameters.tanaguru_db_password }}" \
-    --mysql-tg-db "{{ tanaguru_parameters.tanaguru_database }}" \
-    --tanaguru-url "{{ tanaguru_parameters.tanaguru_url }}" \
+    /bin/echo "yes" | ./install.sh --mysql-tg-user "{{ tanaguru_parameters.db_user }}" \
+    --mysql-tg-passwd "{{ tanaguru_parameters.db_password }}" \
+    --mysql-tg-db "{{ tanaguru_parameters.db_name }}" \
+    --tanaguru-url "{{ tanaguru_parameters.url }}" \
     --tomcat-webapps /var/lib/tomcat7/webapps \
     --tomcat-user tomcat7 \
-    --tg-admin-email "{{ tanaguru_parameters.tanaguru_admin_email }}" \
-    --tg-admin-passwd "{{ tanaguru_parameters.tg_admin_passwd }}" \
+    --tg-admin-email "{{ tanaguru_parameters.admin_email }}" \
+    --tg-admin-passwd "{{ tanaguru_parameters.admin_passwd }}" \
     --firefox-esr-path /opt/firefox/firefox \
     --display-port ":99.1"
   args:
