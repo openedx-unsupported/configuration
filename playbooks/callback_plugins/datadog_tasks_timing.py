@@ -29,8 +29,8 @@ class CallbackModule(object):
         self.datadog_api_initialized = False
 
         if self.datadog_api_key and self.datadog_app_key:
-            datadog.initialize(api_key=datadog_api_key,
-                               app_key=datadog_app_key)
+            datadog.initialize(api_key=self.datadog_api_key,
+                               app_key=self.datadog_app_key)
             self.datadog_api_initialized = True
 
     def playbook_on_task_start(self, name, is_conditional):
