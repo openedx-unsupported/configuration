@@ -29,11 +29,18 @@ systemLog:
 {% endif %}
   logRotate: {{ mongo_logrotate }}
 
+{% if MONGO_CLUSTERED %}
+replication:
+  replSetName: {{ MONGO_REPL_SET }}
+
+security:
+  keyFile: {{ mongo_key_file }}
+
+{% endif %}
 net:
 {% if MONGO_CLUSTERED is not defined %}
-  {## Bind to all ips(default) if in clustered mode, 
-  # otherwise only to the specified local ip.
-  #}   
+  {# Bind to all ips(default) if in clustered mode, 
+     otherwise only to the specified local ip. #}   
   bindIp: {{ MONGO_BIND_IP }}
 {% endif %}
   port: {{ mongo_port }}
