@@ -22,12 +22,13 @@ if [[ -z "$CONFIGURATION_REPO" ]]; then
 fi
 
 if [[ -z "$CONFIGURATION_VERSION" ]]; then
-  CONFIGURATION_VERSION="e0d/hacking"
+  CONFIGURATION_VERSION="master"
 fi
 
 #
 # Bootstrapping constants
 #
+VIRTUAL_ENV_VERSION="13.1.2"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
@@ -48,7 +49,7 @@ EOF
 
 
 if [[ $(id -u) -ne 0 ]] ; then
-    "Please run as root";
+    echo "Please run as root";
     exit 1;
 fi
 
@@ -73,7 +74,7 @@ add-apt-repository ppa:fkrull/deadsnakes-python2.7
 apt-get update -y
 apt-get install -y build-essential sudo python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
-pip install virtualenv==13.1.2
+pip install virtualenv==${VIRTUAL_ENV_VERSION}
 
 # create a new virtual env
 /usr/local/bin/virtualenv ${VIRTUAL_ENV}
