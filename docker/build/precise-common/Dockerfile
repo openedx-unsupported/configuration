@@ -20,7 +20,8 @@ RUN apt-get install -y \
     python-apt \
     python-yaml \
     python-jinja2 \
-    git
+    git \
+    libmysqlclient-dev
 
 # Temporary hacking related to an SELinux bug.  This issue causes, at least,
 # useradd to fail silently when the -m flag is passed in.  The bug affects

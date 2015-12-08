@@ -20,7 +20,8 @@ RUN apt-get install -y \
     python-apt \
     python-yaml \
     python-jinja2 \
-    git
+    git \
+    libmysqlclient-dev \
 
 USER docker
 
