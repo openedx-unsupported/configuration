@@ -25,7 +25,9 @@ if [[ -z "$CONFIGURATION_VERSION" ]]; then
   CONFIGURATION_VERSION="e0d/hacking"
 fi
 
-
+#
+# Bootstrapping constants
+#
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
@@ -50,25 +52,29 @@ if [[ $(id -u) -ne 0 ]] ; then
     exit 1;
 fi
 
+if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
+   echo "This script is only known to work on Ubuntu 12.04, exiting";
+   exit 1;
+fi
+
+# Upgrade the OS
 apt-get update -y
 apt-get upgrade -y
 
+# Required for add-apt-repository
 apt-get install -y software-properties-common python-software-properties git
 
 # Install python 2.7.10
 add-apt-repository ppa:fkrull/deadsnakes-python2.7
 apt-get update -y
-apt-get install -y sudo python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
+apt-get install -y build-essential sudo python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
 pip install virtualenv==13.1.2
 
 # create a new virtual env
 /usr/local/bin/virtualenv ${VIRTUAL_ENV}
 
-# ansible bootstrap
-git clone --recursive ${ANSIBLE_REPO} ${ANSIBLE_DIR}
-cd /tmp/ansible
-PATH=$PATH:/tmp/ansible/bin
+PATH=${PYTHON_BIN}:${PATH}
 
 # Install the configuration repository to install 
 # edx-ansible role
@@ -77,7 +83,7 @@ cd ${CONFIGURATION_DIR}
 git checkout ${CONFIGURATION_VERSION}
 make requirements
 
-cd /tmp/configuration/playbooks/edx-east
+cd ${CONFIGURATION_DIR}/playbooks/edx-east
 ${PYTHON_BIN}/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
 
 # cleanup
