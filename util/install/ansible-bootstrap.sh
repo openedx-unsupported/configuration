@@ -52,10 +52,10 @@ if [[ $(id -u) -ne 0 ]] ; then
     exit 1;
 fi
 
-if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
-   echo "This script is only known to work on Ubuntu 12.04, exiting";
-   exit 1;
-fi
+# if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
+#    echo "This script is only known to work on Ubuntu 12.04, exiting";
+#    exit 1;
+# fi
 
 # Upgrade the OS
 apt-get update -y
