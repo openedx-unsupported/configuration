@@ -7,18 +7,43 @@
 # for building images that requires having ansible available.
 #
 
-set -e
+set -xe
+
+if [[ -z "$ANSIBLE_REPO" ]]; then
+  ANSIBLE_REPO="https://github.com/edx/ansible.git"
+fi
+
+if [[ -z "$ANSIBLE_VERSION" ]]; then
+  ANSIBLE_VERSION="master"
+fi
+
+if [[ -z "$CONFIGURATION_REPO" ]]; then
+  CONFIGURATION_REPO="https://github.com/edx/configuration.git"
+fi
+
+if [[ -z "$CONFIGURATION_VERSION" ]]; then
+  CONFIGURATION_VERSION="e0d/hacking"
+fi
+
 
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
-ANSIBLE_REPO="https://github.com/edx/ansible.git"
-ANSIBLE_VERSION="master"
 ANSIBLE_DIR="/tmp/ansible"
-CONFIGURATION_REPO="https://github.com/edx/configuration.git"
-CONFIGURATION_VERSION="e0d/hacking"
 CONFIGURATION_DIR="/tmp/configuration"
 
-echo "Running the edx-ansible bootrap script..."
+cat << EOF
+******************************************************************************
+
+Running the edx-ansible bootstrap script with the following arguments:
+
+ANSIBLE_REPO="${ANSIBLE_REPO}"
+ANSIBLE_VERSION="${ANSIBLE_VERSION}"
+CONFIGURATION_REPO="${CONFIGURATION_REPO}"
+CONFIGURATION_VERSION="${CONFIGURATION_VERSION}"
+
+******************************************************************************
+EOF
+
 
 if [[ $(id -u) -ne 0 ]] ; then
     "Please run as root";
@@ -36,6 +61,8 @@ apt-get update -y
 apt-get install -y sudo python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
 pip install virtualenv==13.1.2
+
+# create a new virtual env
 /usr/local/bin/virtualenv ${VIRTUAL_ENV}
 
 # ansible bootstrap
@@ -48,9 +75,7 @@ PATH=$PATH:/tmp/ansible/bin
 git clone ${CONFIGURATION_REPO} ${CONFIGURATION_DIR}
 cd ${CONFIGURATION_DIR}
 git checkout ${CONFIGURATION_VERSION}
-
-${PYTHON_BIN}/pip install -r ${CONFIGURATION_DIR}/pre-requirements.txt
-${PYTHON_BIN}/pip install -r ${CONFIGURATION_DIR}/requirements.txt
+make requirements
 
 cd /tmp/configuration/playbooks/edx-east
 ${PYTHON_BIN}/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
@@ -58,5 +83,14 @@ ${PYTHON_BIN}/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "conf
 # cleanup
 rm -rf ${ANSIBLE_DIR}
 rm -rf ${CONFIGURATION_DIR}
+rm -rf ${VIRTUAL_ENV}
 
-echo "Done bootstrapping edx-ansible..."
+cat << EOF
+******************************************************************************
+
+Done bootstrapping, edx-ansible is now installed in /edx/app/edx-ansible.
+Time to run some plays.
+
+******************************************************************************
+EOF
+
