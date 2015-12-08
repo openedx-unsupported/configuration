@@ -72,8 +72,8 @@
   sudo_user: "{{ course_discovery_user }}"
   environment: "{{ course_discovery_environment }}"
   tags:
-    - install
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: wait for database
   wait_for:
@@ -81,7 +81,8 @@
     port: "{{ COURSE_DISCOVERY_DATABASES.default.PORT }}"
     delay: 2
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: create databases
   mysql_db:
@@ -92,7 +93,8 @@
     state: present
     encoding: utf8
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: create database users
   mysql_user:
@@ -109,7 +111,8 @@
     - name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
       password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: migrate database
   command: make migrate
@@ -121,7 +124,8 @@
   tags:
     - migrate
     - migrate:db
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: write out the supervisor wrapper
   template:
@@ -153,7 +157,8 @@
     group: "{{ common_web_user }}"
     mode: 0744
   tags:
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: setup the course_discovery env file
   template:

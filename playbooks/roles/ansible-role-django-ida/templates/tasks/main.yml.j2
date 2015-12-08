@@ -41,7 +41,8 @@
   environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - install
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: wait for database
   wait_for:
@@ -49,7 +50,8 @@
     port: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PORT }}"
     delay: 2
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: create databases
   mysql_db:
@@ -60,7 +62,8 @@
     state: present
     encoding: utf8
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: create database users
   mysql_user:
@@ -77,7 +80,8 @@
     - name: "{{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}"
       password: "{{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}"
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: migrate database
   command: make migrate
@@ -89,7 +93,8 @@
   tags:
     - migrate
     - migrate:db
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: write out the supervisor wrapper
   template:
@@ -121,7 +126,8 @@
     group: "{{ '{{' }} common_web_user }}"
     mode: 0744
   tags:
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: setup the {{ role_name }} env file
   template:
