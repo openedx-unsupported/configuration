@@ -14,14 +14,14 @@ RUN useradd docker && echo "docker:docker" | chpasswd
 RUN echo "docker ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 RUN mkdir -p /home/docker && chown -R docker:docker /home/docker
 RUN apt-get install -y \
-    python2.7 \
-    python2.7-dev \
-    python-pip \
-    python-apt \
-    python-yaml \
-    python-jinja2 \
     git \
     libmysqlclient-dev \
+    python-apt \
+    python-jinja2 \
+    python-pip \
+    python-yaml \
+    python2.7 \
+    python2.7-dev
 
 USER docker
 
