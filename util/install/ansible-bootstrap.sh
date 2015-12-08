@@ -53,7 +53,11 @@ if [[ $(id -u) -ne 0 ]] ; then
 fi
 
 if ! grep -q 'Precise Pangolin' /etc/os-release; then
-   echo "This script is only known to work on Ubuntu Precise, exiting";
+    cat << EOF
+    This script is only known to work on Ubuntu Precise, exiting.
+    If you are interested in helping make installation possible
+    on other platforms, let us know.
+EOF
    exit 1;
 fi
 
