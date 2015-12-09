@@ -29,14 +29,12 @@
     owner: root 
     group: root 
     mode: "{{ item.mode | default(644) }}"
+  register: config_templates
   with_items:
     - { src: 'etc/motd.tail.j2', dest: '/etc/motd.tail', mode: '755' }
     - { src: 'etc/ssh/sshd_config.j2', dest: '/etc/ssh/sshd_config' }
     
-- name: restart rsyslogd
-  service: name=rsyslog state=restarted
-  sudo: True
-
 - name: restart ssh
   service: name=ssh state=restarted
   sudo: True
+  when: config_templates.changed
