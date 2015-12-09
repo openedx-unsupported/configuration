@@ -5,6 +5,8 @@ import logging
 import datadog
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("dd").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 """
@@ -90,7 +92,8 @@ class CallbackModule(object):
                 )
             )
 
-        logger.info("\nPlaybook finished: {0}, {1} total tasks.  {2} elapsed. \n".format(
+        logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
+                self.playbook_name,
                 time.asctime(),
                 len(self.stats.items()),
                 datetime.timedelta(seconds=(int(total_seconds)))
