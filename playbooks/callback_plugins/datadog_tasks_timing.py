@@ -19,9 +19,8 @@ Originally written by 'Jharrod LaFon'
 class CallbackModule(object):
 
     """
-
-    Ansible plugin get the time of each task and total time to run the complete playbook
-
+    Ansible plugin get the time of each task and total time
+    to run the complete playbook
     """
     def __init__(self):
         self.stats = {}
@@ -36,11 +35,13 @@ class CallbackModule(object):
             self.datadog_api_initialized = True
 
     def playbook_on_play_start(self, pattern):
-            self.playbook_name, _ = os.path.splitext(os.path.basename(self.play.playbook.filename))
-            
+            self.playbook_name, _ = os.path.splitext(
+                os.path.basename(self.play.playbook.filename)
+            )
+
     def playbook_on_task_start(self, name, is_conditional):
         """
-        Logs the start of each task 
+        Logs the start of each task
         """
 
         if self.current_task is not None:
@@ -54,15 +55,17 @@ class CallbackModule(object):
     def playbook_on_stats(self, stats):
 
         """
-        Prints the timing of each task and total time to run the complete playbook
+        Prints the timing of each task and total time to
+        run the complete playbook
         """
-
-        # Record the timing of the very last task, we use it here, because we don't have stop task function by default
+        # Record the timing of the very last task, we use it here, because we
+        # don't have stop task function by default
         if self.current_task is not None:
             self.stats[self.current_task] = (time.time(), time.time() - self.stats[self.current_task])
 
         # Sort the tasks by their running time
-        results = sorted(self.stats.items(), key=lambda value: value[1][1], reverse=True)
+        results = sorted(self.stats.items(),
+                         key=lambda value: value[1][1], reverse=True)
 
         # Total time to run the complete playbook
         total_seconds = sum([x[1][1] for x in self.stats.items()])
@@ -74,13 +77,16 @@ class CallbackModule(object):
                     metric="edx.ansible.task_duration",
                     date_happened=[0],
                     points=points[1],
-                    tags=["task:{0}".format(name.replace(" | ", ".").replace(" ", "-").lower())]
+                    tags=["task:{0}".format(
+                        name.replace(" | ", ".").replace(" ", "-").lower())]
                 )
             datadog.api.Metric.send(
                 metric="edx.ansible.play_duration",
                 date_happened=time.time(),
                 points=total_seconds,
-                tags=["play:{0}".format(self.playbook_name.replace(" | ", ".").replace(" ", "-").lower())]
+                tags=["play:{0}".format(
+                    self.playbook_name.replace(" | ", ".").
+                    replace(" ", "-").lower())]
             )
 
         # Log the time of each task
