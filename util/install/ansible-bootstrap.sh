@@ -70,6 +70,7 @@ fi
 
 # Upgrade the OS
 apt-get update -y
+apt-key update -y
 
 if [ "$UPGRADE_OS" = true ]; then
     echo "Upgrading the OS..."
