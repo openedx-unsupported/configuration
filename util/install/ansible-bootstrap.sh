@@ -77,17 +77,17 @@ if [ "$UPGRADE_OS" = true ]; then
 fi
 
 # Required for add-apt-repository
-apt-get install -y software-properties-common python-software-properties git
+apt-get install -y software-properties-common python-software-properties
 
 # Add git PPA
-add-apt-repository ppa:git-core/ppa
+add-apt-repository -y ppa:git-core/ppa
 
 # Add python PPA
-ppa:git-core/ppa
+add-apt-repository -y ppa:fkrull/deadsnakes-python2.7
 
 # Install python 2.7.10, git and other common requirements
 apt-get update -y
-apt-get install -y build-essential sudo git python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
+apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
 pip install virtualenv==${VIRTUAL_ENV_VERSION}
 
