@@ -24,7 +24,7 @@ class CallbackModule(object):
     def __init__(self):
         self.stats = {}
         self.current_task = None
-        self.current_play = None
+        self.playbook_name = None
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
 
@@ -32,10 +32,10 @@ class CallbackModule(object):
             datadog.initialize(api_key=self.datadog_api_key,
                                app_key=None)
             self.datadog_api_initialized = True
+
+    def playbook_on_play_start(self, pattern):
+            self.playbook_name, _ = os.path.splitext(os.path.basename(self.play.playbook.filename))
             
-    def playbook_on_play_start(self, name):
-        self.current_play = name
-    
     def playbook_on_task_start(self, name, is_conditional):
         """
         Logs the start of each task 
@@ -78,7 +78,7 @@ class CallbackModule(object):
                 metric="edx.ansible.play_duration",
                 date_happened=time.time(),
                 points=total_seconds,
-                tags=["play:{0}".format(self.current_play.replace(" | ", ".").replace(" ", "-").lower())]
+                tags=["play:{0}".format(self.playbook_name.replace(" | ", ".").replace(" ", "-").lower())]
             )
 
         # Log the time of each task
