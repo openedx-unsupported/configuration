@@ -81,10 +81,10 @@ class CallbackModule(object):
                         name.replace(" | ", ".").replace(" ", "-").lower())]
                 )
             datadog.api.Metric.send(
-                metric="edx.ansible.play_duration",
+                metric="edx.ansible.playbook_duration",
                 date_happened=time.time(),
                 points=total_seconds,
-                tags=["play:{0}".format(
+                tags=["playbook:{0}".format(
                     self.playbook_name.replace(" | ", ".").
                     replace(" ", "-").lower())]
             )
