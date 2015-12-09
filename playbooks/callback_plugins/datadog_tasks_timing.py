@@ -56,7 +56,6 @@ class CallbackModule(object):
         self.stats[self.current_task] = time.time()
 
     def playbook_on_stats(self, stats):
-
         """
         Prints the timing of each task and total time to
         run the complete playbook
