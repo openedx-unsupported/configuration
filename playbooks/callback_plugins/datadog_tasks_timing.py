@@ -34,6 +34,9 @@ class CallbackModule(object):
                                app_key=None)
             self.datadog_api_initialized = True
 
+    def clean_tag_value(self, value):
+        return value.replace(" | ", ".").replace(" ", "-").lower()
+
     def playbook_on_play_start(self, pattern):
             self.playbook_name, _ = os.path.splitext(
                 os.path.basename(self.play.playbook.filename)
@@ -77,16 +80,18 @@ class CallbackModule(object):
                     metric="edx.ansible.task_duration",
                     date_happened=[0],
                     points=points[1],
-                    tags=["task:{0}".format(
-                        name.replace(" | ", ".").replace(" ", "-").lower())]
+                    tags=[
+                        "task:{0}".format(self.clean_tag_value(name)),
+                        "playbook:{0}".format(
+                            self.clean_tag_value(self.playbook_name))
+                    ]
                 )
             datadog.api.Metric.send(
                 metric="edx.ansible.playbook_duration",
                 date_happened=time.time(),
                 points=total_seconds,
                 tags=["playbook:{0}".format(
-                    self.playbook_name.replace(" | ", ".").
-                    replace(" ", "-").lower())]
+                    self.clean_tag_value(self.playbook_name))]
             )
 
         # Log the time of each task
