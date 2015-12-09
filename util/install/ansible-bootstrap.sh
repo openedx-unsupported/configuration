@@ -25,6 +25,10 @@ if [[ -z "$CONFIGURATION_VERSION" ]]; then
   CONFIGURATION_VERSION="master"
 fi
 
+if [[ -z "UPGRADE_OS" ]]; then
+  UPGRADE_OS=false
+fi
+
 #
 # Bootstrapping constants
 #
@@ -53,18 +57,24 @@ if [[ $(id -u) -ne 0 ]] ; then
     exit 1;
 fi
 
-if ! grep -q 'Precise Pangolin' /etc/os-release; then
+if ! grep -q -e 'Precise Pangolin' -e 'Trusty Tahr' /etc/os-release; then
     cat << EOF
-    This script is only known to work on Ubuntu Precise, exiting.
-    If you are interested in helping make installation possible
+    
+    This script is only known to work on Ubuntu Precise and Trusty,
+    exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
+
 EOF
    exit 1;
 fi
 
 # Upgrade the OS
 apt-get update -y
-apt-get upgrade -y
+
+if [ "$UPGRADE_OS" = true ]; then
+    echo "Upgrading the OS..."
+    apt-get upgrade -y
+fi
 
 # Required for add-apt-repository
 apt-get install -y software-properties-common python-software-properties git
