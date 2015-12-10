@@ -3,11 +3,14 @@
 DOCUMENTATION = """
 ---
 module: mongo_rs_member
-short_description: Modify replica set config for a member.
+short_description: Modify replica set config.
 description:
-  - Modify/Add/Remove members from a replica set.  Member management as done by rs.reconfig().
+  - Modify replica set config, including modifing/adding/removing members from a replica set
+    and changing replica set options. Uses replSetReconfig and replSetInitiate.
 version_added: "1.9"
-author: Feanil Patel
+author: 
+  - Max Rothman
+  - Feanil Patel
 options:
   rs_host:
     description:
@@ -17,16 +20,6 @@ options:
   rs_port:
     description:
       - The port to connect to mongo on.
-    required: false
-    default: 27017
-  host:
-    description:
-      - The hostname of the member we want to modify.
-    required: false
-    default: 'localhost'
-  port:
-    description:
-      - The port of the member we want to modify.
     required: false
     default: 27017
   username:
@@ -41,36 +34,49 @@ options:
     description:
       - The database to authenticate against.
     requred: false
-  priority:
-    description:
-      - The priority of the member in the replica set.  Ignored if
-        `hidden` is set to true.
+  force:
+    description: Whether to pass the "force" option to replSetReconfig.
+      For more details, see `<https://docs.mongodb.org/manual/reference/command/replSetReconfig/>`
     required: false
-  hidden:
-    description:
-      - Whether or not the member is hidden.
-    required: false
-  state:
-    description:
-      - Whether or not the member exists in the replica set. The member
-        will be added or removed to reach this state.
-    choices:
-        - present
-        - absent
-    default: present
-    required: false
+    default: false
+  rs_config:
+    description: A `replica set configuration document <https://docs.mongodb.org/manual/reference/replica-configuration/>`.
+        This structure can be a valid document, but this module can also manage some details for you:
+
+        - members can have separate ``host`` and ``port`` properties. ``port`` defaults to 27017.
+          To override this, provide a ``host`` like ``somehost:27017``.
+        - ``_id`` is automatically managed if not provided
+        - members' ``_id`` are automatically managed
+        - ``version`` is automatically incremented
+
+    required: true
 """
 
 EXAMPLES = '''
-- name: Get status for the stage cluster
+- name: Basic example
   mongo_rs_member:
-    rs_host: some.mongo
-    rs_port: 27017
-    host: localhost
-    port: 27017
     username: root
     password: password
-  register: mongo_config
+    rs_config:
+      members:
+        - host: some.host
+        - host: other.host
+          port: 27018
+          hidden: true
+
+- name: Fully specify a whole document
+  mongo_rs_member:
+    username: admin
+    password: password
+    rs_config:
+      _id: myReplicaSetName
+      version: 5
+      members:
+        - _id: 1
+          host: some.host:27017
+        - _id: 2
+          host: other.host:27017
+          hidden: true
 '''
 # Magic import
 from ansible.module_utils.basic import *
@@ -84,38 +90,150 @@ except ImportError:
 else:
     pymongo_found = True
 
-import json
+import json, copy
 from urllib import quote_plus
 
+########### Mongo API calls ###########
+def get_replset(client):
+    # Not using `replSetGetConfig` because it's not supported in MongoDB 2.x.
+    try:
+        rs_config = client.local.system.replset.find_one()
+    except OperationFailure as e:
+        module.fail_json(msg="Failed to retrieve existing replSet config: {}".format(e.message))        
+
+    if rs_config is None or 'config' not in rs_config:
+        return None
+    else:
+        return rs_config['config']
+
+def initialize_replset(rs_config):
+    try:
+        client.admin.command("replSetInitiate", rs_config)
+    except OperationFailure as e:
+        raise
+        module.fail_json(msg="Failed to initiate replSet: {}".format(e.message))
+
+def reconfig_replset(rs_config):
+    try:
+        client.admin.command("replSetReconfig", rs_config, force=module.params['force'])
+    except OperationFailure as e:
+        raise
+        module.fail_json(msg="Failed to reconfigure replSet: {}".format(e.message))
+
+def get_rs_config_id():
+    try:
+        replset_name = client.admin.command('getCmdLineOpts')['parsed']['replication']['replSetName']
+    except OperationFailure, KeyError as e:
+        module.fail_json(msg="Unable to get replSet name. Was mongod started with --replSet? Error: " + e.message)
+
+
+########### Helper functions ###########
+def set_member_ids(members, old_members=None):
+    '''
+    Set the _id property of members who don't already have one.
+    Prefer the _id of the "matching" member from `old_members`.
+    '''
+    available_ids = set(range(len(members)*2))
+    available_ids -= {m['_id'] for m in members}
+    if old_members is not None:
+        available_ids -= {m['_id'] for m in old_members}
+    available_ids = list(available_ids).sort(reverse=True)
+
+    for member in members:
+        if '_id' not in member:
+            if old_members is not None:
+                match = get_matching_member(member, old_members)
+                member['_id'] = match['_id'] if match is not None else available_ids.pop()
+            else:
+                member['_id'] = available_ids.pop()
+    return members
+
+def get_matching_member(member, members):
+    '''Return the rs_member from `members` that "matches" `member`'''
+    match = [m for m in members if m['host'] == member['host']]
+    return match[0] if len(match) > 0 else None
+
+def members_match(new, old):
+    "Compare 2 lists of members, discounting their `_id`s and matching on a custom criterion"
+    if len(new) != len(old):
+        return False
+    for old_member in old:
+        new_member = get_matching_member(old_member, new)
+        if old_member.copy().pop('_id') != new_member.copy().pop('_id'):
+            return False
+    return True
+
+def fix_host_port(rs_config):
+    "Fix host, port to host:port"
+    if 'members' in rs_config:
+        if not isinstance(rs_config['members'], list)
+            module.fail_json(msg='rs_config.members must be a list')
+        
+        for member in rs_config['members']:
+            if ':' not in member['host']:
+                member['host'] = '{}:{}'.format(member['host'], member.get('port', 27017))
+                del member['port']
+
+def update_replset(rs_config):
+    changed = False
+    old_rs_config = get_replset(client)
+    fix_host_port(module, rs_config)  #fix host, port to host:port
+
+    #Decide whether we need to initialize
+    if old_rs_config is None:
+        changed = True
+        if '_id' not in rs_config:
+            rs_config['_id'] = get_rs_config_id(client)  #Errors if no replSet specified to mongod
+        rs_config['members'] = set_member_ids(rs_config['members'])  #Noop if all _ids are set
+        #Don't set the version, it'll auto-set
+        initialize_replset(client, rs_config)
+
+    else:
+        rs_config_non_collections = {k:v for k,v in rs_config.items() 
+            if not isinstance(v, list) if not isinstance(v, dict)}
+        old_rs_config_non_collections = {k:v for k,v in old_rs_config.items() 
+            if not isinstance(v, list) if not isinstance(v, dict)}
+
+        # Is the provided doc "different" from the one currently on the cluster?
+        if rs_config_non_collections != old_rs_config_non_collections \
+            or rs_config['settings'] != old_rs_config['settings']     \
+            or not members_match(rs_config['members'], old_rs_config['members']):
+            
+            changed=True
+            if '_id' not in rs_config:
+                rs_config['_id'] = get_rs_config_id(client)  #Errors if no replSet specified to mongod
+            if 'version' not in rs_config:
+                #Using manual increment to prevent race condition
+                rs_config['version'] = old_rs_config['version'] + 1
+            
+            #Noop if all _ids are set
+            rs_config['members'] = set_member_ids(rs_config['members'], old_rs_config['members'])
+            
+            reconfig_replset(module, client, rs_config)
+
+    #Validate it worked
+    if changed:
+        changed_rs_config = get_replset(client)
+        if changed_rs_config != rs_config:
+            module.fail_json(msg="Failed to validate that the replica set was changed", config=rs_config)
+    
+    module.exit_json(changed=changed, config=rs_config)
+
+
+######### Client making stuff #########
 def get_mongo_uri(host, port, username, password, auth_database):
     mongo_uri = 'mongodb://'
     if username and password:
         mongo_uri += "{}:{}@".format(*map(quote_plus, [username,password]))
 
-    mongo_uri += "{}:{}".format(quote_plus(host),port)
+    mongo_uri += "{}:{}".format(quote_plus(host), port)
 
     if auth_database:
         mongo_uri += "/{}".format(quote_plus(auth_database))
 
     return mongo_uri
 
-def get_replset(module, client):
-    # Get the current config using `replSetGetConfig`
-    rs_config = client.admin.command("replSetGetConfig")
-    if 'config' not in rs_config:
-        module.fail_json(msg="Failed to get replset config from {}".format(primary_host), response=rs_config)
-    rs_config = rs_config['config']
-    return rs_config
-
-def reconfig_replset(module, client, rs_config):
-    # Update the config version
-    try:
-        client.admin.command("replSetReconfig", rs_config)
-    except OperationFailure as e:
-        raise
-        module.fail_json(msg="Failed to reconfigure replSet: {}".format(e.message))
-
-def primary_client(module, some_host, some_port, username, password, auth_database):
+def primary_client(some_host, some_port, username, password, auth_database):
     """
     Given a member of a replica set, find out who the primary is
     and provide a client that is connected to the primary for running
@@ -126,7 +244,7 @@ def primary_client(module, some_host, some_port, username, password, auth_databa
     try:
         status = client.admin.command("replSetGetStatus")
     except OperationFailure as e:
-        module.fail_json(msg="Failed to get replica set status from host({}): {}".format(some_host, e.message))
+        module.fail_json(msg="Failed to get replica set status from host {}: {}".format(some_host, e.message))
 
     # Find out who the primary is.
     rs_primary = filter(lambda member: member['stateStr']=='PRIMARY', status['members'])[0]
@@ -140,153 +258,37 @@ def primary_client(module, some_host, some_port, username, password, auth_databa
 
     return client
 
-def remove_member(module, client, rs_config):
-    host = module.params.get('host')
-    port = module.params.get('port')
 
-    existing_member_names = [ member['host'] for member in rs_config['members'] ]
-    dead_member_name = "{}:{}".format(host,port)
-
-    if dead_member_name in existing_member_names:
-        # Member is in config and needs to be removed.
-        new_member_list = filter(lambda member: member['host'] != dead_member_name, rs_config['members'])
-        rs_config['members'] = new_member_list
-        rs_config['version'] += 1
-        reconfig_replset(module, client, rs_config)
-
-        # Get status again.
-        status = client.admin.command("replSetGetConfig")['config']
-
-        # Validate that your instance is in there.
-        existing_member_names = [ member['host'] for member in rs_config['members'] ]
-
-        if dead_member_name not in existing_member_names:
-            module.exit_json(changed=True, config=rs_config)
-        else:
-            module.fail_json(msg="Failed to remove member from the replica set.", config=rs_config)
-    else:
-        # Member is not in the list.
-        module.exit_json(
-                changed=False,
-                msg="Member({}) was not in the replica set.".format(dead_member_name),
-        )
-
-def upsert_member(module, client, rs_config):
-    rs_host = module.params.get('rs_host')
-    rs_port = module.params.get('rs_port')
-    host = module.params.get('host')
-    port = module.params.get('port')
-    username = module.params.get('username')
-    password = module.params.get('password')
-    priority = module.params.get('priority')
-    hidden = module.params.get('hidden')
-    state = module.params.get('state')
-    changed = False
-
-    # Ignore priority when member should be hidden.
-    # Hidden members have to be set to priority 0.
-    if hidden:
-       priority = 0
-
-    existing_member_names = [ member['host'] for member in rs_config['members'] ]
-    new_member_name = "{}:{}".format(host,port)
-
-    # See if member is already in the replica set
-    if new_member_name in existing_member_names:
-        # Make sure its config is the same. Grab a pointer to the current settings
-        # inside of the rs_config.
-        current_settings = filter(lambda member: member['host'] == new_member_name, rs_config['members'])[0]
-
-        need_to_update = False
-        # If the priority param is set and different from upstream.
-        if (priority is not None and current_settings['priority'] != priority):
-            current_settings['priority'] = priority
-            need_to_update = True
-
-        if current_settings['hidden'] != hidden:
-            current_settings['hidden'] = hidden
-            need_to_update = True
-
-        if need_to_update:
-            rs_config['version'] += 1
-
-            # This is a bit yucky since rs_config is updated because we update the dictionary
-            # that it references.
-            reconfig_replset(module, client, rs_config)
-            changed = True
-        else:
-            # Member exists and no settings need to be updated
-            module.exit_json(changed=False, config=rs_config)
-    else:
-        # New Member doesn't exist and we need to add it.
-
-        # First we build the config we need.
-        new_member_id = max([ member['_id'] for member in rs_config['members']]) + 1
-        new_member_config = { 'host': new_member_name , '_id': new_member_id }
-
-        if priority != None:
-            new_member_config['priority'] = priority
-
-        if hidden != None:
-            new_member_config['hidden'] =  hidden
-
-        # Update the config.
-        rs_config['members'].append(new_member_config)
-        rs_config['version'] += 1
-        reconfig_replset(module, client, rs_config)
-        changed = True
-
-    # Get status again.
-    status = client.admin.command("replSetGetConfig")['config']
-
-    # Validate that your instance is in there.
-    existing_member_names = [ member['host'] for member in rs_config['members'] ]
-
-    if new_member_name in existing_member_names:
-        module.exit_json(changed=changed, config=rs_config)
-    else:
-        module.fail_json(msg="Failed to validate that the member we were modifying is in the replica set.", config=rs_config)
-
-def main():
-
+################ Main ################
+def validate_args():
     arg_spec = dict(
-        rs_host=dict(required=False, type='str', default="localhost"),
-        rs_port=dict(required=False, type='int', default=27017),
-        host=dict(required=False, type='str', default="localhost"),
-        port=dict(required=False, type='int', default=27017),
-        username=dict(required=False, type='str'),
-        password=dict(required=False, type='str'),
-        auth_database=dict(required=False, type='str'),
-        priority=dict(required=False, type='float'),
-        hidden=dict(required=False, type='bool', default=False),
-        state=dict(required=False, type="str", default="present"),
+        username = dict(required=False, type='str'),
+        password = dict(required=False, type='str'),
+        auth_database = dict(required=False, type='str'),
+        rs_host = dict(required=False, type='str', default="localhost"),
+        rs_port = dict(required=False, type='int', default=27017),
+        rs_config = dict(required=True, type='dict')
+        force = dict(required=False, type='bool', default=False),
     )
 
     module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=False)
 
-    if not pymongo_found:
-        module.fail_json(msg="The python pymongo module is not installed.")
-
-    rs_host = module.params.get('rs_host')
-    rs_port = module.params.get('rs_port')
-    username = module.params.get('username')
-    password = module.params.get('password')
-    auth_database = module.params.get('auth_database')
-    state = module.params.get('state')
-
     if (username and not password) or (password and not username):
         module.fail_json(msg="Must provide both username and password or neither.")
 
-    client = primary_client(module, rs_host, rs_port, username, password, auth_database)
-
-    rs_config = get_replset(module, client)
-
-    if state == 'absent':
-        remove_member(module, client, rs_config)
-    elif state == 'present':
-        upsert_member(module, client, rs_config)
-    else:
-        module.fail_json(msg="Don't know about state: {}".format(state))
+    return module
 
 if __name__ == '__main__':
-    main()
+    module = validate_args():
+    
+    if not pymongo_found:
+        module.fail_json(msg="The python pymongo module is not installed.")
+
+    username = module.params.get('username')
+    password = module.params.get('password')
+    auth_database = module.params.get('auth_database')
+    rs_host = module.params['rs_host']
+    rs_port = module.params['rs_port']
+
+    client = primary_client(module, rs_host, rs_port, username, password, auth_database)
+    update_replset(module, client, module['rs_config'])
