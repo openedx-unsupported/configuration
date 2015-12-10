@@ -280,6 +280,8 @@ if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
         libxslt-dev curl libmysqlclient-dev --force-yes
 fi
 
+# upgrade setuptools early to avoid no distributin errors
+pip install --upgrade setuptools==18.3.2
 
 rm -rf $base_dir
 mkdir -p $base_dir
