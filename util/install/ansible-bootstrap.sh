@@ -44,7 +44,7 @@ CONFIGURATION_DIR="/tmp/configuration"
 cat << EOF
 ******************************************************************************
 
-Running the edx-ansible bootstrap script with the following arguments:
+Running the edx_ansible bootstrap script with the following arguments:
 
 ANSIBLE_REPO="${ANSIBLE_REPO}"
 ANSIBLE_VERSION="${ANSIBLE_VERSION}"
@@ -105,7 +105,7 @@ pip install virtualenv==${VIRTUAL_ENV_VERSION}
 PATH=${PYTHON_BIN}:${PATH}
 
 # Install the configuration repository to install 
-# edx-ansible role
+# edx_ansible role
 git clone ${CONFIGURATION_REPO} ${CONFIGURATION_DIR}
 cd ${CONFIGURATION_DIR}
 git checkout ${CONFIGURATION_VERSION}
@@ -122,7 +122,7 @@ rm -rf ${VIRTUAL_ENV}
 cat << EOF
 ******************************************************************************
 
-Done bootstrapping, edx-ansible is now installed in /edx/app/edx-ansible.
+Done bootstrapping, edx_ansible is now installed in /edx/app/edx_ansible.
 Time to run some plays.
 
 ******************************************************************************
