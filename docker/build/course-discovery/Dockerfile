@@ -2,7 +2,7 @@
 #
 # From the root of configuration:
 #
-# docker build -f docker/build/course_discovery/Dockerfile .
+# docker build -f docker/build/course-discovery/Dockerfile .
 #
 # This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
 # with the currently checked-out configuration repo.
@@ -18,7 +18,7 @@ ADD . /edx/app/edx_ansible/edx_ansible
 USER docker
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
-COPY docker/build/course_discovery/ansible_overrides.yml /
+COPY docker/build/course-discovery/ansible_overrides.yml /
 RUN sudo ansible-playbook course_discovery.yml \
     -c local -i '127.0.0.1,' \
     -t 'install,assets,devstack:install' \
