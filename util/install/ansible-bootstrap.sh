@@ -90,6 +90,8 @@ add-apt-repository -y ppa:fkrull/deadsnakes-python2.7
 apt-get update -y
 apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
+PATH=$PATH:/usr/local/bin
+
 pip install --upgrade pip setuptools
 pip install virtualenv==${VIRTUAL_ENV_VERSION}
 
