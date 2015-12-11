@@ -7,8 +7,9 @@
 # for building images that requires having ansible available.
 #
 # Can be run as follows:
-# bash <(curl -s https://raw.githubusercontent.com/edx/configuration/e0d/bootstrap-script/util/install/ansible-bootstrap.sh)
 #
+# UPGRADE_OS=true CONFIGURATION_VERSION="master" \
+# bash <(curl -s https://raw.githubusercontent.com/edx/configuration/master/util/install/ansible-bootstrap.sh)
 
 set -xe
 
@@ -89,7 +90,9 @@ add-apt-repository -y ppa:git-core/ppa
 # Add python PPA
 add-apt-repository -y ppa:fkrull/deadsnakes-python2.7
 
-# Install python 2.7.10, git and other common requirements
+# Install python 2.7 latest, git and other common requirements
+# NOTE: This will install the latest version of python 2.7 and
+# which may differ from what is pinned in virtualenvironments
 apt-get update -y
 apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
@@ -123,7 +126,9 @@ cat << EOF
 ******************************************************************************
 
 Done bootstrapping, edx_ansible is now installed in /edx/app/edx_ansible.
-Time to run some plays.
+Time to run some plays.  Activate the virtual env with 
+
+> . /edx/app/edx_ansible/venvs/edx_ansible/bin/activate 
 
 ******************************************************************************
 EOF
