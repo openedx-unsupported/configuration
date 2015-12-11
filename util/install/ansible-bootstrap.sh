@@ -6,6 +6,9 @@
 # This script can be used by Docker, Packer or any other system
 # for building images that requires having ansible available.
 #
+# Can be run as follows:
+# bash <(curl -s https://raw.githubusercontent.com/edx/configuration/e0d/bootstrap-script/util/install/ansible-bootstrap.sh)
+#
 
 set -xe
 
