@@ -2,13 +2,14 @@
 
 DOCUMENTATION = """
 ---
-module: mongo_rs_member
+module: mongodb_replica_set
 short_description: Modify replica set config.
 description:
   - Modify replica set config, including modifing/adding/removing members from a replica set
-    and changing replica set options. Uses replSetReconfig and replSetInitiate.
+    changing replica set options, and initiating the replica set if necessary. 
+    Uses replSetReconfig and replSetInitiate.
 version_added: "1.9"
-author: 
+author:
   - Max Rothman
   - Feanil Patel
 options:
@@ -54,7 +55,7 @@ options:
 
 EXAMPLES = '''
 - name: Basic example
-  mongo_rs_member:
+  mongodb_replica_set:
     username: root
     password: password
     rs_config:
@@ -65,7 +66,7 @@ EXAMPLES = '''
           hidden: true
 
 - name: Fully specify a whole document
-  mongo_rs_member:
+  mongodb_replica_set:
     username: admin
     password: password
     rs_config:
@@ -149,7 +150,7 @@ def set_member_ids(members, old_members=None):
     return members
 
 def get_matching_member(member, members):
-    '''Return the rs_member from `members` that "matches" `member`'''
+    '''Return the rs_member from `members` that "matches" `member` (currently on host)'''
     match = [m for m in members if m['host'] == member['host']]
     return match[0] if len(match) > 0 else None
 
@@ -168,7 +169,7 @@ def fix_host_port(rs_config):
     if 'members' in rs_config:
         if not isinstance(rs_config['members'], list)
             module.fail_json(msg='rs_config.members must be a list')
-        
+
         for member in rs_config['members']:
             if ':' not in member['host']:
                 member['host'] = '{}:{}'.format(member['host'], member.get('port', 27017))
@@ -198,17 +199,17 @@ def update_replset(rs_config):
         if rs_config_non_collections != old_rs_config_non_collections \
             or rs_config['settings'] != old_rs_config['settings']     \
             or not members_match(rs_config['members'], old_rs_config['members']):
-            
+
             changed=True
             if '_id' not in rs_config:
                 rs_config['_id'] = get_rs_config_id(client)  #Errors if no replSet specified to mongod
             if 'version' not in rs_config:
                 #Using manual increment to prevent race condition
                 rs_config['version'] = old_rs_config['version'] + 1
-            
+
             #Noop if all _ids are set
             rs_config['members'] = set_member_ids(rs_config['members'], old_rs_config['members'])
-            
+
             reconfig_replset(module, client, rs_config)
 
     #Validate it worked
@@ -216,7 +217,7 @@ def update_replset(rs_config):
         changed_rs_config = get_replset(client)
         if changed_rs_config != rs_config:
             module.fail_json(msg="Failed to validate that the replica set was changed", config=rs_config)
-    
+
     module.exit_json(changed=changed, config=rs_config)
 
 
@@ -280,7 +281,7 @@ def validate_args():
 
 if __name__ == '__main__':
     module = validate_args():
-    
+
     if not pymongo_found:
         module.fail_json(msg="The python pymongo module is not installed.")
 
