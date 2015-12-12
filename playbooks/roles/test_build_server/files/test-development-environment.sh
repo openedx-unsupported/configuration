@@ -36,7 +36,7 @@ paver test_js_run -s xmodule
 
 # Run some of the bok-choy tests
 paver test_bokchoy -t discussion/test_discussion.py:DiscussionTabSingleThreadTest
-paver test_bokchoy -t studio/test_studio_with_ora_component.py:ORAComponentTest --fasttest
+paver test_bokchoy -t studio/test_studio_outline.py:WarningMessagesTest.test_unreleased_published_locked --fasttest
 paver test_bokchoy -t lms/test_lms_matlab_problem.py:MatlabProblemTest --fasttest
 
 # Run some of the lettuce acceptance tests
