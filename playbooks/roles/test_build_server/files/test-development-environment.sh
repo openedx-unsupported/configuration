@@ -51,7 +51,7 @@ case "$1" in
     "lettuce")
         # Run some of the lettuce acceptance tests
         paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature -s 1"
-        paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature -s 1"
+        paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature -s 1" --fasttest
         ;;
 
     "quality")
