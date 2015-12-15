@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Removed SUBDOMAIN_BRANDING and SUBDOMAIN_COURSE_LISTINGS variables
+
 - Role: ora
   - Remove the ora1 role as support for it was deprecated in Cypress.
   - Removed dependencies on ora throughout the playbooks / vagrantfiles.
