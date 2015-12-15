@@ -123,9 +123,11 @@ def reconfig_replset(rs_config):
 
 def get_rs_config_id():
     try:
-        replset_name = client.admin.command('getCmdLineOpts')['parsed']['replication']['replSetName']
-    except OperationFailure, KeyError as e:
-        module.fail_json(msg="Unable to get replSet name. Was mongod started with --replSet? Error: " + e.message)
+        return client.admin.command('getCmdLineOpts')['parsed']['replication']['replSetName']
+    except (OperationFailure, KeyError) as e:
+        module.fail_json(msg=("Unable to get replSet name. "
+            "Was mongod started with --replSet, "
+            "or was replication.replSetName set in the config file? Error: ") + e.message)
 
 
 ########### Helper functions ###########
@@ -134,11 +136,12 @@ def set_member_ids(members, old_members=None):
     Set the _id property of members who don't already have one.
     Prefer the _id of the "matching" member from `old_members`.
     '''
+    #Add a little padding to ensure we don't run out of IDs
     available_ids = set(range(len(members)*2))
-    available_ids -= {m['_id'] for m in members}
+    available_ids -= {m['_id'] for m in members if '_id' in m}
     if old_members is not None:
         available_ids -= {m['_id'] for m in old_members}
-    available_ids = list(available_ids).sort(reverse=True)
+    available_ids = list(sorted(available_ids, reverse=True))
 
     for member in members:
         if '_id' not in member:
@@ -165,9 +168,9 @@ def members_match(new, old):
     return True
 
 def fix_host_port(rs_config):
-    "Fix host, port to host:port"
+    '''Fix host, port to host:port'''
     if 'members' in rs_config:
-        if not isinstance(rs_config['members'], list)
+        if not isinstance(rs_config['members'], list):
             module.fail_json(msg='rs_config.members must be a list')
 
         for member in rs_config['members']:
@@ -190,19 +193,25 @@ def update_replset(rs_config):
         initialize_replset(client, rs_config)
 
     else:
-        rs_config_non_collections = {k:v for k,v in rs_config.items() 
+        rs_config_scalars = {k:v for k,v in rs_config.items()
             if not isinstance(v, list) if not isinstance(v, dict)}
         old_rs_config_non_collections = {k:v for k,v in old_rs_config.items() 
             if not isinstance(v, list) if not isinstance(v, dict)}
 
-        # Is the provided doc "different" from the one currently on the cluster?
-        if rs_config_non_collections != old_rs_config_non_collections \
-            or rs_config['settings'] != old_rs_config['settings']     \
+        # Special comparison to test whether 2 rs_configs are "equivalent"
+        # We can't simply use == because of special logic in `members_match()`
+        # 1. Compare the scalars (i.e. non-collections)
+        # 2. Compare the "settings" dict
+        # 3. Compare the members dicts using `members_match()`
+        # Since the only nested structures in the rs_config spec are "members" and "settings",
+        # if all of the above 3 match, the structures are equivalent.
+        if rs_config_scalars != old_rs_config_non_collections \
+            or rs_config['settings'] != old_rs_config['settings'] \
             or not members_match(rs_config['members'], old_rs_config['members']):
 
             changed=True
             if '_id' not in rs_config:
-                rs_config['_id'] = get_rs_config_id(client)  #Errors if no replSet specified to mongod
+                rs_config['_id'] = old_rs_config['_id']
             if 'version' not in rs_config:
                 #Using manual increment to prevent race condition
                 rs_config['version'] = old_rs_config['version'] + 1
@@ -235,11 +244,11 @@ def get_mongo_uri(host, port, username, password, auth_database):
     return mongo_uri
 
 def primary_client(some_host, some_port, username, password, auth_database):
-    """
+    '''
     Given a member of a replica set, find out who the primary is
     and provide a client that is connected to the primary for running
     commands.
-    """
+    '''
     mongo_uri = get_mongo_uri(some_host, some_port, username, password, auth_database)
     client = MongoClient(mongo_uri)
     try:
@@ -268,7 +277,7 @@ def validate_args():
         auth_database = dict(required=False, type='str'),
         rs_host = dict(required=False, type='str', default="localhost"),
         rs_port = dict(required=False, type='int', default=27017),
-        rs_config = dict(required=True, type='dict')
+        rs_config = dict(required=True, type='dict'),
         force = dict(required=False, type='bool', default=False),
     )
 
@@ -280,7 +289,7 @@ def validate_args():
     return module
 
 if __name__ == '__main__':
-    module = validate_args():
+    module = validate_args()
 
     if not pymongo_found:
         module.fail_json(msg="The python pymongo module is not installed.")
