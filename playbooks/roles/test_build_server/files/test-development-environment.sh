@@ -34,6 +34,7 @@ case "$1" in
         paver test_system -t lms/djangoapps/courseware/tests/tests.py
         paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
         ;;
+
     "js")
 
         # Run some of the javascript unit tests
