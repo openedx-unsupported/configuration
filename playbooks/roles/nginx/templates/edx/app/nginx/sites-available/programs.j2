@@ -25,7 +25,7 @@ server {
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
-  # request the browser to use SSL for all connections
+  # Request that the browser use SSL for all connections.
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 
   {% else %}
@@ -35,6 +35,15 @@ server {
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ programs_service_name }};
     try_files /staticfiles/$file =404;
+
+    # Request that the browser use SSL for these connections. Repeated here
+    # because add_header directives are only inherited from the previous level
+    # if there are no add_header directives defined on the current level.
+    # See: http://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header.
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+    
+    # Instruct the browser to cache static assets for one hour.
+    add_header Cache-Control "public; max-age=3600";
   }
 
   location / {
