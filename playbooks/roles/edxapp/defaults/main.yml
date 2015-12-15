@@ -81,6 +81,9 @@ EDXAPP_ELASTIC_SEARCH_CONFIG:
 EDXAPP_LMS_ENV: 'lms.envs.aws'
 EDXAPP_CMS_ENV: 'cms.envs.aws'
 
+EDXAPP_LMS_ENV_FILE: "lms_env"
+EDXAPP_CMS_ENV_FILE: "cms_env"
+
 EDXAPP_EMAIL_BACKEND: 'django.core.mail.backends.smtp.EmailBackend'
 EDXAPP_EMAIL_HOST: 'localhost'
 EDXAPP_EMAIL_PORT: 25
@@ -604,7 +607,8 @@ edxapp_helper_scripts:
     - edxapp-update-assets
     - edxapp-shell
 
-edxapp_environment:
+
+edxapp_common_environment: &edxapp_common_environment
   LANG: "{{ EDXAPP_LANG }}"
   NO_PREREQ_INSTALL: "{{ EDXAPP_NO_PREREQ_INSTALL }}"
   SKIP_WS_MIGRATIONS: 1
@@ -620,6 +624,27 @@ edxapp_environment:
   # be updated to /edx/etc/edxapp when the switch to
   # yaml based configs is complete
   CONFIG_ROOT: "{{ edxapp_app_dir }}"
+
+  #NB: other apps (e.g. ecommerce) set these conditionally in *.sh.j2.
+  #In following the pattern set by how we handle settings files, I prefer this approach.
+  #Would like to discuss which we prefer before merging.
+  NEW_RELIC_APP_NAME: "{{ EDXAPP_NEWRELIC_LMS_APPNAME if COMMON_ENABLE_NEWRELIC_APP else None}}"
+  NEW_RELIC_LICENSE_KEY: "{{ NEWRELIC_LICENSE_KEY if COMMON_ENABLE_NEWRELIC_APP else None}}"
+
+edxapp_lms_environment:
+  <<: *edxapp_common_environment
+  PORT: "{{ edxapp_lms_gunicorn_port }}"
+  ADDRESS: "{{ edxapp_lms_gunicorn_host }}"
+  DJANGO_SETTINGS_MODULE: "{{ EDXAPP_LMS_ENV }}"
+  SERVICE_VARIANT: lms
+
+edxapp_cms_environment:
+  <<: *edxapp_common_environment
+  PORT: "{{ edxapp_cms_gunicorn_port }}"
+  ADDRESS: "{{ edxapp_cms_gunicorn_host }}"
+  DJANGO_SETTINGS_MODULE: "{{ EDXAPP_CMS_ENV }}"
+  SERVICE_VARIANT: cms
+
 
 edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   db: "{{ EDXAPP_MONGO_DB_NAME }}"
