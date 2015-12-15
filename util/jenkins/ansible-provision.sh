@@ -174,6 +174,7 @@ COURSE_DISCOVERY_SSL_NGINX_PORT: 443
 COURSE_DISCOVERY_VERSION: $course_discovery_version
 
 NGINX_SET_X_FORWARDED_HEADERS: True
+NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 openid_workaround: True

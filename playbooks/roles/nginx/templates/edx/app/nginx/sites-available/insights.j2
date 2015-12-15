@@ -33,19 +33,23 @@ location @proxy_to_app {
     proxy_pass http://insights_app_server;
   }
   
-{% if NGINX_SET_X_FORWARDED_HEADERS %}
-   if ($scheme != "https") {
-    rewrite ^ https://$host$uri permanent;
-   }
- {% else %}
-  # Forward to HTTPS if we're an HTTP request...
-  if ($http_x_forwarded_proto = "http") {
-    set $do_redirect "true";
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+  # Redirect http to https over single instance
+  if ($scheme != "https") 
+  { 
+   set $do_redirect_to_https "true";
   }
 
-  # Run our actual redirect...
-  if ($do_redirect = "true") {
-    rewrite ^ https://$host$request_uri? permanent;
+  # Nginx does not support nested conditions 
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
+  if ($http_x_forwarded_proto = "http") 
+  {
+   set $do_redirect_to_https "true";
   }
- {% endif %}
+
+  if ($do_redirect_to_https = "true")
+  {
+  rewrite ^ https://$host$request_uri? permanent;
+  }
+  {% endif %}
 }
