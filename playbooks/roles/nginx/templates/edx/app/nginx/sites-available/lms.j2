@@ -62,23 +62,22 @@ error_page {{ k }} {{ v }};
   # request the browser to use SSL for all connections
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
   
+  {% if NGINX_SET_X_FORWARDED_HEADERS %}
   # Redirect http to https over signle instance
   if ($scheme != "https") {
     rewrite ^ https://$host$uri permanent;
   }
-
+  {% endif %}
+  
   {% else %}
+
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
   if ($http_x_forwarded_proto = "http") {
-    set $do_redirect "true";
-  }
-
-  # Run our actual redirect...
-  if ($do_redirect = "true") {
     rewrite ^ https://$host$request_uri? permanent;
   }
+
   {% endif %}
 
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
