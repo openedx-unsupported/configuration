@@ -8,20 +8,9 @@ VAGRANTFILE_API_VERSION = "2"
 MEMORY = 4096
 CPU_COUNT = 2
 
-MOUNT_DIRS = {
-  :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
-  :themes => {:repo => "themes", :local => "/edx/app/edxapp/themes", :owner => "edxapp"},
-  :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
-  :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
-  :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
-  :programs => {:repo => "programs", :local => "/edx/app/programs/programs", :owner => "programs"},
-  # This src directory won't have useful permissions. You can set them from the
-  # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
-  :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
-}
-
-if ENV['VAGRANT_MOUNT_BASE']
-  MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
+vm_guest_ip = "192.168.33.10"
+if ENV["VAGRANT_GUEST_IP"]
+  vm_guest_ip = ENV["VAGRANT_GUEST_IP"]
 end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -30,7 +19,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box     = "precise64"
   config.vm.box_url = "http://files.vagrantup.com/precise64.box"
 
-  config.vm.network :private_network, ip: "192.168.33.10"
+  config.vm.network :private_network, ip: vm_guest_ip
   config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
   config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
   config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
@@ -47,21 +36,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
   config.ssh.insert_key = true
 
-  config.vm.synced_folder  ".", "/vagrant", disabled: true
-
  # Enable X11 forwarding so we can interact with GUI applications
   if ENV['VAGRANT_X11']
     config.ssh.forward_x11 = true
-  end
-
-  if ENV['VAGRANT_USE_VBOXFS'] == 'true'
-    MOUNT_DIRS.each { |k, v|
-      config.vm.synced_folder v[:repo], v[:local], create: true, owner: v[:owner], group: "www-data"
-    }
-  else
-    MOUNT_DIRS.each { |k, v|
-      config.vm.synced_folder v[:repo], v[:local], create: true, nfs: true
-    }
   end
 
   config.vm.provider :virtualbox do |vb|
