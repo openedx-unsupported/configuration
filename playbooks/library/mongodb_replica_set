@@ -150,7 +150,6 @@ def set_member_ids(members, old_members=None):
                 member['_id'] = match['_id'] if match is not None else available_ids.pop()
             else:
                 member['_id'] = available_ids.pop()
-    return members
 
 def get_matching_member(member, members):
     '''Return the rs_member from `members` that "matches" `member` (currently on host)'''
@@ -158,12 +157,16 @@ def get_matching_member(member, members):
     return match[0] if len(match) > 0 else None
 
 def members_match(new, old):
-    "Compare 2 lists of members, discounting their `_id`s and matching on a custom criterion"
+    "Compare 2 lists of members, discounting their `_id`s and matching on hostname"
     if len(new) != len(old):
         return False
     for old_member in old:
-        new_member = get_matching_member(old_member, new)
-        if old_member.copy().pop('_id') != new_member.copy().pop('_id'):
+        new_member = get_matching_member(old_member, new).copy()
+        #Don't compare on _id
+        new_member.pop('_id', None)
+        old_member = old_member.copy()
+        old_member.pop('_id', None)
+        if old_member != new_member:
             return False
     return True
 
@@ -176,27 +179,33 @@ def fix_host_port(rs_config):
         for member in rs_config['members']:
             if ':' not in member['host']:
                 member['host'] = '{}:{}'.format(member['host'], member.get('port', 27017))
-                del member['port']
+                if 'port' in member:
+                    del member['port']
 
 def update_replset(rs_config):
     changed = False
     old_rs_config = get_replset(client)
-    fix_host_port(module, rs_config)  #fix host, port to host:port
+    fix_host_port(rs_config)  #fix host, port to host:port
 
     #Decide whether we need to initialize
     if old_rs_config is None:
         changed = True
         if '_id' not in rs_config:
             rs_config['_id'] = get_rs_config_id(client)  #Errors if no replSet specified to mongod
-        rs_config['members'] = set_member_ids(rs_config['members'])  #Noop if all _ids are set
+        set_member_ids(rs_config['members'])  #Noop if all _ids are set
         #Don't set the version, it'll auto-set
         initialize_replset(client, rs_config)
 
     else:
-        rs_config_scalars = {k:v for k,v in rs_config.items()
-            if not isinstance(v, list) if not isinstance(v, dict)}
-        old_rs_config_non_collections = {k:v for k,v in old_rs_config.items() 
-            if not isinstance(v, list) if not isinstance(v, dict)}
+        old_rs_config_scalars = {k:v for k,v in old_rs_config.items() if not isinstance(v, (list, dict))}
+
+        rs_config_scalars = {k:v for k,v in rs_config.items() if not isinstance(v, (list, dict))}
+        if '_id' not in rs_config_scalars and '_id' in old_rs_config_scalars:
+            # _id is going to be managed, don't compare on it
+            del old_rs_config_scalars['_id']
+        if 'version' not in rs_config and 'version' in old_rs_config_scalars:
+            # version is going to be managed, don't compare on it
+            del old_rs_config_scalars['version']
 
         # Special comparison to test whether 2 rs_configs are "equivalent"
         # We can't simply use == because of special logic in `members_match()`
@@ -205,8 +214,8 @@ def update_replset(rs_config):
         # 3. Compare the members dicts using `members_match()`
         # Since the only nested structures in the rs_config spec are "members" and "settings",
         # if all of the above 3 match, the structures are equivalent.
-        if rs_config_scalars != old_rs_config_non_collections \
-            or rs_config['settings'] != old_rs_config['settings'] \
+        if rs_config_scalars != old_rs_config_scalars \
+            or rs_config.get('settings') != old_rs_config.get('settings') \
             or not members_match(rs_config['members'], old_rs_config['members']):
 
             changed=True
@@ -216,8 +225,7 @@ def update_replset(rs_config):
                 #Using manual increment to prevent race condition
                 rs_config['version'] = old_rs_config['version'] + 1
 
-            #Noop if all _ids are set
-            rs_config['members'] = set_member_ids(rs_config['members'], old_rs_config['members'])
+            set_member_ids(rs_config['members'], old_rs_config['members'])  #Noop if all _ids are set
 
             reconfig_replset(module, client, rs_config)
 
@@ -288,6 +296,7 @@ def validate_args():
 
     return module
 
+
 if __name__ == '__main__':
     module = validate_args()
 
@@ -301,4 +310,4 @@ if __name__ == '__main__':
     rs_port = module.params['rs_port']
 
     client = primary_client(module, rs_host, rs_port, username, password, auth_database)
-    update_replset(module, client, module['rs_config'])
+    update_replset(module['rs_config'])
