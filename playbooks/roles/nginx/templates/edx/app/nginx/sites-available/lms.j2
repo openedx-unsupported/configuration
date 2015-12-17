@@ -51,33 +51,27 @@ server {
 error_page {{ k }} {{ v }};
   {% endfor %}
 
+  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
   {% if NGINX_ENABLE_SSL %}
-
-  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
   listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
   # request the browser to use SSL for all connections
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-  
+  {% endif %}
+
   {% if NGINX_REDIRECT_TO_HTTPS %}
   # Redirect http to https over signle instance
   if ($scheme != "https") {
     rewrite ^ https://$host$uri permanent;
   }
-  {% endif %}
-  
   {% else %}
-
-  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
-
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
   if ($http_x_forwarded_proto = "http") {
     rewrite ^ https://$host$request_uri? permanent;
   }
-
   {% endif %}
 
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
