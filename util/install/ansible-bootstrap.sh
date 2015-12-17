@@ -41,6 +41,9 @@ VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
+EDX_PPA="deb http://ppa.edx.org precise main"
+EDX_PPA_KEY_SERVER="pgp.mit.edu"
+EDX_PPA_KEY_ID="69464050"
 
 cat << EOF
 ******************************************************************************
@@ -88,7 +91,8 @@ apt-get install -y software-properties-common python-software-properties
 add-apt-repository -y ppa:git-core/ppa
 
 # Add python PPA
-add-apt-repository -y ppa:fkrull/deadsnakes-python2.7
+apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
+add-apt-repository -y "${EDX_PPA}"
 
 # Install python 2.7 latest, git and other common requirements
 # NOTE: This will install the latest version of python 2.7 and
