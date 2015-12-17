@@ -59,12 +59,18 @@ CONFIGURATION_VERSION="${CONFIGURATION_VERSION}"
 EOF
 
 
-if [[ $(id -u) -ne 0 ]] ; then
+if [[ $(id -u) -ne 0 ]] ;then
     echo "Please run as root";
     exit 1;
 fi
 
-if ! grep -q -e 'Precise Pangolin' -e 'Trusty Tahr' /etc/os-release; then
+if grep -q 'Precise Pangolin'
+then
+    SHORT_DIST="precise"
+elif grep -q 'Trusty Tahr' /etc/os-release
+then
+    SHORT_DIST="trusty"
+else    
     cat << EOF
     
     This script is only known to work on Ubuntu Precise and Trusty,
@@ -74,6 +80,8 @@ if ! grep -q -e 'Precise Pangolin' -e 'Trusty Tahr' /etc/os-release; then
 EOF
    exit 1;
 fi
+
+EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
 # Upgrade the OS
 apt-get update -y
