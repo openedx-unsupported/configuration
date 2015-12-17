@@ -64,7 +64,7 @@ if [[ $(id -u) -ne 0 ]] ;then
     exit 1;
 fi
 
-if grep -q 'Precise Pangolin'
+if grep -q 'Precise Pangolin' /etc/os-release
 then
     SHORT_DIST="precise"
 elif grep -q 'Trusty Tahr' /etc/os-release
