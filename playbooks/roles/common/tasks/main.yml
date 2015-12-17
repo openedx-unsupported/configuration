@@ -11,20 +11,27 @@
 # Determine if machine is provisioned via vagrant
 # Some EC2-specific steps would need to be skipped
 - name: check if instance is vagrant
-  stat: 
+  stat:
     path: /home/vagrant
   register: vagrant_home_dir
+
+- name: add edx ppa apt key
+  apt_key:
+    id: "{{ COMMON_EDX_PPA_KEY_ID }}"
+    keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
+    state: "present"
 
 # Ensure that we get a current version of Git
 # GitHub requires version 1.7.10 or later
 # https://help.github.com/articles/https-cloning-errors
 - name: Add git apt repository
-  apt_repository: 
+  apt_repository:
     repo: "{{ common_git_ppa }}"
 
-# Ensure that we get the latest version of python 2.7
-- name: Add python 2.7 apt repository
-  apt_repository: repo="{{ common_python_ppa }}"
+# We use this PPA to get the latest version of python 2.7
+- name: Add edx apt repository
+  apt_repository:
+    repo: "{{ COMMON_EDX_PPA }}"
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
