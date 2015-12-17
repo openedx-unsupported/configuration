@@ -13,23 +13,23 @@
 
 set -xe
 
-if [[ -z "$ANSIBLE_REPO" ]]; then
+if [[ -z "${ANSIBLE_REPO}" ]]; then
   ANSIBLE_REPO="https://github.com/edx/ansible.git"
 fi
 
-if [[ -z "$ANSIBLE_VERSION" ]]; then
+if [[ -z "${ANSIBLE_VERSION}" ]]; then
   ANSIBLE_VERSION="master"
 fi
 
-if [[ -z "$CONFIGURATION_REPO" ]]; then
+if [[ -z "${CONFIGURATION_REPO}" ]]; then
   CONFIGURATION_REPO="https://github.com/edx/configuration.git"
 fi
 
-if [[ -z "$CONFIGURATION_VERSION" ]]; then
+if [[ -z "${CONFIGURATION_VERSION}" ]]; then
   CONFIGURATION_VERSION="master"
 fi
 
-if [[ -z "UPGRADE_OS" ]]; then
+if [[ -z "${UPGRADE_OS}" ]]; then
   UPGRADE_OS=false
 fi
 
@@ -79,7 +79,7 @@ fi
 apt-get update -y
 apt-key update -y
 
-if [ "$UPGRADE_OS" = true ]; then
+if [ "${UPGRADE_OS}" = true ]; then
     echo "Upgrading the OS..."
     apt-get upgrade -y
 fi
@@ -104,12 +104,12 @@ pip install --upgrade pip setuptools
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
-pip install virtualenv==${VIRTUAL_ENV_VERSION}
+pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
 
 # create a new virtual env
-/usr/local/bin/virtualenv ${VIRTUAL_ENV}
+/usr/local/bin/virtualenv "${VIRTUAL_ENV}"
 
-PATH=${PYTHON_BIN}:${PATH}
+PATH="${PYTHON_BIN}":${PATH}
 
 # Install the configuration repository to install 
 # edx_ansible role
@@ -118,13 +118,13 @@ cd ${CONFIGURATION_DIR}
 git checkout ${CONFIGURATION_VERSION}
 make requirements
 
-cd ${CONFIGURATION_DIR}/playbooks/edx-east
-${PYTHON_BIN}/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
+cd "${CONFIGURATION_DIR}"/playbooks/edx-east
+"${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
 
 # cleanup
-rm -rf ${ANSIBLE_DIR}
-rm -rf ${CONFIGURATION_DIR}
-rm -rf ${VIRTUAL_ENV}
+rm -rf "${ANSIBLE_DIR}"
+rm -rf "${CONFIGURATION_DIR}"
+rm -rf "${VIRTUAL_ENV}"
 
 cat << EOF
 ******************************************************************************
