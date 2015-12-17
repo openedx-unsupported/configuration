@@ -7,7 +7,7 @@
 # This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
 # with the currently checked-out configuration repo.
 
-FROM edxops/trusty-common:hacking
+FROM edxops/trusty-common:latest
 MAINTAINER edxops
 
 ARG COURSE_DISCOVERY_VERSION=master
