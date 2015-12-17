@@ -169,6 +169,10 @@ PROGRAMS_NGINX_PORT: 80
 PROGRAMS_SSL_NGINX_PORT: 443
 PROGRAMS_VERSION: $programs_version
 
+CREDENTIALS_NGINX_PORT: 80
+CREDENTIALS_SSL_NGINX_PORT: 443
+CREDENTIALS_VERSION: $credentials_version
+
 COURSE_DISCOVERY_NGINX_PORT: 80
 COURSE_DISCOVERY_SSL_NGINX_PORT: 443
 COURSE_DISCOVERY_VERSION: $course_discovery_version
@@ -254,6 +258,10 @@ PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
 PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
+CREDENTIALS_URL_ROOT: "https://credentials-${deploy_host}"
+CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
 COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
 COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
 COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
@@ -302,7 +310,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce programs course_discovery notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce programs credentials course_discovery notifier xqueue xserver certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
