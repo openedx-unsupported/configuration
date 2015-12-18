@@ -11,7 +11,7 @@
 ##
 ## Sanity check
 ##
-if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
+if[[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
    echo "This script is only known to work on Ubuntu 12.04, exiting...";
    exit;
 fi
