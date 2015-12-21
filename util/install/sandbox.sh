@@ -11,7 +11,7 @@
 ##
 ## Sanity check
 ##
-if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
+if [[ `lsb_release -rs` != "12.04" ]]; then
    echo "This script is only known to work on Ubuntu 12.04, exiting...";
    exit;
 fi
@@ -20,7 +20,7 @@ fi
 ## Set ppa repository source for gcc/g++ 4.8 in order to install insights properly
 ##
 sudo apt-get install -y python-software-properties
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 ##
 ## Update and Upgrade apt packages
