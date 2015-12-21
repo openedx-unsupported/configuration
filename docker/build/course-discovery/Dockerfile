@@ -10,8 +10,8 @@
 FROM edxops/trusty-common:latest
 MAINTAINER edxops
 
-ARG COURSE_DISCOVERY_VERSION=master
-ARG REPO_OWNER=edx
+ENV COURSE_DISCOVERY_VERSION=master
+ENV REPO_OWNER=edx
 
 ADD . /edx/app/edx_ansible/edx_ansible
 
