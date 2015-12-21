@@ -30,6 +30,12 @@ help:
 	@echo '        make docker.pkg            package all defined docker containers (using local base images)'
 	@echo '        make docker.push           push all defined docker containers'
 	@echo ''
+	@echo '    Tests:'
+	@echo '        test.syntax                Run all syntax tests'
+	@echo '        test.syntax.json           Run syntax tests on .json files'
+	@echo '        test.syntax.yml            Run syntax tests on .yml files'
+	@echo '        test.syntax.jinja          Run syntax tests on .j2 files'
+	@echo '        test.edx_east_roles        Run validation on edx-east roles'
 	@echo ''
 
 requirements:
