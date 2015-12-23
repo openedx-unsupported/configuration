@@ -6,7 +6,7 @@
   tags:
     - install
     - install:configuration
-    
+
 - name: create edxapp configuration dir
   file: >
     path="{{ EDXAPP_CFG_DIR }}" state=directory
@@ -14,7 +14,16 @@
   tags:
     - install
     - install:configuration
-    
+
+- name: setup the newrelic python agent config
+  template: >
+    src=newrelic.ini.j2 dest={{ edxapp_app_dir }}/newrelic.ini
+    owner={{ edxapp_user }}  group={{ common_web_user }}
+    mode=0644
+  tags:
+    - install
+    - install:configuration
+
 # Optional auth for git
 - name: create ssh script for git (not authenticated)
   template: >
@@ -24,7 +33,7 @@
   tags:
     - install
     - install:base
-  
+
 - name: create ssh script for git (authenticated)
   template: >
     src=git_ssh_auth.sh.j2 dest={{ edxapp_git_ssh }}
@@ -229,7 +238,7 @@
   tags:
     - install
     - install:app-requirements
-    
+
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
 - name: install CAS attribute module
@@ -243,7 +252,7 @@
   tags:
     - install
     - install:app-requirements
-    
+
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
 - name : install sandbox requirements into regular venv
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
@@ -261,7 +270,7 @@
   tags:
     - install
     - install:app-requirements
-    
+
 # The next few tasks set up the python code sandbox
 
 # need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
@@ -317,7 +326,7 @@
   tags:
     - install
     - install:code
-  
+
   # alternative would be to give {{ common_web_user }} read access
   # to the virtualenv but that permission change will require
   # root access.
@@ -337,7 +346,7 @@
   tags:
     - install
     - install:code
-  
+
 # creates the supervisor jobs for the
 # service variants configured, runs
 # gather_assets and db migrations
@@ -415,7 +424,7 @@
     - install
     - install:configuration
     - install:code
-  
+
 - include: tag_ec2.yml tags=deploy
   when: COMMON_TAG_EC2_INSTANCE
   tags:
