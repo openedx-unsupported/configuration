@@ -30,6 +30,9 @@ run_ansible() {
   fi
 }
 
+credentials="true"
+echo $credentials
+
 # This DATE_TIME will be used as instance launch time tag
 TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
 
@@ -266,6 +269,10 @@ COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
 COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
 COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+credentials: $credentials
+credentials_version: master
+CREDENTIALS: true
+CREDENTIALS_VERSION: master
 EOF
 fi
 
@@ -309,9 +316,11 @@ EOF
     fi
 fi
 
+echo "Testing =====>"
 declare -A deploy
 roles="edxapp forum ecommerce programs credentials course_discovery notifier xqueue xserver certs demo testcourses"
 for role in $roles; do
+    echo $role
     deploy[$role]=${!role}
 done
 
@@ -324,7 +333,10 @@ fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
+    echo "Roles ====>"
+    echo $roles
     for i in $roles; do
+        echo $i
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
             run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
