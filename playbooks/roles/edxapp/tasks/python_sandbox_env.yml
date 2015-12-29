@@ -1,12 +1,32 @@
-# Set the alternatives this way for blas and lapack to work correctly for the 
+# Set the alternatives this way for blas and lapack to work correctly for the
 # MITx 6.341x course.
-# TODO: Switch to using alternatives module in 1.6
-- name: code sandbox | Use libblas for 3gf
-  command: update-alternatives --set libblas.so.3gf /usr/lib/libblas/libblas.so.3gf
+- name: code sandbox | Check which `libblas` to use
+  # The `libblas.so.3gf` exists only in 12.04
+  stat: path=/usr/lib/libblas/libblas.so.3gf
+  register: libblas_file
 
-# TODO: Switch to using alternatives module in 1.6
-- name: code sandbox | Use liblapac for 3gf
-  command: update-alternatives --set liblapack.so.3gf /usr/lib/lapack/liblapack.so.3gf
+- name: code sandbox | Use libblas.so.3gf in Ubuntu 12.04
+  alternatives: name=libblas.so.3gf path=/usr/lib/libblas/libblas.so.3gf
+  when: libblas_file.stat.exists
+
+- name: code sandbox | Use libblas.so.3 in Ubuntu 14.04
+  alternatives: name=libblas.so.3 path=/usr/lib/libblas/libblas.so.3
+  when: not libblas_file.stat.exists
+
+
+- name: code sandbox | Check which `liblapac` to use
+  # The `liblapack.so.3gf` exists only in 12.04
+  stat: path=/usr/lib/lapack/liblapack.so.3gf
+  register: liblapack_file
+
+- name: code sandbox | Use liblapack.so.3gf in Ubuntu 12.04
+  alternatives: name=liblapack.so.3gf path=/usr/lib/lapack/liblapack.so.3gf
+  when: liblapack_file.stat.exists
+
+- name: code sandbox | Use liblapack.so.3 in Ubuntu 14.04
+  alternatives: name=liblapack.so.3 path=/usr/lib/lapack/liblapack.so.3
+  when: not liblapack_file.stat.exists
+
 
 - name: code sandbox | Create edxapp sandbox user
   user: name={{ edxapp_sandbox_user }} shell=/bin/false home={{ edxapp_sandbox_venv_dir }}
