@@ -39,8 +39,8 @@
   command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   with_items: XQWATCHER_COURSES
   tags:
-    - disable-install
-    - disable-install:base
+    - manage
+    - manage:sandbox
 
 - name: create jail virtualenv
   shell: >
@@ -83,12 +83,14 @@
   service: name=apparmor state=started
   tags:
     - manage
+    - manage:sandbox
 
 - name: load code sandbox profile
   command: apparmor_parser -r "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   with_items: XQWATCHER_COURSES
   tags:
     - manage
+    - manage:sandbox
 
 #
 # Leaves aa in either complain or enforce depending upon the value of the
@@ -101,11 +103,13 @@
   # AA having issues on 14.04
   # https://github.com/edx/codejail/issues/38
   tags:
-    - removed
+    - manage
+    - manage:sandbox
 
 - name: put code sandbox into aa-enforce
   command: /usr/sbin/aa-enforce "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   when: not CODE_JAIL_COMPLAIN|bool
   with_items: XQWATCHER_COURSES
   tags:
-    - removed
+    - manage
+    - manage:sandbox
