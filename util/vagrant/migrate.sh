@@ -192,8 +192,12 @@ if [[ $TARGET == *dogwood* ]] ; then
   cd ../../..
 
   echo "Running the first Django 1.8 faked migrations"
-  sudo -u edxapp /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms --settings=aws migrate --fake-initial
-  sudo -u edxapp /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms --settings=aws migrate --fake-initial
+  for item in lms cms; do
+    sudo -u edxapp \
+      /edx/app/edxapp/venvs/edxapp/bin/python \
+      /edx/app/edxapp/edx-platform/manage.py $item migrate \
+      --settings=aws --noinput --fake-initial
+  done
 fi
 
 cd configuration/playbooks
