@@ -185,7 +185,7 @@ if [[ $TARGET == *dogwood* ]] ; then
     --connection=local \
     $SERVER_VARS \
     $DEVSTACK_VARS \
-    --extra-vars="edx_platform_version=release-2015-11-17 migrate_db=no" \
+    --extra-vars="edx_platform_version=ned/dogwood-first-18 migrate_db=no" \
     --skip-tags="edxapp-sandbox" \
     vagrant-edxapp-delta.yml
   bail_if_fail
