@@ -8,6 +8,9 @@
     virtualenv="{{ xqwatcher_app_dir }}/venvs/{{ xqwatcher_service_name }}" state=present
   sudo: true
   sudo_user: "{{ xqwatcher_user }}"
+  tags:
+    - install
+    - install:application-requirements
 
 - name: write out course config files
   template: >
@@ -15,12 +18,18 @@
     dest={{ xqwatcher_conf_dir }}/conf.d/{{ item.COURSE }}.json
     mode=0644 owner={{ xqwatcher_user }} group={{ xqwatcher_user }}
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:configuration
 
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d/xqwatcher.conf.j2
     dest="{{ xqwatcher_supervisor_available_dir }}/xqwatcher.conf"
     group={{ xqwatcher_user }} mode=0650
+  tags:
+    - install
+    - install:configuration
 
 - name: enable supervisor script
   file: >
@@ -29,10 +38,16 @@
     state=link
     force=yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: update supervisor configuration
   shell: "{{ xqwatcher_supervisor_ctl }} -c {{ xqwatcher_supervisor_app_dir }}/supervisord.conf update"
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:update
 
 - name: restart xqwatcher
   supervisorctl: >
@@ -42,3 +57,6 @@
     name={{ xqwatcher_service_name }}
   when: not disable_edx_services
   sudo_user: "{{ xqwatcher_user }}"
+  tags:
+    - manage
+    - manage:update
