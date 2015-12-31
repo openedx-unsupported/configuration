@@ -150,7 +150,7 @@ git clone https://github.com/edx/configuration.git \
 make_config_venv
 
 if [[ $TARGET == *dogwood* ]] ; then
-  # We are upgrading from 2.7.3 to 2.7.10, so remake the venvs.
+  # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
   sudo rm -rf /edx/app/*/v*envs/*
 
   if [[ $CONFIGURATION == devstack ]] ; then
@@ -164,13 +164,15 @@ if [[ $TARGET == *dogwood* ]] ; then
     --connection=local \
     $SERVER_VARS \
     $DEVSTACK_VARS \
-    --extra-vars="edx_platform_version=release-2015-11-09 migrate_db=yes" \
+    --extra-vars="edx_platform_version=release-2015-11-09" \
+    --extra-vars="xqueue_version=named-release/cypress" \
+    --extra-vars="migrate_db=yes" \
     --skip-tags="edxapp-sandbox" \
     vagrant-edxapp-delta.yml
   bail_if_fail
   cd ../../..
 
-  # That playbook updated Python from 2.7.3 to 2.7.10, so remake our own venv.
+  # Remake our own venv because of the Python 2.7.10 upgrade.
   rm -rf venv
   make_config_venv
 
@@ -185,19 +187,29 @@ if [[ $TARGET == *dogwood* ]] ; then
     --connection=local \
     $SERVER_VARS \
     $DEVSTACK_VARS \
-    --extra-vars="edx_platform_version=ned/dogwood-first-18 migrate_db=no" \
+    --extra-vars="edx_platform_version=ned/dogwood-first-18" \
+    --extra-vars="xqueue_version=dogwood-first-18" \
+    --extra-vars="migrate_db=no" \
     --skip-tags="edxapp-sandbox" \
     vagrant-edxapp-delta.yml
   bail_if_fail
   cd ../../..
 
-  echo "Running the first Django 1.8 faked migrations"
+  echo "Running the Django 1.8 faked migrations"
   for item in lms cms; do
     sudo -u edxapp \
       /edx/app/edxapp/venvs/edxapp/bin/python \
       /edx/app/edxapp/edx-platform/manage.py $item migrate \
       --settings=aws --noinput --fake-initial
   done
+
+  if [[ $CONFIGURATION == fullstack ]] ; then
+    sudo -u xqueue \
+    SERVICE_VARIANT=xqueue \
+    /edx/app/xqueue/venvs/xqueue/bin/python \
+    /edx/app/xqueue/xqueue/manage.py migrate \
+    --settings=xqueue.aws_settings --noinput --fake-initial
+  fi
 fi
 
 cd configuration/playbooks
