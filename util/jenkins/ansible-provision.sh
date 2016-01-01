@@ -175,10 +175,9 @@ CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
 
-COURSE_DISCOVERY_NGINX_PORT: 80
-COURSE_DISCOVERY_SSL_NGINX_PORT: 443
-COURSE_DISCOVERY_VERSION: $course_discovery_version
-
+DISCOVERY_NGINX_PORT: 80
+DISCOVERY_SSL_NGINX_PORT: 443
+DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
@@ -260,6 +259,7 @@ PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
 PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+<<<<<<< HEAD
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://credentials-${deploy_host}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
@@ -268,6 +268,11 @@ COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
 COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
 COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+=======
+DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
+DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+>>>>>>> 5f930fc... modified the name inside all playbooks
 
 EOF
 fi
@@ -313,7 +318,11 @@ EOF
 fi
 
 declare -A deploy
+<<<<<<< HEAD
 roles="edxapp forum ecommerce programs credentials course_discovery notifier xqueue xserver certs demo testcourses"
+=======
+roles="edxapp forum ecommerce programs discovery notifier xqueue xserver certs demo testcourses"
+>>>>>>> 5f930fc... modified the name inside all playbooks
 for role in $roles; do
     deploy[$role]=${!role}
 done
