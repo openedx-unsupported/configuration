@@ -1,20 +1,7 @@
-# Installs packages to run edx locally on a single instance
-# requires:
-#  - group_vars/all
-#  - common/tasks/main.yml
-#
-#  This installs mysql-server-5.6
-#
 ---
-- name: Install PPA for installing MySQL 5.6 on Ubuntu 12.04LTS
-  apt_key:
-    id: E5267A6C
-    url: '{{ COMMON_UBUNTU_APT_KEYSERVER }}0x14AA40EC0831756756D7F66C4F4EA0AAE5267A6C'
-    state: present
-
-- name: install apt repository
+- name: Install apt repository
   apt_repository:
-    repo: 'deb http://ppa.launchpad.net/ondrej/mysql-5.6/ubuntu precise main'
+    repo: 'deb http://ppa.launchpad.net/ondrej/mysql-experimental/ubuntu precise main'
     update_cache: yes
 
 - name: install mysql 56 and dependencies
@@ -25,6 +12,11 @@
     state: present
   with_items: mysql_debian_pkgs
 
+- name: start mysql
+  service: 
+    name: mysql 
+    state: started
+
 - name: Ensure Anonymous user(s) does not exist
   mysql_user: 
     name: '' 
@@ -33,13 +25,3 @@
   with_items:
     - localhost
     - "{{ ansible_hostname }}"
- 
-- name: Remove the test database
-  mysql_db: 
-    name: test 
-    state: absent
-
-- name: start mysql
-  service: 
-    name: mysql 
-    state: started
