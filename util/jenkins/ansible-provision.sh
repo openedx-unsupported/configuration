@@ -150,10 +150,7 @@ forum_version: $forum_version
 notifier_version: $notifier_version
 xqueue_version: $xqueue_version
 xserver_version: $xserver_version
-ora_version: $ora_version
-ease_version: $ease_version
 certs_version: $certs_version
-discern_version: $discern_version
 configuration_version: $configuration_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
@@ -177,6 +174,7 @@ COURSE_DISCOVERY_SSL_NGINX_PORT: 443
 COURSE_DISCOVERY_VERSION: $course_discovery_version
 
 NGINX_SET_X_FORWARDED_HEADERS: True
+NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 openid_workaround: True
@@ -304,7 +302,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce programs course_discovery notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum ecommerce programs course_discovery notifier xqueue xserver certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done

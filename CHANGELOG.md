@@ -1,4 +1,10 @@
 - Role: edxapp
+  - Removed SUBDOMAIN_BRANDING and SUBDOMAIN_COURSE_LISTINGS variables
+
+- Role: ora
+  - Remove the ora1 role as support for it was deprecated in Cypress.
+  - Removed dependencies on ora throughout the playbooks / vagrantfiles.
+- Role: edxapp
   - Removed XmlModuleStore from the default list of modulestores for the LMS.
   - EDXAPP_XML_MAPPINGS variable no longer exists by default and is not used by the edxapp role.
 

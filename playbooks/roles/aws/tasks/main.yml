@@ -128,3 +128,35 @@
   - "/usr/share/landscape/landscape-sysinfo.wrapper"
   - "/etc/update-motd.d/51-cloudguest"
   - "/etc/update-motd.d/91-release-upgrade"
+
+- name: update /etc/dhcp/dhclient.conf
+  template: 
+    src: etc/dhcp/dhclient.conf.j2 
+    dest: /etc/dhcp/dhclient.conf
+  when: COMMON_CUSTOM_DHCLIENT_CONFIG
+
+- name: copy the MOTD template in place
+  template:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: root 
+    group: root 
+    mode: "{{ item.mode | default(644) }}"
+  with_items:
+    - { src: 'etc/motd.tail.j2', dest: '/etc/motd.tail', mode: '755' }
+
+- name: Copy the sshd_config template in place
+  template:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: root 
+    group: root 
+    mode: "{{ item.mode | default(644) }}"
+  register: sshd_config
+  with_items:
+    - { src: 'etc/ssh/sshd_config.j2', dest: '/etc/ssh/sshd_config' }
+
+- name: restart ssh
+  service: name=ssh state=restarted
+  sudo: True
+  when: sshd_config.changed
