@@ -50,6 +50,24 @@ while getopts "hc:t:y" opt; do
   esac
 done
 
+# Helper to exit the script if a command fails.
+bail_if_fail () {
+  exitcode=$?
+  if [ $exitcode != 0 ]; then
+    exit $exitcode;
+  fi
+}
+
+# Helper to ask to proceed.
+confirm_proceed () {
+  echo "Do you wish to proceed?"
+  read input
+  if [ "$input" != "yes" -a "$input" != "y" ]; then
+    echo "Quitting"
+    exit 1
+  fi
+}
+
 # Check we are in the right place, and have the info we need.
 
 if [[ "`whoami`" != "vagrant" ]]; then
@@ -77,13 +95,7 @@ if [[ $CONFIGURATION == none ]]; then
   exit 1
 fi
 
-# Helper to exit the script if a command fails.
-bail_if_fail () {
-  exitcode=$?
-  if [ $exitcode != 0 ]; then
-    exit $exitcode;
-  fi
-}
+# Birch details
 
 if [[ $TARGET == *birch* && $INTERACTIVE == true ]] ; then
   cat <<"EOM"
@@ -108,14 +120,11 @@ or you have decided to risk the automatic upgrade process, type "yes"
 followed by enter to continue. Otherwise, press ctrl-c to quit. You can
 also run this script with the -y flag to skip this check.
 
-Do you wish to proceed?
 EOM
-  read input
-  if [ "$input" != "yes" -a "$input" != "y" ]; then
-    echo "Quitting"
-    exit 1
-  fi
+  confirm_proceed
 fi
+
+# Cypress details
 
 if [[ $TARGET == *cypress* && $INTERACTIVE == true ]] ; then
   cat <<"EOM"
@@ -125,13 +134,8 @@ some problems in this migration. If so, check this webpage for solutions:
 
 https://openedx.atlassian.net/wiki/display/OpenOPS/Potential+Problems+Migrating+from+Birch+to+Cypress
 
-Do you wish to proceed?
 EOM
-  read input
-  if [ "$input" != "yes" -a "$input" != "y" ]; then
-    echo "Quitting"
-    exit 1
-  fi
+  confirm_proceed
 fi
 
 if [[ $TARGET == *cypress* ]] ; then
@@ -170,6 +174,8 @@ cd $TEMPDIR
 git clone https://github.com/edx/configuration.git \
   --depth=1 --single-branch --branch=${CONFIGURATION_TARGET-$TARGET}
 make_config_venv
+
+# Dogwood details
 
 if [[ $TARGET == *dogwood* ]] ; then
   # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
