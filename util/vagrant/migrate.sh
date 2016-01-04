@@ -249,7 +249,7 @@ echo "xqueue_version: $TARGET" >> vars.yml
 sudo ansible-playbook \
     --inventory-file=localhost, \
     --connection=local \
-    --extra-vars=\"@vars.yml\" \
+    --extra-vars="@vars.yml" \
     $SERVER_VARS \
     vagrant-$CONFIGURATION.yml
 bail_if_fail
