@@ -1,7 +1,6 @@
 FROM edxops/precise-common:latest
 MAINTAINER edxops
 
-RUN apt-get update
 ADD . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/insights/ansible_overrides.yml /
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
