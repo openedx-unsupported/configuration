@@ -7,7 +7,7 @@
 # This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
 # with the currently checked-out configuration repo.
 
-FROM edxops/trusty-common
+FROM edxops/trusty-common:latest
 MAINTAINER edxops
 
 ARG CREDENTIALS_VERSION=master
@@ -18,7 +18,7 @@ ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/credentials/ansible_overrides.yml /
-RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook /edx/app/edx_ansible/edx_ansible/docker/plays/credentials.yml \
+RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook credentials.yml \
     -c local -i '127.0.0.1,' \
     -t 'install,assets,devstack:install' \
     --extra-vars="@/ansible_overrides.yml" \
