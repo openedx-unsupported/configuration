@@ -1,27 +1,22 @@
 #!/usr/bin/env bash
 
 # defaults
-CONFIGURATION="fullstack"
-TARGET="named-release/cypress"
+CONFIGURATION="none"
+TARGET="none"
 INTERACTIVE=true
 OPENEDX_ROOT="/edx"
 
-# Will exit the script if a command fails.
-bail_if_fail () {
-  exitcode=$?
-  if [ $exitcode != 0 ]; then
-    exit $exitcode;
-  fi
-}
+show_help () {
+  cat <<- EOM
 
-read -d '' HELP_TEXT <<- EOM
-Attempts to migrate your Open edX installation to a different release.
+Migrates your Open edX installation to a different release.
 
 -c CONFIGURATION
-    Use the given configuration. Either \"devstack\" or \"fullstack\".
-    Defaults to \"$CONFIGURATION\"
+    Use the given configuration. Either \"devstack\" or \"fullstack\". You
+    must specify this.
 -t TARGET
-    Migrate to the given git ref. Defaults to \"$TARGET\"
+    Migrate to the given git ref. You must specify this.  Named releases are
+    called \"named-release/cypress\", \"named-release/dogwood.rc2\", and so on.
 -y
     Run in non-interactive mode (reply \"yes\" to all questions)
 -r OPENEDX_ROOT
@@ -29,13 +24,15 @@ Attempts to migrate your Open edX installation to a different release.
     Defaults to \"$OPENEDX_ROOT\"
 -h
     Show this help and exit.
+
 EOM
+}
 
 # override defaults with options
 while getopts "hc:t:y" opt; do
   case "$opt" in
     h)
-      echo  "$HELP_TEXT"
+      show_help
       exit 0
       ;;
     c)
@@ -53,7 +50,9 @@ while getopts "hc:t:y" opt; do
   esac
 done
 
-if [[ `whoami` != "vagrant" ]]; then
+# Check we are in the right place, and have the info we need.
+
+if [[ "`whoami`" != "vagrant" ]]; then
   echo "Run this from the vagrant account in your Open edX machine."
   exit 1
 fi
@@ -62,6 +61,29 @@ if [[ ! -d /edx/app/edxapp ]]; then
   echo "Run this from the vagrant account in your Open edX machine."
   exit 1
 fi
+
+if [[ $TARGET == none ]]; then
+  cat <<"EOM"
+You must specify a target. This should be the next named release after the one
+you are currently running.  This script can only move forward one release at
+a time.
+EOM
+  show_help
+  exit 1
+fi
+
+if [[ $CONFIGURATION == none ]]; then
+  echo "You must specify a configuration, either fullstack or devstack."
+  exit 1
+fi
+
+# Helper to exit the script if a command fails.
+bail_if_fail () {
+  exitcode=$?
+  if [ $exitcode != 0 ]; then
+    exit $exitcode;
+  fi
+}
 
 if [[ $TARGET == *birch* && $INTERACTIVE == true ]] ; then
   cat <<"EOM"
