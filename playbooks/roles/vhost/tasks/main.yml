@@ -1,0 +1,40 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role vhost
+# 
+# Overview:
+#
+# This task is to contain tasks that should be run in vhost
+# vitualation environments like AWS and Vagrant, but not in
+# containers.  You typically would not run this role
+# independently
+#
+# Dependencies:
+# - common
+# 
+
+- name: Copy the templates to their respestive destination
+  template:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: root 
+    group: root 
+    mode: "{{ item.mode | default(644) }}"
+  register: config_templates
+  with_items:
+    - { src: 'etc/{{ COMMON_MOTD_TEMPLATE }}', dest: '/etc/motd.tail', mode: '755' }
+    - { src: 'etc/ssh/sshd_config.j2', dest: '/etc/ssh/sshd_config' }
+    
+- name: restart ssh
+  service: name=ssh state=restarted
+  sudo: True
+  when: config_templates.changed

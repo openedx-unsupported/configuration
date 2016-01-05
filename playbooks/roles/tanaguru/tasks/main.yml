@@ -1,0 +1,176 @@
+---
+- name: Add the Partner repository
+  apt_repository: 
+    repo: "{{ item }}"
+    state: present
+  with_items:
+    - "deb http://archive.canonical.com/ubuntu {{ ansible_distribution_release }} partner"
+    - "deb-src http://archive.canonical.com/ubuntu {{ ansible_distribution_release }} partner"
+  tags:
+    - install
+    - install:base
+
+- name: Set Postfix options
+  debconf: 
+    name: postifx 
+    question: "{{ item.question }}" 
+    value: "{{ item.value }} " 
+    vtype: "string"
+  with_items:
+    - { question: "postfix/mailname", value: " " }
+    - { question: "postfix/main_mailer_type", value: "Satellite system" }
+  tags:
+    - install
+    - install:configuration
+
+- name: Install the TanaGuru Prerequisites
+  apt: 
+    name: "{{ item }}" 
+    update_cache: yes 
+    state: installed
+  with_items: tanguru_debian_pkgs
+  tags:
+    - install
+    - install:base
+
+- name: Modify the my.cnf file for max_allowed_packet option
+  lineinfile: 
+    dest: /etc/mysql/my.cnf 
+    regexp: '^max_allowed_packet' 
+    line: 'max_allowed_packet      = 64M'
+    state: present
+  register: my_cnf
+  tags:
+    - install
+    - install:configuration
+
+- name: Restart MySQL
+  service: 
+    name: mysql 
+    state: restarted
+  when: my_cnf.changed
+
+- name: Create a soft link for tomcat jar and mysql connector
+  file:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    state: link
+  with_items:
+    - { src: '/usr/share/java/spring3-instrument-tomcat.jar', dest: '/usr/share/tomcat7/lib/spring3-instrument-tomcat.jar' }
+    - { src: '/usr/share/java/mysql-connector-java.jar', dest: '/usr/share/tomcat7/lib/mysql-connector-java.jar'}
+  tags:
+    - install
+    - install:configuration
+
+- name: Copy the xvfb template to /etc/init.d
+  template:
+    dest: /etc/init.d/xvfb
+    src: xvfb.j2
+    owner: root
+    group: root
+    mode: 755
+  register: xvfb
+  tags:
+    - install
+    - install:configuration
+
+- name: Restart xvfb
+  service: 
+    name: xvfb 
+    pattern: /etc/init.d/xvfb 
+    state: restarted
+  when: xvfb.changed
+
+- name: Configure xvfb to run at startup
+  command: update-rc.d xvfb defaults
+  ignore_errors: yes
+  when: xvfb.changed
+
+- name: Download the latest ESR Firfox
+  get_url: 
+    url: "{{ fixfox_esr_link }}" 
+    dest: "/tmp/{{ fixfox_esr_link | basename }}"
+  tags:
+    - install
+    - install:base
+
+- name: Unzip the downloaded Firfox zipped file
+  unarchive: 
+    src: "/tmp/{{ fixfox_esr_link | basename }}" 
+    dest: /opt 
+    copy: no
+  tags:
+    - install
+    - install:base
+
+- name: Download the latest TanaGuru tarball
+  get_url: 
+    url: "{{ tanaguru_download_link }}" 
+    dest: "/tmp/{{ tanaguru_download_link | basename }}"
+  tags:
+    - install
+    - install:base
+
+- name: Unzip the downloaded TanaGuru tarball
+  unarchive: 
+    src: "/tmp/{{ tanaguru_download_link | basename }}" 
+    dest: "/tmp/" 
+    copy: no
+  tags:
+    - install
+    - install:base
+
+- name: Create MySQL database for TanaGuru
+  mysql_db: 
+    name: "{{ tanaguru_parameters.db_name }}"
+    state: present 
+    encoding: utf8
+    collation: utf8_general_ci
+  tags:
+    - install
+    - install:base
+
+- name: Create MySQL user for TanaGuru
+  mysql_user: 
+    name: "{{ tanaguru_parameters.db_user }}"
+    password: "{{ tanaguru_parameters.db_password }}"
+    host: localhost  
+    priv: "{{ tanaguru_parameters.db_name }}.*:ALL"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Check that tanaguru app is running
+  shell: >
+    /bin/ps aux | grep -i tanaguru
+  register: tanaguru_app
+  changed_when: no
+  tags:
+    - install
+
+- name: Install the TanaGuru
+  shell: >
+    /bin/echo "yes" | ./install.sh --mysql-tg-user "{{ tanaguru_parameters.db_user }}" \
+    --mysql-tg-passwd "{{ tanaguru_parameters.db_password }}" \
+    --mysql-tg-db "{{ tanaguru_parameters.db_name }}" \
+    --tanaguru-url "{{ tanaguru_parameters.url }}" \
+    --tomcat-webapps /var/lib/tomcat7/webapps \
+    --tomcat-user tomcat7 \
+    --tg-admin-email "{{ tanaguru_parameters.admin_email }}" \
+    --tg-admin-passwd "{{ tanaguru_parameters.admin_passwd }}" \
+    --firefox-esr-path /opt/firefox/firefox \
+    --display-port ":99.1"
+  args:
+    chdir: "/tmp/{{ tanaguru_download_link | basename | regex_replace('.tar.gz$', '') }}"
+  when: "tanaguru_app.stdout.find('/etc/tanaguru/') == -1"
+  register: tanaguru_install
+  tags:
+    - install
+    - install:base
+
+- name: Restart tomcat7
+  service: 
+    name: tomcat7
+    state: restarted
+  when: tanaguru_install.changed

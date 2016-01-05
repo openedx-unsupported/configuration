@@ -97,10 +97,6 @@ EDXAPP_COMMENTS_SERVICE_KEY:  'password'
 
 EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
 
-EDXAPP_OEE_URL: 'http://localhost:18060/'
-EDXAPP_OEE_USER: 'lms'
-EDXAPP_OEE_PASSWORD: 'password'
-
 EDXAPP_ANALYTICS_API_KEY:  ""
 EDXAPP_LTI_USER_EMAIL_DOMAIN: "lti.example.com"
 # 900s, or 15 mins
@@ -183,8 +179,6 @@ EDXAPP_FEATURES:
   CERTIFICATES_ENABLED: true
   ENABLE_DISCUSSION_SERVICE: true
   ENABLE_INSTRUCTOR_ANALYTICS: false
-  SUBDOMAIN_BRANDING: false
-  SUBDOMAIN_COURSE_LISTINGS: false
   PREVIEW_LMS_BASE: "{{ EDXAPP_PREVIEW_LMS_BASE }}"
   ENABLE_S3_GRADE_DOWNLOADS: true
   USE_CUSTOM_THEME: "{{ edxapp_use_custom_theme }}"
@@ -258,7 +252,7 @@ EDXAPP_FACEBOOK_API_VERSION: "v2.1"
 
 EDXAPP_SOCIAL_MEDIA_FOOTER_URLS: {}
 EDXAPP_MOBILE_STORE_URLS: {}
-EDXAPP_FOOTER_ORGANIZATION_IMAGE: "images/default-theme/logo.png"
+EDXAPP_FOOTER_ORGANIZATION_IMAGE: "themes/edx.org/images/logo.png"
 
 EDXAPP_ENV_EXTRA: {}
 EDXAPP_AUTH_EXTRA: {}
@@ -399,8 +393,7 @@ EDXAPP_CODE_JAIL_LIMITS:
   PROXY: 0
 
 EDXAPP_VIRTUAL_UNIVERSITIES: []
-EDXAPP_SUBDOMAIN_BRANDING: {}
-# Set the number of workers explicitely for lms and cms
+# Set the number of workers explicitly for lms and cms
 # Should be set to
 # EDXAPP_WORKERS:
 #   lms: <num workers>
@@ -542,7 +535,7 @@ EDXAPP_PROCTORING_BACKEND_PROVIDER:
   options: {}
 
 # Comprehensive Theming
-EDXAPP_COMP_THEME_DIR: ""
+EDXAPP_COMPREHENSIVE_THEME_DIR: ""
 
 # SAML KEYS
 EDXAPP_SOCIAL_AUTH_SAML_SP_PRIVATE_KEY: ''
@@ -594,18 +587,6 @@ edxapp_sandbox_user: 'sandbox'  # I think something about the codejail requires 
 
 # apparmor command
 edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
-
-# all edxapp requirements files
-edxapp_requirements_with_github_urls:
-  - "{{ pre_requirements_file }}"
-  - "{{ post_requirements_file }}"
-  - "{{ base_requirements_file }}"
-  - "{{ paver_requirements_file }}"
-  - "{{ github_requirements_file }}"
-  - "{{ sandbox_post_requirements }}"
-  - "{{ sandbox_local_requirements }}"
-  - "{{ sandbox_base_requirements }}"
-
 
 # TODO: old style variable syntax is necessary
 # for lists and dictionaries
@@ -694,13 +675,6 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
       HOST: "{{ EDXAPP_MYSQL_HOST }}"
       PORT: "{{ EDXAPP_MYSQL_PORT }}"
-  OPEN_ENDED_GRADING_INTERFACE:
-    url: "{{ EDXAPP_OEE_URL }}"
-    password: "{{ EDXAPP_OEE_PASSWORD }}"
-    peer_grading:  'peer_grading'
-    staff_grading:  'staff_grading'
-    grading_controller:  'grading_controller'
-    username: "{{ EDXAPP_OEE_USER }}"
   ANALYTICS_API_KEY:  "{{ EDXAPP_ANALYTICS_API_KEY }}"
   EMAIL_HOST_USER: "{{ EDXAPP_EMAIL_HOST_USER }}"
   EMAIL_HOST_PASSWORD: "{{ EDXAPP_EMAIL_HOST_PASSWORD }}"
@@ -850,11 +824,10 @@ generic_env_config:  &edxapp_generic_env
   FILE_UPLOAD_STORAGE_BUCKET_NAME: "{{ EDXAPP_FILE_UPLOAD_STORAGE_BUCKET_NAME }}"
   FILE_UPLOAD_STORAGE_PREFIX: "{{ EDXAPP_FILE_UPLOAD_STORAGE_PREFIX }}"
   VIRTUAL_UNIVERSITIES: "{{ EDXAPP_VIRTUAL_UNIVERSITIES }}"
-  SUBDOMAIN_BRANDING: "{{ EDXAPP_SUBDOMAIN_BRANDING }}"
   REGISTRATION_EXTRA_FIELDS: "{{ EDXAPP_REGISTRATION_EXTRA_FIELDS }}"
   XBLOCK_SETTINGS: "{{ EDXAPP_XBLOCK_SETTINGS }}"
   EDXMKTG_USER_INFO_COOKIE_NAME: "{{ EDXAPP_EDXMKTG_USER_INFO_COOKIE_NAME }}"
-  COMP_THEME_DIR: "{{ EDXAPP_COMP_THEME_DIR }}"
+  COMPREHENSIVE_THEME_DIR: "{{ EDXAPP_COMPREHENSIVE_THEME_DIR }}"
   SESSION_SAVE_EVERY_REQUEST: "{{ EDXAPP_SESSION_SAVE_EVERY_REQUEST }}"
   SOCIAL_SHARING_SETTINGS: "{{ EDXAPP_SOCIAL_SHARING_SETTINGS }}"
   SESSION_COOKIE_SECURE: "{{ EDXAPP_SESSION_COOKIE_SECURE }}"
@@ -995,18 +968,47 @@ edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
 # `edx_platform_version` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
 edx_platform_version: 'release'
-local_requirements_file:  "{{ edxapp_code_dir }}/requirements/edx/local.txt"
 pre_requirements_file:    "{{ edxapp_code_dir }}/requirements/edx/pre.txt"
-post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
-base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
-custom_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/custom.txt"
-paver_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/paver.txt"
 github_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/github.txt"
+custom_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/custom.txt"
+local_requirements_file:  "{{ edxapp_code_dir }}/requirements/edx/local.txt"
+base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
+post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
+paver_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/paver.txt"
 private_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/edx-private.txt"
 
 sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
 sandbox_local_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/local.txt"
 sandbox_post_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/post.txt"
+
+# The Python requirements files in the order they should be installed.  This order should
+# match the order of PYTHON_REQ_FILES in edx-platform/pavelib/prereqs.py.  (Also check the
+# edx-solutions fork of edx-platform when if you consider reordering this list.)
+# private_requirements_file is not included in this list, since it is only installed
+# conditionally based on the value of EDXAPP_INSTALL_PRIVATE_REQUIREMENTS.
+edxapp_requirements_files:
+  - "{{ pre_requirements_file }}"
+  - "{{ github_requirements_file }}"
+  - "{{ custom_requirements_file }}"
+  - "{{ local_requirements_file }}"
+  - "{{ base_requirements_file }}"
+  - "{{ post_requirements_file }}"
+  - "{{ paver_requirements_file }}"
+
+# All edxapp requirements files potentially containing Github URLs.  When using a custom
+# Github mirror, occurrences of "github.com" are replaced by the custom mirror in these
+# files.
+edxapp_requirements_with_github_urls:
+  - "{{ pre_requirements_file }}"
+  - "{{ github_requirements_file }}"
+  - "{{ custom_requirements_file }}"
+  - "{{ base_requirements_file }}"
+  - "{{ post_requirements_file }}"
+  - "{{ paver_requirements_file }}"
+  - "{{ private_requirements_file }}"
+  - "{{ sandbox_post_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_base_requirements }}"
 
 edxapp_chrislea_ppa: "ppa:chris-lea/node.js"
 

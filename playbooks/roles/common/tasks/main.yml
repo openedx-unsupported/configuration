@@ -11,20 +11,27 @@
 # Determine if machine is provisioned via vagrant
 # Some EC2-specific steps would need to be skipped
 - name: check if instance is vagrant
-  stat: 
+  stat:
     path: /home/vagrant
   register: vagrant_home_dir
+
+- name: add edx ppa apt key
+  apt_key:
+    id: "{{ COMMON_EDX_PPA_KEY_ID }}"
+    keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
+    state: "present"
 
 # Ensure that we get a current version of Git
 # GitHub requires version 1.7.10 or later
 # https://help.github.com/articles/https-cloning-errors
 - name: Add git apt repository
-  apt_repository: 
+  apt_repository:
     repo: "{{ common_git_ppa }}"
 
-# Ensure that we get the latest version of python 2.7
-- name: Add python 2.7 apt repository
-  apt_repository: repo="{{ common_python_ppa }}"
+# We use this PPA to get the latest version of python 2.7
+- name: Add edx apt repository
+  apt_repository:
+    repo: "{{ COMMON_EDX_PPA }}"
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -78,12 +85,6 @@
   shell: hostname -F /etc/hostname
   when: COMMON_HOSTNAME|length >0 and (etc_hosts.changed or etc_hostname.changed)
 
-- name: update /etc/dhcp/dhclient.conf
-  template: 
-    src: etc/dhcp/dhclient.conf.j2 
-    dest: /etc/dhcp/dhclient.conf
-  when: COMMON_CUSTOM_DHCLIENT_CONFIG
-
 - name: Copy the templates to their respestive destination
   template:
     dest: "{{ item.dest }}"
@@ -91,13 +92,16 @@
     owner: root 
     group: root 
     mode: "{{ item.mode | default(644) }}"
+  register: config_templates
   with_items:
     - { src: 'edx_rsyslog.j2', dest: '/etc/rsyslog.d/99-edx.conf' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate.j2', dest: '/etc/logrotate.d/hourly/edx-services' }
     - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '555' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2', dest: '/etc/logrotate.d/hourly/tracking.log' }
-    - { src: '{{ COMMON_MOTD_TEMPLATE }}', dest: '/etc/motd.tail', mode: '755' }
-    - { src: 'sshd_config.j2', dest: '/etc/ssh/sshd_config' }
-  notify: 
-    - restart ssh
-    - restart rsyslogd
+
+  # TODO: restarts no matter which template has changed, need to examine
+  # the results
+- name: restart rsyslogd
+  service: name=rsyslog state=restarted
+  sudo: True
+  when: config_templates.changed

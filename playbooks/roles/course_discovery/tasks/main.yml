@@ -47,31 +47,33 @@
     - install:system-requirements
 
 - name: build virtualenv
-  shell: "virtualenv --python=python3.5 {{ course_discovery_venv_dir }}"
+  command: "virtualenv --python=python3.5 {{ course_discovery_venv_dir }}"
+  args:
+    creates: "{{ course_discovery_venv_dir }}/bin/pip"
   sudo_user: "{{ course_discovery_user }}"
   tags:
     - install
     - install:system-requirements
 
 - name: install application requirements
-  shell: >
-    chdir=/edx/app/course_discovery/course_discovery
-    . {{ course_discovery_venv_dir }}/bin/activate;
-    make requirements
+  command: make requirements
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
   sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
   tags:
     - install
     - install:app-requirements
 
 - name: install development requirements
-  shell: >
-    chdir=/edx/app/course_discovery/course_discovery
-    . {{ course_discovery_venv_dir }}/bin/activate;
-    make local-requirements
+  command: make local-requirements
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
   sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
   tags:
-    - install
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: wait for database
   wait_for:
@@ -79,27 +81,29 @@
     port: "{{ COURSE_DISCOVERY_DATABASES.default.PORT }}"
     delay: 2
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: create databases
   mysql_db:
     login_host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
-    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN.default.USER }}"
-    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN.default.PASSWORD }}"
+    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN_USER }}"
+    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN_PASSWORD }}"
     db: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}"
     state: present
     encoding: utf8
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: create database users
   mysql_user:
     login_host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
-    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN.default.USER }}"
-    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN.default.PASSWORD }}"
+    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN_USER }}"
+    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN_PASSWORD }}"
     name: "{{ item.name }}"
     host: "%"
-    name: "{{ item.password }}"
+    password: "{{ item.password }}"
     priv: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}.*:ALL"
   with_items:
     - name: "{{ COURSE_DISCOVERY_DATABASES.default.USER }}"
@@ -107,21 +111,21 @@
     - name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
       password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
   tags:
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
-- name: migrate
-  shell: >
-    chdir={{ course_discovery_code_dir }}
-    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
-    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ course_discovery_venv_dir }}/bin/python ./manage.py migrate --noinput
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
   sudo_user: "{{ course_discovery_user }}"
-  environment: "{{ course_discovery_environment }}"
+  environment: "{{ course_discovery_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate
     - migrate:db
-    - migrate:devstack
+    - devstack
+    - devstack:migrate
 
 - name: write out the supervisor wrapper
   template:
@@ -153,7 +157,8 @@
     group: "{{ common_web_user }}"
     mode: 0744
   tags:
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: setup the course_discovery env file
   template:
@@ -178,7 +183,7 @@
     - install:configuration
 
 - name: update supervisor configuration
-  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  command: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
     - manage
@@ -207,6 +212,16 @@
   tags:
     - install
     - install:app-requirements
+    
+- name: run collectstatic
+  command: make static
+  args:
+    chdir: "{{ course_discovery_code_dir }}"
+  sudo_user: "{{ course_discovery_user }}"
+  environment: "{{ course_discovery_environment }}"
+  tags:
+    - assets
+    - assets:gather
 
 - name: restart the application
   supervisorctl: 
@@ -227,6 +242,7 @@
     owner=root group={{ common_web_user }} mode=0640
   notify: reload nginx
   tags:
+    - install
     - install:vhosts
 
 - name: Creating nginx config links for course_discovery
@@ -236,5 +252,6 @@
     state=link owner=root group=root
   notify: reload nginx
   tags:
+    - install
     - install:vhosts
 

@@ -61,6 +61,13 @@
   environment: "{{ programs_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
+- name: compile sass
+  shell: >
+    chdir={{ programs_code_dir }}
+    . {{ programs_nodeenv_bin }}/activate && npm rebuild node-sass && {{ programs_node_bin }}/gulp css
+  sudo_user: "{{ programs_user }}"
+  when: not devstack
+
 - name: run r.js optimizer
   shell: >
     chdir={{ programs_code_dir }}
