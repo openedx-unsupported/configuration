@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -x
+
 # defaults
 CONFIGURATION="none"
 TARGET="none"
