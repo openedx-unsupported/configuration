@@ -183,22 +183,17 @@ if [[ $TARGET == *dogwood* ]] ; then
   # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
   sudo rm -rf /edx/app/*/v*envs/*
 
-  if [[ $CONFIGURATION == devstack ]] ; then
-    DEVSTACK_VARS="--extra-vars=devstack=true"
-  fi
-
-  echo "Upgrading edx-platform to the end of Django 1.4"
+  echo "Upgrading to the end of Django 1.4"
   cd configuration/playbooks/vagrant
   sudo ansible-playbook \
     --inventory-file=localhost, \
     --connection=local \
     $SERVER_VARS \
-    $DEVSTACK_VARS \
     --extra-vars="edx_platform_version=release-2015-11-09" \
     --extra-vars="xqueue_version=named-release/cypress" \
     --extra-vars="migrate_db=yes" \
     --skip-tags="edxapp-sandbox" \
-    vagrant-edxapp-delta.yml
+    vagrant-$CONFIGURATION-delta.yml
   bail_if_fail
   cd ../../..
 
@@ -210,18 +205,17 @@ if [[ $TARGET == *dogwood* ]] ; then
   sudo -u edxapp /edx/app/edxapp/venvs/edxapp/bin/pip uninstall -y South
   bail_if_fail
 
-  echo "Upgrading edx-platform to the beginning of Django 1.8"
+  echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
   sudo ansible-playbook \
     --inventory-file=localhost, \
     --connection=local \
     $SERVER_VARS \
-    $DEVSTACK_VARS \
     --extra-vars="edx_platform_version=ned/dogwood-first-18" \
     --extra-vars="xqueue_version=dogwood-first-18" \
     --extra-vars="migrate_db=no" \
     --skip-tags="edxapp-sandbox" \
-    vagrant-edxapp-delta.yml
+    vagrant-$CONFIGURATION-delta.yml
   bail_if_fail
   cd ../../..
 
