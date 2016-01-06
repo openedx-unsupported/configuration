@@ -68,13 +68,19 @@ error_page {{ k }} {{ v }};
   {% endif %}
 
   {% if NGINX_REDIRECT_TO_HTTPS %}
+  # Nginx does not support nested conditions 
   # Redirect http to https over single instance
   if ($scheme != "https") 
   { 
    set $do_redirect_to_https "true";
   }
 
-  # Nginx does not support nested conditions 
+  # Exempt the heartbeat from redirections
+  if ( $request_uri ~ "^/heartbeat$")
+  {
+   set $do_redirect_to_https "false";
+  }
+
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
   if ($http_x_forwarded_proto = "http") 
   {
