@@ -53,6 +53,11 @@ error_page {{ k }} {{ v }};
 
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
+  # No basic auth security on the heartbeat url, so that ELB can use it
+  location /heartbeat {
+    try_files $uri @proxy_to_lms_app;
+  }
+
   {% if NGINX_ENABLE_SSL %}
   listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
 
@@ -162,12 +167,6 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on third party auth endpoints
   location /auth {
-    try_files $uri @proxy_to_lms_app;
-  }
-
-
-  # No basic auth security on the heartbeat url, so that ELB can use it
-  location /heartbeat {
     try_files $uri @proxy_to_lms_app;
   }
 
