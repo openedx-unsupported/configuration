@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+source {{ discovery_home }}/discovery_env
+COMMAND=$1
+
+case $COMMAND in
+    start)
+        {% set discovery_venv_bin = discovery_home + "/venvs/" + discovery_service_name + "/bin" %}
+        {% set executable = discovery_venv_bin + '/gunicorn' %}
+
+        cd /edx/app/edx_ansible/edx_ansible/docker/plays
+        sudo ansible-playbook discovery.yml -c local -i '127.0.0.1,' \
+            -t 'install:app-requirements,assets:gather,devstack' \
+            --extra-vars="migrate_db=yes" \
+            --extra-vars="@/ansible_overrides.yml"
+
+        {{ executable }} -c {{ discovery_home }}/discovery_gunicorn.py \
+                                 {{ DISCOVERY_GUNICORN_EXTRA }} \
+                                 --reload \
+                                 discovery.wsgi:application
+
+        ;;
+    open)
+        cd {{ discovery_code_dir }}
+        . {{ discovery_venv_bin }}/activate
+        /bin/bash
+        ;;
+esac
