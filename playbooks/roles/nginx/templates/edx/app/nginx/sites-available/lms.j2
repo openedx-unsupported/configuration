@@ -53,6 +53,11 @@ error_page {{ k }} {{ v }};
 
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
+  # No basic auth security on the heartbeat url, so that ELB can use it
+  location /heartbeat {
+    try_files $uri @proxy_to_lms_app;
+  }
+
   {% if NGINX_ENABLE_SSL %}
   listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
 
@@ -63,13 +68,19 @@ error_page {{ k }} {{ v }};
   {% endif %}
 
   {% if NGINX_REDIRECT_TO_HTTPS %}
+  # Nginx does not support nested conditions 
   # Redirect http to https over single instance
   if ($scheme != "https") 
   { 
    set $do_redirect_to_https "true";
   }
 
-  # Nginx does not support nested conditions 
+  # Exempt the heartbeat from redirections
+  if ( $request_uri ~ "^/heartbeat$")
+  {
+   set $do_redirect_to_https "false";
+  }
+
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
   if ($http_x_forwarded_proto = "http") 
   {
@@ -162,12 +173,6 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on third party auth endpoints
   location /auth {
-    try_files $uri @proxy_to_lms_app;
-  }
-
-
-  # No basic auth security on the heartbeat url, so that ELB can use it
-  location /heartbeat {
     try_files $uri @proxy_to_lms_app;
   }
 
