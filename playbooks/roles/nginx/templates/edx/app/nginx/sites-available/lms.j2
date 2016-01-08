@@ -62,20 +62,26 @@ error_page {{ k }} {{ v }};
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
   {% endif %}
 
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
   {% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
   # Redirect http to https over single instance
   if ($scheme != "https") 
   { 
    set $do_redirect_to_https "true";
   }
+     {% endif %}
+  {% if NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
 
-  # Nginx does not support nested conditions 
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
   if ($http_x_forwarded_proto = "http") 
   {
    set $do_redirect_to_https "true";
   }
+     {% endif %}
 
+  # Execute the actual redirect
   if ($do_redirect_to_https = "true")
   {
   rewrite ^ https://$host$request_uri? permanent;
