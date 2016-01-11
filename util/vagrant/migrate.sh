@@ -57,7 +57,7 @@ done
 confirm_proceed () {
   echo "Do you wish to proceed?"
   read input
-  if [[ "$input" != "yes" -a "$input" != "y" ]]; then
+  if [[ "$input" != "yes" && "$input" != "y" ]]; then
     echo "Quitting"
     exit 1
   fi
