@@ -57,14 +57,30 @@ server {
     proxy_redirect off;
     proxy_pass http://{{ role_name }}_app_server;
   }
-
-  # Forward to HTTPS if we're an HTTP request...
-  if ($http_x_forwarded_proto = "http") {
-    set $do_redirect "true";
+  
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
+  {{ '{%' }} if NGINX_REDIRECT_TO_HTTPS {{ '%}' }}
+     {{ '{%' }} if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" {{ '%}' }}
+  # Redirect http to https over single instance
+  if ($scheme != "https") 
+  { 
+   set $do_redirect_to_https "true";
   }
 
-  # Run our actual redirect...
-  if ($do_redirect = "true") {
-    rewrite ^ https://$host$request_uri? permanent;
+     {{ '{%' }} elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" {{ '%}' }}
+
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
+  if ($http_x_forwarded_proto = "http") 
+  {
+   set $do_redirect_to_https "true";
   }
+     {{ '{%' }} endif {{ '%}' }}
+
+  # Execute the actual redirect
+  if ($do_redirect_to_https = "true")
+  {
+  rewrite ^ https://$host$request_uri? permanent;
+  }
+  {{ '{%' }} endif {{ '%}' }}
 }
