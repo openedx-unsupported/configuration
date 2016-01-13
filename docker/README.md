@@ -21,6 +21,10 @@ using a set of make commands.
 
 ```shell
 make docker.build.<service>  # Build the service container (but don't tag it)
+                             # By convention, this will build the container using
+                             # the currently checked-out configuration repository,
+                             # and will build on top of the most-recently available
+                             # base container image from dockerhub.
 
 make docker.test.<service>   # Test that the Dockerfile for <service> will build.
                              # This will rebuild any edx-specific containers that
@@ -33,3 +37,15 @@ make docker.pkg.<service>    # Package <service> for publishing to Dockerhub. Th
 make docker.push.<service>   # Push <service> to Dockerhub as latest.
 ```
 
+## Conventions
+
+In order to facilitate development, Dockerfiles should be based on
+one of the `edxops/<ubuntu version>-common` base images, and should
+`COPY . /edx/app/edx_ansible/edx_ansible` in order to load your local
+ansible plays into the image. The actual work of configuring the image
+should be done by executing ansible (rather than explicit steps in the
+Dockerfile), unless those steps are docker specific. Devstack-specific
+steps can be tagged with the `devstack:install` tag in order that they
+only run when building a devstack image.
+
+The user used in the `Dockerfile` should be `root`.
