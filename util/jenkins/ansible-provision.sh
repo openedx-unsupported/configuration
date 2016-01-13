@@ -263,6 +263,7 @@ PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://credentials-${deploy_host}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 
 COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
 COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
