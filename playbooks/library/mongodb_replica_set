@@ -95,7 +95,7 @@ import json, copy
 from urllib import quote_plus
 
 ########### Mongo API calls ###########
-def get_replset(client):
+def get_replset():
     # Not using `replSetGetConfig` because it's not supported in MongoDB 2.x.
     try:
         rs_config = client.local.system.replset.find_one()
@@ -184,17 +184,17 @@ def fix_host_port(rs_config):
 
 def update_replset(rs_config):
     changed = False
-    old_rs_config = get_replset(client)
+    old_rs_config = get_replset()
     fix_host_port(rs_config)  #fix host, port to host:port
 
     #Decide whether we need to initialize
     if old_rs_config is None:
         changed = True
         if '_id' not in rs_config:
-            rs_config['_id'] = get_rs_config_id(client)  #Errors if no replSet specified to mongod
+            rs_config['_id'] = get_rs_config_id()  #Errors if no replSet specified to mongod
         set_member_ids(rs_config['members'])  #Noop if all _ids are set
         #Don't set the version, it'll auto-set
-        initialize_replset(client, rs_config)
+        initialize_replset(rs_config)
 
     else:
         old_rs_config_scalars = {k:v for k,v in old_rs_config.items() if not isinstance(v, (list, dict))}
@@ -227,7 +227,7 @@ def update_replset(rs_config):
 
             set_member_ids(rs_config['members'], old_rs_config['members'])  #Noop if all _ids are set
 
-            reconfig_replset(module, client, rs_config)
+            reconfig_replset(rs_config)
 
     #Validate it worked
     if changed:
