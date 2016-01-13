@@ -71,4 +71,4 @@ $(docker_push)%: $(docker_pkg)%
 	@mkdir -p .build/$*
 	@sed --regexp-extended "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
-include $(foreach image,$(images),.build/$(image)/Dockerfile.d)
+-include $(foreach image,$(images),.build/$(image)/Dockerfile.d)
