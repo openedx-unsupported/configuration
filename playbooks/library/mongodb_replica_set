@@ -226,11 +226,12 @@ def update_replset(rs_config):
 
     #Validate it worked
     if changed:
-        changed_rs_config = get_replset(client)
-        if changed_rs_config != rs_config:
-            module.fail_json(msg="Failed to validate that the replica set was changed", config=rs_config)
+        changed_rs_config = get_replset()
+        if not ( all(changed_rs_config[k] == v for k,v  in rs_config.items() if k != 'members') \
+                 or all([m for m in changed_rs_config['members'] if m['_id'] == member['_id']][0][k] == v for member in rs_config['members'] for k,v in member.items())):
+          module.fail_json(msg="Failed to validate that the replica set was changed", changed_rs_config=changed_rs_config, config=rs_config)
 
-    module.exit_json(changed=changed, config=rs_config)
+    module.exit_json(changed=changed, config=rs_config, new_config=changed_rs_config)
 
 
 ######### Client making stuff #########
