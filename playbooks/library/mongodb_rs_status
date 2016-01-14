@@ -6,8 +6,13 @@ module: mongodb_rs_status
 short_description: Get the status of a replica set of a mongo cluster.
 description:
   - Get the status of the replica set of a mongo cluster. Provide the same info as rs.status() or replSetGetStatus.
+    Returns a status dictionary key containing the replica set JSON document from Mongo, or no status key if there
+    was no status found.  This usually indicates that either Mongo was configured to run without replica sets or
+    that the replica set has not been initiated yet.
 version_added: "1.9"
-author: Feanil Patel
+author:
+  - Feanil Patel
+  - Kevin Falcone
 options:
   host:
     description:
@@ -35,11 +40,16 @@ options:
 
 EXAMPLES = '''
 - name: Get status for the stage cluster
-  mongo_status:
+  mongodb_rs_status:
     host: localhost:27017
     username: root
     password: password
   register: mongo_status
+
+- msg: "I don't have a replica set available"
+  when: mongo_status.status is not defined
+
+- debug: var=mongo_status.status
 '''
 # Magic import
 from ansible.module_utils.basic import *
