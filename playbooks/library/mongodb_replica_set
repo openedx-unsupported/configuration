@@ -177,6 +177,38 @@ def fix_host_port(rs_config):
                 if 'port' in member:
                     del member['port']
 
+def check_config_subset(old_config, new_config):
+    '''
+    Compares the old config (what we pass in to Mongo) to the new config (returned from Mongo)
+    It is assumed that old_config will be a subset of new_config because Mongo tracks many more
+    details about the replica set and the members in a replica set that we don't track in our
+    secure repo.
+    '''
+
+    for k in old_config:
+        if k == 'members':
+            matches = is_member_subset(old_config['members'],new_config['members'])
+            if not matches: return False
+        else:
+            if old_config[k] != new_config[k]: return False
+
+    return True
+
+
+def is_member_subset(old_members,new_members):
+    '''
+    Compares the member list of a replica set configuration as specified (old_members)
+    to what Mongo has returned (new_members).  If it finds anything in old_members that
+    does not match new_members, it will return False.  new_members is allowed to contain
+    extra information that is not reflected in old_members because we do not necesarily
+    track all of mongo's internal data in the config.
+    '''
+    for member in old_members:
+        for k in member:
+            if member[k] != new_members[member['_id']][k]: return False
+
+    return True
+
 def update_replset(rs_config):
     changed = False
     old_rs_config = get_replset()
@@ -226,11 +258,11 @@ def update_replset(rs_config):
 
     #Validate it worked
     if changed:
-        changed_rs_config = get_replset(client)
-        if changed_rs_config != rs_config:
-            module.fail_json(msg="Failed to validate that the replica set was changed", config=rs_config)
+        changed_rs_config = get_replset()
+        if not check_config_subset(rs_config, changed_rs_config):
+            module.fail_json(msg="Failed to validate that the replica set was changed", new_config=changed_rs_config, config=rs_config)
 
-    module.exit_json(changed=changed, config=rs_config)
+    module.exit_json(changed=changed, config=rs_config, new_config=changed_rs_config)
 
 
 ######### Client making stuff #########
