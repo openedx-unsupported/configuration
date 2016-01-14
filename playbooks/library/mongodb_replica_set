@@ -100,25 +100,20 @@ def get_replset():
     try:
         rs_config = client.local.system.replset.find_one()
     except OperationFailure as e:
-        module.fail_json(msg="Failed to retrieve existing replSet config: {}".format(e.message))        
-
-    if rs_config is None or 'config' not in rs_config:
         return None
-    else:
-        return rs_config['config']
+
+    return rs_config
 
 def initialize_replset(rs_config):
     try:
         client.admin.command("replSetInitiate", rs_config)
     except OperationFailure as e:
-        raise
         module.fail_json(msg="Failed to initiate replSet: {}".format(e.message))
 
 def reconfig_replset(rs_config):
     try:
         client.admin.command("replSetReconfig", rs_config, force=module.params['force'])
     except OperationFailure as e:
-        raise
         module.fail_json(msg="Failed to reconfigure replSet: {}".format(e.message))
 
 def get_rs_config_id():
@@ -256,13 +251,16 @@ def primary_client(some_host, some_port, username, password, auth_database):
     Given a member of a replica set, find out who the primary is
     and provide a client that is connected to the primary for running
     commands.
+
+    Because this function attempts to find the primary of your replica set,
+    it can fail and throw PyMongo exceptions.  You should handle these and
+    fall back to get_client.
     '''
-    mongo_uri = get_mongo_uri(some_host, some_port, username, password, auth_database)
-    client = MongoClient(mongo_uri)
-    try:
-        status = client.admin.command("replSetGetStatus")
-    except OperationFailure as e:
-        module.fail_json(msg="Failed to get replica set status from host {}: {}".format(some_host, e.message))
+    client = get_client(some_host, some_port, username, password, auth_database)
+    # This can fail (throws OperationFailure), in which case code will need to
+    # fall back to using get_client since there either is no primary, or we can't
+    # know it for some reason.
+    status = client.admin.command("replSetGetStatus")
 
     # Find out who the primary is.
     rs_primary = filter(lambda member: member['stateStr']=='PRIMARY', status['members'])[0]
@@ -276,6 +274,18 @@ def primary_client(some_host, some_port, username, password, auth_database):
 
     return client
 
+def get_client(some_host, some_port, username, password, auth_database):
+    '''
+    Connects to the given host.  Does not have any of the logic of primary_client,
+    so is safer to use when handling an uninitialized replica set or some other
+    mongo instance that requires special logic.
+
+    This function connects to Mongo, and as such can throw any of the PyMongo
+    exceptions.
+    '''
+    mongo_uri = get_mongo_uri(some_host, some_port, username, password, auth_database)
+    client = MongoClient(mongo_uri)
+    return client
 
 ################ Main ################
 def validate_args():
@@ -311,5 +321,9 @@ if __name__ == '__main__':
     rs_host = module.params['rs_host']
     rs_port = module.params['rs_port']
 
-    client = primary_client(module, rs_host, rs_port, username, password, auth_database)
-    update_replset(module['rs_config'])
+    try:
+        client = primary_client(rs_host, rs_port, username, password, auth_database)
+    except OperationFailure:
+        client = get_client(rs_host, rs_port, username, password, auth_database)
+
+    update_replset(module.params['rs_config'])
