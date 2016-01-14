@@ -46,10 +46,13 @@ EXAMPLES = '''
     password: password
   register: mongo_status
 
-- msg: "I don't have a replica set available"
+Note that you're testing for the presence of the status member of the dictionary not the contents of it
+
+- debug: msg="I don't have a replica set available"
   when: mongo_status.status is not defined
 
 - debug: var=mongo_status.status
+
 '''
 # Magic import
 from ansible.module_utils.basic import *
@@ -102,8 +105,9 @@ def main():
     client = MongoClient(mongo_uri)
 
     # This checks to see if you have a replSetName configured
-    # In our plays, this means that our /etc/mongod.conf has been templated out,
-    # and mongo has been restarted to use it.
+    # This generally means that /etc/mongod.conf has been changed
+    # from the default to use a replica set and mongo has been
+    # restarted to use it.
 
     try:
         repl_set = client.admin.command('getCmdLineOpts')['parsed']['replication']['replSetName']
