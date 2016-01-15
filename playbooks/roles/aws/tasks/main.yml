@@ -33,12 +33,17 @@
     /sbin/ifconfig eth0 mtu 1500 up
   when: ansible_distribution in common_debian_variants
 
+- name: check for eth0.cfg
+  stat: path=/etc/network/interfaces.d/eth0.cfg
+  register: eth0_cfg
+  when: ansible_distribution in common_debian_variants
+
 - lineinfile: >
     dest=/etc/network/interfaces.d/eth0.cfg
     regexp="^post-up /sbin/ifconfig eth0 mtu 1500"
     line="post-up /sbin/ifconfig eth0 mtu 1500"
     insertafter="^iface"
-  when: ansible_distribution in common_debian_variants
+  when: ansible_distribution in common_debian_variants and eth0_cfg.stat.exists
 
 #
 # End dealing with Jumbo frames issue in mixed MTU deployements in AWS
