@@ -202,7 +202,7 @@ if [[ $TARGET == *dogwood* ]] ; then
     --inventory-file=localhost, \
     --connection=local \
     $SERVER_VARS \
-    --extra-vars="edx_platform_version=ned/dogwood-first-18" \
+    --extra-vars="edx_platform_version=dogwood-first-18" \
     --extra-vars="xqueue_version=dogwood-first-18" \
     --extra-vars="migrate_db=no" \
     --skip-tags="edxapp-sandbox" \
