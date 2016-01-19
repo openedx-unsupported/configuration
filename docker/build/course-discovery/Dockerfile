@@ -13,7 +13,7 @@ MAINTAINER edxops
 ENV COURSE_DISCOVERY_VERSION=master
 ENV REPO_OWNER=edx
 
-ADD . /edx/app/edx_ansible/edx_ansible
+COPY . /edx/app/edx_ansible/edx_ansible
 
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 

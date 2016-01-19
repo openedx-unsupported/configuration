@@ -1,7 +1,7 @@
 FROM edxops/precise-common:latest
 MAINTAINER edxops
 
-ADD . /edx/app/edx_ansible/edx_ansible
+COPY . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/insights/ansible_overrides.yml /
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook insights.yml \
