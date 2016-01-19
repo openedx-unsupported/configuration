@@ -1,7 +1,6 @@
 FROM edxops/precise-common:latest
 MAINTAINER edxops
 
-USER root
 RUN apt-get update
 COPY . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/xqueue/ansible_overrides.yml /

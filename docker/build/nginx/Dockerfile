@@ -1,7 +1,6 @@
 FROM edxops/precise-common:latest
 MAINTAINER edxops
 
-USER root
 COPY . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/nginx/ansible_overrides.yml /
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
