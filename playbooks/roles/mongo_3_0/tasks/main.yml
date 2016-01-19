@@ -121,11 +121,6 @@
   debug: msg="You do not appear to have a Replica Set configured, deploying one for you"
   when: MONGO_CLUSTERED and initialize_replica_set
 
-- name: stop mongod service
-  service:
-    name: mongod
-    state: stopped
-
 - name: copy mongodb key file
   copy:
     content: "{{ MONGO_CLUSTER_KEY }}"
@@ -148,6 +143,7 @@
     dest: /etc/mongod.conf
     backup: yes
   notify: restart mongo
+  register: update_mongod_conf
 
 - name: install logrotate configuration
   template:
@@ -158,10 +154,11 @@
     - "install:configuration"
     - "logrotate"
 
-- name: start mongo service
+- name: restart mongo service if we changed our configuration
   service:
     name: mongod
-    state: started
+    state: restarted
+  when: update_mongod_conf.changed
 
 - name: wait for mongo server to start
   wait_for:
