@@ -27,17 +27,26 @@
     state: present
     version: "{{ pymongo_version }}"
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  tags:
+    - "install"
+    - "install:system-requirements"
 
 - name: add the mongodb signing key
   apt_key:
     id: "{{ MONGODB_APT_KEY }}"
     keyserver: "{{ MONGODB_APT_KEYSERVER }}"
     state: present
+  tags:
+    - "install"
+    - "install:system-requirements"
 
 - name: add the mongodb repo to the sources list
   apt_repository:
     repo: "{{ MONGODB_REPO }}"
     state: present
+  tags:
+    - "install"
+    - "install:system-requirements"
 
 - name: install mongo server and recommends
   apt:
@@ -49,7 +58,7 @@
   with_items: mongodb_debian_pkgs
   tags:
     - install
-    - install:system-requirements
+    - install:app-requirements
     - mongo_packages
 
 - name: create mongo dirs
@@ -63,6 +72,9 @@
     - "{{ mongo_dbpath }}"
     - "{{ mongo_log_dir }}"
     - "{{ mongo_journal_dir }}"
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: add serverStatus logging script
   template:
@@ -72,6 +84,9 @@
     group: "{{ mongo_user }}"
     mode: 0700
   when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: add serverStatus logging script to cron
   cron:
@@ -79,6 +94,9 @@
     job: /edx/bin/log-mongo-serverStatus.sh >> {{ mongo_log_dir }}/serverStatus.log 2>&1
   become: yes
   when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:configuration"
 
 # This will error when run on a new replica set, so we ignore_errors
 # and connect anonymously next.
@@ -91,6 +109,9 @@
   register: authed_replica_set_already_configured
   when: MONGO_CLUSTERED
   ignore_errors: true
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: Try checking the replica set with no user/pass in case this is a new box
   mongodb_rs_status:
@@ -99,12 +120,18 @@
   register: unauthed_replica_set_already_configured
   when: MONGO_CLUSTERED and authed_replica_set_already_configured.failed is defined
   ignore_errors: true
+  tags:
+    - "install"
+    - "install:configuration"
 
 # We use these in the templates but also to control a whole bunch of logic
 - name: set facts that default to not initializing a replica set
   set_fact:
     initialize_replica_set: false
     skip_replica_set: false
+  tags:
+    - "install"
+    - "install:configuration"
 
 # If either auth or unauthed access comes back with a replica set, we
 # do not want to initialize one.  Since initialization requires a bunch
@@ -116,10 +143,16 @@
   when: MONGO_CLUSTERED
         and authed_replica_set_already_configured.status is not defined
         and unauthed_replica_set_already_configured.status is not defined
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: warn about unconfigured replica sets
   debug: msg="You do not appear to have a Replica Set configured, deploying one for you"
   when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: copy mongodb key file
   copy:
@@ -129,11 +162,17 @@
     owner: mongodb
     group: mongodb
   when: MONGO_CLUSTERED
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: Set an initialize replica set fact for mongod.conf to skip defining a replica set
   set_fact:
     skip_replica_set: true
   when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
 
 # If skip_replica_set is true, this template will not contain a replica set stanza
 # because of the fact above.
@@ -144,6 +183,9 @@
     backup: yes
   notify: restart mongo
   register: update_mongod_conf
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: install logrotate configuration
   template:
@@ -159,11 +201,17 @@
     name: mongod
     state: restarted
   when: update_mongod_conf.changed
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: wait for mongo server to start
   wait_for:
     port: 27017
     delay: 2
+  tags:
+    - "install"
+    - "install:configuration"
 
 # We only try passwordless superuser creation when
 # we're initializing the replica set and need to use
@@ -177,6 +225,9 @@
     roles: root
   when: initialize_replica_set
   run_once: true
+  tags:
+    - "manage"
+    - "manage:db"
 
 - name: create super user
   mongodb_user:
@@ -187,6 +238,9 @@
     database: admin
     roles: root
   run_once: true
+  tags:
+    - "manage"
+    - "manage:db"
 
 # Now that the localhost exemption has been used to create the superuser, we need
 # to add replica set to our configuration.  This will never happen if we detected
@@ -195,6 +249,9 @@
   set_fact:
     skip_replica_set: false
   when: MONGO_CLUSTERED and skip_replica_set and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: re-copy configuration template with replica set enabled
   template:
@@ -203,18 +260,27 @@
     backup: yes
   notify: restart mongo
   when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: restart mongo service
   service:
     name: mongod
     state: restarted
   when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: wait for mongo server to start
   wait_for:
     port: 27017
     delay: 2
   when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: configure replica set
   mongodb_replica_set:
@@ -226,6 +292,10 @@
   when: MONGO_CLUSTERED
   tags:
     - configure_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
+    - "configure_replica_set"
 
 # During initial replica set configuration, it can take a few seconds to vote
 # a primary and for all members to reflect that status.  During that window,
@@ -244,6 +314,9 @@
   when: MONGO_CLUSTERED
   tags:
     - configure_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
 
 - name: create mongodb users in a replica set
   mongodb_user:
@@ -259,6 +332,9 @@
   with_items: MONGO_USERS
   run_once: true
   when: MONGO_CLUSTERED
+  tags:
+    - "manage"
+    - "manage:db"
 
 - name: create mongodb users in a standalone configuration
   mongodb_user:
@@ -271,3 +347,6 @@
     state: present
   with_items: MONGO_USERS
   when: not MONGO_CLUSTERED
+  tags:
+    - "manage"
+    - "manage:db"
