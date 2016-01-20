@@ -3,7 +3,7 @@ MAINTAINER edxops
 
 RUN apt-get update
 
-ADD . /edx/app/edx_ansible/edx_ansible
+COPY . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/analytics_api/ansible_overrides.yml /
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 

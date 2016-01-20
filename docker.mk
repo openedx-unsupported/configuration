@@ -10,6 +10,7 @@ docker_build=docker.build.
 docker_test=docker.test.
 docker_pkg=docker.pkg.
 docker_push=docker.push.
+docker_lint=docker.lint.
 
 # N.B. / is used as a separator so that % will match the /
 # in something like 'edxops/trusty-common:latest'
@@ -32,6 +33,7 @@ docker.build: $(foreach image,$(images),$(docker_build)$(image))
 docker.test: $(foreach image,$(images),$(docker_test)$(image))
 docker.pkg: $(foreach image,$(images),$(docker_pkg)$(image))
 docker.push: $(foreach image,$(images),$(docker_push)$(image))
+docker.lint: $(foreach image,$(images),$(docker_lint)$(image))
 
 $(docker_pull)%:
 	docker pull $*
@@ -49,6 +51,8 @@ $(docker_push)%: $(docker_pkg)%
 	docker tag -f $*:latest edxops/$*:latest
 	docker push edxops/$*:latest
 
+$(docker_lint)%: docker/build/%/Dockerfile $(docker_pull)lukasmartinelli/hadolint
+	docker run --rm -i lukasmartinelli/hadolint < $<
 
 .build/%/Dockerfile.d: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
