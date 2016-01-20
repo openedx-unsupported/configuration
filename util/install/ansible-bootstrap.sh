@@ -37,6 +37,8 @@ fi
 # Bootstrapping constants
 #
 VIRTUAL_ENV_VERSION="13.1.2"
+PIP_VERSION="7.1.2"
+SETUPTOOLS_VERSION="18.3.2"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
@@ -108,10 +110,11 @@ add-apt-repository -y "${EDX_PPA}"
 apt-get update -y
 apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
-pip install --upgrade pip setuptools
+pip install --upgrade pip=="${PIP_VERSION}"
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
+pip install setuptools=="${SETUPTOOLS_VERSION}"
 pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
 
 # create a new virtual env
