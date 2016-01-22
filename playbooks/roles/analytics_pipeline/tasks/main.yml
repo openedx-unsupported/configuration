@@ -37,10 +37,73 @@
 # ansible-playbook -i 'localhost,' ./analytics_pipeline.yml  -e@/ansible/vars/deployment.yml -e@/ansible/vars/env-deployment.yml
 #
 
+- name: ensure system packages are installed
+  command: >
+    make system-requirements
+    chdir={{ analytics_pipeline_code_dir }}
+  sudo: True
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv
+  command: "virtualenv --python={{ ANALYTICS_PIPELINE_PYTHON }} {{ analytics_pipeline_venv_dir }}"
+  args:
+    creates: "{{ analytics_pipeline_venv_dir }}/bin/pip"
+  sudo_user: "{{ analytics_pipeline_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: installed
+  shell: >
+    . {{ analytics_pipeline_venv_dir }}/bin/activate && make install
+    chdir={{ analytics_pipeline_code_dir }}
+  environment: analytics_pipeline_install_env
+  tags:
+    - install
+    - install:app-requirements
+
+- name: converted to development mode
+  shell: >
+    . {{ analytics_pipeline_venv_dir }}/bin/activate && make uninstall && make develop
+    chdir={{ analytics_pipeline_code_dir }}
+  environment: analytics_pipeline_install_env
+  tags:
+    - devstack
+    - devstack:install
+
+- name: development config installed
+  file: >
+    src={{ analytics_pipeline_code_dir }}/config/devstack.cfg
+    dest={{ analytics_pipeline_code_dir }}/override.cfg
+    owner={{ analytics_pipeline_user }} group={{ analytics_pipeline_user }}
+    state=link
+  tags:
+    - devstack
+    - devstack:install
+
+- name: create log directory
+  file: >
+    path="{{ analytics_pipeline_log_dir }}"
+    mode=0777 owner={{ analytics_pipeline_user }} group={{ analytics_pipeline_user }}
+    state=directory
+  tags:
+    - install
+    - install:configuration
+
+- name: logging configured
+  template: >
+    src=logging.cfg.j2
+    dest={{ analytics_pipeline_code_dir }}/logging.cfg
+  tags:
+    - install
+    - install:configuration
+
 - name: create config directory
   file: >
-    path="{{ ANALYTICS_PIPELINE_CONFIG_DIR }}"
-    mode=0755 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+    path="{{ analytics_pipeline_config_dir }}"
+    mode=0755 owner={{ analytics_pipeline_user }} group={{ analytics_pipeline_user }}
     state=directory
   tags:
     - install
@@ -49,8 +112,8 @@
 - name: store output database credentials for analytics pipeline
   copy: >
     content="{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE | to_json }}"
-    dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/output.json
-    mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+    dest={{ analytics_pipeline_config_dir }}/output.json
+    mode=0644 owner={{ analytics_pipeline_user }} group={{ analytics_pipeline_user }}
   tags:
     - install
     - install:configuration
@@ -58,8 +121,8 @@
 - name: store input database credentials for analytics pipeline
   copy: >
     content="{{ ANALYTICS_PIPELINE_INPUT_DATABASE | to_json }}"
-    dest={{ COMMON_CFG_DIR }}/edx-analytics-pipeline/input.json
-    mode=0644 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+    dest={{ analytics_pipeline_config_dir }}/input.json
+    mode=0644 owner={{ analytics_pipeline_user }} group={{ analytics_pipeline_user }}
   tags:
     - install
     - install:configuration
@@ -117,43 +180,73 @@
     - install
     - install:app-requirements
 
-- name: pipeline start script file installed
-  template: >
-    src=analytics-pipeline-start.sh.j2
-    dest={{ COMMON_BIN_DIR }}/analytics-pipeline-start.sh
-    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} mode=755
+- name: env vars sourced in hadoop env
+  lineinfile: >
+    dest={{ hadoop_common_env }}
+    regexp="^. {{ analytics_pipeline_venv_dir }}/bin/activate"
+    line=". {{ analytics_pipeline_venv_dir }}/bin/activate"
+    state=present
+  tags:
+    - install
+    - install:configuration
 
-#- name: ensure hdfs services are started
-#  shell: >
-#    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && {{ HADOOP_COMMON_HOME }}/sbin/start-dfs.sh
-#
-#- name: ensure hdfs services are started
-#  shell: >
-#    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && {{ HADOOP_COMMON_HOME }}/sbin/start-yarn.sh
-#
-#- name: ensure package dir exists in HDFS
-#  shell: >
-#    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/
-#  sudo_user: "{{ hadoop_common_user }}"
-#
-#- name: ensure util library is in HDFS
-#  shell: >
-#    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/
-#  sudo_user: "{{ hadoop_common_user }}"
-#
-#- name: ensure the data directory exists
-#  shell: >
-#    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}
-#  sudo_user: "{{ hadoop_common_user }}"
-#
-#- name: ensure tracking log file can be read
-#  file: >
-#    path={{ COMMON_LOG_DIR }}/tracking/tracking.log
-#    mode=0644
-#  ignore_errors: yes
-#
-#- name: cron job syncs tracking log file to hdfs
-#  cron: >
-#    user={{ hadoop_common_user }}
-#    name="Sync tracking log to HDFS"
-#    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+- name: write devstack script
+  template:
+    src: "edx/app/analytics_pipeline/devstack.sh.j2"
+    dest: "{{ analytics_pipeline_home }}/devstack.sh"
+    owner: "{{ analytics_pipeline_user }}"
+    group: "{{ analytics_pipeline_user }}"
+    mode: 0744
+  tags:
+    - devstack
+    - devstack:install
+
+- name: create data directory
+  file: >
+    path="{{ ANALYTICS_PIPELINE_LOCAL_DATA_DIR }}"
+    mode=0777 owner={{ analytics_pipeline_user }} group={{ analytics_pipeline_user }}
+    state=directory
+  tags:
+    - devstack
+    - devstack:install
+
+- name: ensure tracking log file can be read
+  file: >
+    path={{ ANALYTICS_PIPELINE_LOCAL_DATA_DIR }}/tracking.log
+    mode=0644
+  ignore_errors: yes
+  tags:
+    - devstack
+    - devstack:install
+
+- name: cron job syncs tracking log file to hdfs
+  cron: >
+    user={{ hadoop_common_user }}
+    name="Sync tracking log to HDFS"
+    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ ANALYTICS_PIPELINE_LOCAL_DATA_DIR }}/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+  tags:
+    - devstack
+    - devstack:install
+
+- name: wait for database
+  wait_for:
+    host: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.host }}"
+    port: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.port }}"
+    delay: 2
+  tags:
+    - devstack
+    - devstack:migrate
+
+- name: create database users
+  mysql_user:
+    login_host: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.host }}"
+    login_port: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.port }}"
+    login_user: "{{ ANALYTICS_PIPELINE_DB_ADMIN_USER }}"
+    login_password: "{{ ANALYTICS_PIPELINE_DB_ADMIN_PASSWORD }}"
+    name: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}"
+    host: "%"
+    password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
+    priv: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_NAME }}.*:ALL"
+  tags:
+    - devstack
+    - devstack:migrate

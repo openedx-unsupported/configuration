@@ -10,6 +10,26 @@
 ##
 # Defaults for role analytics_pipeline
 #
+ANALYTICS_PIPELINE_GIT_IDENTITY: !!null
+ANALYTICS_PIPELINE_VERSION: master
+
+ANALYTICS_PIPELINE_WHEEL_URL: http://edx-wheelhouse.s3-website-us-east-1.amazonaws.com/Ubuntu/precise
+ANALYTICS_PIPELINE_PYTHON_VERSION: 2.7
+ANALYTICS_PIPELINE_PYTHON: "/usr/bin/python{{ ANALYTICS_PIPELINE_PYTHON_VERSION }}"
+
+ANALYTICS_PIPELINE_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-analytics-pipeline.git
+    VERSION: "{{ ANALYTICS_PIPELINE_VERSION }}"
+    DESTINATION: "{{ analytics_pipeline_code_dir }}"
+    SSH_KEY: "{{ ANALYTICS_PIPELINE_GIT_IDENTITY }}"
+
+ANALYTICS_PIPELINE_SERVICE_CONFIG: {}
+
+ANALYTICS_PIPELINE_DB_ADMIN_USER: 'root'
+ANALYTICS_PIPELINE_DB_ADMIN_PASSWORD: ''
 
 ANALYTICS_PIPELINE_OUTPUT_DATABASE_NAME: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
 ANALYTICS_PIPELINE_OUTPUT_DATABASE:
@@ -24,8 +44,8 @@ ANALYTICS_PIPELINE_INPUT_DATABASE:
   host: localhost
   port: 3306
 
-ANALYTICS_PIPELINE_CONFIG_DIR: "{{ COMMON_CFG_DIR }}/edx-analytics-pipeline"
 ANALYTICS_PIPELINE_HDFS_DATA_DIR: "hdfs://localhost:9000/data"
+ANALYTICS_PIPELINE_LOCAL_DATA_DIR: /data
 
 ANALYTICS_PIPELINE_LUIGI_HADOOP_VERSION: cdh4
 ANALYTICS_PIPELINE_LUIGI_HADOOP_COMMAND: "{{ HADOOP_COMMON_HOME }}/bin/hadoop"
@@ -40,6 +60,19 @@ analytics_pipeline_util_library:
   path: /var/tmp/edx-analytics-hadoop-util
   repo: https://github.com/edx/edx-analytics-hadoop-util
   version: master
+
+analytics_pipeline_service_name: analytics_pipeline
+
+analytics_pipeline_venv_dir: "{{ analytics_pipeline_home }}/venvs/{{ analytics_pipeline_service_name }}"
+analytics_pipeline_user: "{{ analytics_pipeline_service_name }}"
+analytics_pipeline_home: "{{ COMMON_APP_DIR }}/{{ analytics_pipeline_service_name }}"
+analytics_pipeline_code_dir: "{{ analytics_pipeline_home }}/{{ analytics_pipeline_service_name }}"
+analytics_pipeline_log_dir: "{{ COMMON_LOG_DIR }}/{{ analytics_pipeline_service_name }}"
+analytics_pipeline_config_dir: "{{ COMMON_LOG_DIR }}/{{ analytics_pipeline_service_name }}"
+
+analytics_pipeline_install_env:
+    WHEEL_URL: "{{ ANALYTICS_PIPELINE_WHEEL_URL }}"
+    WHEEL_PYVER: "{{ ANALYTICS_PIPELINE_PYTHON_VERSION }}"
 
 #
 # OS packages

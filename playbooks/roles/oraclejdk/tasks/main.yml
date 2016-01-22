@@ -18,6 +18,9 @@
     executable=/bin/bash
     chdir=/var/tmp
     creates=/var/tmp/{{ oraclejdk_file }}
+  tags:
+    - install
+    - install:system-requirements
 
 - name: create jvm dir
   file: >
@@ -25,15 +28,24 @@
     state=directory
     owner=root
     group=root
+  tags:
+    - install
+    - install:system-requirements
 
 - name: untar Oracle Java
   shell: >
     tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }}
     executable=/bin/bash
     creates=/usr/lib/jvm/{{ oraclejdk_base }}
+  tags:
+    - install
+    - install:system-requirements
 
 - name: create symlink expected by elasticsearch
   file: src=/usr/lib/jvm/{{ oraclejdk_base }} dest={{ oraclejdk_link }} state=link force=yes
+  tags:
+    - install
+    - install:system-requirements
 
 - name: update alternatives java
   alternatives: >
@@ -44,6 +56,12 @@
     - java
     - javac
     - javaws
+  tags:
+    - install
+    - install:system-requirements
 
 - name: add JAVA_HOME for Oracle Java
   template: src=java.sh.j2 dest=/etc/profile.d/java.sh owner=root group=root mode=0755
+  tags:
+    - install
+    - install:system-requirements

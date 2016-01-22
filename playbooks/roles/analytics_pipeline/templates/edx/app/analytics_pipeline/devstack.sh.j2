@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+echo "[sshd] starting"
+/usr/sbin/sshd
+echo "[sshd] started"
+
+HADOOP_HOME={{ HADOOP_COMMON_HOME }}
+HADOOP_USER={{ hadoop_common_user }}
+
+if [ ! -f "{{ HADOOP_COMMON_DATA }}/namenode/current/VERSION" ]
+then
+    echo "[HDFS] formatting"
+    chmod 777 {{ HADOOP_COMMON_DATA }}
+    su ${HADOOP_USER} -c "$HADOOP_HOME/bin/hdfs namenode -format"
+    echo "[HDFS] formatted"
+fi
+echo "[HDFS] starting"
+su ${HADOOP_USER} -c "$HADOOP_HOME/sbin/start-dfs.sh"
+echo "[HDFS] started"
+
+echo "[yarn] starting"
+su ${HADOOP_USER} -c "$HADOOP_HOME/sbin/start-yarn.sh"
+echo "[yarn] started"
+
+echo -n "Initializing HDFS files and directories... "
+su ${HADOOP_USER} -c "$HADOOP_HOME/bin/hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/"
+su ${HADOOP_USER} -c "$HADOOP_HOME/bin/hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/"
+su ${HADOOP_USER} -c "$HADOOP_HOME/bin/hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}"
+echo "done"
+
+if [ -n "$GITHUB_USER" ]
+then
+    echo "Creating user account for ${GITHUB_USER}"
+    cd /edx/app/edx_ansible/edx_ansible/playbooks/edx-east
+    /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook create_user.yml -c local -i '127.0.0.1,' \
+        --extra-vars="user=$GITHUB_USER" \
+        --extra-vars="give_sudo=True"
+    echo "Creating user account for ${GITHUB_USER}... done"
+fi
+
+echo "Configuring development environment"
+cd /edx/app/edx_ansible/edx_ansible/docker/plays
+/edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook analytics_pipeline.yml -c local -i '127.0.0.1,' \
+    -t 'install:app-requirements,devstack' \
+    --extra-vars="migrate_db=yes" \
+    --extra-vars="@/ansible_overrides.yml"
+echo "Configuring development environment... done"
+
+echo "[cron] starting"
+/usr/sbin/cron
+echo "[cron] started"
+
+tail -f $HADOOP_HOME/logs/*.log

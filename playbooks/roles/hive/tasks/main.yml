@@ -23,6 +23,9 @@
 - name: check if downloaded and extracted
   stat: path={{ HIVE_HOME }}
   register: extracted_dir
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution downloaded
   get_url: >
@@ -30,18 +33,27 @@
     sha256sum={{ hive_dist.sha256sum }}
     dest={{ hive_temporary_dir }}
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution extracted
   shell: >
     chdir={{ HADOOP_COMMON_USER_HOME }}
     tar -xzf {{ hive_temporary_dir }}/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hive-{{ HIVE_VERSION }}-bin
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: versioned directory symlink created
   file: >
     src={{ HADOOP_COMMON_USER_HOME }}/hive-{{ HIVE_VERSION }}-bin
     dest={{ HIVE_HOME }}
     owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+  tags:
+    - install
+    - install:system-requirements
 
 - name: hive mysql connector distribution downloaded
   get_url: >
@@ -49,17 +61,26 @@
     sha256sum={{ hive_mysql_connector_dist.sha256sum }}
     dest={{ hive_temporary_dir }}
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: hive mysql connector distribution extracted
   shell: >
     chdir={{ hive_temporary_dir }}
     tar -xzf {{ hive_temporary_dir }}/{{ hive_mysql_connector_dist.filename }}
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: hive lib exists
   file: >
     path={{ HIVE_LIB }}
     owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+  tags:
+    - install
+    - install:system-requirements
 
 - name: hive mysql connector installed
   shell: >
@@ -67,6 +88,9 @@
     cp mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ HIVE_LIB }} &&
     chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HIVE_LIB }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: configuration installed
   template: >
@@ -75,8 +99,53 @@
     mode=0640 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
   with_items:
     - hive-env.sh
+  tags:
+    - install
+    - install:system-requirements
 
 - name: env vars sourced in hadoop env
   lineinfile: >
     dest={{ hadoop_common_env }} state=present
     regexp="^. {{ HIVE_CONF }}/hive-env.sh" line=". {{ HIVE_CONF }}/hive-env.sh"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: wait for database
+  wait_for:
+    host: "{{ HIVE_METASTORE_DATABASE.host }}"
+    port: "{{ HIVE_METASTORE_DATABASE.port }}"
+    delay: 2
+  when: HIVE_METASTORE_DATABASE is defined
+  tags:
+    - devstack
+    - devstack:migrate
+
+- name: create database users
+  mysql_user:
+    login_host: "{{ HIVE_METASTORE_DATABASE.host }}"
+    login_port: "{{ HIVE_METASTORE_DATABASE.port }}"
+    login_user: "{{ HIVE_METASTORE_DB_ADMIN_USER }}"
+    login_password: "{{ HIVE_METASTORE_DB_ADMIN_PASSWORD }}"
+    name: "{{ HIVE_METASTORE_DATABASE.user }}"
+    host: "%"
+    password: "{{ HIVE_METASTORE_DATABASE.password }}"
+    priv: "{{ HIVE_METASTORE_DATABASE.name }}.*:ALL"
+  when: HIVE_METASTORE_DATABASE is defined
+  tags:
+    - devstack
+    - devstack:migrate
+
+- name: create a database for the hive metastore
+  mysql_db:
+    login_host: "{{ HIVE_METASTORE_DATABASE.host }}"
+    login_port: "{{ HIVE_METASTORE_DATABASE.port }}"
+    login_user: "{{ HIVE_METASTORE_DB_ADMIN_USER }}"
+    login_password: "{{ HIVE_METASTORE_DB_ADMIN_PASSWORD }}"
+    db: "{{ HIVE_METASTORE_DATABASE.name }}"
+    state: present
+    encoding: latin1
+  when: HIVE_METASTORE_DATABASE is defined
+  tags:
+    - devstack
+    - devstack:migrate

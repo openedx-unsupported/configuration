@@ -1,0 +1,85 @@
+#
+# Single Docker Compose cluster that will eventually start
+# all edX services in a single flock of coordinated containers
+#
+# This work is currently experimental and a number of services
+# are missing entirely.  Containers that are present will not
+# currently work without manual steps.  We are working on
+# addressing that.
+#
+# When running compose you must pass in two environment variables
+#
+# DOCKER_EDX_ROOT which points to the directory into which you checkout
+# your edX source code.  For example, assuming the following directory
+# structure under /home/me
+#
+# |-- edx-src
+# |   |-- course-discovery
+# |   |-- cs_comments_service
+# |   |-- edx_course_discovery
+# |   |-- edx-platform
+# |   |-- xqueue
+
+# you would define DOCKER_EDX_ROOT="/home/me/edx-src"
+#
+# DOCKER_DATA_ROOT is the location on your host machine where Docker
+# guests can access your local filesystem for storing persistent data
+# files, say MongoDB or MySQL data files.
+#
+
+db:
+  container_name: db
+  image: mysql:5.6
+  environment:
+    - MYSQL_ROOT_PASSWORD=password
+    - MYSQL_USER=migrate
+    - MYSQL_PASSWORD=password
+  volumes:
+    - ${DOCKER_DATA_ROOT}/mysql/data:/data
+  ports:
+    - 3306:3306
+
+es1_5:
+  container_name: es1_5
+  image: elasticsearch:1.5
+  volumes:
+    - ${DOCKER_DATA_ROOT}/elasticsearch/data:/data
+  ports:
+    - 9201:9200
+    - 9301:9300
+
+analytics_pipeline:
+  container_name: analytics_pipeline
+  image: edxops/analytics-pipeline
+  volumes:
+    - ${DOCKER_EDX_ROOT}/edx-analytics-pipeline:/edx/app/analytics_pipeline/analytics_pipeline
+    - ${DOCKER_DATA_ROOT}/analytics_pipeline/hadoop:/edx/var/hadoop
+    - ${DOCKER_DATA_ROOT}/analytics_pipeline/data:/data
+  environment:
+    - GITHUB_USER
+  ports:
+    # HDFS
+    # - 50010:50010
+    # - 50020:50020
+    - 50070:50070
+    # - 50075:50075
+    # - 50090:50090
+    # # Mapred
+    # - 19888:19888
+    # Yarn
+    # - 8030:8030
+    # - 8031:8031
+    # - 8032:8032
+    # - 8033:8033
+    # - 8040:8040
+    # - 8042:8042
+    - 8088:8088
+
+lms:
+  container_name: lms
+  image: edxops/edxapp:v2
+  ports:
+    - 8000:8000
+    - 18000:18000
+  volumes:
+    - ${DOCKER_EDX_ROOT}/edx-platform:/edx/app/edxapp/edx-platform
