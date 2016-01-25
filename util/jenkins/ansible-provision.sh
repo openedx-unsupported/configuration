@@ -156,7 +156,7 @@ configuration_version: $configuration_version
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
-EDXAPP_COMP_THEME_DIR: $edxapp_comp_theme_dir
+EDXAPP_COMPREHENSIVE_THEME_DIR: $edxapp_comp_theme_dir
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
