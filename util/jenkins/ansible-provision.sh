@@ -23,7 +23,13 @@ export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 run_ansible() {
-  ansible-playbook $@
+  if [[ "$VERBOSE" == "true" ]]; then
+    verbose_arg='-vvv'
+  else
+    verbose_arg=''
+  fi
+
+  ansible-playbook $verbose_arg $@
   ret=$?
   if [[ $ret -ne 0 ]]; then
     exit $ret
