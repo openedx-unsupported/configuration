@@ -45,6 +45,16 @@ EDXAPP_AWS_SECRET_ACCESS_KEY:  "None"
 EDXAPP_AWS_QUERYSTRING_AUTH: false
 EDXAPP_AWS_STORAGE_BUCKET_NAME: "SET-ME-PLEASE (ex. bucket-name)"
 EDXAPP_AWS_S3_CUSTOM_DOMAIN: "SET-ME-PLEASE (ex. bucket-name.s3.amazonaws.com)"
+EDXAPP_SWIFT_USERNAME: "None"
+EDXAPP_SWIFT_KEY: "None"
+EDXAPP_SWIFT_TENANT_ID: "None"
+EDXAPP_SWIFT_TENANT_NAME: "None"
+EDXAPP_SWIFT_AUTH_URL: "None"
+EDXAPP_SWIFT_AUTH_VERSION: "None"
+EDXAPP_SWIFT_REGION_NAME: "None"
+EDXAPP_SWIFT_USE_TEMP_URLS: false
+EDXAPP_SWIFT_TEMP_URL_KEY: "None"
+EDXAPP_SWIFT_TEMP_URL_DURATION: 1800  # seconds
 EDXAPP_DEFAULT_FILE_STORAGE:  "django.core.files.storage.FileSystemStorage"
 EDXAPP_XQUEUE_BASIC_AUTH: [ "{{ COMMON_HTPASSWD_USER }}", "{{ COMMON_HTPASSWD_PASS }}" ]
 EDXAPP_XQUEUE_DJANGO_AUTH:
@@ -86,8 +96,10 @@ EDXAPP_ELASTIC_SEARCH_CONFIG:
     - host: "localhost"
       port: 9200
 
-EDXAPP_LMS_ENV: 'lms.envs.aws'
-EDXAPP_CMS_ENV: 'cms.envs.aws'
+EDXAPP_SETTINGS: 'aws'
+
+EDXAPP_LMS_ENV: 'lms.envs.{{ EDXAPP_SETTINGS }}'
+EDXAPP_CMS_ENV: 'cms.envs.{{ EDXAPP_SETTINGS }}'
 
 EDXAPP_EMAIL_BACKEND: 'django.core.mail.backends.smtp.EmailBackend'
 EDXAPP_EMAIL_HOST: 'localhost'
@@ -208,7 +220,7 @@ EDXAPP_FEATURES:
   ENABLE_DISCUSSION_SERVICE: true
   ENABLE_INSTRUCTOR_ANALYTICS: false
   PREVIEW_LMS_BASE: "{{ EDXAPP_PREVIEW_LMS_BASE }}"
-  ENABLE_S3_GRADE_DOWNLOADS: true
+  ENABLE_GRADE_DOWNLOADS: true
   USE_CUSTOM_THEME: "{{ edxapp_use_custom_theme }}"
   ENABLE_MKTG_SITE: "{{ EDXAPP_ENABLE_MKTG_SITE }}"
   AUTOMATIC_AUTH_FOR_TESTING: "{{ EDXAPP_ENABLE_AUTO_AUTH }}"
@@ -307,9 +319,10 @@ EDXAPP_EDXMKTG_USER_INFO_COOKIE_NAME: "edx-user-info"
 EDXAPP_STATIC_URL_BASE: "/static/"
 
 # Settings for Grade downloads
-EDXAPP_GRADE_STORAGE_TYPE: 'localfs'
-EDXAPP_GRADE_BUCKET: 'edx-grades'
-EDXAPP_GRADE_ROOT_PATH: '/tmp/edx-s3/grades'
+EDXAPP_GRADE_STORAGE_CLASS: 'django.core.files.storage.FileSystemStorage'
+EDXAPP_GRADE_STORAGE_KWARGS:
+  location: /tmp/edx-s3/grades
+
 # Credit card processor
 # These are the same defaults set in common.py
 EDXAPP_CC_PROCESSOR_NAME: "CyberSource2"
@@ -654,7 +667,7 @@ edxapp_environment:
   # the settings module for edxapp, DJANGO_SETTINGS_MODULE
   # should be set to {{SERVICE_VARIANT}}.{{EDXAPP_SETTINGS}}
   # where SERVICE_VARIANT is lms or cms
-  EDX_PLATFORM_SETTINGS: aws
+  EDX_PLATFORM_SETTINGS: "{{ EDXAPP_SETTINGS }}"
   # Current set to the app dir for json config, this should
   # be updated to /edx/etc/edxapp when the switch to
   # yaml based configs is complete
@@ -715,6 +728,16 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   AWS_QUERYSTRING_AUTH: "{{ EDXAPP_AWS_QUERYSTRING_AUTH }}"
   AWS_STORAGE_BUCKET_NAME: "{{ EDXAPP_AWS_STORAGE_BUCKET_NAME }}"
   AWS_S3_CUSTOM_DOMAIN: "{{ EDXAPP_AWS_S3_CUSTOM_DOMAIN }}"
+  SWIFT_USERNAME: "{{ EDXAPP_SWIFT_USERNAME }}"
+  SWIFT_KEY: "{{ EDXAPP_SWIFT_KEY }}"
+  SWIFT_TENANT_ID: "{{ EDXAPP_SWIFT_TENANT_ID }}"
+  SWIFT_TENANT_NAME: "{{ EDXAPP_SWIFT_TENANT_NAME }}"
+  SWIFT_AUTH_URL: "{{ EDXAPP_SWIFT_AUTH_URL }}"
+  SWIFT_AUTH_VERSION: "{{ EDXAPP_SWIFT_AUTH_VERSION }}"
+  SWIFT_REGION_NAME: "{{ EDXAPP_SWIFT_REGION_NAME }}"
+  SWIFT_USE_TEMP_URLS: "{{ EDXAPP_SWIFT_USE_TEMP_URLS }}"
+  SWIFT_TEMP_URL_KEY: "{{ EDXAPP_SWIFT_TEMP_URL_KEY }}"
+  SWIFT_TEMP_URL_DURATION: "{{ EDXAPP_SWIFT_TEMP_URL_DURATION }}"
   SECRET_KEY:  "{{ EDXAPP_EDXAPP_SECRET_KEY }}"
   DOC_STORE_CONFIG: "{{ edxapp_generic_doc_store_config }}"
   XQUEUE_INTERFACE:
@@ -787,9 +810,11 @@ generic_env_config:  &edxapp_generic_env
   MICROSITE_CONFIGURATION: "{{ EDXAPP_MICROSITE_CONFIGURATION }}"
   DEFAULT_FILE_STORAGE:  "{{ EDXAPP_DEFAULT_FILE_STORAGE }}"
   GRADES_DOWNLOAD:
-    STORAGE_TYPE: "{{ EDXAPP_GRADE_STORAGE_TYPE }}"
-    BUCKET: "{{ EDXAPP_GRADE_BUCKET }}"
-    ROOT_PATH: "{{ EDXAPP_GRADE_ROOT_PATH }}"
+    STORAGE_CLASS: "{{ EDXAPP_GRADE_STORAGE_CLASS | default(None) }}"
+    STORAGE_KWARGS: "{{ EDXAPP_GRADE_STORAGE_KWARGS | default(None) }}"
+    STORAGE_TYPE: "{{ EDXAPP_GRADE_STORAGE_TYPE | default(None) }}"
+    BUCKET: "{{ EDXAPP_GRADE_BUCKET | default(None) }}"
+    ROOT_PATH: "{{ EDXAPP_GRADE_ROOT_PATH | default(None) }}"
   STATIC_URL_BASE: "{{ EDXAPP_STATIC_URL_BASE }}"
   STATIC_ROOT_BASE: "{{ edxapp_staticfile_dir }}"
   LMS_BASE: "{{ EDXAPP_LMS_BASE }}"
@@ -1121,4 +1146,4 @@ edxapp_lms_variant: lms
 edxapp_cms_variant: cms
 
 # Worker Settings
-worker_django_settings_module: 'aws'
+worker_django_settings_module: '{{ EDXAPP_SETTINGS }}'

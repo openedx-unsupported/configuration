@@ -26,7 +26,7 @@
 #
 - name: Gather ec2 facts for use in other roles
   action: ec2_facts
-  tags: 
+  tags:
     - deploy
 
 - name: Set the MTU to 1500 temporarily
@@ -51,15 +51,6 @@
 # End dealing with Jumbo frames issue in mixed MTU deployements in AWS
 #
 
-- name: Create all service directories
-  file:
-    path: "{{ item.value.path }}"
-    state: directory
-    owner: "{{ item.value.owner }}"
-    group: "{{ item.value.group }}"
-    mode: "{{ item.value.mode }}"
-  with_dict: "{{ aws_dirs }}"
-
 - name: Install system packages
   apt:
     name: "{{ item }}"
@@ -82,23 +73,14 @@
     mode: 0755
     owner: root
     group: root
-  when: AWS_S3_LOGS
+  when: COMMON_OBJECT_STORE_LOG_SYNC
 
 - name: Create symlink for s3 log sync script
   file:
     state: link
     src: "{{ aws_s3_sync_script }}"
-    dest: "{{ COMMON_BIN_DIR }}/{{ aws_s3_sync_script|basename }}"
-  when: AWS_S3_LOGS
-
-- name: Force logrotate on supervisor stop
-  template:
-    src: etc/init/sync-on-stop.conf.j2
-    dest: /etc/init/sync-on-stop.conf
-    owner: root
-    group: root
-    mode: 0644
-  when: AWS_S3_LOGS
+    dest: "{{ COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT }}"
+  when: COMMON_OBJECT_STORE_LOG_SYNC
 
  # update the ssh motd on Ubuntu
  # Remove some of the default motd display on ubuntu
@@ -115,49 +97,3 @@
     - "/usr/share/landscape/landscape-sysinfo.wrapper"
     - "/etc/update-motd.d/51-cloudguest"
     - "/etc/update-motd.d/91-release-upgrade"
-
-- name: Update /etc/dhcp/dhclient.conf
-  template: 
-    src: etc/dhcp/dhclient.conf.j2 
-    dest: /etc/dhcp/dhclient.conf
-  when: COMMON_CUSTOM_DHCLIENT_CONFIG
-
-- name: Copy the MOTD template in place
-  template:
-    dest: "{{ item.dest }}"
-    src: "{{ item.src }}"
-    owner: root 
-    group: root 
-    mode: "{{ item.mode | default(644) }}"
-  with_items:
-    - { src: 'etc/motd.tail.j2', dest: '/etc/motd.tail', mode: '755' }
-
-- name: Update sshd logging to VERBOSE
-  lineinfile:
-    dest: /etc/ssh/sshd_config
-    state: present
-    regexp: "^LogLevel .*"        
-    line: "LogLevel VERBOSE"
-  register: sshd_config
-
-- name: Update sshd logging to VERBOSE
-  lineinfile:
-    dest: /etc/ssh/sshd_config
-    state: present
-    regexp: "^PasswordAuthentication .*"        
-    line: "PasswordAuthentication {{ COMMON_SSH_PASSWORD_AUTH }}"
-  register: sshd_config
-
-- name: Restart ssh
-  service:
-    name: ssh
-    state: restarted
-  become: True
-  when: sshd_config.changed and ansible_distribution in common_debian_variants
-
-- name: Restart ssh
-  service:
-    name: sshd
-    state: restarted
-  become: True
-  when: sshd_config.changed and ansible_distribution in common_redhat_variants

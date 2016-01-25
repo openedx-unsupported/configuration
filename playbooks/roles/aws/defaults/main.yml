@@ -10,14 +10,9 @@
 ##
 # Defaults for role aws
 #
-#
-# Rotate logs to S3
-# Only for when edX is running in AWS since it organizes
-# logs by security group.
-# !! The buckets defined below MUST exist prior to enabling !!
-# this feature and the instance IAM role must have write permissions
-# to the buckets, or you must specify the access and secret keys below.
-AWS_S3_LOGS: false
+
+VHOST_NAME: aws
+
 # If there are any issues with the s3 sync an error
 # log will be sent to the following address.
 # This relies on your server being able to send mail
@@ -28,30 +23,8 @@ AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
 AWS_S3_LOGS_ACCESS_KEY_ID: ""
 AWS_S3_LOGS_SECRET_KEY: ""
 
-#
-# vars are namespace with the module name.
-#
-aws_role_name: aws
-
-aws_dirs:
-  home:
-    path: "{{ COMMON_APP_DIR }}/{{ aws_role_name }}"
-    owner: "root"
-    group: "root"
-    mode: "0755"
-  logs:
-    path: "{{ COMMON_LOG_DIR }}/{{ aws_role_name }}"
-    owner: "syslog"
-    group: "syslog"
-    mode: "0650"
-  data:
-    path: "{{ COMMON_DATA_DIR }}/{{ aws_role_name }}"
-    owner: "root"
-    group: "root"
-    mode: "0700"
-
-aws_s3_sync_script: "{{ aws_dirs.home.path }}/send-logs-to-s3"
-aws_s3_logfile: "{{ aws_dirs.logs.path }}/s3-log-sync.log"
+aws_s3_sync_script: "{{ vhost_dirs.home.path }}/send-logs-to-s3"
+aws_s3_logfile: "{{ vhost_dirs.logs.path }}/s3-log-sync.log"
 aws_region: "us-east-1"
 # default path to the aws binary
 aws_s3cmd: "/usr/local/bin/s3cmd"

@@ -1,3 +1,34 @@
+- Role: common
+  - Renamed `COMMON_AWS_SYNC` to `COMMON_OBJECT_STORE_LOG_SYNC`
+  - Renamed `COMMON_AWS_SYNC_BUCKET` to `COMMON_OBJECT_STORE_LOG_SYNC_BUCKET`
+  - Renamed `COMMON_AWS_S3_SYNC_SCRIPT` to `COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT`
+  - Added `COMMON_OBJECT_STORE_LOG_SYNC_PREFIX`. Default: `logs/tracking/`
+- Role: aws
+  - Removed `AWS_S3_LOGS`
+  - Added `vhost` role as dependency
+- Role: edxapp
+  - Added `EDXAPP_SWIFT_USERNAME`
+  - Added `EDXAPP_SWIFT_KEY`
+  - Added `EDXAPP_SWIFT_TENANT_ID`
+  - Added `EDXAPP_SWIFT_TENANT_NAME`
+  - Added `EDXAPP_SWIFT_AUTH_URL`
+  - Added `EDXAPP_SWIFT_AUTH_VERSION`
+  - Added `EDXAPP_SWIFT_REGION_NAME`
+  - Added `EDXAPP_SWIFT_USE_TEMP_URLS`
+  - Added `EDXAPP_SWIFT_TEMP_URL_KEY`
+  - Added `EDXAPP_SWIFT_TEMP_URL_DURATION`
+  - Added `EDXAPP_SETTINGS` to allow using a settings file other than `aws.py`. Default: `aws`
+  - Renamed `ENABLE_S3_GRADE_DOWNLOADS` to `ENABLE_GRADE_DOWNLOADS`
+  - Replaced `EDXAPP_GRADE_STORAGE_TYPE`, `EDXAPP_GRADE_BUCKET` and `EDXAPP_GRADE_ROOT_PATH` with `EDXAPP_GRADE_STORAGE_CLASS` and `EDXAPP_GRADE_STORAGE_KWARGS`
+- Role: openstack
+  - Added role
+- Role: vhost
+  - Added as dependency for aws and openstack roles. Handles common functionality for setting up VM hosts
+- Role: xqueue
+  - Added `XQUEUE_SETTINGS` to specify which settings file to use. Default: `aws_settings`
+  - Renamed `XQUEUE_S3_BUCKET` to `XQUEUE_UPLOAD_BUCKET`
+  - Renamed `XQUEUE_S3_PATH_PREFIX` to `XQUEUE_UPLOAD_PATH_PREFIX`
+
 - Role: discovery
   - Course Discovery JWT configuration now takes a list of issuers instead of a single issuer.  This change is not backward compatible with older versions of course discovery.
 

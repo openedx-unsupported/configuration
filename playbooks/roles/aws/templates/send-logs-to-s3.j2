@@ -43,10 +43,11 @@ usage() {
             -h    this
             -d    directory to sync
             -b    bucket path to sync to
+            -p    name prefix
 EO
 }
 
-while getopts "vhnb:d:" opt; do
+while getopts "vhnb:d:p:" opt; do
   case $opt in
     v)
       set -x
@@ -64,12 +65,15 @@ while getopts "vhnb:d:" opt; do
       directory=$OPTARG
       ;;
     b)
-      bucket_path=$OPTARG
+      bucket=$OPTARG
+      ;;
+    p)
+      prefix=$OPTARG
       ;;
   esac
 done
 
-if [[ -z $bucket_path || -z $directory ]]; then
+if [[ -z $bucket || -z $directory ]]; then
   echo "ERROR: You must provide a directory and a bucket to sync!"
   usage
   exit 1
@@ -123,4 +127,4 @@ auth_opts=""
 {% endif %}
 
 s3_path="${2}/$sec_grp/"
-$noop {{ aws_s3cmd }} $auth_opts --multipart-chunk-size-mb 5120 --disable-multipart sync $directory "s3://${bucket_path}/${sec_grp}/${instance_id}-${ip}/"
+$noop {{ aws_s3cmd }} $auth_opts --multipart-chunk-size-mb 5120 --disable-multipart sync $directory/* "s3://${bucket}/${prefix}${sec_grp}/${instance_id}-${ip}/"
