@@ -33,8 +33,9 @@ env:
   - MAKE_TARGET=docker.test.shard SHARD=2 SHARDS=3
 
 script:
+  - which comm
   - git diff --name-only ${TRAVIS_COMMIT_RANGE}
-  - cd playbooks && python ../util/ansible-deps.py --playbook ../docker/plays/edxapp.yml --output-role-files
+  - cd playbooks && grep -xF -f <(git diff --name-only ${TRAVIS_COMMIT_RANGE} | sort) <(python ../util/ansible-deps.py --playbook ../docker/plays/edxapp.yml --output-role-files | sort)
   - docker --version
   - make --version
   - travis_wait 50 make --keep-going $MAKE_TARGET SHARD=$SHARD SHARDS=$SHARDS
