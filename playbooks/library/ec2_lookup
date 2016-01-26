@@ -30,6 +30,11 @@ options:
     required: false
     default: null
     aliases: [ 'aws_region', 'ec2_region' ]
+  profile:
+    description:
+      - The boto profile to use
+    required: false
+    default: null
   aws_secret_key:
     description:
       - AWS secret key. If not set then the value of
@@ -93,6 +98,7 @@ def main():
             ec2_url=dict(),
             region=dict(aliases=['aws_region', 'ec2_region'],
                         choices=AWS_REGIONS),
+            profile=dict(),
             aws_secret_key=dict(aliases=['ec2_secret_key', 'secret_key'],
                                 no_log=True),
             aws_access_key=dict(aliases=['ec2_access_key', 'access_key']),
@@ -115,12 +121,15 @@ def main():
     aws_secret_key = module.params.get('aws_secret_key')
     aws_access_key = module.params.get('aws_access_key')
     region = module.params.get('region')
+    profile = module.params.get('profile')
     ec2_url = module.params.get('ec2_url')
 
     # If we have a region specified, connect to its endpoint.
     if region:
         try:
-            ec2 = connect_to_region(region, aws_access_key_id=aws_access_key,
+            ec2 = connect_to_region(region,
+                                    profile_name=profile,
+                                    aws_access_key_id=aws_access_key,
                                     aws_secret_access_key=aws_secret_key)
         except boto.exception.NoAuthHandlerFound, e:
             module.fail_json(msg=str(e))
