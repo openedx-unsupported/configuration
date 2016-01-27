@@ -94,7 +94,7 @@ class CallbackModule(object):
             )
 
         # Log the time of each task
-        for name, elapsed in results:
+        for name, elapsed in results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
