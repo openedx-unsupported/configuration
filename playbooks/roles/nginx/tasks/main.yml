@@ -33,8 +33,51 @@
     - install
     - install:configuration
 
-- name: Install nginx packages
-  apt: pkg={{','.join(nginx_debian_pkgs)}} state=present
+- name: Install needed packages
+  apt: pkg={{ item }} state=present
+  notify: restart nginx
+  with_items: nginx_debian_pkgs
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add apt key
+  apt_key:
+    url: http://nginx.org/keys/nginx_signing.key
+    state: present
+  notify: restart nginx
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add nginx repository
+  apt_repository:
+    repo: "{{ NGINX_APT_REPO }}"
+    state: present
+  notify: restart nginx
+  tags:
+    - install
+    - install:system-requirements
+
+# REMOVE THIS AFTER LATEST NGINX HAS BEEN DEPLOYED EVERYWHERE
+# New package does not identify conflicts properly.
+# "nginx-common" only appears as requirement for ubuntu-distributed package, thus
+# removing it will remove all nginx packages installed from Ubuntu's repo.
+# This is only required if nginx was previously installed from Ubuntu's repo
+# and you're switching to Nginx's PPA
+- name: Remove old nginx packages
+  apt:
+    name: nginx-common
+    state: absent
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Install the nginx package
+  apt:
+    name: nginx
+    state: latest
+    update_cache: yes
   notify: restart nginx
   tags:
     - install
