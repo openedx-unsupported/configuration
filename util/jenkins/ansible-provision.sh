@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # Ansible provisioning wrapper script that
 # assumes the following parameters set
