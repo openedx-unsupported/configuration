@@ -64,14 +64,8 @@ confirm_proceed () {
 }
 
 # Check we are in the right place, and have the info we need.
-
-if [[ "`whoami`" != "vagrant" ]]; then
-  echo "Run this from the vagrant account in your Open edX machine."
-  exit 1
-fi
-
 if [[ ! -d /edx/app/edxapp ]]; then
-  echo "Run this from the vagrant account in your Open edX machine."
+  echo "Run this on your Open edX machine."
   exit 1
 fi
 
