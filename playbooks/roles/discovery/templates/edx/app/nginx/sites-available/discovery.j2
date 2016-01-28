@@ -3,25 +3,25 @@
 #
 
 
-{% if nginx_default_sites is defined and "course_discovery" in nginx_default_sites %}
+{% if nginx_default_sites is defined and "discovery" in nginx_default_sites %}
   {% set default_site = "default" %}
 {% else %}
   {% set default_site = "" %}
 {% endif %}
 
-upstream course_discovery_app_server {
-{% for host in nginx_course_discovery_gunicorn_hosts %}
-    server {{ host }}:{{ course_discovery_gunicorn_port }} fail_timeout=0;
+upstream discovery_app_server {
+{% for host in nginx_discovery_gunicorn_hosts %}
+    server {{ host }}:{{ discovery_gunicorn_port }} fail_timeout=0;
 {% endfor %}
 }
 
 server {
-  server_name {{ COURSE_DISCOVERY_HOSTNAME }};
+  server_name {{ DISCOVERY_HOSTNAME }};
 
   {% if NGINX_ENABLE_SSL %}
 
-  listen {{ COURSE_DISCOVERY_NGINX_PORT }} {{ default_site }};
-  listen {{ COURSE_DISCOVERY_SSL_NGINX_PORT }} ssl;
+  listen {{ DISCOVERY_NGINX_PORT }} {{ default_site }};
+  listen {{ DISCOVERY_SSL_NGINX_PORT }} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
@@ -29,11 +29,11 @@ server {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 
   {% else %}
-  listen {{ COURSE_DISCOVERY_NGINX_PORT }} {{ default_site }};
+  listen {{ DISCOVERY_NGINX_PORT }} {{ default_site }};
   {% endif %}
 
   location ~ ^/static/(?P<file>.*) {
-    root {{ COMMON_DATA_DIR }}/{{ course_discovery_service_name }};
+    root {{ COMMON_DATA_DIR }}/{{ discovery_service_name }};
     try_files /staticfiles/$file =404;
   }
 
@@ -61,7 +61,7 @@ server {
     proxy_set_header Host $http_host;
 
     proxy_redirect off;
-    proxy_pass http://course_discovery_app_server;
+    proxy_pass http://discovery_app_server;
   }
 
   # Forward to HTTPS if we're an HTTP request...

@@ -9,7 +9,7 @@
 #
 #
 #
-# Tasks for role course_discovery
+# Tasks for role discovery
 # 
 # Overview:
 # 
@@ -23,9 +23,9 @@
 
 - name: add gunicorn configuration file
   template:
-    src: edx/app/course_discovery/course_discovery_gunicorn.py.j2
-    dest: "{{ course_discovery_home }}/course_discovery_gunicorn.py"
-  sudo_user: "{{ course_discovery_user }}"
+    src: edx/app/discovery/discovery_gunicorn.py.j2
+    dest: "{{ discovery_home }}/discovery_gunicorn.py"
+  sudo_user: "{{ discovery_user }}"
   tags:
     - install
     - install:configuration
@@ -38,7 +38,8 @@
     - install:system-requirements
 
 - name: install python3.5
-  apt: pkg={{ item }}
+  apt: 
+    name: "{{ item }}"
   with_items:
     - python3.5
     - python3.5-dev
@@ -47,10 +48,10 @@
     - install:system-requirements
 
 - name: build virtualenv
-  command: "virtualenv --python=python3.5 {{ course_discovery_venv_dir }}"
+  command: "virtualenv --python=python3.5 {{ discovery_venv_dir }}"
   args:
-    creates: "{{ course_discovery_venv_dir }}/bin/pip"
-  sudo_user: "{{ course_discovery_user }}"
+    creates: "{{ discovery_venv_dir }}/bin/pip"
+  sudo_user: "{{ discovery_user }}"
   tags:
     - install
     - install:system-requirements
@@ -58,9 +59,9 @@
 - name: install application requirements
   command: make requirements
   args:
-    chdir: "{{ course_discovery_code_dir }}"
-  sudo_user: "{{ course_discovery_user }}"
-  environment: "{{ course_discovery_environment }}"
+    chdir: "{{ discovery_code_dir }}"
+  sudo_user: "{{ discovery_user }}"
+  environment: "{{ discovery_environment }}"
   tags:
     - install
     - install:app-requirements
@@ -68,17 +69,17 @@
 - name: install development requirements
   command: make local-requirements
   args:
-    chdir: "{{ course_discovery_code_dir }}"
-  sudo_user: "{{ course_discovery_user }}"
-  environment: "{{ course_discovery_environment }}"
+    chdir: "{{ discovery_code_dir }}"
+  sudo_user: "{{ discovery_user }}"
+  environment: "{{ discovery_environment }}"
   tags:
     - devstack
     - devstack:install
 
 - name: wait for database
   wait_for:
-    host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
-    port: "{{ COURSE_DISCOVERY_DATABASES.default.PORT }}"
+    host: "{{ DISCOVERY_DATABASES.default.HOST }}"
+    port: "{{ DISCOVERY_DATABASES.default.PORT }}"
     delay: 2
   tags:
     - migrate
@@ -86,10 +87,10 @@
 
 - name: create databases
   mysql_db:
-    login_host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
-    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN_USER }}"
-    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN_PASSWORD }}"
-    db: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}"
+    login_host: "{{ DISCOVERY_DATABASES.default.HOST }}"
+    login_user: "{{ DISCOVERY_DB_ADMIN_USER }}"
+    login_password: "{{ DISCOVERY_DB_ADMIN_PASSWORD }}"
+    db: "{{ DISCOVERY_DEFAULT_DB_NAME }}"
     state: present
     encoding: utf8
   tags:
@@ -98,16 +99,16 @@
 
 - name: create database users
   mysql_user:
-    login_host: "{{ COURSE_DISCOVERY_DATABASES.default.HOST }}"
-    login_user: "{{ COURSE_DISCOVERY_DB_ADMIN_USER }}"
-    login_password: "{{ COURSE_DISCOVERY_DB_ADMIN_PASSWORD }}"
+    login_host: "{{ DISCOVERY_DATABASES.default.HOST }}"
+    login_user: "{{ DISCOVERY_DB_ADMIN_USER }}"
+    login_password: "{{ DISCOVERY_DB_ADMIN_PASSWORD }}"
     name: "{{ item.name }}"
-    host: "{{ COURSE_DISCOVERY_MYSQL_MATCHER }}"
+    host: "{{ DISCOVERY_MYSQL_MATCHER }}"
     password: "{{ item.password }}"
-    priv: "{{ COURSE_DISCOVERY_DEFAULT_DB_NAME }}.*:ALL"
+    priv: "{{ DISCOVERY_DEFAULT_DB_NAME }}.*:ALL"
   with_items:
-    - name: "{{ COURSE_DISCOVERY_DATABASES.default.USER }}"
-      password: "{{ COURSE_DISCOVERY_DATABASES.default.PASSWORD }}"
+    - name: "{{ DISCOVERY_DATABASES.default.USER }}"
+      password: "{{ DISCOVERY_DATABASES.default.PASSWORD }}"
     - name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
       password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
   tags:
@@ -117,9 +118,9 @@
 - name: migrate database
   command: make migrate
   args:
-    chdir: "{{ course_discovery_code_dir }}"
-  sudo_user: "{{ course_discovery_user }}"
-  environment: "{{ course_discovery_migration_environment }}"
+    chdir: "{{ discovery_code_dir }}"
+  sudo_user: "{{ discovery_user }}"
+  environment: "{{ discovery_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate
@@ -127,8 +128,8 @@
 
 - name: write out the supervisor wrapper
   template:
-    src: "edx/app/course_discovery/course_discovery.sh.j2"
-    dest: "{{ course_discovery_home }}/{{ course_discovery_service_name }}.sh"
+    src: "edx/app/discovery/discovery.sh.j2"
+    dest: "{{ discovery_home }}/{{ discovery_service_name }}.sh"
     mode: 0650
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
@@ -138,8 +139,8 @@
 
 - name: write supervisord config
   template:
-    src: "edx/app/supervisor/conf.d.available/course_discovery.conf.j2"
-    dest: "{{ supervisor_available_dir }}/{{ course_discovery_service_name }}.conf"
+    src: "edx/app/supervisor/conf.d.available/discovery.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ discovery_service_name }}.conf"
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
     mode: 0644
@@ -149,8 +150,8 @@
 
 - name: write devstack script
   template:
-    src: "edx/app/course_discovery/devstack.sh.j2"
-    dest: "{{ course_discovery_home }}/devstack.sh"
+    src: "edx/app/discovery/devstack.sh.j2"
+    dest: "{{ discovery_home }}/devstack.sh"
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
     mode: 0744
@@ -158,12 +159,12 @@
     - devstack
     - devstack:install
 
-- name: setup the course_discovery env file
+- name: setup the discovery env file
   template:
-    src: "./{{ course_discovery_home }}/{{ course_discovery_service_name }}_env.j2"
-    dest: "{{ course_discovery_home }}/course_discovery_env"
-    owner: "{{ course_discovery_user }}"
-    group: "{{ course_discovery_user }}"
+    src: "./{{ discovery_home }}/{{ discovery_service_name }}_env.j2"
+    dest: "{{ discovery_home }}/discovery_env"
+    owner: "{{ discovery_user }}"
+    group: "{{ discovery_user }}"
     mode: 0644
   tags:
     - install
@@ -171,8 +172,8 @@
 
 - name: enable supervisor script
   file:
-    src: "{{ supervisor_available_dir }}/{{ course_discovery_service_name }}.conf"
-    dest: "{{ supervisor_cfg_dir }}/{{ course_discovery_service_name }}.conf"
+    src: "{{ supervisor_available_dir }}/{{ discovery_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ discovery_service_name }}.conf"
     state: link
     force: yes
   when: not disable_edx_services
@@ -189,8 +190,8 @@
 
 - name: create symlinks from the venv bin dir
   file:
-    src: "{{ course_discovery_venv_dir }}/bin/{{ item }}"
-    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.course_discovery"
+    src: "{{ discovery_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.discovery"
     state: link
   with_items:
     - python
@@ -202,8 +203,8 @@
 
 - name: create symlinks from the repo dir
   file:
-    src: "{{ course_discovery_code_dir }}/{{ item }}"
-    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.course_discovery"
+    src: "{{ discovery_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.discovery"
     state: link
   with_items:
     - manage.py
@@ -214,9 +215,9 @@
 - name: run collectstatic
   command: make static
   args:
-    chdir: "{{ course_discovery_code_dir }}"
-  sudo_user: "{{ course_discovery_user }}"
-  environment: "{{ course_discovery_environment }}"
+    chdir: "{{ discovery_code_dir }}"
+  sudo_user: "{{ discovery_user }}"
+  environment: "{{ discovery_environment }}"
   tags:
     - assets
     - assets:gather
@@ -226,28 +227,32 @@
     state: restarted
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
-    name: "{{ course_discovery_service_name }}"
+    name: "{{ discovery_service_name }}"
   when: not disable_edx_services
   sudo_user: "{{ supervisor_service_user }}"
   tags:
     - manage
     - manage:start
 
-- name: Copying nginx configs for course_discovery
-  template: >
-    src=edx/app/nginx/sites-available/course_discovery.j2
-    dest={{ nginx_sites_available_dir }}/course_discovery
-    owner=root group={{ common_web_user }} mode=0640
+- name: Copying nginx configs for discovery
+  template:
+    src: "edx/app/nginx/sites-available/discovery.j2"
+    dest: "{{ nginx_sites_available_dir }}/discovery"
+    owner: root 
+    group: "{{ common_web_user }}"
+    mode: 0640
   notify: reload nginx
   tags:
     - install
     - install:vhosts
 
-- name: Creating nginx config links for course_discovery
-  file: >
-    src={{ nginx_sites_available_dir }}/course_discovery
-    dest={{ nginx_sites_enabled_dir }}/course_discovery
-    state=link owner=root group=root
+- name: Creating nginx config links for discovery
+  file:
+    src: "{{ nginx_sites_available_dir }}/discovery"
+    dest: "{{ nginx_sites_enabled_dir }}/discovery"
+    state: link 
+    owner: root 
+    group: root
   notify: reload nginx
   tags:
     - install
