@@ -71,27 +71,28 @@ class CallbackModule(object):
 
         # Total time to run the complete playbook
         total_seconds = sum([x[1][1] for x in self.stats.items()])
-
+          
         # send the metric to datadog
         if self.datadog_api_initialized:
+            datadog_tasks_metrics = []
             for name, points in results:
-                datadog.api.Metric.send(
-                    metric="edx.ansible.task_duration",
-                    date_happened=[0],
-                    points=points[1],
-                    tags=[
-                        "task:{0}".format(self.clean_tag_value(name)),
-                        "playbook:{0}".format(
-                            self.clean_tag_value(self.playbook_name))
-                    ]
-                )
-            datadog.api.Metric.send(
-                metric="edx.ansible.playbook_duration",
-                date_happened=time.time(),
-                points=total_seconds,
-                tags=["playbook:{0}".format(
-                    self.clean_tag_value(self.playbook_name))]
-            )
+                datadog_tasks_metrics.append({'metric': 'edx.ansible.task_duration',
+                                              'date_happened': points[0],
+                                              'points': points[1],
+                                              'tags': ['task:{0}'.format(self.clean_tag_value(name)),
+                                                       'playbook:{0}'.format(self.clean_tag_value(self.playbook_name))
+                                                       ]
+                                              }
+                                             )
+            try:
+                datadog.api.Metric.send(datadog_tasks_metrics)
+                datadog.api.Metric.send(metric="edx.ansible.playbook_duration",
+                                        date_happened=time.time(),
+                                        points=total_seconds,
+                                        tags=["playbook:{0}".format(self.clean_tag_value(self.playbook_name))]
+                                        )
+            except Exception as ex:
+                logger.error(ex.message)
 
         # Log the time of each task
         for name, elapsed in results[:10]:
