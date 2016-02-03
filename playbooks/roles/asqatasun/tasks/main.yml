@@ -38,7 +38,7 @@
 - name: Copy the asqatasun.cnf template to /etc/mysql/conf.d
   template:
     dest: /etc/mysql/conf.d/asqatasun.cnf
-    src: asqatasun.cnf.j2
+    src: etc/mysql/conf.d/asqatasun.cnf.j2
     owner: root
     group: root
   register: my_cnf
@@ -67,7 +67,7 @@
 - name: Copy the xvfb template to /etc/init.d
   template:
     dest: /etc/init.d/xvfb
-    src: xvfb.j2
+    src: etc/init.d/xvfb.j2
     owner: root
     group: root
     mode: 755
@@ -119,22 +119,22 @@
   mysql_db: 
     name: "{{ asqatasun_parameters.db_name }}"
     state: present 
-    encoding: utf8
-    collation: utf8_general_ci
+    encoding: "{{ asqatasun_parameters.db_encoding }}"
+    collation: "{{ asqatasun_parameters.db_collation }}"
   tags:
-    - install
-    - install:base
+    - migrate
+    - migrate:db
 
 - name: Create MySQL user for Asqatasun
   mysql_user: 
     name: "{{ asqatasun_parameters.db_user }}"
     password: "{{ asqatasun_parameters.db_password }}"
-    host: localhost  
+    host: "{{ asqatasun_parameters.db_host }}"  
     priv: "{{ asqatasun_parameters.db_name }}.*:ALL"
     state: present
   tags:
-    - install
-    - install:base
+    - migrate
+    - migrate:db
 
 - name: Check that asqatasun app is running
   shell: >
