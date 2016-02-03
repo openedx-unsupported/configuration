@@ -3,13 +3,16 @@ variable "aws_region" {
 }
 variable "es_domain_name" { }
 variable "es_instance_type" {
-  default = "m3.large.elasticsearch"
+  default = "m3.medium.elasticsearch"
+}
+variable "es_zone_awareness" {
+  default = false
 }
 variable "es_instance_count" {
-  default = "5"
+  default = "1"
 }
 variable "es_ebs_volume_size" {
-  default = "100"
+  default = "10"
 }
 variable "source_ip" { }
 
