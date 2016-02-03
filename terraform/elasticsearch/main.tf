@@ -6,7 +6,7 @@ resource "aws_elasticsearch_domain" "es" {
     cluster_config {
         instance_type = "${var.es_instance_type}"
         instance_count = "${var.es_instance_count}"
-        zone_awareness_enabled = true
+        zone_awareness_enabled = "${var.es_zone_awareness}"
     }
     ebs_options {
         ebs_enabled = true
@@ -21,7 +21,7 @@ resource "aws_elasticsearch_domain" "es" {
             "Principal": "*",
             "Effect": "Allow",
             "Condition": {
-                "IpAddress": {"aws:SourceIp": ["${var.source_ip}"]}
+                "IpAddress": {"aws:SourceIp": ${var.source_ip}}
             }
         }
     ]
