@@ -6,8 +6,11 @@
   changed_when: no
 
 - fail:
-    msg: "You have already installed the experimental MySQL 5.6 repo, Please first remove that"
-  when: "'5.6.14' in  mysql_56_installed.stdout"
+    msg: "MySQL experimental is already installed, make remove_experimental_mysql: true in defaults/main.yml, if you want to remove it"
+  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+
+- include: remove_mysql_experimental.yml
+  when: remove_experimental_mysql
 
 - include: mysql.yml
-  when: mysql_56_installed.rc == 1
+  when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)
