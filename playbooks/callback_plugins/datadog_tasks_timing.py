@@ -3,8 +3,9 @@ import datetime
 import time
 import logging
 import datadog
+import sys
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("dd").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
