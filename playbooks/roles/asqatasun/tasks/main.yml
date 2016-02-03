@@ -1,4 +1,21 @@
 ---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role asqatasun
+#
+# Overview:
+#
+# Install the Asqatasun, an opensource web site analyzer, 
+# used for web accessibility (a11y) and Search Engine Optimization (SEO)
+#
+# ansible-playbook -i 'asqatasun.example.com,' ./asqatasun.yml  -e@/ansible/vars/deployment.yml -e@/ansible/vars/env-deployment.yml
+#
 - name: Set Postfix options
   debconf: 
     name: postifx 
@@ -73,6 +90,9 @@
     group: root
     mode: 755
   register: xvfb
+  tags:
+    - install
+    - install:config
 
 - name: Restart xvfb
   service: 
@@ -81,6 +101,9 @@
     state: restarted
     enabled: yes
   when: xvfb.changed
+  tags:
+    - install
+    - install:config
 
 - name: Download the latest ESR Firfox
   get_url: 
@@ -142,6 +165,9 @@
     /bin/ps aux | grep -i asqatasun
   register: asqatasun_app
   changed_when: no
+  tags:
+    - install
+    - install:base
 
 - name: Install the Asqatasun
   shell: >
