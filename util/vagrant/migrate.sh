@@ -167,6 +167,22 @@ make_config_venv
 # Dogwood details
 
 if [[ $TARGET == *dogwood* ]] ; then
+  # Run the forum migrations.
+  cat > migrate-008-context.js <<"EOF"
+    // from: https://github.com/edx/cs_comments_service/blob/master/scripts/db/migrate-008-context.js
+    print ("Add the new indexes for the context field");
+    db.contents.ensureIndex({ _type: 1, course_id: 1, context: 1, pinned: -1, created_at: -1 }, {background: true})
+    db.contents.ensureIndex({ _type: 1, commentable_id: 1, context: 1, pinned: -1, created_at: -1 }, {background: true})
+
+    print ("Adding context to all comment threads where it does not yet exist\n");
+    var bulk = db.contents.initializeUnorderedBulkOp();
+    bulk.find( {_type: "CommentThread", context: {$exists: false}} ).update(  {$set: {context: "course"}} );
+    bulk.execute();
+    printjson (db.runCommand({ getLastError: 1, w: "majority", wtimeout: 5000 } ));
+EOF
+
+  mongo cs_comments_service migrate-008-context.js
+
   # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
   sudo rm -rf /edx/app/*/v*envs/*
 
@@ -218,6 +234,10 @@ if [[ $TARGET == *dogwood* ]] ; then
     /edx/app/xqueue/xqueue/manage.py migrate \
     --settings=xqueue.aws_settings --noinput --fake-initial
   fi
+
+  # Run the forums migrations again to catch things made while this script
+  # was running.
+  mongo cs_comments_service migrate-008-context.js
 fi
 
 cd configuration/playbooks
