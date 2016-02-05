@@ -1,0 +1,28 @@
+---
+- name: Get the list of hpi files
+  shell: "ls {{ jenkins_home }}/plugins/*.hpi"
+  register: hpi_files
+
+- name: Set the permission on hpi files
+  file: 
+    path: "{{ item }}"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 0644
+  with_items: hpi_files.stdout_lines
+  notify:
+    - restart Jenkins
+
+- name: Get the list of jpi files
+  shell: "ls {{ jenkins_home }}/plugins/*.jpi"
+  register: jpi_files
+
+- name: Set the permission on jpi files
+  file: 
+    path: "{{ item }}"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 0644
+  with_items: jpi_files.stdout_lines
+  notify:
+    - restart Jenkins
