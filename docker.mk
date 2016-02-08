@@ -34,7 +34,7 @@ docker.pkg: $(foreach image,$(images),$(docker_pkg)$(image))
 docker.push: $(foreach image,$(images),$(docker_push)$(image))
 
 $(docker_pull)%:
-	docker pull $*
+	docker pull $(subst @,:,$*)
 
 $(docker_build)%: docker/build/%/Dockerfile
 	docker build -f $< .
