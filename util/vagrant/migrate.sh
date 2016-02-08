@@ -84,6 +84,11 @@ if [[ $CONFIGURATION == none ]]; then
   exit 1
 fi
 
+APPUSER=edxapp
+if [[ $CONFIGURATION == fullstack ]] ; then
+  APPUSER=www-data
+fi
+
 # Birch details
 
 if [[ $TARGET == *birch* && $INTERACTIVE == true ]] ; then
@@ -204,7 +209,7 @@ EOF
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u edxapp /edx/app/edxapp/venvs/edxapp/bin/pip uninstall -y South
+  sudo -u $APPUSER /edx/bin/pip.edxapp uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
@@ -221,10 +226,8 @@ EOF
 
   echo "Running the Django 1.8 faked migrations"
   for item in lms cms; do
-    sudo -u edxapp \
-      /edx/app/edxapp/venvs/edxapp/bin/python \
-      /edx/app/edxapp/edx-platform/manage.py $item migrate \
-      --settings=aws --noinput --fake-initial
+    sudo -u $APPUSER -E /edx/bin/python.edxapp \
+      /edx/bin/manage.edxapp $item migrate --settings=aws --noinput --fake-initial
   done
 
   if [[ $CONFIGURATION == fullstack ]] ; then
@@ -234,6 +237,13 @@ EOF
     /edx/app/xqueue/xqueue/manage.py migrate \
     --settings=xqueue.aws_settings --noinput --fake-initial
   fi
+
+  echo "Running fix-up management commands"
+  sudo -u $APPUSER -E /edx/bin/python.edxapp \
+    /edx/bin/manage.edxapp lms --settings=aws generate_course_overview --all
+
+  sudo -u $APPUSER -E /edx/bin/python.edxapp \
+    /edx/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
 
   # Run the forums migrations again to catch things made while this script
   # was running.
