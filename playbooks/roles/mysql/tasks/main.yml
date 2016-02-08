@@ -1,17 +1,33 @@
 ---
-- name: Look for mysql 5.6
-  shell: "dpkg -s mysql-server"
-  ignore_errors: yes
-  register: mysql_56_installed
-  changed_when: no
+- name: Add MySQL experimental apt key
+  apt_key:
+    id: 4F4EA0AAE5267A6C
+    keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
+    state: present
+    
+- name: Install apt repository
+  apt_repository:
+    repo: 'deb http://ppa.launchpad.net/ondrej/mysql-experimental/ubuntu precise main'
+    update_cache: yes
 
-- fail:
-    msg: "MySQL experimental is already installed, make remove_experimental_mysql: true in defaults/main.yml, if you want to remove it"
-  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+- name: install mysql 56 and dependencies
+  apt: 
+    name: "{{ item }}" 
+    install_recommends: yes 
+    force: yes 
+    state: present
+  with_items: mysql_debian_pkgs
 
-# remove this, once the new devstack is out
-- include: remove_mysql_experimental.yml
-  when: remove_experimental_mysql
+- name: start mysql
+  service: 
+    name: mysql 
+    state: started
 
-- include: mysql.yml
-  when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)
+- name: Ensure Anonymous user(s) does not exist
+  mysql_user: 
+    name: '' 
+    host: "{{ item }}" 
+    state: absent
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
