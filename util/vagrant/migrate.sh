@@ -237,19 +237,9 @@ EOF
     /edx/app/xqueue/xqueue/manage.py migrate \
     --settings=xqueue.aws_settings --noinput --fake-initial
   fi
-
-  echo "Running fix-up management commands"
-  sudo -u $APPUSER -E /edx/bin/python.edxapp \
-    /edx/bin/manage.edxapp lms --settings=aws generate_course_overview --all
-
-  sudo -u $APPUSER -E /edx/bin/python.edxapp \
-    /edx/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
-
-  # Run the forums migrations again to catch things made while this script
-  # was running.
-  mongo cs_comments_service migrate-008-context.js
 fi
 
+echo "Updating to final version of code"
 cd configuration/playbooks
 echo "edx_platform_version: $TARGET" > vars.yml
 echo "ora2_version: $TARGET" >> vars.yml
@@ -262,6 +252,20 @@ sudo ansible-playbook \
     --extra-vars="@vars.yml" \
     $SERVER_VARS \
     vagrant-$CONFIGURATION.yml
+cd ../..
+
+if [[ $TARGET == *dogwood* ]] ; then
+  echo "Running data fixup management commands"
+  sudo -u $APPUSER -E /edx/bin/python.edxapp \
+    /edx/bin/manage.edxapp lms --settings=aws generate_course_overview --all
+
+  sudo -u $APPUSER -E /edx/bin/python.edxapp \
+    /edx/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
+
+  # Run the forums migrations again to catch things made while this script
+  # was running.
+  mongo cs_comments_service migrate-008-context.js
+fi
 
 cd /
 sudo rm -rf $TEMPDIR
