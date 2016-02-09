@@ -209,7 +209,7 @@ EOF
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u $APPUSER /edx/bin/pip.edxapp uninstall -y South
+  sudo -u edxapp /edx/bin/pip.edxapp uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
