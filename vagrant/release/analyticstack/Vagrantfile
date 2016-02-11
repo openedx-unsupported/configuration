@@ -17,6 +17,11 @@ export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
 
+# Ensure that configuration repo is up-to-date.
+# The vagrant-analytics.yml playbook will also do this, but only after loading playbooks into memory.
+# If these are out-of-date, this can cause problems
+# (e.g. permission issues, looking for templates that no longer exist).
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=master
 ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=master -e ELASTICSEARCH_CLUSTER_MEMBERS=[]
 
 SCRIPT
