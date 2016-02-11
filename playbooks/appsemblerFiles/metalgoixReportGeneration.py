@@ -5,9 +5,13 @@ from instructor.views.legacy import get_student_grade_summary_data
 
 import csv 
 
+from django.contrib.auth.models import User
+random_user = User.objects.all()[0]
+
 fp = open('/tmp/gradeOutputFull.csv','w')
 writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
 request = DummyRequest()
+request.user = random_user
 
 mongo_courses = modulestore().get_courses()
 
