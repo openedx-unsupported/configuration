@@ -5,14 +5,12 @@
     src=certs.env.json.j2
     dest={{ certs_app_dir }}/env.json
   sudo_user: "{{ certs_user }}"
-  notify: restart certs
 
 - name: create certificate auth file
   template: >
     src=certs.auth.json.j2
     dest={{ certs_app_dir }}/auth.json
   sudo_user: "{{ certs_user }}"
-  notify: restart certs
 
 - name: writing supervisor script for certificates
   template: >
@@ -27,14 +25,12 @@
     state=link
     force=yes
     mode=0644
-  notify: restart certs
   when: not disable_edx_services
 
 - name: create ssh script for git
   template: >
     src={{ certs_git_ssh|basename }}.j2 dest={{ certs_git_ssh }}
     owner={{ certs_user }} mode=750
-  notify: restart certs
 
 # This key is only needed if you are pulling down a private
 # certificates repo
@@ -43,7 +39,6 @@
     content="{{ CERTS_GIT_IDENTITY }}" dest={{ certs_git_identity }}
     force=yes owner={{ certs_user }} mode=0600
   when: CERTS_GIT_IDENTITY != "none"
-  notify: restart certs
 
 - name: checkout certificates repo into {{ certs_code_dir }}
   git: >
@@ -54,7 +49,6 @@
     GIT_SSH: "{{ certs_git_ssh }}"
   register: certs_checkout
   when: CERTS_GIT_IDENTITY != "none"
-  notify: restart certs
 
 - name: checkout certificates repo into {{ certs_code_dir }}
   git: >
@@ -63,19 +57,16 @@
   sudo_user: "{{ certs_user }}"
   register: certs_checkout
   when: CERTS_GIT_IDENTITY == "none"
-  notify: restart certs
 
 - name: remove read-only ssh key for the certs repo
   file: path={{ certs_git_identity }} state=absent
   when: CERTS_GIT_IDENTITY != "none"
-  notify: restart certs
 
 - name : install python requirements
   pip: >
     requirements="{{ certs_requirements_file }}" virtualenv="{{ certs_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ certs_user }}"
-  notify: restart certs
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -110,4 +101,10 @@
 - include: tag_ec2.yml tags=deploy
   when: COMMON_TAG_EC2_INSTANCE
 
-- set_fact: certs_installed=true
+- name: restart certs
+  supervisorctl: >
+    name=certs
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
+  when: not disable_edx_services

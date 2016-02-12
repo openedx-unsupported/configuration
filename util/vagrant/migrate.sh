@@ -64,14 +64,8 @@ confirm_proceed () {
 }
 
 # Check we are in the right place, and have the info we need.
-
-if [[ "`whoami`" != "vagrant" ]]; then
-  echo "Run this from the vagrant account in your Open edX machine."
-  exit 1
-fi
-
 if [[ ! -d /edx/app/edxapp ]]; then
-  echo "Run this from the vagrant account in your Open edX machine."
+  echo "Run this on your Open edX machine."
   exit 1
 fi
 
@@ -88,6 +82,11 @@ fi
 if [[ $CONFIGURATION == none ]]; then
   echo "You must specify a configuration, either fullstack or devstack."
   exit 1
+fi
+
+APPUSER=edxapp
+if [[ $CONFIGURATION == fullstack ]] ; then
+  APPUSER=www-data
 fi
 
 # Birch details
@@ -173,6 +172,22 @@ make_config_venv
 # Dogwood details
 
 if [[ $TARGET == *dogwood* ]] ; then
+  # Run the forum migrations.
+  cat > migrate-008-context.js <<"EOF"
+    // from: https://github.com/edx/cs_comments_service/blob/master/scripts/db/migrate-008-context.js
+    print ("Add the new indexes for the context field");
+    db.contents.ensureIndex({ _type: 1, course_id: 1, context: 1, pinned: -1, created_at: -1 }, {background: true})
+    db.contents.ensureIndex({ _type: 1, commentable_id: 1, context: 1, pinned: -1, created_at: -1 }, {background: true})
+
+    print ("Adding context to all comment threads where it does not yet exist\n");
+    var bulk = db.contents.initializeUnorderedBulkOp();
+    bulk.find( {_type: "CommentThread", context: {$exists: false}} ).update(  {$set: {context: "course"}} );
+    bulk.execute();
+    printjson (db.runCommand({ getLastError: 1, w: "majority", wtimeout: 5000 } ));
+EOF
+
+  mongo cs_comments_service migrate-008-context.js
+
   # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
   sudo rm -rf /edx/app/*/v*envs/*
 
@@ -194,7 +209,7 @@ if [[ $TARGET == *dogwood* ]] ; then
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u edxapp /edx/app/edxapp/venvs/edxapp/bin/pip uninstall -y South
+  sudo -u edxapp /edx/bin/pip.edxapp uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
@@ -211,10 +226,8 @@ if [[ $TARGET == *dogwood* ]] ; then
 
   echo "Running the Django 1.8 faked migrations"
   for item in lms cms; do
-    sudo -u edxapp \
-      /edx/app/edxapp/venvs/edxapp/bin/python \
-      /edx/app/edxapp/edx-platform/manage.py $item migrate \
-      --settings=aws --noinput --fake-initial
+    sudo -u $APPUSER -E /edx/bin/python.edxapp \
+      /edx/bin/manage.edxapp $item migrate --settings=aws --noinput --fake-initial
   done
 
   if [[ $CONFIGURATION == fullstack ]] ; then
@@ -226,6 +239,7 @@ if [[ $TARGET == *dogwood* ]] ; then
   fi
 fi
 
+echo "Updating to final version of code"
 cd configuration/playbooks
 echo "edx_platform_version: $TARGET" > vars.yml
 echo "ora2_version: $TARGET" >> vars.yml
@@ -238,6 +252,20 @@ sudo ansible-playbook \
     --extra-vars="@vars.yml" \
     $SERVER_VARS \
     vagrant-$CONFIGURATION.yml
+cd ../..
+
+if [[ $TARGET == *dogwood* ]] ; then
+  echo "Running data fixup management commands"
+  sudo -u $APPUSER -E /edx/bin/python.edxapp \
+    /edx/bin/manage.edxapp lms --settings=aws generate_course_overview --all
+
+  sudo -u $APPUSER -E /edx/bin/python.edxapp \
+    /edx/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
+
+  # Run the forums migrations again to catch things made while this script
+  # was running.
+  mongo cs_comments_service migrate-008-context.js
+fi
 
 cd /
 sudo rm -rf $TEMPDIR
