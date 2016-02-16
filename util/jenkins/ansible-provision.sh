@@ -37,7 +37,13 @@ run_ansible() {
 }
 
 # This DATE_TIME will be used as instance launch time tag
-TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
+if [[ ! -n ${sandbox_life//[0-9]/} ]]  && [[ ${sandbox_life} -le 30 ]]; then
+    TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date "${sandbox_life=7} days"`
+else
+   echo "Please enter the valid value for the sandbox_life(between 1 to 30)"
+   exit 1
+fi
+
 
 if [[ -z $BUILD_USER ]]; then
     BUILD_USER=jenkins
