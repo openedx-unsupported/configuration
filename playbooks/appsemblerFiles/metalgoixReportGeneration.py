@@ -28,12 +28,13 @@ request.user = random_user
 
 mongo_courses = modulestore().get_courses()
 
-writer.writerow(['#course_id','user_id','username','full_name','email','location','city','country','course_access_group','registered','is_active','last_login','final_score'])
+writer.writerow(['#course_id', 'course_name','user_id','username','full_name','email','location','city','country','course_access_group','registered','is_active','last_login','final_score'])
 for course in mongo_courses:
 #location, city, country; registered, is_active, last_login
 #course_id = 'course-v1:Metalogix+EO301+2015'
 #course_key = SlashSeparatedCourseKey.from_deprecated_string(course_id)
 #course = get_course_by_id(course_key)
+    course_name = course.display_name
     get_raw_scores = False
     datatable = get_student_grade_summary_data(request, course, get_raw_scores=get_raw_scores)
     for d in datatable['data']:
@@ -62,7 +63,8 @@ for course in mongo_courses:
         #     p = user.profile
         # except:
         #     course_access_group = 'None'
-        output_data = [course.id, 
+        output_data = [course.id,
+                       course_name,
                         str(u.id), 
                         u.username, 
                         full_name, 
