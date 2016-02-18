@@ -35,6 +35,7 @@ userjson = jsonfp.read()
 users = json.loads(userjson)
 
 writer = csv.writer(fp, dialect='excel', quotechar='"', quoting=csv.QUOTE_ALL)
+writer.writerow(['#user_id', 'Username','full_name','Email domain','Is_active','Last_login','date_joined'])
 
 for user in users:
     user_id = user['up']['user_id']
@@ -43,7 +44,8 @@ for user in users:
     emaildomain = user['u']['email'].split('@')[1]
     isactive = user['u']['is_active']
     lastlogin = user['u']['last_login']
-    output_data = [user_id, username, fullname, emaildomain, isactive, lastlogin]
+    datejoined = user['u']['date_joined']
+    output_data = [user_id, username, fullname, emaildomain, isactive, lastlogin, datejoined]
     encoded_row = [unicode(s).encode('utf-8') for s in output_data]
     writer.writerow(encoded_row)
 
