@@ -65,3 +65,6 @@ ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U 
 # easier to read
 
 ansible-playbook -v -c local $extra_var_args -i localhost, -s -U jenkins edxapp_migrate.yml | sed 's/\\n/\n/g'
+
+#We don't care about the exit status of the `sed`
+exit ${PIPESTATUS[0]}
