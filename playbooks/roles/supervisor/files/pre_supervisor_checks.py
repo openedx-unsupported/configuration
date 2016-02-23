@@ -11,8 +11,8 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':     ". {env_file}; /edx/bin/edxapp-migrate-lms --noinput --list",
-        'cms':     ". {env_file}; /edx/bin/edxapp-migrate-cms --noinput --list",
+        'lms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-lms --noinput --list",
+        'cms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-cms --noinput --list",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'programs':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
