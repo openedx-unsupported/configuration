@@ -71,6 +71,18 @@
   tags:
     - deploy
 
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/edx_notes_api/edx_notes_api.sh.j2"
+    dest: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
+
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/edx_notes_api.conf.j2
@@ -78,6 +90,18 @@
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   tags:
     - deploy
+
+- name: setup the edx_notes_api env file
+  template:
+    src: "edx/app/edx_notes_api/edx_notes_api_env.j2"
+    dest: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name}}_env"
+    owner: "{{ edx_notes_api_user }}"
+    group: "{{ edx_notes_api_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
 
 - name: enable supervisor script
   file: >
