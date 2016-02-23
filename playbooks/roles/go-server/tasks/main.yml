@@ -1,0 +1,83 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role go-server
+# 
+# Overview:
+#
+# Deploys go-server using aptitude!
+#
+# Dependencies:
+#    - openjdk7
+# 
+# Example play:
+#
+# - name: Configure instance(s)
+#   hosts: go-server
+#   sudo: True
+#   vars_files:
+#     - "{{ secure_dir }}/admin/sandbox.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#
+
+- name: install go-server aptitude repository
+  apt_repository:
+    repo: "{{ GO_SERVER_APT_SOURCE }}"
+
+- name: install aptitude key for go-server/go-server
+  apt_key:
+    url: "{{ GO_SERVER_APT_KEY_URL }}"
+
+- name: install go-server using apt-get
+  apt:
+    name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
+    update_cache: yes
+
+- name: install go-server-oauth-login
+  get_url:
+    url: "{{ GO_SERVER_OAUTH_LOGIN_JAR_URL }}"
+    dest: "{{ GO_SERVER_OAUTH_LOGIN_JAR_DESTINATION }}"
+    mode: 0776
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: setup password file if secret hash exists
+  template:
+    src: edx/app/go-server/password.txt.j2
+    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+  when: GO_SERVER_ADMIN_PASSWORD_HASH is defined
+
+- name: install go-server configuration
+  template:
+    src: edx/app/go-server/cruise-config.xml.j2
+    dest: "{{ GO_SERVER_CONF_HOME }}/cruise-config.xml"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: copy go-server cruise database
+  copy:
+    src: cruise.h2.db
+    dest: "{{ GO_SERVER_CRUISE_CONTROL_DB_DESTIONATION }}"
+    mode: 0660
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: restart go-server
+  service:
+    name: "{{ GO_SERVER_SERVICE_NAME }}"
+    state: restarted
+
