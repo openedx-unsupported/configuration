@@ -13,16 +13,30 @@ if [ ! -d /edx/app/edx_ansible ]; then
     echo "Error: Base box is missing provisioning scripts." 1>&2
     exit 1
 fi
+OPENEDX_RELEASE=$1
 export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
 
-# Ensure that configuration repo is up-to-date.
-# The vagrant-analytics.yml playbook will also do this, but only after loading playbooks into memory.
-# If these are out-of-date, this can cause problems
-# (e.g. permission issues, looking for templates that no longer exist).
-ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=master
-ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=master -e ELASTICSEARCH_CLUSTER_MEMBERS=[]
+# Did we specify an openedx release?
+if [ -n "$OPENEDX_RELEASE" ]; then
+  EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
+    -e certs_version=$OPENEDX_RELEASE \
+    -e forum_version=$OPENEDX_RELEASE \
+    -e xqueue_version=$OPENEDX_RELEASE \
+  "
+  CONFIG_VER=$OPENEDX_RELEASE
+  # Need to ensure that the configuration repo is updated
+  # The vagrant-analyticstack.yml playbook will also do this, but only
+  # after loading the playbooks into memory.  If these are out of date,
+  # this can cause problems (e.g. looking for templates that no longer exist).
+  /edx/bin/update configuration $CONFIG_VER
+else
+  CONFIG_VER="master"
+fi
+
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
+ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS -e ELASTICSEARCH_CLUSTER_MEMBERS=[]
 
 SCRIPT
 
@@ -41,11 +55,27 @@ if ENV['VAGRANT_MOUNT_BASE']
   MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
 end
 
+# map the name of the git branch that we use for a release
+# to a name and a file path, which are used for retrieving
+# a Vagrant box from the internet.
+openedx_releases = {
+  "named-release/dogwood.rc" => {
+    :name => "analyticstack", :file => "analyticstack.box",
+  },
+  "named-release/dogwood" => {
+    :name => "analyticstack", :file => "analyticstack.box",
+  },
+}
+openedx_releases.default = {
+  :name => "analyticstack", :file => "analyticstack.box",
+}
+rel = ENV['OPENEDX_RELEASE']
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates an edX devstack VM from an official release
-  config.vm.box     = "analyticstack"
-  config.vm.box_url = "http://files.edx.org/vagrant-images/analyticstack.box"
+  # Creates an edX analyticstack VM from an official release
+  config.vm.box     = openedx_releases[rel][:name]
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
@@ -100,5 +130,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script
+  config.vm.provision "shell", inline: $script, args: rel
 end
