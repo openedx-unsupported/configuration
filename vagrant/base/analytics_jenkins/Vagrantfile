@@ -1,0 +1,30 @@
+# -*- mode: ruby -*-
+
+VAGRANTFILE_API_VERSION = "2"
+MEMORY = 2048
+
+PRIVATE_IP = ENV['VAGRANT_PRIVATE_IP'] || '192.168.33.15'
+
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "ubuntu/trusty64"
+
+  config.vm.network "private_network", ip: PRIVATE_IP
+  config.vm.synced_folder  ".", "/vagrant", disabled: true
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = MEMORY
+  end
+
+  if not ENV['VAGRANT_NO_PORTS']
+    config.vm.network :forwarded_port, guest: 8080, host: 8080  # Jenkins
+  end
+
+   config.vm.provision :ansible do |ansible|
+    ansible.playbook = "../../../playbooks/analytics-jenkins.yml"
+    ansible.verbose = "vvvv"
+
+    ansible.extra_vars = {}
+  end
+
+end

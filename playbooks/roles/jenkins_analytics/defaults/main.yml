@@ -1,0 +1,27 @@
+---
+
+# See README.md for variable descriptions
+
+jenkins_credentials_file: ansible-jenkins-credentials.json
+jenkins_connection_retries: 240
+jenkins_connection_delay: 1
+jenkins_auth_realm:
+  name: unix
+  service: su
+  # Change this default password: (see README.md to see how you can do it)
+  plain_password: jenkins
+  crypted_password: $6$rAVyI.p2wXVDKk5w$y0G1MQehmHtvaPgdtbrnvAsBqYQ99g939vxrdLXtPQCh/e7GJVwbnqIKZpve8EcMLTtq.7sZwTBYV9Tdjgf1k.
+
+# For now only a single seed job is supported, adding more would require
+# Ansible 2.+ or converting _execute_jenkins_cli to a module
+jenkins_seed_job:
+  name: analytics-seed-job
+  time_trigger: "H * * * *"
+  removed_job_action: "DELETE"
+  removed_view_action: "IGNORE"
+  scm:
+    type: git
+    url: "git@github.com:edx-ops/edx-jenkins-job-dsl.git"
+    credential_id: "github-deploy-key"
+    target_jobs: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
+    additional_classpath: "src/main/groovy"
