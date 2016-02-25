@@ -1,0 +1,39 @@
+---
+
+- fail: msg=included unix realm by accident
+  when: jenkins_auth_realm.name != "unix"
+
+- fail: msg=Please change default password for jenkins user
+  when: jenkins_auth_realm.plain_password == 'jenkins'
+
+- user:
+    name: "{{ jenkins_user }}"
+    groups: shadow
+    append: yes
+    password: "{{ jenkins_auth_realm.hashed_password }}"
+    update_password: always
+
+- name: template config.xml
+  template:
+    src: jenkins.config.main.xml
+    dest: "{{ jenkins_home }}/config.xml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+
+# Unconditionally restart jenkins, this has two side-effects:
+# 1. Jenkins uses new auth realm
+# 2. We guarantee that jenkins is started (this is not certain
+#    as Jenkins is started by handlers from jenkins_master,
+#    these handlers are launched after this role.
+
+- name: restart Jenkins
+  service: name=jenkins state=restarted
+
+- include: add_credentials.yaml
+
+- name: create seed job
+  include: create_seed_job.yaml
+  vars:
+    job_name: "{{ jenkins_seed_job.name }}"
+    job: "{{ jenkins_seed_job }}"
+
