@@ -11,8 +11,8 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':     ". {env_file}; {python} {code_dir}/manage.py lms migrate --noinput --list --settings=aws",
-        'cms':     ". {env_file}; {python} {code_dir}/manage.py cms migrate --noinput --list --settings=aws",
+        'lms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-lms --noinput --list",
+        'cms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-cms --noinput --list",
         'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'programs':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
@@ -217,7 +217,7 @@ if __name__ == '__main__':
                         if 'Migrating' in output:
                             raise Exception("Migrations have not been run for {}".format(service))
                 else:
-                    new_services = {
+                    services = {
                         "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
                         "cms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
                         "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
@@ -226,8 +226,8 @@ if __name__ == '__main__':
                         "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir}
                     }
 
-                    if service in new_services and all(arg!=None for arg in new_services[service].values()) and service in MIGRATION_COMMANDS:
-                        serv_vars = new_services[service]
+                    if service in services and all(arg!=None for arg in services[service].values()) and service in MIGRATION_COMMANDS:
+                        serv_vars = services[service]
 
                         cmd = MIGRATION_COMMANDS[service].format(**serv_vars)
                         if os.path.exists(serv_vars['code_dir']):

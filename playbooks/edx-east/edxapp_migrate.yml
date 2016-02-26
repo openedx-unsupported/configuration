@@ -4,14 +4,32 @@
   gather_facts: False
   vars:
     db_dry_run: "--list"
+  roles:
+    - edxapp
   tasks:
-    - name: migrate
+    - name: migrate lms
       shell: >
         chdir={{ edxapp_code_dir }}
-        python manage.py {{ item }} migrate --noinput {{ db_dry_run }} --settings=aws_migrate
+        python manage.py lms migrate --database {{ item }} --noinput {{ db_dry_run }} --settings=aws_migrate
       environment:
         DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
         DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+      # Migrate any database in the config, but not the read_replica
+      when: item != 'read_replica'
       with_items:
-        - lms
-        - cms
+        - "{{ lms_auth_config.DATABASES.keys() }}"
+      tags:
+        - always
+    - name: migrate cms
+      shell: >
+        chdir={{ edxapp_code_dir }}
+        python manage.py cms migrate --database {{ item }} --noinput {{ db_dry_run }} --settings=aws_migrate
+      environment:
+        DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+      # Migrate any database in the config, but not the read_replica
+      when: item != 'read_replica'
+      with_items:
+        - "{{ cms_auth_config.DATABASES.keys() }}"
+      tags:
+        - always
