@@ -1,0 +1,110 @@
+---
+
+- name: create databases
+  mysql_db:
+    db: "{{ item }}"
+    state: present
+    encoding: utf8
+    login_user: '{{ mysql_login_user }}'
+    login_password: '{{ mysql_login_password }}'
+    login_host: '{{ mysql_login_host }}'
+    login_port: '{{ mysql_login_port }}'
+  when: item != None and item != ''
+  with_items: "{{ mysql_databases }}"
+
+- name: create database users
+  mysql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.db }}.*:ALL"
+    host: '{{ mysql_user_host }}'
+    login_user: '{{ mysql_login_user }}'
+    login_password: '{{ mysql_login_password }}'
+    login_host: '{{ mysql_login_host }}'
+    login_port: '{{ mysql_login_port }}'
+  when: item.db != None and item.db != ''
+  with_items: "{{ mysql_database_users }}"
+
+- name: setup the migration db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    priv: "{{ item }}.*:ALL"
+    append_privs: yes
+    host: '{{ mysql_user_host }}'
+    login_user: '{{ mysql_login_user }}'
+    login_password: '{{ mysql_login_password }}'
+    login_host: '{{ mysql_login_host }}'
+    login_port: '{{ mysql_login_port }}'
+  when: item != None and item != ''
+  with_items: "{{ mysql_databases }}"
+
+- name: create api user for the analytics api
+  mysql_user: >
+    name=api001
+    password="{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
+    priv='{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+    host='{{ mysql_user_host }}'
+    login_user='{{ mysql_login_user }}'
+    login_password='{{ mysql_login_password }}'
+    login_host='{{ mysql_login_host }}'
+    login_port='{{ mysql_login_port }}'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create read-only reports user for the analytics-api
+  mysql_user: >
+    name=reports001
+    password="{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
+    priv='{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+    host='{{ mysql_user_host }}'
+    login_user='{{ mysql_login_user }}'
+    login_password='{{ mysql_login_password }}'
+    login_host='{{ mysql_login_host }}'
+    login_port='{{ mysql_login_port }}'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create a database for the hive metastore
+  mysql_db: >
+    db={{ HIVE_METASTORE_DATABASE.name }}
+    state=present
+    encoding=latin1
+    login_user='{{ mysql_login_user }}'
+    login_password='{{ mysql_login_password }}'
+    login_host='{{ mysql_login_host }}'
+    login_port='{{ mysql_login_port }}'
+  when: HIVE_METASTORE_DATABASE is defined
+
+- name: setup the edx-notes-api db user
+  mysql_user: >
+    name={{ EDX_NOTES_API_MYSQL_DB_USER }}
+    password={{ EDX_NOTES_API_MYSQL_DB_PASS }}
+    priv='{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE'
+    host='{{ mysql_user_host }}'
+    login_user='{{ mysql_login_user }}'
+    login_password='{{ mysql_login_password }}'
+    login_host='{{ mysql_login_host }}'
+    login_port='{{ mysql_login_port }}'
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+
+
+- name: setup the read-only db user
+  mysql_user: >
+    name={{ COMMON_MYSQL_READ_ONLY_USER }}
+    password={{ COMMON_MYSQL_READ_ONLY_PASS }}
+    priv='*.*:ALL'
+    host='{{ mysql_user_host }}'
+    login_user='{{ mysql_login_user }}'
+    login_password='{{ mysql_login_password }}'
+    login_host='{{ mysql_login_host }}'
+    login_port='{{ mysql_login_port }}'
+
+- name: setup the admin db user
+  mysql_user: >
+    name={{ COMMON_MYSQL_ADMIN_USER }}
+    password={{ COMMON_MYSQL_ADMIN_PASS }}
+    priv='*.*:CREATE USER'
+    host='{{ mysql_user_host }}'
+    login_user='{{ mysql_login_user }}'
+    login_password='{{ mysql_login_password }}'
+    login_host='{{ mysql_login_host }}'
+    login_port='{{ mysql_login_port }}'
