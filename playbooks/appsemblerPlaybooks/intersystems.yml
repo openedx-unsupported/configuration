@@ -1,0 +1,45 @@
+# Set up a user and SFTP-only group
+# Create directories for download of reports
+# SFTP_user_password must be set in server-vars.yml
+
+- hosts: all
+  sudo: true
+  vars:
+    sftp_user: "iscreportsftp"
+    sftp_group: "filetransfer"
+    course_participation_dir: "course_participation"
+  tasks:
+    - include_vars: "../roles/common/defaults/main.yml"
+
+    - name: create SFTP group
+      group: name={{ sftp_group }} state=present
+
+    - name: create SFTP user
+      user: name={{ sftp_user}} password={{SFTP_user_password}} groups={{ sftp_group }} shell=/sbin/nologin createhome=yes
+
+    - name: change owner of SFTP user home dir to root
+      file: >
+        path="/home/{{ sftp_user }}
+        owner="root"
+        state="directory"
+
+    - name: make reports subdirectories
+      file: >
+        path="/home/{{ sftp_user }}/{{ item }}"
+        state=directory
+        owner={{ sftp_user }}
+        group=edxapp
+        mode=0755
+      with_items:
+        - {{ course_participation_dir }}
+
+    - name: Update sshd config to force SFTP group to chrooted internal-sftp only
+      blockinfile: |
+      dest=/etc/ssh/sshd_config backup=yes
+      content="Match group {{sftp_group}}
+        PasswordAuthentication yes
+        ChrootDirectory %h
+        X11Forwarding no
+        AllowTcpForwarding no
+        ForceCommand internal-sftp"
+      notify: restart ssh
