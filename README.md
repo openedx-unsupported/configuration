@@ -17,6 +17,9 @@ and are free to use one, but not the other.  The provisioning phase
 stands-up the required resources and tags them with role identifiers
 so that the configuration tool can come in and complete the job.
 
+__Note__: The Cloudformation templates used for infrastructure provisioning 
+are no longer maintained. We are working to move to a more modern and flexible tool.
+
 The reference platform is provisioned using an Amazon
 [CloudFormation](http://aws.amazon.com/cloudformation/) template.
 When the stack has been fully created you will have a new AWS Virtual
@@ -33,6 +36,6 @@ configuration tools, we will be migrating features to this project
 over time, so expect frequent changes.
 
 
-For more information including installation instruction please see the [Open edX Operations](https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home) page.
+For more information including installation instruction please see the [OpenEdX Wiki](https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home).
 
 For info on any large recent changes please see the [change log](https://github.com/edx/configuration/blob/master/CHANGELOG.md).
