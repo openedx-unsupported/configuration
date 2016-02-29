@@ -1,0 +1,32 @@
+# Checkout a private certificate data repo for project
+- hosts: all
+  tasks:
+    - include_vars: "../roles/common/defaults/main.yml"
+    - include_vars: "../roles/certs/defaults/main.yml"
+
+    - name: create ssh script for git
+      template: >
+        src=../roles/certs/templates/{{ certs_git_ssh|basename }}.j2 dest={{ certs_git_ssh }}
+        owner={{ certs_user }} mode=750
+
+    # This key is only needed if you are pulling down a private
+    # certificates repo
+    - name: install read-only ssh key for the certs repo
+      copy: >
+        content="{{ CERTS_GIT_IDENTITY }}" dest={{ certs_git_identity }}
+        force=yes owner={{ certs_user }} mode=0600
+      when: CERTS_GIT_IDENTITY != "none"
+
+    - name: checkout custom {{ EDXAPP_PLATFORM_NAME }} certificates repo
+      git: >
+        dest={{ certs_app_dir }}/edx-custom-certs repo={{ CUSTOM_CERTS_REPO }} version="{{ custom_certs_version }}"
+        accept_hostkey=yes
+      sudo_user: "{{ certs_user}}"
+      environment:
+        GIT_SSH: "{{ certs_git_ssh }}"
+      register: custom_certs_checkout
+      when: CERTS_GIT_IDENTITY != "none"
+
+    - name: remove read-only ssh key for the certs repo
+      file: path={{ certs_git_identity }} state=absent
+      when: CERTS_GIT_IDENTITY != "none"
