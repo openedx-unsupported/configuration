@@ -31,10 +31,8 @@ The configuration phase is managed by [Ansible](http://ansible.com/).
 We have provided a number of playbooks that will configure each of
 the edX services.
 
-This project is a re-write of the current edX provisioning and
-configuration tools, we will be migrating features to this project
-over time, so expect frequent changes.
-
+__Important__: 
+The edX configuration scripts need to be run as root on your servers and will make changes to service configurations including, but not limited to, sshd, dhclient, sudo, apparmor and syslogd. Our scripts are made available as we use them and they implement our best practices. We strongly recommend that you review everything that these scripts will do before running them against your servers. We also recommend against running them against servers that are hosting other applications. No warranty is expressed or implied.
 
 For more information including installation instruction please see the [OpenEdX Wiki](https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home).
 
