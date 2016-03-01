@@ -8,7 +8,7 @@ ssh to the Metalogix server
 sudo su edxapp -s /bin/bash
 cd ~/edx-platform
 source ~/edxapp_env
-./manage.py lms 6002exportusers.csv --settings=aws_appsembler
+./manage.py lms 6002exportusers --settings=aws_appsembler
 ```
 
 This will output the file transfer_users.txt.
