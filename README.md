@@ -6,6 +6,8 @@ The goal of the edx/configuration project is to provide a simple, but
 flexible, way for anyone to stand up an instance of Open edX that is
 fully configured and ready-to-go.
 
+Before getting started, please look at the [Open EdX Deployment options](https://open.edx.org/deployment-options), to see which method for deploying OpenEdX is right for you.
+
 Building the platform takes place in two phases:
 
 * Infrastructure provisioning
