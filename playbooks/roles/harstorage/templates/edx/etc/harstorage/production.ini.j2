@@ -1,0 +1,57 @@
+#
+# harstorage - Pylons development environment configuration
+#
+# The %(here)s variable will be replaced with the parent directory of this file
+#
+[DEFAULT]
+debug = false
+
+[server:main]
+use = egg:Paste#http
+host = {{ harstorage_host }}
+port = {{ harstorage_port }}
+
+[app:main]
+use = egg:harstorage
+full_stack = true
+static_files = true
+temp_store = {{ COMMON_DATA_DIR }}/{{ harstorage_user }}
+bin_store  = {{ harstorage_bin_dir }}
+ps_enabled = true
+static_version = {{ harstorage_version }}
+
+mongo_replicate = false
+mongo_replset = {{ mongo_repl_set }}
+mongo_host = localhost
+mongo_port = {{ mongo_port }}
+mongo_db   = {{ harstorage_role_name }}
+mongo_auth = false
+mongo_user = {{ mongo_admin_user }}
+mongo_pswd = {{ mongo_admin_password }}
+cache_dir = {{ COMMON_DATA_DIR }}/{{ harstorage_user }}
+beaker.session.key = harstorage
+beaker.session.secret = somesecret
+
+# Logging configuration
+[loggers]
+keys = root
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s,%(msecs)03d %(levelname)-5.5s [%(name)s] [%(threadName)s] %(message)s
+datefmt = %H:%M:%S
