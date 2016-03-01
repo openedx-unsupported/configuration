@@ -1,0 +1,57 @@
+---
+
+- name: Configure instance(s)
+  hosts: edx
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    EDXAPP_LMS_NGINX_PORT: '80'
+    edx_platform_repo: 'https://github.com/appsembler/edx-platform.git'
+    edx_platform_version: 'appsembler/amc/develop'
+    # Set to false if deployed behind another proxy/load balancer.
+    NGINX_SET_X_FORWARDED_HEADERS: True
+    # These should stay false for the public AMI
+    COMMON_ENABLE_DATADOG: False
+    COMMON_ENABLE_SPLUNKFORWARDER: False
+  vars_files:
+    - vault/production_secret_vars.yml
+  tasks:
+    - name: install memcached
+      apt: pkg=memcached state=present
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - role: nginx
+      nginx_sites:
+      - certs
+      - cms
+      - lms
+      - forum
+      - xqueue
+      nginx_default_sites:
+      - lms
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - notifier
+    - analytics_api
+    - insights
+    - edx_notes_api
+    - demo
+    - oauth_client_setup
+    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
+    - oraclejdk
+    - role: elasticsearch
+      when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - certs
+    - edx_ansible
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
