@@ -6,13 +6,23 @@
   apt: pkg={{ item }} install_recommends=yes state=present
   with_items: edxlocal_debian_pkgs
 
-# TODO: Add a test to make sure mysql is running.
+- name: start mysql
+  service:
+    name: mysql
+    state: started
+
+# Needed to create djcelery tables with utf8mb4 encoding:
+# https://github.com/celery/django-celery/issues/259
+- name: set innodb_large_prefix
+  mysql_variables:
+    variable: innodb_large_prefix
+    value: 1
 
 - name: create databases
   mysql_db:
     db: "{{ item }}"
     state: present
-    encoding: utf8
+    encoding: utf8mb4
   when: item != None and item != ''
   with_items: "{{ edxlocal_databases }}"
 
