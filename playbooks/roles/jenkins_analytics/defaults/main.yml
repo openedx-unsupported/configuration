@@ -2,6 +2,21 @@
 
 # See README.md for variable descriptions
 
+ANALYTICS_SCHEDULE_SECURE_REPO_URL:
+ANALYTICS_SCHEDULE_SECURE_REPO_DEST: "analytics-secure-config"
+ANALYTICS_SCHEDULE_SECURE_REPO_VERSION: "master"
+ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID:
+# If EXTRA_VARS is a file path, it can be relative to the workspace, or absolute.
+ANALYTICS_SCHEDULE_EXTRA_VARS: "@{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/vars.yml"
+
+ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL: "git@github.com:edx/edx-jenkins-job-dsl.git"
+ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION: "master"
+ANALYTICS_SCHEDULE_JOBS_DSL_REPO_CREDENTIAL_ID:
+ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH: |
+  src/main/groovy
+  lib/*.jar
+ANALYTICS_SCHEDULE_JOBS_DSL_TARGET_JOBS: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
+
 jenkins_credentials_file: ansible-jenkins-credentials.json
 jenkins_connection_retries: 240
 jenkins_connection_delay: 1
@@ -12,16 +27,27 @@ jenkins_auth_realm:
   plain_password: jenkins
   crypted_password: $6$rAVyI.p2wXVDKk5w$y0G1MQehmHtvaPgdtbrnvAsBqYQ99g939vxrdLXtPQCh/e7GJVwbnqIKZpve8EcMLTtq.7sZwTBYV9Tdjgf1k.
 
-# For now only a single seed job is supported, adding more would require
-# Ansible 2.+ or converting _execute_jenkins_cli to a module
 jenkins_seed_job:
-  name: analytics-seed-job
-  time_trigger: "H * * * *"
-  removed_job_action: "DELETE"
-  removed_view_action: "IGNORE"
-  scm:
-    type: git
-    url: "git@github.com:edx-ops/edx-jenkins-job-dsl.git"
-    credential_id: "github-deploy-key"
-    target_jobs: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
-    additional_classpath: "src/main/groovy"
+  name: ANALYTICS_SEED
+  parameters:
+    - extra_vars:
+      name: EXTRA_VARS
+      value: "{{ ANALYTICS_SCHEDULE_EXTRA_VARS }}"
+      description: "Seed Job configuration"
+  multiscm:
+    - scm:
+      type: git
+      url: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL }}"
+      branch: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION | default('master') }}"
+      credential_id: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_CREDENTIAL_ID | default('') }}"
+    - scm:
+      type: git
+      url: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL | default('') }}"
+      dest: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST | default('') }}"
+      branch: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION | default('master') }}"
+      credential_id: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID | default('') }}"
+  dsl:
+    removed_view_action: IGNORE
+    removed_job_action: DELETE
+    additional_classpath: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH }}"
+    target_jobs: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_TARGET_JOBS }}"

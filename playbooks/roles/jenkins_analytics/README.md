@@ -68,6 +68,7 @@ attributes:
 
 * `name`:  Name of the job in Jenkins.
 * `time_trigger`: A Jenkins cron entry defining how often this job is ran.
+  Optional, job will only be run once on install if omitted.
 * `removed_job_action`: what to do when job created by the seed job is deleted.
   This can be either  `DELETE` or`IGNORE`.
 * `removed_view_action`: What to do when view created by the seed job is removed.
@@ -76,16 +77,24 @@ attributes:
   It has following properties:
   * `scm.type`: It must have value of `git`.
   * `scm.url`: URL for the repository.
+  * `scm.branch`: branch for the repository.  Defaults to `master`
   * `scm.credential_id`: Id of credential used to authenticate to the repository.
   * `scm.target_jobs`: A shell glob expression relative to repo selecting
     jobs to import.
   * `scm.additional_classpath`: A path relative to repo root, pointing to a
      directory that contains additional groovy scripts used by the seed jobs.
+* `seed_config` fed as JSON string to the target jobs via a Global Variable.  Fields are:
+  * `workspace`: directory where the `analytics-tasks` and
+    `analytics-configuration` repos are installed.  Jenkins user needs read/write access.
+  * `tasks`: list of analytics tasks:
+    * `name`: name of task to run
+    * `params`: list of parameter strings for the task.  Be sure to quote any
+      filename or non-bash-friendly characters.
 
-Example scm configuration:
+Example seed job configuration:
 
     jenkins_seed_job:
-      name: seed
+      name: analytics-seed-job
       time_trigger: "H * * * *"
       removed_job_action: "DELETE"
       removed_view_action: "IGNORE"
@@ -95,6 +104,20 @@ Example scm configuration:
         credential_id: "github-deploy-key"
         targed_jobs: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
         additional_classpath: "src/main/groovy"
+      seed_config:
+        workspace: /home/jenkins
+        tasks:
+          answer_dist: 
+            name: AnswerDistributionWorkflow
+            params: 
+              - dest="file:/var/analytics/output/AnswerDistributionWorkflow/"
+              - marker="file:/var/analytics/markers/AnswerDistributionWorkflow/"
+              - output_root="/var/analytics/output/AnswerDistributionWorkflow/"
+              - src="file:/var/analytics/input/AnswerDistributionWorkflow/"
+          import_enrollments:
+            name: ImportEnrollmentsIntoMysql
+            params:
+              - expand_interval=10
 
 Credential file example
 -----------------------
