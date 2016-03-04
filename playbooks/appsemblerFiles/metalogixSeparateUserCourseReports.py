@@ -100,7 +100,7 @@ user_file_name = '/tmp/userReport%s.csv' % datetime.now().strftime('%Y%m%d')
 fp = open(user_file_name,'w')
 writer = csv.writer(fp, quotechar='"', quoting=csv.QUOTE_ALL)
 
-writer.writerow(['#user_id','username','email_address','email_domain','is_active','last_login','date_joined','city','country','course_access_group'])
+writer.writerow(['#user_id','username','full_name','email_address','email_domain','is_active','last_login','date_joined','city','country','course_access_group'])
 
 users = User.objects.all()
 for u in users:
@@ -124,6 +124,7 @@ for u in users:
         full_name = ''
     output_data = [u.id,
                    u.username,
+				   full_name,
                    u.email,
                    '',
                    u.is_active,
