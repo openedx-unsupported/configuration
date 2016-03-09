@@ -52,7 +52,7 @@ $(docker_push)%: $(docker_pkg)%
 
 .build/%/Dockerfile.d: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	$(eval FROM=$(shell grep "FROM" $< | sed --regexp-extended "s/FROM //" | sed --regexp-extended "s/:/@/g"))
+	$(eval FROM=$(shell grep "^\s*FROM" $< | sed --regexp-extended "s/FROM //" | sed --regexp-extended "s/:/@/g"))
 	$(eval EDXOPS_FROM=$(shell echo "$(FROM)" | sed --regexp-extended "s#edxops/([^@]+)(@.*)?#\1#"))
 	@echo "$(docker_build)$*: $(docker_pull)$(FROM)" > $@
 	@if [ "$(EDXOPS_FROM)" != "$(FROM)" ]; then \
