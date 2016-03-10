@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.6.5"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
@@ -13,46 +13,89 @@ if [ ! -d /edx/app/edx_ansible ]; then
     echo "Error: Base box is missing provisioning scripts." 1>&2
     exit 1
 fi
+OPENEDX_RELEASE=$1
 export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
 
-ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=master
+# Did we specify an openedx release?
+if [ -n "$OPENEDX_RELEASE" ]; then
+  EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
+    -e certs_version=$OPENEDX_RELEASE \
+    -e forum_version=$OPENEDX_RELEASE \
+    -e xqueue_version=$OPENEDX_RELEASE \
+  "
+  CONFIG_VER=$OPENEDX_RELEASE
+  # Need to ensure that the configuration repo is updated
+  # The vagrant-analyticstack.yml playbook will also do this, but only
+  # after loading the playbooks into memory.  If these are out of date,
+  # this can cause problems (e.g. looking for templates that no longer exist).
+  /edx/bin/update configuration $CONFIG_VER
+else
+  CONFIG_VER="master"
+fi
+
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
+ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS -e ELASTICSEARCH_CLUSTER_MEMBERS=[]
 
 SCRIPT
 
-edx_platform_mount_dir = "edx-platform"
-themes_mount_dir = "themes"
-forum_mount_dir = "cs_comments_service"
-insights_mount_dir = "insights"
-analytics_api_mount_dir = "analytics_api"
+MOUNT_DIRS = {
+  :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
+  :themes => {:repo => "themes", :local => "/edx/app/edxapp/themes", :owner => "edxapp"},
+  :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
+  :insights => {:repo => "insights", :local => "/edx/app/insights/edx_analytics_dashboard", :owner => "insights"},
+  :analytics_api => {:repo => "analytics_api", :local => "/edx/app/analytics_api/analytics_api", :owner => "analytics_api"},
+  # This src directory won't have useful permissions. You can set them from the
+  # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
+  :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
 
+}
 if ENV['VAGRANT_MOUNT_BASE']
-
-  edx_platform_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_platform_mount_dir
-  themes_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + themes_mount_dir
-  forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
-  insights_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + insights_mount_dir
-  analytics_api_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + analytics_api_mount_dir
-
+  MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
 end
+
+# map the name of the git branch that we use for a release
+# to a name and a file path, which are used for retrieving
+# a Vagrant box from the internet.
+openedx_releases = {
+  "named-release/dogwood.rc" => {
+    :name => "analyticstack", :file => "analyticstack.box",
+  },
+  "named-release/dogwood" => {
+    :name => "analyticstack", :file => "analyticstack.box",
+  },
+}
+openedx_releases.default = {
+  :name => "analyticstack", :file => "analyticstack.box",
+}
+rel = ENV['OPENEDX_RELEASE']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates an edX devstack VM from an official release
-  config.vm.box     = "analyticstack"
-  config.vm.box_url = "http://files.edx.org/vagrant-images/analyticstack.box"
+  # Creates an edX analyticstack VM from an official release
+  config.vm.box     = openedx_releases[rel][:name]
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
-  config.vm.network :forwarded_port, guest: 8000, host: 8000
-  config.vm.network :forwarded_port, guest: 8001, host: 8001
-  config.vm.network :forwarded_port, guest: 18080, host: 18080
-  config.vm.network :forwarded_port, guest: 8765, host: 8765
-  config.vm.network :forwarded_port, guest: 9200, host: 9200
-  config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
-  config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
-  config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
-  config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
+
+  # If you want to run the box but don't need network ports, set VAGRANT_NO_PORTS=1.
+  # This is useful if you want to run more than one box at once.
+  if not ENV['VAGRANT_NO_PORTS']
+    config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
+    config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
+    config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
+    config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
+    config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
+    config.vm.network :forwarded_port, guest: 8765, host: 8765
+    config.vm.network :forwarded_port, guest: 9200, host: 9200  # Elasticsearch
+    config.vm.network :forwarded_port, guest: 18080, host: 18080  # Forums
+    config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
+    config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
+    config.vm.network :forwarded_port, guest: 9876, host: 9876  # ORA2 Karma tests
+    config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
+    config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
+  end
   config.ssh.insert_key = true
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
@@ -63,27 +106,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   if ENV['VAGRANT_USE_VBOXFS'] == 'true'
-    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
-      create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
-      create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
-      create: true, owner: "forum", group: "www-data"
-    config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
-      create: true, owner: "insights", group: "www-data"
-    config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
-      create: true, owner: "analytics_api", group: "www-data"
+    MOUNT_DIRS.each { |k, v|
+      config.vm.synced_folder v[:repo], v[:local], create: true, owner: v[:owner], group: "www-data"
+    }
   else
-    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
-      create: true, nfs: true
-    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
-      create: true, nfs: true
-    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
-      create: true, nfs: true
-    config.vm.synced_folder "#{insights_mount_dir}", "/edx/app/insights/edx_analytics_dashboard",
-      create: true, nfs: true
-    config.vm.synced_folder "#{analytics_api_mount_dir}", "/edx/app/analytics_api/analytics_api",
-      create: true, nfs: true
+    MOUNT_DIRS.each { |k, v|
+      config.vm.synced_folder v[:repo], v[:local], create: true, nfs: true
+    }
   end
 
   config.vm.provider :virtualbox do |vb|
@@ -101,5 +130,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script
+  config.vm.provision "shell", inline: $script, args: rel
 end

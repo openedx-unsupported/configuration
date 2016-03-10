@@ -3,17 +3,16 @@
  *
  * java -jar /var/jenkins/war/WEB-INF/jenkins-cli.jar -s http://localhost:8080 groovy addCredentials.groovy
  *
- * For a given json file, it will create credential in a Jenkins instance.  The script can be run safely
- * multiple times and it will update a credential.
+ * For a given json file, this script will create a set of credentials.
+ * The script can be run safely multiple times and it will update each changed credential
+ * (deleting credentials is not currently supported).
  *
- * This is useful in conjunction with the job-dsl to bootstrap an barebones Jenkins instance.
+ * This is useful in conjunction with the job-dsl to bootstrap a barebone Jenkins instance.
  *
  * This script will currently fail if the plugins it requires have not been installed:
  *
  * credentials-plugin
  * credentials-ssh-plugin
- *
- * TODO: Deleting credentials is not currently supported.
  */
 
 
@@ -44,16 +43,22 @@ boolean addSSHUserPrivateKey(scope, id, username, privateKey, passphrase, descri
     return true
 }
 
+def jsonFile = new File("{{ jenkins_credentials_file_dest }}");
+
+if (!jsonFile.exists()){
+    throw RuntimeException("Credentials file does not exist on remote host");
+}
+
 def jsonSlurper = new JsonSlurper()
-def d = jsonSlurper.parse(new FileReader(new File("{{ jenkins_credentials_file_dest }}")))
+def credentialList = jsonSlurper.parse(new FileReader(jsonFile))
 
-d.credentials.each { cred ->
+credentialList.each { credential ->
 
-    if (cred.scope != "GLOBAL"){
+    if (credential.scope != "GLOBAL"){
         throw new RuntimeException("Sorry for now only global scope is supported");
     }
 
-    scope = CredentialsScope.valueOf(cred.scope)
+    scope = CredentialsScope.valueOf(credential.scope)
 
     def provider = SystemCredentialsProvider.getInstance();
 
@@ -61,7 +66,7 @@ d.credentials.each { cred ->
 
     for (Credentials current_credentials: provider.getCredentials()){
         if (current_credentials instanceof IdCredentials){
-            if (current_credentials.getId() == cred.id){
+            if (current_credentials.getId() == credential.id){
                 toRemove.add(current_credentials);
             }
         }
@@ -69,11 +74,16 @@ d.credentials.each { cred ->
 
     toRemove.each {curr ->provider.getCredentials().remove(curr)};
 
-    if (cred.type == "username-password") {
-        addUsernamePassword(scope, cred.id, cred.username, cred.password, cred.description)
+    if (credential.type == "username-password") {
+        addUsernamePassword(scope, credential.id, credential.username, credential.password, credential.description)
     }
 
-    if (cred.type == "ssh-private-key") {
-        addSSHUserPrivateKey(scope, cred.id, cred.username, cred.privatekey, cred.passphrase, cred.description)
+    if (credential.type == "ssh-private-key") {
+
+        if (credential.passphrase != null && credential.passphrase.trim().length() == 0){
+            credential.passphrase = null;
+        }
+
+        addSSHUserPrivateKey(scope, credential.id, credential.username, credential.privatekey, credential.passphrase, credential.description)
     }
 }
