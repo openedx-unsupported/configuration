@@ -31,10 +31,6 @@ if [[ -f requirements/edx/local.txt ]]; then
 fi
 pip install --exists-action w -r requirements/edx/edx-private.txt
 
-if [[ $openid_workaround == "true" ]]; then
-    sed -i -e 's/claimed_id = models.TextField(max_length=2047, unique=True/claimed_id = models.TextField(max_length=2047/'  "$VIRTUAL_ENV/lib/python2.7/site-packages/django_openid_auth/models.py"
-fi
-
 cd "$WORKSPACE/configuration/playbooks/edx-east"
 
 if [[ -f ${WORKSPACE}/configuration-secure/ansible/vars/${deployment}.yml ]]; then
@@ -62,10 +58,12 @@ extra_var_args+=" -e edxapp_code_dir=${WORKSPACE}/edx-platform"
 extra_var_args+=" -e edxapp_user=jenkins"
 extra_var_args+=" -e EDXAPP_CFG_DIR=${WORKSPACE}"
 
-# Generate the json configuration files
-ansible-playbook -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp.yml
-
 # Run migrations and replace literal '\n' with actual newlines to make the output
 # easier to read
+# We use the edxapp_cfg tag so that the edxapp role will generate config files but
+# nothing else.  The actual migrate commands are then run from the playbook.
 
-ansible-playbook -v -c local $extra_var_args -i localhost, -s -U jenkins edxapp_migrate.yml | sed 's/\\n/\n/g'
+ansible-playbook -v -c local $extra_var_args --tags edxapp_cfg -i localhost, -s -U jenkins edxapp_migrate.yml | sed 's/\\n/\n/g'
+
+#We don't care about the exit status of the `sed`
+exit ${PIPESTATUS[0]}

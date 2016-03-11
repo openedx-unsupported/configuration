@@ -1,0 +1,25 @@
+---
+FLOCK_TLD: "edx"
+
+# Note that this is currently a non-working exemplar configuration,
+# there isn't a grader provided in the edx-demo-course yet.
+XQWATCHER_COURSES:
+  - COURSE: "demo"
+    GIT_REPO: "https://github.com/edx/edx-demo-course"
+    GIT_REF: "master"
+    QUEUE_NAME: "test-pull"
+    QUEUE_CONFIG:
+      SERVER: "http://xqueue.{{ FLOCK_TLD }}"
+      CONNECTIONS: 2
+      AUTH: ["lms", "password"]
+      HANDLERS:
+        - HANDLER: "xqueue_watcher.jailedgrader.JailedGrader"
+          CODEJAIL:
+            name: "demo"
+            python_bin: "{{ xqwatcher_venv_base }}/demo/bin/python"
+            user: "demo"
+          KWARGS:
+            grader_root: "../data/edx-demo-course/graders/"
+    PYTHON_REQUIREMENTS:
+      - { name: "numpy", version: "1.6.2" }
+      - { name: "lxml", version: "2.3.6" }

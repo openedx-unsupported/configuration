@@ -43,13 +43,13 @@ ECOMMERCE_LANGUAGE_CODE: 'en-us'
 ECOMMERCE_EDX_API_KEY: 'PUT_YOUR_API_KEY_HERE'  # This should match the value set for edxapp
 ECOMMERCE_ECOMMERCE_URL_ROOT: 'http://localhost:8002'
 ECOMMERCE_LMS_URL_ROOT: 'http://127.0.0.1:8000'
-ECOMMERCE_JWT_SECRET_KEY: 'SET-ME-PLEASE' # This should match the value set for edxapp
+ECOMMERCE_JWT_SECRET_KEY: 'SET-ME-PLEASE'  # This should match the value set for edxapp
 ECOMMERCE_JWT_ALGORITHM: 'HS256'
 ECOMMERCE_JWT_VERIFY_EXPIRATION: true
 ECOMMERCE_JWT_DECODE_HANDLER: 'ecommerce.extensions.api.handlers.jwt_decode_handler'
 ECOMMERCE_JWT_ISSUERS:
   - '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
-  - 'ecommerce_worker'
+  - 'ecommerce_worker'  # Must match the value of JWT_ISSUER configured for the ecommerce worker.
 
 # Used to automatically configure OAuth2 Client
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
@@ -111,6 +111,8 @@ ECOMMERCE_BROKER_HOST: '{{ ansible_default_ipv4.address }}'
 ECOMMERCE_BROKER_PORT: 5672
 ECOMMERCE_BROKER_URL: 'amqp://{{ ECOMMERCE_BROKER_USERNAME }}:{{ ECOMMERCE_BROKER_PASSWORD }}@{{ ECOMMERCE_BROKER_HOST }}:{{ ECOMMERCE_BROKER_PORT }}'
 
+ECOMMERCE_SUPPORT_URL: 'SET_ME_PLEASE'
+
 ECOMMERCE_SERVICE_CONFIG:
   SECRET_KEY: '{{ ECOMMERCE_SECRET_KEY }}'
   TIME_ZONE: '{{ ECOMMERCE_TIME_ZONE }}'
@@ -148,6 +150,8 @@ ECOMMERCE_SERVICE_CONFIG:
 
   PLATFORM_NAME: '{{ ECOMMERCE_PLATFORM_NAME }}'
   THEME_SCSS: '{{ ECOMMERCE_THEME_SCSS }}'
+
+  SUPPORT_URL: '{{ ECOMMERCE_SUPPORT_URL }}'
 
   BROKER_URL: '{{ ECOMMERCE_BROKER_URL }}'
 
@@ -195,7 +199,7 @@ ecommerce_requirements:
 ecommerce_environment:
   DJANGO_SETTINGS_MODULE: "{{ ECOMMERCE_DJANGO_SETTINGS_MODULE }}"
   ECOMMERCE_CFG: "{{ COMMON_CFG_DIR }}/{{ ecommerce_service_name }}.yml"
-  PATH: "{{ ecommerce_venv_dir }}/bin:${PATH}"
+  PATH: "{{ ecommerce_venv_dir }}/bin:{{ ansible_env.PATH }}"
 
 #
 # OS packages

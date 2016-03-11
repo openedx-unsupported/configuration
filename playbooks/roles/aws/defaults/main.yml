@@ -16,13 +16,17 @@
 # logs by security group.
 # !! The buckets defined below MUST exist prior to enabling !!
 # this feature and the instance IAM role must have write permissions
-# to the buckets
+# to the buckets, or you must specify the access and secret keys below.
 AWS_S3_LOGS: false
 # If there are any issues with the s3 sync an error
 # log will be sent to the following address.
 # This relies on your server being able to send mail
 AWS_S3_LOGS_NOTIFY_EMAIL: dummy@example.com
 AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
+# Credentials for S3 access in case the instance role doesn't have write
+# permissions to S3
+AWS_S3_LOGS_ACCESS_KEY_ID: ""
+AWS_S3_LOGS_SECRET_KEY: ""
 
 #
 # vars are namespace with the module name.
@@ -50,7 +54,7 @@ aws_s3_sync_script: "{{ aws_dirs.home.path }}/send-logs-to-s3"
 aws_s3_logfile: "{{ aws_dirs.logs.path }}/s3-log-sync.log"
 aws_region: "us-east-1"
 # default path to the aws binary
-aws_s3cmd: "{{ COMMON_BIN_DIR }}/s3cmd"
+aws_s3cmd: "/usr/local/bin/s3cmd"
 aws_cmd: "/usr/local/bin/aws"
 #
 # OS packages
@@ -63,7 +67,6 @@ aws_pip_pkgs:
   - https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
   - awscli==1.4.2
   - boto=="{{ common_boto_version }}"
+  - s3cmd==1.6.1
 
 aws_redhat_pkgs: []
-aws_s3cmd_version: s3cmd-1.5.0-beta1
-aws_s3cmd_url: "http://files.edx.org/s3cmd/{{ aws_s3cmd_version }}.tar.gz"

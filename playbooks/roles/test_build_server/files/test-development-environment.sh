@@ -20,28 +20,47 @@ cd edx-platform-clone
 # tests because TEST_SUITE isn't defined.
 source scripts/jenkins-common.sh
 
-# Now we can run a subset of the tests via paver.
-# Run some of the common/lib unit tests
-paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
+case "$1" in
+    "unit")
 
-# Generate some coverage reports
-paver coverage
+        # Now we can run a subset of the tests via paver.
+        # Run some of the common/lib unit tests
+        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
 
-# Run some of the djangoapp unit tests
-paver test_system -t lms/djangoapps/courseware/tests/tests.py
-paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
+        # Generate some coverage reports
+        paver coverage
 
-# Run some of the javascript unit tests
-paver test_js_run -s xmodule
+        # Run some of the djangoapp unit tests
+        paver test_system -t lms/djangoapps/courseware/tests/tests.py
+        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
+        ;;
 
-# Run some of the bok-choy tests
-paver test_bokchoy -t discussion/test_discussion.py:DiscussionTabSingleThreadTest
-paver test_bokchoy -t studio/test_studio_with_ora_component.py:ORAComponentTest --fasttest
-paver test_bokchoy -t lms/test_lms_matlab_problem.py:MatlabProblemTest --fasttest
+    "js")
 
-# Run some of the lettuce acceptance tests
-paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature -s 1"
-paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature -s 1"
+        # Run some of the javascript unit tests
+        paver test_js_run -s xmodule
+        ;;
 
-# Generate quality reports
-paver run_quality
+    "bokchoy")
+
+        # Run some of the bok-choy tests
+        paver test_bokchoy -t discussion/test_discussion.py:DiscussionTabSingleThreadTest
+        paver test_bokchoy -t studio/test_studio_outline.py:WarningMessagesTest.test_unreleased_published_locked --fasttest
+        paver test_bokchoy -t lms/test_lms_matlab_problem.py:MatlabProblemTest --fasttest
+        ;;
+
+    "lettuce")
+        # Run some of the lettuce acceptance tests
+        paver test_acceptance -s lms --extra_args="lms/djangoapps/courseware/features/problems.feature -s 1"
+        paver test_acceptance -s cms --extra_args="cms/djangoapps/contentstore/features/html-editor.feature -s 1" --fasttest
+        ;;
+
+    "quality")
+        # Generate quality reports
+        paver run_quality
+        ;;
+
+    *)
+        echo "args required"
+        exit 1
+esac

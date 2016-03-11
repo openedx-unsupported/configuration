@@ -23,7 +23,13 @@ export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 run_ansible() {
-  ansible-playbook $@
+  if [[ "$VERBOSE" == "true" ]]; then
+    verbose_arg='-vvv'
+  else
+    verbose_arg=''
+  fi
+
+  ansible-playbook $verbose_arg $@
   ret=$?
   if [[ $ret -ne 0 ]]; then
     exit $ret
@@ -31,7 +37,13 @@ run_ansible() {
 }
 
 # This DATE_TIME will be used as instance launch time tag
-TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date="-7 days ago"`
+if [[ ! -n ${sandbox_life//[0-9]/} ]]  && [[ ${sandbox_life} -le 30 ]]; then
+    TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date "${sandbox_life=7} days"`
+else
+   echo "Please enter the valid value for the sandbox_life(between 1 to 30)"
+   exit 1
+fi
+
 
 if [[ -z $BUILD_USER ]]; then
     BUILD_USER=jenkins
@@ -97,13 +109,17 @@ if [[ -z $name_tag ]]; then
   name_tag=${github_username}-${environment}
 fi
 
+if [[ -z $sandbox_platform_name ]]; then
+    sandbox_platform_name=$dns_name
+fi
+
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-52c18038"
+    ami="ami-e686bc8c"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-c15bebaa"
+    ami="ami-94be91fe"
   elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
-    ami="ami-2dcf7b46"
+    ami="ami-35d6f95f"
   fi
 fi
 
@@ -150,14 +166,14 @@ forum_version: $forum_version
 notifier_version: $notifier_version
 xqueue_version: $xqueue_version
 xserver_version: $xserver_version
-ora_version: $ora_version
-ease_version: $ease_version
 certs_version: $certs_version
-discern_version: $discern_version
 configuration_version: $configuration_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
+
+EDXAPP_PLATFORM_NAME: $sandbox_platform_name
+EDXAPP_COMPREHENSIVE_THEME_DIR: $edxapp_comprehensive_theme_dir
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
@@ -172,11 +188,15 @@ PROGRAMS_NGINX_PORT: 80
 PROGRAMS_SSL_NGINX_PORT: 443
 PROGRAMS_VERSION: $programs_version
 
-COURSE_DISCOVERY_NGINX_PORT: 80
-COURSE_DISCOVERY_SSL_NGINX_PORT: 443
-COURSE_DISCOVERY_VERSION: $course_discovery_version
+CREDENTIALS_NGINX_PORT: 80
+CREDENTIALS_SSL_NGINX_PORT: 443
+CREDENTIALS_VERSION: $credentials_version
 
+DISCOVERY_NGINX_PORT: 80
+DISCOVERY_SSL_NGINX_PORT: 443
+DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
+NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 openid_workaround: True
@@ -256,9 +276,15 @@ PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
 PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
-COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
-COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
-COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
+CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
+CREDENTIALS_URL_ROOT: "http://{{ CREDENTIALS_DOMAIN }}"
+CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+
+DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
+DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
 EOF
 fi
@@ -304,7 +330,8 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce programs course_discovery notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum ecommerce programs credentials discovery notifier xqueue xserver certs demo testcourses"
+
 for role in $roles; do
     deploy[$role]=${!role}
 done

@@ -1,0 +1,158 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role discovery
+# 
+DISCOVERY_GIT_IDENTITY: !!null
+
+# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
+# and a key being provided via NEWRELIC_LICENSE_KEY
+DISCOVERY_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ discovery_service_name }}"
+DISCOVERY_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+DISCOVERY_NGINX_PORT: 18381
+DISCOVERY_SSL_NGINX_PORT: 48381
+
+DISCOVERY_DEFAULT_DB_NAME: 'discovery'
+DISCOVERY_MYSQL: 'localhost'
+# MySQL usernames are limited to 16 characters
+DISCOVERY_MYSQL_USER: 'discov001'
+DISCOVERY_MYSQL_PASSWORD: 'password'
+
+DISCOVERY_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ DISCOVERY_DEFAULT_DB_NAME }}'
+    USER: '{{ DISCOVERY_MYSQL_USER }}'
+    PASSWORD: '{{ DISCOVERY_MYSQL_PASSWORD }}'
+    HOST: '{{ DISCOVERY_MYSQL }}'
+    PORT: '3306'
+    ATOMIC_REQUESTS: true
+    CONN_MAX_AGE: 60
+
+DISCOVERY_ELASTICSEARCH_HOST: 'localhost'
+DISCOVERY_ES_INDEX: 'discovery'
+
+DISCOVERY_ELASTICSEARCH:
+  host: '{{ DISCOVERY_ELASTICSEARCH_HOST }}'
+  index: '{{ DISCOVERY_ES_INDEX }}'
+
+DISCOVERY_MEMCACHE: [ 'memcache' ]
+
+DISCOVERY_CACHES:
+  default:
+    BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
+    KEY_PREFIX: 'default'
+    LOCATION: '{{ DISCOVERY_MEMCACHE }}'
+
+DISCOVERY_VERSION: "master"
+DISCOVERY_DJANGO_SETTINGS_MODULE: "course_discovery.settings.production"
+DISCOVERY_URL_ROOT: 'http://discovery:18381'
+DISCOVERY_OAUTH_URL_ROOT: 'http://127.0.0.1:8000'
+
+DISCOVERY_SECRET_KEY: 'Your secret key here'
+DISCOVERY_TIME_ZONE: 'UTC'
+DISCOVERY_LANGUAGE_CODE: 'en-us'
+
+# Used to automatically configure OAuth2 Client
+DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY : 'discovery-key'
+DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET : 'discovery-secret'
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+DISCOVERY_PLATFORM_NAME: 'Your Platform Name Here'
+
+DISCOVERY_ECOMMERCE_API_URL: 'https://localhost:8002/api/v2/'
+DISCOVERY_COURSES_API_URL: 'https://localhost:8000/api/courses/v1/'
+
+DISCOVERY_SERVICE_CONFIG:
+  SECRET_KEY: '{{ DISCOVERY_SECRET_KEY }}'
+  TIME_ZONE: '{{ DISCOVERY_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{ DISCOVERY_LANGUAGE_CODE }}'
+
+  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY }}'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ DISCOVERY_OAUTH_URL_ROOT }}/oauth2'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
+
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ discovery_service_name }}/staticfiles"
+  # db config
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES: '{{ DISCOVERY_DATABASES }}'
+  ELASTICSEARCH: '{{ DISCOVERY_ELASTICSEARCH }}'
+  CACHES: '{{ DISCOVERY_CACHES }}'
+
+  PLATFORM_NAME: '{{ DISCOVERY_PLATFORM_NAME }}'
+
+  ECOMMERCE_API_URL: '{{ DISCOVERY_ECOMMERCE_API_URL }}'
+  COURSES_API_URL: '{{ DISCOVERY_COURSES_API_URL }}'
+
+
+DISCOVERY_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: course-discovery.git
+    VERSION: "{{ DISCOVERY_VERSION }}"
+    DESTINATION: "{{ discovery_code_dir }}"
+    SSH_KEY: "{{ DISCOVERY_GIT_IDENTITY }}"
+
+
+DISCOVERY_GUNICORN_WORKERS: "2"
+DISCOVERY_GUNICORN_EXTRA: ""
+DISCOVERY_GUNICORN_EXTRA_CONF: ""
+DISCOVERY_GUNICORN_WORKER_CLASS: "sync"
+
+DISCOVERY_HOSTNAME: '~^((stage|prod)-)?discovery.*'
+
+nginx_discovery_gunicorn_hosts:
+  - 127.0.0.1
+
+#
+# vars are namespace with the module name.
+#
+discovery_role_name: discovery
+discovery_venv_dir: "{{ discovery_home }}/venvs/{{ discovery_service_name }}"
+
+discovery_environment:
+  DJANGO_SETTINGS_MODULE: "{{ DISCOVERY_DJANGO_SETTINGS_MODULE }}"
+  # rename should synch with app
+  COURSE_DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
+  PATH: "{{ discovery_venv_dir }}/bin:{{ ansible_env.PATH }}"
+
+discovery_migration_environment:
+  DJANGO_SETTINGS_MODULE: "{{ DISCOVERY_DJANGO_SETTINGS_MODULE }}"
+  # rename should synch with app
+  COURSE_DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
+  PATH: "{{ discovery_venv_dir }}/bin:{{ ansible_env.PATH }}"
+  DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+  DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+
+discovery_service_name: "discovery"
+discovery_user: "{{ discovery_service_name }}"
+discovery_home: "{{ COMMON_APP_DIR }}/{{ discovery_service_name }}"
+discovery_code_dir: "{{ discovery_home }}/{{ discovery_service_name }}"
+
+discovery_gunicorn_host: "127.0.0.1"
+discovery_gunicorn_port: 8381
+discovery_gunicorn_timeout: 300
+
+discovery_log_dir: "{{ COMMON_LOG_DIR }}/{{ discovery_service_name }}"
+
+#
+# OS packages
+#
+
+discovery_debian_pkgs:
+  - libmysqlclient-dev
+  - libssl-dev
+
+discovery_redhat_pkgs: []

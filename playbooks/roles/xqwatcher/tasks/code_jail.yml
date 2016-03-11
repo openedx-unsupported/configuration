@@ -8,6 +8,9 @@
     shell=/bin/false
     home="/dev/null"
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:base
 
 #
 # Need to disable aa to update the virutalenv
@@ -17,6 +20,9 @@
     dest="/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
     mode=0644 owner=root group=root
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:configuration
 
 - name: write out sudoers for watcher
   template: >
@@ -24,15 +30,25 @@
     dest=/etc/sudoers.d/95-xqwatcher-{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user|replace('.', '') }}
     mode=0440 owner=root group=root validate='visudo -c -f %s'
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:configuration
 
+# see comment below as to why this is skipped.
 - name: put code jail into aa-complain
   command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   with_items: XQWATCHER_COURSES
+  tags:
+    - manage
+    - manage:sandbox
 
 - name: create jail virtualenv
   shell: >
     /usr/local/bin/virtualenv --no-site-packages {{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:code
 
 - name: write out requirements.txt
   template: >
@@ -40,6 +56,9 @@
     dest={{ xqwatcher_app_dir }}/data/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}-requirements.txt
     mode=0440 owner=root group=root
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:code
 
 - name: install course specific python requirements
   pip: >
@@ -48,18 +67,30 @@
     state=present
     extra_args="{{ XQWATCHER_PIP_EXTRA_ARGS }}"
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:code
 
 - name: give other read permissions to the virtualenv
   shell: >
     chown -R {{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.user }} {{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}
   with_items: XQWATCHER_COURSES
+  tags:
+    - install
+    - install:code
 
 - name: start apparmor service
   service: name=apparmor state=started
+  tags:
+    - manage
+    - manage:sandbox
 
 - name: load code sandbox profile
   command: apparmor_parser -r "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   with_items: XQWATCHER_COURSES
+  tags:
+    - manage
+    - manage:sandbox
 
 #
 # Leaves aa in either complain or enforce depending upon the value of the
@@ -69,8 +100,16 @@
   command: /usr/sbin/aa-complain "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   when: CODE_JAIL_COMPLAIN|bool
   with_items: XQWATCHER_COURSES
+  # AA having issues on 14.04
+  # https://github.com/edx/codejail/issues/38
+  tags:
+    - manage
+    - manage:sandbox
 
 - name: put code sandbox into aa-enforce
   command: /usr/sbin/aa-enforce "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
   when: not CODE_JAIL_COMPLAIN|bool
   with_items: XQWATCHER_COURSES
+  tags:
+    - manage
+    - manage:sandbox

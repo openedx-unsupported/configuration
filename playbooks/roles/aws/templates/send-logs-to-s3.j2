@@ -116,5 +116,11 @@ availability_zone=$(ec2metadata --availability-zone)
 # region isn't available via the metadata service
 region=${availability_zone:0:${{ lb }}#availability_zone{{ rb }} - 1}
 
+{% if AWS_S3_LOGS_ACCESS_KEY_ID %}
+auth_opts="--access_key {{ AWS_S3_LOGS_ACCESS_KEY_ID }} --secret_key {{ AWS_S3_LOGS_SECRET_KEY }}"
+{% else %}
+auth_opts=""
+{% endif %}
+
 s3_path="${2}/$sec_grp/"
-$noop {{ aws_s3cmd }} --multipart-chunk-size-mb 5120 --disable-multipart sync $directory "s3://${bucket_path}/${sec_grp}/${instance_id}-${ip}/"
+$noop {{ aws_s3cmd }} $auth_opts --multipart-chunk-size-mb 5120 --disable-multipart sync $directory "s3://${bucket_path}/${sec_grp}/${instance_id}-${ip}/"

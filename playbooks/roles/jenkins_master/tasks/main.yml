@@ -99,11 +99,41 @@
     path: "{{ jenkins_home }}/plugins/{{ item.item.name }}.hpi"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
-    mode: 700
+    mode: 644
   with_items: jenkins_plugin_downloads.results
   when: item.changed
   notify:
     - restart Jenkins
+
+# We had to fork some plugins to workaround
+# certain issues.  If these changes get merged
+# upstream, we may be able to use the regular plugin install process.
+# Until then, we compile and install the forks ourselves.
+- name: checkout custom plugin repo
+  git: >
+    repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
+    accept_hostkey=yes
+  with_items: jenkins_custom_plugins
+  register: jenkins_custom_plugins_checkout
+
+- name: compile custom plugins
+  command: mvn -Dmaven.test.skip=true install chdir=/tmp/{{ item.item.repo_name }}
+  with_items: jenkins_custom_plugins_checkout.results
+  when: item.changed
+
+- name: install custom plugins
+  command: mv /tmp/{{ item.item.repo_name }}/target/{{ item.item.package }}
+           {{ jenkins_home }}/plugins/{{ item.item.package }}
+  with_items: jenkins_custom_plugins_checkout.results
+  when: item.changed
+  notify:
+    - restart Jenkins
+
+- name: set custom plugin permissions
+  file: path={{ jenkins_home }}/plugins/{{ item.item.package }}
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  with_items: jenkins_custom_plugins_checkout.results
+  when: item.changed
 
 # Plugins that are bundled with Jenkins are "pinned".
 # Jenkins will overwrite updated plugins with its built-in version
