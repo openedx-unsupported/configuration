@@ -13,6 +13,6 @@ RUN apt-get update && apt-get install -y -q \
     python-pip
 
 # TODO: repalce this with a pip install command so we can version this properly
-RUN git clone -b bbeggs/cli https://github.com/edx/tubular.git /opt/tubular
+RUN git clone https://github.com/edx/tubular.git /opt/tubular
 RUN pip install -r /opt/tubular/requirements.txt
 RUN cd /opt/tubular;python setup.py install
