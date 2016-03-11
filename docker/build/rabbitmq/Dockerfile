@@ -1,14 +1,18 @@
-FROM edxops/precise-common:latest
+FROM edxops/precise-common
 MAINTAINER edxops
 
-USER root
 ADD . /edx/app/edx_ansible/edx_ansible
+COPY docker/build/rabbitmq/ansible_overrides.yml /
+COPY docker/build/rabbitmq/run_rabbitmq.sh /
+RUN chmod +x /run_rabbitmq.sh
+
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
-# Role is currently untagged
-RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook rabbitmq.yml -c local \
-   -i '127.0.0.1,'
+RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook rabbitmq.yml \
+    -i '127.0.0.1,' -c local \
+    -e@/ansible_overrides.yml
 
-USER rabbitmq
-# TBD what we want to run rabbit under
+WORKDIR /edx/app
 EXPOSE 15672 5672
+CMD ["/run_rabbitmq.sh"]
+

@@ -3,7 +3,20 @@
 # There is a bug with initializing multiple nodes in the HA cluster at once
 # http://rabbitmq.1065348.n5.nabble.com/Rabbitmq-boot-failure-with-quot-tables-not-present-quot-td24494.html
 
-- name: Install python-software-properties if debian
+- name: trust extra repositories
+  apt_key:
+    url: "{{ item.key }}"
+    state: present
+  with_items: "{{ extra_repos }}"
+
+- name: add extra repositories
+  apt_repository:
+    repo: "{{ item.repo }}"
+    state: present
+    update_cache: yes
+  with_items: extra_repos
+
+- name: install python-software-properties if debian
   apt:
     name: "{{ item }}"
     state: present
@@ -12,17 +25,26 @@
 - name: Fetch the rabbitmq server deb
   get_url:
     url: "{{ rabbitmq_pkg_url }}"
-    dest: "/var/tmp/{{ rabbitmq_pkg_url | basename }}"
+    dest: "/var/tmp/{{ rabbitmq_pkg_url|basename }}"
 
+# If we don't set pipefail first, `||` will be looking at the exit code of the last command in the pipe
 - name: Check if rabbit is installed
-  shell: 'dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"'
-  register: is_installed
+  shell: |
+    set -o pipefail
+    dpkg -s rabbitmq-server | grep Version | sed -r 's/.*: (.*)/\1/' || echo 'not installed'
+  args:
+    executable: /bin/bash
+  register: installed_version
+
+- name: Fail if wrong rabbit version is installed
+  fail: Expected rabbitmq version {{ RABBITMQ_VERSION }}, found {{ installed_version.stdout }}
+  when: CHECK_RABBIT_VERSION and installed_version.stdout is defined and installed_version.stdout not in [RABBITMQ_VERSION, 'not installed']
 
 - name: Install rabbit package using gdebi
   shell: "gdebi --n {{ rabbitmq_pkg_url|basename }}"
   args:
     chdir: /var/tmp
-  when: is_installed.stdout is defined and is_installed.stdout == "not installed"
+  when: installed_version.stdout is defined and installed_version.stdout == "not installed"
 
 - name: Stop rabbit cluster
   service:
