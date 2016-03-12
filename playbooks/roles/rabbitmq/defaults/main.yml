@@ -1,5 +1,15 @@
-#Variables for rabbitmq
 ---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Defaults for role rabbitmq
+# 
 
 rabbitmq_app_dir: "{{ COMMON_APP_DIR }}/rabbitmq"
 rabbitmq_data_dir: "{{ COMMON_DATA_DIR }}/rabbitmq"
@@ -29,14 +39,20 @@ RABBITMQ_CLUSTERED_HOSTS: []
 # option to force deletion of the mnesia dir
 rabbitmq_refresh: false
 
-rabbitmq_apt_key: "http://www.rabbitmq.com/rabbitmq-signing-key-public.asc"
-rabbitmq_repository: "deb http://www.rabbitmq.com/debian/ testing main"
+extra_repos:
+  - {repo: "deb https://www.rabbitmq.com/debian/ testing main", key: "https://www.rabbitmq.com/rabbitmq-signing-key-public.asc"}
+  - {repo: "deb https://packages.erlang-solutions.com/ubuntu precise contrib", key: "https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc"}
+
 # We mirror the deb package for rabbitmq-server because
 # nodes need to be running the same version
 rabbitmq_pkg_url: "https://files.edx.org/rabbitmq_packages/rabbitmq-server_3.6.1-1_all.deb"
 rabbitmq_pkg: "rabbitmq-server"
 rabbitmq_debian_pkgs:
+  # why is is this needed?
   - python-software-properties
+  # erlang dependencies for rabbitmq
+  - erlang
+  - erlang-nox
   # for installing the deb package with
   # dependencies
   - gdebi
