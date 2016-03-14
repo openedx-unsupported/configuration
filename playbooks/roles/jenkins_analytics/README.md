@@ -21,7 +21,7 @@ all required variables from this section.
 This file needs to contain, at least, the following variables
 (see the next few sections for more information about them):
 
-* `JENKINS_ANALYTICS_USER_PASSWORD_CRYPTED`
+* `JENKINS_ANALYTICS_USER_PASSWORD_HASHED`
 * `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`
 * `JENKINS_ANALYTICS_GITHUB_KEY` or `JENKINS_ANALYTICS_CREDENTIALS`
 
@@ -106,7 +106,6 @@ The Analytics Tasks configuration should contain the following variables, where
           ENVIRONMENT: "analytics-sandbox"
           EXTRA_VARS: "@/home/jenkins/emr-vars.yml"
           CREDENTIAL_ID: "github-deploy-key"
-
 #### Jenkins user password
 
 You'll need to override default jenkins user password, please do that
@@ -167,6 +166,12 @@ Examples of credentials variables:
 
           Key contents
           -----END RSA PRIVATE KEY-----
+
+#### Other useful variables
+
+* `JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT`: Configures number of
+  executors (or concurrent jobs this Jenkins instance can
+  execute). Defaults to `2`.
 
 ### General configuration
 

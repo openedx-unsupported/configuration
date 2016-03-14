@@ -15,10 +15,14 @@
 - name: create pass file
   template: src=jenkins-pass-file dest={{ jenkins_cli_pass }} mode="600"
 
-- name: Wait for Jenkins to start up before proceeding.
-  shell: "curl -D - --silent http://localhost:{{ jenkins_port }}/cli/"
+- name: Wait for Jenkins CLI
+  uri:
+    url: "http://localhost:{{ jenkins_port }}/cli/"
+    method: GET
+    return_content: yes
+    status_code: 200,403
   register: result
-  until: (result.stdout.find("403 Forbidden") != -1) or (result.stdout.find("200 OK") != -1) and (result.stdout.find("Please wait while") == -1)
+  until: (result.status is defined) and (result.status == 403) or (results.status == 200)
   retries: "{{ jenkins_connection_retries }}"
   delay: "{{ jenkins_connection_delay }}"
   changed_when: false
