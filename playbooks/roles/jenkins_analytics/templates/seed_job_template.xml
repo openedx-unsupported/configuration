@@ -26,13 +26,13 @@
   <scm class='org.jenkinsci.plugins.multiplescms.MultiSCM'>
     <scms>
       {% for scm in job.multiscm %}
-          {% if scm.url is defined %}
+          {% if scm.url %}
           <scm class="hudson.plugins.git.GitSCM" plugin="git@2.4.0">
             <configVersion>2</configVersion>
             <userRemoteConfigs>
               <hudson.plugins.git.UserRemoteConfig>
                 <url>{{ scm.url }}</url>
-                {% if scm.credential_id is defined %}
+                {% if scm.credential_id %}
                 <credentialsId>{{ scm.credential_id }}</credentialsId>
                 {% endif %}
               </hudson.plugins.git.UserRemoteConfig>
@@ -42,7 +42,7 @@
                 <name>{{ scm.branch }}</name>
               </hudson.plugins.git.BranchSpec>
             </branches>
-            {% if scm.dest is defined %}
+            {% if scm.dest %}
             <relativeTargetDir>{{ scm.dest }}</relativeTargetDir>
             {% endif %}
             <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
@@ -62,7 +62,6 @@
   <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
   <concurrentBuild>false</concurrentBuild>
   <builders>
-    {% if job.dsl is defined %}
     <hudson.plugins.gradle.Gradle plugin="gradle@1.24">
       <description></description>
       <switches></switches>
@@ -84,7 +83,6 @@
       <lookupStrategy>SEED_JOB</lookupStrategy>
       <additionalClasspath>{{ job.dsl.additional_classpath }}</additionalClasspath>
     </javaposse.jobdsl.plugin.ExecuteDslScripts>
-    {% endif %}
   </builders>
   <publishers/>
   <buildWrappers/>
