@@ -1,0 +1,84 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Defaults for role ecomworker.
+#
+
+ECOMMERCE_WORKER_GIT_IDENTITY: !!null
+ECOMMERCE_WORKER_VERSION: 'master'
+
+ECOMMERCE_WORKER_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: ecommerce-worker.git
+    VERSION: '{{ ECOMMERCE_WORKER_VERSION }}'
+    DESTINATION: '{{ ecommerce_worker_code_dir }}'
+    SSH_KEY: '{{ ECOMMERCE_WORKER_GIT_IDENTITY }}'
+
+# Requires that New Relic be enabled via COMMON_ENABLE_NEWRELIC, and that
+# a key be provided via NEWRELIC_LICENSE_KEY.
+ECOMMERCE_WORKER_NEWRELIC_APPNAME: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ ecommerce_worker_service_name }}'
+
+# CELERY
+ECOMMERCE_WORKER_BROKER_USERNAME: 'celery'
+ECOMMERCE_WORKER_BROKER_PASSWORD: 'celery'
+# Used as the default RabbitMQ IP.
+ECOMMERCE_WORKER_BROKER_HOST: '{{ ansible_default_ipv4.address }}'
+# Used as the default RabbitMQ port.
+ECOMMERCE_WORKER_BROKER_PORT: 5672
+# Default broker URL. See http://celery.readthedocs.org/en/latest/configuration.html#broker-url.
+ECOMMERCE_WORKER_BROKER_URL: 'amqp://{{ ECOMMERCE_WORKER_BROKER_USERNAME }}:{{ ECOMMERCE_WORKER_BROKER_PASSWORD }}@{{ ECOMMERCE_WORKER_BROKER_HOST }}:{{ ECOMMERCE_WORKER_BROKER_PORT }}'
+ECOMMERCE_WORKER_CONCURRENCY: 4
+# END CELERY
+
+# ORDER FULFILLMENT
+# Absolute URL used to construct API calls against the ecommerce service.
+ECOMMERCE_WORKER_ECOMMERCE_API_ROOT: 'http://127.0.0.1:8002/api/v2/'
+
+# Long-lived access token used by Celery workers to authenticate against the ecommerce service.
+ECOMMERCE_WORKER_WORKER_ACCESS_TOKEN: 'your-secret-here'
+
+# Maximum number of retries before giving up on the fulfillment of an order.
+# For reference, 11 retries with exponential backoff yields a maximum waiting
+# time of 2047 seconds (about 30 minutes). Defaulting this to None could yield
+# unwanted behavior: infinite retries.
+ECOMMERCE_WORKER_MAX_FULFILLMENT_RETRIES: 11
+# END ORDER FULFILLMENT
+
+# Ecommerce Worker settings 
+ECOMMERCE_WORKER_JWT_SECRET_KEY: 'insecure-secret-key'
+ECOMMERCE_WORKER_JWT_ISSUER: '{{ ecommerce_worker_service_name }}'
+
+ECOMMERCE_WORKER_SERVICE_CONFIG:
+  BROKER_URL: '{{ ECOMMERCE_WORKER_BROKER_URL }}'
+  ECOMMERCE_API_ROOT: '{{ ECOMMERCE_WORKER_ECOMMERCE_API_ROOT }}'
+  JWT_SECRET_KEY: '{{ ECOMMERCE_WORKER_JWT_SECRET_KEY }}'
+  JWT_ISSUER: '{{ ECOMMERCE_WORKER_JWT_ISSUER }}'
+  MAX_FULFILLMENT_RETRIES: '{{ ECOMMERCE_WORKER_MAX_FULFILLMENT_RETRIES }}'
+
+ecommerce_worker_environment:
+  WORKER_CONFIGURATION_MODULE: 'ecommerce_worker.configuration.production'
+  ECOMMERCE_WORKER_CFG: '{{ COMMON_CFG_DIR }}/{{ ecommerce_worker_service_name }}.yml'
+
+ecommerce_worker_service_name: 'ecomworker'
+ecommerce_worker_user: '{{ ecommerce_worker_service_name }}'
+ecommerce_worker_home: '{{ COMMON_APP_DIR }}/{{ ecommerce_worker_service_name }}'
+ecommerce_worker_code_dir: '{{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}'
+
+ecommerce_worker_log_dir: '{{ COMMON_LOG_DIR }}/{{ ecommerce_worker_service_name }}'
+
+ecommerce_worker_requirements_base: '{{ ecommerce_worker_code_dir }}/requirements'
+ecommerce_worker_requirements:
+  - production.txt
+  - optional.txt
+
+# OS packages
+ecommerce_worker_debian_pkgs: []
+ecommerce_worker_redhat_pkgs: []

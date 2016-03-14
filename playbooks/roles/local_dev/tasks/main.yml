@@ -9,6 +9,18 @@
   with_items: localdev_accounts
   when: item.user != 'None'
 
+# The user that runs the app needs read/write permissions
+# to the directories under var to be able to import and create
+# new courses.
+- name: update permissions for edxapp data dir
+  file:
+    path: "{{ edxapp_data_dir }}"
+    state: "directory"
+    recurse: yes
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+  when: edxapp_user is defined
+
 # Ensure forum user has permissions to access .gem and .rbenv
 # This is a little twisty: the forum role sets the owner and group to www-data
 # So we add the forum user to the www-data group and give group write permissions

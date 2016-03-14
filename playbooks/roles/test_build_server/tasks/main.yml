@@ -24,18 +24,26 @@
   git: >
     repo=https://github.com/edx/edx-platform.git
     dest={{ test_build_server_repo_path }}/edx-platform-clone
-    version=master
+    version={{ test_edx_platform_version }}
   sudo_user: "{{ test_build_server_user }}"
+
+- name: get xargs limit
+  shell: "xargs --show-limits"
 
 - name: Copy test-development-environment.sh to somewhere the jenkins user can access it
   copy: >
     src=test-development-environment.sh
     dest="{{ test_build_server_repo_path }}"
     mode=0755
-  sudo_user: "{{ test_build_server_user }}"
 
 - name: Validate build environment
-  shell: "bash test-development-environment.sh"
+  shell: "bash test-development-environment.sh {{ item }}"
   args:
     chdir: "{{ test_build_server_repo_path }}/"
   sudo_user: "{{ test_build_server_user }}"
+  with_items:
+    - "unit"
+    - "js"
+    - "bokchoy"
+    - "lettuce"
+    - "quality"

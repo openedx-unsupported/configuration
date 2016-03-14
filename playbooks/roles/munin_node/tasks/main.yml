@@ -1,0 +1,82 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role munin_node
+# 
+# Overview:
+#
+# Install the munin-node monitoring daemon that is generally useful for system
+# monitoring and is specifically used by the the MongoDB CloudManager monitoring
+# agent to provide system metrics.
+#
+# Example play:
+#
+# ansible-playbook -u my_user -i '192.168.100.10,192,168.100.11,' ./run_role.yml -e "role=munin_node"
+#
+
+- name: install OS packages
+  apt: >
+  apt: 
+    pkg={{ item }}
+    state=present
+    update_cache=yes
+  tags:
+    - install
+    - install:system-requirements
+  with_items: munin_node_debian_pkgs
+
+  # Enable optional plugins for io metrics
+- name: link munin-node iostat
+  file: >
+    src="/usr/share/munin/plugins/iostat"
+    dest="/etc/munin/plugins/iostat"
+    state="link" owner=root group=root
+  tags:
+    - install
+    - install:configuration
+    
+- name: link munin-node iostat-ios
+  file: >
+    src="/usr/share/munin/plugins/iostat_ios"
+    dest="/etc/munin/plugins/iostat_ios"
+    state="link" owner=root group=root
+  tags:
+    - install
+    - install:configuration
+    
+- name: copy munin iostat config
+  copy: > 
+    src="munin-edx"
+    dest="/etc/munin/plugin-conf.d/munin-edx"
+    owner=root group=root mode="644"
+  tags:
+    - install
+    - install:configuration
+#
+# Assumes a single allow line
+# Requires libnet-cidr-perl included in the pkgs installed
+# above
+- name: add source cidr
+  lineinfile:
+    dest=/etc/munin/munin-node.conf
+    regexp='^cidr_allow'
+    line='cidr_allow {{ MUNIN_MONITOR_CIDR }}'
+  tags:
+    - install
+    - install:configuration
+    
+- name: restart munin-mode
+  service: >
+    name=munin-node
+    state=restarted
+  tags:
+    - install
+    - install:configuration

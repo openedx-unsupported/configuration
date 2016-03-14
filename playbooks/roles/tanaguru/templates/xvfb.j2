@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+RUN_AS_USER=tomcat7
+OPTS=":99 -screen 1 1024x768x24 -nolisten tcp"
+XVFB_DIR=/usr/bin
+PIDFILE=/var/run/xvfb
+
+case $1 in
+
+start)
+    start-stop-daemon --chuid $RUN_AS_USER -b --start --exec $XVFB_DIR/Xvfb --make-pidfile --pidfile $PIDFILE -- $OPTS &
+;;
+
+stop)
+    start-stop-daemon --stop --user $RUN_AS_USER --pidfile $PIDFILE
+    rm -f $PIDFILE
+;;
+
+restart)
+    if start-stop-daemon --test --stop --user $RUN_AS_USER --pidfile $PIDFILE >/dev/null; then
+        $0 stop
+    fi;
+    $0 start
+;;
+
+*)
+    echo "Usage: $0 (start|restart|stop)"
+    exit 1
+;;
+
+esac
+
+exit 0

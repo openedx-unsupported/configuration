@@ -3,6 +3,9 @@
     src={{ item }}.conf.j2 dest={{ supervisor_available_dir }}/{{ item }}.conf
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
   with_items: ['xqueue', 'xqueue_consumer']
+  tags:
+    - install
+    - install:configuration
 
 - name: "enabling supervisor scripts - xqueue, xqueue consumer"
   file: >
@@ -12,25 +15,31 @@
     mode=0644 state=link force=yes
   with_items: ['xqueue', 'xqueue_consumer']
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: "add gunicorn configuration file"
   template: >
     src=xqueue_gunicorn.py.j2 dest={{ xqueue_app_dir }}/xqueue_gunicorn.py
   sudo_user: "{{ xqueue_user }}"
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:configuration
 
 - name: create xqueue application config
   template: src=xqueue.env.json.j2 dest={{ xqueue_app_dir }}/xqueue.env.json mode=0644
   sudo_user: "{{ xqueue_user }}"
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:configuration
 
 - name: create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{ xqueue_app_dir }}/xqueue.auth.json mode=0644
   sudo_user: "{{ xqueue_user }}"
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:configuration
 
 # Do A Checkout
 - name: git checkout xqueue repo into xqueue_code_dir
@@ -39,8 +48,9 @@
     accept_hostkey=yes
   sudo_user: "{{ xqueue_user }}"
   register: xqueue_checkout
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:code
 
 
 # Install the python pre requirements into {{ xqueue_venv_dir }}
@@ -49,8 +59,9 @@
     requirements="{{ xqueue_pre_requirements_file }}" virtualenv="{{ xqueue_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   sudo_user: "{{ xqueue_user }}"
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:application-requirements
 
 # Install the python post requirements into {{ xqueue_venv_dir }}
 - name : install python post-requirements
@@ -58,28 +69,31 @@
     requirements="{{ xqueue_post_requirements_file }}" virtualenv="{{ xqueue_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   sudo_user: "{{ xqueue_user }}"
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:application-requirements
 
 # If there is a common user for migrations run migrations using his username
 # and credentials. If not we use the xqueue mysql user
-- name: syncdb and migrate
+- name: migrate
   shell: >
-    SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py syncdb --migrate --noinput --settings=xqueue.aws_migrate --pythonpath={{ xqueue_code_dir }}
+    SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py migrate --noinput --settings=xqueue.aws_migrate --pythonpath={{ xqueue_code_dir }}
   sudo_user: "{{ xqueue_user }}"
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
   when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
-  notify:
-    - restart xqueue
+  tags:
+    - migrate
+    - migrate:db
 
 - name: create users
   shell: >
     SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath={{ xqueue_code_dir }}
   sudo_user: "{{ xqueue_user }}"
-  notify:
-    - restart xqueue
+  tags:
+    - manage
+    - manage:app-users
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -102,6 +116,9 @@
   - xqueue
   - xqueue_consumer
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
 
 - name: create a symlink for venv python
   file: >
@@ -111,5 +128,17 @@
   with_items:
   - python
   - pip
+  tags:
+    - install
+    - install:app-requirements
 
-- set_fact: xqueue_installed=true
+- name: restart xqueue
+  supervisorctl: >
+    name={{ item }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
+  when: not disable_edx_services
+  with_items:
+  - xqueue
+  - xqueue_consumer

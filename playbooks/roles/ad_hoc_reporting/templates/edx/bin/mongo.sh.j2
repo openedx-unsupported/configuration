@@ -3,10 +3,19 @@
 db_hosts={{ ",".join(item.db_hosts) }}
 from_port={{ item.db_port }}
 
-
 for host in ${db_hosts//,/ }; do
-    if [[ $(mongo ${host}:{{ item.db_port }}/{{ item.db_name }} -u {{ COMMON_MONGO_READ_ONLY_USER }} -p"{{ COMMON_MONGO_READ_ONLY_PASS }}"  --eval "printjson(db.isMaster())") =~ secondary\"\ \:\ true ]]; then
+    is_secondary=$(mongo ${host}:{{ item.db_port }}/{{ item.db_name }} -u {{ COMMON_MONGO_READ_ONLY_USER }} -p"{{ COMMON_MONGO_READ_ONLY_PASS }}"  --quiet --eval "printjson(db.isMaster()['secondary'])")
+    is_hidden=$(mongo ${host}:{{ item.db_port }}/{{ item.db_name }} -u {{ COMMON_MONGO_READ_ONLY_USER }} -p"{{ COMMON_MONGO_READ_ONLY_PASS }}"  --quiet --eval "printjson(db.isMaster()['hidden'])")
+    if [[ $is_hidden == "true" ]]; then
         replica=$host
+	# Found a hidden secondary no need to keep looking.
+	break
+    fi
+
+    if [[ $is_secondary == "true" ]]; then
+        replica=$host
+	# Found a secondary but there could be a hidden secondary.
+	# keep looking.
     fi
 done
 

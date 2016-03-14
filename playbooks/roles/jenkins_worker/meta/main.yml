@@ -1,10 +1,23 @@
 ---
 dependencies:
   - common
-  - edxapp_common
   - jscover
+  - role: oraclejdk
+    oraclejdk_version: "8u60"
+    oraclejdk_base: "jdk1.8.0_60"
+    oraclejdk_build: "b27"
+    oraclejdk_link: "/usr/lib/jvm/java-8-oracle"
+
+  # dependencies for edx-app jenkins worker:
+  - role: edxapp_common
+    when: platform_worker is defined
   - role: rbenv
     rbenv_user: "{{ jenkins_user }}"
     rbenv_dir: "{{ jenkins_home }}"
     rbenv_ruby_version: "{{ jenkins_ruby_version }}"
     jenkins_worker: true
+    when: platform_worker is defined
+
+  # dependencies for sitespeed worker
+  - role: sitespeedio
+    when: sitespeed_worker is defined

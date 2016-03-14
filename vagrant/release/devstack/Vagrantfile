@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.6.5"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
@@ -32,67 +32,56 @@ if [ -n "$OPENEDX_RELEASE" ]; then
   # this can cause problems (e.g. looking for templates that no longer exist).
   /edx/bin/update configuration $CONFIG_VER
 else
-  CONFIG_VER="release"
+  CONFIG_VER="master"
 fi
 
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
 ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
 
 SCRIPT
 
-edx_platform_mount_dir = "edx-platform"
-themes_mount_dir = "themes"
-forum_mount_dir = "cs_comments_service"
-ora_mount_dir = "ora"
+MOUNT_DIRS = {
+  :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
+  :themes => {:repo => "themes", :local => "/edx/app/edxapp/themes", :owner => "edxapp"},
+  :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
+  :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
+  :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
+  :programs => {:repo => "programs", :local => "/edx/app/programs/programs", :owner => "programs"},
+  # This src directory won't have useful permissions. You can set them from the
+  # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
+  :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
 
+}
 if ENV['VAGRANT_MOUNT_BASE']
-
-  edx_platform_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + edx_platform_mount_dir
-  themes_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + themes_mount_dir
-  forum_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + forum_mount_dir
-  ora_mount_dir = ENV['VAGRANT_MOUNT_BASE'] + "/" + ora_mount_dir
-
+  MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
 end
 
 # map the name of the git branch that we use for a release
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "openedx/rc/aspen-2014-09-10" => {
-    :name => "aspen-devstack-rc1", :file => "20141009-aspen-devstack-rc1.box",
+  # Note: the devstack and fullstack boxes differ, because devstack had an issue
+  # that needed fixing, but it didn't affect fullstack.
+  "named-release/dogwood.rc" => {
+    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
   },
-  "aspen.1" => {
-    :name => "aspen-devstack-1", :file => "20141028-aspen-devstack-1.box",
+  "named-release/dogwood.1" => {
+    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
   },
-  "named-release/aspen" => {
-    :name => "aspen-devstack-1", :file => "20141028-aspen-devstack-1.box",
+  "named-release/dogwood" => {
+    :name => "dogwood-devstack-rc2", :file => "20151221-dogwood-devstack-rc2.box",
   },
-  "named-release/birch.rc1" => {
-    :name => "birch-devstack-rc1", :file => "20150203-birch-devstack-rc1.box",
-  },
-  "named-release/birch.rc2" => {
-    :name => "birch-devstack-rc2", :file => "20150211-birch-devstack-rc2.box",
-  },
-  "named-release/birch.rc3" => {
-    :name => "birch-devstack-rc3", :file => "20150213-birch-devstack-rc3.box",
-  },
-  "named-release/birch" => {
-    :name => "birch-devstack", :file => "20150224-birch-devstack.box",
-  },
-  "named-release/cypress.rc1" => {
-    :name => "cypress-devstack-rc1", :file => "20150714-cypress-devstack-rc1.box",
-  },
-  "named-release/cypress.rc2" => {
-    :name => "cypress-devstack-rc2", :file => "20150717-cypress-devstack-rc2.box",
-  },
-  "named-release/cypress.rc3" => {
-    :name => "cypress-devstack-rc3", :file => "20150724-cypress-devstack-rc3.box",
-  },
-  "named-release/cypress.rc4" => {
-    :name => "cypress-devstack-rc4", :file => "cypress-rc4-devstack.box",
-  },
+  # Cypress is deprecated and unsupported
+  # "named-release/cypress" => {
+  #   :name => "cypress-devstack", :file => "cypress-devstack.box",
+  # },
+  # Birch is deprecated and unsupported
+  # "named-release/birch.2" => {
+  #   :name => "birch-devstack-2", :file => "birch-2-devstack.box",
+  # },
 }
 openedx_releases.default = {
-  :name => "cypress-devstack-rc4", :file => "cypress-rc4-devstack.box",
+  :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
 }
 openedx_releases_vmware = {
   "named-release/birch" => {
@@ -111,11 +100,25 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
-  config.vm.network :forwarded_port, guest: 8000, host: 8000
-  config.vm.network :forwarded_port, guest: 8001, host: 8001
-  config.vm.network :forwarded_port, guest: 18080, host: 18080
-  config.vm.network :forwarded_port, guest: 8765, host: 8765
-  config.vm.network :forwarded_port, guest: 9200, host: 9200
+
+  # If you want to run the box but don't need network ports, set VAGRANT_NO_PORTS=1.
+  # This is useful if you want to run more than one box at once.
+  if not ENV['VAGRANT_NO_PORTS']
+    config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
+    config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
+    config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
+    config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
+    config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
+    config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
+    config.vm.network :forwarded_port, guest: 8765, host: 8765
+    config.vm.network :forwarded_port, guest: 9200, host: 9200  # Elasticsearch
+    config.vm.network :forwarded_port, guest: 18080, host: 18080  # Forums
+    config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
+    config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
+    config.vm.network :forwarded_port, guest: 9876, host: 9876  # ORA2 Karma tests
+    config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
+    config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
+  end
   config.ssh.insert_key = true
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
@@ -126,23 +129,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   if ENV['VAGRANT_USE_VBOXFS'] == 'true'
-    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
-      create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
-      create: true, owner: "edxapp", group: "www-data"
-    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
-      create: true, owner: "forum", group: "www-data"
-    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
-      create: true, owner: "ora", group: "www-data"
+    MOUNT_DIRS.each { |k, v|
+      config.vm.synced_folder v[:repo], v[:local], create: true, owner: v[:owner], group: "www-data"
+    }
   else
-    config.vm.synced_folder "#{edx_platform_mount_dir}", "/edx/app/edxapp/edx-platform",
-      create: true, nfs: true
-    config.vm.synced_folder "#{themes_mount_dir}", "/edx/app/edxapp/themes",
-      create: true, nfs: true
-    config.vm.synced_folder "#{forum_mount_dir}", "/edx/app/forum/cs_comments_service",
-      create: true, nfs: true
-    config.vm.synced_folder "#{ora_mount_dir}", "/edx/app/ora/ora",
-      create: true, nfs: true
+    MOUNT_DIRS.each { |k, v|
+      config.vm.synced_folder v[:repo], v[:local], create: true, nfs: true
+    }
   end
 
   config.vm.provider :virtualbox do |vb|

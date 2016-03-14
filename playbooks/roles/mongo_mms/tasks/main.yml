@@ -9,33 +9,32 @@
 - fail: MMSAPIKEY is required
   when: MMSAPIKEY is not defined 
 
-
-
-# this cruft can be removed in ansible 1.6, which can have apt install local deb files
-
-- name: install required packages
-  apt: name={{ item }} state=present
-  with_items:
-    - gdebi
-
 - name: download mongo mms agent
   get_url: >
-    url="{{ mms_agent_url }}"
-    dest="/tmp/mongodb-mms-monitoring-agent-{{ mms_agent_version }}.deb"
+    url="{{ base_url }}/{{ item.agent }}_{{ item.version }}_{{ pkg_arch }}.{{ pkg_format }}"
+    dest="/tmp/{{ item.agent }}-{{ item.version }}.{{ pkg_format }}"
   register: download_mms_deb
-
+  with_items:
+    agents
+  
 - name: install mongo mms agent
-  shell: "gdebi -nq /tmp/mongodb-mms-monitoring-agent-{{ mms_agent_version }}.deb"
+  apt: >
+    deb="/tmp/{{ item.agent }}-{{ item.version }}.deb"
   when: download_mms_deb.changed
   notify: restart mms
+  with_items:
+    agents
 
 - name: add key to monitoring-agent.config
   lineinfile: >
-    dest=/etc/mongodb-mms/monitoring-agent.config
+    dest="{{ item.config }}"
     regexp="^mmsApiKey="
     line="mmsApiKey={{ MMSAPIKEY }}"
   notify: restart mms
+  with_items:
+    agents
 
 - name: start mms service
-  service: name=mongodb-mms-monitoring-agent state=started
-
+  service: name="{{ item.agent }}" state=started
+  with_items:
+    agents

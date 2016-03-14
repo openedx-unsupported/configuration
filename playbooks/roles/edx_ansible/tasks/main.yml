@@ -29,6 +29,8 @@
     home="{{ edx_ansible_app_dir }}"
     createhome=no
     shell=/bin/false
+  tags:
+    - install:base
 
 - name: create edx_ansible app and venv dir
   file: >
@@ -40,8 +42,12 @@
     - "{{ edx_ansible_app_dir }}"
     - "{{ edx_ansible_data_dir }}"
     - "{{ edx_ansible_venvs_dir }}"
+  tags:
+    - install:base
 
 - name: install a bunch of system packages on which edx_ansible relies
-  apt: pkg={{','.join(edx_ansible_debian_pkgs)}} state=present
+  apt: pkg={{','.join(edx_ansible_debian_pkgs)}} state=present update_cache=true
+  tags:
+    - install:system-requirements
 
 - include: deploy.yml tags=deploy

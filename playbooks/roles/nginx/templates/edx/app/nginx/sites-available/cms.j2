@@ -30,20 +30,38 @@ server {
 error_page {{ k }} {{ v }};
   {% endfor %}
 
+  listen {{ EDXAPP_CMS_NGINX_PORT }} {{ default_site }};
+
   {% if NGINX_ENABLE_SSL %}
 
-  listen {{ EDXAPP_CMS_NGINX_PORT }} {{ default_site }};
   listen {{ EDXAPP_CMS_SSL_NGINX_PORT }} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
   # request the browser to use SSL for all connections
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
-
-  {% else %}
-  listen {{ EDXAPP_CMS_NGINX_PORT }} {{ default_site }};
   {% endif %}
+  
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+  # Redirect http to https over single instance
+  if ($scheme != "https") 
+  { 
+   set $do_redirect_to_https "true";
+  }
 
+  # Nginx does not support nested conditions 
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
+  if ($http_x_forwarded_proto = "http") 
+  {
+   set $do_redirect_to_https "true";
+  }
+
+  if ($do_redirect_to_https = "true")
+  {
+  rewrite ^ https://$host$request_uri? permanent;
+  }
+  {% endif %}
+  
   server_name {{ CMS_HOSTNAME }};
 
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
@@ -90,15 +108,5 @@ error_page {{ k }} {{ v }};
 
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
-
-  # Forward to HTTPS if we're an HTTP request...
-  if ($http_x_forwarded_proto = "http") {
-    set $do_redirect "true";
-  }
-
-  # Run our actual redirect...
-  if ($do_redirect = "true") {
-    rewrite ^ https://$host$request_uri? permanent;
-  }
 
 }

@@ -1,0 +1,40 @@
+# Vagrantfile for testing throwaway Ansible playbooks. To use, create a playbook
+# under /playbooks (e.g., "foo.yml"), export its name (e.g., "foo") as the value
+# of the environment variable VAGRANT_ANSIBLE_PLAYBOOK, and execute `vagrant up`
+# from within this directory.
+MEMORY = 2048
+CPU_COUNT = 2
+
+Vagrant.configure("2") do |config|
+
+  config.vm.box     = "precise64"
+  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+
+  config.vm.network :private_network, ip: "192.168.33.20"
+  config.vm.network :forwarded_port, guest: 8080, host: 8080
+
+  config.vm.provider :virtualbox do |vb|
+    vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
+
+    # You can adjust this to the amount of CPUs your system has available
+    vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
+
+    # Allow DNS to work for Ubuntu 12.10 host
+    # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+  ["vmware_fusion", "vmware_workstation"].each do |vmware_provider|
+    config.vm.provider vmware_provider do |v, override|
+      override.vm.box     = "precise64_vmware"
+      override.vm.box_url = "http://files.vagrantup.com/precise64_vmware.box"
+      v.vmx["memsize"] = MEMORY.to_s
+      v.vmx["numvcpus"] = CPU_COUNT.to_s
+    end
+  end
+
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "../../../playbooks/" + ENV['VAGRANT_ANSIBLE_PLAYBOOK'] + ".yml"
+    ansible.verbose = "extra"
+  end
+end

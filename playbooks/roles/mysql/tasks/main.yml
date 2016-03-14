@@ -1,0 +1,33 @@
+---
+- name: Add MySQL experimental apt key
+  apt_key:
+    id: 4F4EA0AAE5267A6C
+    keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
+    state: present
+    
+- name: Install apt repository
+  apt_repository:
+    repo: 'deb http://ppa.launchpad.net/ondrej/mysql-experimental/ubuntu precise main'
+    update_cache: yes
+
+- name: install mysql 56 and dependencies
+  apt: 
+    name: "{{ item }}" 
+    install_recommends: yes 
+    force: yes 
+    state: present
+  with_items: mysql_debian_pkgs
+
+- name: Ensure Anonymous user(s) does not exist
+  mysql_user: 
+    name: '' 
+    host: "{{ item }}" 
+    state: absent
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
+
+- name: start mysql
+  service: 
+    name: mysql 
+    state: started

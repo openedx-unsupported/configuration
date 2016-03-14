@@ -1,0 +1,83 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role hive
+# 
+# Overview:
+# 
+# Install and configure Hive.
+#
+# Dependencies:
+#
+# hadoop_common: Hive requires Hadoop to be installed to function properly.
+
+
+- name: check if downloaded and extracted
+  stat: path={{ HIVE_HOME }}
+  register: extracted_dir
+
+- name: distribution downloaded
+  get_url: >
+    url={{ hive_dist.url }}
+    sha256sum={{ hive_dist.sha256sum }}
+    dest={{ hive_temporary_dir }}
+  when: not extracted_dir.stat.exists
+
+- name: distribution extracted
+  shell: >
+    chdir={{ HADOOP_COMMON_USER_HOME }}
+    tar -xzf {{ hive_temporary_dir }}/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hive-{{ HIVE_VERSION }}-bin
+  when: not extracted_dir.stat.exists
+
+- name: versioned directory symlink created
+  file: >
+    src={{ HADOOP_COMMON_USER_HOME }}/hive-{{ HIVE_VERSION }}-bin
+    dest={{ HIVE_HOME }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+
+- name: hive mysql connector distribution downloaded
+  get_url: >
+    url={{ hive_mysql_connector_dist.url }}
+    sha256sum={{ hive_mysql_connector_dist.sha256sum }}
+    dest={{ hive_temporary_dir }}
+  when: not extracted_dir.stat.exists
+
+- name: hive mysql connector distribution extracted
+  shell: >
+    chdir={{ hive_temporary_dir }}
+    tar -xzf {{ hive_temporary_dir }}/{{ hive_mysql_connector_dist.filename }}
+  when: not extracted_dir.stat.exists
+
+- name: hive lib exists
+  file: >
+    path={{ HIVE_LIB }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+
+- name: hive mysql connector installed
+  shell: >
+    chdir=/{{ hive_temporary_dir }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}
+    cp mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ HIVE_LIB }} &&
+    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HIVE_LIB }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar
+  when: not extracted_dir.stat.exists
+
+- name: configuration installed
+  template: >
+    src={{ item }}.j2
+    dest={{ HIVE_CONF }}/{{ item }}
+    mode=0640 owner={{ hadoop_common_user }} group={{ hadoop_common_group }}
+  with_items:
+    - hive-env.sh
+    - hive-site.xml
+
+- name: env vars sourced in hadoop env
+  lineinfile: >
+    dest={{ hadoop_common_env }} state=present
+    regexp="^. {{ HIVE_CONF }}/hive-env.sh" line=". {{ HIVE_CONF }}/hive-env.sh"

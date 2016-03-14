@@ -4,6 +4,9 @@
     dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
     accept_hostkey=yes
   sudo_user: "{{ edx_ansible_user }}"
+  tags:
+    - install
+    - install:code
 
 - name : install edx_ansible venv requirements
   pip: >
@@ -11,26 +14,41 @@
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
   sudo_user: "{{ edx_ansible_user }}"
   with_items: "{{ edx_ansible_requirements_files }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: create update script
   template: >
     dest={{ edx_ansible_app_dir}}/update
     src=update.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
+  tags:
+    - install
+    - install:configuration
 
 - name: create a symlink for update.sh
   file: >
     src={{ edx_ansible_app_dir }}/update
     dest={{ COMMON_BIN_DIR }}/update
     state=link
+  tags:
+    - install
+    - install:configuration
 
 - name: create a symlink for ansible-playbook
   file: >
     src={{ edx_ansible_venv_bin }}/ansible-playbook
     dest={{ COMMON_BIN_DIR }}/ansible-playbook
     state=link
+  tags:
+    - install
+    - install:configuration
 
 - name: create a symlink for the playbooks dir
   file: >
     src={{ edx_ansible_code_dir }}/playbooks
     dest={{ COMMON_CFG_DIR }}/playbooks
     state=link
+  tags:
+    - install
+    - install:configuration
