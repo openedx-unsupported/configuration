@@ -38,9 +38,9 @@ To configure the Analytics Schedule Seed Job, override these variables:
 * `ANALYTICS_SCHEDULE_SECURE_REPO_URL`: Optional URL for the git repo that contains the
   `analytics-secure-configuration`.
 * `ANALYTICS_SCHEDULE_SECURE_REPO_VERSION`: Optional branch/tagname to checkout
-  for the secure repo. Default is "master"
+  for the secure repo.  Default is "master".
 * `ANALYTICS_SCHEDULE_SECURE_REPO_DEST`: Optional target dir for the the secure
-  repo clone.  Default is `analytics-secure-config`
+  repo clone.  Default is `analytics-secure-config`.
 * `ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID`: Credential id with read
   access to the secure repo.  Optional if the secure repo isn't private.
   See *Jenkins credentials* below for details.
@@ -53,7 +53,7 @@ To configure the Analytics Schedule Seed Job, override these variables:
   See *Jenkins credentials* below for details.
 * `ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH`: Optional additional classpath jars and folders for the job DSLs.
   Must be newline-separated.
-  Default is
+  Default is:
 
         src/main/groovy
         lib/*.jar
@@ -85,9 +85,10 @@ analytics tasks are:
   `courseEnrollByCountry.groovy` DSL.
 
 
-The Analytics Tasks configuration should contain the following variables, where `<TASK_NAME>` is one of:
+The Analytics Tasks configuration should contain the following variables, where
+`<TASK_NAME>` is the name of the task to configure:
 
-* `ANALYTICS_SCHEDULE_<TASK_NAME>`:  `true`|`false`.  Must be set to true to create the analytics task.
+* `ANALYTICS_SCHEDULE_<TASK_NAME>`:  `true`|`false`.  Must be set to `true` to create the analytics task.
 * `ANALYTICS_SCHEDULE_<TASK_NAME>_FREQUENCY`: Optional string representing how
   often the analytics task should be run.  Uses a modified cron syntax, e.g.
   `@daily`, `@weekly`, see [stackoverflow](http://stackoverflow.com/a/12472740)
