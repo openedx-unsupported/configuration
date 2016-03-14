@@ -29,8 +29,14 @@ This file needs to contain, at least, the following variables
 
 To configure the Analytics Schedule Seed Job, override these variables:
 
-* `ANALYTICS_SCHEDULE_SECURE_REPO_URL`: URL for the git repo that contains the
-  `analytics-secure-configuration`.  Must be overridden.
+* `ANALYTICS_SCHEDULE_EXTRA_VARS`: Optional configuration for the analytics
+  schedule top-level seed job.  Can be explicit YML or a file path (e.g.
+  `@path/to/file.yml`).  Relative paths are relative to the seed job workspace.
+
+  Default is `@{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/vars.yml`.  
+  See **Analytics Task configuration** below for details.
+* `ANALYTICS_SCHEDULE_SECURE_REPO_URL`: Optional URL for the git repo that contains the
+  `analytics-secure-configuration`.
 * `ANALYTICS_SCHEDULE_SECURE_REPO_VERSION`: Optional branch/tagname to checkout
   for the secure repo. Default is "master"
 * `ANALYTICS_SCHEDULE_SECURE_REPO_DEST`: Optional target dir for the the secure
@@ -38,11 +44,6 @@ To configure the Analytics Schedule Seed Job, override these variables:
 * `ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID`: Credential id with read
   access to the secure repo.  Optional if the secure repo isn't private.
   See *Jenkins credentials* below for details.
-* `ANALYTICS_SCHEDULE_EXTRA_VARS`: Optional configuration for the analytics schedule top-level seed job.
-  Can be explicit YML or a file path (e.g. `@path/to/file.yml`).  First tries
-  to read the file relative to the seed job workspace, and then tries the file
-  system directly.
-  Default is `@{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/vars.yml`.  See **Analytics Task configuration** below for details.
 * `ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL`: Optional URL for the git repo that contains the analytics job DSLs.
   Default is `git@github.com:edx/edx-jenkins-job-dsl.git`
 * `ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION`: Optional branch/tagname to checkout for the analytics job DSLs.
