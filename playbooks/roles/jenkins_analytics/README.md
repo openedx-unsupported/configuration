@@ -24,12 +24,14 @@ This file needs to contain, at least, the following variables
 * `JENKINS_ANALYTICS_USER_PASSWORD_HASHED`
 * `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`
 * `JENKINS_ANALYTICS_GITHUB_KEY` or `JENKINS_ANALYTICS_CREDENTIALS`
+* `ANALYTICS_SCHEDULE_EXTRA_VARS` as YML, or `ANALYTICS_SCHEDULE_SECURE_REPO_*`
+  to clone the file containing the analytics schedule configuration.
 
 #### Seed job configuration
 
 To configure the Analytics Schedule Seed Job, override these variables:
 
-* `ANALYTICS_SCHEDULE_EXTRA_VARS`: Optional configuration for the analytics
+* `ANALYTICS_SCHEDULE_EXTRA_VARS`: configuration for the analytics
   schedule top-level seed job.  Can be explicit YML or a file path (e.g.
   `@path/to/file.yml`).  Relative paths are relative to the seed job workspace.
 
