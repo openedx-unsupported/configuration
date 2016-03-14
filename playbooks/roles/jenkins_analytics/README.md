@@ -107,8 +107,6 @@ The Analytics Tasks configuration should contain the following variables, where
           EXTRA_VARS: "@/home/jenkins/emr-vars.yml"
           CREDENTIAL_ID: "github-deploy-key"
 
-### End-user editable configuration
-
 #### Jenkins user password
 
 You'll need to override default jenkins user password, please do that
@@ -122,11 +120,6 @@ in Ansible.)
 
 * `JENKINS_ANALYTICS_USER_PASSWORD_HASHED`: hashed password
 * `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`: plain password
-
-#### Jenkins seed job configuration
-
-This will be filled as part of PR[#2830](https://github.com/edx/configuration/pull/2830).
-For now go with defaults.
 
 #### Jenkins credentials
 
