@@ -106,6 +106,7 @@ The Analytics Tasks configuration should contain the following variables, where
           ENVIRONMENT: "analytics-sandbox"
           EXTRA_VARS: "@/home/jenkins/emr-vars.yml"
           CREDENTIAL_ID: "github-deploy-key"
+
 #### Jenkins user password
 
 You'll need to override default jenkins user password, please do that
