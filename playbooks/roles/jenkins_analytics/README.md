@@ -1,27 +1,27 @@
 # Jenkins Analytics
 
-A role that sets up Jenkins for scheduling analytics tasks. 
+A role that sets up Jenkins for scheduling analytics tasks.
 
 This role performs the following steps:
 
 * Installs Jenkins using `jenkins_master`.
 * Configures `config.xml` to enable security and use
   Linux Auth Domain.
-* Creates Jenkins credentials. 
-* Enables the use of Jenkins CLI. 
+* Creates Jenkins credentials.
+* Enables the use of Jenkins CLI.
 * Installs a seed job from configured repository, launches it and waits
   for it to finish.
 
 ## Configuration
 
 When you are using vagrant you **need** to set `VAGRANT_JENKINS_LOCAL_VARS_FILE`
-environment variable. This variable must point to a file containing 
+environment variable. This variable must point to a file containing
 all required variables from this section.
 
-This file needs to contain, at least, the following variables 
-(see the next few sections for more information about them): 
+This file needs to contain, at least, the following variables
+(see the next few sections for more information about them):
 
-* `JENKINS_ANALYTICS_USER_PASSWORD_CRYPTED` 
+* `JENKINS_ANALYTICS_USER_PASSWORD_CRYPTED`
 * `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`
 * `JENKINS_ANALYTICS_GITHUB_KEY` or `JENKINS_ANALYTICS_CREDENTIALS`
 
@@ -33,7 +33,7 @@ To configure the Analytics Schedule Seed Job, override these variables:
   schedule top-level seed job.  Can be explicit YML or a file path (e.g.
   `@path/to/file.yml`).  Relative paths are relative to the seed job workspace.
 
-  Default is `@{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/vars.yml`.  
+  Default is `@{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/vars.yml`.
   See **Analytics Task configuration** below for details.
 * `ANALYTICS_SCHEDULE_SECURE_REPO_URL`: Optional URL for the git repo that contains the
   `analytics-secure-configuration`.
@@ -107,47 +107,47 @@ The Analytics Tasks configuration should contain the following variables, where
           EXTRA_VARS: "@/home/jenkins/emr-vars.yml"
           CREDENTIAL_ID: "github-deploy-key"
 
-### End-user editable configuration 
+### End-user editable configuration
 
 #### Jenkins user password
 
 You'll need to override default jenkins user password, please do that
-as this sets up the **shell** password for this user. 
+as this sets up the **shell** password for this user.
 
-You'll need to set both plain password and hashed one, 
-to obtain hashed password use `mkpasswd` command, for example: 
-`mkpasswd --method=sha-512`. (Note: hashed password is required 
-to have clean "changed"/"unchanged" notification for this step 
-in Ansible.) 
+You'll need to set both plain password and hashed one,
+to obtain hashed password use `mkpasswd` command, for example:
+`mkpasswd --method=sha-512`. (Note: hashed password is required
+to have clean "changed"/"unchanged" notification for this step
+in Ansible.)
 
-* `JENKINS_ANALYTICS_USER_PASSWORD_HASHED`: hashed password 
+* `JENKINS_ANALYTICS_USER_PASSWORD_HASHED`: hashed password
 * `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`: plain password
 
-#### Jenkins seed job configuration 
+#### Jenkins seed job configuration
 
-This will be filled as part of PR[#2830](https://github.com/edx/configuration/pull/2830). 
-For now go with defaults. 
+This will be filled as part of PR[#2830](https://github.com/edx/configuration/pull/2830).
+For now go with defaults.
 
 #### Jenkins credentials
 
-Jenkins contains its own credential store, to fill it with credentials 
-please use `JENKINS_ANALYTICS_CREDENTIALS` variable. This variable 
+Jenkins contains its own credential store, to fill it with credentials
+please use `JENKINS_ANALYTICS_CREDENTIALS` variable. This variable
 is a list of objects, each object represents a single credential,
-for now passwords and ssh-keys are supported. 
+for now passwords and ssh-keys are supported.
 
 If you only need credentials to access github repositories
 you can override `JENKINS_ANALYTICS_GITHUB_KEY`,
-which should contain contents of private key used for 
-authentication to checkout github repositories.  
+which should contain contents of private key used for
+authentication to checkout github repositories.
 
-Each credential has an unique id, this credential id is used by 
-Jenkins jobs to match a task requiring credential with a 
-credential for given task. 
+Each credential has an unique id, this credential id is used by
+Jenkins jobs to match a task requiring credential with a
+credential for given task.
 
 Examples of credentials variables:
- 
-    JENKINS_ANALYTICS_GITHUB_KEY: "{{ lookup('file', 'path to keyfile') }}" 
-        
+
+    JENKINS_ANALYTICS_GITHUB_KEY: "{{ lookup('file', 'path to keyfile') }}"
+
     JENKINS_ANALYTICS_CREDENTIALS:
       # id is a scope-unique credential identifier
       - id: test-password
@@ -164,7 +164,7 @@ Examples of credentials variables:
         # Username this ssh-key is attached to
         username: git
         # Type of credential, see other entries for example
-        type: ssh-private-key        
+        type: ssh-private-key
         passphrase: 'foobar'
         description: Generated by ansible
         privatekey: |
@@ -175,7 +175,7 @@ Examples of credentials variables:
           Key contents
           -----END RSA PRIVATE KEY-----
 
-### General configuration 
+### General configuration
 
 Following variables are used by this role:
 
