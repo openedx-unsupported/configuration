@@ -47,23 +47,18 @@
     force: yes
   when: not SKIP_CERTS
 
-# Remove sources file if exists
-- name: Removing pre-exiting sources.list
-  file: path=/etc/apt/sources.list.d/appneta.list state=absent
-
 # Create appneta sources.list
 - name: Create appneta sources.list
-  lineinfile:
-    dest: /etc/apt/sources.list.d/appneta.list
-    line: "deb http://{{ APT_SERVER }}/{{ ACCESS_KEY }} {{ ansible_distribution_release }} main"
+  apt_repository:
+    repo: "deb http://{{ APT_SERVER }}/{{ ACCESS_KEY }} {{ ansible_distribution_release }} main"
     state: present
-    create: yes
+    filename: 'appneta'
 
-## Downloading AppNeta package signature public key
+# Downloading AppNeta package signature public key
 - name: Adding AppNeta package signature public key to system list
-  file: path=/etc/apt/sources.list.d/appneta-apt-key.pub* state=absent force=yes
-  #get_url: url=https://{{ APT_SERVER }}/appneta-apt-key.pub dest=/etc/apt/sources.list.d/appneta-apt-key.pub
-  apt_key: id=appneta-apt-key.pub url=https://{{ APT_SERVER }}/appneta-apt-key.pub state=present
+  apt_key:
+    url: https://{{ APT_SERVER }}/appneta-apt-key.pub
+    state: present
 
 # Update repositories
 - name: Running apt-update
@@ -72,7 +67,7 @@
 
 # Installing common library and development headers (liboboe)
 - name: Install common library and headers
-  apt: name={{item}} state=latest
+  apt: pkg={{ item }} state=present
   with_items:
        - liboboe0
        - liboboe-dev
@@ -104,16 +99,11 @@
 
 # Installing nginx light and nginx extra
 - name: Install nginx light and nginx extras
-  apt: name={{item}} state=latest
+  apt: pkg={{ item }} state=present
   with_items:
        - nginx-extras
        - nginx-light
-
-# Starting the sequencer.
-- name: Restart nginx
-  service:
-    name: nginx
-    state: restarted
+  notify: restart nginx
 
 # Installing python agents
 - name: Install oboe
@@ -124,14 +114,18 @@
 # Installing greenlet instrumentaion
 - name: Add greenlet instrumentation
   pip:
-    name: https://pypi.appneta.com greenlet==0.4.5-oboe1
-    state: latest
+    extra_args: '-i https://pypi.appneta.com'
+    name: greenlet
+    version: 0.4.5-oboe1
+    state: present
 
 # Installing tornado instrumentaion
 - name: Add tornado instrumentation
   pip:
-    name: http://pypi.appneta.com tornado==2.3-oboe3
-    state: latest
+    extra_args: '-i https://pypi.appneta.com'
+    name: tornado
+    version: 2.3-oboe3
+    state: present
 
 # Install Ruby agents
 - name: Add ruby instrumentaion
