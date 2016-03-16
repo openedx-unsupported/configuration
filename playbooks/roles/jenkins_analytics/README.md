@@ -220,9 +220,8 @@ For example:
           CLUSTER_NAME: "Analytics Sandbox: AnswerDistribution"
           EXTRA_VARS: "@/home/jenkins/emr-vars.yml" # src: "s3://custom_path"
           FROM_DATE: "2016-01-01"
-          CREDENTIALS: "hadoop"
           TASK_USER: "hadoop"
-          NOTIFY: "jill@opencraft.com"
+          NOTIFY: "staff@example.com"
 
 #### Other Useful Variables
 
