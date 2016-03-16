@@ -20,7 +20,6 @@
 # Example play:
 #
 
-# write all configs related to static IP mechanism
 - name: Write static config in case of static IPs
   lineinfile:
     dest: /etc/default/tracelyzer
@@ -39,7 +38,6 @@
     create: yes
   when: not USE_STATIC_CONFIG
 
-# install ca certificates if required
 - name: Install certificates
   apt:
     name: ca-certificates
@@ -47,71 +45,54 @@
     force: yes
   when: not SKIP_CERTS
 
-# Create appneta sources.list
 - name: Create appneta sources.list
   apt_repository:
     repo: "deb http://{{ APT_SERVER }}/{{ ACCESS_KEY }} {{ ansible_distribution_release }} main"
     state: present
     filename: 'appneta'
+    update_cache: yes
 
-# Downloading AppNeta package signature public key
 - name: Adding AppNeta package signature public key to system list
   apt_key:
     url: https://{{ APT_SERVER }}/appneta-apt-key.pub
     state: present
 
-# Update repositories
-- name: Running apt-update
-  apt:
-    update_cache: yes
-
-# Installing common library and development headers (liboboe)
 - name: Install common library and headers
   apt: pkg={{ item }} state=present
-  with_items:
-       - liboboe0
-       - liboboe-dev
+  with_items: appneta_lib_pkgs
 
 # Install tracelyzer
 # TODO: need to add the logic for disabling error reporting hook if necessary
 - name: Install tracelyzer
   apt:
     name: tracelyzer
-    state: latest
+    state: present
 
-# Install appneta-sequencer
 - name: Install appneta-sequencer
   apt:
     name: appneta-sequencer
-    state: latest
+    state: present
 
-# Starting the sequencer.
 - name: Start appneta-sequencer
   service:
     name: appneta-sequencer
     state: started
 
-# Install nginx agent from Appneta repo
 - name: Install nginx agent
   apt:
     name: nginx
-    state: latest
+    state: present
 
-# Installing nginx light and nginx extra
 - name: Install nginx light and nginx extras
   apt: pkg={{ item }} state=present
-  with_items:
-       - nginx-extras
-       - nginx-light
   notify: restart nginx
+  with_items: nginx_extra_pkgs
 
-# Installing python agents
 - name: Install oboe
   pip:
     name: oboe
-    state: latest
+    state: present
 
-# Installing greenlet instrumentaion
 - name: Add greenlet instrumentation
   pip:
     extra_args: '-i https://pypi.appneta.com'
@@ -119,7 +100,6 @@
     version: 0.4.5-oboe1
     state: present
 
-# Installing tornado instrumentaion
 - name: Add tornado instrumentation
   pip:
     extra_args: '-i https://pypi.appneta.com'
@@ -127,8 +107,7 @@
     version: 2.3-oboe3
     state: present
 
-# Install Ruby agents
 - name: Add ruby instrumentaion
   gem:
     name: traceview
-    state: latest
+    state: present
