@@ -92,7 +92,7 @@ if __name__ == '__main__':
     ecom_migration_args.add_argument("--ecommerce-env",
         help="Location of the ecommerce environment file.")
     ecom_migration_args.add_argument("--ecommerce-code-dir",
-        help="Location to of the ecommerce code.")
+        help="Location of the ecommerce code.")
 
     programs_migration_args = parser.add_argument_group("programs_migrations",
             "Args for running programs migration checks.")
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     programs_migration_args.add_argument("--programs-env",
         help="Location of the programs environment file.")
     programs_migration_args.add_argument("--programs-code-dir",
-        help="Location to of the programs code.")
+        help="Location of the programs code.")
 
     credentials_migration_args = parser.add_argument_group("credentials_migrations",
             "Args for running credentials migration checks.")
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     credentials_migration_args.add_argument("--credentials-env",
         help="Location of the credentials environment file.")
     credentials_migration_args.add_argument("--credentials-code-dir",
-        help="Location to of the credentials code.")
+        help="Location of the credentials code.")
 
     discovery_migration_args = parser.add_argument_group("discovery_migrations",
             "Args for running discovery migration checks.")
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     discovery_migration_args.add_argument("--discovery-env",
         help="Location of the discovery environment file.")
     discovery_migration_args.add_argument("--discovery-code-dir",
-        help="Location to of the discovery code.")
+        help="Location of the discovery code.")
 
     insights_migration_args = parser.add_argument_group("insights_migrations",
             "Args for running insights migration checks.")
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     insights_migration_args.add_argument("--insights-env",
         help="Location of the insights environment file.")
     insights_migration_args.add_argument("--insights-code-dir",
-        help="Location to of the insights code.")
+        help="Location of the insights code.")
 
     analyticsapi_migration_args = parser.add_argument_group("analytics_api_migrations",
             "Args for running analytics_api migration checks.")
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     analyticsapi_migration_args.add_argument("--analytics-api-env",
         help="Location of the analytics_api environment file.")
     analyticsapi_migration_args.add_argument("--analytics-api-code-dir",
-        help="Location to of the analytics_api code.")
+        help="Location of the analytics_api code.")
 
     hipchat_args = parser.add_argument_group("hipchat",
             "Args for hipchat notification.")
