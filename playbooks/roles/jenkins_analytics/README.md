@@ -115,7 +115,7 @@ repo.
 
 For example:
 
-    ANALYTICS_SCHEDULE_SECURE_REPO_URL: "git@github.com/open-craft/analytics-sandbox-private.git"
+    ANALYTICS_SCHEDULE_SECURE_REPO_URL: "git@github.com:open-craft/analytics-sandbox-private.git"
     ANALYTICS_SCHEDULE_SECURE_REPO_VERSION: "customer-analytics-schedule"
     ANALYTICS_SCHEDULE_EXTRA_VARS: "@{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/analytics-pipeline-vars.yml"
 
@@ -123,6 +123,17 @@ The seed job also clones a second repo, which contains the DSL scripts that
 encapsulate the analytics tasks themselves.  That repo is configured using
 `ANALYTICS_SCHEDULE_JOBS_DSL_REPO_*`, and it will be cloned directly into the
 seed job workspace (*not* to a designated `DEST` folder).
+
+**Note:** There are two ways to specify a ssl-based github repo URL.  Note the
+subtle difference in the paths: `github.com:your-org` vs. `github.com/your-org`.
+
+* git@github.com:your-org/private-repo.git ✓ 
+* ssh://git@github.com/your-org/private-repo.git ✓ 
+
+*Not like this:*
+
+* git@github.com/your-org/private-repo.git ❌ 
+* ssh://git@github.com:your-org/private-repo.git ❌ 
 
 The full list of seed job configuration variables is:
 
