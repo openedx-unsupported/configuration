@@ -58,7 +58,7 @@ server {
   {% endif %}
 
   location ~ ^/static/(?P<file>.*) {
-    root {{ COMMON_DATA_DIR }}/{{ programs_service_name }};
+    root {{ PROGRAMS_DATA_DIR  }};
     try_files /staticfiles/$file =404;
 
     # Request that the browser use SSL for these connections. Repeated here
@@ -69,6 +69,13 @@ server {
     
     # Instruct the browser to cache static assets for one hour.
     add_header Cache-Control "public; max-age=3600";
+  }
+
+  location ~ ^/media/(?P<file>.*) {
+    root {{ PROGRAMS_DATA_DIR }};
+    try_files /media/$file =404;
+    # django / app always assigns new filenames so these can be cached forever.
+    add_header Cache-Control "public; max-age=31536000";
   }
 
   location / {
