@@ -72,3 +72,9 @@
     name={{ locust_service_name }}
   when: not disable_edx_services
   sudo_user: "{{ supervisor_service_user }}"
+
+- name: increase file descriptor limit of the system (Session Logout and Login would be required)
+  lineinfile:
+    dest: "{{ ulimit_conf_file }}"
+    line: "{{ item.domain }}  {{ item.type }}  {{ item.item }}  {{ item.value }}"
+  with_items: "{{ ulimit_config }}"
