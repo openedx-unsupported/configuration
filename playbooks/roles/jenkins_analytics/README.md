@@ -30,7 +30,7 @@ This file needs to contain, at least, the following variables
 
 #### Jenkins user password
 
-You'll need to override default jenkins user password, please do that
+You'll need to override default `jenkins` user password, please do that
 as this sets up the **shell** password for this user. 
 
 You'll need to set both a plain password and a hashed one.
@@ -113,13 +113,13 @@ Variables used by command waiting on Jenkins start-up after running
 
 Jenkins auth realm encapsulates user management in Jenkins, that is:
 
-* What users are can log in
+* What users can log in
 * What credentials they use to log in
 
 Realm type stored in `jenkins_auth_realm.name` variable.
 
 In future we will try to enable other auth domains, while
-preserving ability to run cli.
+preserving the ability to run cli.
 
 ##### Unix Realm
 
@@ -149,7 +149,7 @@ Seed job is configured in `jenkins_seed_job` variable, which has the following
 attributes:
 
 * `name`:  Name of the job in Jenkins.
-* `time_trigger`: A Jenkins cron entry defining how often this job should ran.
+* `time_trigger`: A Jenkins cron entry defining how often this job should run.
 * `removed_job_action`: what to do when a job created by a previous run of seed job
   is missing from current run. This can be either `DELETE` or`IGNORE`.
 * `removed_view_action`: what to do when a view created by a previous run of seed job
