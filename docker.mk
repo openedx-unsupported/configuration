@@ -26,7 +26,7 @@ pkg: docker.pkg
 clean:
 	rm -rf .build
 
-docker.test.shard: $(foreach image,$(shell echo $(images) | tr ' ' '\n' | sed -n '$(SHARD)~$(SHARDS)p'),$(docker_test)$(image))
+docker.test.shard: $(foreach image,$(shell echo $(images) | tr ' ' '\n' | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
 
 docker.build: $(foreach image,$(images),$(docker_build)$(image))
 docker.test: $(foreach image,$(images),$(docker_test)$(image))
@@ -52,8 +52,8 @@ $(docker_push)%: $(docker_pkg)%
 
 .build/%/Dockerfile.d: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	$(eval FROM=$(shell grep "^\s*FROM" $< | sed --regexp-extended "s/FROM //" | sed --regexp-extended "s/:/@/g"))
-	$(eval EDXOPS_FROM=$(shell echo "$(FROM)" | sed --regexp-extended "s#edxops/([^@]+)(@.*)?#\1#"))
+	$(eval FROM=$(shell grep "^\s*FROM" $< | sed -E "s/FROM //" | sed -E "s/:/@/g"))
+	$(eval EDXOPS_FROM=$(shell echo "$(FROM)" | sed -E "s#edxops/([^@]+)(@.*)?#\1#"))
 	@echo "$(docker_build)$*: $(docker_pull)$(FROM)" > $@
 	@if [ "$(EDXOPS_FROM)" != "$(FROM)" ]; then \
 	echo "$(docker_test)$*: $(docker_test)$(EDXOPS_FROM:@%=)" >> $@; \
@@ -65,10 +65,10 @@ $(docker_push)%: $(docker_pkg)%
 
 .build/%/Dockerfile.test: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	@sed --regexp-extended "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
+	@sed -E "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
 .build/%/Dockerfile.pkg: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	@sed --regexp-extended "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
+	@sed -E "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
 -include $(foreach image,$(images),.build/$(image)/Dockerfile.d)
