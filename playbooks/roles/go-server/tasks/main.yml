@@ -10,14 +10,14 @@
 #
 #
 # Tasks for role go-server
-# 
+#
 # Overview:
 #
 # Deploys go-server using aptitude!
 #
 # Dependencies:
 #    - openjdk7
-# 
+#
 # Example play:
 #
 # - name: Configure instance(s)
@@ -43,6 +43,14 @@
     name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
     update_cache: yes
 
+- name: install other needed system packages
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  with_items: GO_SERVER_APT_PKGS
+
 - name: create go-server plugin directory
   file:
     path: "{{ GO_SERVER_OAUTH_LOGIN_JAR_DESTINATION }}"
@@ -59,14 +67,26 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
 
-- name: setup password file if secret hash exists
+- name: generate line for go-server password file for admin user
+  command: >
+    /usr/bin/htpasswd -nbs "{{ GO_SERVER_ADMIN_USERNAME }}" "{{ GO_SERVER_ADMIN_PASSWORD }}"
+  register: admin_user_password_line
+  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
+
+- name: generate line for go-server password file for backup user
+  command: >
+    /usr/bin/htpasswd -nbs "{{ GO_SERVER_BACKUP_USERNAME }}" "{{ GO_SERVER_BACKUP_PASSWORD }}"
+  register: backup_user_password_line
+  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+
+- name: setup password file
   template:
     src: edx/app/go-server/password.txt.j2
     dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
     mode: 0600
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
-  when: GO_SERVER_ADMIN_PASSWORD_HASH is defined
+  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD
 
 - name: install go-server configuration
   template:
@@ -76,8 +96,28 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
 
+# If a GoCD restore file is specified, attempt to download and restore it.
+- include: download_backup.yml
+  when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT
+
+- name: replace the admin line in the password file post-restore
+  lineinfile:
+    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
+    regexp: "^{{ GO_SERVER_ADMIN_USERNAME }}"
+    line: "{{ admin_user_password_line.stdout }}"
+  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
+
+- name: replace the backup line in the password file post-restore
+  lineinfile:
+    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
+    regexp: "^{{ GO_SERVER_BACKUP_USERNAME }}"
+    line: "{{ backup_user_password_line.stdout }}"
+  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+
 - name: restart go-server
   service:
     name: "{{ GO_SERVER_SERVICE_NAME }}"
     state: restarted
 
+- include: setup_regular_backup.yml
+  when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT
