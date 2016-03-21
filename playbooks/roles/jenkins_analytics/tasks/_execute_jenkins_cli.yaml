@@ -1,0 +1,51 @@
+---
+
+- fail: msg=for now we can execute commands iff jenkins auth realm is unix
+  when: jenkins_auth_realm.name != "unix"
+
+- set_fact:
+    jenkins_cli_root: "/tmp/jenkins-cli/{{ ansible_ssh_user }}"
+- set_fact:
+    jenkins_cli_jar: "{{ jenkins_cli_root }}/jenkins_cli.jar"
+    jenkins_cli_pass: "{{ jenkins_cli_root }}/jenkins_cli_pass"
+
+- name: create cli dir
+  file: name={{ jenkins_cli_root }} state=directory mode="700"
+
+- name: create pass file
+  template: src=jenkins-pass-file.j2 dest={{ jenkins_cli_pass }} mode="600"
+
+- name: Wait for Jenkins CLI
+  uri:
+    url: "http://localhost:{{ jenkins_port }}/cli/"
+    method: GET
+    return_content: yes
+    status_code: 200,403
+  register: result
+  until: (result.status is defined) and (result.status == 403) or (results.status == 200)
+  retries: "{{ jenkins_connection_retries }}"
+  delay: "{{ jenkins_connection_delay }}"
+  changed_when: false
+
+- name: get cli
+  get_url:
+    url: "http://localhost:{{ jenkins_port }}/jnlpJars/jenkins-cli.jar"
+    dest: "{{ jenkins_cli_jar }}"
+
+- name: login
+  command: java -jar {{ jenkins_cli_jar }} -s http://localhost:{{ jenkins_port }}
+           login --username={{ jenkins_user }}
+           --password-file={{ jenkins_cli_pass }}
+
+- name: execute command
+  shell: >
+    {{ jenkins_command_prefix|default('') }} java -jar {{ jenkins_cli_jar }} -s http://localhost:{{ jenkins_port }}
+    {{ jenkins_command_string }}
+  register: jenkins_command_output
+  ignore_errors: "{{ jenkins_ignore_cli_errors|default (False) }}"
+
+- name: clean up
+  file: name=jenkins_cli_root state=absent
+
+- name: clean up
+  command: rm -rf $HOME/.jenkins

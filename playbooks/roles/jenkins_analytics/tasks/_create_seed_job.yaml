@@ -1,0 +1,31 @@
+
+- name: upload_job_file
+  template: src=seed_job_template.xml dest=/tmp/{{ job_name }} mode="600"
+
+- name: check if job is present
+  include: _execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "get-job {{ job_name }}"
+    jenkins_ignore_cli_errors: yes
+
+- set_fact:
+    get_job_output: "{{ jenkins_command_output }}"
+
+- name: Create seed job if absent
+  include: _execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "create-job {{ job_name }}"
+    jenkins_command_prefix: "cat /tmp/{{ job_name }} | "
+  when: get_job_output.rc != 0
+
+- name: update seed job
+  include: _execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "update-job {{ job_name }}"
+    jenkins_command_prefix: "cat /tmp/{{ job_name }} | "
+  when: get_job_output.rc == 0
+
+- name: Build the seed job
+  include: _execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "build {{ job_name }} -s"

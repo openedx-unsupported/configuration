@@ -1,0 +1,23 @@
+---
+
+- fail: msg=included unix realm by accident
+  when: jenkins_auth_realm.name != "unix"
+
+- fail: msg=Please change default password for jenkins user
+  when: jenkins_auth_realm.plain_password == 'jenkins'
+
+- user:
+    name: "{{ jenkins_user }}"
+    groups: shadow
+    append: yes
+    password: "{{ jenkins_auth_realm.hashed_password }}"
+    update_password: always
+  notify: restart Jenkins
+
+- name: template config.xml
+  template:
+    src: jenkins.config.main.xml
+    dest: "{{ jenkins_home }}/config.xml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  notify: restart Jenkins
