@@ -33,6 +33,6 @@ configuration tools, we will be migrating features to this project
 over time, so expect frequent changes.
 
 
-For more information including installation instruction please see the [Configuration Wiki](https://github.com/edx/configuration/wiki).
+For more information including installation instruction please see the [Open edX Operations](https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home) page.
 
 For info on any large recent changes please see the [change log](https://github.com/edx/configuration/blob/master/CHANGELOG.md).
