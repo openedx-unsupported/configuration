@@ -15,6 +15,12 @@
   when: download_deb.changed
   with_items: browser_s3_deb_pkgs
 
+# Because the source location has been deprecated, we need to
+# ensure it does not interfere with subsequent apt commands
+# TODO: use the file module when using ansible 2.x
+- name: archive google chrome debian source list
+  command: "mv /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.old"
+
 - name: download ChromeDriver
   get_url:
     url={{ chromedriver_url }}
