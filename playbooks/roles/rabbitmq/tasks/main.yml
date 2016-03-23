@@ -13,7 +13,7 @@
     state=present
     update_cache=yes
   with_items: extra_repos
-  
+
 - name: install python-software-properties if debian
   apt: pkg={{ ",".join(rabbitmq_debian_pkgs) }} state=present
 
@@ -22,16 +22,21 @@
     url={{ rabbitmq_pkg_url }}
     dest=/var/tmp/{{ rabbitmq_pkg_url|basename }}
 
+# If we don't set pipefail first, `||` will be looking at the exit code of the last command in the pipe
 - name: check if rabbit is installed
-  shell: >
-    dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"
-  register: is_installed
+  shell: |
+    set -o pipefail
+    dpkg -s rabbitmq-server | grep Version | sed -r 's/.*: (.*)/\1/' || echo 'not installed'
+  args:
+    executable: /bin/bash
+  register: installed_version
+  failed_when: installed_version.stdout is defined and installed_version.stdout not in [RABBITMQ_VERSION, 'not installed']
 
 - name: install rabbit package using gdebi
   shell: >
     gdebi --n {{ rabbitmq_pkg_url|basename }}
     chdir=/var/tmp
-  when: is_installed.stdout is defined and is_installed.stdout == "not installed"
+  when: installed_version.stdout is defined and installed_version.stdout == "not installed"
 
 - name: stop rabbit cluster
   service: name=rabbitmq-server state=stopped
