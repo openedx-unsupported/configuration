@@ -18,22 +18,16 @@ export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
 
-# Did we specify an openedx release?
-if [ -n "$OPENEDX_RELEASE" ]; then
-  EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
-    -e certs_version=$OPENEDX_RELEASE \
-    -e forum_version=$OPENEDX_RELEASE \
-    -e xqueue_version=$OPENEDX_RELEASE \
-  "
-  CONFIG_VER=$OPENEDX_RELEASE
-  # Need to ensure that the configuration repo is updated
-  # The vagrant-devstack.yml playbook will also do this, but only
-  # after loading the playbooks into memory.  If these are out of date,
-  # this can cause problems (e.g. looking for templates that no longer exist).
-  /edx/bin/update configuration $CONFIG_VER
-else
-  CONFIG_VER="master"
-fi
+OPENEDX_RELEASE="named-release/dogwood"
+CONFIG_VER="appsembler/amc/develop"
+APPSEMBLER_VARS="-e edx_platform_repo="https://github.com/appsembler/edx-platform.git" \
+  -e edx_platform_version="appsembler/amc/develop" \
+  -e edx_ansible_source_repo="https://github.com/appsembler/configuration.git" \
+  -e configuration_version=$CONFIG_VER
+  -e certs_version=$OPENEDX_RELEASE \
+  -e forum_version=$OPENEDX_RELEASE \
+  -e xqueue_version=$OPENEDX_RELEASE \
+"
 
 ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
 ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
