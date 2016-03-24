@@ -21,13 +21,50 @@
 #
 #
 
+- name: install debian dependecies
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: harstorage_debian_pkgs
+
+- name: download harstorage egg file]
+  get_url:
+    url: http://harstorage.googlecode.com/files/harstorage-1.0-py2.7.egg
+    dest: "{{ harstorage_code_dir }}/harstorage-1.0-py2.7.egg"
+
+- name: build virtualenv
+  command: "virtualenv {{ harstorage_venv_dir }}"
+  args:
+    creates: "{{ harstorage_venv_dir }}/bin/pip"
+  sudo_user: "{{ harstorage_user }}"
+
+- name: install python packages
+  pip:
+    name: "{{ item.name }}"
+    state: present
+    version: "{{ item.version }}"
+  with_items: harstorage_python_pkgs
+
+- name: create harstorage directory
+  file:
+    path: "/{{ harstorage_etc }}"
+    state: directory
+    mode: 0755
 
 - name: setup the harstorage production.ini file
   template:
     src: './{{ harstorage_etc }}/production.ini.j2'
-    dest: '{{ harstorage_etc }}/production.ini'
+    dest: '/{{ harstorage_etc }}/production.ini'
     owner: '{{ harstorage_user }}'
     group: '{{ harstorage_user }}'
     mode: 0644
 
+- name: install harstorage
+  easy_install:
+     name: "{{ harstorage_code_dir }}/harstorage-1.0-py2.7.egg"
 
+- name: apply config
+  command: "/usr/bin/paster setup-app /{{ harstorage_etc }}/production.ini"
+
+- name: run harstorage
+  command: "/usr/bin/paster serve /{{ harstorage_etc }}/production.ini"
