@@ -2,16 +2,29 @@
 
 - fail: msg=included unix realm by accident
   when: jenkins_auth_realm.name != "unix"
+  tags: 
+    - jenkins-auth
 
 - fail: msg=Please change default password for jenkins user
   when: jenkins_auth_realm.plain_password == 'jenkins'
+  tags: 
+    - jenkins-auth
+
+- name: generate jenkins user password
+  shell: "openssl passwd -1 '{{ jenkins_auth_realm.plain_password | quote }}'"
+  register: jenkins_user_password_hash
+  no_log: True
+  tags: 
+    - jenkins-auth
 
 - user:
     name: "{{ jenkins_user }}"
+    state: present
     groups: shadow
     append: yes
-    password: "{{ jenkins_auth_realm.hashed_password }}"
-    update_password: always
+    password: "{{ jenkins_user_password_hash.stdout }}"
+  tags: 
+    - jenkins-auth
 
 - name: template config.xml
   template:
@@ -19,6 +32,8 @@
     dest: "{{ jenkins_home }}/config.xml"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
+  tags: 
+    - jenkins-auth
 
 # Unconditionally restart Jenkins, this has two side-effects:
 # 1. Jenkins uses new auth realm
@@ -28,17 +43,23 @@
 
 - name: restart Jenkins
   service: name=jenkins state=restarted
+  tags: 
+    - jenkins-auth
 
 # Upload Jenkins credentials
 
 - name: create credentials dir
   file: name={{ jenkins_credentials_root }} state=directory
+  tags: 
+    - jenkins-auth
 
 - name: upload groovy script
   template:
     src: addCredentials.groovy
     dest: "{{ jenkins_credentials_script }}"
     mode: "600"
+  tags: 
+    - jenkins-auth
 
 - name: upload credentials file
   template:
@@ -46,48 +67,66 @@
     dest: "{{ jenkins_credentials_file_dest }}"
     mode: "600"
     owner: "{{ jenkins_user }}"
+  tags: 
+    - jenkins-auth
 
 - name: add credentials
   include: execute_jenkins_cli.yaml
   vars:
     jenkins_command_string: "groovy {{ jenkins_credentials_script }}"
+  tags: 
+    - jenkins-auth
 
 - name: clean up
   file: name={{ jenkins_credentials_root }} state=absent
+  tags: 
+    - jenkins-auth
 
 # Upload seed job
 
 - name: upload job file
-  template: src=seed_job_template.xml dest=/tmp/{{  jenkins_seed_job.name }} mode="600"
+  template: src=seed_job_template.xml dest=/tmp/{{ jenkins_seed_job.name }} mode="600"
+  tags:
+    - create-seed-job
 
 - name: check if job is present
   include: execute_jenkins_cli.yaml
   vars:
-    jenkins_command_string: "get-job {{  jenkins_seed_job.name }}"
+    jenkins_command_string: "get-job {{ jenkins_seed_job.name }}"
     jenkins_ignore_cli_errors: yes
+  tags:
+    - create-seed-job
 
 - set_fact:
     get_job_output: "{{ jenkins_command_output }}"
+  tags:
+    - create-seed-job
 
 # Upload seed job to Jenkins
 
 - name: Create seed job if absent
   include: execute_jenkins_cli.yaml
   vars:
-    jenkins_command_string: "create-job {{  jenkins_seed_job.name }}"
-    jenkins_command_prefix: "cat /tmp/{{  jenkins_seed_job.name }} | "
+    jenkins_command_string: "create-job {{ jenkins_seed_job.name }}"
+    jenkins_command_prefix: "cat /tmp/{{ jenkins_seed_job.name }} | "
   when: get_job_output.rc != 0
+  tags:
+    - create-seed-job
 
 - name: update seed job
   include: execute_jenkins_cli.yaml
   vars:
-    jenkins_command_string: "update-job {{  jenkins_seed_job.name }}"
-    jenkins_command_prefix: "cat /tmp/{{  jenkins_seed_job.name }} | "
+    jenkins_command_string: "update-job {{ jenkins_seed_job.name }}"
+    jenkins_command_prefix: "cat /tmp/{{ jenkins_seed_job.name }} | "
   when: get_job_output.rc == 0
+  tags:
+    - create-seed-job
 
 # Build the seed job
 
 - name: Build the seed job
   include: execute_jenkins_cli.yaml
   vars:
-    jenkins_command_string: "build {{  jenkins_seed_job.name }} -s"
+    jenkins_command_string: "build {{ jenkins_seed_job.name }} -s"
+  tags:
+    - create-seed-job
