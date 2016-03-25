@@ -77,23 +77,35 @@
   tags:
     - install
     - install:configuration
-    
-- name: install harstorage
-  easy_install:
-     name: "{{ harstorage_code_dir }}/harstorage-1.0-py2.7.egg"
-     virtualenv: "{{ harstorage_venv_dir }}"
+
+- name: clone harstorage
+  git: >
+    repo=https://github.com/edx/harstorage.git
+    dest={{ harstorage_code_dir }}
+  sudo_user: "{{ harstorage_user }}"
   tags:
     - install
     - install:code
-     
-- name: apply config
-  command: "/usr/bin/paster setup-app {{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini"
+
+- name: install harstorage
+  command: >
+    {{ harstorage_venv_dir }}/bin/python ./setup.py install
+  args:
+    chdir: "{{ harstorage_code_dir }}"
   tags:
     - install
-    - install:configuration
+    - install:code
+
+- name: apply config
+  command: "{{ harstorage_venv_dir }}/bin/paster setup-app {{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini"
+  args:
+    chdir: "{{ harstorage_code_dir }}"
+  tags:
+   - install
+   - install:configuration
   
 # - name: run harstorage
-#   command: "/usr/bin/paster serve {{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini"
+#   command: "{{ harstorage_venv_dir }}/bin/paster serve {{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini"
 #   tags:
 #     - 
 #     - install:base
