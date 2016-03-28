@@ -115,7 +115,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-c8093ea2"
+    ami="ami-e686bc8c"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-94be91fe"
   elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
@@ -277,11 +277,11 @@ PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
-CREDENTIALS_URL_ROOT: "https://credentials-${deploy_host}"
+CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
+CREDENTIALS_URL_ROOT: "http://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 
-DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 

@@ -55,6 +55,43 @@ PROGRAMS_PLATFORM_NAME: 'Your Platform Name Here'
 # See: https://github.com/ottoyiu/django-cors-headers/.
 PROGRAMS_CORS_ORIGIN_WHITELIST: []
 
+PROGRAMS_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ programs_service_name }}'
+PROGRAMS_MEDIA_ROOT: '{{ PROGRAMS_DATA_DIR }}/media'
+PROGRAMS_MEDIA_URL: '/media/'
+
+# Example settings to use Amazon S3 as a storage backend for user-uploaded files
+# https://django-storages.readthedocs.org/en/latest/backends/amazon-S3.html#amazon-s3
+#
+# This is only for user-uploaded files and does not cover static assets that ship
+# with the code.
+#
+# Note, AWS_S3_CUSTOM_DOMAIN is required, otherwise boto will generate non-working
+# querystring URLs for assets (see https://github.com/boto/boto/issues/1477)
+#
+# Note, set AWS_S3_CUSTOM_DOMAIN to the cloudfront domain instead, when that is in use.
+#
+# PROGRAMS_BUCKET: mybucket
+# programs_s3_domain: s3.amazonaws.com
+# PROGRAMS_MEDIA_ROOT: 'media'   # NOTE use '$source_ip/media' for an edx sandbox
+#
+# PROGRAMS_MEDIA_STORAGE_BACKEND:
+#   DEFAULT_FILE_STORAGE: 'programs.apps.core.s3utils.MediaS3BotoStorage'
+#   MEDIA_ROOT: '{{ PROGRAMS_MEDIA_ROOT }}'
+#   MEDIA_URL: 'https://{{ PROGRAMS_BUCKET }}.{{ programs_s3_domain }}/{{ PROGRAMS_MEDIA_ROOT }}/'
+#   AWS_STORAGE_BUCKET_NAME: '{{ PROGRAMS_BUCKET }}'
+#   AWS_S3_CUSTOM_DOMAIN: '{{ PROGRAMS_BUCKET }}.{{ programs_s3_domain }}'
+#   AWS_QUERYSTRING_AUTH: false
+#   AWS_QUERYSTRING_EXPIRE: false
+#   AWS_DEFAULT_ACL: ''
+#   AWS_HEADERS:
+#     Cache-Control: max-age=31536000
+#
+#
+PROGRAMS_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ PROGRAMS_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ PROGRAMS_MEDIA_URL }}'
+
 PROGRAMS_SERVICE_CONFIG:
   SECRET_KEY: '{{ PROGRAMS_SECRET_KEY }}'
   TIME_ZONE: '{{ PROGRAMS_TIME_ZONE }}'
@@ -66,7 +103,7 @@ PROGRAMS_SERVICE_CONFIG:
   SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ PROGRAMS_SOCIAL_AUTH_EDX_OIDC_URL_ROOT }}'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
 
-  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ programs_service_name }}/staticfiles"
+  STATIC_ROOT: '{{ PROGRAMS_DATA_DIR }}/staticfiles'
   # db config
   DATABASE_OPTIONS:
     connect_timeout: 10
@@ -76,7 +113,10 @@ PROGRAMS_SERVICE_CONFIG:
 
   CORS_ORIGIN_WHITELIST: '{{ PROGRAMS_CORS_ORIGIN_WHITELIST }}'
 
+  PUBLIC_URL_ROOT: '{{ PROGRAMS_URL_ROOT }}'
   ORGANIZATIONS_API_URL_ROOT: '{{ PROGRAMS_ORGANIZATIONS_API_URL_ROOT }}'
+  
+  MEDIA_STORAGE_BACKEND: '{{ PROGRAMS_MEDIA_STORAGE_BACKEND }}'
 
 PROGRAMS_REPOS:
   - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
@@ -130,6 +170,7 @@ programs_requirements:
 #
 
 programs_debian_pkgs:
+  - libjpeg-dev
   - libmysqlclient-dev
   - libssl-dev
 

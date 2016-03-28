@@ -19,6 +19,7 @@ MIGRATION_COMMANDS = {
         'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'credentials':   ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+        'discovery':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
     }
 HIPCHAT_USER = "PreSupervisor"
 
@@ -91,7 +92,7 @@ if __name__ == '__main__':
     ecom_migration_args.add_argument("--ecommerce-env",
         help="Location of the ecommerce environment file.")
     ecom_migration_args.add_argument("--ecommerce-code-dir",
-        help="Location to of the ecommerce code.")
+        help="Location of the ecommerce code.")
 
     programs_migration_args = parser.add_argument_group("programs_migrations",
             "Args for running programs migration checks.")
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     programs_migration_args.add_argument("--programs-env",
         help="Location of the programs environment file.")
     programs_migration_args.add_argument("--programs-code-dir",
-        help="Location to of the programs code.")
+        help="Location of the programs code.")
 
     credentials_migration_args = parser.add_argument_group("credentials_migrations",
             "Args for running credentials migration checks.")
@@ -109,7 +110,16 @@ if __name__ == '__main__':
     credentials_migration_args.add_argument("--credentials-env",
         help="Location of the credentials environment file.")
     credentials_migration_args.add_argument("--credentials-code-dir",
-        help="Location to of the credentials code.")
+        help="Location of the credentials code.")
+
+    discovery_migration_args = parser.add_argument_group("discovery_migrations",
+            "Args for running discovery migration checks.")
+    discovery_migration_args.add_argument("--discovery-python",
+        help="Path to python to use for executing migration check.")
+    discovery_migration_args.add_argument("--discovery-env",
+        help="Location of the discovery environment file.")
+    discovery_migration_args.add_argument("--discovery-code-dir",
+        help="Location of the discovery code.")
 
     insights_migration_args = parser.add_argument_group("insights_migrations",
             "Args for running insights migration checks.")
@@ -118,7 +128,7 @@ if __name__ == '__main__':
     insights_migration_args.add_argument("--insights-env",
         help="Location of the insights environment file.")
     insights_migration_args.add_argument("--insights-code-dir",
-        help="Location to of the insights code.")
+        help="Location of the insights code.")
 
     analyticsapi_migration_args = parser.add_argument_group("analytics_api_migrations",
             "Args for running analytics_api migration checks.")
@@ -127,7 +137,7 @@ if __name__ == '__main__':
     analyticsapi_migration_args.add_argument("--analytics-api-env",
         help="Location of the analytics_api environment file.")
     analyticsapi_migration_args.add_argument("--analytics-api-code-dir",
-        help="Location to of the analytics_api code.")
+        help="Location of the analytics_api code.")
 
     hipchat_args = parser.add_argument_group("hipchat",
             "Args for hipchat notification.")
@@ -233,6 +243,7 @@ if __name__ == '__main__':
                         "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
                         "programs": {'python': args.programs_python, 'env_file': args.programs_env, 'code_dir': args.programs_code_dir},
                         "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
+                        "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
                         "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
                         "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir}
                     }

@@ -24,6 +24,8 @@ if [ -n "$OPENEDX_RELEASE" ]; then
     -e certs_version=$OPENEDX_RELEASE \
     -e forum_version=$OPENEDX_RELEASE \
     -e xqueue_version=$OPENEDX_RELEASE \
+    -e ANALYTICS_API_VERSION=$OPENEDX_RELEASE \
+    -e INSIGHTS_VERSION=$OPENEDX_RELEASE \
   "
   CONFIG_VER=$OPENEDX_RELEASE
   # Need to ensure that the configuration repo is updated
@@ -44,8 +46,11 @@ MOUNT_DIRS = {
   :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
   :themes => {:repo => "themes", :local => "/edx/app/edxapp/themes", :owner => "edxapp"},
   :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
+  :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
+  :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
   :insights => {:repo => "insights", :local => "/edx/app/insights/edx_analytics_dashboard", :owner => "insights"},
   :analytics_api => {:repo => "analytics_api", :local => "/edx/app/analytics_api/analytics_api", :owner => "analytics_api"},
+  :analytics_pipeline => {:repo => "edx-analytics-pipeline", :local => "/edx/app/analytics_pipeline/analytics_pipeline", :owner => "hadoop"},
   # This src directory won't have useful permissions. You can set them from the
   # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
   :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
@@ -60,14 +65,17 @@ end
 # a Vagrant box from the internet.
 openedx_releases = {
   "named-release/dogwood.rc" => {
-    :name => "analyticstack", :file => "analyticstack.box",
+    :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
+  },
+  "named-release/dogwood.1" => {
+    :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
   },
   "named-release/dogwood" => {
-    :name => "analyticstack", :file => "analyticstack.box",
+    :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
   },
 }
 openedx_releases.default = {
-  :name => "analyticstack", :file => "analyticstack.box",
+  :name => "analyticstack", :file => "analyticstack-latest.box",
 }
 rel = ENV['OPENEDX_RELEASE']
 
@@ -84,6 +92,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   if not ENV['VAGRANT_NO_PORTS']
     config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
     config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
+    config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
     config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
     config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
     config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service

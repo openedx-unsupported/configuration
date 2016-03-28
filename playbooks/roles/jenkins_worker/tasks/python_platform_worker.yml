@@ -6,7 +6,7 @@
 # refers to the --depth-setting of git clone. A value of 1
 # will truncate all history prior to the last revision.
 - name: Create shallow clone of edx-platform
-  git: >
+  git_2_0_1: >
     repo=https://github.com/edx/edx-platform.git
     dest={{ jenkins_home }}/shallow-clone
     version={{ jenkins_edx_platform_version }}
@@ -74,7 +74,23 @@
     chdir={{ jenkins_home }}
   sudo_user: "{{ jenkins_user }}"
 
-# Remove the shallow-clone directory now that we archive
+# Remove the shallow-clone directory now that we are
 # done with it
 - name: Remove shallow-clone
   file: path={{ jenkins_home }}/shallow-clone state=absent
+
+# Although firefox is installed through the browsers role, install
+# a newer copy under the jenkins home directory. This will allow
+# platform pull requests to use a custom firefox path to a different
+# version
+- name: Install custom firefox to jenkins home
+  get_url:
+    url: "{{ custom_firefox_url }}"
+    dest: "{{ jenkins_home }}/firefox-{{ custom_firefox_version }}.tar.bz2"
+
+- name: unpack custom firefox version
+  unarchive:
+    src: "{{ jenkins_home }}/firefox-{{ custom_firefox_version }}.tar.bz2"
+    dest: "{{ jenkins_home }}"
+    creates: "{{ jenkins_home }}/firefox"
+    copy: no

@@ -133,6 +133,7 @@ EDXAPP_CAS_ATTRIBUTE_PACKAGE: ""
 EDXAPP_ENABLE_AUTO_AUTH: false
 # Settings for enabling and configuring third party authorization
 EDXAPP_ENABLE_THIRD_PARTY_AUTH: false
+EDXAPP_ENABLE_OAUTH2_PROVIDER: false
 
 EDXAPP_ENABLE_EDXNOTES: false
 
@@ -141,9 +142,6 @@ EDXAPP_ENABLE_CREDIT_API: false
 
 # Settings for enabling and JWT auth for DRF API's
 EDXAPP_ENABLE_JWT_AUTH: false
-
-EDXAPP_MODULESTORE_MAPPINGS:
-    'preview\.': 'draft-preferred'
 
 EDXAPP_GIT_REPO_DIR: '/edx/var/edxapp/course_repos'
 EDXAPP_GIT_REPO_EXPORT_DIR: '/edx/var/edxapp/export_course_repos'
@@ -198,6 +196,7 @@ EDXAPP_FEATURES:
   ENABLE_CREDIT_ELIGIBILITY: "{{ EDXAPP_ENABLE_CREDIT_ELIGIBILITY }}"
   ENABLE_SPECIAL_EXAMS: false
   ENABLE_JWT_AUTH: "{{ EDXAPP_ENABLE_JWT_AUTH }}"
+  ENABLE_OAUTH2_PROVIDER: "{{ EDXAPP_ENABLE_OAUTH2_PROVIDER }}"
 
 EDXAPP_BOOK_URL: ""
 # This needs to be set to localhost
@@ -634,6 +633,26 @@ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG:
 EDXAPP_CMS_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
 
+edxapp_databases:
+# edxapp's edxapp-migrate scripts and the edxapp_migrate play
+# will ensure that any DB not named read_replica will be migrated
+# for both the lms and cms.
+  read_replica:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: "{{ EDXAPP_MYSQL_REPLICA_DB_NAME }}"
+    USER: "{{ EDXAPP_MYSQL_REPLICA_USER }}"
+    PASSWORD: "{{ EDXAPP_MYSQL_REPLICA_PASSWORD }}"
+    HOST: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
+    PORT: "{{ EDXAPP_MYSQL_REPLICA_PORT }}"
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: "{{ EDXAPP_MYSQL_DB_NAME }}"
+    USER: "{{ EDXAPP_MYSQL_USER }}"
+    PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
+    HOST: "{{ EDXAPP_MYSQL_HOST }}"
+    PORT: "{{ EDXAPP_MYSQL_PORT }}"
+    ATOMIC_REQUESTS: True
+
 edxapp_generic_auth_config:  &edxapp_generic_auth
   EVENT_TRACKING_SEGMENTIO_EMIT_WHITELIST: "{{ EDXAPP_EVENT_TRACKING_SEGMENTIO_EMIT_WHITELIST }}"
   ECOMMERCE_API_SIGNING_KEY: "{{ EDXAPP_ECOMMERCE_API_SIGNING_KEY }}"
@@ -662,24 +681,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
       ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
     ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
     DOC_STORE_CONFIG: *edxapp_generic_default_docstore
-  DATABASES:
-    # edxapp's edxapp-migrate scripts and the edxapp_migrate play
-    # will ensure that any DB not named read_replica will be migrated
-    # for both the lms and cms.
-    read_replica:
-      ENGINE: 'django.db.backends.mysql'
-      NAME: "{{ EDXAPP_MYSQL_REPLICA_DB_NAME }}"
-      USER: "{{ EDXAPP_MYSQL_REPLICA_USER }}"
-      PASSWORD: "{{ EDXAPP_MYSQL_REPLICA_PASSWORD }}"
-      HOST: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
-      PORT: "{{ EDXAPP_MYSQL_REPLICA_PORT }}"
-    default:
-      ENGINE: 'django.db.backends.mysql'
-      NAME: "{{ EDXAPP_MYSQL_DB_NAME }}"
-      USER: "{{ EDXAPP_MYSQL_USER }}"
-      PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
-      HOST: "{{ EDXAPP_MYSQL_HOST }}"
-      PORT: "{{ EDXAPP_MYSQL_PORT }}"
+  DATABASES: "{{ edxapp_databases }}"
   ANALYTICS_API_KEY:  "{{ EDXAPP_ANALYTICS_API_KEY }}"
   EMAIL_HOST_USER: "{{ EDXAPP_EMAIL_HOST_USER }}"
   EMAIL_HOST_PASSWORD: "{{ EDXAPP_EMAIL_HOST_PASSWORD }}"
@@ -822,7 +824,6 @@ generic_env_config:  &edxapp_generic_env
   CAS_SERVER_URL: "{{ EDXAPP_CAS_SERVER_URL }}"
   CAS_EXTRA_LOGIN_PARAMS: "{{ EDXAPP_CAS_EXTRA_LOGIN_PARAMS }}"
   CAS_ATTRIBUTE_CALLBACK: "{{ EDXAPP_CAS_ATTRIBUTE_CALLBACK }}"
-  HOSTNAME_MODULESTORE_DEFAULT_MAPPINGS: "{{ EDXAPP_MODULESTORE_MAPPINGS }}"
   UNIVERSITY_EMAIL: "{{ EDXAPP_UNIVERSITY_EMAIL }}"
   PRESS_EMAIL: "{{ EDXAPP_PRESS_EMAIL }}"
   SOCIAL_MEDIA_FOOTER_URLS: "{{ EDXAPP_SOCIAL_MEDIA_FOOTER_URLS }}"

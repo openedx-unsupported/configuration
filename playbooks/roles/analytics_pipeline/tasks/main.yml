@@ -10,9 +10,9 @@
 #
 #
 # Tasks for role analytics_pipeline
-# 
+#
 # Overview:
-# 
+#
 # Prepare the machine to run the edX Analytics Data Pipeline. The pipeline currently "installs itself"
 # via an ansible playbook that is not included in the edx/configuration repo. However, in order to
 # run the pipeline in a devstack environment, some configuration needs to be performed. In a production
@@ -24,7 +24,7 @@
 # hadoop_master: ensures hadoop services are installed
 # hive: the pipeline makes extensive usage of hive, so that needs to be installed as well
 # sqoop: similarly to hive, the pipeline uses this tool extensively
-# 
+#
 # Example play:
 #
 # - name: Deploy all dependencies of edx-analytics-pipeline to the node
@@ -83,7 +83,7 @@
     - install:configuration
 
 - name: util library source checked out
-  git: >
+  git_2_0_1: >
     dest={{ analytics_pipeline_util_library.path }} repo={{ analytics_pipeline_util_library.repo }}
     version={{ analytics_pipeline_util_library.version }}
   tags:
@@ -171,6 +171,25 @@
     user={{ hadoop_common_user }}
     name="Sync tracking log to HDFS"
     job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+  tags:
+    - install
+    - install:configuration
+
+- name: store configuration for acceptance tests
+  copy: >
+    src=acceptance.json
+    dest=/var/tmp/acceptance.json
+    mode=644
+  tags:
+    - install
+    - install:configuration
+
+- name: grant access to table storing test data in output database
+  mysql_user: >
+    user={{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}
+    password={{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}
+    priv=acceptance%.*:ALL
+    append_privs=yes
   tags:
     - install
     - install:configuration
