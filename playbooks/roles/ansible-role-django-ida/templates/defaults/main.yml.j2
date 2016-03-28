@@ -13,7 +13,7 @@
 {{ role_name|upper }}_SSL_NGINX_PORT: 48{{ port_suffix }}
 
 {{ role_name|upper }}_DEFAULT_DB_NAME: '{{ role_name }}'
-{{ role_name|upper }}_MYSQL: 'db'
+{{ role_name|upper }}_MYSQL: 'localhost'
 # MySQL usernames are limited to 16 characters
 {{ role_name|upper }}_MYSQL_USER: '{{ role_name[:13] }}001'
 {{ role_name|upper }}_MYSQL_PASSWORD: 'password'
@@ -30,8 +30,6 @@
     ATOMIC_REQUESTS: true
     CONN_MAX_AGE: 60
 
-{{ role_name|upper }}_DB_ADMIN_USER: 'root'
-{{ role_name|upper }}_DB_ADMIN_PASSWORD: ''
 
 {{ role_name|upper }}_MEMCACHE: [ 'memcache' ]
 
@@ -44,7 +42,7 @@
 {{ role_name|upper }}_VERSION: "master"
 {{ role_name|upper }}_DJANGO_SETTINGS_MODULE: "{{ role_name }}.settings.production"
 {{ role_name|upper }}_URL_ROOT: 'http://{{ role_name }}:18{{ port_suffix }}'
-{{ role_name|upper }}_OAUTH_URL_ROOT: 'http://127.0.0.1:8000'
+{{ role_name|upper }}_OAUTH_URL_ROOT: '{{ EDXAPP_LMS_ISSUER | default("http://127.0.0.1:8000/oauth2") }}'
 
 {{ role_name|upper }}_SECRET_KEY: 'Your secret key here'
 {{ role_name|upper }}_TIME_ZONE: 'UTC'
@@ -65,7 +63,7 @@
   SOCIAL_AUTH_EDX_OIDC_KEY: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_KEY }}'
   SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ '{{' }} {{ role_name|upper }}_OAUTH_URL_ROOT }}/oauth2'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ '{{' }} {{ role_name|upper }}_OAUTH_URL_ROOT }}'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ '{{' }} {{ role_name|upper }}_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
 
   STATIC_ROOT: "{{ '{{' }} COMMON_DATA_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}/staticfiles"
@@ -73,6 +71,7 @@
   DATABASE_OPTIONS:
     connect_timeout: 10
   DATABASES: '{{ '{{' }} {{ role_name|upper }}_DATABASES }}'
+  CACHES: '{{ '{{' }} {{ role_name|upper }}_CACHES }}'
 
   PLATFORM_NAME: '{{ '{{' }} {{ role_name|upper }}_PLATFORM_NAME }}'
 
@@ -106,7 +105,14 @@ nginx_{{ role_name }}_gunicorn_hosts:
 {{ role_name }}_environment:
   DJANGO_SETTINGS_MODULE: "{{ '{{' }} {{ role_name|upper }}_DJANGO_SETTINGS_MODULE }}"
   {{ role_name|upper }}_CFG: "{{ '{{' }} COMMON_CFG_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}.yml"
-  PATH: "{{ '{{' }} {{ role_name|lower }}_venv_dir }}/bin:${PATH}"
+  PATH: "{{ '{{' }} {{ role_name|lower }}_venv_dir }}/bin:{{ '{{' }} ansible_env.PATH }}"
+
+{{ role_name }}_migration_environment:
+  DJANGO_SETTINGS_MODULE: "{{ '{{' }} {{ role_name|upper }}_DJANGO_SETTINGS_MODULE }}"
+  {{ role_name|upper }}_CFG: "{{ '{{' }} COMMON_CFG_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}.yml"
+  PATH: "{{ '{{' }} {{ role_name|lower }}_venv_dir }}/bin:{{ '{{' }} ansible_env.PATH }}"
+  DB_MIGRATION_USER: "{{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}"
+  DB_MIGRATION_PASS: "{{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}"
 
 {{ role_name }}_service_name: "{{ role_name }}"
 {{ role_name }}_user: "{{ '{{' }} {{ role_name }}_service_name }}"
@@ -118,12 +124,6 @@ nginx_{{ role_name }}_gunicorn_hosts:
 {{ role_name }}_gunicorn_timeout: 300
 
 {{ role_name }}_log_dir: "{{ '{{' }} COMMON_LOG_DIR }}/{{ '{{' }} {{ role_name }}_service_name }}"
-
-{{ role_name }}_requirements_base: "{{ '{{' }} {{ role_name }}_code_dir }}/requirements"
-{{ role_name }}_requirements:
-  - production.txt
-  - optional.txt
-
 
 #
 # OS packages

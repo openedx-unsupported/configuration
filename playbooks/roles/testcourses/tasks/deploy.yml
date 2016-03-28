@@ -5,3 +5,13 @@
   sudo_user: "{{ common_web_user }}"
   when: item.install == True
   with_items: TESTCOURSES_EXPORTS
+
+- name: enroll test users in the testcourses
+  shell: >
+    {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms enroll_user_in_course -e {{ item[0].email }} -c {{ item[1].course_id }}
+    chdir={{ demo_edxapp_code_dir }}
+  sudo_user: "{{ common_web_user }}"
+  when: item[1].install == True
+  with_nested:
+    - demo_test_users
+    - TESTCOURSES_EXPORTS

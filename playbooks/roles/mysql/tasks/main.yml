@@ -1,45 +1,24 @@
-# Installs packages to run edx locally on a single instance
-# requires:
-#  - group_vars/all
-#  - common/tasks/main.yml
-#
-#  This installs mysql-server-5.5 though
-#  in production we use mysql-5.1.62.
-#
-#  We could install from source instead:
-#  http://downloads.mysql.com/archives/mysql-5.1/mysql-5.1.62.tar.gz
-#
 ---
+- name: Look for mysql 5.6
+  shell: "dpkg -s mysql-server"
+  ignore_errors: yes
+  register: mysql_56_installed
+  changed_when: no
 
-# Install PPA for installing MySQL 5.6 on Ubuntu 12.04LTS
-- name: install ppa key
-  apt_key:
-    id=E5267A6C
-    url='{{ COMMON_UBUNTU_APT_KEYSERVER }}0x14AA40EC0831756756D7F66C4F4EA0AAE5267A6C'
-    state=present
+- name: Important message
+  debug:
+    msg: |
+      "MySQL experimental is already installed, make 'remove_experimental_mysql: true' in defaults/main.yml, 
+      if you want to remove it and install the stable version of MySQL"
+  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
 
-- name: install apt repository
-  apt_repository:
-    repo='deb http://ppa.launchpad.net/ondrej/mysql-5.6/ubuntu precise main'
-    update_cache=yes
+- pause:
+    seconds: 10
+  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
 
-- name: look for mysql 5.5
-  shell: dpkg -L mysql-server-5.5
-  ignore_errors: true
-  register: mysql_55_installed
+# remove this, once the new devstack is out
+- include: remove_mysql_experimental.yml
+  when: remove_experimental_mysql
 
-- include: remove_mysql_55.yml
-  when: mysql_55_installed.rc != 1
-
-- name: install mysql 56 and dependencies
-  apt: pkg={{ item }} install_recommends=yes force=yes state=present
-  with_items:
-    - software-properties-common
-    - mysql-server
-
-- name: install mysql debian packages
-  apt: pkg={{ item }} install_recommends=yes state=present
-  with_items: mysql_debian_pkgs
-
-- name: start mysql
-  service: name=mysql state=started
+- include: mysql.yml
+  when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)

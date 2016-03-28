@@ -18,15 +18,14 @@
     # These should stay false for the public AMI
     COMMON_ENABLE_DATADOG: False
     COMMON_ENABLE_SPLUNKFORWARDER: False
-    ENABLE_LEGACY_ORA: !!null
   roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
     - role: nginx
       nginx_sites:
       - certs
       - cms
       - lms
       - forum
-      - ora
       - xqueue
       nginx_default_sites:
       - lms
@@ -35,6 +34,7 @@
     - edxlocal
     - role: mongo
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
+    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - { role: 'edxapp', celery_worker: True }
     - edxapp
     - notifier
@@ -43,15 +43,12 @@
     - edx_notes_api
     - demo
     - oauth_client_setup
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - oraclejdk
     - role: elasticsearch
       when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
     - forum
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
-    - role: ora
-      when: ENABLE_LEGACY_ORA
     - certs
     - edx_ansible
     - role: datadog

@@ -1,3 +1,13 @@
+- Role: rabbitmq
+  - Removed the RABBITMQ_CLUSTERED var and related tooling. The goal of the var was to be able to setup a cluster in the aws environment without having to know all the IPs of the cluster before hand.  It relied on the `hostvars` ansible varible to work correctly which it no longer does in 1.9.  This may get fixed in the future but for now, the "magic" setup doesn't work.
+  - Changed `rabbitmq_clustered_hosts` to RABBITMQ_CLUSTERED_HOSTS.
+
+- Role: edxapp
+  - Removed SUBDOMAIN_BRANDING and SUBDOMAIN_COURSE_LISTINGS variables
+
+- Role: ora
+  - Remove the ora1 role as support for it was deprecated in Cypress.
+  - Removed dependencies on ora throughout the playbooks / vagrantfiles.
 - Role: edxapp
   - Removed XmlModuleStore from the default list of modulestores for the LMS.
   - EDXAPP_XML_MAPPINGS variable no longer exists by default and is not used by the edxapp role.

@@ -132,6 +132,10 @@ def parse_args():
                         default=50,
                         help="The size of the root volume to use for the "
                              "abbey instance.")
+    parser.add_argument("--datadog-api-key", required=False,
+                        default="",
+                        help="The datadog api key used for capturing task"
+                             "and playbook metrics abbey instance.")
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--base-ami', required=False,
@@ -268,18 +272,22 @@ HIPCHAT_ROOM={hipchat_room}
 HIPCHAT_MSG_PREFIX="$environment-$deployment-$play: "
 HIPCHAT_FROM="ansible-$instance_id"
 HIPCHAT_MSG_COLOR=$(echo -e "yellow\\ngreen\\npurple\\ngray" | shuf | head -1)
+DATADOG_API_KEY={datadog_api_key}
 # environment for ansible
 export ANSIBLE_ENABLE_SQS SQS_NAME SQS_REGION SQS_MSG_PREFIX PYTHONUNBUFFERED
-export HIPCHAT_TOKEN HIPCHAT_ROOM HIPCHAT_MSG_PREFIX HIPCHAT_FROM HIPCHAT_MSG_COLOR
+export HIPCHAT_TOKEN HIPCHAT_ROOM HIPCHAT_MSG_PREFIX HIPCHAT_FROM
+export HIPCHAT_MSG_COLOR DATADOG_API_KEY
 
 if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
     echo "Installing pkg dependencies"
     /usr/bin/apt-get update
     /usr/bin/apt-get install -y git python-pip python-apt \\
         git-core build-essential python-dev libxml2-dev \\
-        libxslt-dev curl --force-yes
+        libxslt-dev curl libmysqlclient-dev --force-yes
 fi
 
+# upgrade setuptools early to avoid no distributin errors
+pip install --upgrade setuptools==18.3.2
 
 rm -rf $base_dir
 mkdir -p $base_dir
@@ -382,7 +390,8 @@ rm -rf $base_dir
                 queue_name=run_id,
                 extra_vars_yml=extra_vars_yml,
                 secure_vars_file=secure_vars_file,
-                cache_id=args.cache_id)
+                cache_id=args.cache_id,
+                datadog_api_key=args.datadog_api_key)
 
     mapping = BlockDeviceMapping()
     root_vol = BlockDeviceType(size=args.root_vol_size,

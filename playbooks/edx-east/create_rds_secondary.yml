@@ -1,0 +1,34 @@
+# Usage: AWS_PROFILE=myprofile ansible-playbook create_csmh_db.yml -i localhost, -e 'from_db=my-rds-identifier rds_name=env-dep-edxapphistory'
+
+- name: Create new edxapp history RDS instance
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    from_db: null
+    rds_name: null
+    region: us-east-1
+    instance_type: db.m4.large
+    env: null
+    app: edxapp
+
+  tasks:
+    - name: Validate arguments
+      fail:
+        msg: "One or more arguments were not set correctly: {{ item }}"
+      when: not {{ item }}
+      with_items:
+        - from_db
+        - rds_name
+
+    - name: Create edxapp history RDS instance
+      rds:
+        command: replicate
+        instance_name: "{{ rds_name }}"
+        source_instance: "{{ from_db }}"
+        region: "{{ region }}"
+        instance_type: "{{ instance_type }}"
+        publicly_accessible: no
+        wait: yes
+        wait_timeout: 900
+      register: created_db

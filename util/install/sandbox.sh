@@ -11,7 +11,7 @@
 ##
 ## Sanity check
 ##
-if [[ ! "$(lsb_release -d | cut -f2)" =~ $'Ubuntu 12.04' ]]; then
+if [[ `lsb_release -rs` != "12.04" ]]; then
    echo "This script is only known to work on Ubuntu 12.04, exiting...";
    exit;
 fi
@@ -20,7 +20,7 @@ fi
 ## Set ppa repository source for gcc/g++ 4.8 in order to install insights properly
 ##
 sudo apt-get install -y python-software-properties
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 ##
 ## Update and Upgrade apt packages
@@ -31,9 +31,10 @@ sudo apt-get upgrade -y
 ##
 ## Install system pre-requisites
 ##
-sudo apt-get install -y build-essential software-properties-common python-software-properties curl git-core libxml2-dev libxslt1-dev python-pip python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc-4.8 g++-4.8
-sudo pip install --upgrade pip
-sudo -H pip install --upgrade virtualenv
+sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python-pip libmysqlclient-dev python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc-4.8 g++-4.8
+sudo pip install --upgrade pip==7.1.2
+sudo pip install --upgrade setuptools==18.3.2
+sudo -H pip install --upgrade virtualenv==13.1.2
 
 ##
 ## Update alternatives so that gcc/g++ 4.8 is the default compiler
@@ -48,7 +49,7 @@ if [ -n "$OPENEDX_RELEASE" ]; then
     -e forum_version=$OPENEDX_RELEASE \
     -e xqueue_version=$OPENEDX_RELEASE \
     -e configuration_version=$OPENEDX_RELEASE \
-  "
+  $EXTRA_VARS"
   CONFIG_VER=$OPENEDX_RELEASE
 else
   CONFIG_VER="master"

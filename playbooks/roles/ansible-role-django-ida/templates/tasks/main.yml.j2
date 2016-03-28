@@ -23,75 +23,46 @@
     - install
     - install:configuration
 
-- name: install application requirements
-  shell: >
-    chdir=/edx/app/{{ role_name }}/{{ role_name }}
-    . {{ '{{' }} {{ role_name }}_venv_dir }}/bin/activate;
-    make requirements
+- name: build virtualenv
+  command: "virtualenv {{ '{{' }} {{ role_name }}_venv_dir }}"
+  args:
+    creates: "{{ '{{' }} {{ role_name }}_venv_dir }}/bin/pip"
   sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install application requirements
+  command: make requirements
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - install
     - install:app-requirements
 
 - name: install development requirements
-  shell: >
-    chdir=/edx/app/{{ role_name }}/{{ role_name }}
-    . {{ '{{' }} {{ role_name }}_venv_dir }}/bin/activate;
-    make local-requirements
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
-  tags:
-    - install
-    - install:devstack
-
-- name: wait for database
-  wait_for:
-    host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    port: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PORT }}"
-    delay: 2
-  tags:
-    - migrate:devstack
-
-- name: create databases
-  mysql_db:
-    login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.USER }}"
-    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.PASSWORD }}"
-    db: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}"
-    state: present
-    encoding: utf8
-  tags:
-    - migrate:devstack
-
-- name: create database users
-  mysql_user:
-    login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.USER }}"
-    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN.default.PASSWORD }}"
-    name: "{{ '{{' }} item.name }}"
-    host: "%"
-    name: "{{ '{{' }} item.password }}"
-    priv: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}.*:ALL"
-  with_items:
-    - name: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.USER }}"
-      password: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PASSWORD }}"
-    - name: "{{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}"
-      password: "{{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}"
-  tags:
-    - migrate:devstack
-
-- name: migrate
-  shell: >
-    chdir={{ '{{' }} {{ role_name }}_code_dir }}
-    DB_MIGRATION_USER={{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}
-    DB_MIGRATION_PASS={{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}
-    {{ '{{' }} {{ role_name|lower }}_venv_dir }}/bin/python ./manage.py migrate --noinput
+  command: make local-requirements
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
   sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
   environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - devstack
+    - devstack:install
+
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate
     - migrate:db
-    - migrate:devstack
 
 - name: write out the supervisor wrapper
   template:
@@ -123,7 +94,8 @@
     group: "{{ '{{' }} common_web_user }}"
     mode: 0744
   tags:
-    - install:devstack
+    - devstack
+    - devstack:install
 
 - name: setup the {{ role_name }} env file
   template:
@@ -148,7 +120,7 @@
     - install:configuration
 
 - name: update supervisor configuration
-  shell: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
+  command: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
     - manage
@@ -177,6 +149,16 @@
   tags:
     - install
     - install:app-requirements
+    
+- name: run collectstatic
+  command: make static
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - assets
+    - assets:gather
 
 - name: restart the application
   supervisorctl: 
@@ -197,6 +179,7 @@
     owner=root group={{ '{{' }} common_web_user }} mode=0640
   notify: reload nginx
   tags:
+    - install
     - install:vhosts
 
 - name: Creating nginx config links for {{ role_name }}
@@ -206,5 +189,6 @@
     state=link owner=root group=root
   notify: reload nginx
   tags:
+    - install
     - install:vhosts
 

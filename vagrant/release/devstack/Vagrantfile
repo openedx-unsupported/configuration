@@ -47,18 +47,11 @@ MOUNT_DIRS = {
   :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
   :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
   :programs => {:repo => "programs", :local => "/edx/app/programs/programs", :owner => "programs"},
-  :course_discovery => {:repo => "course-discovery", :local => "/edx/app/course-discovery/course-discovery", :owner => "course-discovery"},
-  :insights => {:repo => "insights", :local => "/edx/app/insights/edx_analytics_dashboard", :owner => "insights"},
-  :analytics_api => {:repo => "analytics_api", :local => "/edx/app/analytics_api/analytics_api", :owner => "analytics_api"},
   # This src directory won't have useful permissions. You can set them from the
   # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
   :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
 
 }
-if ENV['ENABLE_LEGACY_ORA']
-  MOUNT_DIRS[:ora] = {:repo => "ora", :local => "/edx/app/ora/ora", :owner => "ora"}
-end
-
 if ENV['VAGRANT_MOUNT_BASE']
   MOUNT_DIRS.each { |k, v| MOUNT_DIRS[k][:repo] = ENV['VAGRANT_MOUNT_BASE'] + "/" + MOUNT_DIRS[k][:repo] }
 end
@@ -67,24 +60,28 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "named-release/cypress" => {
-    :name => "cypress-devstack", :file => "cypress-devstack.box",
+  # Note: the devstack and fullstack boxes differ, because devstack had an issue
+  # that needed fixing, but it didn't affect fullstack.
+  "named-release/dogwood.rc" => {
+    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
   },
+  "named-release/dogwood.1" => {
+    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
+  },
+  "named-release/dogwood" => {
+    :name => "dogwood-devstack-rc2", :file => "20151221-dogwood-devstack-rc2.box",
+  },
+  # Cypress is deprecated and unsupported
+  # "named-release/cypress" => {
+  #   :name => "cypress-devstack", :file => "cypress-devstack.box",
+  # },
   # Birch is deprecated and unsupported
   # "named-release/birch.2" => {
   #   :name => "birch-devstack-2", :file => "birch-2-devstack.box",
   # },
 }
 openedx_releases.default = {
-  :name => "dogwood-alpha1-devstack", :file => "dogwood-alpha1-devstack.box",
-}
-openedx_releases_vmware = {
-  "named-release/birch" => {
-    :name => "birch-devstack-vmware", :file => "20150610-birch-devstack-vmware.box",
-  },
-}
-openedx_releases_vmware.default = {
-  :name => "kifli-devstack-vmware", :file => "20140829-kifli-devstack-vmware.box",
+  :name => "devstack-periodic-2016-03-08", :file => "devstack-periodic-2016-03-08.box",
 }
 rel = ENV['OPENEDX_RELEASE']
 
@@ -95,19 +92,25 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
-  config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
-  config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
-  config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
-  config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
-  config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
-  config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
-  config.vm.network :forwarded_port, guest: 8765, host: 8765
-  config.vm.network :forwarded_port, guest: 9200, host: 9200  # Elasticsearch
-  config.vm.network :forwarded_port, guest: 18080, host: 18080  # Forums
-  config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
-  config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
-  config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
-  config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
+
+  # If you want to run the box but don't need network ports, set VAGRANT_NO_PORTS=1.
+  # This is useful if you want to run more than one box at once.
+  if not ENV['VAGRANT_NO_PORTS']
+    config.vm.network :forwarded_port, guest: 8000, host: 8000  # LMS
+    config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
+    config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
+    config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
+    config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
+    config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
+    config.vm.network :forwarded_port, guest: 8765, host: 8765
+    config.vm.network :forwarded_port, guest: 9200, host: 9200  # Elasticsearch
+    config.vm.network :forwarded_port, guest: 18080, host: 18080  # Forums
+    config.vm.network :forwarded_port, guest: 8100, host: 8100  # Analytics Data API
+    config.vm.network :forwarded_port, guest: 8110, host: 8110  # Insights
+    config.vm.network :forwarded_port, guest: 9876, host: 9876  # ORA2 Karma tests
+    config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
+    config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
+  end
   config.ssh.insert_key = true
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
@@ -134,15 +137,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-  end
-
-  ["vmware_fusion", "vmware_workstation"].each do |vmware_provider|
-    config.vm.provider vmware_provider do |v, override|
-      override.vm.box     = openedx_releases_vmware[rel][:name]
-      override.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases_vmware[rel][:file]}"
-      v.vmx["memsize"] = MEMORY.to_s
-      v.vmx["numvcpus"] = CPU_COUNT.to_s
-    end
   end
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
