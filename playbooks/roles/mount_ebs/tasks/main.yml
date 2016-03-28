@@ -54,8 +54,16 @@
     volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
     (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
   with_items: ansible_mounts
-# fail here if you attempted to unmount something instead of unmounting it
-# Meaning UNMOUNT disks is false, but the volumes indicates we should be fiddling mounts
+
+# If there are disks we want to be unmounting, but we can't because UNMOUNT_DISKS is false
+# that is an errorable condition, since it can easily allow us to double mount a disk.
+- name: Check that we don't want to unmount disks when UNMOUNT_DISKS is false
+  fail: msg="Found disks mounted in the wrong place, but can't unmount them.  This role will need to be re-run with -e 'UNMOUNT_DISKS=True' if you believe that is safe."
+  when: >
+    not UNMOUNT_DISKS and
+    volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
+    (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
+  with_items: ansible_mounts
 
 - name: Mount disks
   mount:
