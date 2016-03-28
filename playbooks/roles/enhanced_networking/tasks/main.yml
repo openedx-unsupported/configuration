@@ -32,7 +32,14 @@
   become: False
   register: enhanced_networking_raw
 
+- name: Test for kernel module
+  shell: 'modinfo ixgbevf | grep -E ^version: | sed -E "s/^version: *//"'
+  register: ixgbevf_kernel_module
+  ignore_errors: yes
+
 - set_fact:
+    # AWS would like 2.16 or 2.14 of this module, but says that Ubuntu's default of 2.11.3-k is ok
+    has_ixgbevf_kernel_module: "{{ (ixgbevf_kernel_module.stdout | default('0.0.0')) | replace('-k','') | version_compare('2.11.3','>=', strict=True) }}"
     supports_enhanced_networking: "{{ (ansible_ec2_instance_type[:2] | lower) in compatible_instance_types }}"
     enhanced_networking_already_on: "{{ (enhanced_networking_raw.stdout | from_json).SriovNetSupport.Value | default(None) == 'simple' }}"
 
@@ -45,12 +52,12 @@
     profile: "{{ profile }}"
     wait: yes
   become: False
-  when: supports_enhanced_networking and not enhanced_networking_already_on
+  when: supports_enhanced_networking and has_ixgbevf_kernel_module and not enhanced_networking_already_on
 
 - name: Set enhanced networking instance attribute
   local_action:
     module: shell aws --profile {{ profile }} ec2 modify-instance-attribute --instance-id {{ ansible_ec2_instance_id }} --sriov-net-support simple
-  when: supports_enhanced_networking and not enhanced_networking_already_on
+  when: supports_enhanced_networking and has_ixgbevf_kernel_module and not enhanced_networking_already_on
 
 - name: Start instances
   local_action:
@@ -61,4 +68,4 @@
     profile: "{{ profile }}"
     wait: yes
   become: False
-  when: supports_enhanced_networking and not enhanced_networking_already_on
+  when: supports_enhanced_networking and has_ixgbevf_kernel_module and not enhanced_networking_already_on
