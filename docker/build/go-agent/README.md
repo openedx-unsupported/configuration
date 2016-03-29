@@ -26,3 +26,16 @@ necessary.
 ```docker run -ti -v /tmp/go-agent/conf:/var/lib/go-agent/config -e GO_SERVER=gocd.sandbox.edx.org 718d75c467c0 bash```
 
 [How to setup auto registration for remote agents](https://docs.go.cd/current/advanced_usage/agent_auto_register.html)
+
+##Building and Uploading the container to ECS
+
+* Create image
+    - ```docker build --no-cache=true docker/build/go-agent```
+* Log docker in to AWS
+    - ```sh -c `aws ecr get-login --region us-east-1` ```
+* Tag image 
+    - ```docker tag -f <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/release-pipeline:latest```
+    - ```docker tag -f <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/release-pipeline:<version_number>```
+* upload: 
+    - ```docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/go-agent/python:latest```
+    - ```docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/go-agent/python:<version_number>```
