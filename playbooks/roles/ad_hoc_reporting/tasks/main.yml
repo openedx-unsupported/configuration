@@ -22,7 +22,7 @@
 
 - name: install system packages
   apt:
-    pkg: "{{ item }}"
+    name: "{{ item }}"
     state: present
   with_items: ad_hoc_reporting_debian_pkgs
   tags:
@@ -45,7 +45,7 @@
 
 - name: install mongo shell
   apt:
-    pkg: mongodb-org-shell={{ mongo_version }}
+    name: mongodb-org-shell={{ mongo_version }}
     state: present
     install_recommends: yes
     force: yes
@@ -92,42 +92,7 @@
     - scripts
     - scripts:mysql
     - install:code
-  with_items:
-    - db_host: "{{ EDXAPP_MYSQL_REPLICA_HOST }}"
-      db_name: "{{ EDXAPP_MYSQL_DB_NAME }}"
-      script_name: edxapp-mysql.sh
-      #depends on no other vars
-      depends_on: True
-    
-    - db_host: "{{ EDXAPP_MYSQL_CSMH_REPLICA_HOST }}"
-      db_name: "{{ EDXAPP_MYSQL_CSMH_DB_NAME }}"
-      script_name: csmh-mysql.sh
-      depends_on: True
-
-    - db_host: "{{ AD_HOC_REPORTING_XQUEUE_MYSQL_REPLICA_HOST }}"
-      db_name: "{{ XQUEUE_MYSQL_DB_NAME }}"
-      script_name: xqueue-mysql.sh
-      depends_on: "{{ AD_HOC_REPORTING_XQUEUE_MYSQL_REPLICA_HOST | default(None) }}"
-    
-    - db_host: "{{ AD_HOC_REPORTING_ANALYTICS_API_REPORTS_REPLICA_DB_HOST }}"
-      db_name: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
-      script_name: analytics-mysql.sh
-      depends_on: "{{ AD_HOC_REPORTING_ANALYTICS_API_REPORTS_REPLICA_DB_HOST | default(None) }}"
-
-    - db_host: "{{ AD_HOC_REPORTING_ANALYTICS_API_DEFAULT_DB_HOST }}"
-      db_name: "{{ ANALYTICS_API_DEFAULT_DB_NAME }}"
-      script_name: analytics-django-mysql.sh
-      depends_on: "{{ AD_HOC_REPORTING_ANALYTICS_API_DEFAULT_DB_HOST | default(None) }}"
-
-    - db_host: "{{ AD_HOC_REPORTING_ECOMMERCE_REPLICA_DB_HOST }}"
-      db_name: "{{ ECOMMERCE_DEFAULT_DB_NAME }}"
-      script_name: ecommerce-mysql.sh
-      depends_on: "{{ AD_HOC_REPORTING_ECOMMERCE_REPLICA_DB_HOST | default(None) }}"
-
-    - db_host: "{{ AD_HOC_REPORTING_INSIGHTS_REPLICA_DB_HOST }}"
-      db_name: "{{ INSIGHTS_DATABASE_NAME }}"
-      script_name: insights-mysql.sh
-      depends_on: "{{ AD_HOC_REPORTING_INSIGHTS_REPLICA_DB_HOST | default(None) }}"
+  with_items: AD_HOC_REPORTING_REPLICA_DB_HOSTS
   
 # These templates rely on there being a global
 # read_only mongo user, you must override the default
