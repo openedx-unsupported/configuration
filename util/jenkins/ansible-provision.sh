@@ -219,6 +219,7 @@ if [[ $basic_auth == "true" ]]; then
 COMMON_ENABLE_BASIC_AUTH: True
 COMMON_HTPASSWD_USER: $auth_user
 COMMON_HTPASSWD_PASS: $auth_pass
+NGINX_USERS: $nginx_users
 XQUEUE_BASIC_AUTH_USER: $auth_user
 XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
@@ -267,8 +268,6 @@ FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-
-NGINXUSERS: $nginx_users
 
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
