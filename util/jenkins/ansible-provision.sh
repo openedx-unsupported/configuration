@@ -219,7 +219,6 @@ if [[ $basic_auth == "true" ]]; then
 COMMON_ENABLE_BASIC_AUTH: True
 COMMON_HTPASSWD_USER: $auth_user
 COMMON_HTPASSWD_PASS: $auth_pass
-NGINX_USERS: $nginx_users
 XQUEUE_BASIC_AUTH_USER: $auth_user
 XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
@@ -229,6 +228,12 @@ else
 COMMON_ENABLE_BASIC_AUTH: False
 EOF_AUTH
 
+fi
+
+if [[ -n $nginx_users ]]; then
+   cat << EOF_AUTH >> $extra_vars_file
+NGINX_USERS: $nginx_users
+EOF_AUTH
 fi
 
 if [[ $enable_client_profiling == "true" ]]; then
