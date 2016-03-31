@@ -1,0 +1,85 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Usage: ansible-playbook -i lms-host-1, -e@path/to/configfile
+#
+# Overview:
+# This playbook ensures that the specified users and groups exist in the targeted
+# edxapp cluster. 
+#
+# Users have the following properties:
+#   - username (required, str)
+#   - email (required, str)
+#   - groups (optional, list[str])
+#   - superuser (optional, bool)
+#   - staff (optional, bool)
+#   - remove (optional, bool): ensures the user does not exist
+#
+# Groups can have the following properties:
+#   - name (required, str)
+#   - permissions (optional, list[str])
+#   - remove (optional, bool): ensures the group does not exist
+#
+# Example:
+#
+# users:
+#   - username: bobby
+#     email: bobby@droptabl.es
+#     groups: [group1, group2]
+#     superuser: true
+#     staff: true
+#
+#   - username: fred
+#     email: fred@smith
+#     remove: true
+#
+#   - username: smitty
+#     email: smitty@werbenmanjens.en
+#     groups: [group1]
+#
+# groups:
+#   - name: group3
+#     remove: true
+#
+#   - name: group1
+#     permissions:
+#       - permission1
+#       - permission2
+#
+#   - name: group2
+#     permissions: [permission3]
+#
+# NB: to get a list of all available permissions, run the following code:
+#
+#   from django.contrib.auth.models import Permission
+#   for perm in Permission.objects.all():
+#     print '{}:{}:{}'.format(perm.content_type.app_label, perm.content_type.model, perm.codename)
+#
+
+- hosts: all
+  vars:
+    python_path: /edx/bin/python.edxapp
+    manage_path: /edx/bin/manage.edxapp
+  tasks:
+    - name: Manage groups
+      shell: >
+        {{ python_path }} {{ manage_path }} lms --settings=aws
+        manage_group {{ item.name | quote }}
+        {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+      with_items: django_groups
+
+    - name: Manage users
+      shell: >
+        {{ python_path }} {{ manage_path }} lms --settings=aws
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+      with_items: django_users
