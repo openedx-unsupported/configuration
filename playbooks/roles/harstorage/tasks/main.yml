@@ -50,14 +50,35 @@
     - install:app-requirements
   with_items: harstorage_python_pkgs
 
-- name: create harstorage config directory
+- name: create directories
   file:
-    path: "{{ harstorage_etc }}"
+    path: "{{ item }}"
+    owner: "{{ harstorage_user }}"
+    group: "{{ harstorage_user }}"
     state: directory
     mode: 0755
   tags:
     - install
     - install:configuration
+  with_items:
+    - "{{ harstorage_etc }}"
+    - "{{ harstorage_bin_dir }}"
+
+- name: ensure common web user can write to /edx/var/harstorage
+  file:
+    path: "{{ COMMON_DATA_DIR }}/{{ harstorage_user }}"
+    state: directory
+    mode: 0775
+  tags:
+    - install
+    - install:configuration
+
+- name: download pagespeed
+  get_url:
+    url: "{{ harstorage_pagespeed_binary }}"
+    dest: "{{ harstorage_bin_dir }}"
+    mode: "0755"
+    owner: "{{ harstorage_user }}"
 
 - name: setup the harstorage production.ini file
   template:
