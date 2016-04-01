@@ -52,7 +52,7 @@
 
 - name: create harstorage config directory
   file:
-    path: "{{ harstorage_venv_dir }}/{{ harstorage_etc }}"
+    path: "{{ harstorage_etc }}"
     state: directory
     mode: 0755
   tags:
@@ -61,23 +61,14 @@
 
 - name: setup the harstorage production.ini file
   template:
-    src: './{{ harstorage_etc }}/production.ini.j2'
-    dest: '{{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini'
+    src: '.{{ harstorage_etc }}/production.ini.j2'
+    dest: '{{ harstorage_etc }}/production.ini'
     owner: '{{ harstorage_user }}'
     group: '{{ harstorage_user }}'
     mode: 0644
   tags:
     - install
     - install:configuration
-
-- name: clone harstorage
-  git: >
-    repo=https://github.com/edx/harstorage.git
-    dest={{ harstorage_code_dir }}
-  sudo_user: "{{ harstorage_user }}"
-  tags:
-    - install
-    - install:code
 
 - name: install harstorage
   command: >
@@ -89,14 +80,37 @@
     - install:code
 
 - name: apply config
-  command: "{{ harstorage_venv_dir }}/bin/paster setup-app {{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini"
+  command: "{{ harstorage_venv_dir }}/bin/paster setup-app {{ harstorage_etc }}/production.ini"
   args:
     chdir: "{{ harstorage_code_dir }}"
   tags:
     - install
     - install:configuration
 
-- name: run harstorage
-  command: "{{ harstorage_venv_dir }}/bin/paster serve --daemon {{ harstorage_venv_dir }}/{{ harstorage_etc }}/production.ini --log-file {{ harstorage_log }}"
-  args:
-    creates: "{{ harstorage_log }}"
+- name: write supervisor wrapper script
+  template:
+    src: edx/app/harstorage/harstorage.sh.j2
+    dest: "{{ harstorage_home }}/{{ harstorage_role_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+
+- name: write supervisord config
+  template:
+    src: edx/app/supervisor/conf.d.available/harstorage.conf.j2
+    dest: "{{ supervisor_available_dir }}/{{ harstorage_role_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ harstorage_role_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ harstorage_role_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
