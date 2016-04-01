@@ -2,11 +2,11 @@
 
 # See README.md for variable descriptions
 
-JENKINS_ANALYTICS_USER_PASSWORD_HASHED: $6$rAVyI.p2wXVDKk5w$y0G1MQehmHtvaPgdtbrnvAsBqYQ99g939vxrdLXtPQCh/e7GJVwbnqIKZpve8EcMLTtq.7sZwTBYV9Tdjgf1k.
 JENKINS_ANALYTICS_USER_PASSWORD_PLAIN: jenkins
+JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID: 'github-deploy-key'
 
 JENKINS_ANALYTICS_CREDENTIALS:
-  - id: github-deploy-key
+  - id: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
     scope: GLOBAL
     username: git
     type: ssh-private-key
@@ -15,6 +15,39 @@ JENKINS_ANALYTICS_CREDENTIALS:
     privatekey: "{{ JENKINS_ANALYTICS_GITHUB_KEY }}"
 
 JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT: 2
+
+ANALYTICS_SCHEDULE_SECURE_REPO_URL: null
+ANALYTICS_SCHEDULE_SECURE_REPO_DEST: "analytics-secure-config"
+ANALYTICS_SCHEDULE_SECURE_REPO_VERSION: "master"
+ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
+ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL: "git@github.com:edx-ops/edx-jenkins-job-dsl.git"
+ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION: "master"
+ANALYTICS_SCHEDULE_JOBS_DSL_REPO_CREDENTIAL_ID: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
+ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH: |
+  src/main/groovy
+  lib/*.jar
+ANALYTICS_SCHEDULE_JOBS_DSL_TARGET_JOBS: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
+
+ANALYTICS_SCHEDULE_ANSWER_DISTRIBUTION: true
+ANALYTICS_SCHEDULE_ANSWER_DISTRIBUTION_EXTRA_VARS:
+  SECURE_REPO: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL }}"
+  SECURE_BRANCH: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION }}"
+ANALYTICS_SCHEDULE_COURSE_ACTIVITY_WEEKLY: true
+ANALYTICS_SCHEDULE_COURSE_ACTIVITY_WEEKLY_EXTRA_VARS:
+  SECURE_REPO: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL }}"
+  SECURE_BRANCH: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION }}"
+ANALYTICS_SCHEDULE_IMPORT_ENROLLMENTS_INTO_MYSQL: true
+ANALYTICS_SCHEDULE_IMPORT_ENROLLMENTS_INTO_MYSQL_EXTRA_VARS:
+  SECURE_REPO: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL }}"
+  SECURE_BRANCH: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION }}"
+ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_ALL_VIDEO: true
+ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_ALL_VIDEO_EXTRA_VARS:
+  SECURE_REPO: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL }}"
+  SECURE_BRANCH: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION }}"
+ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY: true
+ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY_EXTRA_VARS:
+  SECURE_REPO: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL }}"
+  SECURE_BRANCH: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION }}"
 
 jenkins_credentials_root: '/tmp/credentials'
 jenkins_credentials_file_dest: "{{ jenkins_credentials_root }}/credentials.json"
@@ -27,16 +60,27 @@ jenkins_auth_realm:
   service: su
   # Change this default password: (see README.md to see how you can do it)
   plain_password: "{{ JENKINS_ANALYTICS_USER_PASSWORD_PLAIN }}"
-  hashed_password: "{{ JENKINS_ANALYTICS_USER_PASSWORD_HASHED }}"
 
+# For now only a single seed job is supported, adding more would require
+# Ansible 2.+ or converting _execute_jenkins_cli to a module
 jenkins_seed_job:
-  name: analytics-seed-job
-  time_trigger: "H * * * *"
-  removed_job_action: "DELETE"
-  removed_view_action: "IGNORE"
-  scm:
-    type: git
-    url: "git@github.com:edx-ops/edx-jenkins-job-dsl.git"
-    credential_id: "github-deploy-key"
-    target_jobs: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
-    additional_classpath: "src/main/groovy"
+  name: AnalyticsSeedJob
+  multiscm:
+    - scm:
+      type: git
+      url: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL }}"
+      dest: ""
+      branch: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION | default('master') }}"
+      credential_id: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_CREDENTIAL_ID | default('') }}"
+    - scm:
+      type: git
+      url: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL | default('') }}"
+      dest: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST | default('') }}"
+      branch: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_VERSION | default('master') }}"
+      credential_id: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID | default('') }}"
+  dsl:
+    gradle_tasks: "clean libs test"
+    removed_view_action: IGNORE
+    removed_job_action: DELETE
+    additional_classpath: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH }}"
+    target_jobs: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_TARGET_JOBS }}"
