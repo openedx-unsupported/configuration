@@ -1,0 +1,100 @@
+# This playbook will create an AMI from an EC2 instance launched with the
+# continuous_deliver/launche_instance playbook.
+#
+# Required variables for this playbook:
+#
+#   - instance_id                     - the ec2 instance ID use to create the AMI
+#   - edx_environment                 - value to use for the environment tag
+#   - deployment                      - value to use for the deploy tag
+#   - cluster_repo                    - the url of the github repo for this cluster
+#   - cluster_version                 - git hash of the cluster (play, service, IDA) being deployed
+#   - play                            - the play that was run
+#   - configuration_repo              - The github url for the configuration repo
+#   - configuration_version           - The version (git hash) of configuration
+#   - configuration_secure_repo       - the github url for the configuration secure repository
+#   - configuration_secure_version    - the version (git hash) of configuration secure
+#   - cache_id                        - the cache_id version
+#
+# Other variables
+#   - ec2_region                      - The region used to create the AMI
+#   - ami_creation_timeout            - how long to wait before giving up on AMI creation in seconds
+#   - ami_wait                        - (yes/no) should ansible pause while
+#   - no_reboot                       - (yes/no) should the instance not be rebooted during AMI creation
+#   - artifact_path                   - the path to where this ansible run stores the artifacts for the pipeline
+#   - edx_app_theme_repo              - the edx_app_theme repository
+#   - edx_app_theme_version           - the edx_app_theme repository version (git hash)
+#   - hipchat_token                   - API token to send messages to hipchat
+#   - hipchat_room                    - ID or name of the room to send the notification
+#   - hipchat_url                     - URL of the hipchat API  (defaults to v1 of the api)
+#
+# Example command line to run this playbook:
+#    ansible-playbook -vvvv -i "localhost," -c local \
+#       -e @overrides.yml \
+#       -e @/tmp/ansible-runtime/d057a5d9-4fc5-4a21-9646-4c135be0b7c8/launch_info.yml \
+#       -e cluster=pipline-test \
+#       -e deployment=edx \
+#       -e edx_environment=sandbox \
+#       -e cluster_version=12345 \
+#       -e configuration_version=12345
+#       -e configuration_secure_version=12345
+#       -e cache_id=12345
+#       create_ami.yml
+#
+
+- hosts: all
+  vars:
+    ec2_region: us-east-1
+    ami_wait: yes
+    ami_creation_timeout: 3600
+    no_reboot: no
+    artifact_path: /tmp/ansible-runtime
+    hipchat_url: https://api.hipchat.com/v2/
+  gather_facts: False
+  connection: local
+  tasks:
+
+  - name: Create AMI
+    ec2_ami_2_0_0_1:
+      instance_id: "{{ instance_id }}"
+      name: "{{ play }} -- {{ cluster_version }}"
+      region: "{{ ec2_region }}"
+      wait: "{{ ami_wait }}"
+      wait_timeout: "{{ ami_creation_timeout }}"
+      no_reboot: "{{ no_reboot }}"
+      description: "AMI built via edX continuous delivery pipeline - Ansible version: {{ ansible_version }}"
+      # used a JSON object here as there is a string interpolation in the keys.
+      tags: "{
+                'version:{{ play }}':'{{ cluster_repo }} {{ cluster_version }}',
+                'version:configuration':'{{ configuration_repo }} {{ configuration_version }}',
+                'version:configuration_secure':'{{ configuration_secure_repo }} {{ configuration_secure_version }}',
+                'play':'{{ play }}',
+                'cache_id':'{{ cache_id }}',
+                'environment':'{{ edx_environment }}',
+                'deployment':'{{ deployment }}'
+            }"
+    register: ami_register
+
+  - name: add optional edx-theme tag
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ ami_register.image_id }}"
+      tags:
+        version:edxapp_theme: "{{ edx_app_theme_repo }} {{ edx_app_theme_version }}"
+    when: edx_app_theme_version is defined and edx_app_theme_repo is defined
+
+  - name: Generate artifact container the instance_id
+    template:
+      src: templates/local/ami_template.yml.j2
+      dest: "{{ artifact_path }}/{{ keypair_id }}/ami.yml"
+      mode: 0600
+
+  - name: Send Hipchat notification AMI is finished baking
+    hipchat:
+      api: "{{ hipchat_url }}"
+      token: "{{ hipchat_token }}"
+      room: "{{ hipchat_room }}"
+      msg: "Finished baking AMI for: {{ play }} \n
+            AMI-ID: {{ ami_register.image_id }} \n
+           "
+    ignore_errors: yes
+    when: hipchat_token is defined
