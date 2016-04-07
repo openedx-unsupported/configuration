@@ -23,7 +23,8 @@ RUN apt-get update && apt-get install -y -q \
     python \
     python-dev \
     python-distribute \
-    python-pip
+    python-pip \
+    libmysqlclient-dev
 
 # TODO: repalce this with a pip install command so we can version this properly
 RUN git clone https://github.com/edx/tubular.git /opt/tubular
