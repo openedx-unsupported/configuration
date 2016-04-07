@@ -41,6 +41,14 @@ boolean addSSHUserPrivateKey(scope, id, username, privateKey, passphrase, descri
     return true
 }
 
+boolean addSSHUserPrivateKeyFile(scope, id, username, privateKey, passphrase, description) {
+    provider = SystemCredentialsProvider.getInstance()
+    source = new BasicSSHUserPrivateKey.FileOnMasterPrivateKeySource(privateKey)
+    provider.getCredentials().add(new BasicSSHUserPrivateKey(scope, id, username, source, passphrase, description))
+    provider.save()
+    return true
+}
+
 def jsonFile = new File("{{ jenkins_credentials_file_dest }}");
 
 if (!jsonFile.exists()){
@@ -83,5 +91,14 @@ credentialList.each { credential ->
         }
 
         addSSHUserPrivateKey(scope, credential.id, credential.username, credential.privatekey, credential.passphrase, credential.description)
+    }
+
+    if (credential.type == "ssh-private-keyfile") {
+
+        if (credential.passphrase != null && credential.passphrase.trim().length() == 0){
+            credential.passphrase = null;
+        }
+
+        addSSHUserPrivateKeyFile(scope, credential.id, credential.username, credential.privatekey, credential.passphrase, credential.description)
     }
 }
