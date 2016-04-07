@@ -84,7 +84,7 @@ error_page {{ k }} {{ v }};
   # Execute the actual redirect
   if ($do_redirect_to_https = "true")
   {
-  rewrite ^ https://$host$request_uri? permanent;
+  return 301 https://$host$request_uri;
   }
   {% endif %}
   
@@ -118,7 +118,7 @@ error_page {{ k }} {{ v }};
     {% include "basic-auth.j2" %}
     {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
     if ( $embargo ) {
-      rewrite ^ /embargo;
+      return 302 /embargo;
     }
     {% endif -%}
     try_files $uri @proxy_to_lms_app;
