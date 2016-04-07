@@ -277,6 +277,8 @@ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
 PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+PROGRAMS_CORS_ORIGIN_WHITELIST:
+  - studio-${deploy_host}
 
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
