@@ -238,6 +238,7 @@ configuration_private_version="{configuration_private_version}"
 environment="{environment}"
 deployment="{deployment}"
 play="{play}"
+cluster="{play}"
 config_secure={config_secure}
 git_repo_name="configuration"
 git_repo="https://github.com/edx/$git_repo_name"
@@ -546,6 +547,8 @@ def create_ami(instance_id, name, description):
                 img.add_tag("environment", args.environment)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("deployment", args.deployment)
+                time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("cluster", args.play)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("play", args.play)
                 time.sleep(AWS_API_WAIT_TIME)
