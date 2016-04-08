@@ -5,45 +5,26 @@
   <numExecutors>{{ JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT }}</numExecutors>
   <mode>NORMAL</mode>
   <useSecurity>true</useSecurity>
-  {% if jenkins_auth_realm.name == "unix" %}
-   <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
-    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Create:jenkins</permission>
-    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Delete:jenkins</permission>
-    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains:jenkins</permission>
-    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Update:jenkins</permission>
-    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.View:jenkins</permission>
-    <permission>hudson.model.Computer.Build:jenkins</permission>
-    <permission>hudson.model.Computer.Configure:jenkins</permission>
-    <permission>hudson.model.Computer.Connect:jenkins</permission>
-    <permission>hudson.model.Computer.Create:jenkins</permission>
-    <permission>hudson.model.Computer.Delete:jenkins</permission>
-    <permission>hudson.model.Computer.Disconnect:jenkins</permission>
-    <permission>hudson.model.Hudson.Administer:jenkins</permission>
-    <permission>hudson.model.Hudson.ConfigureUpdateCenter:jenkins</permission>
-    <permission>hudson.model.Hudson.Read:jenkins</permission>
-    <permission>hudson.model.Hudson.RunScripts:jenkins</permission>
-    <permission>hudson.model.Hudson.UploadPlugins:jenkins</permission>
-    <permission>hudson.model.Item.Build:jenkins</permission>
-    <permission>hudson.model.Item.Cancel:jenkins</permission>
-    <permission>hudson.model.Item.Configure:jenkins</permission>
-    <permission>hudson.model.Item.Create:jenkins</permission>
-    <permission>hudson.model.Item.Delete:jenkins</permission>
-    <permission>hudson.model.Item.Discover:anonymous</permission>
-    <permission>hudson.model.Item.Discover:jenkins</permission>
-    <permission>hudson.model.Item.Move:jenkins</permission>
-    <permission>hudson.model.Item.Read:anonymous</permission>
-    <permission>hudson.model.Item.Read:jenkins</permission>
-    <permission>hudson.model.Item.Workspace:jenkins</permission>
-    <permission>hudson.model.Run.Delete:jenkins</permission>
-    <permission>hudson.model.Run.Update:jenkins</permission>
-    <permission>hudson.model.View.Configure:jenkins</permission>
-    <permission>hudson.model.View.Create:jenkins</permission>
-    <permission>hudson.model.View.Delete:jenkins</permission>
-    <permission>hudson.model.View.Read:jenkins</permission>
-    <permission>hudson.scm.SCM.Tag:jenkins</permission>
+  <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
+  {% for permission_group, permissions in jenkins_auth_permissions.iteritems() %}
+    {% for permission in permissions %}
+      {% for user in jenkins_auth_users[permission_group] | default([]) %}
+      <permission>{{ permission }}:{{ user }}</permission>
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
   </authorizationStrategy>
+  {% if jenkins_auth_realm.name == "unix" %}
   <securityRealm class="hudson.security.PAMSecurityRealm" plugin="pam-auth@1.2">
     <serviceName>{{ jenkins_auth_realm.service }}</serviceName>
+  </securityRealm>
+  {% elif jenkins_auth_realm.name == "github_oauth" %}
+  <securityRealm class="org.jenkinsci.plugins.GithubSecurityRealm">
+    <githubWebUri>{{ jenkins_auth_realm.webUri }}</githubWebUri>
+    <githubApiUri>{{ jenkins_auth_realm.apiUri }}</githubApiUri>
+    <clientID>{{ jenkins_auth_realm.clientId }}</clientID>
+    <clientSecret>{{ jenkins_auth_realm.clientSecret }}</clientSecret>
+    <oauthScopes>{{ jenkins_auth_realm.oauthScopes|join(',') }}</oauthScopes>
   </securityRealm>
   {% endif %}
   <disableRememberMe>false</disableRememberMe>
