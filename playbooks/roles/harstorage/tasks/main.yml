@@ -1,0 +1,88 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role harstorage
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: install debian dependecies
+  apt:
+    name: "{{ item }}"
+    state: present
+  tags:
+    - install
+    - install:base
+  with_items: harstorage_debian_pkgs
+
+- name: build virtualenv
+  command: "virtualenv {{ harstorage_venv_dir }}"
+  args:
+    creates: "{{ harstorage_venv_dir }}/bin/pip"
+  sudo_user: "{{ harstorage_user }}"
+  tags:
+    - install
+    - install:base
+    
+- name: install python packages
+  pip:
+    name: "{{ item.name }}"
+    virtualenv: "{{ harstorage_venv_dir }}"
+    state: present
+    version: "{{ item.version }}"
+  tags:
+    - install
+    - install:app-requirements
+  with_items: harstorage_python_pkgs
+
+- name: create harstorage config directory
+  file:
+    path: "{{ harstorage_etc }}"
+    state: directory
+    mode: 0755
+  tags:
+    - install
+    - install:configuration
+
+- name: setup the harstorage production.ini file
+  template:
+    src: '.{{ harstorage_etc }}/production.ini.j2'
+    dest: '{{ harstorage_etc }}/production.ini'
+    owner: '{{ harstorage_user }}'
+    group: '{{ harstorage_user }}'
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: install harstorage
+  command: >
+    {{ harstorage_venv_dir }}/bin/python ./setup.py install
+  args:
+    chdir: "{{ harstorage_code_dir }}"
+  tags:
+    - install
+    - install:code
+
+- name: apply config
+  command: "{{ harstorage_venv_dir }}/bin/paster setup-app {{ harstorage_etc }}/production.ini"
+  args:
+    chdir: "{{ harstorage_code_dir }}"
+  tags:
+   - install
+   - install:configuration
