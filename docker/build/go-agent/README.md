@@ -30,7 +30,10 @@ necessary.
 ##Building and Uploading the container to ECS
 
 * Create image
-    - ```docker build --no-cache=true docker/build/go-agent```
+    - This must be run from the root of the configuration repository
+    - ```docker build -f docker/build/go-agent/Dockerfile .```
+    - or
+    - ```make docker.test.go-agent```
 * Log docker in to AWS
     - ```sh -c `aws ecr get-login --region us-east-1` ```
 * Tag image 
