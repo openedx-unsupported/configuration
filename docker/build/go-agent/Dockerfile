@@ -26,9 +26,8 @@ RUN apt-get update && apt-get install -y -q \
     python-pip
 
 # Install Docker - for Docker container building by a go-agent.
-RUN \
-  apt-get install -y curl && \
-  curl -fsSL https://get.docker.com/ | sh
+COPY docker/build/go-agent/files/docker_install.sh /tmp/docker/
+RUN /bin/bash /tmp/docker/docker_install.sh
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install awscli
