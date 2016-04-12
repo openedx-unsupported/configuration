@@ -38,19 +38,6 @@
     create: yes
   when: not USE_STATIC_CONFIG
 
-- name: set facts according to static config
-  set_fact:
-    apt_server: "apt-static.appneta.com"
-    config_server: "config-static.appneta.com"
-  when: USE_STATIC_CONFIG
-
-- name: install certificates
-  apt:
-    name: ca-certificates
-    state: latest
-    force: yes
-  when: not skip_certs
-
 - name: create appneta sources.list
   apt_repository:
     repo: "{{ appneta_apt_repo }}"
@@ -68,9 +55,9 @@
     create: yes
 
 - name: install common library and headers
-  apt: >
-    pkg={{ item }}
-    force=yes
+  apt:
+    name: "{{ item }}"
+    force: yes
   with_items: appneta_debian_pkgs
 
 - name: install appneta-sequencer
@@ -80,42 +67,16 @@
     force: yes
   when: install_sequencer
 
-- name: Start appneta-sequencer
+- name: start appneta-sequencer
   service:
     name: appneta-sequencer
     state: started
   when: install_sequencer
 
-#- name: Install nginx agent
-#  apt:
-#    name: nginx
-#    state: present
-#
-#- name: Install nginx light and nginx extras
-#  apt: pkg={{ item }} state=present
-#  notify: restart nginx
-#  with_items: nginx_extra_pkgs
-#
-#- name: Install oboe
-#  pip:
-#    name: oboe
-#    state: present
-#
-#- name: Add greenlet instrumentation
-#  pip:
-#    extra_args: '-i https://pypi.appneta.com'
-#    name: greenlet
-#    version: 0.4.5-oboe1
-#    state: present
-#
-#- name: Add tornado instrumentation
-#  pip:
-#    extra_args: '-i https://pypi.appneta.com'
-#    name: tornado
-#    version: 2.3-oboe3
-#    state: present
-#
-#- name: Add ruby instrumentaion
-#  gem:
-#    name: traceview
-#    state: present
+- name: install oboe
+  pip:
+    name: oboe
+    virtualenv: "{{ appneta_venv_dir }}r"
+    virtualenv_command: virtualenv
+    state: present
+  sudo_user: "{{ appneta_user }}"
