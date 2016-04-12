@@ -230,6 +230,12 @@ EOF_AUTH
 
 fi
 
+if [[ -n $nginx_users ]]; then
+   cat << EOF_AUTH >> $extra_vars_file
+NGINX_USERS: $nginx_users
+EOF_AUTH
+fi
+
 if [[ $enable_client_profiling == "true" ]]; then
     cat << EOF_PROFILING >> $extra_vars_file
 EDXAPP_SESSION_SAVE_EVERY_REQUEST: True
@@ -267,8 +273,6 @@ FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-
-NGINXUSERS: $nginx_users
 
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
