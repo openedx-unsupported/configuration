@@ -1,13 +1,20 @@
 ---
 
+- name: install jenkins analytics extra system packages
+  apt:
+    pkg={{ item }} state=present update_cache=yes
+  with_items: JENKINS_ANALYTICS_EXTRA_PKGS
+  tags:
+  - jenkins
+
 - fail: msg=included unix realm by accident
   when: jenkins_auth_realm.name != "unix"
-  tags: 
+  tags:
     - jenkins-auth
 
 - fail: msg=Please change default password for jenkins user
   when: jenkins_auth_realm.plain_password == 'jenkins'
-  tags: 
+  tags:
     - jenkins-auth
 
 - name: Install httplib2 (required by uri module used in this role)
@@ -18,7 +25,7 @@
   shell: "openssl passwd -1 '{{ jenkins_auth_realm.plain_password | quote }}'"
   register: jenkins_user_password_hash
   no_log: True
-  tags: 
+  tags:
     - jenkins-auth
 
 - user:
@@ -27,7 +34,7 @@
     groups: shadow
     append: yes
     password: "{{ jenkins_user_password_hash.stdout }}"
-  tags: 
+  tags:
     - jenkins-auth
 
 - name: template config.xml
@@ -36,7 +43,7 @@
     dest: "{{ jenkins_home }}/config.xml"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
-  tags: 
+  tags:
     - jenkins-auth
 
 # Unconditionally restart Jenkins, this has two side-effects:
@@ -47,14 +54,14 @@
 
 - name: restart Jenkins
   service: name=jenkins state=restarted
-  tags: 
+  tags:
     - jenkins-auth
 
 # Upload Jenkins credentials
 
 - name: create credentials dir
   file: name={{ jenkins_credentials_root }} state=directory
-  tags: 
+  tags:
     - jenkins-auth
 
 - name: upload groovy script
@@ -62,7 +69,7 @@
     src: addCredentials.groovy
     dest: "{{ jenkins_credentials_script }}"
     mode: "600"
-  tags: 
+  tags:
     - jenkins-auth
 
 - name: upload credentials file
@@ -71,19 +78,19 @@
     dest: "{{ jenkins_credentials_file_dest }}"
     mode: "600"
     owner: "{{ jenkins_user }}"
-  tags: 
+  tags:
     - jenkins-auth
 
 - name: add credentials
   include: execute_jenkins_cli.yaml
   vars:
     jenkins_command_string: "groovy {{ jenkins_credentials_script }}"
-  tags: 
+  tags:
     - jenkins-auth
 
 - name: clean up
   file: name={{ jenkins_credentials_root }} state=absent
-  tags: 
+  tags:
     - jenkins-auth
 
 # Upload seed job
