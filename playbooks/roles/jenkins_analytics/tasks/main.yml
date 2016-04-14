@@ -118,7 +118,7 @@
   tags:
     - jenkins-credentials
 
-- name: upload groovy script
+- name: upload groovy credentials script
   template:
     src: addCredentials.groovy
     dest: "{{ jenkins_credentials_script }}"
@@ -149,10 +149,39 @@
 
 # Upload seed job
 
-- name: upload job file
-  template: src=seed_job_template.xml dest=/tmp/{{ jenkins_seed_job.name }} mode="600"
+- name: create seed job dir
+  file: name={{ jenkins_seed_job_root }} state=directory owner={{ jenkins_user }} group={{ jenkins_group }}
   tags:
-    - create-seed-job
+    - jenkins-seed-job
+
+- name: clone job-dsl-plugin repo
+  git:
+    repo: https://github.com/jenkinsci/job-dsl-plugin.git
+    depth: 1
+    dest: "{{ jenkins_seed_job_root }}"
+  sudo: yes
+  sudo_user: "{{ jenkins_user }}"
+  tags:
+    - jenkins-seed-job
+
+- name: upload groovy seed job script
+  template:
+    src: seedJob.groovy
+    dest: "{{ jenkins_seed_job_script }}"
+    mode: "600"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-seed-job
+
+- name: generate seed job xml
+  shell: >
+    cd {{ jenkins_seed_job_root }} &&
+    GRADLE_OPTS="-Dorg.gradle.daemon=true" ./gradlew run -Pargs={{ jenkins_seed_job_script }}
+  sudo: yes
+  sudo_user: "{{ jenkins_user }}"
+  tags:
+    - jenkins-seed-job
 
 - name: check if job is present
   include: execute_jenkins_cli.yaml
@@ -160,12 +189,12 @@
     jenkins_command_string: "get-job {{ jenkins_seed_job.name }}"
     jenkins_ignore_cli_errors: yes
   tags:
-    - create-seed-job
+    - jenkins-seed-job
 
 - set_fact:
     get_job_output: "{{ jenkins_command_output }}"
   tags:
-    - create-seed-job
+    - jenkins-seed-job
 
 # Upload seed job to Jenkins
 
@@ -173,19 +202,19 @@
   include: execute_jenkins_cli.yaml
   vars:
     jenkins_command_string: "create-job {{ jenkins_seed_job.name }}"
-    jenkins_command_prefix: "cat /tmp/{{ jenkins_seed_job.name }} | "
+    jenkins_command_prefix: "cat {{ jenkins_seed_job_xmlfile }} | "
   when: get_job_output.rc != 0
   tags:
-    - create-seed-job
+    - jenkins-seed-job
 
 - name: update seed job
   include: execute_jenkins_cli.yaml
   vars:
     jenkins_command_string: "update-job {{ jenkins_seed_job.name }}"
-    jenkins_command_prefix: "cat /tmp/{{ jenkins_seed_job.name }} | "
+    jenkins_command_prefix: "cat {{ jenkins_seed_job_xmlfile }} | "
   when: get_job_output.rc == 0
   tags:
-    - create-seed-job
+    - jenkins-seed-job
 
 # Build the seed job
 
@@ -194,4 +223,4 @@
   vars:
     jenkins_command_string: "build {{ jenkins_seed_job.name }} -s"
   tags:
-    - create-seed-job
+    - jenkins-seed-job
