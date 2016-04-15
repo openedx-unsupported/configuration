@@ -7,24 +7,34 @@
   tags:
   - jenkins
 
-- fail: msg=included unix realm by accident
-  when: jenkins_auth_realm.name != "unix"
-  tags:
-    - jenkins-auth
-
-- fail: msg=Please change default password for jenkins user
-  when: jenkins_auth_realm.plain_password == 'jenkins'
-  tags:
-    - jenkins-auth
-
 - name: Install httplib2 (required by uri module used in this role)
   pip:
     name: httplib2
+  tags:
+  - jenkins
+
+# Jenkins authentication/authorization
+
+- fail: msg="invalid auth realm {{ jenkins_auth_realm.name }}"
+  when: jenkins_auth_realm.name != "unix" and jenkins_auth_realm.name != "github_oauth"
+  tags:
+    - jenkins-auth
+
+- fail: msg="Please change default password for jenkins user"
+  when: jenkins_auth_realm.name == "unix" and jenkins_auth_realm.plain_password == jenkins_auth_realm.username
+  tags:
+    - jenkins-auth
+
+- fail: msg="Please change default github oauth client key and secret"
+  when: jenkins_auth_realm.name == "github_oauth" and ((not jenkins_auth_realm.clientId) or (not jenkins_auth_realm.clientSecret))
+  tags:
+    - jenkins-auth
 
 - name: generate jenkins user password
   shell: "openssl passwd -1 '{{ jenkins_auth_realm.plain_password | quote }}'"
   register: jenkins_user_password_hash
   no_log: True
+  when: jenkins_auth_realm.name == "unix"
   tags:
     - jenkins-auth
 
@@ -33,7 +43,17 @@
     state: present
     groups: shadow
     append: yes
+    password: '!' # locked
+    update_password: always
+    generate_ssh_key: yes
+    ssh_key_file: "{{ jenkins_private_keyfile }}"
+  tags:
+    - jenkins-auth
+
+- user:
+    name: "{{ jenkins_user }}"
     password: "{{ jenkins_user_password_hash.stdout }}"
+  when: jenkins_auth_realm.name == "unix"
   tags:
     - jenkins-auth
 
@@ -43,6 +63,40 @@
     dest: "{{ jenkins_home }}/config.xml"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-auth
+
+- name: jenkins user config dir
+  file:
+    name: "{{ jenkins_home }}/users/{{ jenkins_user }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-auth
+
+- name: template jenkins user config.xml
+  template:
+    src: jenkins.user.config.xml
+    dest: "{{ jenkins_home }}/users/{{ jenkins_user }}/config.xml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    force: no  # don't overwrite if already there
+  tags:
+    - jenkins-auth
+
+- name: fetch jenkins user public key
+  shell: "cat {{ jenkins_public_keyfile }}"
+  register: jenkins_public_key
+  tags:
+    - jenkins-auth
+
+- name: add jenkins user public key
+  lineinfile:
+    dest: "{{ jenkins_home }}/users/{{ jenkins_user }}/config.xml"
+    state: present
+    regexp: "^\\s*<authorizedKeys>"
+    line: "<authorizedKeys>{{ jenkins_public_key.stdout }}</authorizedKeys>"
   tags:
     - jenkins-auth
 
@@ -62,7 +116,7 @@
 - name: create credentials dir
   file: name={{ jenkins_credentials_root }} state=directory
   tags:
-    - jenkins-auth
+    - jenkins-credentials
 
 - name: upload groovy script
   template:
@@ -70,7 +124,7 @@
     dest: "{{ jenkins_credentials_script }}"
     mode: "600"
   tags:
-    - jenkins-auth
+    - jenkins-credentials
 
 - name: upload credentials file
   template:
@@ -79,19 +133,19 @@
     mode: "600"
     owner: "{{ jenkins_user }}"
   tags:
-    - jenkins-auth
+    - jenkins-credentials
 
 - name: add credentials
   include: execute_jenkins_cli.yaml
   vars:
     jenkins_command_string: "groovy {{ jenkins_credentials_script }}"
   tags:
-    - jenkins-auth
+    - jenkins-credentials
 
 - name: clean up
   file: name={{ jenkins_credentials_root }} state=absent
   tags:
-    - jenkins-auth
+    - jenkins-credentials
 
 # Upload seed job
 

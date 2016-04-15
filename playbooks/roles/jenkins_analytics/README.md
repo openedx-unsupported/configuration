@@ -6,7 +6,7 @@ This role performs the following steps:
 
 * Installs Jenkins using `jenkins_master`.
 * Configures `config.xml` to enable security and use
-  Linux Auth Domain.
+  Github OAuth plugin (by default) or Unix Auth Domain.
 * Creates Jenkins credentials.
 * Enables the use of Jenkins CLI.
 * Installs a seed job from configured repository, launches it and waits
@@ -29,9 +29,9 @@ all required variables from this section.
 This file needs to contain, at least, the following variables
 (see the next few sections for more information about them):
 
-* `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`.
-  See [Jenkins User Password](#jenkins-user-password) for details.
-* (`JENKINS_ANALYTICS_GITHUB_*` and `ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_*`)
+* `JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_*` or `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`.
+  See [Jenkins Security](#jenkins-security) for details.
+* (`JENKINS_ANALYTICS_GITHUB_CREDENTIAL_*` and `ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_*`)
   and/or `JENKINS_ANALYTICS_CREDENTIALS`.
   See [Jenkins Credentials](#jenkins-credentials) for details.
 * `ANALYTICS_SCHEDULE_SECURE_REPO_*` and `ANALYTICS_SCHEDULE_<TASK_NAME>_EXTRA_VARS`.
@@ -39,25 +39,168 @@ This file needs to contain, at least, the following variables
 
 ### End-user editable configuration
 
-#### Jenkins user password
+#### Jenkins Security
 
-You'll need to override default `jenkins` user password, please do that
+The `jenkins_analytics` role provides two options for controlling authentication and authorization to the Jenkins
+application:
+
+* [Github OAuth plugin](https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin) (default)
+* Unix system user
+
+Both roles control authorization permissions using the 
+[Matrix Authorization Strategy](https://wiki.jenkins-ci.org/display/JENKINS/Matrix+Authorization+Strategy+Plugin).
+See [Authorization](#authorization) for details.
+
+##### Github OAuth
+
+To select this security mechanism, set `JENKINS_ANALYTICS_AUTH_REALM: github_oauth`.
+
+The [Github OAuth plugin](https://wiki.jenkins-ci.org/display/JENKINS/Github+OAuth+Plugin) 
+uses Github usernames and organization memberships to control access to the
+Jenkins GUI and CLI tool.
+
+To configure Github OAuth:
+
+1. Create a [GitHub application registration](https://github.com/settings/applications/new).
+
+    * Application name: choose an appropriate name, e.g. edX Analytics Scheduler
+    * Homepage URL: choose an appropriate URL within your Jenkins install, usually the home page.  
+      e.g., `http://localhost:8080`
+    * Authorization callback URL: Must be your Jenkins base URL, with path `/securityRealm/finishLogin`.  
+      e.g., `http://localhost:8080/securityRealm/finishLogin`
+
+1. Copy the Client ID and Client Secret into these variables:
+
+        JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_ID: <Github Client ID>
+        JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_SECRET: <Github Client Secret>
+
+1. Optionally add your Github username or groups to the `JENKINS_ANALYTICS_AUTH_JOB_BUILDERS` and/or 
+   `JENKINS_ANALYTICS_AUTH_ADMINISTRATORS` lists.  See [Authorization](#authorization) below for details.
+
+1. Optionally, but only with good reason, update the list of Github OAuth Scopes.  This setting determines the Github
+   permissions that the Jenkins application will have in Github on behalf of the authenticated user.  
+   Default value is:
+
+        JENKINS_ANALYTICS_GITHUB_OAUTH_SCOPES:
+          - read:org
+          - user:email
+
+1. You may also update the Github OAuth Web URI and API URI values, if for instance, you're using a locally installed
+enterprise version of Github.  Default values are:
+
+        JENKINS_ANALYTICS_GITHUB_OAUTH_WEB_URI: 'https://github.com'
+        JENKINS_ANALYTICS_GITHUB_OAUTH_API_URI: 'https://api.github.com'
+
+
+##### Unix system user
+
+To select this security mechanism, set `JENKINS_ANALYTICS_AUTH_REALM: unix`.
+
+This security mechanism uses the `jenkins` system user and password for access
+to the Jenkins GUI and CLI tool.
+
+You'll need to override default `jenkins` user password, please do that carefully
 as this sets up the **shell** password for this user.
 
 You'll need to set a plain password so ansible can reach Jenkins via the command line tool.
 
-* `JENKINS_ANALYTICS_USER_PASSWORD_PLAIN`: plain password
+    JENKINS_ANALYTICS_AUTH_REALM: unix
+    JENKINS_ANALYTICS_USER_PASSWORD_PLAIN: "your plain password"
+
+##### Authorization
+
+The `jenkins_analytics` role configures authorization using the
+[Matrix Authorization Strategy](https://wiki.jenkins-ci.org/display/JENKINS/Matrix+Authorization+Strategy+Plugin).
+This strategy provides fine-grained control over which permissions are granted to which users or group members.
+
+Currently there are three different levels of user access configured:
+
+* `anonymous`: The `anonymous` user is special in Jenkins, and denotes any unauthenticated user.  By default, no
+  permissions are granted to anonymous users, which forces all users to the login screen.
+* `JENKINS_ANALYTICS_AUTH_ADMINISTRATORS`: list of members who are granted all permissions by default.  The
+  `jenkins` user is automatically added to this list, so that ansible can maintain the Jenkins instance.  
+  See [Security Note](#security-note) below.
+* `JENKINS_ANALYTICS_AUTH_JOB_BUILDERS`: list of members who are granted permissions sufficient for maintaining Jobs,
+  Credentials, and Views.
+
+When `JENKINS_ANALYTICS_AUTH_REALM: github_oauth`, members of the above lists may be GitHub users, organizations, or
+teams.
+
+* `username` - give permissions to a specific GitHub username.
+* `organization` - give permissions to every user that belongs to a specific GitHub organization. Members must be
+  *public members* of the organization for the authorization to work correctly.  Also, the organization itself must
+  allow access by the Github OAuth application, which must be granted by an administrator of the organization.
+  See [Github third-party application restrictions](https://github.com/organizations/open-craft/settings/oauth_application_policy) 
+  for more information.
+* `organization*team` - give permissions to a specific GitHub team of a GitHub organization. Notice that organization
+  and team are separated by an asterisk (`*`).  The Github OAuth plugin documentation doesn't say so, but the team
+  probably needs to be a public team.
+
+For example, this configuration grants job builder access to all of `edx-ops`, and admin access only to members of the
+`jenkins-config-push-pull` team within `edx-ops`.
+
+    JENKINS_ANALYTICS_AUTH_JOB_BUILDERS:
+      - edx-ops
+    JENKINS_ANALYTICS_AUTH_ADMINISTRATORS:
+      - edx-ops*jenkins-config-push-pull
+
+The list of permissions granted to each group is also configurable, but exercise caution when changing.
+
+* `JENKINS_ANALYTICS_AUTH_ANONYMOUS_PERMISSIONS`: Defaults to an empty list, indicating no permissions.
+* `JENKINS_ANALYTICS_AUTH_ADMINISTRATOR_PERMISSIONS`: Defaults to the full list of available Jenkins permissions at time
+  of writing.
+* `JENKINS_ANALYTICS_AUTH_JOB_BUILDER_PERMISSIONS`: By default, job builders are missing Jenkins Admin/Update
+  permissions, as well as access required to administer slave Jenkins instances.  However, they are granted these
+  permissions:
+    - `com.cloudbees.plugins.credentials.CredentialsProvider.*`: Allows management of Jenkins Credentials.
+    - `hudson.model.Hudson.Read`: Grants read access to almost all pages in Jenkins.
+    - `hudson.model.Hudson.RunScripts`: Grants access to the Jenkins Script Console and CLI groovy interface.
+    - `hudson.model.Item.*`: Allows management of Jenkins Jobs.
+    - `hudson.model.Run.*`: Allows management of Jenkins Job Runs.
+    - `hudson.model.View.*`: Allows management of Jenkins Views.
+    - `hudson.scm.SCM.Tag`: Allows users to create a new tag in the source code repository for a given build.
+
+The user/group lists and permissions are joined using matching keys in the `jenkins_auth_users` and
+`jenkins_auth_permissions` structures.  
+
+If additional groups are required, you must add them to both `jenkins_auth_users` and `jenkins_auth_permissions`.  This
+example shows the current 3 groups, plus a fourth group whose members can view Job status:
+
+    jenkins_auth_users:
+      anonymous: 
+        - anonymous
+      administrators: "{{ jenkins_admin_users + JENKINS_ANALYTICS_AUTH_ADMINISTRATORS }}"
+      job_builders: "{{ JENKINS_ANALYTICS_AUTH_JOB_BUILDERS | default([]) }}"
+      job_readers: "{{ JENKINS_ANALYTICS_AUTH_JOB_READERS | default([]) }}"
+
+    jenkins_auth_permissions:
+      anonymous: "{{ JENKINS_ANALYTICS_AUTH_ANONYMOUS_PERMISSIONS }}"
+      administrators: "{{ JENKINS_ANALYTICS_AUTH_ADMINISTRATOR_PERMISSIONS }}"
+      job_builders: "{{ JENKINS_ANALYTICS_AUTH_JOB_BUILDER_PERMISSIONS }}"
+      job_readers:
+        - `hudson.model.Hudson.Read`
+        - `hudson.model.Item.Discover`
+        - `hudson.model.Item.Read`
+        - `hudson.model.View.Read`
+
+###### Security Note
+
+As mentioned above, we append the `jenkins` user to the `JENKINS_ANALYTICS_AUTH_ADMINISTRATORS` list, to allow ansible
+to configure Jenkins via the CLI tool.  However, when `JENKINS_ANALYTICS_AUTH_REALM: github_oauth`, there is a risk that
+the owner of the Github username jenkins use that login to gain admin access to Jenkins.  This would be a risk no matter
+which username we chose for this role.
+
 
 #### Jenkins credentials
 
 Jenkins contains its own credential store. To fill it with credentials,
 we recommend overriding these variables:
 
-* `JENKINS_ANALYTICS_GITHUB_USER`: github username, with read access to the
+* `JENKINS_ANALYTICS_GITHUB_CREDENTIAL_USER`: github username, with read access to the
   secure config and job dsl repos.
-* `JENKINS_ANALYTICS_GITHUB_PASSPHRASE`: optional passphrase, if required for
-  `JENKINS_ANALYTICS_GITHUB_USER`.  Default is `null`.
-* `JENKINS_ANALYTICS_GITHUB_KEY`: private key for the `JENKINS_ANALYTICS_GITHUB_USER`, e.g.
+* `JENKINS_ANALYTICS_GITHUB_CREDENTIAL_PASSPHRASE`: optional passphrase, if required for
+  `JENKINS_ANALYTICS_GITHUB_CREDENTIAL_USER`.  Default is `null`.
+* `JENKINS_ANALYTICS_GITHUB_CREDENTIAL_KEY`: private key for the `JENKINS_ANALYTICS_GITHUB_CREDENTIAL_USER`, e.g.
    `"{{ lookup('file', '/home/you/.ssh/id_rsa') }}"`
 * `ANALYTICS_SCHEDULE_SECURE_REPO_MASTER_SSH_CREDENTIAL_FILE`: path to the ssh
   key file, relative to the `ANALYTICS_SCHEDULE_SECURE_REPO_URL`.
@@ -96,7 +239,7 @@ Default value for `JENKINS_ANALYTICS_CREDENTIALS`, and the variables it depends 
         type: ssh-private-key
         passphrase: "{{ JENKINS_ANALYTICS_GITHUB_PASSPHRASE }}"
         description: github access key, generated by ansible
-        privatekey: "{{ JENKINS_ANALYTICS_GITHUB_KEY }}"
+        privatekey: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_KEY }}"
       - id: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_ID }}"
         scope: GLOBAL
         username: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_USER }}"
@@ -116,11 +259,11 @@ could override `JENKINS_ANALYTICS_CREDENTIALS` like this:
     JENKINS_ANALYTICS_CREDENTIALS:
       - id: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
         scope: GLOBAL
-        username: "{{ JENKINS_ANALYTICS_GITHUB_USER }}"
+        username: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_USER }}"
         type: ssh-private-key
-        passphrase: "{{ JENKINS_ANALYTICS_GITHUB_PASSPHRASE }}"
+        passphrase: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_PASSPHRASE }}"
         description: github access key, generated by ansible
-        privatekey: "{{ JENKINS_ANALYTICS_GITHUB_KEY }}"
+        privatekey: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_KEY }}"
       - id: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_ID }}"
         scope: GLOBAL
         username: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_USER }}"
