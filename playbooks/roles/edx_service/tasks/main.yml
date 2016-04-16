@@ -187,6 +187,36 @@
     - install
     - install:code
 
+- name: build repo urls for inventory
+  debug: msg={{ item.PROTOCOL }}://{{ [ item.DOMAIN, item.REPO] | join("/") }}@{{ item.VERSION }}
+  with_items: edx_service_repos
+  register: output
+  tags:
+    - install
+    - install:code
+
+# Late bound variable referenced in defaults/main.yml
+- name: transform registered dicts to list of repos
+  util_map:
+    function: zip_to_list
+    input: "{{ output.results }}"
+    args: ['msg']
+  register: service_src_repos
+  tags:
+    - install
+    - install:code
+  
+- name: write out inventory
+  template: >
+    src=edx/etc/inventory.d/inventory.yml.j2
+    dest={{ COMMON_CFG_DIR  }}/inventory.d/{{ edx_service_name }}.yml
+    mode=0644
+  tags:
+    - deploy
+    - install
+    - install:code
+  when: edx_service_inventory is defined
+
 - name: get instance information
   action: ec2_facts
   tags:
