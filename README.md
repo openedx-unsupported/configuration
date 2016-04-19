@@ -6,7 +6,7 @@ The goal of the edx/configuration project is to provide a simple, but
 flexible, way for anyone to stand up an instance of Open edX that is
 fully configured and ready-to-go.
 
-Before getting started, please look at the [Open EdX Deployment options](https://open.edx.org/deployment-options), to see which method for deploying OpenEdX is right for you.
+Before getting started, please look at the [Open EdX Installation options](https://open.edx.org/installation-options), to see which method for deploying OpenEdX is right for you.
 
 Building the platform takes place in two phases:
 
@@ -25,16 +25,16 @@ are no longer maintained. We are working to move to a more modern and flexible t
 The reference platform is provisioned using an Amazon
 [CloudFormation](http://aws.amazon.com/cloudformation/) template.
 When the stack has been fully created you will have a new AWS Virtual
-Private Cloud with hosts for the core edX services.  This template
+Private Cloud with hosts for the core Open edX services.  This template
 will build quite a number of AWS resources that cost money, so please
 consider this before you start.
 
 The configuration phase is managed by [Ansible](http://ansible.com/).
 We have provided a number of playbooks that will configure each of
-the edX services.
+the Open edX services.
 
 __Important__: 
-The edX configuration scripts need to be run as root on your servers and will make changes to service configurations including, but not limited to, sshd, dhclient, sudo, apparmor and syslogd. Our scripts are made available as we use them and they implement our best practices. We strongly recommend that you review everything that these scripts will do before running them against your servers. We also recommend against running them against servers that are hosting other applications. No warranty is expressed or implied.
+The Open edX configuration scripts need to be run as root on your servers and will make changes to service configurations including, but not limited to, sshd, dhclient, sudo, apparmor and syslogd. Our scripts are made available as we use them and they implement our best practices. We strongly recommend that you review everything that these scripts will do before running them against your servers. We also recommend against running them against servers that are hosting other applications. No warranty is expressed or implied.
 
 For more information including installation instruction please see the [OpenEdX Wiki](https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home).
 
