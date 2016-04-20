@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y -q \
 RUN git clone https://github.com/edx/tubular.git /opt/tubular
 RUN pip install -r /opt/tubular/requirements.txt
 RUN cd /opt/tubular;python setup.py install
+RUN pip install virtualenv
 
 ADD docker/build/go-agent/files/go-agent-start.sh /etc/service/go-agent/run
 ADD docker/build/go-agent/files/go-agent-env-vars /etc/default/go-agent
