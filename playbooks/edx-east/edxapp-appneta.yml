@@ -1,0 +1,22 @@
+# When running, do pass ACCESS_KEY for appneta account as an argument to playbook e.g.
+# ansible-playbook edxapp-appneta.yml -i "localhost," --extra-vars "ACCESS_KEY=xxx-xx-xx"
+- name: Deploy appneta
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    EDXAPP_USE_APPNETA: true
+    NGINX_APT_REPO: "{{ appneta_apt_repo }}"
+  roles:
+    - appneta
+    - edxapp
+    - aws
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      nginx_default_sites:
+      - lms
+      nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
+      nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
+      nginx_redirects: "{{ NGINX_EDXAPP_CUSTOM_REDIRECTS }}"
