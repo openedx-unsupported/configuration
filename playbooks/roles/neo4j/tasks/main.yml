@@ -1,0 +1,59 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role neo4j
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: add neo4j gpg key
+  apt_key:
+    url={{ neo4j_gpg_key_url }}
+    state=present
+
+- name: add neo4j apt repository
+  apt_repository:
+    repo="{{ neo4j_apt_repository }}"
+    state=present
+
+- name: install neo4j
+  apt:
+    name=neo4j
+    state=present
+
+- name: set to listen on all IPs
+  lineinfile:
+    dest="{{ neo4j_server_config_file }}"
+    regexp="org.neo4j.server.webserver.address="
+    line="org.neo4j.server.webserver.address=0.0.0.0"
+    state=present
+  notify: restart neo4j
+
+- name: set to listen on specific port for https
+  lineinfile:
+    dest="{{ neo4j_server_config_file }}"
+    regexp="org.neo4j.server.webserver.https.port="
+    line="org.neo4j.server.webserver.https.port={{ neo4j_https_port }}"
+  notify: restart neo4j
+
+- name: set to listen on specific port for http
+  lineinfile:
+    dest="{{ neo4j_server_config_file }}"
+    regexp="org.neo4j.server.webserver.port="
+    line="org.neo4j.server.webserver.port={{ neo4j_http_port }}"
+  notify: restart neo4j
