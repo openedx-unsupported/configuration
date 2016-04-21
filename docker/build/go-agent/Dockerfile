@@ -32,6 +32,9 @@ RUN /bin/bash /tmp/docker/docker_install.sh
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install awscli
 
+# Install Python virtualenv.
+RUN pip install virtualenv
+
 ADD docker/build/go-agent/files/go-agent-start.sh /etc/service/go-agent/run
 ADD docker/build/go-agent/files/go-agent-env-vars /etc/default/go-agent
 RUN update-java-alternatives -s java-7-oracle
