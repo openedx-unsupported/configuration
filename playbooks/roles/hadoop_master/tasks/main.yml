@@ -1,0 +1,40 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role hadoop_master
+# 
+# Overview:
+# 
+# Configures the machine to be a Hadoop master node. This generally means that it will
+# run the HDFS name node and the yarn resource manager.
+#
+# Dependencies:
+#
+# hadoop_common: this role installs hadoop generically
+#
+
+- name: data directories created
+  file: >
+    path={{ HADOOP_COMMON_DATA }}/{{ item }}
+    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+  with_items:
+    - namenode
+    - datanode
+
+- name: check if namenode is formatted
+  stat: path={{ HADOOP_COMMON_DATA }}/namenode/current/VERSION
+  register: namenode_version_file
+
+- name: namenode formatted
+  shell: >
+    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs namenode -format
+  sudo_user: "{{ hadoop_common_user }}"
+  when: not namenode_version_file.stat.exists

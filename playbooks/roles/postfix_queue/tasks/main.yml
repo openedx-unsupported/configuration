@@ -1,0 +1,47 @@
+---
+
+# postfix_queue: Configure a local postfix server to forward mail to an
+# external SMTP server. This way postfix acts as an outgoing mail queue, and
+# web apps can send mail instantly, while still taking advantage of an
+# external SMTP service.
+
+- name: install postfix
+  apt: pkg=postfix state=present
+
+- name: Backup original postfix main.cf
+  command: cp /etc/postfix/main.cf /etc/postfix/main.cf.backup
+  args:
+    creates: /etc/postfix/main.cf.backup
+
+- name: Configure postfix
+  command: postconf -e '{{ item }}'
+  with_items:
+    - "smtp_sasl_auth_enable = {{ postfix_queue_smtp_sasl_auth_enable }}"
+    - "smtp_sasl_password_maps = {{ postfix_queue_smtp_sasl_password_maps }}"
+    - "smtp_sasl_mechanism_filter = {{ postfix_queue_smtp_sasl_mechanism_filter }}"
+    - "smtp_sasl_security_options = {{ postfix_queue_smtp_sasl_security_options }}"
+    - "relayhost = {{ postfix_queue_relayhost }}"
+    - "smtp_tls_security_level = {{ postfix_queue_smtp_tls_security_level }}"
+    - "smtp_tls_mandatory_ciphers = {{ postfix_queue_smtp_tls_mandatory_ciphers }}"
+  notify: restart postfix
+
+- name: Explain postfix authentication
+  lineinfile: >
+    dest="{{ postfix_queue_password_file }}"
+    line="# configured by ansible:"
+    create=yes
+
+- name: Set permissions of password file
+  file: path="{{ postfix_queue_password_file }}" state=file mode="0600" owner=root group=root
+
+- name: Configure postfix authentication
+  lineinfile: >
+    dest="{{ postfix_queue_password_file }}"
+    line="{{ postfix_queue_relayhost }}    {{ POSTFIX_QUEUE_EXTERNAL_SMTP_USER }}:{{ POSTFIX_QUEUE_EXTERNAL_SMTP_PASSWORD }}"
+    insertafter="# configured by ansible:"
+  register: postfix_queue_password
+
+- name: Hash postfix SASL password
+  command: "postmap hash:{{ postfix_queue_password_file }}"
+  when: postfix_queue_password.changed
+  notify: restart postfix

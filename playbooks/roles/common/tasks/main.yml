@@ -1,121 +1,107 @@
 ---
 - name: Update CA Certificates
-  shell: >
-    /usr/sbin/update-ca-certificates
+  shell: /usr/sbin/update-ca-certificates
 
 - name: Add user www-data
   # This is the default user for nginx
-  user: >
-    name="{{ common_web_user }}"
-    shell=/bin/false
-
-- name: Create common directories
-  file: >
-    path={{ item }} state=directory owner=root
-    group=root mode=0755
-  with_items:
-    - "{{ COMMON_DATA_DIR }}"
-    - "{{ COMMON_APP_DIR }}"
-    - "{{ COMMON_BIN_DIR }}"
-    - "{{ COMMON_CFG_DIR }}"
+  user:
+    name: "{{ common_web_user }}"
+    shell: /bin/false
 
 # Determine if machine is provisioned via vagrant
 # Some EC2-specific steps would need to be skipped
 - name: check if instance is vagrant
-  stat: path=/home/vagrant
+  stat:
+    path: /home/vagrant
   register: vagrant_home_dir
+
+- name: add edx ppa apt key
+  apt_key:
+    id: "{{ COMMON_EDX_PPA_KEY_ID }}"
+    keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
+    state: "present"
 
 # Ensure that we get a current version of Git
 # GitHub requires version 1.7.10 or later
 # https://help.github.com/articles/https-cloning-errors
 - name: Add git apt repository
-  apt_repository: repo="{{ common_git_ppa }}"
+  apt_repository:
+    repo: "{{ common_git_ppa }}"
+
+# We use this PPA to get the latest version of python 2.7
+- name: Add edx apt repository
+  apt_repository:
+    repo: "{{ COMMON_EDX_PPA }}"
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
-  apt: >
-    pkg={{','.join(common_debian_pkgs)}} install_recommends=yes
-    state=present update_cache=yes
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present 
+    update_cache: yes
+  with_items: common_debian_pkgs
 
-- name: Create common log directory
-  file: >
-    path={{ COMMON_LOG_DIR }} state=directory owner=syslog
-    group=syslog mode=0755
+- name: Create common directories
+  file:
+    path: "{{ item.path }}"
+    state: "{{ item.state | default('directory') }}" 
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}" 
+    mode: 0755
+  with_items: common_directories
 
 - name: upload sudo config for key forwarding as root
-  copy: >
-    src=ssh_key_forward dest=/etc/sudoers.d/ssh_key_forward
-    validate='visudo -c -f %s' owner=root group=root mode=0440
+  copy:
+    src: ssh_key_forward 
+    dest: /etc/sudoers.d/ssh_key_forward
+    validate: 'visudo -c -f %s' 
+    owner: root 
+    group: root 
+    mode: 0440
 
 - name: pip install virtualenv
-  pip: >
-    name="{{ item }}" state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+  pip:
+    name: "{{ item }}" 
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: common_pip_pkgs
 
-- name: Install rsyslog configuration for edX
-  template: >
-    dest=/etc/rsyslog.d/99-edx.conf
-    src=edx_rsyslog.j2
-    owner=root group=root mode=644
-  notify: restart rsyslogd
-
-- name: Remove the default rsyslog configuration
-  file:
-    path=/etc/rsyslog.d/50-default.conf
-    state=absent
-  notify: restart rsyslogd
-
-  # This is in common to keep all logrotation config
-  # in the same role
-- name: Create hourly subdirectory in logrotate.d
-  file: path=/etc/logrotate.d/hourly state=directory
-
-- name: Install logrotate configuration for edX
-  template: >
-    dest=/etc/logrotate.d/hourly/edx-services
-    src=etc/logrotate.d/hourly/edx_logrotate.j2
-    owner=root group=root mode=644
-
-- name: Install logrotate configuration for tracking file
-  template: >
-    dest=/etc/logrotate.d/hourly/tracking.log
-    src=etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2
-    owner=root group=root mode=644
-
-- name: Add logrotate for tracking.log to cron.hourly
-  copy: >
-    dest=/etc/cron.hourly/logrotate
-    src=etc/cron.hourly/logrotate
-    owner=root group=root mode=555
-
 - name: update /etc/hosts
-  template: src=hosts.j2 dest=/etc/hosts
+  template: 
+    src: hosts.j2 
+    dest: /etc/hosts
   when: COMMON_HOSTNAME|length > 0
   register: etc_hosts
 
 - name: update /etc/hostname
-  template: src=hostname.j2 dest=/etc/hostname
+  template:
+    src: hostname.j2
+    dest: /etc/hostname
   when: COMMON_HOSTNAME|length > 0
   register: etc_hostname
 
 - name: run hostname
-  shell: >
-    hostname -F /etc/hostname
+  shell: hostname -F /etc/hostname
   when: COMMON_HOSTNAME|length >0 and (etc_hosts.changed or etc_hostname.changed)
 
-- name: update /etc/dhcp/dhclient.conf
-  template: src=etc/dhcp/dhclient.conf.j2 dest=/etc/dhcp/dhclient.conf
-  when: COMMON_CUSTOM_DHCLIENT_CONFIG
+- name: Copy the templates to their respestive destination
+  template:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: root 
+    group: root 
+    mode: "{{ item.mode | default(644) }}"
+  register: config_templates
+  with_items:
+    - { src: 'edx_rsyslog.j2', dest: '/etc/rsyslog.d/99-edx.conf' }
+    - { src: 'etc/logrotate.d/hourly/edx_logrotate.j2', dest: '/etc/logrotate.d/hourly/edx-services' }
+    - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '555' }
+    - { src: 'etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2', dest: '/etc/logrotate.d/hourly/tracking.log' }
 
-- name: add ssh-warning banner motd
-  template: >
-    dest=/etc/motd.tail
-    src={{ COMMON_MOTD_TEMPLATE }} mode=0755 owner=root group=root
-
-- name: update ssh config
-  template: >
-    dest=/etc/ssh/sshd_config
-    src=sshd_config.j2 mode=0644 owner=root group=root
-  notify: restart ssh
-  
+  # TODO: restarts no matter which template has changed, need to examine
+  # the results
+- name: restart rsyslogd
+  service: name=rsyslog state=restarted
+  sudo: True
+  when: config_templates.changed

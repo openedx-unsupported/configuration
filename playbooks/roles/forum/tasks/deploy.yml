@@ -8,6 +8,9 @@
     mode=0644
   sudo_user: "{{ supervisor_user }}"
   register: forum_supervisor
+  tags:
+    - install
+    - install:configuration
 
 - name: enable the supervisor config
   file: >
@@ -20,7 +23,10 @@
   sudo_user: "{{ supervisor_user }}"
   when: not disable_edx_services
   register: forum_supervisor
-
+  tags:
+    - install
+    - install:confugration
+  
 - name: create the supervisor wrapper
   template: >
     src={{ forum_supervisor_wrapper|basename }}.j2
@@ -28,6 +34,9 @@
     mode=0755
   sudo_user: "{{ forum_user }}"
   notify: restart the forum service
+  tags:
+    - install
+    - install:configuration
 
 - name:  git checkout forum repo into {{ forum_code_dir }}
   git: >
@@ -36,6 +45,9 @@
   sudo_user: "{{ forum_user }}"
   register: forum_checkout
   notify: restart the forum service
+  tags:
+    - install
+    - install:code
 
 # TODO: This is done as the common_web_user
 # since the process owner needs write access
@@ -45,6 +57,9 @@
   sudo_user: "{{ common_web_user }}"
   environment: "{{ forum_environment }}"
   notify: restart the forum service
+  tags:
+    - install
+    - install:app-requirements
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -56,6 +71,9 @@
   register: supervisor_update
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:update
 
 - name: ensure forum is started
   supervisorctl: >
@@ -64,6 +82,8 @@
     config={{ supervisor_cfg }}
     state=started
   when: not disable_edx_services
+  tags:
+    - manage
 
 - include: test.yml tags=deploy
 

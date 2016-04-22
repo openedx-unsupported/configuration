@@ -132,8 +132,10 @@
     - maintenance
 
 - name: make queues mirrored
-  shell: "/usr/sbin/rabbitmqctl set_policy HA '^(?!amq\\.).*' '{\"ha-mode\": \"all\"}'"
+  shell: >
+    /usr/sbin/rabbitmqctl -p {{ item }} set_policy HA "" '{"ha-mode":"all","ha-sync-mode":"automatic"}'
   when: RABBITMQ_CLUSTERED or rabbitmq_clustered_hosts|length > 1
+  with_items: RABBITMQ_VHOSTS
   tags:
     - ha
     - maintenance

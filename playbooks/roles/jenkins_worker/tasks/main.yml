@@ -1,16 +1,24 @@
 ---
 # jenkins
 #
-# Provision a Jenkins instance.
-#
-# Parameters:
-#   `jenkins_user`: jenkins
-#   `jenkins_home`: /var/lib/jenkins
-#   `jenkins_user_home`: /home/jenkins
+# Provision a Jenkins worker instance.
+# - When sitespeed_worker is set, only apply the configuraiton necessary for running sitespeed.io
+# - When platform_worker is set, the resulting instance can run edx-platform tests
 
+# All jenkins workers
 - include: packer.yml
 - include: system.yml
 - include: python.yml
+
+# only platform workers
 - include: ruby.yml
-- include: java.yml
+  when: platform_worker is defined
+- include: python_platform_worker.yml
+  when: platform_worker is defined
+
+# Run appropriate tests
 - include: test.yml
+- include: test_platform_worker.yml
+  when: platform_worker is defined
+- include: test_sitespeed_worker.yml
+  when: sitespeed_worker is defined

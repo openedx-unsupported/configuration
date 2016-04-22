@@ -1,0 +1,168 @@
+
+# Override these variables
+# to change the base directory
+# where edX is installed
+
+# Set global htpasswd credentials
+COMMON_ENABLE_BASIC_AUTH: False
+COMMON_HTPASSWD_USER: edx
+COMMON_HTPASSWD_PASS: edx
+# Turn on syncing logs on rotation for edx
+# application and tracking logs, must also
+# have the AWS role installed
+COMMON_AWS_SYNC: False
+COMMON_AWS_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
+COMMON_AWS_S3_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-s3"
+COMMON_BASE_DIR: /edx
+COMMON_DATA_DIR: "{{ COMMON_BASE_DIR}}/var"
+COMMON_APP_DIR: "{{ COMMON_BASE_DIR}}/app"
+COMMON_LOG_DIR: "{{ COMMON_DATA_DIR }}/log"
+# Override this to create
+# common users in all roles
+COMMON_USER_INFO: []
+# these directories contain
+# symlinks for convenience
+COMMON_BIN_DIR: "{{ COMMON_BASE_DIR }}/bin"
+COMMON_CFG_DIR: "{{ COMMON_BASE_DIR }}/etc"
+
+common_directories:
+  - path: "{{ COMMON_DATA_DIR }}"
+  - path: "{{ COMMON_APP_DIR }}"
+  - path: "{{ COMMON_BIN_DIR }}"
+  - path: "{{ COMMON_CFG_DIR }}"
+  - path: "{{ COMMON_LOG_DIR }}"
+    owner: "{{ common_log_user }}"
+    group: "{{ common_log_user }}"
+  - path: "/etc/logrotate.d/hourly"
+  - path: "/etc/rsyslog.d/50-default.conf"
+    state: absent
+    
+COMMON_ENVIRONMENT: 'default_env'
+COMMON_DEPLOYMENT: 'default_deployment'
+COMMON_PYPI_MIRROR_URL: 'https://pypi.python.org/simple'
+COMMON_NPM_MIRROR_URL: 'http://registry.npmjs.org'
+COMMON_UBUNTU_APT_KEYSERVER: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search="
+
+COMMON_EDX_PPA: "deb http://ppa.edx.org {{ ansible_distribution_release }} main"
+COMMON_EDX_PPA_KEY_SERVER: "keyserver.ubuntu.com"
+COMMON_EDX_PPA_KEY_ID: "69464050"
+
+#The git checkout url in most roles is constructed from these values
+#e.g. https://{{COMMON_GIT_MIRROR}}/{{COMMON_GIT_PATH}}/repo.git
+COMMON_GIT_PROTOCOL: 'https'  # https|ssh
+COMMON_GIT_MIRROR: 'github.com' # git server hostname
+COMMON_GIT_PATH: 'edx'  # git path prefix
+
+# override this var to set a different hostname
+COMMON_HOSTNAME: ""
+
+# Set to true to customize DNS search domains
+COMMON_CUSTOM_DHCLIENT_CONFIG: false
+# uncomment and specifity your domains.
+# COMMON_DHCLIENT_DNS_SEARCH: ["ec2.internal","example.com"]
+
+
+COMMON_MOTD_TEMPLATE: "motd.tail.j2"
+COMMON_SSH_PASSWORD_AUTH: "no"
+
+COMMON_SECURITY_UPDATES: no
+# These are three maintenance accounts across all databases
+# the read only user is is granted select privs on all dbs
+# the admin user is granted create user privs on all dbs
+# the migrate user is granted table alter privs on all dbs
+
+COMMON_MYSQL_READ_ONLY_USER: 'read_only'
+COMMON_MYSQL_READ_ONLY_PASS: 'password'
+COMMON_MYSQL_ADMIN_USER: 'admin'
+COMMON_MYSQL_ADMIN_PASS: 'password'
+COMMON_MYSQL_MIGRATE_USER: 'migrate'
+COMMON_MYSQL_MIGRATE_PASS: 'password'
+
+COMMON_MONGO_READ_ONLY_USER: 'read_only'
+COMMON_MONGO_READ_ONLY_PASS: !!null
+COMMON_ENABLE_DATADOG: False
+COMMON_ENABLE_NGINXTRA: False
+COMMON_ENABLE_SPLUNKFORWARDER: False
+COMMON_ENABLE_NEWRELIC: False
+# enables app reporting, you must enable newrelic
+# as well
+COMMON_ENABLE_NEWRELIC_APP: False
+COMMON_ENABLE_MINOS: False
+COMMON_TAG_EC2_INSTANCE: False
+common_boto_version: '2.34.0'
+common_debian_pkgs:
+  - ntp
+  - lynx-cur
+  - logrotate
+  - rsyslog
+  - git
+  - unzip
+  - "python2.7=2.7.10-0+{{ ansible_distribution_release }}1"
+  - python-pip
+  - python2.7-dev
+  
+common_pip_pkgs:
+  - pip==7.1.2
+  - setuptools==18.3.2
+  - virtualenv==13.1.2
+  - virtualenvwrapper
+
+common_web_user: www-data
+common_web_group: www-data
+common_log_user: syslog
+
+common_git_ppa: "ppa:git-core/ppa"
+
+# Skip supervisor tasks
+# When set to true this flag will allow you to install everything but keep
+# supervisor from starting any of the services.
+# Service files will be placed in supervisor's conf.available.d but not linked
+# to supervisors 'conf.d' directory.
+disable_edx_services: False
+
+# Some apps run differently in dev mode(forums)
+# so different start scripts are generated in dev mode.
+devstack: False
+
+# Some cluster apps need special settings when in vagrant
+# due to eth0 always being the same IP address
+vagrant_cluster: False
+
+common_debian_variants:
+  - Ubuntu
+  - Debian
+
+common_redhat_variants:
+  - CentOS
+  - Red Hat Enterprise Linux
+  - Amazon
+
+# Code used in gunicorn post_fork functions to be sure we aren't sharing cache
+# connections among forked children.
+common_close_all_caches: |
+    def close_all_caches():
+        # Close the cache so that newly forked workers cannot accidentally share
+        # the socket with the processes they were forked from. This prevents a race
+        # condition in which one worker could get a cache response intended for
+        # another worker.
+        # We do this in a way that is safe for 1.4 and 1.8 while we still have some
+        # 1.4 installations.
+        from django.conf import settings
+        from django.core import cache as django_cache
+        if hasattr(django_cache, 'caches'):
+            get_cache = django_cache.caches.__getitem__
+        else:
+            get_cache = django_cache.get_cache
+        for cache_name in settings.CACHES:
+            cache = get_cache(cache_name)
+            if hasattr(cache, 'close'):
+                cache.close()
+
+        # The 1.4 global default cache object needs to be closed also: 1.4
+        # doesn't ensure you get the same object when requesting the same
+        # cache. The global default is a separate Python object from the cache
+        # you get with get_cache("default"), so it will have its own connection
+        # that needs to be closed.
+        cache = django_cache.cache
+        if hasattr(cache, 'close'):
+            cache.close()

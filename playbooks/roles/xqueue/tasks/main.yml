@@ -12,8 +12,9 @@
     home="{{ xqueue_app_dir }}"
     createhome=no
     shell=/bin/false
-  notify:
-    - restart xqueue
+  tags:
+    - install
+    - install:base
 
 - name: create xqueue app and venv dir
   file: >
@@ -21,16 +22,18 @@
     state=directory
     owner="{{ xqueue_user }}"
     group="{{ common_web_group }}"
-  notify:
-    - restart xqueue
   with_items:
     - "{{ xqueue_app_dir }}"
     - "{{ xqueue_venvs_dir }}"
+  tags:
+    - install
+    - install:base
 
 - name: install a bunch of system packages on which xqueue relies
   apt: pkg={{','.join(xqueue_debian_pkgs)}} state=present
-  notify:
-  - restart xqueue
+  tags:
+    - install
+    - install:system-requirements
 
 - include: deploy.yml tags=deploy
 

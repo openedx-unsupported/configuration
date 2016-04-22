@@ -1,4 +1,27 @@
 - Role: edxapp
+  - Removed SUBDOMAIN_BRANDING and SUBDOMAIN_COURSE_LISTINGS variables
+
+- Role: ora
+  - Remove the ora1 role as support for it was deprecated in Cypress.
+  - Removed dependencies on ora throughout the playbooks / vagrantfiles.
+- Role: edxapp
+  - Removed XmlModuleStore from the default list of modulestores for the LMS.
+  - EDXAPP_XML_MAPPINGS variable no longer exists by default and is not used by the edxapp role.
+
+- Role: ecommerce
+  - Removed ECOMMERCE_ORDER_NUMBER_PREFIX variable
+
+- Role: edxapp
+  - All of the following changes are BACKWARDS-INCOMPATABLE:
+    - Renamed two top level variables SEGMENT_IO_LMS_KEY and SEGMENT_IO_KEY to SEGMENT_KEY in {lms|cms].auth.json.
+    - Renamed two top level variables in roles/edxapp/defaults/main.yml.  EDXAPP_SEGMENT_IO_LMS_KEY and EDXAPP_SEGMENT_IO_KEY are now EDXAPP_LMS_SEGMENT_KEY and EDXAPP_CMS_SEGMENT_KEY respectively
+    - REMOVED two top level variables SEGMENT_IO_LMS and SEGMENT_IO from {lms|cms].auth.json. We will use the existence of the SEGMENT_KEY to to serve the same function that these boolean variables served.
+    - REMOVED two top level variables EDXAPP_SEGMENT_IO_LMS and EDXAPP_SEGMENT_IO from roles/edxapp/defaults/main.yml.
+
+- Updated ansible fork to be based on ansible 1.9.3rc1 instead of 1.9.1
+  - Ansible Changelog: https://github.com/ansible/ansible/blob/stable-1.9/CHANGELOG.md
+
+- Role: edxapp
   - Removed deprecated variables EDXAPP_PLATFORM_TWITTER_URL, EDXAPP_PLATFORM_MEETUP_URL, EDXAPP_PLATFORM_LINKEDIN_URL, and EDXAPP_PLATFORM_GOOGLE_PLUS_URL in favor of EDXAPP_SOCIAL_MEDIA_FOOTER_URLS.  These variables haven't been used in edx-platform since March 17, 2015 (when https://github.com/edx/edx-platform/pull/7383 was merged).  This change is backwards incompatible with versions of edx-platform from before March 17, 2015.
   - Added EDXAPP_MOBILE_STORE_URLS and EDXAPP_FOOTER_ORGANIZATION_IMAGE variables, used in https://github.com/edx/edx-platform/pull/8175 (v3 version of the edx.org footer).
 

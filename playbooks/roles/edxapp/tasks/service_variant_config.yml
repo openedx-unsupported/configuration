@@ -3,33 +3,44 @@
     src={{ item }}.env.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.env.json
   sudo_user: "{{ edxapp_user }}"
-  tags: edxapp_cfg
   with_items: service_variants_enabled
+  tags:
+    - install
+    - install:configuration
+    - edxapp_cfg
 
 - name: "create {{ item }} auth file"
   template: >
     src={{ item }}.auth.json.j2
     dest={{ edxapp_app_dir }}/{{ item }}.auth.json
   sudo_user: "{{ edxapp_user }}"
-  tags: edxapp_cfg
   with_items: service_variants_enabled
+  tags:
+    - install
+    - install:configuration
+    - edxapp_cfg
 
 - name: "create {{ item }} yaml application config"
   template: >
     src={{ item }}.env.yaml.j2
     dest={{ EDXAPP_CFG_DIR }}/{{ item }}.env.yaml
   sudo_user: "{{ edxapp_user }}"
-  tags: edxapp_cfg
   with_items: service_variants_enabled
+  tags:
+    - install
+    - install:configuration
+    - edxapp_cfg
 
 - name: "create {{ item }} yaml auth file"
   template: >
     src={{ item }}.auth.yaml.j2
     dest={{ EDXAPP_CFG_DIR }}/{{ item }}.auth.yaml
   sudo_user: "{{ edxapp_user }}"
-  tags: edxapp_cfg
   with_items: service_variants_enabled
-
+  tags:
+    - install
+    - install:configuration
+    - edxapp_cfg
 
 # write the supervisor scripts for the service variants
 
@@ -40,6 +51,9 @@
     group={{ supervisor_user }}
   with_items: service_variants_enabled
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: writing edxapp supervisor script
   template: >
@@ -47,12 +61,18 @@
     owner={{ supervisor_user }}
     group={{ supervisor_user }}
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: "add gunicorn configuration files"
   template: >
     src={{ item }}_gunicorn.py.j2 dest={{ edxapp_app_dir }}/{{ item }}_gunicorn.py
   with_items: service_variants_enabled
   sudo_user: "{{ edxapp_user }}"
+  tags:
+    - install
+    - install:configuration
 
 # write the supervisor script for celery workers
 
@@ -62,6 +82,9 @@
     owner={{ supervisor_user }}
     group={{ supervisor_user }}
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
 
 # Enable the supervisor jobs
 - name: "enable {{ item }} supervisor script"
@@ -73,6 +96,9 @@
   with_items: service_variants_enabled
   when: celery_worker is not defined and not disable_edx_services
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: "enable edxapp supervisor script"
   file: >
@@ -82,6 +108,9 @@
     force=yes
   when: celery_worker is not defined and not disable_edx_services
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: "enable celery worker supervisor script"
   file: >
@@ -91,6 +120,9 @@
     force=yes
   when: celery_worker is defined and not disable_edx_services
   sudo_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: create helper scripts for managing edxapp
   template: >
@@ -101,21 +133,28 @@
   with_nested:
     - edxapp_helper_scripts
     - service_variants_enabled
+  tags:
+    - install
+    - install:configuration
 
 # Syncdb with migrate when the migrate user is overridden in extra vars
-- name: syncdb and migrate
-  command: "{{ COMMON_BIN_DIR }}/edxapp-syncdb-{{ item }}"
-  when: fake_migrations is not defined and migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and item != "lms-preview"
+- name: migrate
+  command: "{{ COMMON_BIN_DIR }}/edxapp-migrate-{{ item }}"
+  when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and item != "lms-preview"
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
     EDX_PLATFORM_SETTINGS_OVERRIDE: "aws_migrate"
   with_items: service_variants_enabled
+  tags:
+    - migrate
 
 # Gather assets using paver if possible
 
 - name: gather {{ item }} static assets with paver
   command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
   when: celery_worker is not defined and not devstack and item != "lms-preview"
-  tags: gather_static_assets
   with_items: service_variants_enabled
+  tags:
+    - gather_static_assets
+    - assets

@@ -1,0 +1,38 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role oauth_client_setup
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: create OAuth2 Clients
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings=aws
+    create_oauth2_client
+    {{ item.url_root }}
+    "{{ item.url_root }}/complete/edx-oidc/"
+    confidential
+    --client_name {{ item.name }}
+    --client_id {{ item.id }}
+    --client_secret {{ item.secret }}
+    --trusted
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  with_items: oauth_client_setup_oauth2_clients
+  when: item.name != 'None'

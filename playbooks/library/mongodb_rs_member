@@ -1,0 +1,292 @@
+#!/usr/bin/env python
+
+DOCUMENTATION = """
+---
+module: mongo_rs_member
+short_description: Modify replica set config for a member.
+description:
+  - Modify/Add/Remove members from a replica set.  Member management as done by rs.reconfig().
+version_added: "1.9"
+author: Feanil Patel
+options:
+  rs_host:
+    description:
+      - The hostname or ip of a server already in the mongo cluster.
+    required: false
+    default: 'localhost'
+  rs_port:
+    description:
+      - The port to connect to mongo on.
+    required: false
+    default: 27017
+  host:
+    description:
+      - The hostname of the member we want to modify.
+    required: false
+    default: 'localhost'
+  port:
+    description:
+      - The port of the member we want to modify.
+    required: false
+    default: 27017
+  username:
+    description:
+      - The username of the mongo user to connect as.
+    required: false
+  password:
+    description:
+      - The password to use when authenticating.
+    required: false
+  auth_database:
+    description:
+      - The database to authenticate against.
+    requred: false
+  priority:
+    description:
+      - The priority of the member in the replica set.  Ignored if
+        `hidden` is set to true.
+    required: false
+  hidden:
+    description:
+      - Whether or not the member is hidden.
+    required: false
+  state:
+    description:
+      - Whether or not the member exists in the replica set. The member
+        will be added or removed to reach this state.
+    choices:
+        - present
+        - absent
+    default: present
+    required: false
+"""
+
+EXAMPLES = '''
+- name: Get status for the stage cluster
+  mongo_rs_member:
+    rs_host: some.mongo
+    rs_port: 27017
+    host: localhost
+    port: 27017
+    username: root
+    password: password
+  register: mongo_config
+'''
+# Magic import
+from ansible.module_utils.basic import *
+
+try:
+    from pymongo import MongoClient
+    from pymongo.errors import OperationFailure
+    from bson import json_util
+except ImportError:
+    pymongo_found = False
+else:
+    pymongo_found = True
+
+import json
+from urllib import quote_plus
+
+def get_mongo_uri(host, port, username, password, auth_database):
+    mongo_uri = 'mongodb://'
+    if username and password:
+        mongo_uri += "{}:{}@".format(*map(quote_plus, [username,password]))
+
+    mongo_uri += "{}:{}".format(quote_plus(host),port)
+
+    if auth_database:
+        mongo_uri += "/{}".format(quote_plus(auth_database))
+
+    return mongo_uri
+
+def get_replset(module, client):
+    # Get the current config using `replSetGetConfig`
+    rs_config = client.admin.command("replSetGetConfig")
+    if 'config' not in rs_config:
+        module.fail_json(msg="Failed to get replset config from {}".format(primary_host), response=rs_config)
+    rs_config = rs_config['config']
+    return rs_config
+
+def reconfig_replset(module, client, rs_config):
+    # Update the config version
+    try:
+        client.admin.command("replSetReconfig", rs_config)
+    except OperationFailure as e:
+        raise
+        module.fail_json(msg="Failed to reconfigure replSet: {}".format(e.message))
+
+def primary_client(module, some_host, some_port, username, password, auth_database):
+    """
+    Given a member of a replica set, find out who the primary is
+    and provide a client that is connected to the primary for running
+    commands.
+    """
+    mongo_uri = get_mongo_uri(some_host, some_port, username, password, auth_database)
+    client = MongoClient(mongo_uri)
+    try:
+        status = client.admin.command("replSetGetStatus")
+    except OperationFailure as e:
+        module.fail_json(msg="Failed to get replica set status from host({}): {}".format(some_host, e.message))
+
+    # Find out who the primary is.
+    rs_primary = filter(lambda member: member['stateStr']=='PRIMARY', status['members'])[0]
+    primary_host, primary_port = rs_primary['name'].split(':')
+
+    # Connect to the primary if this is not the primary.
+    if primary_host != some_host or primary_port != some_port:
+        client.close()
+        new_uri = get_mongo_uri(primary_host, primary_port, username, password, auth_database)
+        client = MongoClient(new_uri)
+
+    return client
+
+def remove_member(module, client, rs_config):
+    host = module.params.get('host')
+    port = module.params.get('port')
+
+    existing_member_names = [ member['host'] for member in rs_config['members'] ]
+    dead_member_name = "{}:{}".format(host,port)
+
+    if dead_member_name in existing_member_names:
+        # Member is in config and needs to be removed.
+        new_member_list = filter(lambda member: member['host'] != dead_member_name, rs_config['members'])
+        rs_config['members'] = new_member_list
+        rs_config['version'] += 1
+        reconfig_replset(module, client, rs_config)
+
+        # Get status again.
+        status = client.admin.command("replSetGetConfig")['config']
+
+        # Validate that your instance is in there.
+        existing_member_names = [ member['host'] for member in rs_config['members'] ]
+
+        if dead_member_name not in existing_member_names:
+            module.exit_json(changed=True, config=rs_config)
+        else:
+            module.fail_json(msg="Failed to remove member from the replica set.", config=rs_config)
+    else:
+        # Member is not in the list.
+        module.exit_json(
+                changed=False,
+                msg="Member({}) was not in the replica set.".format(dead_member_name),
+        )
+
+def upsert_member(module, client, rs_config):
+    rs_host = module.params.get('rs_host')
+    rs_port = module.params.get('rs_port')
+    host = module.params.get('host')
+    port = module.params.get('port')
+    username = module.params.get('username')
+    password = module.params.get('password')
+    priority = module.params.get('priority')
+    hidden = module.params.get('hidden')
+    state = module.params.get('state')
+    changed = False
+
+    # Ignore priority when member should be hidden.
+    # Hidden members have to be set to priority 0.
+    if hidden:
+       priority = 0
+
+    existing_member_names = [ member['host'] for member in rs_config['members'] ]
+    new_member_name = "{}:{}".format(host,port)
+
+    # See if member is already in the replica set
+    if new_member_name in existing_member_names:
+        # Make sure its config is the same. Grab a pointer to the current settings
+        # inside of the rs_config.
+        current_settings = filter(lambda member: member['host'] == new_member_name, rs_config['members'])[0]
+
+        need_to_update = False
+        # If the priority param is set and different from upstream.
+        if (priority is not None and current_settings['priority'] != priority):
+            current_settings['priority'] = priority
+            need_to_update = True
+
+        if current_settings['hidden'] != hidden:
+            current_settings['hidden'] = hidden
+            need_to_update = True
+
+        if need_to_update:
+            rs_config['version'] += 1
+
+            # This is a bit yucky since rs_config is updated because we update the dictionary
+            # that it references.
+            reconfig_replset(module, client, rs_config)
+            changed = True
+        else:
+            # Member exists and no settings need to be updated
+            module.exit_json(changed=False, config=rs_config)
+    else:
+        # New Member doesn't exist and we need to add it.
+
+        # First we build the config we need.
+        new_member_id = max([ member['_id'] for member in rs_config['members']]) + 1
+        new_member_config = { 'host': new_member_name , '_id': new_member_id }
+
+        if priority != None:
+            new_member_config['priority'] = priority
+
+        if hidden != None:
+            new_member_config['hidden'] =  hidden
+
+        # Update the config.
+        rs_config['members'].append(new_member_config)
+        rs_config['version'] += 1
+        reconfig_replset(module, client, rs_config)
+        changed = True
+
+    # Get status again.
+    status = client.admin.command("replSetGetConfig")['config']
+
+    # Validate that your instance is in there.
+    existing_member_names = [ member['host'] for member in rs_config['members'] ]
+
+    if new_member_name in existing_member_names:
+        module.exit_json(changed=changed, config=rs_config)
+    else:
+        module.fail_json(msg="Failed to validate that the member we were modifying is in the replica set.", config=rs_config)
+
+def main():
+
+    arg_spec = dict(
+        rs_host=dict(required=False, type='str', default="localhost"),
+        rs_port=dict(required=False, type='int', default=27017),
+        host=dict(required=False, type='str', default="localhost"),
+        port=dict(required=False, type='int', default=27017),
+        username=dict(required=False, type='str'),
+        password=dict(required=False, type='str'),
+        auth_database=dict(required=False, type='str'),
+        priority=dict(required=False, type='float'),
+        hidden=dict(required=False, type='bool', default=False),
+        state=dict(required=False, type="str", default="present"),
+    )
+
+    module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=False)
+
+    if not pymongo_found:
+        module.fail_json(msg="The python pymongo module is not installed.")
+
+    rs_host = module.params.get('rs_host')
+    rs_port = module.params.get('rs_port')
+    username = module.params.get('username')
+    password = module.params.get('password')
+    auth_database = module.params.get('auth_database')
+    state = module.params.get('state')
+
+    if (username and not password) or (password and not username):
+        module.fail_json(msg="Must provide both username and password or neither.")
+
+    client = primary_client(module, rs_host, rs_port, username, password, auth_database)
+
+    rs_config = get_replset(module, client)
+
+    if state == 'absent':
+        remove_member(module, client, rs_config)
+    elif state == 'present':
+        upsert_member(module, client, rs_config)
+    else:
+        module.fail_json(msg="Don't know about state: {}".format(state))
+
+if __name__ == '__main__':
+    main()

@@ -76,6 +76,7 @@ if [[ -z $region ]]; then
   region="us-east-1"
 fi
 
+# edX has reservations for sandboxes in this zone, don't change without updating reservations.
 if [[ -z $zone ]]; then
   zone="us-east-1c"
 fi
@@ -98,11 +99,11 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-b1d92ada"
+    ami="ami-52c18038"
   elif [[ $server_type == "ubuntu_12.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-b92bdfd2"
+    ami="ami-c15bebaa"
   elif [[ $server_type == "ubuntu_14.04(experimental)" ]]; then
-    ami="ami-3b6a8050"
+    ami="ami-2dcf7b46"
   fi
 fi
 
@@ -110,8 +111,28 @@ if [[ -z $instance_type ]]; then
   instance_type="t2.medium"
 fi
 
-if [[ -z $enable_monitoring ]]; then
-  enable_monitoring="false"
+if [[ -z $enable_newrelic ]]; then
+  enable_newrelic="false"
+fi
+
+if [[ -z $enable_datadog ]]; then
+  enable_datadog="false"
+fi
+
+if [[ -z $performance_course ]]; then
+  performance_course="false"
+fi
+
+if [[ -z $demo_test_course ]]; then
+  demo_test_course="false"
+fi
+
+if [[ -z $edx_demo_course ]]; then
+  edx_demo_course="false"
+fi
+
+if [[ -z $enable_client_profiling ]]; then
+  enable_client_profiling="false"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
@@ -129,16 +150,31 @@ forum_version: $forum_version
 notifier_version: $notifier_version
 xqueue_version: $xqueue_version
 xserver_version: $xserver_version
-ora_version: $ora_version
-ease_version: $ease_version
 certs_version: $certs_version
-discern_version: $discern_version
 configuration_version: $configuration_version
+
+edx_ansible_source_repo: ${configuration_source_repo}
+edx_platform_repo: ${edx_platform_repo}
+
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_PREVIEW_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
+
+ECOMMERCE_NGINX_PORT: 80
+ECOMMERCE_SSL_NGINX_PORT: 443
+ECOMMERCE_VERSION: $ecommerce_version
+
+PROGRAMS_NGINX_PORT: 80
+PROGRAMS_SSL_NGINX_PORT: 443
+PROGRAMS_VERSION: $programs_version
+
+COURSE_DISCOVERY_NGINX_PORT: 80
+COURSE_DISCOVERY_SSL_NGINX_PORT: 443
+COURSE_DISCOVERY_VERSION: $course_discovery_version
+
 NGINX_SET_X_FORWARDED_HEADERS: True
+NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 openid_workaround: True
@@ -147,6 +183,10 @@ rabbitmq_refresh: True
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
+
+nginx_default_sites:
+  - lms
+
 # User provided extra vars
 $extra_vars
 EOF
@@ -168,14 +208,20 @@ EOF_AUTH
 
 fi
 
+if [[ $enable_client_profiling == "true" ]]; then
+    cat << EOF_PROFILING >> $extra_vars_file
+EDXAPP_SESSION_SAVE_EVERY_REQUEST: True
+EOF_PROFILING
+fi
+
 if [[ $edx_internal == "true" ]]; then
     # if this isn't a public server add the github
     # user and set edx_internal to True so that
     # xserver is installed
     cat << EOF >> $extra_vars_file
-EDXAPP_PREVIEW_LMS_BASE: preview.${deploy_host}
+EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio.${deploy_host}
+EDXAPP_CMS_BASE: studio-${deploy_host}
 EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
@@ -185,15 +231,33 @@ COMMON_USER_INFO:
     github: true
     type: admin
 USER_CMD_PROMPT: '[$name_tag] '
-COMMON_ENABLE_NEWRELIC_APP: $enable_monitoring
-COMMON_ENABLE_DATADOG: $enable_monitoring
-FORUM_NEW_RELIC_ENABLE: $enable_monitoring
+COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
+COMMON_ENABLE_DATADOG: $enable_datadog
+FORUM_NEW_RELIC_ENABLE: $enable_newrelic
+ENABLE_PERFORMANCE_COURSE: $performance_course
+ENABLE_DEMO_TEST_COURSE: $demo_test_course
+ENABLE_EDX_DEMO_COURSE: $edx_demo_course
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
+EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
+EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+
+ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
+ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
+ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
+PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
+PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+COURSE_DISCOVERY_OAUTH_URL_ROOT: "https://${deploy_host}"
+COURSE_DISCOVERY_URL_ROOT: "https://course-discovery-${deploy_host}"
+COURSE_DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
 EOF
 fi
 
@@ -238,7 +302,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum notifier xqueue xserver ora discern certs demo testcourses"
+roles="edxapp forum ecommerce programs course_discovery notifier xqueue xserver certs demo testcourses"
 for role in $roles; do
     deploy[$role]=${!role}
 done
@@ -255,7 +319,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags deploy
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         fi
     done
 fi
@@ -267,6 +331,11 @@ ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_fi
 ret=$?
 if [[ $ret -ne 0 ]]; then
   exit $ret
+fi
+
+if [[ $run_oauth == "true" ]]; then
+    # Setup the OAuth2 clients
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 # set the hostname

@@ -1,0 +1,25 @@
+{
+  "variables": {
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "ami": "{{env `WEBPAGETEST_BASE_AMI`}}"
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "ami_name": "wpt-{{isotime | clean_ami_name}}",
+    "instance_type": "m3.medium",
+    "region": "us-east-1",
+    "source_ami": "{{user `ami`}}",
+    "ssh_username": "ubuntu",
+    "ami_description": "webpagetest",
+    "iam_instance_profile": "jenkins-worker",
+    "security_group_id": "sg-75af5e18"
+  }],
+  "provisioners": [{
+    "type": "shell",
+    "inline": ["echo 'THESE ARE THE WEBPAGETEST SETTINGS:'",
+    "cat /var/www/webpagetest/www/settings/settings.ini"]
+  }]
+}

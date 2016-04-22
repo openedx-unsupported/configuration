@@ -7,9 +7,10 @@
   sudo: True
   gather_facts: True
   vars:
-    COMMON_DATA_DIR: "/mnt"
+    COMMON_DATA_DIR: "/mnt2"
     COMMON_ENABLE_DATADOG: True
     COMMON_ENABLE_SPLUNKFORWARDER: True
+    jenkins_jvm_args: "-Djava.awt.headless=true -Xmx8192m -XX:MaxPermSize=512m"
 
     SPLUNKFORWARDER_LOG_ITEMS:
       - source: '/var/lib/jenkins/jobs/*/builds/*/junitResult.xml'
@@ -18,25 +19,34 @@
         sourcetype: junit
         followSymlink: false
         crcSalt: '<SOURCE>'
+
       - source: '/var/lib/jenkins/jobs/*/builds/*/build.xml'
         index: 'testeng'
         recursive: true
         sourcetype: build_result
         followSymlink: false
         crcSalt: '<SOURCE>'
+
       - source: '/var/lib/jenkins/jobs/*/builds/*/log'
         index: 'testeng'
         recursive: true
         sourcetype: build_log
         followSymlink: false
         crcSalt: '<SOURCE>'
+
+      - source: '/var/lib/jenkins/jobs/*/builds/*/archive/sitespeed-result/*/data/result.json'
+        index: 'testeng'
+        recursive: true
+        sourcetype: sitespeed_result
+        followSymlink: false
+
       - source: '/var/log/jenkins/jenkins.log'
         index: 'testeng'
         recursive: false
         followSymlink: false
 
   roles:
-    - common
+    - aws
     - role: datadog
       when: COMMON_ENABLE_DATADOG
     - jenkins_master

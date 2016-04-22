@@ -34,7 +34,7 @@ if [[ ! -f $BOTO_CONFIG ]]; then
 fi
 
 if [[ -z $sandbox_to_update ]]; then
-  sandbox_to_update="${BUILD_USER_ID}.m.sandbox.edx.org"
+  sandbox_to_update="${BUILD_USER_ID}.sandbox.edx.org"
 fi
 
 cd $WORKSPACE/configuration/playbooks/edx-east

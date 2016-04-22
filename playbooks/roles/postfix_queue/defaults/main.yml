@@ -1,0 +1,30 @@
+---
+
+# postfix_queue: Configure a local postfix server to forward mail to an
+# external SMTP server. This way postfix acts as an outgoing mail queue, and
+# web apps can send mail instantly, while still taking advantage of an
+# external SMTP service.
+#
+# The external service is assumed to use TLS.
+#
+# You must leave the edxapp role's EDXAPP_EMAIL_foo settings at their default
+# values in order for the postfix queue to be used.
+
+POSTFIX_QUEUE_EXTERNAL_SMTP_HOST: ''
+POSTFIX_QUEUE_EXTERNAL_SMTP_PORT: 587
+POSTFIX_QUEUE_EXTERNAL_SMTP_USER: ''
+POSTFIX_QUEUE_EXTERNAL_SMTP_PASSWORD: ''
+
+
+# Internal vars:
+
+postfix_queue_password_file: "/etc/postfix/sasl/passwd"
+postfix_queue_password_file_hashed: "{{ postfix_queue_password_file }}.db"
+
+postfix_queue_smtp_sasl_auth_enable: "yes"
+postfix_queue_smtp_sasl_password_maps: "hash:{{ postfix_queue_password_file }}"
+postfix_queue_smtp_sasl_mechanism_filter: ""
+postfix_queue_smtp_sasl_security_options: ""
+postfix_queue_relayhost: "{{ POSTFIX_QUEUE_EXTERNAL_SMTP_HOST }}:{{ POSTFIX_QUEUE_EXTERNAL_SMTP_PORT }}"
+postfix_queue_smtp_tls_security_level: "encrypt"
+postfix_queue_smtp_tls_mandatory_ciphers: "high"

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# {{ '{{' }} ansible_managed }}
+
+source {{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_env
+COMMAND=$1
+
+case $COMMAND in
+    start)
+        {{ '{%' }} set {{ role_name }}_venv_bin = {{ role_name }}_home + "/venvs/" + {{ role_name }}_service_name + "/bin" %}
+        {{ '{%' }} set executable = {{ role_name }}_venv_bin + '/gunicorn' %}
+
+        cd /edx/app/edx_ansible/edx_ansible/docker/plays
+        sudo ansible-playbook {{ role_name }}.yml -c local -i '127.0.0.1,' \
+            -t 'install:app-requirements,assets:gather,devstack:migrate,devstack:manage' \
+            --extra-vars="migrate_db=yes" \
+            --extra-vars="@/ansible_overrides.yml"
+
+        {{ '{{' }} executable }} -c {{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_gunicorn.py \
+                                 {{ '{{' }} {{ role_name|upper }}_GUNICORN_EXTRA }} \
+                                 --reload \
+                                 {{ role_name }}.wsgi:application
+
+        ;;
+    open)
+        cd {{ '{{' }} {{ role_name }}_home }}
+        . {{ '{{' }} {{ role_name }}_venv_bin }}/activate
+        /bin/bash
+        ;;
+esac
