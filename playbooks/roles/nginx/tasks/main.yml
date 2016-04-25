@@ -310,6 +310,17 @@
     - install
     - install:configuration
 
+# nginx is started during package installation, before any of the configuration files are in place.
+# The handler that reloads the configuration would be run only at the very end of the playbook, so
+# none of the local services would be available in the meantime, e.g. causing certs to error out
+# since it can't reach xqueue on the its nginx port.  For this reason, we flush the handlers here
+# to ensure the nginx configuration is reloaded when necessary.
+- name: Restart or reload nginx if necessary
+  meta: flush_handlers
+  tags:
+    - install
+    - install:configuration
+
 # If tasks that notify restart nginx don't change the state of the remote system
 # their corresponding notifications don't get run.  If nginx has been stopped for
 # any reason, this will ensure that it is started up again.
