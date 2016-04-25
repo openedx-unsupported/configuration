@@ -157,6 +157,18 @@ def get_instance_sec_group(vpc_id):
     )
 
     if len(grp_details) < 1:
+        #
+        # try scheme for non-cloudformation builds
+        #
+
+        grp_details = ec2.get_all_security_groups(
+            filters={
+                'tag:play': args.play,
+                'tag:environment': args.environment,
+                'tag:deployment': args.deployment}
+        )
+
+    if len(grp_details) < 1:
         sys.stderr.write("ERROR: Expected atleast one security group, got {}\n".format(
             len(grp_details)))
 
@@ -202,7 +214,7 @@ def create_instance_args():
 
         subnet = vpc.get_all_subnets(
             filters={
-                'tag:cluster': args.play,
+                'tag:play': args.play,
                 'tag:environment': args.environment,
                 'tag:deployment': args.deployment}
         )
