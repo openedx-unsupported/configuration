@@ -117,7 +117,7 @@ fi
 
 identity_params="--identity /edx/var/jenkins/.ssh/id_rsa"
 if [[ ! -z "$identity_path" ]]; then
-  region_params="--identity $identity_path"
+  identity_params="--identity $identity_path"
 fi
 
 cd configuration
