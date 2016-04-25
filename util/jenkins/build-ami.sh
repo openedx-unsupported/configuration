@@ -112,7 +112,7 @@ fi
 
 region_params=""
 if [[ ! -z "$region" ]]; then
-  region_params='--region us-east-1'
+  region_params="--region $region"
 fi
 
 cd configuration
