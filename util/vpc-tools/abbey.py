@@ -9,7 +9,7 @@ import requests
 try:
     import boto.ec2
     import boto.sqs
-    from boto.vpc import VPCConnection
+    import boto.vpc
     from boto.exception import NoAuthHandlerFound, EC2ResponseError
     from boto.sqs.message import RawMessage
     from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
@@ -188,7 +188,7 @@ def create_instance_args():
     user data
     """
 
-    vpc = VPCConnection()
+    vpc = boto.vpc.connect_to_region(args.region)
     subnet = vpc.get_all_subnets(
         filters={
             'tag:aws:cloudformation:stack-name': stack_name,
