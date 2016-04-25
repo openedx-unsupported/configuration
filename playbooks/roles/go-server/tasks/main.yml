@@ -53,19 +53,24 @@
 
 - name: create go-server plugin directory
   file:
-    path: "{{ GO_SERVER_OAUTH_LOGIN_JAR_DESTINATION }}"
+    path: "{{ GO_SERVER_PLUGIN_DIR }}"
     state: directory
     mode: 0776
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
 
-- name: install go-server oauth plugin
+- name: install go-server plugins
   get_url:
-    url: "{{ GO_SERVER_OAUTH_LOGIN_JAR_URL }}"
-    dest: "{{ GO_SERVER_OAUTH_LOGIN_JAR_DESTINATION }}"
+    url: "{{ item.url }}"
+    dest: "{{ GO_SERVER_PLUGIN_DIR }}"
     mode: 0776
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
+    # uncomment ansible has been upgraded to 2.0+
+    # checksum=md5:{{ item.md5 }}
+  with_items:
+    - { url: "{{ GO_SERVER_OAUTH_LOGIN_JAR_URL }}", md5: "{{ GO_SERVER_OAUTH_LOGIN_MD5 }}" }
+    - { url: "{{ GO_SERVER_GITHUB_PR_PLUGIN_JAR_URL }}", md5: "{{ GO_SERVER_GITHUB_PR_PLUGIN_MD5 }}" }
 
 - name: generate line for go-server password file for admin user
   command: >
