@@ -208,8 +208,8 @@ def create_instance_args():
         )
 
     if len(subnet) < 1:
-        sys.stderr.write("ERROR: Expected at least one subnet, got {}\n".format(
-            len(subnet)))
+        sys.stderr.write("ERROR: Expected at least one subnet, got {} for {}-{}-{}\n".format(
+            len(subnet), args.environment, args.deployment, args.play))
         sys.exit(1)
     subnet_id = subnet[0].id
     vpc_id = subnet[0].vpc_id
