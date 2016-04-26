@@ -277,7 +277,7 @@ fi
 
 ANSIBLE_ENABLE_SQS=true
 SQS_NAME={queue_name}
-SQS_REGION=us-east-1
+SQS_REGION={region}
 SQS_MSG_PREFIX="[ $instance_id $instance_ip $environment-$deployment $play ]"
 PYTHONUNBUFFERED=1
 HIPCHAT_TOKEN={hipchat_token}
@@ -404,7 +404,8 @@ rm -rf $base_dir
                 extra_vars_yml=extra_vars_yml,
                 secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id,
-                datadog_api_key=args.datadog_api_key)
+                datadog_api_key=args.datadog_api_key,
+                region=args.region)
 
     mapping = BlockDeviceMapping()
     root_vol = BlockDeviceType(size=args.root_vol_size,
