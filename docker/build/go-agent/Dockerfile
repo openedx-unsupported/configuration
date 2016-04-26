@@ -18,7 +18,7 @@ WORKDIR /data
 # Define commonly used JAVA_HOME variable
 ENV JAVA_HOME /usr/lib/jvm/java-7-oracle
 
-
+# Install Python and package mgmt tools.
 RUN apt-get update && apt-get install -y -q \
     python \
     python-dev \
@@ -26,10 +26,12 @@ RUN apt-get update && apt-get install -y -q \
     python-pip \
     libmysqlclient-dev
 
-# TODO: repalce this with a pip install command so we can version this properly
-RUN git clone https://github.com/edx/tubular.git /opt/tubular
-RUN pip install -r /opt/tubular/requirements.txt
-RUN cd /opt/tubular;python setup.py install
+# Install Docker - for Docker container building by a go-agent.
+COPY docker/build/go-agent/files/docker_install.sh /tmp/docker/
+RUN /bin/bash /tmp/docker/docker_install.sh
+
+# Install AWS command-line interface - for AWS operations in a go-agent task.
+RUN pip install awscli
 
 ADD docker/build/go-agent/files/go-agent-start.sh /etc/service/go-agent/run
 ADD docker/build/go-agent/files/go-agent-env-vars /etc/default/go-agent
