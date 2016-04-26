@@ -90,7 +90,7 @@ def parse_args():
                         help="configuration-private repo gitref",
                         default="master")
     parser.add_argument('--configuration-private-repo', required=False,
-                        default="git@github.com:edx-ops/ansible-private",
+                        default="",
                         help="repo to use for private playbooks")
     parser.add_argument('-c', '--cache-id', required=True,
                         help="unique id to use as part of cache prefix")
