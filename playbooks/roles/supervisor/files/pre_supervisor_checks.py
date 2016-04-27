@@ -1,6 +1,6 @@
 import argparse
 import boto
-from boto.utils import get_instance_metadata
+from boto.utils import get_instance_metadata, get_instance_identity
 from boto.exception import AWSConnectionError
 import hipchat
 import os
@@ -27,12 +27,14 @@ HIPCHAT_USER = "PreSupervisor"
 MAX_BACKOFF = 120
 INITIAL_BACKOFF = 1
 
+REGION = get_instance_identity()['document']['region']
+
 def services_for_instance(instance_id):
     """
     Get the list of all services named by the services tag in this
     instance's tags.
     """
-    ec2 = boto.connect_ec2()
+    ec2 = boto.ec2.connect_to_region(REGION)
     reservations = ec2.get_all_instances(instance_ids=[instance_id])
     for reservation in reservations:
         for instance in reservation.instances:
@@ -47,7 +49,7 @@ def services_for_instance(instance_id):
                     yield service
 
 def edp_for_instance(instance_id):
-    ec2 = boto.connect_ec2()
+    ec2 = boto.ec2.connect_to_region(REGION)
     reservations = ec2.get_all_instances(instance_ids=[instance_id])
     for reservation in reservations:
         for instance in reservation.instances:
@@ -164,8 +166,7 @@ if __name__ == '__main__':
     instance_id = get_instance_metadata()['instance-id']
     prefix = instance_id
 
-
-    ec2 = boto.connect_ec2()
+    ec2 = boto.ec2.connect_to_region(REGION)
     reservations = ec2.get_all_instances(instance_ids=[instance_id])
     instance = reservations[0].instances[0]
     if instance.instance_profile['arn'].endswith('/abbey'):
