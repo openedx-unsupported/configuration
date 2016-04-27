@@ -1,5 +1,5 @@
 import argparse
-import boto
+import boto.ec2
 from boto.utils import get_instance_metadata, get_instance_identity
 from boto.exception import AWSConnectionError
 import hipchat
