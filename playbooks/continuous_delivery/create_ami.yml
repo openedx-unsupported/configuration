@@ -31,7 +31,7 @@
 #    ansible-playbook -vvvv -i "localhost," -c local \
 #       -e @overrides.yml \
 #       -e @/tmp/ansible-runtime/d057a5d9-4fc5-4a21-9646-4c135be0b7c8/launch_info.yml \
-#       -e cluster=pipline-test \
+#       -e play=pipline-test \
 #       -e deployment=edx \
 #       -e edx_environment=sandbox \
 #       -e cluster_version=12345 \
@@ -52,7 +52,6 @@
   gather_facts: False
   connection: local
   tasks:
-
   - name: Create AMI
     ec2_ami_2_0_0_1:
       instance_id: "{{ instance_id }}"
@@ -82,10 +81,16 @@
         version:edxapp_theme: "{{ edx_app_theme_repo }} {{ edx_app_theme_version }}"
     when: edx_app_theme_version is defined and edx_app_theme_repo is defined
 
+  - name: Ensure artifact directory exists
+    file:
+      path: "{{ artifact_path }}"
+      state: directory
+      force: yes
+
   - name: Generate artifact container the instance_id
     template:
       src: templates/local/ami_template.yml.j2
-      dest: "{{ artifact_path }}/{{ keypair_id }}/ami.yml"
+      dest: "{{ artifact_path }}/ami.yml"
       mode: 0600
 
   - name: Send Hipchat notification AMI is finished baking
