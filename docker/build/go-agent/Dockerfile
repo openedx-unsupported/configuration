@@ -4,13 +4,21 @@ FROM gocd/gocd-agent:16.2.1
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
 
+# Add Custom apt repositories
 RUN \
   echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
   add-apt-repository -y ppa:webupd8team/java && \
-  apt-get update && \
+  add-apt-repository -y ppa:git-core/ppa && \
+  apt-get update
+
+# Install Java 7
+RUN \
   apt-get install -y oracle-java7-installer && \
   rm -rf /var/lib/apt/lists/* && \
   rm -rf /var/cache/oracle-jdk7-installer
+
+# Install a modern git client
+RUN sudo apt-get -y install git
 
 # Define working directory.
 WORKDIR /data
