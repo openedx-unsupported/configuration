@@ -8,7 +8,6 @@ LABEL version="0.02" \
 RUN \
   echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
   add-apt-repository -y ppa:webupd8team/java && \
-  add-apt-repository -y ppa:git-core/ppa && \
   apt-get update
 
 # Install Java 7
@@ -18,7 +17,9 @@ RUN \
   rm -rf /var/cache/oracle-jdk7-installer
 
 # Install a modern git client
-RUN sudo apt-get -y install git
+RUN add-apt-repository -y ppa:git-core/ppa && \
+    apt-get update && \
+    apt-get -y install git
 
 # Define working directory.
 WORKDIR /data
