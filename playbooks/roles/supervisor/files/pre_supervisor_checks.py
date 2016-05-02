@@ -230,7 +230,7 @@ if __name__ == '__main__':
                 # Do extra migration related stuff.
                 if service == 'xqueue' and args.xqueue_code_dir:
                     cmd = MIGRATION_COMMANDS[service].format(python=args.xqueue_python,
-                        code_dir=xqueue_code_dir)
+                        code_dir=args.xqueue_code_dir)
                     if os.path.exists(args.xqueue_code_dir):
                         os.chdir(args.xqueue_code_dir)
                         # Run migration check command.
