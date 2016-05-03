@@ -13,7 +13,7 @@ import time
 MIGRATION_COMMANDS = {
         'lms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-lms --noinput --list",
         'cms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-cms --noinput --list",
-        'xqueue': "{python} {code_dir}/manage.py xqueue migrate --noinput --settings=aws --db-dry-run --merge",
+        'xqueue':  "SERVICE_VARIANT=xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'programs':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
