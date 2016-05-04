@@ -32,7 +32,7 @@ class LifecycleHandler:
 
     INSTANCE_TERMINATION = 'autoscaling:EC2_INSTANCE_TERMINATING'
     TEST_NOTIFICATION = 'autoscaling:TEST_NOTIFICATION'
-    NUM_MESSAGES = 10
+    NUM_MESSAGES = 20
     WAIT_TIME_SECONDS = 10
 
     def __init__(self, profile, queue, hook, dry_run, bin_directory=None):
