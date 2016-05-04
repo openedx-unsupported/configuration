@@ -157,7 +157,7 @@ class LifecycleHandler:
 
     def verify_ok_to_retire(self, instance_id):
         """
-        Ensure that the ok_to_retire tag has been added to the instance in question
+        Ensure that the safe_to_retire tag has been added to the instance in question
         with the value 'true'
         """
         instance = self.get_ec2_instance_by_id(instance_id)
