@@ -18,6 +18,8 @@ It relies on some component applying the proper tags and performing pre-retireme
 
 import argparse
 import boto
+import boto.ec2
+import boto.sqs
 import json
 import subprocess
 from boto.sqs.message import RawMessage
@@ -50,9 +52,10 @@ class LifecycleHandler:
             aws_bin=self.aws_bin,
             profile=self.profile)
 
+        region = os.environ.get('AWS_REGION','us-east-1')
         self.dry_run = dry_run
-        self.ec2_con = boto.connect_ec2()
-        self.sqs_con = boto.connect_sqs()
+        self.ec2_con = boto.ec2.connect_to_region(region)
+        self.sqs_con = boto.sqs.connect_to_region(region)
 
     def process_lifecycle_messages(self):
         queue = self.sqs_con.get_queue(self.queue)
