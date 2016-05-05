@@ -41,9 +41,22 @@
     {{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt
   sudo_user: "{{ ecommerce_user }}"
 
+# While the ansible npm module allows you to pass the executable
+# that is not always sufficient as the npm script as of now
+# starts with
+#
+# #!/usr/bin/env node
+#
+# We do not install node at the system level and are not changing
+# the path to include the executables provided by nodenv
 - name: install node dependencies
-  npm: executable={{ ecommerce_nodeenv_bin }}/npm path={{ ecommerce_code_dir }} production=yes
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_nodeenv_bin }}/npm install --production
   sudo_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: install bower dependencies
   shell: >
