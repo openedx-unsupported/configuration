@@ -35,7 +35,7 @@
 - name: install application requirements
   pip: >
     requirements="{{ insights_requirements_base }}/{{ item }}"
-    virtualenv="{{ insights_home }}/venvs/{{ insights_service_name }}" 
+    virtualenv="{{ insights_venv_dir }}" 
     state=present extra_args="--exists-action w"
   sudo_user: "{{ insights_user }}"
   with_items: insights_requirements
@@ -46,7 +46,7 @@
 - name: create nodeenv
   shell: >
     creates={{ insights_nodeenv_dir }}
-    {{ insights_home }}/venvs/{{ insights_service_name }}/bin/nodeenv {{ insights_nodeenv_dir }}  --prebuilt
+    {{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --prebuilt
   sudo_user: "{{ insights_user }}"
   tags:
     - install
@@ -58,6 +58,7 @@
   tags:
     - install
     - install:app-requirements
+  environment: "{{ insights_environment }}"
 
 - name: install bower dependencies
   shell: >
@@ -73,7 +74,7 @@
     chdir={{ insights_code_dir }}
     DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
     DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
-    {{ insights_home }}/venvs/{{ insights_service_name }}/bin/python {{ insights_manage }} migrate --noinput
+    {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput
   sudo_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -93,7 +94,7 @@
 - name: run collectstatic
   shell: >
     chdir={{ insights_code_dir }}
-    {{ insights_home }}/venvs/{{ insights_service_name }}/bin/python {{ insights_manage }} {{ item }}
+    {{ insights_venv_dir }}/bin/python {{ insights_manage }} {{ item }}
   sudo_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   with_items:
@@ -106,7 +107,7 @@
 - name: compile translations
   shell: >
     chdir={{ insights_code_dir }}/analytics_dashboard
-    . {{ insights_home }}/venvs/{{ insights_service_name }}/bin/activate && i18n_tool generate -v
+    . {{ insights_venv_dir }}/bin/activate && i18n_tool generate -v
   sudo_user: "{{ insights_user }}"
   tags:
     - assets
@@ -150,7 +151,7 @@
 
 - name: create symlinks from the venv bin dir
   file: >
-    src="{{ insights_home }}/venvs/{{ insights_service_name }}/bin/{{ item }}"
+    src="{{ insights_venv_dir }}/bin/{{ item }}"
     dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ insights_service_name }}"
     state=link
   with_items:
