@@ -3,8 +3,9 @@ import datetime
 import time
 import logging
 import datadog
+import sys
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("dd").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ class CallbackModule(object):
             )
 
         # Log the time of each task
-        for name, elapsed in results:
+        for name, elapsed in results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
