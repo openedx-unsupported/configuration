@@ -7,6 +7,7 @@ gocd_password="{{ GO_SERVER_BACKUP_PASSWORD }}"
 gocd_backup_location="{{ GO_SERVER_BACKUP_TMP_LOCATION }}"
 s3_backup_bucket="{{ GO_SERVER_BACKUP_S3_BUCKET }}"
 snitch_url="{{ GO_SERVER_BACKUP_SNITCH_URL }}"
+gocd_backup_base=gocd-"{{ GO_SERVER_BACKUP_ENVIRONMENT }}"
 
 # Trigger the backup and capture the backup path.
 # The output of the api call is documented here:
@@ -52,18 +53,33 @@ null)
   ;;
 esac
 
-# Make backup into a tarball.
-tar zcvf "$gocd_backup_location" -C "$(dirname "$backup_path")" "$(basename "$backup_path")"
+# Make latest backup into a tarball.
+backup_dir_name="$(basename "$backup_path")"
+tar zcvf "$gocd_backup_location" -C "$(dirname "$backup_path")" "${backup_dir_name}"
 
-# Transfer tarball to S3.
-aws_output=$(aws s3 cp "$gocd_backup_location" "s3://$s3_backup_bucket" 2>&1)
+dated_backup_filename="${gocd_backup_base}-${backup_dir_name}.tgz"
+
+# Transfer tarball to S3 with datetime'd filename.
+aws_output=$(aws s3 cp "${gocd_backup_location}" "s3://${s3_backup_bucket}/${dated_backup_filename}" 2>&1)
 case $aws_output in
 *failed*)
   echo "Backup transfer failed: $aws_output"
   exit
   ;;
 *)
-  echo "Backup transfer to S3 bucket $s3_backup_bucket succeeded."
+  echo "Backup transfer of ${dated_backup_filename} to S3 bucket $s3_backup_bucket succeeded."
+  ;;
+esac
+
+# Transfer tarball to S3 with official backup filename.
+aws_output=$(aws s3 cp "${gocd_backup_location}" "s3://${s3_backup_bucket}" 2>&1)
+case $aws_output in
+*failed*)
+  echo "Backup transfer failed: $aws_output"
+  exit
+  ;;
+*)
+  echo "Backup transfer of $(basename "${gocd_backup_location}") to S3 bucket $s3_backup_bucket succeeded."
   # Report to Dead Man's Snitch.
   curl $snitch_url
   ;;
