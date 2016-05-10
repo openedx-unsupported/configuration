@@ -25,6 +25,8 @@
 #
 # dependencies:
 #   - role: themes
+#     sync_src_themes_dir_name: "edx-platform"
+#     sync_dest_themes_dir: "/edx/app/edxapp/edx-platform/themes"
 #     when do_setup_themes
 #
 
@@ -111,3 +113,12 @@
   tags:
     - install
     - install:code
+
+# while synchronizing we need to make sure that directory path ends with a trailing slash,
+# otherwise synchronize will copy the src dir instead of the files/dirs included in the src directory
+- name: synchronize theme directories
+  synchronize: >
+    src={{ THEMES_CODE_DIR }}/{{ sync_src_themes_dir_name }}/
+    dest= {{ sync_dest_themes_dir }}/
+  when: sync_src_themes_dir_name is defined and sync_dest_themes_dir is defined
+
