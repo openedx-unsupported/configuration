@@ -1,0 +1,104 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role git_checkout
+#
+# Overview:
+#
+# This role performs a secure git checkout 
+#
+# Example play:
+#
+# Rather than being included in the play, this role
+# is included as a dependency by other roles in the meta/main.yml
+# file.  The including role should add the following
+# dependency definition.
+#
+# dependencies:
+#   - role: git_checkout
+#     GIT_CHECKOUT_REPOS:
+#     	- PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+#        	DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+#        	PATH: "{{ COMMON_GIT_PATH }}"
+#       	REPO: "{{ SERVICE_REPO }}"
+#        	VERSION: "{{ SERVICE_VERSION }}"
+#        	DESTINATION: "{{ SERVICE_CODE_DIR }}"
+#        	SSH_KEY: "{{ SERVICE_GIT_IDENTITY }}"
+#              OWNER: "{{ service_user }}"
+#
+
+- name: set git fetch.prune to ignore deleted remote refs
+  shell: git config --global fetch.prune true
+  sudo_user: "{{ item.OWNER }}"
+  when: GIT_CHECKOUT_REPOS is defined
+  with_items: GIT_CHECKOUT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: validate git protocol
+  fail: msg='GIT_CHECKOUT_REPOS.item.PROTOCOL must be "https" or "ssh"'
+  when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and GIT_CHECKOUT_REPOS is defined
+  with_items: GIT_CHECKOUT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: install read-only ssh key
+  copy:
+    dest: "/tmp/ssh/{{ item.REPO }}"
+    content: "{{ item.SSH_KEY }}" 
+    owner: "{{ item.OWNER }}"
+    group: "{{ item.OWNER }}" 
+    mode: "0600"
+  when: item.PROTOCOL == "ssh" and GIT_CHECKOUT_REPOS is defined
+  with_items: GIT_CHECKOUT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: checkout code over ssh
+  git_2_0_1: 
+    repo: "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
+    dest: "{{ item.DESTINATION }}"  
+    version: "{{ item.VERSION }}"
+    accept_hostkey: "yes"
+    key_file: "/tmp/ssh/{{ item.REPO }}"
+  sudo_user: "{{ item.OWNER }}"
+  register: code_checkout
+  when: item.PROTOCOL == "ssh" and GIT_CHECKOUT_REPOS is defined
+  with_items: GIT_CHECKOUT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: checkout code over https
+  git_2_0_1: 
+    repo: "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
+    dest: "{{ item.DESTINATION }}"  
+    version: "{{ item.VERSION }}"
+  sudo_user: "{{ item.owner }}"
+  register: code_checkout
+  when: item.PROTOCOL == "https" and GIT_CHECKOUT_REPOS is defined
+  with_items: GIT_CHECKOUT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: remove read-only ssh key
+  file:
+    dest: "/tmp/ssh/{{ item.REPO }}"
+    state: absent
+  when: GIT_CHECKOUT_REPOS is defined
+  with_items: GIT_CHECKOUT_REPOS
+  tags:
+    - install
+    - install:code
