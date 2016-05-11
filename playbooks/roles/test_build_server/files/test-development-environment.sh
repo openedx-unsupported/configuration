@@ -38,7 +38,7 @@ case "$1" in
     "js")
 
         # Run some of the javascript unit tests
-        paver test_js_run -s xmodule
+        paver test_js_run -s lms-coffee
         ;;
 
     "bokchoy")
