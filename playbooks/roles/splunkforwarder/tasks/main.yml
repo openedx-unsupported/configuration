@@ -67,6 +67,12 @@
   when: download_deb.changed
   notify: restart splunkforwarder
 
+# Ensure permissions on splunk content
+- name: ensure splunk forder permissions
+  file: path={{ splunkforwarder_output_dir }} state=directory recurse=yes owner=splunk group=splunk
+  when: download_deb.changed
+  notify: restart splunkforwarder
+
 # Update credentials
 - name: update admin pasword
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk edit user admin -password {{ SPLUNKFORWARDER_PASSWORD }} -auth admin:changeme --accept-license --answer-yes --no-prompt"
@@ -76,12 +82,6 @@
 - name: add chkconfig to init script
   shell: 'sed -i -e "s/\/bin\/sh/\/bin\/sh\n# chkconfig: 235 98 55/" /etc/init.d/splunk'
   when: download_deb.changed and create_boot_script.changed
-  notify: restart splunkforwarder
-
-# Ensure permissions on splunk content
-- name: ensure splunk forder permissions
-  file: path={{ splunkforwarder_output_dir }} state=directory recurse=yes owner=splunk group=splunk
-  when: download_deb.changed
   notify: restart splunkforwarder
 
 # Drop template files.
