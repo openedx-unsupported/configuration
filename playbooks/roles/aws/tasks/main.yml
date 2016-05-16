@@ -63,6 +63,7 @@
     pkg={{','.join(aws_debian_pkgs)}}
     state=present
     update_cache=yes
+  when: ansible_distribution in common_debian_variants
 
 - name: install aws python packages
   pip: >
@@ -105,6 +106,7 @@
   - "/usr/share/landscape/landscape-sysinfo.wrapper"
   - "/etc/update-motd.d/51-cloudguest"
   - "/etc/update-motd.d/91-release-upgrade"
+  when: ansible_distribution in common_debian_variants
 
 - name: update /etc/dhcp/dhclient.conf
   template: 
@@ -122,18 +124,30 @@
   with_items:
     - { src: 'etc/motd.tail.j2', dest: '/etc/motd.tail', mode: '755' }
 
-- name: Copy the sshd_config template in place
-  template:
-    dest: "{{ item.dest }}"
-    src: "{{ item.src }}"
-    owner: root 
-    group: root 
-    mode: "{{ item.mode | default(644) }}"
+- name: Update sshd logging to VERBOSE
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^LogLevel .*"        
+    line: "LogLevel VERBOSE"
   register: sshd_config
-  with_items:
-    - { src: 'etc/ssh/sshd_config.j2', dest: '/etc/ssh/sshd_config' }
+
+- name: Update sshd logging to VERBOSE
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^PasswordAuthentication .*"        
+    line: "PasswordAuthentication {{ COMMON_SSH_PASSWORD_AUTH }}"
+  register: sshd_config
 
 - name: restart ssh
   service: name=ssh state=restarted
   sudo: True
   when: sshd_config.changed
+  when: ansible_distribution in common_debian_variants
+
+- name: restart ssh
+  service: name=sshd state=restarted
+  sudo: True
+  when: sshd_config.changed
+  when: ansible_distribution in common_redhat_variants
