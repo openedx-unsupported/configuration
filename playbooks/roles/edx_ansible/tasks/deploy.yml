@@ -1,6 +1,6 @@
 ---
 - name: git checkout edx_ansible repo into edx_ansible_code_dir
-  git: >
+  git_2_0_1: >
     dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
     accept_hostkey=yes
   sudo_user: "{{ edx_ansible_user }}"
@@ -30,6 +30,23 @@
   file: >
     src={{ edx_ansible_app_dir }}/update
     dest={{ COMMON_BIN_DIR }}/update
+    state=link
+  tags:
+    - install
+    - install:configuration
+
+- name: create show-repo-heads script
+  template: >
+    dest={{ edx_ansible_app_dir}}/show-repo-heads
+    src=show-repo-heads.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
+  tags:
+    - install
+    - install:configuration
+
+- name: create a symlink for show-repo-heads script
+  file: >
+    src={{ edx_ansible_app_dir }}/show-repo-heads
+    dest={{ COMMON_BIN_DIR }}/show-repo-heads
     state=link
   tags:
     - install
