@@ -43,13 +43,19 @@ ECOMMERCE_LANGUAGE_CODE: 'en-us'
 ECOMMERCE_EDX_API_KEY: 'PUT_YOUR_API_KEY_HERE'  # This should match the value set for edxapp
 ECOMMERCE_ECOMMERCE_URL_ROOT: 'http://localhost:8002'
 ECOMMERCE_LMS_URL_ROOT: 'http://127.0.0.1:8000'
-ECOMMERCE_JWT_SECRET_KEY: 'SET-ME-PLEASE'  # This should match the value set for edxapp
+ECOMMERCE_JWT_SECRET_KEY: '{{ EDXAPP_JWT_SECRET_KEY | default("lms-secret") }}'
 ECOMMERCE_JWT_ALGORITHM: 'HS256'
 ECOMMERCE_JWT_VERIFY_EXPIRATION: true
 ECOMMERCE_JWT_DECODE_HANDLER: 'ecommerce.extensions.api.handlers.jwt_decode_handler'
 ECOMMERCE_JWT_ISSUERS:
   - '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
   - 'ecommerce_worker'  # Must match the value of JWT_ISSUER configured for the ecommerce worker.
+
+# NOTE: We have an array of keys to allow for support of multiple when, for example,
+# we change keys. This will ensure we continue to operate with JWTs issued signed with the old key
+# while migrating to the new key.
+ECOMMERCE_JWT_SECRET_KEYS:
+  - ECOMMERCE_JWT_SECRET_KEY
 
 # Used to automatically configure OAuth2 Client
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
@@ -141,6 +147,7 @@ ECOMMERCE_SERVICE_CONFIG:
     JWT_LEEWAY: 1
     JWT_DECODE_HANDLER: '{{ ECOMMERCE_JWT_DECODE_HANDLER }}'
     JWT_ISSUERS: '{{ ECOMMERCE_JWT_ISSUERS }}'
+    JWT_SECRET_KEYS: '{{ ECOMMERCE_JWT_SECRET_KEYS }}'
   SOCIAL_AUTH_EDX_OIDC_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }}'
   SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
