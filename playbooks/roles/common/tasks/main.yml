@@ -1,12 +1,30 @@
 ---
+# ubuntu
+- stat: 
+    path: "/usr/sbin/update-ca-certificates"
+  register: update_ca_certificates
+
 - name: Update CA Certificates
   shell: /usr/sbin/update-ca-certificates
+  when: update_ca_certificates is defined and update_ca_certificates.stat.exists == True
 
-- name: Add user www-data
+# ec2-linux
+- stat: path=/usr/bin/update-ca-trust
+  register: update_ca_trust
+
+- name: Update CA Trust
+  shell: /usr/bin/update-ca-trust
+  when: update_ca_trust is defined and update_ca_trust.stat.exists == True
+
+
+- name: Add common_users
   # This is the default user for nginx
   user:
-    name: "{{ common_web_user }}"
+    name: "{{ item }}"
     shell: /bin/false
+  with_items:
+    - "{{ common_web_user }}"
+    - "{{ common_log_user }}"
 
 # Determine if machine is provisioned via vagrant
 # Some EC2-specific steps would need to be skipped
@@ -20,6 +38,8 @@
     id: "{{ COMMON_EDX_PPA_KEY_ID }}"
     keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
     state: "present"
+  when: ansible_distribution in common_debian_variants
+
 
 # Ensure that we get a current version of Git and latest version of python 2.7
 # GitHub requires version 1.7.10 or later
@@ -30,6 +50,7 @@
   with_items:
     - "{{ common_git_ppa }}"
     - "{{ COMMON_EDX_PPA }}"
+  when: ansible_distribution in common_debian_variants
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -39,6 +60,16 @@
     state: present 
     update_cache: yes
   with_items: common_debian_pkgs
+  when: ansible_distribution in common_debian_variants
+
+- name: Install role-independent useful system packages
+  yum:
+    name: "{{ item }}"
+    state: present 
+    update_cache: yes
+  with_items: common_redhat_pkgs
+  when: ansible_distribution in common_redhat_variants
+
 
 - name: Create common directories
   file:
@@ -63,7 +94,10 @@
     name: "{{ item }}" 
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+    executable: "/usr/local/bin/pip"
   with_items: common_pip_pkgs
+  when: ansible_distribution in common_debian_variants
+
 
 - name: update /etc/hosts
   template: 
