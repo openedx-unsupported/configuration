@@ -1,4 +1,5 @@
-FROM edxops/precise-common:latest
+#FROM edxops/precise-common:latest
+FROM edxops/xenial-common:v0
 MAINTAINER edxops
 
 USER root
