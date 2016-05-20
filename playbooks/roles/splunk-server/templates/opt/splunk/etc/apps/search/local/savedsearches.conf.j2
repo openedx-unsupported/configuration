@@ -1,0 +1,28 @@
+{% for search in SPLUNK_ALERTS %}
+[{{ search.name }}]
+{% if search.email is defined %}
+action.email = 1
+action.email.format = csv
+action.email.reportServerEnabled = 0
+action.email.sendresults = 1
+action.email.to = {{ search.email }}
+{% if search.message is defined %}
+action.email.message.alert = {{ search.message }}
+{% endif %}
+{% endif %}
+alert.severity = {{ search.severity|splunk_alert_default_severity }}
+alert.suppress = {{ search.digest|"0" }}
+alert.suppress.period = {{ search.digest_delay|"15m" }}
+alert.track = 1
+auto_summarize.dispatch.earliest_time = -1d@h
+counttype = number of events
+cron_schedule = {{ search.schedule|"*/15 * * * *" }}
+dispatch.earliest_time = {{ search.time|"-15m" }}
+dispatch.latest_time = now
+enableSched = 1
+quantity = {{ search.quantity|"0" }}
+relation = {{ search.comparison|"greater than" }}
+request.ui_dispatch_app = search
+search = {{ search.search }}
+
+{% endfor %}

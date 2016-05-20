@@ -51,7 +51,7 @@
 
 - name: configure splunk buckets
   template:
-    src: "opt/splunk/etc/apps/search/local/indexes.conf"
+    src: "opt/splunk/etc/apps/search/local/indexes.conf.j2"
     dest: "/opt/splunk/etc/apps/search/local/indexes.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
@@ -59,6 +59,19 @@
   tags:
     - "install"
     - "install:configuration"
+
+- name: configure splunk searches
+  template:
+    src: "opt/splunk/etc/apps/search/local/savedsearches.conf.j2"
+    dest: "/opt/splunk/etc/apps/search/local/savedsearches.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - "install"
+    - "install:configuration"
+  when:
+    SPLUNK_ALERTS is defined
 
 - name: restart splunk
   service: 
