@@ -39,6 +39,10 @@ RUN apt-get update && apt-get install -y -q \
 COPY docker/build/go-agent/files/docker_install.sh /tmp/docker/
 RUN /bin/bash /tmp/docker/docker_install.sh
 
+# Add the go user to the docker group to allow the go user to run docker commands.
+# See: https://docs.docker.com/engine/installation/linux/ubuntulinux/
+RUN usermod -aG docker go
+
 # Assign the go user root privlidges
 RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip\n" >> /etc/sudoers
 
