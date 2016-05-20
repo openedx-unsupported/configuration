@@ -72,10 +72,13 @@ then
 elif grep -q 'Trusty Tahr' /etc/os-release
 then
     SHORT_DIST="trusty"
+elif grep -q 'Xenial Xerus' /etc/os-release
+then
+    SHORT_DIST="xenial"
 else    
     cat << EOF
     
-    This script is only known to work on Ubuntu Precise and Trusty,
+    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 
@@ -94,16 +97,22 @@ if [ "${UPGRADE_OS}" = true ]; then
     apt-get upgrade -y
 fi
 
+    
 # Required for add-apt-repository
 apt-get install -y software-properties-common python-software-properties
 
 # Add git PPA
 add-apt-repository -y ppa:git-core/ppa
 
-# Add python PPA
-apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
-add-apt-repository -y "${EDX_PPA}"
 
+# For older distributions we need to install a PPA for Python 2.7.10
+#if [[ "precise"="${SHORT_DIST}" || "trusty"="${SHORT_DIST}" ]]; then
+
+    # Add python PPA
+    #apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
+    #add-apt-repository -y "${EDX_PPA}"
+#fi
+    
 # Install python 2.7 latest, git and other common requirements
 # NOTE: This will install the latest version of python 2.7 and
 # which may differ from what is pinned in virtualenvironments
