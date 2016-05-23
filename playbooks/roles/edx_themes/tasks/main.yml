@@ -25,5 +25,45 @@
 #
 # dependencies:
 #   - role: edx_themes
+#     theme_users:
+#       - ecommerce
+#       - edxapp
+#     additional_theme_dirs:
+#      - /edx/app/ecommerce/ecommerce/ecommerce/themes
 #     when do_setup_themes
 #
+
+# make sure edx-theme's group has read/write access to themes directory
+- name: ensure edx-theme's group has read/write access to themes directory
+  file:
+    path: "{{ themes_home }}"
+    state: directory
+    recurse: yes
+    owner: "{{ themes_user }}"
+    group: "{{ themes_group }}"
+    mode: "g+rw"
+  tags:
+    - install
+    - install:base
+
+- name: assign theme's group to all theme's directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+    group: "{{ themes_group }}"
+    mode: "g+rw"
+  with_items: additional_theme_dirs
+  when: additional_theme_dirs is defined
+  tags:
+    - install
+    - install:base
+
+- name: Add theme users to theme's group so that that have read/write access to themes directories
+  user:
+    name: "{{ item }}"
+    shell: /bin/bash
+    groups: "{{ themes_group }}"
+    append: yes
+  with_items: theme_users
+  when: theme_users is defined
