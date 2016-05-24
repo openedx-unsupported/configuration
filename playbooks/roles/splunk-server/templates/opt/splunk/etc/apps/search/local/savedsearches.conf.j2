@@ -5,16 +5,24 @@
    action.email.include.view_link = 1     Include a link to the alert
    action.email.include.results_link = 1  Include a link to the results #}
 action.email = 1
-action.email.include.search = 1{# Include the search string #}
-action.email.sendresults = 1{# Needed for the next option #}
-action.email.inline = 1{# Include the search results as a table in the body of the message #}
-action.email.include.trigger = 1{# Include the alert trigger #}
-action.email.include.trigger_time = 1{# Include a timestamp of when the alert was triggered #}
+{# Include the search string #}
+action.email.include.search = 1
+{# Needed for the next option #}
+action.email.sendresults = 1
+{# Include the search results as a table in the body of the message #}
+action.email.inline = 1
+{# Include the alert trigger #}
+action.email.include.trigger = 1
+{# Include a timestamp of when the alert was triggered #}
+action.email.include.trigger_time = 1
 action.email.to = {{ search.email | join(', ') }}
-action.email.reportServerEnabled = 0{# No idea what this does, it's undocumented #}
-action.email.useNSSubject = 1{# Use a namespaced subject. No idea what that means. #}
+{# No idea what this does, it's undocumented #}
+action.email.reportServerEnabled = 0
+{# Use a namespaced subject. No idea what that means. #}
+action.email.useNSSubject = 1
 {% if search.message is defined %}
-action.email.message.alert = {{ search.message }}
+{# Include a backslash before newlines to match splunk's wonky INI format #}
+action.email.message.alert = {{ search.message.split('\n') | join('\\\n')}}
 {% endif %}
 {% endif %}
 alert.severity = {{ search.severity | default(splunk_alert_default_severity) }}
@@ -25,7 +33,7 @@ relation = {{ search.comparison | default("greater than") }}
 enableSched = 1
 cron_schedule = {{ search.schedule | default("*/15 * * * *") }}
 dispatch.earliest_time = {{ search.time | default("-15m") }}
-dispatch.latest_time = now
+dispatch.latest_time = {{ "rt" if search.time == "rt" else "now" }}
 {% if search.digest_delay is defined %}
 alert.suppress = 1
 alert.suppress.period = {{ search.digest_delay }}
@@ -34,6 +42,7 @@ request.ui_dispatch_app = search
 request.ui_dispatch_view = search
 {% if search.description %}
 description = {{ search.description }}
-{% endif %}}
+{% endif %}
 search = {{ search.search }}
+
 {% endfor %}
