@@ -1,28 +1,39 @@
 {% for search in SPLUNK_ALERTS %}
 [{{ search.name }}]
 {% if search.email is defined %}
+{# Default email options:
+   action.email.include.view_link = 1     Include a link to the alert
+   action.email.include.results_link = 1  Include a link to the results #}
 action.email = 1
-action.email.format = csv
-action.email.reportServerEnabled = 0
-action.email.sendresults = 1
-action.email.to = {{ search.email }}
+action.email.include.search = 1{# Include the search string #}
+action.email.sendresults = 1{# Needed for the next option #}
+action.email.inline = 1{# Include the search results as a table in the body of the message #}
+action.email.include.trigger = 1{# Include the alert trigger #}
+action.email.include.trigger_time = 1{# Include a timestamp of when the alert was triggered #}
+action.email.to = {{ search.email | join(', ') }}
+action.email.reportServerEnabled = 0{# No idea what this does, it's undocumented #}
+action.email.useNSSubject = 1{# Use a namespaced subject. No idea what that means. #}
 {% if search.message is defined %}
 action.email.message.alert = {{ search.message }}
 {% endif %}
 {% endif %}
 alert.severity = {{ search.severity | default(splunk_alert_default_severity) }}
-alert.suppress = {{ "1" if search.digest else "0" }}
-alert.suppress.period = {{ search.digest_delay | default("15m") }}
 alert.track = 1
-auto_summarize.dispatch.earliest_time = -1d@h
-counttype = number of events
+counttype = {{ search.counttype | default("number of events") }}
+quantity = {{ search.quantity | default("0") }}
+relation = {{ search.comparison | default("greater than") }}
+enableSched = 1
 cron_schedule = {{ search.schedule | default("*/15 * * * *") }}
 dispatch.earliest_time = {{ search.time | default("-15m") }}
 dispatch.latest_time = now
-enableSched = 1
-quantity = {{ search.quantity | default("0") }}
-relation = {{ search.comparison | default("greater than") }}
+{% if search.digest_delay is defined %}
+alert.suppress = 1
+alert.suppress.period = {{ search.digest_delay }}
+{% endif %}
 request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+{% if search.description %}
+description = {{ search.description }}
+{% endif %}}
 search = {{ search.search }}
-
 {% endfor %}
