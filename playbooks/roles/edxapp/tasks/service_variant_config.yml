@@ -126,6 +126,24 @@
   tags:
     - migrate
 
+# There are problems with django collectstatic copying files.  It doesn't retain
+# last modified timestamps, but relies on those same timestamps to know if a new file
+# should be recopied.  While collectstatic --clear exists, it only clears some of the
+# files in edxapp_staticfile_dir, it leaves postprocessed or otherwise hashed files.
+# This ensures we have a totally clean directory.
+- name: Remove and recreate the staticfiles directory so nothing stale can exist
+  file:
+      path: "{{ edxapp_staticfile_dir }}"
+      state: "{{ item }}"
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+      mode:  0755
+  when: celery_worker is not defined and not devstack
+  with_items: ['absent', 'directory']
+  tags:
+    - gather_static_assets
+    - assets
+
 # Gather assets using paver if possible
 - name: "gather {{ item }} static assets with paver"
   command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
