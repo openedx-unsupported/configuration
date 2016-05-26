@@ -60,7 +60,7 @@ tar zcvf "$gocd_backup_location" -C "$(dirname "$backup_path")" "${backup_dir_na
 dated_backup_filename="${gocd_backup_base}-${backup_dir_name}.tgz"
 
 # Transfer tarball to S3 with datetime'd filename.
-aws_output=$(aws s3 cp "${gocd_backup_location}" "s3://${s3_backup_bucket}/${dated_backup_filename}" 2>&1)
+aws_output=$(/usr/local/bin/aws s3 cp "${gocd_backup_location}" "s3://${s3_backup_bucket}/${dated_backup_filename}" 2>&1) || echo $aws_output && exit
 case $aws_output in
 *failed*)
   echo "Backup transfer failed: $aws_output"
@@ -72,7 +72,7 @@ case $aws_output in
 esac
 
 # Transfer tarball to S3 with official backup filename.
-aws_output=$(aws s3 cp "${gocd_backup_location}" "s3://${s3_backup_bucket}" 2>&1)
+aws_output=$(/usr/local/bin/aws s3 cp "${gocd_backup_location}" "s3://${s3_backup_bucket}" 2>&1) || echo $aws_output && exit
 case $aws_output in
 *failed*)
   echo "Backup transfer failed: $aws_output"
