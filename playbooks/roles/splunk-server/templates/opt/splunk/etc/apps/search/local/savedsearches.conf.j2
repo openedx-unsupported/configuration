@@ -1,0 +1,52 @@
+{# The format of this file is partially documented here:
+   http://docs.splunk.com/Documentation/Splunk/6.1/admin/savedsearchesconf
+#}
+{% for search in SPLUNK_ALERTS %}
+[{{ search.name }}]
+{% if search.email is defined %}
+{# Default email options:
+   action.email.include.view_link = 1     Include a link to the alert
+   action.email.include.results_link = 1  Include a link to the results #}
+action.email = 1
+{# Include the search string #}
+action.email.include.search = 1
+{# Needed for the next option #}
+action.email.sendresults = 1
+{# Include the search results as a table in the body of the message #}
+action.email.inline = 1
+{# Include the alert trigger #}
+action.email.include.trigger = 1
+{# Include a timestamp of when the alert was triggered #}
+action.email.include.trigger_time = 1
+action.email.to = {{ search.email | join(', ') }}
+{# No idea what this does, it's undocumented #}
+action.email.reportServerEnabled = 0
+{# Use a namespaced subject. No idea what that means. #}
+action.email.useNSSubject = 1
+{% if search.message is defined %}
+{# Include a backslash before newlines to match splunk's wonky INI format #}
+action.email.message.alert = {{ search.message.split('\n') | join('\\\n')}}
+{% endif %}
+{% endif %}
+alert.severity = {{ search.severity | default(SPLUNK_ALERT_DEFAULT_SEVERITY) }}
+alert.track = 1
+counttype = {{ search.counttype | default("number of events") }}
+quantity = {{ search.quantity | default("0") }}
+relation = {{ search.comparison | default("greater than") }}
+enableSched = 1
+cron_schedule = {{ search.schedule | default("*/15 * * * *") }}
+dispatch.earliest_time = {{ search.time | default("-15m") }}
+dispatch.latest_time = {{ "rt" if search.time == "rt" else "now" }}
+alert.digest_mode = {{ "0" if search.time == "rt" else "1" }}
+{% if search.digest_delay is defined %}
+alert.suppress = 1
+alert.suppress.period = {{ search.digest_delay }}
+{% endif %}
+request.ui_dispatch_app = search
+request.ui_dispatch_view = search
+{% if search.description %}
+description = {{ search.description }}
+{% endif %}
+search = {{ search.search }}
+
+{% endfor %}

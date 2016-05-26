@@ -21,6 +21,11 @@
 #
 #
 
+- name: Validate field extractions
+  fail:
+    msg: Please define either "source" or "sourcetype", not both or neither
+  when: ('source' in item and 'sourcetype' in item) or ('source' not in item and 'sourcetype' not in item)
+  with_items: SPLUNK_FIELD_EXTRACTIONS
 
 - name: Create bucket directories
   file:
@@ -51,7 +56,7 @@
 
 - name: configure splunk buckets
   template:
-    src: "opt/splunk/etc/apps/search/local/indexes.conf"
+    src: "opt/splunk/etc/apps/search/local/indexes.conf.j2"
     dest: "/opt/splunk/etc/apps/search/local/indexes.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
@@ -59,6 +64,41 @@
   tags:
     - "install"
     - "install:configuration"
+
+- name: configure splunk email
+  template:
+    src: opt/splunk/etc/system/local/alert_actions.conf.j2
+    dest: /opt/splunk/etc/system/local/alert_actions.conf
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - install
+    - install:configuration
+
+- name: configure splunk searches
+  template:
+    src: "opt/splunk/etc/apps/search/local/savedsearches.conf.j2"
+    dest: "/opt/splunk/etc/apps/search/local/savedsearches.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - "install"
+    - "install:configuration"
+  when: SPLUNK_ALERTS is defined
+
+- name: configure splunk field extractions
+  template:
+    src: opt/splunk/etc/apps/search/local/props.conf.j2
+    dest: /opt/splunk/etc/apps/search/local/props.conf
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - install
+    - install:configuration
+  when: SPLUNK_FIELD_EXTRACTIONS is defined
 
 - name: restart splunk
   service: 
