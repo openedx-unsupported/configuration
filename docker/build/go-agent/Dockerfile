@@ -1,5 +1,5 @@
 # Build using: docker build -f Dockerfile.gocd-agent -t gocd-agent .
-FROM gocd/gocd-agent:16.4.0
+FROM gocd/gocd-agent:16.5.0
 
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
