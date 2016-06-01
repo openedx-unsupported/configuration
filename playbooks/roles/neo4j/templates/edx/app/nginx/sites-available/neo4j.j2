@@ -1,0 +1,71 @@
+#
+# {{ ansible_managed }}
+#
+
+
+{% if nginx_default_sites is defined and "neo4j" in nginx_default_sites %}
+  {% set default_site = "default" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
+# map $http_origin $cors_header {
+#   default "";
+#   '~*^({{ CREDENTIALS_CORS_WHITELIST|join('|')|replace('.', '\.') }})$' "$http_origin";
+# }
+
+server {
+#   server_name {{ neo4j_server_name }};
+  server_name localhost;
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ CREDENTIALS_NGINX_PORT }} {{ default_site }};
+  listen {{ CREDENTIALS_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+#   listen {{ neo4j_port }} {{ default_site }};
+  listen 7474 {{ default_site }};
+  {% endif %}
+
+#   location ~ ^{{ CREDENTIALS_MEDIA_URL }}(?P<file>.*) {
+#     root {{ CREDENTIALS_MEDIA_ROOT }};
+#     try_files /$file =404;
+#   }
+
+#   location ~ ^{{ CREDENTIALS_STATIC_URL }}(?P<file>.*) {
+#     root {{ CREDENTIALS_STATIC_ROOT }};
+#     add_header Access-Control-Allow-Origin $cors_header always;
+#     add_header Cache-Control "max-age=31536000";
+#     try_files /$file =404;
+#   }
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+  location @proxy_to_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:7474;
+  }
+
+  # Forward to HTTPS if we're an HTTP request...
+  if ($http_x_forwarded_proto = "http") {
+    set $do_redirect "true";
+  }
+
+  # Run our actual redirect...
+  if ($do_redirect = "true") {
+    rewrite ^ https://$host$request_uri? permanent;
+  }
+}
