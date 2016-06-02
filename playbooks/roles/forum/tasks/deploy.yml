@@ -1,11 +1,11 @@
 ---
-
 - name: create the supervisor config
-  template: >
-    src=forum.conf.j2 dest={{ supervisor_available_dir }}/forum.conf
-    owner={{ supervisor_user }}
-    group={{ supervisor_user }}
-    mode=0644
+  template:
+    src: forum.conf.j2
+    dest: "{{ supervisor_available_dir }}/forum.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+    mode: 0644
   sudo_user: "{{ supervisor_user }}"
   register: forum_supervisor
   tags:
@@ -13,13 +13,13 @@
     - install:configuration
 
 - name: enable the supervisor config
-  file: >
-    src={{ supervisor_available_dir }}/forum.conf
-    dest={{ supervisor_cfg_dir }}/forum.conf
-    owner={{ supervisor_user }}
-    state=link
-    force=yes
-    mode=0644
+  file:
+    src: "{{ supervisor_available_dir }}/forum.conf"
+    dest: "{{ supervisor_cfg_dir }}/forum.conf"
+    owner: "{{ supervisor_user }}"
+    state: link
+    force: yes
+    mode: 0644
   sudo_user: "{{ supervisor_user }}"
   when: not disable_edx_services
   register: forum_supervisor
@@ -28,20 +28,22 @@
     - install:configuration
   
 - name: create the supervisor wrapper
-  template: >
-    src={{ forum_supervisor_wrapper|basename }}.j2
-    dest={{ forum_supervisor_wrapper }}
-    mode=0755
+  template:
+    src: "{{ forum_supervisor_wrapper|basename }}.j2"
+    dest: "{{ forum_supervisor_wrapper }}"
+    mode: 0755
   sudo_user: "{{ forum_user }}"
   notify: restart the forum service
   tags:
     - install
     - install:configuration
 
-- name:  git checkout forum repo into {{ forum_code_dir }}
-  git_2_0_1: >
-    dest={{ forum_code_dir }} repo={{ forum_source_repo }} version={{ forum_version }}
-    accept_hostkey=yes
+- name: git checkout forum repo into {{ forum_code_dir }}
+  git_2_0_1:
+    dest: "{{ forum_code_dir }}"
+    repo: "{{ forum_source_repo }}"
+    version: "{{ forum_version }}"
+    accept_hostkey: yes
   sudo_user: "{{ forum_user }}"
   register: forum_checkout
   notify: restart the forum service
@@ -50,7 +52,7 @@
     - install:code
 
 - name: install comments service bundle
-  shell: bundle install --deployment --path {{ forum_gem_root }} chdir={{ forum_code_dir }}
+  shell: "bundle install --deployment --path {{ forum_gem_root }} chdir={{ forum_code_dir }}"
   sudo_user: "{{ forum_user }}"
   environment: "{{ forum_environment }}"
   notify: restart the forum service
@@ -73,18 +75,23 @@
     - manage:update
 
 - name: ensure forum is started
-  supervisorctl: >
-    name=forum
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=started
+  supervisorctl:
+    name: forum
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: started
   when: not disable_edx_services
   tags:
     - manage
 
-- include: test.yml tags=deploy
+- include: test.yml
+  tags:
+    - deploy
 
-- include: tag_ec2.yml tags=deploy
+- include: tag_ec2.yml
   when: COMMON_TAG_EC2_INSTANCE
+  tags: 
+    - deploy
 
-- set_fact: forum_installed=true
+- set_fact:
+    forum_installed: true
