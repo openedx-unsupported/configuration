@@ -1,0 +1,85 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role git_clone
+#
+# Overview:
+#
+# This role performs the repetitive tasks that most edX roles
+# require in our default configuration.
+#
+#
+- name: set git fetch.prune to ignore deleted remote refs
+  shell: git config --global fetch.prune true
+  sudo_user: "{{ repo_owner }}"
+  when: GIT_REPOS is defined
+  tags:
+    - install
+    - install:code
+
+- name: validate git protocol
+  fail: msg='GIT_REPOS.PROTOCOL must be "https" or "ssh"'
+  when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and GIT_REPOS is defined
+  with_items: GIT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: install read-only ssh key
+  copy:
+    dest: "{{ git_home }}/.ssh/{{ item.REPO }}"
+    content: "{{ item.SSH_KEY }}"
+    owner: "{{ repo_owner }}"
+    group: "{{ repo_group }}"
+    mode: 0600
+  when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
+  with_items: GIT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: checkout code over ssh
+  git_2_0_1:
+    repo: "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
+    dest: "{{ item.DESTINATION }}"
+    version: "{{ item.VERSION }}"
+    accept_hostkey: yes
+    key_file: "{{ git_home }}/.ssh/{{ item.REPO }}"
+  sudo_user: "{{ repo_owner }}"
+  register: code_checkout
+  when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
+  with_items: GIT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: checkout code over https
+  git_2_0_1:
+    repo: "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
+    dest: "{{ item.DESTINATION }}"
+    version: "{{ item.VERSION }}"
+  sudo_user: "{{ repo_owner }}"
+  register: code_checkout
+  when: item.PROTOCOL == "https" and GIT_REPOS is defined
+  with_items: GIT_REPOS
+  tags:
+    - install
+    - install:code
+
+- name: remove read-only ssh key
+  file:
+    dest: "{{ git_home }}/.ssh/{{ item.REPO }}"
+    state: absent
+  when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
+  with_items: GIT_REPOS
+  tags:
+    - install
+    - install:code

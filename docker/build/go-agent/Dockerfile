@@ -1,5 +1,5 @@
 # Build using: docker build -f Dockerfile.gocd-agent -t gocd-agent .
-FROM gocd/gocd-agent:16.2.1
+FROM gocd/gocd-agent:16.5.0
 
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
@@ -8,6 +8,8 @@ LABEL version="0.02" \
 RUN \
   echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
   add-apt-repository -y ppa:webupd8team/java && \
+  add-apt-repository -y 'deb http://ppa.edx.org trusty main' && \
+  apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 69464050 && \
   apt-get update
 
 # Install Java 7

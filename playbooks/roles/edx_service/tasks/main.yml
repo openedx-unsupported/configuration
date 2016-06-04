@@ -43,25 +43,10 @@
 #       debian: [ pkg1, pkg2, pkg3 ]      
 #       redhat: [ pkg4, pkg5 ]
 #
-
-# Generating an ssh key so service users can do a git
-# clone over ssh for public repositories without any
-# additional configuration
-- name: create application user
-  user: >
-    name="{{ edx_service_name }}"
-    home="{{ edx_service_home }}"
-    createhome=yes
-    shell=/bin/false
-    generate_ssh_key=yes
-  tags:
-    - install
-    - install:base
-
 # Assumes that the home directory has been created above.
 # In some cases(vagrant boxes) the home directory gets created
 # but does not have the corrent owner and group. In vagrant for
-# example we were seeing it defaulting it to `root` for both.
+# example we were seeing it defaulting to `root` for both.
 # The item that is a blank string("") ensures the ownership
 # of the home directory is always correct before proceeding.
 - name: create edx_service app, venv, data, and staticfiles dirs
@@ -134,58 +119,6 @@
   tags:
     - install
     - install:system-requirements
-
-- name: set git fetch.prune to ignore deleted remote refs
-  shell: git config --global fetch.prune true
-  sudo_user: "{{ edx_service_user }}"
-  when: edx_service_repos is defined
-  tags:
-    - install
-    - install:code
-
-- name: validate git protocol
-  fail: msg='REPOS.PROTOCOL must be "https" or "ssh"'
-  when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and edx_service_repos is defined
-  with_items: edx_service_repos
-  tags:
-    - install
-    - install:code
-
-- name: install read-only ssh key
-  copy: >
-    dest="{{ edx_service_home }}/.ssh/{{ item.REPO }}"
-    content="{{ item.SSH_KEY }}" owner={{ edx_service_user }}
-    group={{ edx_service_user }} mode=0600
-  when: item.PROTOCOL == "ssh" and edx_service_repos is defined
-  with_items: edx_service_repos
-  tags:
-    - install
-    - install:code
-
-- name: checkout code over ssh
-  git_2_0_1: >
-    repo=git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}
-    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
-    accept_hostkey=yes key_file={{ edx_service_home }}/.ssh/{{ item.REPO }}
-  sudo_user: "{{ edx_service_user }}"
-  register: code_checkout
-  when: item.PROTOCOL == "ssh" and edx_service_repos is defined
-  with_items: edx_service_repos
-  tags:
-    - install
-    - install:code
-
-- name: checkout code over https
-  git_2_0_1: >
-    repo=https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}
-    dest={{ item.DESTINATION }}  version={{ item.VERSION }}
-  sudo_user: "{{ edx_service_user }}"
-  register: code_checkout
-  when: item.PROTOCOL == "https" and edx_service_repos is defined
-  with_items: edx_service_repos
-  tags:
-    - install
-    - install:code
 
 - name: get instance information
   action: ec2_facts

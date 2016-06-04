@@ -100,6 +100,25 @@
     - install:configuration
   when: SPLUNK_FIELD_EXTRACTIONS is defined
 
+- name: Make dashboards directory
+  file:
+    state: directory
+    path: /opt/splunk/etc/apps/search/local/data/ui/views
+    owner: "{{ splunk_user  }}"
+    group: "{{ splunk_user }}"
+
+- name: configure splunk dashboards
+  template:
+    src: "{{ item }}"
+    dest: /opt/splunk/etc/apps/search/local/data/ui/views/{{ item.rstrip('.j2') | basename }}
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  with_items: SPLUNK_DASHBOARDS
+  tags:
+    - install
+    - install:configuration
+
 - name: restart splunk
   service: 
     name: splunk
