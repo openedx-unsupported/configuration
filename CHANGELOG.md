@@ -134,3 +134,9 @@
 - Role: Edxapp
   - Added EDXAPP_LMS_AUTH_EXTRA and EDXAPP_CMS_AUTH_EXTRA for passing unique AUTH_EXTRA configurations to the LMS and CMS.
     Both variables default to EDXAPP_AUTH_EXTRA for backward compatibility
+
+- Role: ecommerce
+  - Renamed `ECOMMERCE_COMPREHENSIVE_THEME_DIR` to `ECOMMERCE_COMPREHENSIVE_THEME_DIRS`, `ECOMMERCE_COMPREHENSIVE_THEME_DIRS`
+    is now a list of directories. Change is backward incompatible.
+  - Renamed `COMPREHENSIVE_THEME_DIR` to `COMPREHENSIVE_THEME_DIRS`, `COMPREHENSIVE_THEME_DIRS` is now a list of directories.
+    Change is backward incompatible.
