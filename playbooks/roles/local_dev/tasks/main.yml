@@ -64,10 +64,41 @@
     src: paver_autocomplete
     dest: "{{ item.home }}/.paver_autocomplete"
     owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
     mode: 0755
   with_items: localdev_accounts
   when: item.user != 'None'
   ignore_errors: yes
+
+# Add useful vimrc files 
+- name: create .vim/plugin directory
+  file:
+    path: "{{ item.home }}/.vim/ftplugin"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    state: directory
+  with_items: localdev_accounts
+  when: item.user != 'None'
+
+- name: add .vimrc file
+  copy:
+    src: vimrc
+    dest: "{{ item.home }}/.vimrc"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    mode: 0644
+  with_items: localdev_accounts
+  when: item.user != 'None'
+
+- name: add python.vim ftplugin file
+  copy:
+    src: ftplugin-python.vim
+    dest: "{{ item.home }}/.vim/ftplugin/python.vim"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    mode: 0644
+  with_items: localdev_accounts
+  when: item.user != 'None'
 
 # Edit the /etc/hosts file so that the Preview button will work in Studio
 - name: add preview.localhost to /etc/hosts
