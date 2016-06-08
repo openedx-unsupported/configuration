@@ -38,6 +38,14 @@
   shell: executable=/bin/bash chdir=/tmp foo='() { echo vulnerable; }' bash -c foo
   register: test_vuln
   ignore_errors: yes
+  tags:
+    - check
+
+- name: Fail in Check Mode
+  fail: msg="Failed shellshock test."
+  when: SECURITY_CHECK_ONLY and 'vulnerable' in test_vuln.stdout
+  tags:
+    - check
 
 - name: Apply bash security update if we are vulnerable
   apt: name=bash state=latest update_cache=true
@@ -56,14 +64,26 @@
     src=tmp/GHOST.c
     dest=/tmp/GHOST.c
     owner=root group=root
+  tags:
+    - check
 
 - name: compile GHOST
   shell: gcc -o /tmp/GHOST /tmp/GHOST.c
+  tags:
+    - check
 
 - name: Check if we are vulnerable
   shell: /tmp/GHOST
   register: test_ghost_vuln
   ignore_errors: yes
+  tags:
+    - check
+
+- name: Fail in Check Mode
+  fail: msg="Failed GHOST test."
+  when: SECURITY_CHECK_ONLY and 'vulnerable' in test_ghost_vuln.stdout
+  tags:
+    - check
 
 - name: Apply glibc security update if we are vulnerable
   apt: name=libc6 state=latest update_cache=true
