@@ -5,6 +5,10 @@
   <numExecutors>{{ JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT }}</numExecutors>
   <mode>NORMAL</mode>
   <useSecurity>true</useSecurity>
+  {% if jenkins_auth_realm.name == "none" %}
+  <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
+  <securityRealm class="hudson.security.SecurityRealm$None"/>
+  {% else %}
   <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
   {% for permission_group, permissions in jenkins_auth_permissions.iteritems() %}
     {% for permission in permissions %}
@@ -26,6 +30,7 @@
     <clientSecret>{{ jenkins_auth_realm.clientSecret }}</clientSecret>
     <oauthScopes>{{ jenkins_auth_realm.oauthScopes|join(',') }}</oauthScopes>
   </securityRealm>
+  {% endif %}
   {% endif %}
   <disableRememberMe>false</disableRememberMe>
   <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
