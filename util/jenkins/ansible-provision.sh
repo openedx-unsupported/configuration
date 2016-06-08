@@ -173,7 +173,7 @@ edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
-EDXAPP_COMPREHENSIVE_THEME_DIR: $edxapp_comprehensive_theme_dir
+EDXAPP_COMPREHENSIVE_THEME_DIRS: $edxapp_comprehensive_theme_dirs
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
