@@ -93,6 +93,7 @@ else:
 
 import json, copy
 from urllib import quote_plus
+from operator import itemgetter
 
 ########### Mongo API calls ###########
 def get_replset():
@@ -203,9 +204,13 @@ def is_member_subset(old_members,new_members):
     extra information that is not reflected in old_members because we do not necesarily
     track all of mongo's internal data in the config.
     '''
-    for member in old_members:
+
+    # Mongo returns the member set in no particular order, and we were
+    # indexing into the list using _id before witout sorting which led to failure.
+    sorted_new_members = sorted(new_members, key=itemgetter('_id'))
+    for member in sorted(old_members, key=itemgetter('_id')):
         for k in member:
-            if member[k] != new_members[member['_id']][k]: return False
+            if member[k] != sorted_new_members[member['_id']][k]: return False
 
     return True
 
