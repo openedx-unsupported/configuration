@@ -120,6 +120,11 @@ if [[ ! -z "$identity_path" ]]; then
   identity_params="--identity $identity_path"
 fi
 
+instance_type="m3.large"
+if [[ ! -z "$instance_type" ]]; then
+  instance_type="$instance_type"
+fi
+
 cd configuration
 pip install -r requirements.txt
 
@@ -127,4 +132,4 @@ cd util/vpc-tools/
 
 echo "$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
 cat /var/tmp/$BUILD_ID-extra-vars.yml
-python -u abbey.py -p $play -t m3.large -d $deployment -e $environment $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $hipchat_params $cleanup_params $notification_params $datadog_params $region_params $identity_params
+python -u abbey.py -p $play -t $instance_type -d $deployment -e $environment $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $hipchat_params $cleanup_params $notification_params $datadog_params $region_params $identity_params
