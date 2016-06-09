@@ -199,7 +199,6 @@ NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
-openid_workaround: True
 rabbitmq_ip: "127.0.0.1"
 rabbitmq_refresh: True
 COMMON_HOSTNAME: $dns_name
