@@ -1,0 +1,65 @@
+# Upgrades the hidden secondary in a mongo cluster if one exists
+#
+# This is useful for using the hidden secondary to sniff out any problems with
+# your point upgrade before you upgrade your primary/secondary servers using the
+# mongo_rolling_upgrade.yml play
+#
+# This play expects to have access to a config file where MONGO_RS_CONFIG, as described
+# in the mongo_3_0 role, is defined, as well as MONGO_ADMIN_USER and MONGO_ADMIN_PASSWORD.
+#
+# ansible-playbook -i 127.0.0.1, mongo_upgrade_hidden_secondaries.yml -e@/path/to/config-file.yml
+#
+# This play uses MONGO_RS_CONFIG to find a host to connect to and fetch replset config and build an
+# inventory, so you can just target localhost.
+#
+# If there are no hidden secondaries, the 'Upgrade hidden members' task will just skip.
+
+- name: Find hidden secondaries
+  hosts: 127.0.0.1
+  connection: local
+  gather_facts: False
+  tasks:
+    - name: Get configuration of mongo cluster
+      mongodb_rs_config:
+        host: "{{ (MONGO_RS_CONFIG.members|map(attribute='host')|list)[0] }}"
+        username: "{{ MONGO_ADMIN_USER }}"
+        password: "{{ MONGO_ADMIN_PASSWORD }}"
+      register: rs_config
+    - name: Build inventory of hidden secondaries
+      add_host:
+        hostname: "{{ (item.host.split(':'))[0] }}"
+        instance_id: "{{ item._id }}"
+        groups: hidden_hosts
+        ansible_ssh_user: ubuntu
+      with_items:
+        - "{{ rs_config.hidden }}"
+
+- name: Upgrade hidden members
+  hosts: hidden_hosts
+  gather_facts: True
+  become: True
+  vars_files:
+    - ../roles/mongo_3_0/defaults/main.yml
+  tasks:
+    - name: install mongo server and recommends
+      apt:
+        pkg: "{{ item }}"
+        state: present
+        install_recommends: yes
+        force: yes
+        update_cache: yes
+      with_items: mongodb_debian_pkgs
+    - name: wait for mongo server to start
+      wait_for:
+        port: 27017
+        delay: 2
+    - name: Wait for the replica set to update and (if needed) elect a primary
+      mongodb_rs_status:
+          host: "{{ ansible_default_ipv4['address'] }}"
+          username: "{{ MONGO_ADMIN_USER }}"
+          password: "{{ MONGO_ADMIN_PASSWORD }}"
+      register: status
+      until: status.status is defined and 'PRIMARY' in status.status.members|map(attribute='stateStr')|list
+      retries: 5
+      delay: 2
+      run_once: true
