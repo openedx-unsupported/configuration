@@ -1,23 +1,30 @@
-# Upgrades the hidden secondary in a mongo cluster if one exists
-#
-# This is useful for using the hidden secondary to sniff out any problems with
-# your point upgrade before you upgrade your primary/secondary servers using the
-# mongo_rolling_upgrade.yml play
+# Upgrades a full mongo cluster, starting with the hidden members, then the
+# secondary, and finally steps down the primary and upgrades it.  It checks along
+# the way for a healthy cluster, failing if that is not true.
 #
 # This play expects to have access to a config file where MONGO_RS_CONFIG, as described
 # in the mongo_3_0 role, is defined, as well as MONGO_ADMIN_USER and MONGO_ADMIN_PASSWORD.
 #
-# ansible-playbook -i 127.0.0.1, mongo_upgrade_hidden_secondaries.yml -e@/path/to/config-file.yml
+# ansible-playbook -i 127.0.0.1, mongo_rolling_upgrade.yml -e@/path/to/config-file.yml
 #
 # This play uses MONGO_RS_CONFIG to find a host to connect to and fetch replset config and build an
 # inventory, so you can just target localhost.
 #
-# If there are no hidden secondaries, the 'Upgrade hidden members' task will just skip.
+# If there are no hidden secondaries, the 'Upgrade hidden members' task block will just skip.
+#
+# This will process a hidden secondary twice - first as a 'hidden' server, then as a 'secondary' but
+# this is effectively a no-op except for apt checking the versions and then checking that mongo is running.
+# It is valid to have other types of hidden machines, so this seemed better than skipping.
+#
+# If you wish to avoid updating the primary, you can add -e 'SKIP_PRIMARY=true' to your ansible
+# invocation.
 
 - name: Find hidden secondaries
   hosts: 127.0.0.1
   connection: local
   gather_facts: False
+  vars:
+    - SKIP_PRIMARY: False
   tasks:
     - name: Get configuration of mongo cluster
       mongodb_rs_config:
@@ -49,6 +56,7 @@
         ansible_ssh_user: ubuntu
       with_items:
         - "{{ rs_config.primary }}"
+      when: not SKIP_PRIMARY
 
 - name: Upgrade hidden members
   hosts: hidden_hosts
