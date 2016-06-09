@@ -49,3 +49,17 @@
         force: yes
         update_cache: yes
       with_items: mongodb_debian_pkgs
+    - name: wait for mongo server to start
+      wait_for:
+        port: 27017
+        delay: 2
+    - name: Wait for the replica set to update and (if needed) elect a primary
+      mongodb_rs_status:
+          host: "{{ ansible_default_ipv4['address'] }}"
+          username: "{{ MONGO_ADMIN_USER }}"
+          password: "{{ MONGO_ADMIN_PASSWORD }}"
+      register: status
+      until: status.status is defined and 'PRIMARY' in status.status.members|map(attribute='stateStr')|list
+      retries: 5
+      delay: 2
+      run_once: true
