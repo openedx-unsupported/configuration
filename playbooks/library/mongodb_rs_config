@@ -108,11 +108,7 @@ def main():
 
     if repl_set:
         status = client.admin.command("replSetGetStatus")
-    else:
-        module.exit_json(changed=False)
-
-    # Not using `replSetGetConfig` because it's not supported in MongoDB 2.x.
-    if repl_set:
+        # Not using `replSetGetConfig` because it's not supported in MongoDB 2.x.
         rs_config = client.local.system.replset.find_one()
     else:
         module.exit_json(changed=False)
@@ -123,9 +119,13 @@ def main():
     status    = json.loads(json_util.dumps(status))
     rs_config = json.loads(json_util.dumps(rs_config))
 
+    # Status contains information about Primary/Secondary, so we iterate that list
+    # But we want to return config for that host, not status (since this is the config module),
+    # this is the inner loop of the comprehension, where we match on the hostname (could also
+    # match on _id).
     primary   = [ c for m in status['members'] if m['stateStr'] == 'PRIMARY'   for c in rs_config['members'] if m['name'] == c['host'] ]
     secondary = [ c for m in status['members'] if m['stateStr'] == 'SECONDARY' for c in rs_config['members'] if m['name'] == c['host'] ]
-    # we're parsing the config here, much simpler
+    # we're parsing the config directly here, much simpler
     hidden    = [ m for m in rs_config['members'] if m['hidden'] ]
 
     module.exit_json(changed=False, primary=primary, secondary=secondary, hidden=hidden, config=rs_config)
