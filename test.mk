@@ -22,3 +22,8 @@ test.syntax.dockerfiles:
 	
 test.edx_east_roles:
 	tests/test_edx_east_roles.sh
+
+clean: test.clean
+
+test.clean:
+	rm -rf playbooks/edx-east/test_output
