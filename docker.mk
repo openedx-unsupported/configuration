@@ -26,7 +26,9 @@ test: docker.test
 
 pkg: docker.pkg
 
-clean:
+clean: docker.clean
+
+docker.clean:
 	rm -rf .build
 
 docker.test.shard: $(foreach image,$(shell echo $(images) | python util/balancecontainers.py $(SHARDS) | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
