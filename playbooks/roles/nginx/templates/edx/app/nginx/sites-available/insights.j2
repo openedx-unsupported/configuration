@@ -7,6 +7,15 @@ upstream insights_app_server {
 server {
   listen {{ INSIGHTS_NGINX_PORT }} default_server;
 
+  {% if NGINX_ENABLE_SSL %}
+  listen {{ INSIGHTS_NGINX_SSL_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  {% endif %}
+
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ insights_service_name }};
     try_files /staticfiles/$file =404;
