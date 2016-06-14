@@ -1,7 +1,7 @@
 # ansible-playbook -i ec2.py commoncluster.yml --limit tag_Name_stage-edx-commoncluster -e@/path/to/vars/env-deployment.yml -T 30 --list-hosts
 
 - hosts: all
-  sudo: True
+  become: True
   serial: 1
   vars:
     # By default take instances in and out of the elb(s) they
@@ -23,7 +23,7 @@
         region: us-east-1
         state: absent
         wait_timeout: 60
-      sudo: False
+      become: False
       when: elb_pre_post
   roles:
     - aws
@@ -52,7 +52,7 @@
         state: present
         wait_timeout: 60
       with_items: ec2_elbs
-      sudo: False
+      become: False
       when: elb_pre_post
 #
 # In order to reconfigure the host resolution we are issuing a
@@ -60,7 +60,7 @@
 # TODO: We should probably poll to ensure the host comes back before moving
 # to the next host so that we don't reboot all of the servers simultaneously
 - hosts: all
-  sudo: True
+  become: True
   serial: 1
   vars:
     reboot: False

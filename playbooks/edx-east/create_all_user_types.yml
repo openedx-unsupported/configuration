@@ -3,7 +3,7 @@
 # to be run on a real system
 - name: Create all user types (test play)
   hosts: all
-  sudo: True
+  become: True
   gather_facts: False
   vars_files:
     - 'roles/edxapp/defaults/main.yml'
@@ -13,7 +13,7 @@
   pre_tasks:
     - fail: msg="You must pass a user into this play"
       when: user is not defined
-    - name: give access with no sudo
+    - name: give access with no become
       set_fact:
         CUSTOM_USER_INFO:
           - name: "{{ user }}"
@@ -23,10 +23,10 @@
           - name: test-normal-user
           - name: test-restricted-user-edxapp
             type: restricted
-            sudoers_template: 99-edxapp-manage-cmds.j2
+            becomeers_template: 99-edxapp-manage-cmds.j2
           - name: test-restricted-user-anayltics
             type: restricted
-            sudoers_template: 99-analytics-manage-cmds.j2
+            becomeers_template: 99-analytics-manage-cmds.j2
   roles:
     - role: user
       user_info: "{{ CUSTOM_USER_INFO }}"

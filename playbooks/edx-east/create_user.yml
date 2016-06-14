@@ -1,28 +1,28 @@
 # Creates a single user on a server
 # By default no super-user privileges
 # Example: ansible-playbook -i "jarv.sandbox.edx.org,"  ./create_user.yml -e "user=jarv"
-# Create a user with sudo privileges
-# Example: ansible-playbook -i "jarv.sandbox.edx.org,"  ./create_user.yml -e "user=jarv" -e "give_sudo=true"
+# Create a user with become privileges
+# Example: ansible-playbook -i "jarv.sandbox.edx.org,"  ./create_user.yml -e "user=jarv" -e "give_become=true"
 - name: Create a single user
   hosts: all
-  sudo: True
+  become: True
   gather_facts: False
   pre_tasks:
     - fail: msg="You must pass a user into this play"
       when: user is not defined
-    - name: give access with no sudo
+    - name: give access with no become
       set_fact:
         CUSTOM_USER_INFO:
           - name: "{{ user }}"
             github: true
-      when: give_sudo is not defined
-    - name: give access with sudo
+      when: give_become is not defined
+    - name: give access with become
       set_fact:
         CUSTOM_USER_INFO:
           - name: "{{ user }}"
             type: admin
             github: true
-      when: give_sudo is defined
+      when: give_become is defined
   roles:
     - role: user
       user_info: "{{ CUSTOM_USER_INFO }}"
