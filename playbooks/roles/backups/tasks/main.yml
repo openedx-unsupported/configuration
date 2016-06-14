@@ -1,0 +1,86 @@
+---
+
+- name: Install dependencies for using Google Cloud Storage
+  apt: name={{ item }}
+  with_items:
+    - gcc
+    - python-dev
+    - python-setuptools
+    - libffi-dev
+    - libssl-dev
+  when: BACKUPS_PROVIDER == 'gs'
+  tags: ['backups']
+
+- name: Install boto plugin for Google Cloud Storage
+  pip: name={{ item.name }} version={{ item.version }}
+  with_items:
+    - {name: gcs-oauth2-boto-plugin, version: 1.9}
+    - {name: oauth2client, version: 1.5.2}
+    - {name: pyopenssl, version: 0.15.1}
+  when: BACKUPS_PROVIDER == 'gs'
+  tags: ['backups']
+
+- name: Copy boto configuration
+  template: src=boto.j2 dest="{{ BACKUPS_GS_BOTO_FILE }}" owner=root group=root mode=0600
+  when: BACKUPS_PROVIDER == 'gs'
+  tags: ['backups']
+
+- name: Copy base64-encoded credentials for backup service account
+  copy: content="{{ BACKUPS_GS_SERVICE_KEY_CONTENTS }}" dest="{{ BACKUPS_GS_SERVICE_KEY_FILE }}.b64" owner=root group=root mode=0600
+  when: BACKUPS_PROVIDER == 'gs'
+  tags: ['backups']
+
+- name: Decode credentials file for backup service account
+  shell: base64 -d "{{ BACKUPS_GS_SERVICE_KEY_FILE }}.b64" > "{{ BACKUPS_GS_SERVICE_KEY_FILE }}"
+  when: BACKUPS_PROVIDER == 'gs'
+  tags: ['backups']
+
+- name: Copy database backup script
+  template: src=backup.py dest=/usr/local/bin/edx_backup owner=root group=root mode=0700
+  tags: ['backups']
+
+- name: Copy database restore script
+  template: src=backup.py dest=/usr/local/bin/edx_restore owner=root group=root mode=0700
+  tags: ['backups']
+
+- name: Create cron job for Mongo backups
+  cron: name="Backup Mongo" cron_file=edx_backup_mongo user=root job="/usr/local/bin/edx_backup mongodb" special_time=daily
+  when: BACKUPS_MONGO
+  tags: ['backups']
+
+- name: Configure backup settings for Mongo
+  lineinfile: >
+    dest=/etc/cron.d/edx_backup_mongo
+    regexp="^{{ item.key }}="
+    line="{{ item.key }}={{ item.value }}"
+    state=present
+    insertbefore=BOF
+  with_dict:
+    BACKUP_DIR: '{{ BACKUPS_DIR }}'
+    BACKUP_BUCKET: '{{ BACKUPS_BUCKET }}'
+    BACKUP_PROVIDER: '{{ BACKUPS_PROVIDER }}'
+    BACKUP_AWS_ACCESS_KEY_ID: '{{ BACKUPS_AWS_ACCESS_KEY_ID }}'
+    BACKUP_AWS_SECRET_ACCESS_KEY: '{{ BACKUPS_AWS_SECRET_ACCESS_KEY }}'
+  when: BACKUPS_MONGO and "{{ item.value }}" != ""
+  tags: ['backups']
+
+- name: Create cron job for MySQL backups
+  cron: name="Backup MySQL" cron_file=edx_backup_mysql user=root job="/usr/local/bin/edx_backup mysql" special_time=daily
+  when: BACKUPS_MYSQL
+  tags: ['backups']
+
+- name: Configure backup settings for MySQL
+  lineinfile: >
+    dest=/etc/cron.d/edx_backup_mysql
+    regexp="^{{ item.key }}="
+    line="{{ item.key }}={{ item.value }}"
+    state=present
+    insertbefore=BOF
+  with_dict:
+    BACKUP_DIR: '{{ BACKUPS_DIR }}'
+    BACKUP_BUCKET: '{{ BACKUPS_BUCKET }}'
+    BACKUP_PROVIDER: '{{ BACKUPS_PROVIDER }}'
+    BACKUP_AWS_ACCESS_KEY_ID: '{{ BACKUPS_AWS_ACCESS_KEY_ID }}'
+    BACKUP_AWS_SECRET_ACCESS_KEY: '{{ BACKUPS_AWS_SECRET_ACCESS_KEY }}'
+  when: BACKUPS_MYSQL and "{{ item.value }}" != ""
+  tags: ['backups']
