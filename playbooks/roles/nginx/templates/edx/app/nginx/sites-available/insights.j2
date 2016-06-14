@@ -1,3 +1,9 @@
+{% if "insights" in nginx_default_sites %}
+  {% set default_site = "default" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
 upstream insights_app_server {
     {% for host in nginx_insights_gunicorn_hosts %}
         server {{ host }}:{{ insights_gunicorn_port }} fail_timeout=0;
@@ -5,7 +11,8 @@ upstream insights_app_server {
 }
 
 server {
-  listen {{ INSIGHTS_NGINX_PORT }} default_server;
+  listen {{ INSIGHTS_NGINX_PORT }} {{ default_site }};
+  server_name {{ INSIGHTS_HOSTNAME }};
 
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ insights_service_name }};
@@ -32,17 +39,17 @@ location @proxy_to_app {
     proxy_redirect off;
     proxy_pass http://insights_app_server;
   }
-  
+
   {% if NGINX_REDIRECT_TO_HTTPS %}
   # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
+  if ($scheme != "https")
+  {
    set $do_redirect_to_https "true";
   }
 
-  # Nginx does not support nested conditions 
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
+  # Nginx does not support nested conditions
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
+  if ($http_x_forwarded_proto = "http")
   {
    set $do_redirect_to_https "true";
   }
