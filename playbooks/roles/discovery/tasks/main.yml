@@ -25,7 +25,7 @@
   template:
     src: edx/app/discovery/discovery_gunicorn.py.j2
     dest: "{{ discovery_home }}/discovery_gunicorn.py"
-  sudo_user: "{{ discovery_user }}"
+  become_user: "{{ discovery_user }}"
   tags:
     - install
     - install:configuration
@@ -51,7 +51,7 @@
   command: "virtualenv --python=python3.5 {{ discovery_venv_dir }}"
   args:
     creates: "{{ discovery_venv_dir }}/bin/pip"
-  sudo_user: "{{ discovery_user }}"
+  become_user: "{{ discovery_user }}"
   tags:
     - install
     - install:system-requirements
@@ -60,7 +60,7 @@
   command: make production-requirements
   args:
     chdir: "{{ discovery_code_dir }}"
-  sudo_user: "{{ discovery_user }}"
+  become_user: "{{ discovery_user }}"
   environment: "{{ discovery_environment }}"
   tags:
     - install
@@ -70,7 +70,7 @@
   command: make requirements
   args:
     chdir: "{{ discovery_code_dir }}"
-  sudo_user: "{{ discovery_user }}"
+  become_user: "{{ discovery_user }}"
   environment: "{{ discovery_environment }}"
   tags:
     - devstack
@@ -80,7 +80,7 @@
   command: make migrate
   args:
     chdir: "{{ discovery_code_dir }}"
-  sudo_user: "{{ discovery_user }}"
+  become_user: "{{ discovery_user }}"
   environment: "{{ discovery_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
@@ -177,7 +177,7 @@
   command: make static
   args:
     chdir: "{{ discovery_code_dir }}"
-  sudo_user: "{{ discovery_user }}"
+  become_user: "{{ discovery_user }}"
   environment: "{{ discovery_environment }}"
   tags:
     - assets
@@ -190,7 +190,7 @@
     config: "{{ supervisor_cfg }}"
     name: "{{ discovery_service_name }}"
   when: not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   tags:
     - manage
     - manage:start
