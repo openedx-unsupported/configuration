@@ -29,7 +29,7 @@
 #
 # - name: Deploy all dependencies of edx-analytics-pipeline to the node
 #   hosts: all
-#   sudo: True
+#   become: True
 #   gather_facts: True
 #   roles:
 #     - analytics_pipeline
@@ -136,7 +136,7 @@
 - name: ensure package dir exists in HDFS
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/
-  sudo_user: "{{ hadoop_common_user }}"
+  become_user: "{{ hadoop_common_user }}"
   tags:
     - install
     - install:app-requirements
@@ -144,7 +144,7 @@
 - name: ensure util library is in HDFS
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/
-  sudo_user: "{{ hadoop_common_user }}"
+  become_user: "{{ hadoop_common_user }}"
   tags:
     - install
     - install:app-requirements
@@ -152,7 +152,7 @@
 - name: ensure the data directory exists
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}
-  sudo_user: "{{ hadoop_common_user }}"
+  become_user: "{{ hadoop_common_user }}"
   tags:
     - install
     - install:base
