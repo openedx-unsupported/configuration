@@ -23,12 +23,14 @@
     - "relayhost = {{ postfix_queue_relayhost }}"
     - "smtp_tls_security_level = {{ postfix_queue_smtp_tls_security_level }}"
     - "smtp_tls_mandatory_ciphers = {{ postfix_queue_smtp_tls_mandatory_ciphers }}"
+    - "sender_canonical_maps = hash:{{ postfix_queue_sender_canonical_maps_file }}"
+    - "header_checks = regexp:{{ postfix_queue_header_checks_file }}"
   notify: restart postfix
 
 - name: Explain postfix authentication
   lineinfile: >
     dest="{{ postfix_queue_password_file }}"
-    line="# configured by ansible:"
+    line="# Configured by Ansible:"
     create=yes
 
 - name: Set permissions of password file
@@ -38,10 +40,35 @@
   lineinfile: >
     dest="{{ postfix_queue_password_file }}"
     line="{{ postfix_queue_relayhost }}    {{ POSTFIX_QUEUE_EXTERNAL_SMTP_USER }}:{{ POSTFIX_QUEUE_EXTERNAL_SMTP_PASSWORD }}"
-    insertafter="# configured by ansible:"
+    insertafter="# Configured by Ansible:"
   register: postfix_queue_password
 
 - name: Hash postfix SASL password
   command: "postmap hash:{{ postfix_queue_password_file }}"
   when: postfix_queue_password.changed
+  notify: restart postfix
+
+- name: Configure postfix sender canonical maps
+  copy: >
+    dest="{{ postfix_queue_sender_canonical_maps_file }}"
+    content="# Configured by Ansible:\n{{ POSTFIX_QUEUE_SENDER_CANONICAL_MAPS }}"
+    force=true
+    owner=root
+    group=root
+    mode="0600"
+  register: postfix_queue_sender_canonical_maps
+
+- name: Hash postfix sender canonical maps file
+  command: "postmap hash:{{ postfix_queue_sender_canonical_maps_file }}"
+  when: postfix_queue_sender_canonical_maps.changed
+  notify: restart postfix
+
+- name: Configure postfix header checks
+  copy: >
+    dest="{{ postfix_queue_header_checks_file }}"
+    content="# Configured by Ansible:\n{{ POSTFIX_QUEUE_HEADER_CHECKS }}"
+    force=true
+    owner=root
+    group=root
+    mode="0600"
   notify: restart postfix
