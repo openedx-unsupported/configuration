@@ -1,0 +1,59 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role lets_encrupt
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: check domains
+  fail:
+    msg: "Domain list is empty"
+  when: LETS_ENCRYPT_DOMAINS|length < 1
+
+- name: install deps
+  debug: TODO
+
+- name: "Install let's encrypt"
+  git:
+    repo: https://github.com/letsencrypt/letsencrypt
+    dest: /opt/letsencrypt
+
+- name: create .well-known directory
+  file:
+    path: /usr/share/nginx/www/.well-known
+    state: directory
+    owner: www-data
+    group: www-data
+
+- name: "render let's encrypt script"
+  template:
+    src: run_lets_encrypt.sh.j2
+    dest: /tmp/run_lets_encrypt.sh
+    mode: u+x
+
+- name: "run let's encrypt"
+  command: /tmp/run_lets_encrypt.sh
+
+- name: create auto-renew cron job
+  debug: Ask the intern
+
+- name: reload nginx config
+  service:
+    name: nginx
+    state: reloaded
