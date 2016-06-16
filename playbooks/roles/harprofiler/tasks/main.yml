@@ -18,7 +18,7 @@
     dest={{ harprofiler_dir }}
     repo={{ harprofiler_github_url }} version={{ harprofiler_version }}
     accept_hostkey=yes
-  sudo_user: "{{ harprofiler_user }}"
+  become_user: "{{ harprofiler_user }}"
 
 - name: set bashrc for harprofiler user
   template: >
@@ -28,7 +28,7 @@
 - name: install requirements
   pip: >
     requirements="{{ harprofiler_dir }}/requirements.txt" virtualenv="{{ harprofiler_venv_dir }}"
-  sudo_user: "{{ harprofiler_user }}"
+  become_user: "{{ harprofiler_user }}"
 
 - name: update config file
 # harprofiler ships with a default config file. Doing a line-replace for the default
@@ -45,10 +45,10 @@
     src: validate_harprofiler_install.sh.j2
     dest: "{{ harprofiler_dir }}/{{ harprofiler_validation_script }}"
     mode: 0755
-  sudo_user: "{{ harprofiler_user }}"
+  become_user: "{{ harprofiler_user }}"
 
 
 - name: test install
   shell: >
     ./{{ harprofiler_validation_script }} chdir={{ harprofiler_dir }}
-  sudo_user: "{{ harprofiler_user }}"
+  become_user: "{{ harprofiler_user }}"

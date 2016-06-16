@@ -38,7 +38,7 @@
 
 - name: set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   tags:
     - install
     - install:base
@@ -50,7 +50,7 @@
     repo: "{{ edx_platform_repo }}"
     version: "{{ edx_platform_version }}"
     accept_hostkey: yes
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_platform_checkout
@@ -60,7 +60,7 @@
 
 - name: git clean after checking out edx-platform
   shell: cd {{ edxapp_code_dir }} && git clean -xdf
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   tags:
     - install
     - install:code
@@ -78,7 +78,7 @@
     version: "{{ edxapp_theme_version }}"
     accept_hostkey: yes
   when: edxapp_theme_name != ''
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_theme_checkout
@@ -97,7 +97,7 @@
     version: "{{ EDXAPP_COMPREHENSIVE_THEME_VERSION }}"
     accept_hostkey: yes
   when: EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO != ''
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_comprehensive_theme_checkout
@@ -120,7 +120,7 @@
 - name: Updating requirement files for git mirror
   command: |
     /bin/sed -i -e 's/github\.com/{{ COMMON_GIT_MIRROR }}/g' {{ item.item }}
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   when: item.stat.exists
   with_items: "{{ requirement_file_stats.results }}"
   tags:
@@ -153,7 +153,7 @@
 # Node play that need to be run after platform updates.
 - name: Install edx-platform npm dependencies
   shell: npm install chdir={{ edxapp_code_dir }}
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   tags:
     - install
@@ -164,7 +164,7 @@
     virtualenv {{ edxapp_venv_dir }}
     chdir={{ edxapp_code_dir }}
     creates={{ edxapp_venv_dir }}/bin/pip
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   tags:
     - install
@@ -187,7 +187,7 @@
   command: >
     {{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item.item }}
     chdir={{ edxapp_code_dir }}
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   when: item.stat.exists
   with_items: "{{ python_requirement_files.results }}"
@@ -206,7 +206,7 @@
     chdir={{ edxapp_code_dir }}
   with_items:
   - "{{ private_requirements_file }}"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
   when: EDXAPP_INSTALL_PRIVATE_REQUIREMENTS
@@ -223,7 +223,7 @@
     virtualenv: "{{ edxapp_venv_dir }}"
     state: present
   with_items: EDXAPP_EXTRA_REQUIREMENTS
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   tags:
     - install
     - install:app-requirements
@@ -236,7 +236,7 @@
     virtualenv: "{{ edxapp_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   when: EDXAPP_CAS_ATTRIBUTE_PACKAGE|length > 0
   tags:
     - install
@@ -254,7 +254,7 @@
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_post_requirements }}"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
     - install
@@ -278,7 +278,7 @@
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ edxapp_sandbox_user }}"
+  become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   tags:
     - edxapp-sandbox
@@ -292,7 +292,7 @@
   with_items:
     - "{{ sandbox_local_requirements }}"
     - "{{ sandbox_post_requirements }}"
-  sudo_user: "{{ edxapp_sandbox_user }}"
+  become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
   register: sandbox_install_output
   changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
@@ -311,7 +311,7 @@
 
 - name: compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x .git/.* {{ edxapp_code_dir }}"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   tags:
     - install
     - install:code
@@ -345,7 +345,7 @@
 - name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
   tags:
@@ -357,7 +357,7 @@
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: started
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   when: celery_worker is not defined and not disable_edx_services
   tags:
     - manage
@@ -369,7 +369,7 @@
     config: "{{ supervisor_cfg }}"
     state: started
   when: celery_worker is defined and not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   tags:
     - manage
 
@@ -413,7 +413,7 @@
     config: "{{ supervisor_cfg }}"
     state: restarted
   when: edxapp_installed is defined and celery_worker is not defined and not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   tags:
     - manage
 
@@ -424,6 +424,6 @@
     config: "{{ supervisor_cfg }}"
     state: restarted
   when: edxapp_installed is defined and celery_worker is defined and not disable_edx_services
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   tags:
     - manage

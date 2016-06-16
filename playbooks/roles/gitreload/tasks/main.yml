@@ -20,7 +20,7 @@
 # Example playbook:
 #
 # - hosts: all
-#   sudo: True
+#   become: True
 #   gather_facts: True
 #   vars:
 #     COMMON_ENABLE_BASIC_AUTH: True
@@ -60,7 +60,7 @@
 
 - name: grab ssh host keys
   shell: ssh-keyscan {{ item }}
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   with_items: GITRELOAD_HOSTS
   register: gitreload_repo_host_keys
 
@@ -69,7 +69,7 @@
     create=yes
     dest=~/.ssh/known_hosts
     line="{{ item.stdout }}"
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   with_items: gitreload_repo_host_keys.results
 
 - name: create a symlink for venv python
