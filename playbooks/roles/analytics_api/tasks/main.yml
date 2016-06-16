@@ -19,7 +19,7 @@
 # Example play:
 # - name: Deploy Analytics API
 #   hosts: all
-#   sudo: True
+#   become: True
 #   gather_facts: True
 #   vars:
 #     ENABLE_DATADOG: False
@@ -47,7 +47,7 @@
   template: >
     src=edx/app/analytics_api/analytics_api_gunicorn.py.j2
     dest={{ analytics_api_home }}/analytics_api_gunicorn.py
-  sudo_user: "{{ analytics_api_user }}"
+  become_user: "{{ analytics_api_user }}"
   tags:
     - install
     - install:configuration
@@ -57,7 +57,7 @@
     requirements="{{ analytics_api_requirements_base }}/{{ item }}"
     virtualenv="{{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}"
     state=present
-  sudo_user: "{{ analytics_api_user }}"
+  become_user: "{{ analytics_api_user }}"
   with_items: analytics_api_requirements
   tags:
     - install
@@ -69,7 +69,7 @@
     DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
     DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
     {{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python ./manage.py migrate --noinput
-  sudo_user: "{{ analytics_api_user }}"
+  become_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
@@ -80,7 +80,7 @@
   shell: >
     chdir={{ analytics_api_code_dir }}
     {{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py collectstatic  --noinput
-  sudo_user: "{{ analytics_api_user }}"
+  become_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   tags:
     - assets
@@ -90,7 +90,7 @@
   shell: >
     chdir={{ analytics_api_code_dir }}
     {{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py set_api_key {{ item.key }} {{ item.value }}
-  sudo_user: "{{ analytics_api_user }}"
+  become_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
   with_dict: ANALYTICS_API_USERS
   tags:
@@ -164,6 +164,6 @@
     config={{ supervisor_cfg }}
     name={{ analytics_api_service_name }}
   when: not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   tags:
     - manage:start

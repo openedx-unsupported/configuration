@@ -18,7 +18,7 @@
   git_2_0_1: >
     dest="{{ alton_code_dir }}" repo="{{ alton_source_repo }}"
     version="{{ alton_version }}" accept_hostkey=yes
-  sudo_user: "{{ alton_user }}"
+  become_user: "{{ alton_user }}"
   register: alton_checkout
   notify: restart alton
 
@@ -28,7 +28,7 @@
     virtualenv="{{ alton_venv_dir }}"
     state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
-  sudo_user: "{{ alton_user }}"
+  become_user: "{{ alton_user }}"
   notify: restart alton
 
 - name: create the supervisor wrapper
@@ -44,7 +44,7 @@
     src=alton.conf.j2 dest="{{ supervisor_available_dir }}/alton.conf"
     owner="{{ supervisor_user }}"
     group="{{ supervisor_user }}"
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   notify: restart alton
 
 - name: enable the supervisor config
@@ -54,7 +54,7 @@
     state=link
     force=yes
     mode=0644
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   when: not disable_edx_services
   notify: restart alton
 
