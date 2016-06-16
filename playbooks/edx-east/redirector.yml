@@ -1,0 +1,23 @@
+- name: Deploy redirector host
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    serial_count: 1
+    CLUSTER_NAME: 'redirector'
+  serial: "{{ serial_count }}"
+  roles:
+    - aws
+    - role: nginx
+      nginx_redirects: "{{ NGINX_REDIRECTOR_CUSTOM_REDIRECTS }}"
+      REDIRECT_NGINX_PORT: "80"
+      REDIRECT_SSL_NGINX_PORT: "443"
+      NGINX_ENABLE_SSL: "{{ REDIRECT_NGINX_ENABLE_SSL }}"
+      NGINX_SSL_CERTIFICATE: "{{ REDIRECT_NGINX_SSL_CERTIFICATE }}"
+      NGINX_SSL_KEY: "{{ REDIRECT_NGINX_SSL_KEY }}"
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
