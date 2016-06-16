@@ -4,21 +4,21 @@
   git_2_0_1: >
     dest={{ demo_code_dir }}  repo={{ demo_repo }} version={{ demo_version }}
     accept_hostkey=yes
-  sudo_user: "{{ demo_edxapp_user }}"
+  become_user: "{{ demo_edxapp_user }}"
   register: demo_checkout
 
 - name: import demo course
   shell: >
     {{ demo_edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ demo_edxapp_course_data_dir }} {{ demo_code_dir }}
     chdir={{ demo_edxapp_code_dir }}
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   when: demo_checkout.changed
 
 - name: create some test users and enroll them in the course
   shell: >
     {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e {{ item.email }} -p {{ item.password }} -m {{ item.mode }} -c {{ demo_course_id }}
     chdir={{ demo_edxapp_code_dir }}
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   with_items: demo_test_users
   when: demo_checkout.changed
 
@@ -26,7 +26,7 @@
   shell: >
     {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e staff@example.com -p edx -s -c {{ demo_course_id }}
     chdir={{ demo_edxapp_code_dir }}
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   when:
     - demo_checkout.changed
     - DEMO_CREATE_STAFF_USER

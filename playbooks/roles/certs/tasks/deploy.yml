@@ -4,13 +4,13 @@
   template: >
     src=certs.env.json.j2
     dest={{ certs_app_dir }}/env.json
-  sudo_user: "{{ certs_user }}"
+  become_user: "{{ certs_user }}"
 
 - name: create certificate auth file
   template: >
     src=certs.auth.json.j2
     dest={{ certs_app_dir }}/auth.json
-  sudo_user: "{{ certs_user }}"
+  become_user: "{{ certs_user }}"
 
 - name: writing supervisor script for certificates
   template: >
@@ -44,7 +44,7 @@
   git_2_0_1: >
     dest={{ certs_code_dir }} repo={{ CERTS_REPO }} version={{ certs_version }}
     accept_hostkey=yes
-  sudo_user: "{{ certs_user }}"
+  become_user: "{{ certs_user }}"
   environment:
     GIT_SSH: "{{ certs_git_ssh }}"
   register: certs_checkout
@@ -54,7 +54,7 @@
   git_2_0_1: >
     dest={{ certs_code_dir }} repo={{ CERTS_REPO }} version={{ certs_version }}
     accept_hostkey=yes
-  sudo_user: "{{ certs_user }}"
+  become_user: "{{ certs_user }}"
   register: certs_checkout
   when: CERTS_GIT_IDENTITY == "none"
 
@@ -66,7 +66,7 @@
   pip: >
     requirements="{{ certs_requirements_file }}" virtualenv="{{ certs_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
-  sudo_user: "{{ certs_user }}"
+  become_user: "{{ certs_user }}"
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
@@ -76,7 +76,7 @@
 - name: update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   when: not disable_edx_services
 
@@ -86,7 +86,7 @@
     supervisorctl_path={{ supervisor_ctl }}
     config={{ supervisor_cfg }}
     state=started
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   when: not disable_edx_services
 
 - name: create a symlink for venv python

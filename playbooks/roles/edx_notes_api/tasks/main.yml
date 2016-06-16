@@ -25,7 +25,7 @@
 #
 # - name: Deploy edX Notes API
 # hosts: all
-# sudo: True
+# become: True
 # gather_facts: True
 # vars:
 #   ENABLE_DATADOG: False
@@ -49,7 +49,7 @@
     requirements="{{ edx_notes_api_requirements_base }}/{{ item }}"
     virtualenv="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
     state=present extra_args="--exists-action w"
-  sudo_user: "{{ edx_notes_api_user }}"
+  become_user: "{{ edx_notes_api_user }}"
   with_items: edx_notes_api_requirements
 
 - name: migrate
@@ -58,7 +58,7 @@
     DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
     DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
     {{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/python {{ edx_notes_api_manage }} migrate --noinput --settings="notesserver.settings.yaml_config"
-  sudo_user: "{{ edx_notes_api_user }}"
+  become_user: "{{ edx_notes_api_user }}"
   environment:
     EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -152,4 +152,4 @@
     config={{ supervisor_cfg }}
     name={{ edx_notes_api_service_name }}
   when: not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
