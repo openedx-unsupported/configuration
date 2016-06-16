@@ -1,71 +1,67 @@
 ---
-- name: git checkout edx_ansible repo into edx_ansible_code_dir
-  git_2_0_1: >
-    dest={{ edx_ansible_code_dir }} repo={{ edx_ansible_source_repo }} version={{ configuration_version }}
-    accept_hostkey=yes
+- name: Git checkout edx_ansible repo into edx_ansible_code_dir
+  git_2_0_1:
+    dest: "{{ edx_ansible_code_dir }}"
+    repo: "{{ edx_ansible_source_repo }}"
+    version: "{{ configuration_version }}"
+    accept_hostkey: yes
   become_user: "{{ edx_ansible_user }}"
   tags:
     - install
     - install:code
 
-- name : install edx_ansible venv requirements
-  pip: >
-    requirements="{{ edx_ansible_requirements_file }}" virtualenv="{{ edx_ansible_venv_dir }}" state=present
-    extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
+- name: Install edx_ansible venv requirements
+  pip:
+    requirements: "{{ edx_ansible_requirements_file }}"
+    virtualenv: "{{ edx_ansible_venv_dir }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   become_user: "{{ edx_ansible_user }}"
   with_items: "{{ edx_ansible_requirements_files }}"
   tags:
     - install
     - install:app-requirements
 
-- name: create update script
-  template: >
-    dest={{ edx_ansible_app_dir}}/update
-    src=update.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
+- name: Create update and show-repo-heads script
+  template:
+    dest: "{{ edx_ansible_app_dir}}/{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: "{{ edx_ansible_user }}"
+    group: "{{ edx_ansible_user }}"
+    mode: 755
+  with_items:
+    - { src: 'update.j2', dest: 'update' }
+    - { src: 'show-repo-heads.j2', dest: 'show-repo-heads' }
   tags:
     - install
     - install:configuration
 
-- name: create a symlink for update.sh
-  file: >
-    src={{ edx_ansible_app_dir }}/update
-    dest={{ COMMON_BIN_DIR }}/update
-    state=link
+- name: Create symlinks for update and show-repo-heads scripts
+  file:
+    src: "{{ edx_ansible_app_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item }}"
+    state: link
+  with_items:
+    - update
+    - show-repo-heads
   tags:
     - install
     - install:configuration
 
-- name: create show-repo-heads script
-  template: >
-    dest={{ edx_ansible_app_dir}}/show-repo-heads
-    src=show-repo-heads.j2 owner={{ edx_ansible_user }} group={{ edx_ansible_user }} mode=755
+- name: Create a symlink for ansible-playbook
+  file:
+    src: "{{ edx_ansible_venv_bin }}/ansible-playbook"
+    dest: "{{ COMMON_BIN_DIR }}/ansible-playbook"
+    state: link
   tags:
     - install
     - install:configuration
 
-- name: create a symlink for show-repo-heads script
-  file: >
-    src={{ edx_ansible_app_dir }}/show-repo-heads
-    dest={{ COMMON_BIN_DIR }}/show-repo-heads
-    state=link
-  tags:
-    - install
-    - install:configuration
-
-- name: create a symlink for ansible-playbook
-  file: >
-    src={{ edx_ansible_venv_bin }}/ansible-playbook
-    dest={{ COMMON_BIN_DIR }}/ansible-playbook
-    state=link
-  tags:
-    - install
-    - install:configuration
-
-- name: create a symlink for the playbooks dir
-  file: >
-    src={{ edx_ansible_code_dir }}/playbooks
-    dest={{ COMMON_CFG_DIR }}/playbooks
-    state=link
+- name: Create a symlink for the playbooks dir
+  file:
+    src: "{{ edx_ansible_code_dir }}/playbooks"
+    dest: "{{ COMMON_CFG_DIR }}/playbooks"
+    state: link
   tags:
     - install
     - install:configuration
