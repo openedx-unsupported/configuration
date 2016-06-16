@@ -22,3 +22,26 @@
 
 - include: mysql.yml
   when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)
+
+- name: "Bind the server to {{ MYSQL_BIND_ADDRESS }}"
+  template:
+    src: "./etc/mysql/conf.d/bind-address.cnf.j2"
+    dest: "/etc/mysql/conf.d/bind-address.cnf"
+    mode: "0644"
+    owner: "root"
+    group: "root"
+  register: config_updated
+  tags:
+    - install
+    - install:configuration
+
+- name: Restart mysql
+  service:
+    name: mysql
+    state: restarted
+  when: config_updated.changed
+  tags:
+    - install
+    - install:configuration
+
+
