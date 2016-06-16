@@ -3,7 +3,7 @@
   template:
     src: "{{ item[0] }}.{{ item[1] }}.json.j2"
     dest: "{{ edxapp_app_dir }}/{{ item[0] }}.{{ item[1] }}.json"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   with_nested: 
     - "{{ service_variants_enabled }}"
     - [ 'env', 'auth' ]
@@ -16,7 +16,7 @@
   template:
     src: "{{ item[0] }}.{{ item[1] }}.yaml.j2"
     dest: "{{ EDXAPP_CFG_DIR }}/{{ item[0] }}.{{ item[1] }}.yaml"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   with_nested:
     - "{{ service_variants_enabled }}"
     - [ 'env', 'auth' ]
@@ -32,7 +32,7 @@
     dest: "{{ supervisor_available_dir }}/{{ item }}.conf"
     owner: "{{ supervisor_user }}"
     group: "{{ supervisor_user }}"
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   with_items: "{{ service_variants_enabled }}"
   tags:
     - install
@@ -45,7 +45,7 @@
     dest: "{{ supervisor_available_dir }}/{{ item }}"
     owner: "{{ supervisor_user }}"
     group: "{{ supervisor_user }}"
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   with_items:
     - edxapp.conf
     - workers.conf
@@ -57,7 +57,7 @@
   template:
     src: "{{ item }}_gunicorn.py.j2"
     dest: "{{ edxapp_app_dir }}/{{ item }}_gunicorn.py"
-  sudo_user: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
   with_items: "{{ service_variants_enabled }}"
   tags:
     - install
@@ -70,7 +70,7 @@
     dest: "{{ supervisor_cfg_dir }}/{{ item }}.conf"
     state: link
     force: yes
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   with_items: "{{ service_variants_enabled }}"
   when: celery_worker is not defined and not disable_edx_services
   tags:
@@ -83,7 +83,7 @@
     dest: "{{ supervisor_cfg_dir }}/edxapp.conf"
     state: link
     force: yes
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   when: celery_worker is not defined and not disable_edx_services
   tags:
     - install
@@ -95,7 +95,7 @@
     dest: "{{ supervisor_cfg_dir }}/workers.conf"
     state: link
     force: yes
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   when: celery_worker is defined and not disable_edx_services
   tags:
     - install

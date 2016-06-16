@@ -19,7 +19,7 @@
 #
 - name: set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
-  sudo_user: "{{ repo_owner }}"
+  become_user: "{{ repo_owner }}"
   when: GIT_REPOS is defined
   tags:
     - install
@@ -53,7 +53,7 @@
     version: "{{ item.VERSION }}"
     accept_hostkey: yes
     key_file: "{{ git_home }}/.ssh/{{ item.REPO }}"
-  sudo_user: "{{ repo_owner }}"
+  become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
   with_items: GIT_REPOS
@@ -66,7 +66,7 @@
     repo: "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
     dest: "{{ item.DESTINATION }}"
     version: "{{ item.VERSION }}"
-  sudo_user: "{{ repo_owner }}"
+  become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "https" and GIT_REPOS is defined
   with_items: GIT_REPOS
