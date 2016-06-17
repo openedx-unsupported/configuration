@@ -1,6 +1,26 @@
 # requires:
 #   - common/tasks/main.yml
 ---
+
+- name: Create Diffie-Hellman parameters to prevent weak key exchange
+  command: openssl dhparam -out "{{ NGINX_DH_PARAMS_PATH | basename }}" 2048
+  args:
+    chdir: "{{ NGINX_DH_PARAMS_PATH | dirname }}"
+    creates: "{{ NGINX_DH_PARAMS_PATH }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Restrict permissions of DH parameters file
+  file:
+    path: "{{ NGINX_DH_PARAMS_PATH }}"
+    owner: "root"
+    group: "root"
+    mode: 0600
+  tags:
+    - install
+    - install:configuration
+
 - name: Create nginx app and data dirs
   file:
     path: "{{ item.path }}"
