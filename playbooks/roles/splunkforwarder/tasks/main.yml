@@ -22,83 +22,90 @@
 #
 
 # Install Splunk Forwarder
-- name: install splunkforwarder specific system packages
-  apt: pkg={{','.join(splunk_debian_pkgs)}} state=present
+- name: Install splunkforwarder specific system packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ splunk_debian_pkgs }}"
   tags:
-  - splunk
-  - install
-  - update
+    - splunk
+    - install
+    - update
 
-- name: download the splunk deb
-  get_url: >
-    dest="/tmp/{{ SPLUNKFORWARDER_DEB }}"
-    url="{{ SPLUNKFORWARDER_PACKAGE_URL }}"
+- name: Download the splunk deb
+  get_url:
+    dest: "/tmp/{{ SPLUNKFORWARDER_DEB }}"
+    url: "{{ SPLUNKFORWARDER_PACKAGE_URL }}"
   register: download_deb
 
-- name: install splunk forwarder
-  shell: gdebi -nq /tmp/{{ SPLUNKFORWARDER_DEB }}
+- name: Install splunk forwarder
+  shell: "gdebi -nq /tmp/{{ SPLUNKFORWARDER_DEB }}"
   when: download_deb.changed
 
-# Create splunk user
-- name: create splunk user
-  user: name=splunk createhome=no state=present append=yes groups=syslog,adm
+- name: Create splunk user
+  user:
+    name: splunk
+    createhome: no
+    state: present
+    append: yes
+    groups: syslog,adm
   when: download_deb.changed
 
 # Need to start splunk manually so that it can create various files
 # and directories that aren't created till the first run and are needed
 # to run some of the below commands.
-- name: start splunk manually
-  shell: >
-    {{ splunkforwarder_output_dir }}/bin/splunk start --accept-license --answer-yes --no-prompt
-    creates={{ splunkforwarder_output_dir }}/var/lib/splunk
+- name: Start splunk manually
+  shell: "{{ splunkforwarder_output_dir }}/bin/splunk start --accept-license --answer-yes --no-prompt"
+  args:
+    creates: "{{ splunkforwarder_output_dir }}/var/lib/splunk"
   when: download_deb.changed
   register: started_manually
 
-- name: stop splunk manually
-  shell: >
-    {{ splunkforwarder_output_dir }}/bin/splunk stop --accept-license --answer-yes --no-prompt
+- name: Stop splunk manually
+  shell: "{{ splunkforwarder_output_dir }}/bin/splunk stop --accept-license --answer-yes --no-prompt"
   when: download_deb.changed and started_manually.changed
 
-- name: create boot script
-  shell: >
-    {{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt
-    creates=/etc/init.d/splunk
+- name: Create boot script
+  shell: "{{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt"
+  args:
+    creates: /etc/init.d/splunk
   register: create_boot_script
   when: download_deb.changed
   notify: restart splunkforwarder
 
-# Ensure permissions on splunk content
-- name: ensure splunk forder permissions
-  file: path={{ splunkforwarder_output_dir }} state=directory recurse=yes owner=splunk group=splunk
+- name: Ensure splunk forder permissions
+  file:
+    path: "{{ splunkforwarder_output_dir }}"
+    state: directory
+    recurse: yes
+    owner: splunk
+    group: splunk
   when: download_deb.changed
   notify: restart splunkforwarder
 
-# Update credentials
-- name: update admin pasword
+- name: Update admin pasword
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk edit user admin -password {{ SPLUNKFORWARDER_PASSWORD }} -auth admin:changeme --accept-license --answer-yes --no-prompt"
   when: download_deb.changed
   notify: restart splunkforwarder
 
-- name: add chkconfig to init script
-  shell: 'sed -i -e "s/\/bin\/sh/\/bin\/sh\n# chkconfig: 235 98 55/" /etc/init.d/splunk'
+- name: Add chkconfig to init script
+  lineinfile:
+    dest: /etc/init.d/splunk
+    regexp: "^# chkconfig: 235 98 55"
+    line: "# chkconfig: 235 98 55"
+    insertafter: "#!/bin/sh"
+    state: present
   when: download_deb.changed and create_boot_script.changed
   notify: restart splunkforwarder
 
-# Drop template files.
-- name: drop input configuration
+- name: Create inputs and outputs configuration
   template:
-    src=opt/splunkforwarder/etc/system/local/inputs.conf.j2
-    dest=/opt/splunkforwarder/etc/system/local/inputs.conf
-    owner=splunk
-    group=splunk
-    mode=644
-  notify: restart splunkforwarder
-
-- name: create outputs config file
-  template:
-    src=opt/splunkforwarder/etc/system/local/outputs.conf.j2
-    dest=/opt/splunkforwarder/etc/system/local/outputs.conf
-    owner=splunk
-    group=splunk
-    mode=644
+    src: "opt/splunkforwarder/etc/system/local/{{ item }}.conf.j2"
+    dest: "/opt/splunkforwarder/etc/system/local/{{ item }}.conf"
+    owner: splunk
+    group: splunk
+    mode: 644
+  with_items:
+    - inputs
+    - outputs
   notify: restart splunkforwarder
