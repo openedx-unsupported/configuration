@@ -78,17 +78,17 @@
     path={{ rabbitmq_config_dir }}
     owner=root group=root mode=0755 state=directory
 
-- name: add rabbitmq environment configuration
-  template: >
-    src=rabbitmq-env.conf.j2 dest={{ rabbitmq_config_dir }}/rabbitmq-env.conf
-    owner=root group=root mode=0644
+- name: remove rabbitmq environment configuration
+  file: >
+    path={{ rabbitmq_config_dir }}/rabbitmq-env.conf
+    state=absent
 
-- name: add rabbitmq cluster configuration
+- name: add rabbitmq configuration file
   template: >
     src=etc/rabbitmq/rabbitmq.config.j2
     dest={{ rabbitmq_config_dir }}/rabbitmq.config
     owner=root group=root mode=0644
-  register: cluster_configuration
+  register: configuration_file
 
 - name: install plugins
   rabbitmq_plugin:
@@ -99,7 +99,7 @@
 # that can conflict with the clustering information.
 - name: remove mnesia configuration
   file: path={{ rabbitmq_mnesia_folder }} state=absent
-  when: erlang_cookie.changed or cluster_configuration.changed or rabbitmq_refresh
+  when: erlang_cookie.changed or configuration_file.changed or rabbitmq_refresh
 
 - name: start rabbit nodes
   service: name=rabbitmq-server state=restarted

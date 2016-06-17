@@ -1,83 +1,128 @@
 ---
 
-# Stateless app server configuration, designed to be used with external mysql
-# and mongodb services.
-# TODO: use external rabbitmq and elasticsearch as well
+# Production app server configuration, designed to be used with external
+# services.
 
-- name: Configure instance(s)
+
+- name: Server setup
   hosts: all
   sudo: True
-  gather_facts: True
-
-  vars:
-    migrate_db: 'yes'
-    openid_workaround: True
-    EDXAPP_LMS_NGINX_PORT: '80'
-    ENABLE_ECOMMERCE: False  # Disable ecommerce by default
-
   roles:
-
-    # Server setup
     - swapfile
-
-    # RabbitMQ (TODO: remove this)
-    - role: rabbitmq
-      rabbitmq_ip: 127.0.0.1
-
-    # Elasticsearch (TODO: remove this)
-    - oraclejdk
-    - elasticsearch
-
-    # Nginx reverse proxy
-    - role: nginx
-      nginx_sites:
-      - certs
-      - cms
-      - lms
-      - forum
-      - xqueue
-      nginx_default_sites:
-      - lms
-
-    # Main EdX application
-    # https://github.com/edx/edx-platform
-    - role: edxapp
-      celery_worker: True
-    - edxapp
-
-    # Discussion forums
-    # https://github.com/edx/cs_comments_service
-    - forum
-
-    # Notifications service
-    # https://github.com/edx/notifier
-    - role: notifier
-      NOTIFIER_DIGEST_TASK_INTERVAL: '5'
-
-    # XQueue interface for communicating with external grader services
-    # https://github.com/edx/xqueue
-    - role: xqueue
-      update_users: True
-
-    # Certificate generation
-    # https://github.com/edx/edx-certificates
-    - certs
-
-    # Ecommerce (optional)
-    # https://github.com/edx/ecommerce
-    - role: nginx
-      nginx_sites:
-      - ecommerce
-      when: ENABLE_ECOMMERCE
-    - role: ecommerce
-      when: ENABLE_ECOMMERCE
-    - role: ecomworker
-      when: ENABLE_ECOMMERCE
-
-    # Optional extras
     - role: datadog
       when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder
       when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
       when: COMMON_ENABLE_NEWRELIC
+
+
+- name: RabbitMQ
+  hosts: rabbitmq
+  sudo: True
+  roles:
+    - role: rabbitmq
+      rabbitmq_ips: "{{ (groups.web + groups.worker) | to_yaml }}"
+
+
+- name: Elasticsearch
+  hosts: elasticsearch
+  sudo: True
+  roles:
+    - elasticsearch
+
+
+# https://github.com/edx/edx-platform
+- name: Worker
+  hosts: worker
+  sudo: True
+  vars: &edxapp_vars
+    EDXAPP_CELERY_BROKER_HOSTNAME: "{{ groups.rabbitmq[0] }}"
+    EDXAPP_COMMENTS_SERVICE_URL: "http://{{ groups.forum[0] }}:18080"
+    EDXAPP_ECOMMERCE_API_URL: "http://{{ groups.ecommerce[0] }}:8002/api/v2"
+    EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "http://{{ groups.ecommerce[0] }}:8002"
+    EDXAPP_ELASTIC_SEARCH_CONFIG:
+      - host: "{{ groups.elasticsearch[0] }}"
+        port: 9200
+    EDXAPP_LMS_NGINX_PORT: '80'
+    EDXAPP_XQUEUE_URL: "http://{{ groups.xqueue[0] }}:18040"
+    migrate_db: 'yes'
+    openid_workaround: True
+  roles:
+    - role: edxapp
+      celery_worker: True
+
+
+# https://github.com/edx/edx-platform
+- name: App server
+  hosts: web
+  sudo: True
+  vars:
+    <<: *edxapp_vars
+  roles:
+    - role: nginx
+      nginx_sites:
+        - cms
+        - lms
+      nginx_default_sites:
+        - lms
+    - edxapp
+
+
+# https://github.com/edx/cs_comments_service
+- name: Forum
+  hosts: forum
+  sudo: True
+  roles:
+    - role: nginx
+      nginx_sites:
+        - forum
+    - forum
+
+
+# https://github.com/edx/notifier
+- name: Notifier
+  hosts: notifier
+  sudo: True
+  roles:
+    - role: notifier
+      NOTIFIER_DIGEST_TASK_INTERVAL: '5'
+
+
+# https://github.com/edx/xqueue
+- name: XQueue
+  hosts: xqueue
+  sudo: True
+  vars:
+    migrate_db: 'yes'
+  roles:
+    - role: nginx
+      nginx_sites:
+        - xqueue
+    - role: xqueue
+      update_users: True
+
+
+# https://github.com/edx/edx-certificates
+- name: Certificates
+  hosts: certs
+  sudo: True
+  roles:
+    - role: nginx
+      nginx_sites:
+        - certs
+    - certs
+
+
+# https://github.com/edx/ecommerce
+- name: Ecommerce
+  hosts: ecommerce
+  sudo: True
+  vars:
+    migrate_db: 'yes'
+  roles:
+    - role: nginx
+      nginx_sites:
+        - ecommerce
+    - ecommerce
+    - ecomworker
