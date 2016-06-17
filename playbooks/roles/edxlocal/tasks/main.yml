@@ -20,7 +20,7 @@
   mysql_user:
     name: "{{ item.user }}"
     password: "{{ item.pass }}"
-    host: "{{ item.host }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: "{{ item.db }}.*:ALL"
     append_privs: yes
   when: item.db != None and item.db != ''
@@ -30,7 +30,7 @@
   mysql_user:
     name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
-    host: "{{ item.host }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: "{{ item }}.*:ALL"
     append_privs: yes
   when: item != None and item != ''
@@ -40,6 +40,7 @@
   mysql_user:
     name: "api001"
     password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
   when: ANALYTICS_API_SERVICE_CONFIG is defined
 
@@ -47,6 +48,7 @@
   mysql_user:
     name: reports001
     password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
   when: ANALYTICS_API_SERVICE_CONFIG is defined
 
@@ -61,6 +63,7 @@
   mysql_user:
     name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
     password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
@@ -69,10 +72,12 @@
   mysql_user:
     name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
     password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: "*.*:ALL"
 
 - name: setup the admin db user
   mysql_user:
     name: "{{ COMMON_MYSQL_ADMIN_USER }}"
     password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
+    host: "{{ EDXLOCAL_MYSQL_ALLOWED_HOST }}"
     priv: "*.*:CREATE USER"

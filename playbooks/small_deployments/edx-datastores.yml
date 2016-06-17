@@ -10,6 +10,9 @@
   gather_facts: True
   vars:
     MYSQL_BIND_ADDRESS: "0.0.0.0"
+#    EDXLOCAL_MYSQL_ALLOWED_HOST: "{{ hostvars['stateless'][0]['ansible_hostname'] }}"
+    EDXLOCAL_MYSQL_ALLOWED_HOST: "ip-192-168-0-160.ec2.internal"
+#    rabbitmq_ip: "{{ groups['datastores'][0] }}"
   vars_files:
     - "../roles/edxapp/defaults/main.yml"
     - "../roles/forum/defaults/main.yml"
@@ -18,13 +21,13 @@
     - "../roles/ecomworker/defaults/main.yml"
   roles:
     # This install mysql and creates users.
-    - role: edxlocal
     - role: memcache
     - role: mongo
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
-    - oraclejdk
+    - role: rabbitmq
+    - role: oraclejdk
     - role: elasticsearch
-    - edx_ansible
+    - role: edxlocal
+    - role: edx_ansible
     - role: datadog
       when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder
