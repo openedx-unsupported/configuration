@@ -66,7 +66,7 @@
     repo=https://github.com/sstephenson/rbenv.git
     dest={{ rbenv_dir }}/.rbenv version={{ rbenv_version }}
     accept_hostkey=yes
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   tags:
     - install
     - install:base
@@ -74,7 +74,7 @@
 - name: ensure ruby_env exists
   template: >
     src=ruby_env.j2 dest={{ rbenv_dir }}/ruby_env
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   tags:
     - install
     - install:base
@@ -100,7 +100,7 @@
 - name: create temporary directory
   command: mktemp -d
   register: tempdir
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
     - install
@@ -111,7 +111,7 @@
     repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
     accept_hostkey=yes
   when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   tags:
     - install
     - install:base
@@ -133,7 +133,7 @@
 - name: check ruby {{ rbenv_ruby_version }} installed
   shell: "rbenv versions | grep {{ rbenv_ruby_version }}"
   register: ruby_installed
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   ignore_errors: yes
   tags:
@@ -143,7 +143,7 @@
 - name: install ruby {{ rbenv_ruby_version }}
   shell: "rbenv install {{ rbenv_ruby_version }} creates={{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}"
   when: ruby_installed|failed
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
     - install
@@ -151,7 +151,7 @@
 
 - name: set global ruby {{ rbenv_ruby_version }}
   shell: "rbenv global {{ rbenv_ruby_version }}"
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
     - install
@@ -159,7 +159,7 @@
 
 - name: install bundler
   shell: "gem install bundler -v {{ rbenv_bundler_version }}"
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
     - install
@@ -174,7 +174,7 @@
 
 - name: install rake gem
   shell: "gem install rake -v {{ rbenv_rake_version }}"
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   when: jenkins_worker is not defined or not jenkins_worker
   tags:
@@ -183,7 +183,7 @@
 
 - name: update rubygems
   shell: "gem install rubygems-update && update_rubygems"
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
     - install
@@ -191,7 +191,7 @@
     
 - name: rehash
   shell: "rbenv rehash"
-  sudo_user: "{{ rbenv_user }}"
+  become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
     - install

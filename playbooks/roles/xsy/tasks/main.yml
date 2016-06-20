@@ -45,7 +45,7 @@
   git_2_0_1: >
     dest="{{ xsy_code_dir }}" repo="{{ xsy_source_repo }}"
     version="{{ xsy_version }}" accept_hostkey=yes
-  sudo_user: "{{ xsy_user }}"
+  become_user: "{{ xsy_user }}"
   register: xsy_checkout
   notify: restart xsy
 
@@ -55,7 +55,7 @@
     virtualenv="{{ xsy_venv_dir }}"
     state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }}"
-  sudo_user: "{{ xsy_user }}"
+  become_user: "{{ xsy_user }}"
   notify: restart xsy
 
 - name: create the supervisor wrapper
@@ -63,7 +63,7 @@
     src="{{ xsy_supervisor_wrapper|basename }}.j2"
     dest="{{ xsy_supervisor_wrapper }}"
     mode=0755
-  sudo_user: "{{ xsy_user }}"
+  become_user: "{{ xsy_user }}"
   notify: restart xsy
 
 - name: create a supervisor config
@@ -71,7 +71,7 @@
     src=xsy.conf.j2 dest="{{ supervisor_available_dir }}/xsy.conf"
     owner="{{ supervisor_user }}"
     group="{{ supervisor_user }}"
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   notify: restart xsy
 
 - name: enable the supervisor config
@@ -81,7 +81,7 @@
     state=link
     force=yes
     mode=0644
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   when: not disable_edx_services
   notify: restart xsy
 
