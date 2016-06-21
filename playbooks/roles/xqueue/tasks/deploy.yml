@@ -22,21 +22,21 @@
 - name: "add gunicorn configuration file"
   template: >
     src=xqueue_gunicorn.py.j2 dest={{ xqueue_app_dir }}/xqueue_gunicorn.py
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   tags:
     - install
     - install:configuration
 
 - name: create xqueue application config
   template: src=xqueue.env.json.j2 dest={{ xqueue_app_dir }}/xqueue.env.json mode=0644
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   tags:
     - install
     - install:configuration
 
 - name: create xqueue auth file
   template: src=xqueue.auth.json.j2 dest={{ xqueue_app_dir }}/xqueue.auth.json mode=0644
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   tags:
     - install
     - install:configuration
@@ -46,7 +46,7 @@
   git_2_0_1: >
     dest={{ xqueue_code_dir }} repo={{ xqueue_source_repo }} version={{ xqueue_version }}
     accept_hostkey=yes
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   register: xqueue_checkout
   tags:
     - install
@@ -58,7 +58,7 @@
   pip: >
     requirements="{{ xqueue_pre_requirements_file }}" virtualenv="{{ xqueue_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   tags:
     - install
     - install:app-requirements
@@ -68,7 +68,7 @@
   pip: >
     requirements="{{ xqueue_post_requirements_file }}" virtualenv="{{ xqueue_venv_dir }}" state=present
     extra_args="-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   tags:
     - install
     - install:app-requirements
@@ -78,7 +78,7 @@
 - name: migrate
   shell: >
     SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py migrate --noinput --settings=xqueue.aws_migrate --pythonpath={{ xqueue_code_dir }}
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
@@ -90,7 +90,7 @@
 - name: create users
   shell: >
     SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath={{ xqueue_code_dir }}
-  sudo_user: "{{ xqueue_user }}"
+  become_user: "{{ xqueue_user }}"
   tags:
     - manage
     - manage:app-users

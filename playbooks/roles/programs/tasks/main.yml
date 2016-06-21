@@ -25,7 +25,7 @@
   template:
     src: edx/app/programs/programs_gunicorn.py.j2
     dest: "{{ programs_home }}/programs_gunicorn.py"
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
 
 - name: install application requirements
   pip:
@@ -33,25 +33,25 @@
     # Ansible will initialize this virtualenv if it's missing.
     virtualenv: "{{ programs_venv_dir }}"
     state: present
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
   with_items: "{{ programs_requirements }}"
 
 - name: create nodeenv
   shell: >
     creates={{ programs_nodeenv_dir }}
     {{ programs_venv_dir }}/bin/nodeenv {{ programs_nodeenv_dir }} --prebuilt
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
 
 - name: install node dependencies
   npm: executable={{ programs_nodeenv_bin }}/npm path={{ programs_code_dir }} production=yes
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
 
 - name: install bower dependencies
   shell: >
     chdir={{ programs_code_dir }}
     . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/bower install --production --config.interactive=false
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
 
 - name: migrate
   shell: >
@@ -59,7 +59,7 @@
     DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
     DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
     {{ programs_venv_dir }}/bin/python ./manage.py migrate --noinput
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
@@ -67,21 +67,21 @@
   shell: >
     chdir={{ programs_code_dir }}
     . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/gulp css
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
   when: not devstack
 
 - name: run r.js optimizer
   shell: >
     chdir={{ programs_code_dir }}
     . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/r.js -o build.js
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
   when: not devstack
 
 - name: run collectstatic
   shell: >
     chdir={{ programs_code_dir }}
     {{ programs_venv_dir }}/bin/python manage.py {{ item }}
-  sudo_user: "{{ programs_user }}"
+  become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
   with_items:
     - "collectstatic --noinput"
@@ -157,4 +157,4 @@
     config: "{{ supervisor_cfg }}"
     name: "{{ programs_service_name }}"
   when: not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"

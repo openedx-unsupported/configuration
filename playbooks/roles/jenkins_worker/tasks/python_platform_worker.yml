@@ -11,7 +11,7 @@
     dest={{ jenkins_home }}/shallow-clone
     version={{ jenkins_edx_platform_version }}
     depth=1
-  sudo_user: "{{ jenkins_user }}"
+  become_user: "{{ jenkins_user }}"
 
 # pip-accel skipped due to conflicting versions of pip required
 # by the pip-accel package and edx-platform
@@ -20,7 +20,7 @@
 #     name="{{ item }}"
 #     virtualenv={{ jenkins_home }}/edx-venv
 #     virtualenv_command=virtualenv-2.7
-#   sudo_user: "{{ jenkins_user }}"
+#   become_user: "{{ jenkins_user }}"
 #   with_items: pip_accel_reqs
 
 # Install the platform requirements using pip.
@@ -42,7 +42,7 @@
     - github.txt
     - base.txt
     - paver.txt
-  sudo_user: "{{ jenkins_user }}"
+  become_user: "{{ jenkins_user }}"
 
 
 # These and the pip install below it can be removed some time after
@@ -50,7 +50,7 @@
 # This will keep us from breaking after that gets merged.
 - stat: path="{{ jenkins_home }}/shallow-clone/requirements/edx/post.txt"
   register: post_requirements
-  sudo_user: "{{ jenkins_user }}"
+  become_user: "{{ jenkins_user }}"
 
 - name: Install edx-platform post requirements using pip
   pip: >
@@ -61,7 +61,7 @@
     executable=pip
   with_items:
     - post.txt
-  sudo_user: "{{ jenkins_user }}"
+  become_user: "{{ jenkins_user }}"
   when: post_requirements.stat.exists
 
 # Archive the current state of the virtualenv
@@ -72,7 +72,7 @@
   command: >
     tar -cpzf edx-venv_clean.tar.gz edx-venv
     chdir={{ jenkins_home }}
-  sudo_user: "{{ jenkins_user }}"
+  become_user: "{{ jenkins_user }}"
 
 # Remove the shallow-clone directory now that we are
 # done with it

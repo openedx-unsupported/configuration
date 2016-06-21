@@ -69,8 +69,8 @@
 
 - name: ensure .bashrc exists
   shell: touch {{ notifier_app_dir }}/.bashrc
-  sudo: true
-  sudo_user: "{{ notifier_user }}"
+  become: true
+  become_user: "{{ notifier_user }}"
 
 - name: add source of notifier_env to .bashrc
   lineinfile:
@@ -110,26 +110,26 @@
     src=notifier-celery-workers-supervisor.sh.j2
     dest="{{ notifier_app_dir }}/notifier-celery-workers-supervisor.sh"
     mode=0775
-  sudo_user: "{{ notifier_user }}"
+  become_user: "{{ notifier_user }}"
 
 - name: write supervisord wrapper for scheduler
   template: >
     src=notifier-scheduler-supervisor.sh.j2
     dest="{{ notifier_app_dir }}/notifier-scheduler-supervisor.sh"
     mode=0775
-  sudo_user: "{{ notifier_user }}"
+  become_user: "{{ notifier_user }}"
 
 - name: write supervisord config for celery workers
   template: >
     src=edx/app/supervisor/conf.d/notifier-celery-workers.conf.j2
     dest="{{ supervisor_available_dir }}/notifier-celery-workers.conf"
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
 
 - name: write supervisord config for scheduler
   template: >
     src=edx/app/supervisor/conf.d/notifier-scheduler.conf.j2
     dest="{{ supervisor_available_dir }}/notifier-scheduler.conf"
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
 
 - name: enable supervisord config for celery workers
   file: >
@@ -137,7 +137,7 @@
     dest="{{ supervisor_cfg_dir }}/notifier-celery-workers.conf"
     state=link
     force=yes
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   notify: restart notifier-celery-workers
   when: not disable_edx_services
 
@@ -147,7 +147,7 @@
     dest="{{ supervisor_cfg_dir }}/notifier-scheduler.conf"
     state=link
     force=yes
-  sudo_user: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
   notify: restart notifier-scheduler
   when: not disable_edx_services
 
