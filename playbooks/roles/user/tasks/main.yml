@@ -74,13 +74,13 @@
 - debug: 
     var: user_info
 
-- name: create the edxadmin group
+- name: Create the edxadmin group
   group: 
     name: edxadmin 
     state: present
 
 # some AMIs (such as EMR master nodes) don't read the config files out of /etc/sudoers.d by default
-- name: ensure sudoers.d is read
+- name: Ensure sudoers.d is read
   lineinfile:
     dest: /etc/sudoers 
     state: present
@@ -89,7 +89,7 @@
     validate: 'visudo -cf %s'
 
 # give full sudo admin access to the edxadmin group
-- name: grant full sudo access to the edxadmin group
+- name: Grant full sudo access to the edxadmin group
   copy: 
     content: "%edxadmin ALL=(ALL) NOPASSWD:ALL"
     dest: /etc/sudoers.d/edxadmin 
@@ -98,7 +98,7 @@
     mode: 0440 
     validate: 'visudo -cf %s'
 
-- name: create the users
+- name: Create the users
   user:
     name: "{{ item.name }}"
     shell: /bin/bash
@@ -106,21 +106,32 @@
     state: "{{ item.state | default('present') }}"
   with_items: "{{ user_info }}"
 
-- name: assign admin role to admin users
+- name: Assign admin role to admin users
   user:
     name: "{{ item.name }}"
     groups: edxadmin
   when: item.type is defined and item.type == 'admin' and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: get github key(s) and update the authorized_keys file
+- name: Check the ssh key(s) for user(s) over github
+  uri:
+    url: "https://github.com/{{ item.name }}.keys"
+  with_items: "{{ user_info }}"
+  register: github_users_return
+
+- fail:
+    msg: "User {{ item.item.name }} didn't added ssh key to his account over github"
+  with_items: "{{ github_users_return.results }}"
+  when: item.content_length == "0"
+
+- name: Get github key(s) and update the authorized_keys file
   authorized_key:
     user: "{{ item.name }}"
     key: "https://github.com/{{ item.name }}.keys"
   when: item.github is defined and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: create bashrc file for normal users
+- name: Create bashrc file for normal users
   template: 
     src: default.bashrc.j2
     dest: "/home/{{ item.name }}/.bashrc" 
@@ -129,7 +140,7 @@
   when: not (item.type is defined and item.type == 'restricted') and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: create .profile for all users
+- name: Create .profile for all users
   template:
     src: default.profile.j2
     dest: "/home/{{ item.name }}/.profile" 
@@ -141,14 +152,14 @@
 ########################################################
 # All tasks below this line are for restricted users
 
-- name: modify shell for restricted users
+- name: Modify shell for restricted users
   user:
     name: "{{ item.name }}"
     shell: /bin/rbash
   when: item.type is defined and item.type == 'restricted' and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: create bashrc file for restricted users
+- name: Create bashrc file for restricted users
   template:
     src: restricted.bashrc.j2
     dest: "/home/{{ item.name }}/.bashrc" 
@@ -157,7 +168,7 @@
   when: item.type is defined and item.type == 'restricted' and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: create sudoers file from template
+- name: Create sudoers file from template
   template:
     dest: /etc/sudoers.d/99-restricted
     src: restricted.sudoers.conf.j2 
@@ -169,12 +180,16 @@
   # Prevent restricted user from updating their PATH and
   # environment by ensuring root ownership
 
-- name: change home directory ownership to root for restricted users
-  shell: "chown -R root:{{ item.name }} /home/{{ item.name }}"
+- name: Change home directory ownership to root for restricted users
+  file:
+    path: "/home/{{ item.name }}"
+    owner: root
+    group: "{{ item.name }}"
+    recurse: yes
   when: item.type is defined and item.type == 'restricted' and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: create ~/bin directory
+- name: Create ~/bin directory
   file:
     path: "/home/{{ item.name }}/bin" 
     state: directory 
@@ -184,7 +199,7 @@
   when: item.type is defined and item.type == 'restricted' and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
-- name: create allowed command links
+- name: Create allowed command links
   file:
     src: "{{ item[1] }}"
     dest: "/home/{{ item[0].name }}/bin/{{ item[1]|basename }}"
