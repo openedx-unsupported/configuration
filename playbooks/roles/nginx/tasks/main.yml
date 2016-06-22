@@ -2,6 +2,27 @@
 #   - common/tasks/main.yml
 ---
 
+- name: Update OpenSSL to latest version
+  apt: name=openssl state=latest
+  tags:
+    - install
+    - install:configuration
+
+- name: Create Diffie-Hellman parameters to prevent weak key exchange
+  command: >
+    openssl dhparam -out dhparams.pem 2048
+    chdir=/etc/ssl/private
+    creates=/etc/ssl/private/dhparams.pem
+  tags:
+    - install
+    - install:configuration
+
+- name: Restrict permissions of DH parameters file
+  file: path=/etc/ssl/private/dhparams.pem owner=root group=root mode=0600
+  tags:
+    - install
+    - install:configuration
+
 - name: create nginx app dirs
   file: >
     path="{{ item }}"
