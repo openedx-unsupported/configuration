@@ -1,0 +1,51 @@
+# This playbook will check for migrations that need to be run for Django applications within a larger
+# Django application. If migrations exist, it will run the migrations while saving the output as an artifact.
+#
+# The playbook uses the Django management commands found in this Django app repo:
+# https://github.com/edx/edx-django-release-util
+# So the Django app above needs to be installed in the Django app being checked for migrations.
+#
+# Required variables for this playbook:
+#
+#   - application_path                - the path where the Django application with potential migrations is installed
+#   - unapplied_migrations_path       - the path where the unapplied migration YAML output is stored
+#   - migration_output_path           - the path where the migration output is saved
+#   - hipchat_token                   - API token to send messages to hipchat
+#   - hipchat_room                    - ID or name of the room to send the notification
+#   - hipchat_url                     - URL of the hipchat API  (defaults to v1 of the api)
+#
+# Example command line to run this playbook:
+#    ansible-playbook -vvvv -i "localhost," -c local \
+#       -e @overrides.yml \
+#       run_migrations.yml
+#
+
+
+- hosts: all
+  vars:
+    application_path: /usr/src/myapp
+    unapplied_migrations_path: /tmp/unapplied_migrations.yml
+    migration_output_path: /tmp/migration_output.yml
+    hipchat_url: https://api.hipchat.com/v2/
+  gather_facts: False
+  connection: local
+  tasks:
+
+  - name: generate list of unapplied migrations
+    command: python manage.py show_unapplied_migrations --output_file "{{ unapplied_migrations_path }}"
+    args:
+      chdir: "{{ application_path }}"
+
+  - name: migrate to apply any unapplied migrations
+    command: python manage.py run_migrations "{{ unapplied_migrations_path }}" --output_file "{{ migration_output_path }}"
+    args:
+      chdir: "{{ application_path }}"
+
+  - name: Send Hipchat notification cleanup has finished
+    hipchat_2_0_0_1:
+      api: "{{ hipchat_url }}"
+      token: "{{ hipchat_token }}"
+      room: "{{ hipchat_room }}"
+      msg: "Migrations have completed."
+    ignore_errors: yes
+    when: hipchat_token is defined
