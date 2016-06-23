@@ -8,8 +8,10 @@
 # Required variables for this playbook:
 #
 #   - application_path                - the path where the Django application with potential migrations is installed
-#   - unapplied_migrations_path       - the path where the unapplied migration YAML output is stored
-#   - migration_output_path           - the path where the migration output is saved
+#                                       NOTE: It is assumed that edx-django-release-util is one of its INSTALLED_APPS.
+#   - unapplied_migrations_output     - the filename where the unapplied migration YAML output is stored
+#   - migration_output                - the filename where the migration output is saved
+#   - artifact_path                   - the path where the migration artifacts should be copied after completion
 #   - hipchat_token                   - API token to send messages to hipchat
 #   - hipchat_room                    - ID or name of the room to send the notification
 #   - hipchat_url                     - URL of the hipchat API  (defaults to v1 of the api)
@@ -23,23 +25,33 @@
 
 - hosts: all
   vars:
-    application_path: /usr/src/myapp
-    unapplied_migrations_path: /tmp/unapplied_migrations.yml
-    migration_output_path: /tmp/migration_output.yml
+    application_path: /usr/src/my_django_app
+    unapplied_migrations_output: unapplied_migrations.yml
+    migration_output: migration_output.yml
     hipchat_url: https://api.hipchat.com/v2/
   gather_facts: False
   connection: local
   tasks:
 
+  - name: Create a temporary directory for the migration output.
+    command: mktemp -d
+    register: temp_output_dir
+
   - name: generate list of unapplied migrations
-    command: python manage.py show_unapplied_migrations --output_file "{{ unapplied_migrations_path }}"
+    command: python manage.py show_unapplied_migrations --output_file "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}"
     args:
       chdir: "{{ application_path }}"
 
   - name: migrate to apply any unapplied migrations
-    command: python manage.py run_migrations "{{ unapplied_migrations_path }}" --output_file "{{ migration_output_path }}"
+    command: python manage.py run_migrations "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"
     args:
       chdir: "{{ application_path }}"
+
+  - name: Transfer artifacts to the proper place.
+    copy:
+      src: "{{ temp_output_dir.stdout }}/"
+      dest: "{{ artifact_path }}"
+      mode: 0700
 
   - name: Send Hipchat notification cleanup has finished
     hipchat_2_0_0_1:
