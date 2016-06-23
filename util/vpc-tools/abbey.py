@@ -296,8 +296,13 @@ if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
     /usr/bin/apt-get update
     /usr/bin/apt-get install -y git python-pip python-apt \\
         git-core build-essential python-dev libxml2-dev \\
-        python-httplib2 libxslt-dev curl libmysqlclient-dev --force-yes
+        libxslt-dev curl libmysqlclient-dev --force-yes
 fi
+
+# this is missing on 14.04 (base package on 12.04)
+# we need to do this on any build, since the above apt-get
+# only runs on a build from scratch
+/usr/bin/apt-get install -y python-httplib2 --force-yes
 
 # upgrade setuptools early to avoid no distributin errors
 pip install --upgrade setuptools==18.3.2
