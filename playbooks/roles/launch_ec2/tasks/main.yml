@@ -66,7 +66,7 @@
     ttl: 300
     record: "{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item.public_dns_name }}"
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
 
 - name: Add DNS names for services
   local_action:
@@ -79,7 +79,7 @@
     record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item[0].public_dns_name }}"
   with_nested:
-    - ec2.instances
+    - "{{ ec2.instances }}"
     - ['studio', 'ecommerce', 'preview', 'programs', 'discovery', 'credentials']
 
 - name: Add new instance to host group
@@ -87,7 +87,7 @@
     module: add_host
     hostname: "{{ item.public_ip }}"
     groups: launched
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
 
 - name: Wait for SSH to come up
   local_action:
@@ -97,4 +97,4 @@
     port: 22
     delay: 60
     timeout: 320
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
