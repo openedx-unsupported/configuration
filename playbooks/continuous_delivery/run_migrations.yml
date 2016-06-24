@@ -9,6 +9,7 @@
 #
 #   - application_path                - the path where the Django application with potential migrations is installed
 #                                       NOTE: It is assumed that edx-django-release-util is one of its INSTALLED_APPS.
+#   - applicaiton_name                - The name of the application that we are migrating.
 #   - application_user                - user which is meant to run the application
 #   - unapplied_migrations_output     - the filename where the unapplied migration YAML output is stored
 #   - migration_output                - the filename where the migration output is saved
@@ -26,44 +27,43 @@
 
 - hosts: all
   vars:
-    application_path: /usr/src/my_django_app
-    application_user: appuser
     unapplied_migrations_output: unapplied_migrations.yml
     migration_output: migration_output.yml
-    hipchat_url: https://api.hipchat.com/v2/
+    HIPCHAT_URL: https://api.hipchat.com/v2/
+    COMMAND_PREFIX: ". {{ APPLICATION_PATH }}/{{ APPLICATION_NAME }}_env; DB_MIGRATION_USER={{ DB_MIGRATION_USER }} DB_MIGRATION_PASS={{ DB_MIGRATION_PASS }} /edx/bin/python.{{ APPLICATION_NAME }} /edx/bin/manage.{{ APPLICATION_NAME }} "
   gather_facts: False
-  connection: local
   tasks:
 
   - name: Create a temporary directory for the migration output.
     command: mktemp -d
+    become_user: "{{ APPLICATION_USER }}"
     register: temp_output_dir
 
   - name: generate list of unapplied migrations
-    command: python manage.py show_unapplied_migrations --output_file "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}"
-    become: true
-    become_user: "{{ application_user }}"
-    args:
-      chdir: "{{ application_path }}"
+    shell: '{{ COMMAND_PREFIX }} show_unapplied_migrations --output_file "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}"'
+    become_user: "{{ APPLICATION_USER }}"
 
   - name: migrate to apply any unapplied migrations
-    command: python manage.py run_migrations "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"
+    shell: '{{ COMMAND_PREFIX }} run_migrations "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"'
     become: true
-    become_user: "{{ application_user }}"
-    args:
-      chdir: "{{ application_path }}"
+    become_user: "{{ APPLICATION_USER }}"
 
   - name: Transfer artifacts to the proper place.
-    copy:
-      src: "{{ temp_output_dir.stdout }}/"
-      dest: "{{ artifact_path }}"
+    fetch:
+      src: "{{ temp_output_dir.stdout }}/{{ item }}"
+      dest: "{{ ARTIFACT_PATH }}"
+      flat: True
+      fail_on_missing: True
       mode: 0700
+    with_items:
+      - "{{ unapplied_migrations_output }}"
+      - "{{ migration_output }}"
 
   - name: Send Hipchat notification cleanup has finished
     hipchat_2_0_0_1:
-      api: "{{ hipchat_url }}"
-      token: "{{ hipchat_token }}"
-      room: "{{ hipchat_room }}"
+      api: "{{ HIPCHAT_URL }}"
+      token: "{{ HIPCHAT_TOKEN }}"
+      room: "{{ HIPCHAT_ROOM }}"
       msg: "Migrations have completed."
     ignore_errors: yes
     when: hipchat_token is defined
