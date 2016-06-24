@@ -9,6 +9,7 @@
 #
 #   - application_path                - the path where the Django application with potential migrations is installed
 #                                       NOTE: It is assumed that edx-django-release-util is one of its INSTALLED_APPS.
+#   - application_user                - user which is meant to run the application
 #   - unapplied_migrations_output     - the filename where the unapplied migration YAML output is stored
 #   - migration_output                - the filename where the migration output is saved
 #   - artifact_path                   - the path where the migration artifacts should be copied after completion
@@ -26,6 +27,7 @@
 - hosts: all
   vars:
     application_path: /usr/src/my_django_app
+    application_user: appuser
     unapplied_migrations_output: unapplied_migrations.yml
     migration_output: migration_output.yml
     hipchat_url: https://api.hipchat.com/v2/
@@ -39,11 +41,15 @@
 
   - name: generate list of unapplied migrations
     command: python manage.py show_unapplied_migrations --output_file "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}"
+    become: true
+    become_user: "{{ application_user }}"
     args:
       chdir: "{{ application_path }}"
 
   - name: migrate to apply any unapplied migrations
     command: python manage.py run_migrations "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"
+    become: true
+    become_user: "{{ application_user }}"
     args:
       chdir: "{{ application_path }}"
 
