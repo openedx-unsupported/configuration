@@ -326,13 +326,13 @@ EOF
 
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
-    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu -vvvv
+    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
-        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
+        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
@@ -355,18 +355,18 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
+                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
             fi
         fi
     done
 fi
 
 # deploy the edx_ansible role
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $sandbox_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -vvvv -b
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
   exit $ret
@@ -374,11 +374,11 @@ fi
 
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu -vvvv
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
