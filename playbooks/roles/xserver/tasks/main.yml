@@ -2,37 +2,39 @@
 # As of right now this role requires
 # access to the edX 6.00x repo which is not public
 ---
-
-- name: checking for grader info
-  fail: msg="You must define XSERVER_GRADER_DIR"
+- name: Checking for grader info
+  fail:
+    msg: "You must define XSERVER_GRADER_DIR"
   when: XSERVER_GRADER_DIR|length == 0
 
-- fail: msg="You must define XSERVER_GRADER_SOURCE"
+- fail:
+    msg: "You must define XSERVER_GRADER_SOURCE"
   when: XSERVER_GRADER_SOURCE|length == 0
 
-- name: checking for git identity
-  fail: msg="You must define XSERVER_GIT_IDENTITY to use this role"
+- name: Checking for git identity
+  fail:
+    msg: "You must define XSERVER_GIT_IDENTITY to use this role"
   when: XSERVER_GIT_IDENTITY|length == 0
 
-- name: create application user
-  user: >
-    name="{{ xserver_user }}"
-    home="{{ xserver_app_dir }}"
-    createhome=no
-    shell=/bin/false
+- name: Create application user
+  user:
+    name: "{{ xserver_user }}"
+    home: "{{ xserver_app_dir }}"
+    createhome: no
+    shell: /bin/false
 
-- name: create application sandbox user
-  user: >
-    name="{{ xserver_sandbox_user }}"
-    createhome=no
-    shell=/bin/false
+- name: Create application sandbox user
+  user:
+    name: "{{ xserver_sandbox_user }}"
+    createhome: no
+    shell: /bin/false
 
-- name: create xserver app and data dirs
-  file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ xserver_user }}"
-    group="{{ common_web_group }}"
+- name: Create xserver app and data dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ xserver_user }}"
+    group: "{{ common_web_group }}"
   with_items:
     - "{{ xserver_app_dir }}"
     # needed for the ansible 1.5 git module
@@ -41,30 +43,43 @@
     - "{{ xserver_data_dir }}"
     - "{{ xserver_data_dir }}/data"
 
-- name: create sandbox sudoers file
-  template: src=99-sandbox.j2 dest=/etc/sudoers.d/99-sandbox owner=root group=root mode=0440
+- name: Create sandbox sudoers file
+  template:
+    src: 99-sandbox.j2
+    dest: "/etc/sudoers.d/99-sandbox"
+    owner: root
+    group: root
+    mode: "0440"
 
 # Make sure this line is in the common-session file.
-- name: ensure pam-limits module is loaded
+- name: Ensure pam-limits module is loaded
   lineinfile:
-    dest=/etc/pam.d/common-session
-    regexp="session required pam_limits.so"
-    line="session required pam_limits.so"
+    dest: /etc/pam.d/common-session
+    regexp: "session required pam_limits.so"
+    line: "session required pam_limits.so"
 
-- name: set sandbox limits
-  template: src={{ item }} dest=/etc/security/limits.d/sandbox.conf
+- name: Set sandbox limits
+  template:
+    src: "{{ item }}"
+    dest: "/etc/security/limits.d/sandbox.conf"
   first_available_file:
-  - "{{ secure_dir }}/sandbox.conf.j2"
-  - "sandbox.conf.j2"
+    - "{{ secure_dir }}/sandbox.conf.j2"
+    - "sandbox.conf.j2"
 
-- name: install system dependencies of xserver
-  apt: pkg={{ item }} state=present
-  with_items: xserver_debian_pkgs
+- name: Install system dependencies of xserver
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ xserver_debian_pkgs }}"
 
-- name: load python-sandbox apparmor profile
-  template: src={{ item }} dest=/etc/apparmor.d/edx_apparmor_sandbox
+- name: Load python-sandbox apparmor profile
+  template:
+    src: "{{ item }}"
+    dest: "/etc/apparmor.d/edx_apparmor_sandbox"
   first_available_file:
-  - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
-  - "usr.bin.python-sandbox.j2"
+    - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
+    - "usr.bin.python-sandbox.j2"
 
-- include: deploy.yml tags=deploy
+- include: deploy.yml
+  tags:
+    - deploy
