@@ -40,7 +40,9 @@ $(docker_build)%: docker/build/%/Dockerfile
 	docker build -f $< .
 
 $(docker_test)%: .build/%/Dockerfile.test
+	date
 	docker build -t $*:test -f $< .
+	date
 
 $(docker_pkg)%: .build/%/Dockerfile.pkg
 	docker build -t $*:latest -f $< .
