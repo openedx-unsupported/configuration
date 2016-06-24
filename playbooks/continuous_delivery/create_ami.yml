@@ -6,8 +6,8 @@
 #   - instance_id                     - the ec2 instance ID use to create the AMI
 #   - edx_environment                 - value to use for the environment tag
 #   - deployment                      - value to use for the deploy tag
-#   - cluster_repo                    - the url of the github repo for this cluster
-#   - cluster_version                 - git hash of the cluster (play, service, IDA) being deployed
+#   - app_repo                        - the url of the github repo for this app
+#   - app_version                     - git hash of the app (play, service, IDA) being deployed
 #   - play                            - the play that was run
 #   - configuration_repo              - The github url for the configuration repo
 #   - configuration_version           - The version (git hash) of configuration
@@ -34,7 +34,7 @@
 #       -e play=pipline-test \
 #       -e deployment=edx \
 #       -e edx_environment=sandbox \
-#       -e cluster_version=12345 \
+#       -e app_version=12345 \
 #       -e configuration_version=12345
 #       -e configuration_secure_version=12345
 #       -e cache_id=12345
@@ -55,7 +55,7 @@
   - name: Create AMI
     ec2_ami_2_0_0_1:
       instance_id: "{{ instance_id }}"
-      name: "{{ play }} -- {{ cluster_version }}"
+      name: "{{ edx_environment }} -- {{ deployment }} -- {{ play }} -- {{ app_version }}"
       region: "{{ ec2_region }}"
       wait: "{{ ami_wait }}"
       wait_timeout: "{{ ami_creation_timeout }}"
@@ -63,7 +63,7 @@
       description: "AMI built via edX continuous delivery pipeline - Ansible version: {{ ansible_version }}"
       # used a JSON object here as there is a string interpolation in the keys.
       tags: "{
-                'version:{{ play }}':'{{ cluster_repo }} {{ cluster_version }}',
+                'version:{{ play }}':'{{ app_repo }} {{ app_version }}',
                 'version:configuration':'{{ configuration_repo }} {{ configuration_version }}',
                 'version:configuration_secure':'{{ configuration_secure_repo }} {{ configuration_secure_version }}',
                 'play':'{{ play }}',
