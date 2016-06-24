@@ -1,10 +1,10 @@
 ---
-
-- name: checkout code
+- name: Checkout code
   git_2_0_1:
-    dest={{ NOTIFIER_CODE_DIR }} repo={{ NOTIFIER_SOURCE_REPO }}
-    version={{ NOTIFIER_VERSION }}
-    accept_hostkey=yes
+    dest: "{{ NOTIFIER_CODE_DIR }}"
+    repo: "{{ NOTIFIER_SOURCE_REPO }}"
+    version: "{{ NOTIFIER_VERSION }}"
+    accept_hostkey: yes
   become: true
   become_user: "{{ notifier_user }}"
   notify:
@@ -12,48 +12,56 @@
     - restart notifier-celery-workers
 
 # Optional auth for git
-- name: create ssh script for git (not authenticated)
-  template: >
-    src=git_ssh_noauth.sh.j2 dest={{ notifier_git_ssh }}
-    owner={{ notifier_user }} mode=750
+- name: Create ssh script for git (not authenticated)
+  template:
+    src: "git_ssh_noauth.sh.j2"
+    dest: "{{ notifier_git_ssh }}"
+    owner: "{{ notifier_user }}"
+    mode: "0750"
   when: NOTIFIER_GIT_IDENTITY == ""
 
-- name: create ssh script for git (authenticated)
-  template: >
-    src=git_ssh_auth.sh.j2 dest={{ notifier_git_ssh }}
-    owner={{ notifier_user }} mode=750
+- name: Create ssh script for git (authenticated)
+  template:
+    src: "git_ssh_auth.sh.j2"
+    dest: "{{ notifier_git_ssh }}"
+    owner: "{{ notifier_user }}"
+    mode: "0750"
   when: NOTIFIER_GIT_IDENTITY != ""
 
-- name: install read-only ssh key
-  copy: >
-    content="{{ NOTIFIER_GIT_IDENTITY }}" dest={{ notifier_git_identity }}
-    force=yes owner={{ notifier_user }} mode=0600
+- name: Install read-only ssh key
+  copy:
+    content: "{{ NOTIFIER_GIT_IDENTITY }}"
+    dest: "{{ notifier_git_identity }}"
+    force: yes
+    owner: "{{ notifier_user }}"
+    mode: "0600"
   when: NOTIFIER_GIT_IDENTITY != ""
 
-- name: checkout theme
-  git_2_0_1: >
-    dest={{ NOTIFIER_CODE_DIR }}/{{ NOTIFIER_THEME_NAME }}
-    repo={{ NOTIFIER_THEME_REPO }}
-    version={{ NOTIFIER_THEME_VERSION }}
-    accept_hostkey=yes
+- name: Checkout theme
+  git_2_0_1:
+    dest: "{{ NOTIFIER_CODE_DIR }}/{{ NOTIFIER_THEME_NAME }}"
+    repo: "{{ NOTIFIER_THEME_REPO }}"
+    version: "{{ NOTIFIER_THEME_VERSION }}"
+    accept_hostkey: yes
   when: NOTIFIER_THEME_NAME != ''
   become_user: "{{ notifier_user }}"
   environment:
     GIT_SSH: "{{ notifier_git_ssh }}"
 
-- name: write notifier local settings
-  template: >
-    src=settings_local.py.j2
-    dest={{ NOTIFIER_CODE_DIR }}/notifier/settings_local.py
-    mode=0555
+- name: Write notifier local settings
+  template:
+    src: "settings_local.py.j2"
+    dest: "{{ NOTIFIER_CODE_DIR }}/notifier/settings_local.py"
+    mode: "0555"
   when: NOTIFIER_THEME_NAME != ''
   notify:
     - restart notifier-celery-workers
 
-- name: install application requirements
+- name: Install application requirements
   pip:
-    requirements="{{ NOTIFIER_REQUIREMENTS_FILE }}"
-    virtualenv="{{ NOTIFIER_VENV_DIR }}" state=present
+    requirements: "{{ NOTIFIER_REQUIREMENTS_FILE }}"
+    virtualenv: "{{ NOTIFIER_VENV_DIR }}"
+    state: present
   become: true
   become_user: "{{ notifier_user }}"
   notify:
@@ -63,10 +71,13 @@
 # Syncdb for whatever reason always creates the file owned by www-data:www-data, and then
 # complains it can't write because it's running as notifier.  So this is to touch the file into
 # place with proper perms first.
-- name: fix permissions on notifer db file
-  file: >
-    path={{ NOTIFIER_DB_DIR }}/notifier.db state=touch owner={{ notifier_user }} group={{ NOTIFIER_WEB_USER }}
-    mode=0664
+- name: Fix permissions on notifer db file
+  file:
+    path: "{{ NOTIFIER_DB_DIR }}/notifier.db"
+    state: touch
+    owner: "{{ notifier_user }}"
+    group: "{{ NOTIFIER_WEB_USER }}"
+    mode: "0664"
   become: true
   notify:
     - restart notifier-scheduler
@@ -74,9 +85,10 @@
   tags:
   - deploy
 
-- name: syncdb
-  shell: >
-    cd {{ NOTIFIER_CODE_DIR }} && {{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb
+- name: Syncdb
+  shell: "{{ NOTIFIER_VENV_DIR }}/bin/python manage.py syncdb"
+  args:
+    chdir: "{{ NOTIFIER_CODE_DIR }}"
   become: true
   become_user: "{{ notifier_user }}"
   environment: notifier_env_vars
