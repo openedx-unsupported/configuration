@@ -5,34 +5,35 @@
 
 - name: lookup tags for terminating existing instance
   local_action:
-    module: ec2_lookup
+    module: ec2_remote_facts
     region: "{{ region }}"
-    tags:
-      - Name: "{{ name_tag }}"
+    filters:
+      instance-state-name: running
+      "tag:Name": "{{ name_tag }}"
   register: tag_lookup
   when: terminate_instance == true
 
 - name: checking for other instances
   debug: msg="Too many results returned, not terminating!"
-  when: terminate_instance == true and tag_lookup.instance_ids|length > 1
+  when: terminate_instance == true and tag_lookup.instances|length > 1
 
 - name: terminating single instance
   local_action:
     module: ec2
     state: 'absent'
     region: "{{ region }}"
-    instance_ids: "{{tag_lookup.instance_ids}}"
-  when: terminate_instance == true and tag_lookup.instance_ids|length == 1
+    instance_ids: "{{ tag_lookup.instances[0].id }}"
+  when: terminate_instance == true and tag_lookup.instances|length == 1
 
 - name: deregister instance from an an elb if it was in one
   local_action:
     module: ec2_elb
     region: "{{ region }}"
-    instance_id: "{{ tag_lookup.instance_ids[0] }}"
+    instance_id: "{{ tag_lookup.instances[0].id }}"
     ec2_elbs:
       - "{{ elb }}"
     state: absent
-  when: terminate_instance == true and elb and tag_lookup.instance_ids|length == 1
+  when: terminate_instance == true and elb and tag_lookup.instances|length == 1
 
 - name: Launch ec2 instance
   local_action:
@@ -43,11 +44,12 @@
     image: "{{ ami }}"
     vpc_subnet_id: "{{ vpc_subnet_id }}"
     assign_public_ip: yes
-    wait: true
+    wait: True
     region: "{{ region }}"
     instance_tags: "{{ instance_tags }}"
     volumes:
       - device_name: /dev/sda1
+        volume_type: gp2
         volume_size: "{{ root_ebs_size }}"
         delete_on_termination: true
     zone: "{{ zone }}"
@@ -64,7 +66,7 @@
     ttl: 300
     record: "{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item.public_dns_name }}"
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
 
 - name: Add DNS names for services
   local_action:
@@ -77,7 +79,7 @@
     record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item[0].public_dns_name }}"
   with_nested:
-    - ec2.instances
+    - "{{ ec2.instances }}"
     - ['studio', 'ecommerce', 'preview', 'programs', 'discovery', 'credentials']
 
 - name: Add new instance to host group
@@ -85,7 +87,7 @@
     module: add_host
     hostname: "{{ item.public_ip }}"
     groups: launched
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
 
 - name: Wait for SSH to come up
   local_action:
@@ -95,4 +97,4 @@
     port: 22
     delay: 60
     timeout: 320
-  with_items: ec2.instances
+  with_items: "{{ ec2.instances }}"
