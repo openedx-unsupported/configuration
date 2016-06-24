@@ -19,7 +19,7 @@
 
 - debug:
     msg: "{{ tag_lookup }}"
-    
+
 - name: checking for other instances
   debug: msg="Too many results returned, not terminating!"
   when: terminate_instance == true and tag_lookup.instances|length > 1
@@ -30,17 +30,17 @@
     state: 'absent'
     region: "{{ region }}"
     instance_ids: "{{tag_lookup.instance_ids}}"
-  when: terminate_instance == true and tag_lookup.instance_ids|length == 1
+  when: terminate_instance == true and tag_lookup.instances|length == 1
 
 - name: deregister instance from an an elb if it was in one
   local_action:
     module: ec2_elb
     region: "{{ region }}"
-    instance_id: "{{ tag_lookup.instance_ids[0] }}"
+    instance_id: "{{ tag_lookup.instances[0] }}"
     ec2_elbs:
       - "{{ elb }}"
     state: absent
-  when: terminate_instance == true and elb and tag_lookup.instance_ids|length == 1
+  when: terminate_instance == true and elb and tag_lookup.instances|length == 1
 
 - name: Launch ec2 instance
   local_action:
