@@ -364,7 +364,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
 fi
 
 # deploy the edx_ansible role
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
 cat $sandbox_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
@@ -374,11 +374,11 @@ fi
 
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
 fi
 
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu -vvvv
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
