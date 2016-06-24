@@ -331,8 +331,8 @@ EOF
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
+        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
     fi
 fi
 
@@ -355,9 +355,9 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
             fi
         fi
     done
@@ -366,7 +366,7 @@ fi
 # deploy the edx_ansible role
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu -vvvv
 cat $sandbox_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -vvvv -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
   exit $ret
