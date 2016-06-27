@@ -9,7 +9,7 @@ from collections import namedtuple
 class FileParser:
 
     def __init__(self):
-        self.paths = self._load_repo_path()
+        self._load_repo_path()
 
     def _load_repo_path(self):
         """Loads the path for the configuration repository from TRAVIS_BUILD_DIR environment variable."""
