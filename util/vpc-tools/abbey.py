@@ -655,7 +655,7 @@ def launch_and_configure(ec2_args):
     system_start = time.time()
     for _ in xrange(EC2_STATUS_TIMEOUT):
         status = ec2.get_all_instance_status(inst.id)
-        if status[0].system_status.status == u'ok':
+        if status and status[0].system_status.status == u'ok':
             system_delta = time.time() - system_start
             run_summary.append(('EC2 Status Checks', system_delta))
             print "[ OK ] {:0>2.0f}:{:0>2.0f}".format(
