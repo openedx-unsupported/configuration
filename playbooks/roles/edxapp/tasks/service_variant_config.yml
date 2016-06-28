@@ -1,5 +1,5 @@
 ---
-- name: create application and auth config
+- name: Create application and auth config
   template:
     src: "{{ item[0] }}.{{ item[1] }}.json.j2"
     dest: "{{ edxapp_app_dir }}/{{ item[0] }}.{{ item[1] }}.json"
@@ -12,7 +12,7 @@
     - install:configuration
     - edxapp_cfg
 
-- name: create auth and application yaml config
+- name: Create auth and application yaml config
   template:
     src: "{{ item[0] }}.{{ item[1] }}.yaml.j2"
     dest: "{{ EDXAPP_CFG_DIR }}/{{ item[0] }}.{{ item[1] }}.yaml"
@@ -26,7 +26,7 @@
     - edxapp_cfg
 
 # write the supervisor scripts for the service variants
-- name: "writing {{ item }} supervisor script"
+- name: "Writing {{ item }} supervisor script"
   template:
     src: "{{ item }}.conf.j2"
     dest: "{{ supervisor_available_dir }}/{{ item }}.conf"
@@ -39,7 +39,7 @@
     - install:configuration
 
 # write the supervisor script for edxapp and celery workers
-- name: writing edxapp and celery supervisor scripts
+- name: Writing edxapp and celery supervisor scripts
   template:
     src: "{{ item }}.j2"
     dest: "{{ supervisor_available_dir }}/{{ item }}"
@@ -53,7 +53,7 @@
     - install
     - install:configuration
 
-- name: add gunicorn configuration files
+- name: Add gunicorn configuration files
   template:
     src: "{{ item }}_gunicorn.py.j2"
     dest: "{{ edxapp_app_dir }}/{{ item }}_gunicorn.py"
@@ -64,7 +64,7 @@
     - install:configuration
 
 # Enable the supervisor jobs
-- name: "enable {{ item }} supervisor script"
+- name: "Enable {{ item }} supervisor script"
   file:
     src: "{{ supervisor_available_dir }}/{{ item }}.conf"
     dest: "{{ supervisor_cfg_dir }}/{{ item }}.conf"
@@ -77,7 +77,7 @@
     - install
     - install:configuration
 
-- name: enable edxapp supervisor script
+- name: Enable edxapp supervisor script
   file:
     src: "{{ supervisor_available_dir }}/edxapp.conf"
     dest: "{{ supervisor_cfg_dir }}/edxapp.conf"
@@ -89,7 +89,7 @@
     - install
     - install:configuration
 
-- name: enable celery worker supervisor script
+- name: Enable celery worker supervisor script
   file:
     src: "{{ supervisor_available_dir }}/workers.conf"
     dest: "{{ supervisor_cfg_dir }}/workers.conf"
@@ -101,7 +101,7 @@
     - install
     - install:configuration
 
-- name: create helper scripts for managing edxapp
+- name: Create helper scripts for managing edxapp
   template:
     src: "edx/bin/{{ item[0] }}-{{ item[1] }}.j2"
     dest: "{{ COMMON_BIN_DIR }}/{{ item[0] }}-{{ item[1] }}"
@@ -115,7 +115,7 @@
     - install:configuration
 
 # migrate when the migrate user is overridden in extra vars
-- name: migrate
+- name: Migrate
   command: "{{ COMMON_BIN_DIR }}/edxapp-migrate-{{ item }}"
   when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and item != "lms-preview"
   environment:
@@ -145,7 +145,7 @@
     - assets
 
 # Gather assets using paver if possible
-- name: "gather {{ item }} static assets with paver"
+- name: "Gather {{ item }} static assets with paver"
   command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
   when: celery_worker is not defined and not devstack and item != "lms-preview"
   with_items: "{{ service_variants_enabled }}"

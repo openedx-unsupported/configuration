@@ -1,5 +1,5 @@
 ---
-- name: create edxapp configuration dir
+- name: Create edxapp configuration dir
   file:
     path: "{{ EDXAPP_CFG_DIR }}" 
     state: directory
@@ -9,7 +9,7 @@
     - install
     - install:base
 
-- name: copy the template to the desired location
+- name: Copy the template to the desired location
   template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
@@ -24,7 +24,7 @@
     - install
     - install:base
 
-- name: install read-only ssh key
+- name: Install read-only ssh key
   copy:
     content: "{{ EDXAPP_GIT_IDENTITY }}"
     dest: "{{ edxapp_git_identity }}"
@@ -36,7 +36,7 @@
     - install
     - install:base
 
-- name: set git fetch.prune to ignore deleted remote refs
+- name: Set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   become_user: "{{ edxapp_user }}"
   tags:
@@ -44,7 +44,7 @@
     - install:base
 
 # Do A Checkout
-- name: checkout edx-platform repo into {{ edxapp_code_dir }}
+- name: Checkout edx-platform repo into {{ edxapp_code_dir }}
   git_2_0_1:
     dest: "{{ edxapp_code_dir }}"
     repo: "{{ edx_platform_repo }}"
@@ -58,7 +58,7 @@
     - install
     - install:code
 
-- name: git clean after checking out edx-platform
+- name: Git clean after checking out edx-platform
   shell: cd {{ edxapp_code_dir }} && git clean -xdf
   become_user: "{{ edxapp_user }}"
   tags:
@@ -71,7 +71,7 @@
 # To enable Stanford theming, point edxapp_theme_source_repo
 # (yes, lowercase) to a Stanford-style theme and set
 # edxapp_theme_name (again, lowercase) to its name.
-- name: checkout Stanford-style theme
+- name: Checkout Stanford-style theme
   git_2_0_1:
     dest: "{{ edxapp_app_dir }}/themes/{{ edxapp_theme_name }}"
     repo: "{{ edxapp_theme_source_repo }}"
@@ -90,7 +90,7 @@
 # EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO to your theme repo, and set
 # EDXAPP_COMPREHENSIVE_THEME_DIR to the directory you want to check
 # out to.
-- name: checkout comprehensive theme
+- name: Checkout comprehensive theme
   git_2_0_1:
     dest: "{{ EDXAPP_COMPREHENSIVE_THEME_DIR }}"
     repo: "{{ EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO }}"
@@ -197,7 +197,7 @@
 
 # Private requriements require a ssh key to install, use the same key as the private key for edx-platform
 # If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
-- name: install python private requirements
+- name: Install python private requirements
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -215,7 +215,7 @@
     - install:app-requirements
 
 # Install any custom extra requirements if defined in EDXAPP_EXTRA_REQUIREMENTS.
-- name: install python extra requirements
+- name: Install python extra requirements
   pip:
     name: "{{ item.name }}"
     version: "{{ item.version|default(omit) }}"
@@ -230,7 +230,7 @@
 
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
-- name: install CAS attribute module
+- name: Install CAS attribute module
   pip:
     name: "{{ EDXAPP_CAS_ATTRIBUTE_PACKAGE }}"
     virtualenv: "{{ edxapp_venv_dir }}"
@@ -243,7 +243,7 @@
     - install:app-requirements
 
 # Install the sandbox python modules into {{ edxapp_venv_dir }}
-- name: install sandbox requirements into regular venv
+- name: Install sandbox requirements into regular venv
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
@@ -264,7 +264,7 @@
 
 # need to disable this profile, otherwise the pip inside the sandbox venv has no permissions
 # to install anything
-- name: code sandbox | put sandbox apparmor profile in complain mode
+- name: Code sandbox | put sandbox apparmor profile in complain mode
   command: /usr/sbin/aa-complain /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
@@ -272,7 +272,7 @@
     - install
     - install:app-requirements
 
-- name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
+- name: Code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip:
     requirements: "{{ sandbox_base_requirements }}"
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
@@ -285,7 +285,7 @@
     - install
     - install:app-requirements
 
-- name: code sandbox | Install sandbox requirements into sandbox venv
+- name: Code sandbox | Install sandbox requirements into sandbox venv
   shell: >
     {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
     chdir={{ edxapp_code_dir }}
@@ -301,7 +301,7 @@
     - install
     - install:app-requirements
 
-- name: code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
+- name: Code sandbox | put code sandbox into aa-enforce or aa-complain mode, depending on EDXAPP_SANDBOX_ENFORCE
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
   when: EDXAPP_PYTHON_SANDBOX
   tags:
@@ -309,7 +309,7 @@
     - install
     - install:app-requirements
 
-- name: compiling all py files in the edx-platform repo
+- name: Compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x .git/.* {{ edxapp_code_dir }}"
   become_user: "{{ edxapp_user }}"
   tags:
@@ -319,7 +319,7 @@
   # alternative would be to give {{ common_web_user }} read access
   # to the virtualenv but that permission change will require
   # root access.
-- name: give other read permissions to the virtualenv
+- name: Give other read permissions to the virtualenv
   file:
     path: "{{ edxapp_venv_dir }}"
     state: directory
@@ -342,7 +342,7 @@
   # the services if any of the configurations
   # have changed.
 
-- name: update supervisor configuration
+- name: Update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   register: supervisor_update
   become_user: "{{ supervisor_service_user }}"
@@ -351,7 +351,7 @@
   tags:
     - manage
 
-- name: ensure edxapp has started
+- name: Ensure edxapp has started
   supervisorctl:
     name: "edxapp:"
     supervisorctl_path: "{{ supervisor_ctl }}"
@@ -362,7 +362,7 @@
   tags:
     - manage
 
-- name: ensure edxapp_workers has started
+- name: Ensure edxapp_workers has started
   supervisorctl:
     name: "edxapp_worker:"
     supervisorctl_path: "{{ supervisor_ctl }}"
@@ -373,7 +373,7 @@
   tags:
     - manage
 
-- name: create symlinks from the venv bin dir and repo dir
+- name: Create symlinks from the venv bin dir and repo dir
   file:
     src: "{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ (item | basename).split('.', 1) | first }}.edxapp"
@@ -387,7 +387,7 @@
     - install
     - install:configuration
 
-- name: remove read-only ssh key
+- name: Remove read-only ssh key
   file:
     path: "{{ edxapp_git_identity }}"
     state: absent
@@ -397,9 +397,10 @@
     - install:configuration
     - install:code
 
-- include: tag_ec2.yml tags=deploy
+- include: tag_ec2.yml
   when: COMMON_TAG_EC2_INSTANCE
   tags:
+    - deploy
     - remove
     - aws
 
