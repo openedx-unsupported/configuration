@@ -3,136 +3,169 @@
 # There is a bug with initializing multiple nodes in the HA cluster at once
 # http://rabbitmq.1065348.n5.nabble.com/Rabbitmq-boot-failure-with-quot-tables-not-present-quot-td24494.html
 
-- name: install python-software-properties if debian
-  apt: pkg={{ ",".join(rabbitmq_debian_pkgs) }} state=present
+- name: Install python-software-properties if debian
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ rabbitmq_debian_pkgs }}"
 
-- name: fetch the rabbitmq server deb
-  get_url: >
-    url={{ rabbitmq_pkg_url }}
-    dest=/var/tmp/{{ rabbitmq_pkg_url|basename }}
+- name: Fetch the rabbitmq server deb
+  get_url:
+    url: "{{ rabbitmq_pkg_url }}"
+    dest: "/var/tmp/{{ rabbitmq_pkg_url | basename }}"
 
-- name: check if rabbit is installed
-  shell: >
-    dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"
+- name: Check if rabbit is installed
+  shell: 'dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"'
   register: is_installed
 
-- name: install rabbit package using gdebi
-  shell: >
-    gdebi --n {{ rabbitmq_pkg_url|basename }}
-    chdir=/var/tmp
+- name: Install rabbit package using gdebi
+  shell: "gdebi --n {{ rabbitmq_pkg_url|basename }}"
+  args:
+    chdir: /var/tmp
   when: is_installed.stdout is defined and is_installed.stdout == "not installed"
 
-- name: stop rabbit cluster
-  service: name=rabbitmq-server state=stopped
+- name: Stop rabbit cluster
+  service:
+    name: rabbitmq-server
+    state: stopped
 
-# in case there are lingering processes, ignore errors
+# In case there are lingering processes, ignore errors
 # silently
-- name: send sigterm to any running rabbitmq processes
-  shell: pkill -u rabbitmq || true
+- name: Send sigterm to any running rabbitmq processes
+  shell: "pkill -u rabbitmq || true"
 
-# Create the rabbitmq directories
-- name: create rabbitmq edx directories
+- name: Create rabbitmq edx directories
   file:
-    path={{ item }}
-    owner={{ rabbitmq_user }}
-    mode=0755
-    state=directory
+    path: "{{ item }}"
+    owner: "{{ rabbitmq_user }}"
+    mode: "0755"
+    state: directory
   with_items:
     - "{{ rabbitmq_app_dir }}"
     - "{{ rabbitmq_log_dir }}"
 
-- name: add queue monitoring script
+- name: Add queue monitoring script
   template:
-    src="edx/app/rabbitmq/log-rabbitmq-queues.sh.j2"
-    dest="{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh"
-    owner="{{ rabbitmq_user }}"
-    group="{{ rabbitmq_group }}"
-    mode=0755
+    src: "edx/app/rabbitmq/log-rabbitmq-queues.sh.j2"
+    dest: "{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh"
+    owner: "{{ rabbitmq_user }}"
+    group: "{{ rabbitmq_group }}"
+    mode: "0755"
 
-- name: set up a cron job to run the script
+- name: Set up a cron job to run the script
   cron:
-    name: "log-queue-lenghts"
+    name: "log-queue-lengths"
     job: "{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh >/dev/null 2>&1"
 
 # Defaulting to /var/lib/rabbitmq
-- name: create cookie directory
-  file: >
-    path={{ rabbitmq_cookie_dir }}
-    owner=rabbitmq group=rabbitmq mode=0755 state=directory
+- name: Create cookie directory
+  file:
+    path: "{{ rabbitmq_cookie_dir }}"
+    state: directory
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "0755"
 
-- name: add rabbitmq erlang cookie
-  template: >
-    src=erlang.cookie.j2 dest={{ rabbitmq_cookie_location }}
-    owner=rabbitmq group=rabbitmq mode=0400
+- name: Add rabbitmq erlang cookie
+  template:
+    src: "erlang.cookie.j2"
+    dest: "{{ rabbitmq_cookie_location }}"
+    owner: rabbitmq
+    group: rabbitmq
+    mode: "0400"
   register: erlang_cookie
 
 # Defaulting to /etc/rabbitmq
-- name: create rabbitmq config directory
-  file: >
-    path={{ rabbitmq_config_dir }}
-    owner=root group=root mode=0755 state=directory
+- name: Create rabbitmq config directory
+  file:
+    path: "{{ rabbitmq_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
 
-- name: add rabbitmq environment configuration
-  template: >
-    src=rabbitmq-env.conf.j2 dest={{ rabbitmq_config_dir }}/rabbitmq-env.conf
-    owner=root group=root mode=0644
+- name: Add rabbitmq environment configuration
+  template:
+    src: "rabbitmq-env.conf.j2"
+    dest: "{{ rabbitmq_config_dir }}/rabbitmq-env.conf"
+    owner: root
+    group: root
+    mode: "0644"
 
-- name: add rabbitmq cluster configuration
-  template: >
-    src=etc/rabbitmq/rabbitmq.config.j2
-    dest={{ rabbitmq_config_dir }}/rabbitmq.config
-    owner=root group=root mode=0644
+- name: Add rabbitmq cluster configuration
+  template:
+    src: "etc/rabbitmq/rabbitmq.config.j2"
+    dest: "{{ rabbitmq_config_dir }}/rabbitmq.config"
+    owner: root
+    group: root
+    mode: "0644"
   register: cluster_configuration
 
-- name: install plugins
+- name: Install plugins
   rabbitmq_plugin:
-    names={{",".join(rabbitmq_plugins)}} state=enabled
+    names: "{{ item }}"
+    state: enabled
+  with_items: "{{ rabbitmq_plugins }}"
 
 # When rabbitmq starts up it creates a folder of metadata at '/var/lib/rabbitmq/mnesia'.
 # This folder should be deleted before clustering is setup because it retains data
 # that can conflict with the clustering information.
-- name: remove mnesia configuration
-  file: path={{ rabbitmq_mnesia_folder }} state=absent
+- name: Remove mnesia configuration
+  file:
+    path: "{{ rabbitmq_mnesia_folder }}"
+    state: absent
   when: erlang_cookie.changed or cluster_configuration.changed or rabbitmq_refresh
 
-- name: start rabbit nodes
-  service: name=rabbitmq-server state=restarted
+- name: Start rabbit nodes
+  service:
+    name: rabbitmq-server
+    state: started
 
-- name: wait for rabbit to start
-  wait_for: port={{ rabbitmq_management_port }} delay=2
+- name: Wait for rabbit to start
+  wait_for:
+    port: "{{ rabbitmq_management_port }}"
+    delay: 2
 
-- name: remove guest user
-  rabbitmq_user: user="guest" state=absent
+- name: Remove guest user
+  rabbitmq_user:
+    user: "guest"
+    state: absent
   tags:
     - users
     - maintenance
 
-- name: add vhosts
-  rabbitmq_vhost: name={{ item }} state=present
-  with_items: RABBITMQ_VHOSTS
+- name: Add vhosts
+  rabbitmq_vhost:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ RABBITMQ_VHOSTS }}"
   tags:
     - vhosts
     - maintenance
 
-- name: add admin users
-  rabbitmq_user: >
-    user='{{item[0].name}}' password='{{item[0].password}}'
-    read_priv='.*' write_priv='.*'
-    configure_priv='.*' tags="administrator" state=present
-    vhost={{ item[1] }}
+- name: Add admin users
+  rabbitmq_user:
+    user: "{{ item[0].name }}"
+    password: "{{ item[0].password }}"
+    read_priv: '.*'
+    write_priv: '.*'
+    configure_priv: '.*'
+    tags: "administrator"
+    state: present
+    vhost: "{{ item[1] }}"
   with_nested:
     - "{{rabbitmq_auth_config.admins}}"
-    - RABBITMQ_VHOSTS
+    - "{{ RABBITMQ_VHOSTS }}"
   when: "'admins' in rabbitmq_auth_config"
   tags:
     - users
     - maintenance
 
-- name: make queues mirrored
+- name: Make queues mirrored
   shell: >
     /usr/sbin/rabbitmqctl -p {{ item }} set_policy HA "" '{"ha-mode":"all","ha-sync-mode":"automatic"}'
   when: RABBITMQ_CLUSTERED_HOSTS|length > 1
-  with_items: RABBITMQ_VHOSTS
+  with_items: "{{ RABBITMQ_VHOSTS }}"
   tags:
     - ha
     - maintenance
@@ -140,12 +173,14 @@
 #
 # Depends upon the management plugin
 #
-- name: install admin tools
-  get_url: >
-    url=http://localhost:{{ rabbitmq_management_port }}/cli/rabbitmqadmin
-    dest=/usr/local/bin/rabbitmqadmin
+- name: Install admin tools
+  get_url:
+    url: "http://localhost:{{ rabbitmq_management_port }}/cli/rabbitmqadmin"
+    dest: "/usr/local/bin/rabbitmqadmin"
 
-- name: ensure rabbitmqadmin attributes
-  file: >
-    path=/usr/local/bin/rabbitmqadmin owner=root
-    group=root mode=0655
+- name: Ensure rabbitmqadmin attributes
+  file:
+    path: "/usr/local/bin/rabbitmqadmin"
+    owner: root
+    group: root
+    mode: "0655"
