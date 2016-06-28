@@ -318,7 +318,6 @@ instance_tags:
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 dns_zone: $dns_zone
-rabbitmq_refresh: True
 elb: $elb
 EOF
 
