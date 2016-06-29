@@ -32,10 +32,11 @@
   fail:
     msg: '{{ GIT_REPOS.PROTOCOL }} must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and GIT_REPOS is defined
-  with_items: "{{ GIT_REPOS }}"
+  with_items: GIT_REPOS
   tags:
     - install
     - install:code
+
 
 - name: Install read-only ssh key
   copy:
@@ -45,7 +46,7 @@
     group: "{{ repo_group }}"
     mode: "0600"
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
-  with_items: "{{ GIT_REPOS }}"
+  with_items: GIT_REPOS
   tags:
     - install
     - install:code
@@ -60,7 +61,7 @@
   become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
-  with_items: "{{ GIT_REPOS }}"
+  with_items: GIT_REPOS
   tags:
     - install
     - install:code
@@ -73,7 +74,7 @@
   become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "https" and GIT_REPOS is defined
-  with_items: "{{ GIT_REPOS }}"
+  with_items: GIT_REPOS
   tags:
     - install
     - install:code
@@ -83,7 +84,7 @@
     dest: "{{ git_home }}/.ssh/{{ item.REPO }}"
     state: absent
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
-  with_items: "{{ GIT_REPOS }}"
+  with_items: GIT_REPOS
   tags:
     - install
     - install:code
