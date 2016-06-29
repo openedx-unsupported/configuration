@@ -70,6 +70,14 @@
 # want to provide more binaries add them to user_rbash_links
 # which can be passed in as a parameter to the role.
 #
+- name: Install debian packages user role needs
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+    update_cache: yes
+  with_items: "{{ user_debian_pkgs }}"
+  when: ansible_distribution in common_debian_variants
 
 - debug: 
     var: user_info
@@ -116,13 +124,16 @@
 - name: Check the ssh key(s) for user(s) over github
   uri:
     url: "https://github.com/{{ item.name }}.keys"
+  # We don't care if absent users lack ssh keys
+  when: item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
   register: github_users_return
 
-- fail:
+- debug:
     msg: "User {{ item.item.name }} doesn't have an SSH key associated with their account"
   with_items: "{{ github_users_return.results | default([]) }}"
-  when: item.content_length == "0"
+  # We skip users in the previous task, and they end up with no content_length
+  when: item.get('content_length') and item.content_length == "0"
 
 - name: Get github key(s) and update the authorized_keys file
   authorized_key:

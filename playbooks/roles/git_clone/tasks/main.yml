@@ -17,7 +17,10 @@
 # require in our default configuration.
 #
 #
-- name: set git fetch.prune to ignore deleted remote refs
+# Rewrite this task using the ansible git-config module once we'll migrate to Ansible 2.x
+# https://docs.ansible.com/ansible/git_config_module.html#git-config
+#
+- name: Set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   become_user: "{{ repo_owner }}"
   when: GIT_REPOS is defined
@@ -25,28 +28,30 @@
     - install
     - install:code
 
-- name: validate git protocol
-  fail: msg='GIT_REPOS.PROTOCOL must be "https" or "ssh"'
+- name: Validate git protocol
+  fail:
+    msg: '{{ GIT_REPOS.PROTOCOL }} must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and GIT_REPOS is defined
   with_items: GIT_REPOS
   tags:
     - install
     - install:code
 
-- name: install read-only ssh key
+
+- name: Install read-only ssh key
   copy:
     dest: "{{ git_home }}/.ssh/{{ item.REPO }}"
     content: "{{ item.SSH_KEY }}"
     owner: "{{ repo_owner }}"
     group: "{{ repo_group }}"
-    mode: 0600
+    mode: "0600"
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
   with_items: GIT_REPOS
   tags:
     - install
     - install:code
 
-- name: checkout code over ssh
+- name: Checkout code over ssh
   git_2_0_1:
     repo: "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
     dest: "{{ item.DESTINATION }}"
@@ -61,7 +66,7 @@
     - install
     - install:code
 
-- name: checkout code over https
+- name: Checkout code over https
   git_2_0_1:
     repo: "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
     dest: "{{ item.DESTINATION }}"
@@ -74,7 +79,7 @@
     - install
     - install:code
 
-- name: remove read-only ssh key
+- name: Remove read-only ssh key
   file:
     dest: "{{ git_home }}/.ssh/{{ item.REPO }}"
     state: absent
