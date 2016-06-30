@@ -316,6 +316,7 @@ def _get_role_name(role):
         return None
 
 def arg_parse():
+
     parser = argparse.ArgumentParser(description = 'Given a commit range, analyze Ansible dependencies between roles and playbooks '
     'and output a list of Docker plays affected by this commit range via these dependencies.')
     parser.add_argument('--verbose', help="set warnings to be displayed", action="store_true")
@@ -338,6 +339,15 @@ if __name__ == '__main__':
     # read from standard in
     for line in sys.stdin:
         change_set.add(line.rstrip())
+
+    # configuration file is expected to be in the following format:
+    #
+    # roles_paths:
+    #       - <all paths relative to configuration repository that contain Ansible roles>
+    # aws_plays_paths:
+    #       - <all paths relative to configuration repository that contain aws Ansible playbooks>
+    # docker_plays_paths:
+    #       - <all paths relative to configuration repositroy that contain Docker Ansible playbooks>
 
     # read config file
     config = _open_yaml_file(CONFIG_FILE_PATH)
