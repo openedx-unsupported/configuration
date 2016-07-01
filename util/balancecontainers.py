@@ -5,7 +5,6 @@ import itertools
 import sys
 
 class ContainerBalancer:
-
     def __init__(self):
         self.load_repo_path()
 
@@ -62,14 +61,6 @@ if __name__ == '__main__':
         items = line.split()
         containers.extend(items)
 
-    # containers = {"discovery":6, "go-agent": 3, "xqwatcher": 3, "analytics_api": 1, "edxapp": 28, 
-                  # "insights": 4, "credentials":8, "forum": 7, "nginx":1, "xqueue":2}
-
-    # containers = ["discovery", "go-agent", "xqwatcher", "analytics_api", "edxapp", "insights", "credentials", "forum", "nginx", "xqueue"]
-    # containers = ["discovery", "go-agent", "xqwatcher", "analytics_api", "insights", "credentials", "forum", "nginx", "xqueue"]
-    # [discovery go-agent xqwatcher analytics_api edxapp insights credentials forum nginx xqueue]
-
-
     shards = balancer.pack_containers(containers)
 
     for shard in shards:
@@ -79,13 +70,3 @@ if __name__ == '__main__':
 
         line = middle.join(conts)
         print line
-
-    # for shard in shards:
-    #         for container in shard["containers"]:
-    #             print container[0],
-    #         print ""
-
-    # containers.sort(reverse=True)
-
-
- # a={"discovery":6, "go-agent": 3, "xqwatcher": 3, "analytics_api": 1, "edxapp": 28, "insights": 4, "credentials":8, "forum":"nginx":1, "xqueue":2, "trusty-common":5, "precise-common":4}
