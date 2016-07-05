@@ -4,9 +4,11 @@ import pathlib2
 import itertools
 import sys
 import argparse
+import logging
 
 TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
 CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
+LOGGER = logging.getLogger(__name__)
 
 def pack_containers(containers, num_shards):
     """
@@ -73,6 +75,9 @@ def arg_parse():
 if __name__ == '__main__':
 
     args = arg_parse()
+
+    # configure logging
+    logging.basicConfig()
 
     containers = []
 
