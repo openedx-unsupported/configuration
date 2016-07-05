@@ -71,13 +71,20 @@
     path: "{{ SQOOP_LIB }}"
     state: directory
     owner: "{{ hadoop_common_user }}"
-    group: {"{ hadoop_common_group }}"
+    group: "{{ hadoop_common_group }}"
 
+#TODO use copy module with remote_src: True once migrate to Ansible 2.x
 - name: MySQL connector installed
-  shell: >
-    chdir=/{{ sqoop_temporary_dir }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}
-    cp mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ SQOOP_LIB }} &&
-    chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar
+  shell: "cp mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ SQOOP_LIB }}"
+  args:
+    chdir: "{{ sqoop_temporary_dir }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}"
+  when: not installed.stat.exists
+
+- name: FIx MySQL connector permission
+  file:
+    path: "{{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar"
+    owner: "{{ hadoop_common_user }}"
+    group: "{{ hadoop_common_group }}"
   when: not installed.stat.exists
 
 - name: Configuration installed
@@ -94,4 +101,5 @@
   lineinfile:
     dest: "{{ hadoop_common_env }}" 
     state: present
-    regexp: "^. {{ SQOOP_CONF }}/sqoop-env.sh" line=". {{ SQOOP_CONF }}/sqoop-env.sh"
+    regexp: "^. {{ SQOOP_CONF }}/sqoop-env.sh"
+    line: ". {{ SQOOP_CONF }}/sqoop-env.sh"
