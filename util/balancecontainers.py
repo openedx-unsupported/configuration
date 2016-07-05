@@ -3,66 +3,92 @@ import os
 import pathlib2
 import itertools
 import sys
+import argparse
 
-class ContainerBalancer:
-    def __init__(self):
-        self.load_repo_path()
+TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
+CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
 
-    def load_repo_path(self):
-        """Loads the path for the configuration repository from TRAVIS_BUILD_DIR environment variable."""
+def pack_containers(containers, num_shards):
+    """
+    Determines an approximation of the optimal way to pack the containers into a given number of shards so as to
+    equalize the execution time amongst the shards.
 
-        if os.environ.get("TRAVIS_BUILD_DIR"):
-            self.repo_path = os.environ.get("TRAVIS_BUILD_DIR")
-        else:
-            raise EnvironmentError("TRAVIS_BUILD_DIR environment variable is not set.")
+    Input:
+    containers: A set of Docker containers
+    num_shards: A number of shards amongst which to distribute the Docker containers
+    """
 
-    def pack_containers(self, containers):
+    # open config file containing container weights
+    config_file_path = pathlib2.Path(CONFIG_FILE_PATH)
 
-        num_shards = 3
+    with (config_file_path.open(mode='r')) as file:
+        try:
+            config = yaml.load(file)
+        except yaml.YAMLError, exc:
+            LOGGER.warning("error in configuration file: %s" % str(exc))
+            sys.exit(1)
 
-        config_file_path = pathlib2.Path(self.repo_path, "util", "parsefiles_config.yml")
+    # get container weights
+    weights = config.get("weights")
 
-        with config_file_path.open() as config_file:
-                config = yaml.load(config_file)
+    # convert all containers in config file to a list of tuples (<container>, <weight>)
+    weights_list = [x.items() for x in weights]
+    weights_list = list(itertools.chain.from_iterable(weights_list))
 
-        weights = config.get("weights")
+    # performs intersection between weighted containers and input containers
+    used_containers = [x for x in weights_list if x[0] in containers]
 
-        weights_list = [x.items() for x in weights]
-        weights_list = list(itertools.chain.from_iterable(weights_list))
+    # sorts used containers in descending order on the weight
+    sorted_containers = sorted(used_containers, key = lambda x: x[1], reverse=True) 
 
-        used_containers = [x for x in weights_list if x[0] in containers]
+    shards = []
 
-        sorted_containers = sorted(used_containers, key = lambda x: x[1], reverse=True) 
+    # for the number of shards
+    for i in range(0, num_shards):
+        # initialize initial dict
+        shards.append({"containers": [], "sum": 0})
 
-        shards = []
+    # for each container
+    for container in sorted_containers:
+        # find the shard with the current minimum execution time
+        shard = min(shards, key = lambda x: x["sum"])
 
-        for i in range(0, num_shards):
-            shards.append({"containers": [], "sum": 0})
+        # add the current container to the shard
+        shard["containers"].append(container)
 
-        for container in sorted_containers:
-            # shard with minimum execution time
-            shard = min(shards, key = lambda x: x["sum"])
+        # add the current container's weight to the shard's total expected execution time
+        shard["sum"] += container[1]
 
-            shard["containers"].append(container)
-            shard["sum"] += container[1]
+    return shards
 
-        return shards
+def arg_parse():
+
+    parser = argparse.ArgumentParser(description = 'Given a list of containers as input and a number of shards, '
+        'finds an approximation of the optimal distribution of the containers over the shards, provided a set of hard-coded weights '
+        'in parsefiles_config.yml.')
+    parser.add_argument('num_shards', type = int, help = "the number of shards amongst which to distribute Docker builds")
+
+    return parser.parse_args()
 
 if __name__ == '__main__':
 
-    balancer = ContainerBalancer()
+    args = arg_parse()
 
     containers = []
 
+    # get containers from standard in
     for line in sys.stdin:
+        # strip whitespace and brackets
         line = line.strip()
         line = line.strip("[]")
 
         items = line.split()
         containers.extend(items)
 
-    shards = balancer.pack_containers(containers)
+    # find optimal packing of the containers amongst shards
+    shards = pack_containers(containers, args.num_shards)
 
+    # print space separate list of containers for each shard
     for shard in shards:
         middle = " "
 
