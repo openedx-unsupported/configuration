@@ -1,10 +1,12 @@
 # Installs packages to run edx locally on a single instance
 #
 ---
-
-- name: install packages needed for single server
-  apt: pkg={{ item }} install_recommends=yes state=present
-  with_items: edxlocal_debian_pkgs
+- name: Install packages needed for single server
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: "{{ edxlocal_debian_pkgs }}"
 
 # TODO: Add a test to make sure mysql is running.
 
@@ -61,7 +63,6 @@
     password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
     priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
-
 
 - name: setup the read-only db user
   mysql_user:
