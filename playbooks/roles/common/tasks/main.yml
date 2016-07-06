@@ -9,7 +9,8 @@
   when: update_ca_certificates is defined and update_ca_certificates.stat.exists == True
 
 # ec2-linux
-- stat: path=/usr/bin/update-ca-trust
+- stat:
+    path: /usr/bin/update-ca-trust
   register: update_ca_trust
 
 - name: Update CA Trust
@@ -77,7 +78,7 @@
     state: "{{ item.state | default('directory') }}" 
     owner: "{{ item.owner | default('root') }}"
     group: "{{ item.group | default('root') }}" 
-    mode: 0755
+    mode: "0755"
   with_items: "{{ common_directories }}"
 
 - name: upload sudo config for key forwarding as root
@@ -87,7 +88,7 @@
     validate: 'visudo -c -f %s' 
     owner: root 
     group: root 
-    mode: 0440
+    mode: "0440"
 
 - name: pip install virtualenv
   pip:
@@ -122,12 +123,12 @@
     src: "{{ item.src }}"
     owner: root 
     group: root 
-    mode: "{{ item.mode | default(644) }}"
+    mode: "{{ item.mode | default(0644) }}"
   register: config_templates
   with_items:
     - { src: 'edx_rsyslog.j2', dest: '/etc/rsyslog.d/99-edx.conf' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate.j2', dest: '/etc/logrotate.d/hourly/edx-services' }
-    - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '555' }
+    - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '0555' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2', dest: '/etc/logrotate.d/hourly/tracking.log' }
 
   # TODO: restarts no matter which template has changed, need to examine
