@@ -25,6 +25,9 @@
     src=edx/app/ecommerce/ecommerce_gunicorn.py.j2
     dest={{ ecommerce_home }}/ecommerce_gunicorn.py
   become_user: "{{ ecommerce_user }}"
+  tags:
+      - install
+      - install:configuration
 
 - name: install application requirements
   pip: >
@@ -33,23 +36,35 @@
     state=present
   become_user: "{{ ecommerce_user }}"
   with_items: ecommerce_requirements
+  tags:
+    - install
+    - install:app-requirements
 
 - name: create nodeenv
   shell: >
     creates={{ ecommerce_nodeenv_dir }}
     {{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt
   become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: install node dependencies
   npm: executable={{ ecommerce_nodeenv_bin }}/npm path={{ ecommerce_code_dir }} production=yes
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: install bower dependencies
   shell: >
     chdir={{ ecommerce_code_dir }}
     . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/bower install --production --config.interactive=false
   become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: migrate
   shell: >
@@ -60,6 +75,9 @@
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: populate countries
   shell: >
@@ -77,6 +95,9 @@
   failed_when:
     - "'You already have countries in your database' not in command_result.stderr"
     - "command_result.rc != 0"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: compile sass
   shell: >
@@ -87,6 +108,9 @@
   with_items:
     - "update_assets --skip-collect"
   when: not devstack
+  tags:
+    - assets
+    - assets:gather
 
 - name: run r.js optimizer
   shell: >
@@ -94,6 +118,9 @@
     . {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js
   become_user: "{{ ecommerce_user }}"
   when: not devstack
+   tags:
+    - assets
+    - assets:gather
 
 - name: run collectstatic
   shell: >
@@ -105,18 +132,27 @@
     - "collectstatic --noinput"
     - "compress"
   when: not devstack
+  tags:
+    - assets
+    - assets:gather
 
 - name: write out the supervisor wrapper
   template: >
     src=edx/app/ecommerce/ecommerce.sh.j2
     dest={{ ecommerce_home }}/{{ ecommerce_service_name }}.sh
     mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  tags:
+    - install
+    - install:configuration
 
 - name: write supervisord config
   template: >
     src=edx/app/supervisor/conf.d.available/ecommerce.conf.j2
     dest="{{ supervisor_available_dir }}/{{ ecommerce_service_name }}.conf"
     owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+    - install
+    - install:configuration
 
 - name: setup the ecommence env file
   template: >
@@ -125,6 +161,9 @@
     owner={{ ecommerce_user }}
     group={{ ecommerce_user }}
     mode=0644
+  tags:
+    - install
+    - install:configuration
 
 - name: enable supervisor script
   file: >
@@ -133,10 +172,16 @@
     state=link
     force=yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
 
 - name: create symlinks from the-er venv bin dir
   file: >
@@ -147,6 +192,9 @@
   - python
   - pip
   - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
 
 - name: create symlinks from the repo dir
   file: >
@@ -155,6 +203,9 @@
     state=link
   with_items:
   - manage.py
+  tags:
+    - install
+    - install:app-requirements  
 
 - name: restart the applicaton
   supervisorctl: >
@@ -164,3 +215,6 @@
     name={{ ecommerce_service_name }}
   when: not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
