@@ -31,19 +31,19 @@
 #     - supervisor
 #     - certs
 #
-- name: create application user
-  user: >
-    name="{{ certs_user }}"
-    home="{{ certs_app_dir }}"
-    createhome=no
-    shell=/bin/false
+- name: Create application user
+  user:
+    name: "{{ certs_user }}"
+    home: "{{ certs_app_dir }}"
+    createhome: no
+    shell: /bin/false
 
-- name: create certs app dirs
-  file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ certs_user }}"
-    group="{{ common_web_group }}"
+- name: Create certs app dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ certs_user }}"
+    group: "{{ common_web_group }}"
   with_items:
     - "{{ certs_app_dir }}"
     # needed for the ansible 1.5 git module
@@ -54,42 +54,46 @@
 # The certs web root must be owned
 # by the web user so the certs service
 # can write files there.
-- name: create certs web root
-  file: >
-    path="{{ CERTS_WEB_ROOT }}"
-    state=directory
-    owner="{{ common_web_group }}"
-    group="{{ certs_user }}"
+- name: Create certs web root
+  file:
+    path: "{{ CERTS_WEB_ROOT }}"
+    state: directory
+    owner: "{{ common_web_group }}"
+    group: "{{ certs_user }}"
 
-- name: create certs gpg dir
-  file: >
-    path="{{ certs_gpg_dir }}" state=directory
-    owner="{{ common_web_user }}"
-    mode=0700
+- name: Create certs gpg dir
+  file:
+    path: "{{ certs_gpg_dir }}"
+    state: directory
+    owner: "{{ common_web_user }}"
+    mode: "0700"
 
-- name: copy the private gpg signing key
-  copy: >
-    src={{ CERTS_LOCAL_PRIVATE_KEY }}
-    dest={{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
-    owner={{ common_web_user }} mode=0600
+- name: Copy the private gpg signing key
+  copy:
+    src: "{{ CERTS_LOCAL_PRIVATE_KEY }}"
+    dest: "{{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY | basename }}"
+    owner: "{{ common_web_user }}"
+    mode: "0600"
   register: certs_gpg_key
+  no_log: True
 
-- name: copy the pgp trust export
-  copy: >
-    content="{{ CERTS_OWNER_TRUST }}"
-    dest={{ certs_app_dir }}/trust.export
-    owner={{ common_web_user }} mode=0600
+- name: Copy the pgp trust export
+  copy:
+    content: "{{ CERTS_OWNER_TRUST }}"
+    dest: "{{ certs_app_dir }}/trust.export"
+    owner: "{{ common_web_user }}"
+    mode: "0600"
 
-- name: load the gpg key
-  shell: >
-    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY|basename }}
-  sudo_user: "{{ common_web_user }}"
+- name: Load the gpg key
+  shell: "/usr/bin/gpg --homedir {{ certs_gpg_dir }} --import {{ certs_app_dir }}/{{ CERTS_LOCAL_PRIVATE_KEY | basename }}"
+  become_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
 
-- name: import the trust export
-  shell: >
-    /usr/bin/gpg --homedir {{ certs_gpg_dir }} --import-ownertrust {{ certs_app_dir }}/trust.export
-  sudo_user: "{{ common_web_user }}"
+- name: Import the trust export
+  shell: "/usr/bin/gpg --homedir {{ certs_gpg_dir }} --import-ownertrust {{ certs_app_dir }}/trust.export"
+  become_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
 
-- include: deploy.yml tags=deploy
+- include: deploy.yml
+  tags:
+    - deploy
