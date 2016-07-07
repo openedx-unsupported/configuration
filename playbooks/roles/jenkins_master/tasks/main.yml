@@ -1,44 +1,52 @@
 ---
-
-- name: install jenkins specific system packages
+- name: Install jenkins specific system packages
   apt:
-    pkg={{','.join(jenkins_debian_pkgs)}}
-    state=present update_cache=yes
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ jenkins_debian_pkgs }}"
   tags:
-  - jenkins
+    - jenkins
 
-- name: install jenkins extra system packages
+- name: Install jenkins extra system packages
   apt:
-    pkg={{ item }} state=present update_cache=yes
-  with_items: JENKINS_EXTRA_PKGS
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ JENKINS_EXTRA_PKGS }}"
   tags:
-  - jenkins
+    - jenkins
 
-- name: create jenkins group
-  group: name={{ jenkins_group }} state=present
+- name: Create jenkins group
+  group:
+    name: "{{ jenkins_group }}"
+    state: present
 
-- name: add the jenkins user to the group
-  user: name={{ jenkins_user }} append=yes groups={{ jenkins_group }}
+- name: Add the jenkins user to the group
+  user:
+    name: "{{ jenkins_user }}"
+    append: yes
+    groups: "{{ jenkins_group }}"
 
 # Should be resolved in the next release, but until then we need to do this
 # https://issues.jenkins-ci.org/browse/JENKINS-20407
-- name: workaround for JENKINS-20407
+- name: Workaround for JENKINS-20407
   file:
     path: "/var/run/jenkins"
     state: directory
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
 
-- name: download Jenkins package
-  get_url: url="{{ jenkins_deb_url }}" dest="/tmp/{{ jenkins_deb }}"
+- name: Install Jenkins package from the internet
+  apt:
+    deb: "{{ jenkins_deb_url }}"
 
-- name: install Jenkins package
-  shell: dpkg -i --force-depends "/tmp/{{ jenkins_deb }}"
+- name: Stop Jenkins
+  service:
+    name: jenkins
+    state: stopped
 
-- name: stop Jenkins
-  service: name=jenkins state=stopped
-
-- name: set jvm args
+- name: Set jvm args
   lineinfile:
     backup: yes
     dest: /etc/default/jenkins
@@ -50,7 +58,7 @@
     - java
     - jenkins
 
-- name: set jenkins home
+- name: Set jenkins home
   lineinfile:
     backup: yes
     dest: /etc/default/jenkins
@@ -63,28 +71,37 @@
     - jenkins
 
 # Move /var/lib/jenkins to Jenkins home (on the EBS)
-- name: move /var/lib/jenkins
-  command: mv /var/lib/jenkins {{ jenkins_home }}
-           creates={{ jenkins_home }}
+- name: Move /var/lib/jenkins
+  command: "mv /var/lib/jenkins {{ jenkins_home }}"
+  args:
+    creates: "{{ jenkins_home }}"
 
-- name: set owner for Jenkins home
-  file: path={{ jenkins_home }} recurse=yes state=directory
-        owner={{ jenkins_user }} group={{ jenkins_group }}
+- name: Set owner for Jenkins home
+  file:
+    path: "{{ jenkins_home }}"
+    recurse: yes
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
 
 # Symlink /var/lib/jenkins to {{ COMMON_DATA_DIR }}/jenkins
 # since Jenkins will expect its files to be in /var/lib/jenkins
-- name: symlink /var/lib/jenkins
-  file: src={{ jenkins_home }} dest=/var/lib/jenkins state=link
-        owner={{ jenkins_user }} group={{ jenkins_group }}
+- name: Symlink /var/lib/jenkins
+  file:
+    src: "{{ jenkins_home }}"
+    dest: /var/lib/jenkins
+    state: link
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
   notify:
     - restart Jenkins
 
 # Using this instead of the user module because the user module
 # fails if the directory exists.
-- name: set home directory for jenkins user
-  shell: usermod -d {{ jenkins_home }} {{ jenkins_user }}
+- name: Set home directory for jenkins user
+  shell: "usermod -d {{ jenkins_home }} {{ jenkins_user }}"
 
-- name: make plugins directory
+- name: Make plugins directory
   file:
     path: "{{ jenkins_home }}/plugins"
     state: directory
@@ -94,25 +111,25 @@
 # We first download the plugins to a temp directory and include
 # the version in the file name.  That way, if we increment
 # the version, the plugin will be updated in Jenkins
-- name: download Jenkins plugins
+- name: Download Jenkins plugins
   get_url:
-    url: http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi
-    dest: /tmp/{{ item.name }}_{{ item.version }}
-  with_items: jenkins_plugins
+    url: "http://updates.jenkins-ci.org/download/plugins/{{ item.name }}/{{ item.version }}/{{ item.name }}.hpi"
+    dest: "/tmp/{{ item.name }}_{{ item.version }}"
+  with_items: "{{ jenkins_plugins }}"
   register: jenkins_plugin_downloads
 
-- name: install Jenkins plugins
+- name: Install Jenkins plugins
   command: "cp {{ item.dest }} {{ jenkins_home }}/plugins/{{ item.item.name }}.hpi"
-  with_items: jenkins_plugin_downloads.results
+  with_items: "{{ jenkins_plugin_downloads.results }}"
   when: item.changed
 
-- name: set Jenkins plugin permissions
+- name: Set Jenkins plugin permissions
   file:
     path: "{{ jenkins_home }}/plugins/{{ item.item.name }}.hpi"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
-    mode: "644"
-  with_items: jenkins_plugin_downloads.results
+    mode: "0644"
+  with_items: "{{ jenkins_plugin_downloads.results }}"
   when: item.changed
   notify:
     - restart Jenkins
@@ -121,52 +138,63 @@
 # certain issues.  If these changes get merged
 # upstream, we may be able to use the regular plugin install process.
 # Until then, we compile and install the forks ourselves.
-- name: checkout custom plugin repo
-  git_2_0_1: >
-    repo={{ item.repo_url }} dest=/tmp/{{ item.repo_name }} version={{ item.version }}
-    accept_hostkey=yes
-  with_items: jenkins_custom_plugins
+- name: Checkout custom plugin repo
+  git_2_0_1:
+    repo: "{{ item.repo_url }}"
+    dest: "/tmp/{{ item.repo_name }}"
+    version: "{{ item.version }}"
+    accept_hostkey: yes
+  with_items: "{{ jenkins_custom_plugins }}"
   register: jenkins_custom_plugins_checkout
 
-- name: compile custom plugins
-  command: mvn -Dmaven.test.skip=true install chdir=/tmp/{{ item.item.repo_name }}
-  with_items: jenkins_custom_plugins_checkout.results
+- name: Compile custom plugins
+  command: "mvn -Dmaven.test.skip=true install"
+  args:
+    chdir: "/tmp/{{ item.item.repo_name }}"
+  with_items: "{{ jenkins_custom_plugins_checkout.results }}"
   when: item.changed
 
-- name: install custom plugins
+- name: Install custom plugins
   command: mv /tmp/{{ item.item.repo_name }}/target/{{ item.item.package }}
            {{ jenkins_home }}/plugins/{{ item.item.package }}
-  with_items: jenkins_custom_plugins_checkout.results
+  with_items: "{{ jenkins_custom_plugins_checkout.results }}"
   when: item.changed
   notify:
     - restart Jenkins
 
-- name: set custom plugin permissions
-  file: path={{ jenkins_home }}/plugins/{{ item.item.package }}
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode="700"
-  with_items: jenkins_custom_plugins_checkout.results
+- name: Set custom plugin permissions
+  file:
+    path: "{{ jenkins_home }}/plugins/{{ item.item.package }}"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "0700"
+  with_items: "{{ jenkins_custom_plugins_checkout.results }}"
   when: item.changed
 
 # Plugins that are bundled with Jenkins are "pinned".
 # Jenkins will overwrite updated plugins with its built-in version
 # unless we create a ".pinned" file for the plugin.
 # See https://issues.jenkins-ci.org/browse/JENKINS-13129
-- name: create plugin pin files
-  command: touch {{ jenkins_home }}/plugins/{{ item }}.jpi.pinned
-           creates={{ jenkins_home }}/plugins/{{ item }}.jpi.pinned
-  with_items: jenkins_bundled_plugins
+- name: Create plugin pin files
+  command: "touch {{ jenkins_home }}/plugins/{{ item }}.jpi.pinned"
+  args:
+    creates: "{{ jenkins_home }}/plugins/{{ item }}.jpi.pinned"
+  with_items: "{{ jenkins_bundled_plugins }}"
 
-- name: setup nginix vhost
+- name: Setup nginix vhost
   template:
-    src=etc/nginx/sites-available/jenkins.j2
-    dest=/etc/nginx/sites-available/jenkins
+    src: "etc/nginx/sites-available/jenkins.j2"
+    dest: "/etc/nginx/sites-available/jenkins"
 
-- name: enable jenkins vhost
+- name: Enable jenkins vhost
   file:
-    src=/etc/nginx/sites-available/jenkins
-    dest=/etc/nginx/sites-enabled/jenkins
-    state=link
-  notify: start nginx
+    src: "/etc/nginx/sites-available/jenkins"
+    dest: "/etc/nginx/sites-enabled/jenkins"
+    state: link
+  notify:
+    - start nginx
 
-- include: datadog.yml tags=datadog
+- include: datadog.yml
   when: COMMON_ENABLE_DATADOG
+  tags:
+    - datadog
