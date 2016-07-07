@@ -331,7 +331,7 @@ if __name__ == '__main__':
     logging.basicConfig()
 
     if not args.verbose:
-        logging.disable(logging.ERROR)
+        logging.disable(logging.WARNING)
 
     # set of modified files in the commit range
     change_set = set()
