@@ -3,28 +3,44 @@
 # Stop if any command fails
 set -e
 
+# Logging: write all the output to a timestamped log file.
+sudo mkdir -p /var/log/edx
+exec > >(sudo tee /var/log/edx/upgrade-$(date +%Y%m%d-%H%M%S).log) 2>&1
+
 # defaults
 CONFIGURATION="none"
 TARGET="none"
 INTERACTIVE=true
 OPENEDX_ROOT="/edx"
 
-show_help () {
-  cat <<- EOM
+# Use this function to exit the script: it helps keep the output right with the
+# exec-logging we started above.
+exit_cleanly () {
+  sleep .25
+  echo
+  exit $@
+}
 
-Migrates your Open edX installation to a different release.
+show_help () {
+  cat << EOM
+
+Upgrades your Open edX installation to a newer release.
 
 -c CONFIGURATION
-    Use the given configuration. Either \"devstack\" or \"fullstack\". You
+    Use the given configuration. Either "devstack" or "fullstack". You
     must specify this.
+
 -t TARGET
-    Migrate to the given git ref. You must specify this.  Named releases are
-    called \"named-release/cypress\", \"named-release/dogwood.rc2\", and so on.
+    Upgrade to the given git ref. You must specify this.  Named releases are
+    called "named-release/cypress", "named-release/dogwood.rc2", and so on.
+
 -y
-    Run in non-interactive mode (reply \"yes\" to all questions)
+    Run in non-interactive mode (reply "yes" to all questions)
+
 -r OPENEDX_ROOT
     The root directory under which all Open edX applications are installed.
-    Defaults to \"$OPENEDX_ROOT\"
+    Defaults to "$OPENEDX_ROOT"
+
 -h
     Show this help and exit.
 
@@ -36,7 +52,7 @@ while getopts "hc:t:y" opt; do
   case "$opt" in
     h)
       show_help
-      exit 0
+      exit_cleanly 0
       ;;
     c)
       CONFIGURATION=$OPTARG
@@ -59,14 +75,14 @@ confirm_proceed () {
   read input
   if [[ "$input" != "yes" && "$input" != "y" ]]; then
     echo "Quitting"
-    exit 1
+    exit_cleanly 1
   fi
 }
 
 # Check we are in the right place, and have the info we need.
 if [[ ! -d /edx/app/edxapp ]]; then
   echo "Run this on your Open edX machine."
-  exit 1
+  exit_cleanly 1
 fi
 
 if [[ $TARGET == none ]]; then
@@ -76,12 +92,12 @@ you are currently running.  This script can only move forward one release at
 a time.
 EOM
   show_help
-  exit 1
+  exit_cleanly 1
 fi
 
 if [[ $CONFIGURATION == none ]]; then
   echo "You must specify a configuration, either fullstack or devstack."
-  exit 1
+  exit_cleanly 1
 fi
 
 APPUSER=edxapp
@@ -269,4 +285,4 @@ fi
 
 cd /
 sudo rm -rf $TEMPDIR
-echo "Migration complete. Please reboot your machine."
+echo "Upgrade complete. Please reboot your machine."
