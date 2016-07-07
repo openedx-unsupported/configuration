@@ -124,7 +124,7 @@ if [[ -z $ami ]]; then
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="t2.medium"
+  instance_type="t2.large"
 fi
 
 if [[ -z $enable_newrelic ]]; then
