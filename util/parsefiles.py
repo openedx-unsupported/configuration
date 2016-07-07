@@ -146,7 +146,7 @@ def _open_yaml_file(file_str):
             yaml_file = yaml.load(file)
             return yaml_file
         except yaml.YAMLError, exc:
-            LOGGER.warning("error in configuration file: %s" % str(exc))
+            LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
 
 def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
