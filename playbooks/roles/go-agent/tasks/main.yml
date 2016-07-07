@@ -30,29 +30,31 @@
 #     - common
 #
 
-- name: install go-agent aptitude repository
+- name: Install go-agent aptitude repository
   apt_repository:
-    repo="{{ GO_AGENT_APT_SOURCE }}"
+    repo: "{{ GO_AGENT_APT_SOURCE }}"
+    state: present
 
-- name: install aptitude key for go-agent/go-agent
+- name: Install aptitude key for go-agent/go-agent
   apt_key:
-    url="{{ GO_AGENT_APT_KEY_URL }}"
+    url: "{{ GO_AGENT_APT_KEY_URL }}"
+    state: present
 
-- name: install go-agent using apt-get
+- name: Install go-agent using apt-get
   apt:
-    name="{{ GO_AGENT_APT_NAME }}"="{{ GO_AGENT_VERSION }}"
-    update_cache=yes
+    name: "{{ GO_AGENT_APT_NAME }}={{ GO_AGENT_VERSION }}"
+    update_cache: yes
+    state: present
 
-- name: install go-agent configuration
+- name: Install go-agent configuration
   template:
-    src=edx/app/go-agent/go-agent.j2
-    dest={{ GO_AGENT_CONF_HOME }}/go-agent
-    mode=0644
-    owner={{ GO_AGENT_USER }}
-    group={{ GO_AGENT_GROUP }}
+    src: "edx/app/go-agent/go-agent.j2"
+    dest: "{{ GO_AGENT_CONF_HOME }}/go-agent"
+    mode: "0644"
+    owner: "{{ GO_AGENT_USER }}"
+    group: "{{ GO_AGENT_GROUP }}"
 
-- name: restart go-agent
+- name: Restart go-agent
   service:
-    name="{{ GO_AGENT_SERVICE_NAME }}"
-    state="restarted"
-
+    name: "{{ GO_AGENT_SERVICE_NAME }}"
+    state: restarted
