@@ -1,9 +1,12 @@
 # variables common to the xqueue role, automatically loaded
 # when the role is included
 ---
+XQUEUE_SETTINGS: 'aws_settings'
+
 XQUEUE_NGINX_PORT: 18040
 XQUEUE_GUNICORN_WORKERS_EXTRA: ""
 XQUEUE_GUNICORN_WORKERS_EXTRA_CONF: ""
+
 XQUEUE_QUEUES:
   # push queue
   'edX-Open_DemoX': 'http://localhost:18050'
@@ -12,13 +15,30 @@ XQUEUE_QUEUES:
   'certificates': !!null
   'open-ended': !!null
   'open-ended-message': !!null
+
 XQUEUE_LOGGING_ENV: sandbox
 XQUEUE_SYSLOG_SERVER: 'localhost'
-XQUEUE_S3_BUCKET : 'sandbox-bucket'
-XQUEUE_S3_PATH_PREFIX: 'sandbox-xqueue'
+
+XQUEUE_UPLOAD_BUCKET: 'sandbox-bucket'
+XQUEUE_UPLOAD_PATH_PREFIX: 'sandbox-xqueue'
+
+# Deprecated, use XQUEUE_UPLOAD_BUCKET and XQUEUE_UPLOAD_PATH_PREFIX
+XQUEUE_S3_BUCKET : "{{ XQUEUE_UPLOAD_BUCKET }}"
+XQUEUE_S3_PATH_PREFIX: "{{ XQUEUE_UPLOAD_PATH_PREFIX }}"
+
 XQUEUE_LOCAL_LOGLEVEL: 'INFO'
+
 XQUEUE_AWS_ACCESS_KEY_ID : ''
 XQUEUE_AWS_SECRET_ACCESS_KEY : ''
+
+XQUEUE_SWIFT_USERNAME: ''
+XQUEUE_SWIFT_KEY: ''
+XQUEUE_SWIFT_TENANT_ID: ''
+XQUEUE_SWIFT_TENANT_NAME: ''
+XQUEUE_SWIFT_AUTH_URL: ''
+XQUEUE_SWIFT_AUTH_VERSION: 1
+XQUEUE_SWIFT_REGION_NAME: ''
+
 XQUEUE_BASIC_AUTH_USER: "{{ COMMON_HTPASSWD_USER }}"
 XQUEUE_BASIC_AUTH_PASSWORD: "{{ COMMON_HTPASSWD_PASS }}"
 XQUEUE_DJANGO_USERS:
@@ -62,13 +82,24 @@ xqueue_env_config:
   SYSLOG_SERVER: "{{ XQUEUE_SYSLOG_SERVER }}"
   LOG_DIR: "{{ COMMON_DATA_DIR }}/logs/xqueue"
   RABBIT_HOST: "{{ XQUEUE_RABBITMQ_HOSTNAME }}"
+  LOCAL_LOGLEVEL: "{{ XQUEUE_LOCAL_LOGLEVEL }}"
+  UPLOAD_BUCKET: "{{ XQUEUE_UPLOAD_BUCKET }}"
+  UPLOAD_PATH_PREFIX: "{{ XQUEUE_UPLOAD_PATH_PREFIX }}"
+
+  # Deprecated, use UPLOAD_BUCKET and UPLOAD_PATH_PREFIX instead
   S3_BUCKET: "{{ XQUEUE_S3_BUCKET }}"
   S3_PATH_PREFIX: "{{ XQUEUE_S3_PATH_PREFIX }}"
-  LOCAL_LOGLEVEL: "{{ XQUEUE_LOCAL_LOGLEVEL }}"
 
 xqueue_auth_config:
   AWS_ACCESS_KEY_ID:  "{{ XQUEUE_AWS_ACCESS_KEY_ID }}"
   AWS_SECRET_ACCESS_KEY: "{{ XQUEUE_AWS_SECRET_ACCESS_KEY }}"
+  SWIFT_USERNAME: "{{ XQUEUE_SWIFT_USERNAME }}"
+  SWIFT_KEY: "{{ XQUEUE_SWIFT_KEY }}"
+  SWIFT_TENANT_ID: "{{ XQUEUE_SWIFT_TENANT_ID }}"
+  SWIFT_TENANT_NAME: "{{ XQUEUE_SWIFT_TENANT_NAME }}"
+  SWIFT_AUTH_URL: "{{ XQUEUE_SWIFT_AUTH_URL }}"
+  SWIFT_AUTH_VERSION: "{{ XQUEUE_SWIFT_AUTH_VERSION }}"
+  SWIFT_REGION_NAME: "{{ XQUEUE_SWIFT_REGION_NAME }}"
   REQUESTS_BASIC_AUTH: ["{{ XQUEUE_BASIC_AUTH_USER }}", "{{XQUEUE_BASIC_AUTH_PASSWORD}}"]
   USERS: "{{ XQUEUE_DJANGO_USERS }}"
   DATABASES:
@@ -85,8 +116,9 @@ xqueue_auth_config:
 
 xqueue_source_repo: "https://github.com/edx/xqueue.git"
 xqueue_version: 'master'
-xqueue_pre_requirements_file:    "{{ xqueue_code_dir }}/pre-requirements.txt"
-xqueue_post_requirements_file:   "{{ xqueue_code_dir }}/requirements.txt"
+xqueue_pre_requirements_file:       "{{ xqueue_code_dir }}/pre-requirements.txt"
+xqueue_post_requirements_file:      "{{ xqueue_code_dir }}/requirements.txt"
+xqueue_openstack_requirements_file: "{{ xqueue_code_dir }}/openstack-requirements.txt"
 
 # These packages are required for the xqueue server,
 # copied from the LMS role for now since there is a lot

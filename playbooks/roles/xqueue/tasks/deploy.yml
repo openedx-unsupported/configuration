@@ -72,10 +72,23 @@
     - install
     - install:app-requirements
 
+# If this is an openstack deployment, install openstack requirements
+- name: Install python openstack requirements
+  pip:
+    requirements: "{{ xqueue_openstack_requirements_file }}"
+    virtualenv: "{{ xqueue_venv_dir }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
+  become_user: "{{ xqueue_user }}"
+  when: XQUEUE_SETTINGS == 'openstack_settings'
+  tags:
+    - install
+    - install:app-requirements
+
 # If there is a common user for migrations run migrations using his username
 # and credentials. If not we use the xqueue mysql user
 - name: Migrate
-  shell: "SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py migrate --noinput --settings=xqueue.aws_migrate --pythonpath={{ xqueue_code_dir }}"
+  shell: "SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py migrate --noinput --settings=xqueue.{{ XQUEUE_SETTINGS }} --pythonpath={{ xqueue_code_dir }}"
   become_user: "{{ xqueue_user }}"
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
@@ -86,7 +99,7 @@
     - migrate:db
 
 - name: Create users
-  shell: "SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.aws_settings --pythonpath={{ xqueue_code_dir }}"
+  shell: "SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.{{ XQUEUE_SETTINGS }} --pythonpath={{ xqueue_code_dir }}"
   become_user: "{{ xqueue_user }}"
   tags:
     - manage

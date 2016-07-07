@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+#  This script can be called from logrotate to sync logs to swift. Based on
+#  the existing S3 implementation
+#
+
+if (( $EUID != 0 )); then
+    echo "Please run as the root user"
+    exit 1
+fi
+
+# Ensure the log processors can read without running as root
+if [ ! -f "{{ openstack_swift_logfile }}" ]; then
+  touch "{{ openstack_swift_logfile }}"
+fi
+chown syslog:syslog "{{ openstack_swift_logfile }}"
+
+exec > >(tee -a "{{ openstack_swift_logfile }}")
+exec 2>&1
+
+usage() {
+
+  cat<<EOF
+
+  A wrapper of python-swiftclient that will sync log files to
+  a swift container.
+
+  Usage: $PROG
+            -v    add verbosity (set -x)
+            -n    echo what will be done
+            -h    this
+            -d    directory to sync
+            -b    bucket to sync to
+            -p    name prefix
+EOF
+}
+
+while getopts "vhnb:d:p:" opt; do
+  case $opt in
+    v)
+      set -x
+      shift
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    n)
+      noop="echo Would have run: "
+      shift
+      ;;
+    d)
+      directory=$OPTARG
+      ;;
+    b)
+      container=$OPTARG
+      ;;
+    p)
+      prefix=$OPTARG
+      ;;
+  esac
+done
+
+if [[ -z $container || -z $directory ]]; then
+  echo "ERROR: You must provide a directory and a container to sync!"
+  usage
+  exit 1
+fi
+
+set -e
+
+# The openstack metadata service has an ec2-compatible API, so we can
+# use the ec2metadata command here.
+instance_id=$(ec2metadata --instance-id)
+ip=$(ec2metadata --local-ipv4)
+
+# Source openstack credentials
+source "{{ openstack_log_sync_script_environment }}"
+
+# Sync the logs
+$noop swift upload --changed --skip-identical --object-name "${prefix}${instance_id}-${ip}" $container $directory

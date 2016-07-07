@@ -10,7 +10,7 @@
 #
 #
 # Tasks for role vhost
-# 
+#
 # Overview:
 #
 # This task is to contain tasks that should be run in vhost
@@ -20,21 +20,66 @@
 #
 # Dependencies:
 # - common
-# 
+#
 
-- name: Copy the templates to their respestive destination
+- name: Create all service directories
+  file:
+    path: "{{ item.value.path }}"
+    state: directory
+    owner: "{{ item.value.owner }}"
+    group: "{{ item.value.group }}"
+    mode: "{{ item.value.mode }}"
+  with_dict: "{{ vhost_dirs }}"
+
+- name: Force logrotate on supervisor stop
   template:
-    dest: "{{ item.dest }}"
-    src: "{{ item.src }}"
-    owner: root 
-    group: root 
-    mode: "{{ item.mode | default(644) }}"
-  register: config_templates
-  with_items:
-    - { src: 'etc/{{ COMMON_MOTD_TEMPLATE }}', dest: '/etc/motd.tail', mode: '755' }
-    - { src: 'etc/ssh/sshd_config.j2', dest: '/etc/ssh/sshd_config' }
-    
-- name: restart ssh
-  service: name=ssh state=restarted
+    src: etc/init/sync-on-stop.conf.j2
+    dest: /etc/init/sync-on-stop.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
+- name: Update /etc/dhcp/dhclient.conf
+  template:
+    src: etc/dhcp/dhclient.conf.j2
+    dest: /etc/dhcp/dhclient.conf
+  when: COMMON_CUSTOM_DHCLIENT_CONFIG
+
+- name: Copy the MOTD template in place
+  template:
+    src: etc/motd.tail.j2
+    dest: /etc/motd.tail
+    owner: root
+    group: root
+    mode: '755'
+
+- name: Update sshd logging to VERBOSE
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^LogLevel .*"
+    line: "LogLevel VERBOSE"
+  register: sshd_config
+
+- name: Update sshd logging to VERBOSE
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^PasswordAuthentication .*"
+    line: "PasswordAuthentication {{ COMMON_SSH_PASSWORD_AUTH }}"
+  register: sshd_config
+
+- name: Restart ssh
+  service:
+    name: ssh
+    state: restarted
   become: True
-  when: config_templates.changed
+  when: sshd_config.changed and ansible_distribution in common_debian_variants
+
+- name: Restart ssh
+  service:
+    name: sshd
+    state: restarted
+  become: True
+  when: sshd_config.changed and ansible_distribution in common_redhat_variants

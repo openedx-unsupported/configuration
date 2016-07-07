@@ -1,0 +1,66 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role openstack
+#
+
+- name: Install system packages
+  apt:
+    pkg: "{{','.join(openstack_debian_pkgs)}}"
+    state: present
+    update_cache: yes
+
+- name: Install openstack python packages
+  pip:
+    name: "{{ item }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: "{{ openstack_pip_pkgs }}"
+
+- name: Create log sync script
+  template:
+    src: send-logs-to-swift.j2
+    dest: "{{ openstack_log_sync_script }}"
+    mode: 0755
+    owner: root
+    group: root
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
+- name: Upload openstack credentials for log script
+  template:
+    src: log-sync-env.sh.j2
+    dest: "{{ openstack_log_sync_script_environment }}"
+    mode: 0600
+    owner: root
+    group: root
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
+- name: Create symlink for log sync script
+  file:
+    state: link
+    src: "{{ openstack_log_sync_script }}"
+    dest: "{{ COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT }}"
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
+# Install openstack python requirements into {{ edxapp_venv_dir }}
+- name : Install python requirements
+  # Need to use command rather than pip so that we can maintain the context of our current working directory;
+  # some requirements are pathed relative to the edx-platform repo.
+  # Using the pip from inside the virtual environment implicitly installs everything into that virtual environment.
+  command: >
+    {{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ openstack_requirements_file }}
+    chdir={{ edxapp_code_dir }}
+  sudo_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  when: edxapp_code_dir is defined
+  tags:
+    - install
+    - install:app-requirements
