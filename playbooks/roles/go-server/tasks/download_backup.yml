@@ -33,7 +33,7 @@
 
 - name: install system packages needed for downloading backup
   apt:
-    pkg: "{{ item }}"
+    name: "{{ item }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
@@ -52,19 +52,19 @@
     mode: 0755
 
 - name: get s3 one time url
-  s3: >
-    bucket="{{ GO_SERVER_BACKUP_S3_BUCKET }}"
-    object="{{ GO_SERVER_BACKUP_S3_OBJECT }}"
-    mode="geturl"
-    expiration=30
+  s3:
+    bucket: "{{ GO_SERVER_BACKUP_S3_BUCKET }}"
+    object: "{{ GO_SERVER_BACKUP_S3_OBJECT }}"
+    mode: "geturl"
+    expiration: 30
   when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT
   register: s3_one_time_url
 
 - name: download from one time url
   get_url:
-    url="{{ s3_one_time_url.url }}"
-    dest="{{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/{{ GO_SERVER_BACKUP_FILENAME }}"
-    mode=0600
+    url: "{{ s3_one_time_url.url }}"
+    dest: "{{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/{{ GO_SERVER_BACKUP_FILENAME }}"
+    mode: "0600"
   when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT
   register: download_backup_s3
 
