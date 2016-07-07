@@ -38,11 +38,6 @@ class CallbackModule(object):
     def clean_tag_value(self, value):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
-    def playbook_on_play_start(self, pattern):
-            self.playbook_name, _ = os.path.splitext(
-                os.path.basename(self.play.playbook.filename)
-            )
-
     def playbook_on_task_start(self, name, is_conditional):
         """
         Logs the start of each task
