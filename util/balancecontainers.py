@@ -27,7 +27,7 @@ def pack_containers(containers, num_shards):
         try:
             config = yaml.load(file)
         except yaml.YAMLError, exc:
-            LOGGER.warning("error in configuration file: %s" % str(exc))
+            LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
 
     # get container weights
@@ -83,7 +83,6 @@ if __name__ == '__main__':
 
     # get containers from standard in
     for line in sys.stdin:
-        # strip whitespace and brackets
         line = line.strip()
         line = line.strip("[]")
 
@@ -93,7 +92,7 @@ if __name__ == '__main__':
     # find optimal packing of the containers amongst shards
     shards = pack_containers(containers, args.num_shards)
 
-    # print space separate list of containers for each shard
+    # print space separated list of containers for each shard
     for shard in shards:
         middle = " "
 
