@@ -25,6 +25,9 @@
     src: "edx/app/ecommerce/ecommerce_gunicorn.py.j2"
     dest: "{{ ecommerce_home }}/ecommerce_gunicorn.py"
   become_user: "{{ ecommerce_user }}"
+  tags:
+      - install
+      - install:configuration
 
 - name: Install application requirements
   pip:
@@ -33,12 +36,18 @@
     state: present
   become_user: "{{ ecommerce_user }}"
   with_items: "{{ ecommerce_requirements }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Create nodeenv
   shell: "{{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt"
   args:
     creates: "{{ ecommerce_nodeenv_dir }}"
   become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Install node dependencies
   npm:
@@ -47,12 +56,18 @@
     production: yes
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Install bower dependencies
   shell: ". {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/bower install --production --config.interactive=false"
   args:
     chdir: "{{ ecommerce_code_dir }}"
   become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Migrate
   shell: >
@@ -64,6 +79,9 @@
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: Populate countries
   shell: >
@@ -81,6 +99,9 @@
   failed_when:
     - "'You already have countries in your database' not in command_result.stderr"
     - "command_result.rc != 0"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: compile sass
   shell: "{{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}"
@@ -91,6 +112,9 @@
   with_items:
     - "update_assets --skip-collect"
   when: not devstack
+  tags:
+    - assets
+    - assets:gather
 
 - name: Run r.js optimizer
   shell: ". {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js"
@@ -98,6 +122,9 @@
     chdir: "{{ ecommerce_code_dir }}"
   become_user: "{{ ecommerce_user }}"
   when: not devstack
+  tags:
+    - assets
+    - assets:gather
 
 - name: Run collectstatic
   shell: "{{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}"
@@ -109,6 +136,9 @@
     - "collectstatic --noinput"
     - "compress"
   when: not devstack
+  tags:
+    - assets
+    - assets:gather
 
 - name: Write out the supervisor wrapper
   template:
@@ -117,6 +147,9 @@
     mode: "0650"
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: Write supervisord config
   template:
@@ -125,6 +158,9 @@
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
     mode: "0644"
+  tags:
+    - install
+    - install:configuration
 
 - name: Setup the ecommence env file
   template:
@@ -133,6 +169,9 @@
     owner: "{{ ecommerce_user }}"
     group: "{{ ecommerce_user }}"
     mode: "0644"
+  tags:
+    - install
+    - install:configuration
 
 - name: Enable supervisor script
   file:
@@ -141,10 +180,16 @@
     state: link
     force: yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: Update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
 
 - name: Create symlinks from the-er venv bin dir
   file:
@@ -155,6 +200,9 @@
     - python
     - pip
     - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Create symlinks from the repo dir
   file:
@@ -163,6 +211,9 @@
     state: link
   with_items:
     - manage.py
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Restart the applicaton
   supervisorctl:
@@ -172,3 +223,6 @@
     config: "{{ supervisor_cfg }}"
   when: not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
