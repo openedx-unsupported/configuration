@@ -57,6 +57,7 @@ extra_var_args+=" -e edxapp_app_dir=${WORKSPACE}"
 extra_var_args+=" -e edxapp_code_dir=${WORKSPACE}/edx-platform"
 extra_var_args+=" -e edxapp_user=jenkins"
 extra_var_args+=" -e EDXAPP_CFG_DIR=${WORKSPACE}"
+extra_var_args+=" -e THEMES_CODE_DIR=${WORKSPACE}"
 
 # Run migrations and replace literal '\n' with actual newlines to make the output
 # easier to read
