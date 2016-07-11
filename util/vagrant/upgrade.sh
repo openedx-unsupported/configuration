@@ -255,6 +255,32 @@ EOF
   fi
 fi
 
+# Eucalyptus details
+
+if [[ $TARGET == *eucalyptus* ]] ; then
+  echo "Uninstall edx-oauth2-provider"
+  sudo -u edxapp /edx/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
+
+  echo "Upgrade the code"
+  cd configuration/playbooks/vagrant
+  sudo ansible-playbook \
+    --inventory-file=localhost, \
+    --connection=local \
+    $SERVER_VARS \
+    --extra-vars="edx_platform_version=$TARGET" \
+    --extra-vars="xqueue_version=$TARGET" \
+    --extra-vars="migrate_db=no" \
+    --skip-tags="edxapp-sandbox,gather_static_assets" \
+    vagrant-$CONFIGURATION-delta.yml
+  cd ../../..
+
+  echo "Migrate to fix oauth2_provider"
+  /edx/bin/edxapp-migrate-lms --fake oauth2_provider zero
+  /edx/bin/edxapp-migrate-lms --fake-initial
+fi
+
+# Update to target.
+
 echo "Updating to final version of code"
 cd configuration/playbooks
 echo "edx_platform_version: $TARGET" > vars.yml
@@ -269,6 +295,8 @@ sudo ansible-playbook \
     $SERVER_VARS \
     vagrant-$CONFIGURATION.yml
 cd ../..
+
+# Post-upgrade work.
 
 if [[ $TARGET == *dogwood* ]] ; then
   echo "Running data fixup management commands"
