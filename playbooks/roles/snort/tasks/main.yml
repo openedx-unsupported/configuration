@@ -1,47 +1,50 @@
 ---
-# install and configure snort IDS
-#
-
-- name: install snort
-  apt: pkg={{ item }} state="present"
+- name: Install snort
+  apt:
+    name: "{{ item }}"
+    state: present
   with_items:
     - snort
     - oinkmaster
 
-- name: configure snort
-  template: >
-    src=etc/snort/snort.conf.j2 dest=/etc/snort/snort.conf
-    owner=root group=root mode=0644
+- name: Configure snort and snort (debian)
+  template:
+    src: "etc/snort/{{ item }}"
+    dest: "/etc/snort/{{ item.rstrip('.j2') }}"
+    owner: root
+    group: root
+    mode: "0644"
+  with_items:
+    - snort.conf.j2
+    - snort.debian.conf.j2
 
-- name: configure snort (debian)
-  template: >
-    src=etc/snort/snort.debian.conf.j2 dest=/etc/snort/snort.debian.conf
-    owner=root group=root mode=0644
+- name: Configure oinkmaster
+  template:
+    src: "etc/oinkmaster.conf.j2"
+    dest: "/etc/oinkmaster.conf"
+    owner: root
+    group: root
+    mode: "0644"
 
-- name: configure oinkmaster
-  template: >
-    src=etc/oinkmaster.conf.j2 dest=/etc/oinkmaster.conf
-    owner=root group=root mode=0644
-
-- name: update snort
-  shell: oinkmaster -C /etc/oinkmaster.conf -o /etc/snort/rules/ 
+- name: Update snort
+  shell: "oinkmaster -C /etc/oinkmaster.conf -o /etc/snort/rules/"
   become: yes
 
-- name: snort service 
-  service: >
-    name="snort" 
-    state="started"
+- name: Snort service
+  service:
+    name: snort
+    state: started
 
-- name: open read permissions on snort logs
-  file: >
-    name="/var/log/snort"
-    state="directory"
-    mode="755"
+- name: Open read permissions on snort logs
+  file:
+    name: "/var/log/snort"
+    state: directory
+    mode: "0755"
 
-- name: install oinkmaster cronjob
-  template: >
-    src=etc/cron.daily/oinkmaster.j2 dest=/etc/cron.daily/oinkmaster
-    owner=root group=root mode=0755
-
-
-
+- name: Install oinkmaster cronjob
+  template:
+    src: "etc/cron.daily/oinkmaster.j2"
+    dest: "/etc/cron.daily/oinkmaster"
+    owner: root
+    group: root
+    mode: "0755"
