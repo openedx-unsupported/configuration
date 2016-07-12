@@ -44,38 +44,42 @@
 #   - role: newrelic
 #     when: COMMON_ENABLE_NEWRELIC
 
-- name: install application requirements
-  pip: >
-    requirements="{{ edx_notes_api_requirements_base }}/{{ item }}"
-    virtualenv="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
-    state=present extra_args="--exists-action w"
+- name: Install application requirements
+  pip:
+    requirements: "{{ edx_notes_api_requirements_base }}/{{ item }}"
+    virtualenv: "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
+    state: present
+    extra_args: "--exists-action w"
   become_user: "{{ edx_notes_api_user }}"
   with_items: edx_notes_api_requirements
 
-- name: migrate
-  shell: >
-    chdir={{ edx_notes_api_code_dir }}
+- name: Migrate
+  shell:
     DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
     DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
     {{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/python {{ edx_notes_api_manage }} migrate --noinput --settings="notesserver.settings.yaml_config"
+  args:
+    chdir: "{{ edx_notes_api_code_dir }}"
   become_user: "{{ edx_notes_api_user }}"
   environment:
     EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
-- name: write out gunicorn.py
-  template: >
-    src=edx/app/edx_notes_api/edx_notes_api_gunicorn.py.j2
-    dest={{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}_gunicorn.py
-    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+- name: Write out gunicorn.py
+  template:
+    src: "edx/app/edx_notes_api/edx_notes_api_gunicorn.py.j2"
+    dest: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}_gunicorn.py"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0650"
   tags:
     - deploy
 
-- name: write out the supervisor wrapper
+- name: Write out the supervisor wrapper
   template:
     src: "edx/app/edx_notes_api/edx_notes_api.sh.j2"
     dest: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}.sh"
-    mode: 0650
+    mode: "0650"
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
   tags:
@@ -83,73 +87,75 @@
     - install:configuration
 
 
-- name: write supervisord config
-  template: >
-    src=edx/app/supervisor/conf.d.available/edx_notes_api.conf.j2
-    dest="{{ supervisor_available_dir }}/{{ edx_notes_api_service_name }}.conf"
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+- name: Write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/edx_notes_api.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ edx_notes_api_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
   tags:
     - deploy
 
-- name: setup the edx_notes_api env file
+- name: Setup the edx_notes_api env file
   template:
     src: "edx/app/edx_notes_api/edx_notes_api_env.j2"
     dest: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name}}_env"
     owner: "{{ edx_notes_api_user }}"
     group: "{{ edx_notes_api_user }}"
-    mode: 0644
+    mode: "0644"
   tags:
     - install
     - install:configuration
 
 
-- name: enable supervisor script
-  file: >
-    src={{ supervisor_available_dir }}/{{ edx_notes_api_service_name }}.conf
-    dest={{ supervisor_cfg_dir }}/{{ edx_notes_api_service_name }}.conf
-    state=link
-    force=yes
+- name: Enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ edx_notes_api_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ edx_notes_api_service_name }}.conf"
+    state: link
+    force: yes
   when: not disable_edx_services
   tags:
     - deploy
 
-- name: update supervisor configuration
+- name: Update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
     - deploy
 
-- name: restart supervisor
-  supervisorctl: >
-    name={{ edx_notes_api_service_name }}
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    state=restarted
+- name: Restart supervisor
+  supervisorctl:
+    name: "{{ edx_notes_api_service_name }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: restarted
   when: not disable_edx_services
   tags:
     - deploy
 
-- name: create symlinks from the venv bin dir
-  file: >
-    src="{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/{{ item }}"
-    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_notes_api_service_name }}"
-    state=link
+- name: Create symlinks from the venv bin dir
+  file:
+    src: "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.', 1) | first }}.{{ edx_notes_api_service_name }}"
+    state: link
   with_items:
-  - python
-  - pip
-  - django-admin.py
+    - python
+    - pip
+    - django-admin.py
 
-- name: create manage.py symlink
-  file: >
-    src="{{ edx_notes_api_manage }}"
-    dest="{{ COMMON_BIN_DIR }}/manage.{{ edx_notes_api_service_name }}"
-    state=link
+- name: Create manage.py symlink
+  file:
+    src: "{{ edx_notes_api_manage }}"
+    dest: "{{ COMMON_BIN_DIR }}/manage.{{ edx_notes_api_service_name }}"
+    state: link
 
-- name: restart edx_notes_api
-  supervisorctl: >
-    state=restarted
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    name={{ edx_notes_api_service_name }}
+- name: Restart edx_notes_api
+  supervisorctl:
+    name: "{{ edx_notes_api_service_name }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: restarted
   when: not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
