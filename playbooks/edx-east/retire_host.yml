@@ -24,8 +24,8 @@
   tasks:
     - name: Terminate existing s3 log sync
       command: /usr/bin/pkill send-logs-to-s3 || true
-    - name: "Ensure send-logs-to-s3 script is in the logrotate file"
-      shell: grep send-logs-to-s3 /etc/logrotate.d/hourly/tracking.log
+    - name: "Ensure send-logs-to-object-store script is in the logrotate file"
+      shell: grep send-logs-to-object-store /etc/logrotate.d/hourly/tracking.log
     # We only force a rotation of edx logs.
     # Forced rotation of system logfiles will only
     # work if there hasn't already been a previous rotation
@@ -38,7 +38,7 @@
         - "edx-services"
     # This catches the case where tracking.log is 0b
     - name: Sync again
-      command: /edx/bin/send-logs-to-s3 -d "{{ COMMON_LOG_DIR }}/tracking/*" -b "{{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }}/logs/tracking"
+      command: /edx/bin/send-logs-to-object-store -d "{{ COMMON_LOG_DIR }}/tracking/" -b "{{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }}/logs/tracking"
     
 - name: Run minos verification
   hosts: "{{TARGET}}"
