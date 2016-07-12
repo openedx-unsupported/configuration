@@ -37,6 +37,16 @@ RUN apt-get update && apt-get install -y -q \
     python-pip \
     libmysqlclient-dev
 
+# Install php
+RUN apt-get update && apt-get install -y \
+    php5-common \
+    php5-cli
+
+# Install drush (drupal shell) for access to Drupal commands/Acquia
+RUN php -r "readfile('http://files.drush.org/drush.phar');" > drush && \
+    chmod +x drush && \
+    sudo mv drush /usr/local/bin
+
 # Install Docker - for Docker container building by a go-agent.
 COPY docker/build/go-agent/files/docker_install.sh /tmp/docker/
 RUN /bin/bash /tmp/docker/docker_install.sh
