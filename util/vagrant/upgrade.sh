@@ -277,6 +277,9 @@ if [[ $TARGET == *eucalyptus* ]] ; then
   echo "Migrate to fix oauth2_provider"
   /edx/bin/edxapp-migrate-lms --fake oauth2_provider zero
   /edx/bin/edxapp-migrate-lms --fake-initial
+
+  echo "Clean up forums Ruby detritus"
+  sudo rm -rf /edx/app/forum/.rbenv /edx/app/forum/.gem
 fi
 
 # Update to target.
