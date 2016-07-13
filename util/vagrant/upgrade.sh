@@ -80,7 +80,7 @@ confirm_proceed () {
 }
 
 # Check we are in the right place, and have the info we need.
-if [[ ! -d /edx/app/edxapp ]]; then
+if [[ ! -d ${OPENEDX_ROOT}/app/edxapp ]]; then
   echo "Run this on your Open edX machine."
   exit_cleanly 1
 fi
@@ -164,7 +164,7 @@ if [[ $TARGET == *cypress* ]] ; then
   sudo -u forum git -C ${OPENEDX_ROOT}/app/forum/.rbenv reset --hard
 fi
 
-if [[ -f /edx/app/edx_ansible/server-vars.yml ]]; then
+if [[ -f ${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml ]]; then
   SERVER_VARS="--extra-vars=\"@${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml\""
 fi
 
@@ -205,7 +205,7 @@ EOF
   mongo cs_comments_service migrate-008-context.js
 
   # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
-  sudo rm -rf /edx/app/*/v*envs/*
+  sudo rm -rf ${OPENEDX_ROOT}/app/*/v*envs/*
 
   echo "Upgrading to the end of Django 1.4"
   cd configuration/playbooks/vagrant
@@ -225,7 +225,7 @@ EOF
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u edxapp /edx/bin/pip.edxapp uninstall -y South
+  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
@@ -242,15 +242,15 @@ EOF
 
   echo "Running the Django 1.8 faked migrations"
   for item in lms cms; do
-    sudo -u $APPUSER -E /edx/bin/python.edxapp \
-      /edx/bin/manage.edxapp $item migrate --settings=aws --noinput --fake-initial
+    sudo -u $APPUSER -E ${OPENEDX_ROOT}/bin/python.edxapp \
+      ${OPENEDX_ROOT}/bin/manage.edxapp $item migrate --settings=aws --noinput --fake-initial
   done
 
   if [[ $CONFIGURATION == fullstack ]] ; then
     sudo -u xqueue \
     SERVICE_VARIANT=xqueue \
-    /edx/app/xqueue/venvs/xqueue/bin/python \
-    /edx/app/xqueue/xqueue/manage.py migrate \
+    ${OPENEDX_ROOT}/app/xqueue/venvs/xqueue/bin/python \
+    ${OPENEDX_ROOT}/app/xqueue/xqueue/manage.py migrate \
     --settings=xqueue.aws_settings --noinput --fake-initial
   fi
 fi
@@ -259,7 +259,7 @@ fi
 
 if [[ $TARGET == *eucalyptus* ]] ; then
   echo "Uninstall edx-oauth2-provider"
-  sudo -u edxapp /edx/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
+  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
 
   echo "Upgrade the code"
   cd configuration/playbooks/vagrant
@@ -275,11 +275,11 @@ if [[ $TARGET == *eucalyptus* ]] ; then
   cd ../../..
 
   echo "Migrate to fix oauth2_provider"
-  /edx/bin/edxapp-migrate-lms --fake oauth2_provider zero
-  /edx/bin/edxapp-migrate-lms --fake-initial
+  ${OPENEDX_ROOT}/bin/edxapp-migrate-lms --fake oauth2_provider zero
+  ${OPENEDX_ROOT}/bin/edxapp-migrate-lms --fake-initial
 
   echo "Clean up forums Ruby detritus"
-  sudo rm -rf /edx/app/forum/.rbenv /edx/app/forum/.gem
+  sudo rm -rf ${OPENEDX_ROOT}/app/forum/.rbenv ${OPENEDX_ROOT}/app/forum/.gem
 fi
 
 # Update to target.
@@ -303,11 +303,11 @@ cd ../..
 
 if [[ $TARGET == *dogwood* ]] ; then
   echo "Running data fixup management commands"
-  sudo -u $APPUSER -E /edx/bin/python.edxapp \
-    /edx/bin/manage.edxapp lms --settings=aws generate_course_overview --all
+  sudo -u $APPUSER -E ${OPENEDX_ROOT}/bin/python.edxapp \
+    ${OPENEDX_ROOT}/bin/manage.edxapp lms --settings=aws generate_course_overview --all
 
-  sudo -u $APPUSER -E /edx/bin/python.edxapp \
-    /edx/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
+  sudo -u $APPUSER -E ${OPENEDX_ROOT}/bin/python.edxapp \
+    ${OPENEDX_ROOT}/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
 
   # Run the forums migrations again to catch things made while this script
   # was running.
