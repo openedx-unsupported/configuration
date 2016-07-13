@@ -21,20 +21,22 @@
 # hadoop_common: this role installs hadoop generically
 #
 
-- name: data directories created
-  file: >
-    path={{ HADOOP_COMMON_DATA }}/{{ item }}
-    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=directory
+- name: Data directories created
+  file:
+    path: "{{ HADOOP_COMMON_DATA }}/{{ item }}"
+    owner: "{{ hadoop_common_user }}"
+    group: "{{ hadoop_common_group }}"
+    state: directory
   with_items:
     - namenode
     - datanode
 
-- name: check if namenode is formatted
-  stat: path={{ HADOOP_COMMON_DATA }}/namenode/current/VERSION
+- name: Check if namenode is formatted
+  stat:
+    path: "{{ HADOOP_COMMON_DATA }}/namenode/current/VERSION"
   register: namenode_version_file
 
-- name: namenode formatted
-  shell: >
-    . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs namenode -format
+- name: Namenode formatted
+  shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs namenode -format"
   become_user: "{{ hadoop_common_user }}"
   when: not namenode_version_file.stat.exists
