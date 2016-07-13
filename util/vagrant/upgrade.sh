@@ -261,6 +261,11 @@ if [[ $TARGET == *eucalyptus* ]] ; then
   echo "Uninstall edx-oauth2-provider"
   sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
 
+  if [[ $CONFIGURATION == devstack ]] ; then
+    echo "Remove old Firefox"
+    sudo apt-get purge -y firefox
+  fi
+
   echo "Upgrade the code"
   cd configuration/playbooks/vagrant
   sudo ansible-playbook \
