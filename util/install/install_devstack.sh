@@ -11,11 +11,13 @@ function usage
 
     --- install_devstack.sh ---
 
+    Usage: $ bash install_devstack.sh release [-p] [-v vagrant_mount_base] [-h]
+
     Installs the Open edX developer stack. More information on installing devstack 
     can be found here: https://openedx.atlassian.net/wiki/display/OpenOPS/Running+Devstack
 
-    -r RELEASE
-        The release of Open edX you wish to run. Upgrade to the given git ref RELEASE.
+    release
+        The release of Open edX you wish to run. Upgrade to the given git ref 'release'.
         You must specify this. Named released are called "named-release/cypress",
         "named-release/dogwood.2", and so on. We recommend the latest stable named 
         release for general members of the open source community. Named releases can
@@ -25,7 +27,7 @@ function usage
     -p
         Enable use of "preview" from within Studio.
 
-    -v VAGRANT_MOUNT_BASE
+    -v vagrant_mount_base
         Customize the location of the source code that gets cloned during the 
         devstack provisioning.
 
@@ -36,36 +38,34 @@ function usage
 
 EOM
 }
-##### MAIN
+
 # Logging
-#sudo mkdir -p /var/log/edx
-#exec > >(sudo tee /var/log/edx/upgrade-$(date +%Y%m%d-%H%M%S).log) 2>&1
-
-
-echo "Logs located at /var/log/edx"
-#export OPENEDX_RELEASE=""
+mkdir -p install_logs
+exec > >(tee install_logs/install-$(date +%Y%m%d-%H%M%S).log) 2>&1
+echo "Logs located in install_logs directory"
 
 # Default OPENEDX_RELEASE
-release="release"
+release=""
 # Enable preview in Studio
 enable_preview=0
 # Vagrant source code provision location
 vagrant_mount_location=""
 
+if [[ $# -lt 1 || ${1:0:1} == '-' ]]; then
+  usage
+  exit 1
+fi
+
+release=$1
+shift
+
 while getopts "r:pv:h" opt; do
     case "$opt" in
-        r)
-            release=$OPTARG
-            ;;
         p)
             enable_preview=1
             ;;
         v)
             vagrant_mount_location=$OPTARG
-            ;;
-        h)
-            usage
-            exit
             ;;
         *)
             usage
@@ -74,49 +74,25 @@ while getopts "r:pv:h" opt; do
     esac
 done
 
-# while [ "$1" != "" ]; do
-#     case $1 in
-#         -r | --release )        shift
-#                                 if [[ "$1" != "" ]]; then
-#                                     release=$1
-#                                 else
-#                                     echo "A git ref must follow -r"
-#                                     exit 
-#                                 ;;
-#         -p | --preview )        enable_preview=1
-#                                 ;;
-#         -v | --vagrant_mount )  shift
-#                                 vagrant_mount_location=$1
-#                                 if [[ "$1" != "" ]]; then
-#                                     vagrant_mount_location=$1
-#                                 else
-#                                     echo "A location must foillow"
-#                                     exit 
-#                                 ;;
-#         -h | --help )           usage
-#                                 exit
-#                                 ;;
-#         * )                     usage
-#                                 exit 1
-#     esac
-#     shift
-# done
 
-if [[$release == " " ]]; then
-    release="release"
-fi
-echo $release
-#export OPENEDX_RELEASE=$release
-#mkdir devstack
-#cd devstack
-#curl -L https://raw.githubusercontent.com/edx/configuration/master/vagrant/release/devstack/Vagrantfile > Vagrantfile
-#vagrant plugin install vagrant-vbguest
-#vagrant up --provider virtualbox
+export OPENEDX_RELEASE=$release
+mkdir -p devstack
+cd devstack
+
+# Install devstack
+curl -L https://raw.githubusercontent.com/edx/configuration/master/vagrant/release/devstack/Vagrantfile > Vagrantfile
+vagrant plugin install vagrant-vbguest
+vagrant up --provider virtualbox
+
+# Check if preview mode was chosen
 if [[ $enable_preview -eq 1 ]]; then
-    echo "PREVIEW ENABLED"
-    #sudo bash -c "echo '192.168.33.10  preview.localhost' >> /etc/hosts"
+    echo "Enabling use of preview within Studio..."
+    sudo bash -c "echo '192.168.33.10  preview.localhost' >> /etc/hosts"
 fi
+# Check if mount location was changed
 if [[ $vagrant_mount_location != "" ]]; then
-    echo "CHANGING PROVISION LOCATION TO"$vagrant_mount_location
-    #export VAGRANT_MOUNT_BASE=vagrant_mount_location
+    echo "Changing Vagrant provision location to "$vagrant_mount_location"..."
+    export VAGRANT_MOUNT_BASE=vagrant_mount_location
 fi
+
+echo "Finished installing! You may now login using 'vagrant ssh'"
