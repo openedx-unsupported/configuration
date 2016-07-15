@@ -59,7 +59,7 @@ def _map_roles_to_roles(graph, dirs, git_dir, key, type_1, type_2):
         for item in d.iterdir():
 
             # attempts to find meta/*.yml file in item directory tree
-            roles = [f for f in item.glob("meta/*.yml")]
+            roles = {f for f in item.glob("meta/*.yml")}
 
             # if a meta/*.yml file(s) exists for a role
             if roles:
@@ -169,7 +169,7 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
         role_dir_path = pathlib2.Path(git_dir, role_dir)
 
         # get all files in the directories containing roles (i.e. all the roles in that directory)
-        candidate_files = (f for f in role_dir_path.glob("**/*"))
+        candidate_files = {f for f in role_dir_path.glob("**/*")}
 
         # for all the files in the change set
         for f in files:
@@ -186,7 +186,7 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
 
         # get all files in directory containing playbook that end with yml extension
         # (i.e. all playbooks in that directory)
-        candidate_files = (f for f in play_dir_path.glob("*.yml"))
+        candidate_files = {f for f in play_dir_path.glob("*.yml")}
 
         # for all filse in the change set
         for f in files:
@@ -250,7 +250,7 @@ def get_docker_plays(roles, graph):
 
     items = set()
 
-    docker_plays = (node.name for node in graph.nodes() if node.type == "docker_playbook")
+    docker_plays = {node.name for node in graph.nodes() if node.type == "docker_playbook"}
 
     for play in docker_plays:
         # all roles that are used by play
@@ -347,7 +347,7 @@ if __name__ == '__main__':
     # aws_plays_paths:
     #       - <all paths relative to configuration repository that contain aws Ansible playbooks>
     # docker_plays_paths:
-    #       - <all paths relative to configuration repositroy that contain Docker Ansible playbooks>
+    #       - <all paths relative to configuration repository that contain Docker Ansible playbooks>
 
     # read config file
     config = _open_yaml_file(CONFIG_FILE_PATH)
