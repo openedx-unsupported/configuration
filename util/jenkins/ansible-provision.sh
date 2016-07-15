@@ -292,6 +292,7 @@ COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+DISCOVERY_PROGRAMS_API_URL: "{{ PROGRAMS_URL_ROOT }}/api/v1/"
 
 EOF
 fi
