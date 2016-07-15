@@ -7,9 +7,13 @@
 # To get a baseline comparison for timestamp comparisons
 # create a testfile and register its stat info
 - name: Create test file
-  file: path=testfile state=touch
+  file:
+    path: testfile
+    state: touch
+
 - name: Stat test file
-  stat: path=testfile
+  stat:
+    path: testfile
   register: testfile
 
 
@@ -27,7 +31,8 @@
 
 # Verify the virtualenv tar is newly-built
 - name: Get info on virtualenv tar
-  stat: path={{ jenkins_home }}/edx-venv_clean.tar.gz
+  stat:
+    path: "{{ jenkins_home }}/edx-venv_clean.tar.gz"
   register: edxvenv
 - assert:
     that:
@@ -35,9 +40,13 @@
       - "{{ testfile.stat.mtime }} - {{ edxvenv.stat.mtime }} < 3600"
 
 # Verify that postfix (mail server) is listening
-- wait_for: host={{ inventory_hostname }} port=25
+- wait_for:
+    host: "{{ inventory_hostname }}"
+    port: 25
   delegate_to: localhost
 
 # Tear Down #
 - name: Remove test file
-  file: path=testfile state=absent
+  file:
+    path: testfile
+    state: absent
