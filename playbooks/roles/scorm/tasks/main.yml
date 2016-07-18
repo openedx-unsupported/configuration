@@ -10,7 +10,15 @@
     group="{{ item.value.group }}"
     mode="{{ item.value.mode }}"
   with_dict: scorm_dirs
+  when: SCORM_S3_BACKUP
 
+- name: install uuencode for emailing errors
+  apt: >
+    pkg=sharutils
+    state=present
+    update_cache=yes  
+  when: SCORM_S3_BACKUP
+  
 - name: create s3 config for SCORM backup
   template: >
     dest={{ scorm_dirs.home.path }}/.s3cfg
@@ -37,5 +45,5 @@
     name: "cronjob for s3 scorm sync"
     user: root
     minute: 0
-    job: "{{ scorm_s3_sync_script }} > /dev/null 2>&1"
+    job: "{{ scorm_s3_sync_script }}"
   when: SCORM_S3_BACKUP
