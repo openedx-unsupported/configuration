@@ -87,6 +87,12 @@
   register: backup_user_password_line
   when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
 
+- name: generate line for go-server password file for gomatic user
+  command: >
+    /usr/bin/htpasswd -nbs "{{ GO_SERVER_GOMATIC_USERNAME }}" "{{ GO_SERVER_GOMATIC_PASSWORD }}"
+  register: gomatic_user_password_line
+  when: GO_SERVER_GOMATIC_USERNAME and GO_SERVER_GOMATIC_PASSWORD
+
 - name: setup password file
   template:
     src: edx/app/go-server/password.txt.j2
@@ -95,7 +101,7 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
     force: no
-  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD
+  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD AND GO_SERVER_GOMATIC_PASSWORD
 
 - name: install go-server configuration
   template:
@@ -109,19 +115,16 @@
 - include: download_backup.yml
   when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT and GO_SERVER_RESTORE_BACKUP
 
-- name: replace the admin line in the password file post-restore
+- name: replace the password lines in the password file post-restore
   lineinfile:
     dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
-    regexp: "^{{ GO_SERVER_ADMIN_USERNAME }}"
-    line: "{{ admin_user_password_line.stdout }}"
-  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
-
-- name: replace the backup line in the password file post-restore
-  lineinfile:
-    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
-    regexp: "^{{ GO_SERVER_BACKUP_USERNAME }}"
-    line: "{{ backup_user_password_line.stdout }}"
-  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+    regexp: "^{{ item.username }}"
+    line: "{{ item.password_hash.stdout }}"
+  with_items:
+    - { username: GO_SERVER_ADMIN_USERNAME, password: GO_SERVER_ADMIN_PASSWORD, password_hash: admin_user_password_line }
+    - { username: GO_SERVER_BACKUP_USERNAME, password: GO_SERVER_BACKUP_PASSWORD, password_hash: backup_user_password_line }
+    - { username: GO_SERVER_GOMATIC_USERNAME, password: GO_SERVER_GOMATIC_PASSWORD, password_hash: gomatic_user_password_line }
+  when: item.username and item.password and item.password_hash
 
 - name: restart go-server
   service:
