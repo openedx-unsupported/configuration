@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+#  Script to sync SCORM content to s3
+#
+
+if (( $EUID != 0 )); then
+    echo "Please run as the root user"
+    exit 1
+fi
+
+exec 2>&1
+
+# s3cmd sync requires a valid home
+# directory
+export HOME=/
+
+usage() {
+
+  cat<<EO
+
+  A wrapper of s3cmd sync that will sync SCORM content files to
+  an s3 bucket, will send mail to {{ SCORM_S3_LOGS_NOTIFY_EMAIL }}
+  on failures.
+
+  Usage: $PROG
+            -v    add verbosity (set -x)
+            -n    Use dry-run for s3cmd and give output
+            -h    this
+EO
+}
+
+while getopts "vhnb:d:" opt; do
+  case $opt in
+    v)
+      set -x
+      shift
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    n)
+      noop="--dry-run"
+      shift
+      ;;
+  esac
+done
+
+# If there are any errors from this point
+# send mail to {{ SCORM_S3_LOGS_NOTIFY_EMAIL }}
+
+set bucket_name={{ EDXAPP_AWS_STORAGE_BUCKET_NAME }}
+
+onerror() {
+  if [[ -z $noop ]]; then
+    subj="Error syncing SCORM content to S3 bucket $bucket_name"
+    if [[ -r "{{ scorm_s3_sync_logfile }}" ]]; then
+      (uuencode {{ scorm_s3_sync_logfile}}) | mail -s $subj {{SCORM_S3_LOGS_NOTIFY_EMAIL}}
+    else
+      cat "No logfile to report!" | mail -s $subj {{SCORM_S3_LOGS_NOTIFY_EMAIL}}
+    fi
+}
+
+trap onerror ERR SIGHUP SIGINT SIGTERM
+
+s3cmd sync $noop $directory "s3://${bucket_name}/scorms/"

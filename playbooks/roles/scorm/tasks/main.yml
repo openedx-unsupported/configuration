@@ -1,0 +1,35 @@
+# CONFIGURE NGINX 
+# SYNC LOCAL SCORM CONTENT PACKAGES WITH S3 IF NOT STORED THERE TO BEGIN WITH
+
+- name: create all service directories
+  file: >
+    path="{{ item.value.path }}"
+    state="directory"
+    owner="{{ item.value.owner }}"
+    group="{{ item.value.group }}"
+    mode="{{ item.value.mode }}"
+  with_dict: scorm_dirs
+
+- name: create s3 scorm sync script
+  template: >
+    dest={{ scorm_s3_sync_script }}
+    src=sync-scorm-content-to-s3.j2 mode=0755 owner=root group=root
+  when: SCORM_S3_BACKUP
+
+- name: create symlink for s3 log sync script
+  file: >
+    state=link
+    src={{ scorm_s3_sync_script }}
+    dest={{ COMMON_BIN_DIR }}/{{ scorm_s3_sync_script|basename }}
+  when: SCORM_S3_BACKUP
+
+  # cron job runs the s3 sync script
+  # this job will log its output to /var/log/scorm
+- name: cronjob for s3 scorm sync
+  cron:
+    name: "cronjob for s3 scorm sync"
+    user: root
+    minute: 0
+    job: "{{ scorm_s3_sync_script }} > /dev/null 2>&1"
+    state: absent
+  when: SCORM_S3_BACKUP
