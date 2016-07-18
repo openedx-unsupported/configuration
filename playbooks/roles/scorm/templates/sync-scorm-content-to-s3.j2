@@ -49,8 +49,6 @@ done
 # If there are any errors from this point
 # send mail to {{ SCORM_S3_LOGS_NOTIFY_EMAIL }}
 
-set bucket_name={{ EDXAPP_AWS_STORAGE_BUCKET_NAME }}
-
 onerror() {
   if [[ -z $noop ]]; then
     subj="Error syncing SCORM content to S3 bucket $bucket_name"
@@ -59,8 +57,9 @@ onerror() {
     else
       cat "No logfile to report!" | mail -s $subj {{SCORM_S3_LOGS_NOTIFY_EMAIL}}
     fi
+  fi
 }
 
 trap onerror ERR SIGHUP SIGINT SIGTERM
 
-s3cmd sync $noop $directory "s3://${bucket_name}/scorms/"
+s3cmd sync -c {{ scorm_dirs.home.path }}/.s3cfg $noop {{ scorm_local_storage_path }}/ "s3://{{ EDXAPP_AWS_STORAGE_BUCKET_NAME }}/scorms/"

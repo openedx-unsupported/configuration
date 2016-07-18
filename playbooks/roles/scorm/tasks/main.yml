@@ -1,6 +1,7 @@
 # CONFIGURE NGINX 
 # SYNC LOCAL SCORM CONTENT PACKAGES WITH S3 IF NOT STORED THERE TO BEGIN WITH
 
+- include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/common_vars/defaults/main.yml"
 - name: create all service directories
   file: >
     path="{{ item.value.path }}"
@@ -9,6 +10,12 @@
     group="{{ item.value.group }}"
     mode="{{ item.value.mode }}"
   with_dict: scorm_dirs
+
+- name: create s3 config for SCORM backup
+  template: >
+    dest={{ scorm_dirs.home.path }}/.s3cfg
+    src=.s3cfg.j2 mode=0644 owner=root group=root
+  when: SCORM_S3_BACKUP
 
 - name: create s3 scorm sync script
   template: >
@@ -31,5 +38,4 @@
     user: root
     minute: 0
     job: "{{ scorm_s3_sync_script }} > /dev/null 2>&1"
-    state: absent
   when: SCORM_S3_BACKUP
