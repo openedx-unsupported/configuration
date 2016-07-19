@@ -80,18 +80,24 @@
     /usr/bin/htpasswd -nbs "{{ GO_SERVER_ADMIN_USERNAME }}" "{{ GO_SERVER_ADMIN_PASSWORD }}"
   register: admin_user_password_line
   when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
+  tags:
+    - local_password
 
 - name: generate line for go-server password file for backup user
   command: >
     /usr/bin/htpasswd -nbs "{{ GO_SERVER_BACKUP_USERNAME }}" "{{ GO_SERVER_BACKUP_PASSWORD }}"
   register: backup_user_password_line
   when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+  tags:
+    - local_password
 
 - name: generate line for go-server password file for gomatic user
   command: >
     /usr/bin/htpasswd -nbs "{{ GO_SERVER_GOMATIC_USERNAME }}" "{{ GO_SERVER_GOMATIC_PASSWORD }}"
   register: gomatic_user_password_line
   when: GO_SERVER_GOMATIC_USERNAME and GO_SERVER_GOMATIC_PASSWORD
+  tags:
+    - local_password
 
 - name: setup password file
   template:
@@ -101,7 +107,9 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
     force: no
-  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD AND GO_SERVER_GOMATIC_PASSWORD
+  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD and GO_SERVER_GOMATIC_PASSWORD
+  tags:
+    - local_password
 
 - name: install go-server configuration
   template:
@@ -119,12 +127,14 @@
   lineinfile:
     dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
     regexp: "^{{ item.username }}"
-    line: "{{ item.password_hash.stdout }}"
+    line: "{{ item.password_hash }}"
   with_items:
-    - { username: GO_SERVER_ADMIN_USERNAME, password: GO_SERVER_ADMIN_PASSWORD, password_hash: admin_user_password_line }
-    - { username: GO_SERVER_BACKUP_USERNAME, password: GO_SERVER_BACKUP_PASSWORD, password_hash: backup_user_password_line }
-    - { username: GO_SERVER_GOMATIC_USERNAME, password: GO_SERVER_GOMATIC_PASSWORD, password_hash: gomatic_user_password_line }
+    - { username: "{{ GO_SERVER_ADMIN_USERNAME }}", password: "{{ GO_SERVER_ADMIN_PASSWORD }}", password_hash: "{{ admin_user_password_line.stdout }}" }
+    - { username: "{{ GO_SERVER_BACKUP_USERNAME }}", password: "{{ GO_SERVER_BACKUP_PASSWORD }}", password_hash: "{{ backup_user_password_line.stdout }}"  }
+    - { username: "{{ GO_SERVER_GOMATIC_USERNAME }}", password: "{{ GO_SERVER_GOMATIC_PASSWORD }}", password_hash: "{{ gomatic_user_password_line.stdout }}" }
   when: item.username and item.password and item.password_hash
+  tags:
+    - local_password
 
 - name: restart go-server
   service:
