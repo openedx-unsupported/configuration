@@ -305,7 +305,7 @@ fi
 /usr/bin/apt-get install -y python-httplib2 --force-yes
 
 # upgrade setuptools early to avoid no distributin errors
-pip install --upgrade setuptools==18.3.2
+pip install --upgrade setuptools==24.0.3
 
 rm -rf $base_dir
 mkdir -p $base_dir
