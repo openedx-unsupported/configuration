@@ -9,13 +9,11 @@ function usage
 
     --- install_devstack.sh ---
 
-    Usage: $ bash install_devstack.sh stack release [-p] [-b vagrant_mount_base] [-l log_level] [-h]
+    Usage: $ bash install_devstack.sh stack release [-p] [-b vagrant_mount_base] [-l] [-v] [-h]
 
-    Installs the Open edX developer stack. More information on installing devstack 
-    can be found here: https://openedx.atlassian.net/wiki/display/OpenOPS/Running+Devstack.
-    Reach out on the Open edX community Slack on #ops (https://open.edx.org/blog/open-edx-slack) 
-    or the Open edX Ops Google Group (https://groups.google.com/forum/#!forum/openedx-ops) to
-    get support questions answered.
+    Installs the Open edX devstack or fullstack. Reach out on the Open edX community Slack 
+    on #ops (https://open.edx.org/blog/open-edx-slack) or the Open edX Ops Google Group
+    (https://groups.google.com/forum/#!forum/openedx-ops) to get support questions answered.
 
     This script captures a log of all output produced during runtime, and saves it in a .log
     file within the current directory. If you encounter an error during installation, this is
@@ -48,8 +46,11 @@ function usage
         Customize the location of the source code that gets cloned during the 
         devstack provisioning.
 
-    -l log_level
-        Log verbosity. 0 = no logging, 1 = full logs (default)
+    -l
+        Disable logging. Enabled by default.
+
+    -v 
+        Verbose output from ansible playbooks.
 
     -h
         Show this help and exit.
@@ -58,12 +59,11 @@ function usage
 
 EOM
 }
-# Allow for installation of fullstack, describe differences
-#Remove directory for logs, allow for turning off logging, talk about logging in usage
-# See if I can change verbosity of ansible-playbook commands in Vagrantfile using $EXTRA_VARS 
 
 # Logging
-log_level=1
+logging=1
+# Output verbosity
+verbosity=0
 # OPENEDX_RELEASE
 release=""
 # Enable preview in Studio
@@ -81,7 +81,7 @@ shift
 release=$1
 shift
 
-while getopts "r:pb:l:h" opt; do
+while getopts "pb:lvh" opt; do
     case "$opt" in
         p)
             enable_preview=1
@@ -90,7 +90,14 @@ while getopts "r:pb:l:h" opt; do
             vagrant_mount_location=$OPTARG
             ;;
         l)
-            log_level=$OPTARG
+            logging=0
+            ;;
+        v)
+            verbosity=1
+            ;;
+        h)
+            usage
+            exit
             ;;
         *)
             usage
@@ -99,7 +106,7 @@ while getopts "r:pb:l:h" opt; do
     esac
 done
 
-if [[ $log_level == 1 ]]; then
+if [[ $logging > 0 ]]; then
     exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
     echo "Logging enabled."
 else
@@ -144,6 +151,11 @@ elif [[ $stack == "fullstack" ]]; then # Install fullstack
 else # Throw error
     echo -e "${ERROR}Unrecognized stack name, must be either devstack or fullstack!${NC}"
     exit 1
+fi
+
+# Check for verbosity level
+if [[ $verbosity == 1 ]]; then
+    sed -i '' 's/-e xqueue_version=\$OPENEDX_RELEASE/-e xqueue_version=\$OPENEDX_RELEASE \\\'$'\n    -vvv/' Vagrantfile
 fi
 
 vagrant up --provider virtualbox
