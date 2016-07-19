@@ -299,12 +299,26 @@ if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
         libxslt-dev curl libmysqlclient-dev --force-yes
 fi
 
+# python3 is required for certain other things
+# (currently xqwatcher so it can run python2 and 3 grader code,
+# but potentially more in the future). It's not available on Ubuntu 12.04,
+# but in those cases we don't need it anyways.
+if [[ -n "$(apt-cache search --names-only '^python3-pip$')" ]]; then
+    /usr/bin/apt-get update
+    /usr/bin/apt-get install -y python3-pip python3-dev
+fi
+
 # this is missing on 14.04 (base package on 12.04)
 # we need to do this on any build, since the above apt-get
 # only runs on a build from scratch
 /usr/bin/apt-get install -y python-httplib2 --force-yes
 
-# upgrade setuptools early to avoid no distributin errors
+# Must upgrade to latest before pinning to work around bug
+# https://github.com/pypa/pip/issues/3862
+pip install --upgrade pip
+pip install --upgrade pip==8.1.2
+
+# upgrade setuptools early to avoid no distribution errors
 pip install --upgrade setuptools==24.0.3
 
 rm -rf $base_dir
