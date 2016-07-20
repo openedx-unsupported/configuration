@@ -136,6 +136,34 @@
   tags:
     - local_password
 
+- name: install XML requirements
+  apt:
+    name: "python-lxml"
+    update_cache: yes
+    state: present
+  tags:
+    - local_password
+
+- name: install lxml
+  command: "pip install lxml"
+  become_user: "root"
+  tags:
+    - local_password
+
+- name: Replace the XML
+  xml:
+    file: "{{ GO_SERVER_CONF_HOME }}/cruise-config.xml"
+    xpath: "/cruise/server/security/admins"
+    add_children:
+      - user: "{{ item }}"
+  with_items:
+    - "{{ GO_SERVER_ADMIN_USERNAME }}"
+    - "{{ GO_SERVER_BACKUP_USERNAME }}"
+    - "{{ GO_SERVER_GOMATIC_USERNAME }}"
+  when: item is defined
+  tags:
+    - local_password
+
 - name: restart go-server
   service:
     name: "{{ GO_SERVER_SERVICE_NAME }}"
