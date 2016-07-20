@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+
+"""
+Ansible Dynamic Inventory for Terraform state files
+
+"""
+
+from __future__ import print_function
+
+import json
+import argparse
+import sys
+import os
+
+
+class DynamicInventory(object):
+    """Dynamic Inventory"""
+    def __init__(self):
+        self.customer = os.environ.get('CUSTOMER')
+        self.tier = os.environ.get('TIER')
+        self.platform = os.environ.get('PLATFORM')
+
+        if (self.customer is None or
+            self.tier is None or
+            self.platform is None):
+                raise RuntimeError("Environment variables CUSTOMER, TIER, PLATFORM need to be defined.")
+
+    def main(self, argv):
+        """Invoke this inventory with arguments. Use with sys.argv"""
+
+        parser = argparse.ArgumentParser(
+            description='Appsembler Terraform Dynamic Inventory')
+
+        parser.add_argument(
+            '--list',
+            help='List instances as dictionary.',
+            action="store_true",
+            default=False,
+            required=False)
+
+        parser.add_argument(
+            '--refresh-cache',
+            help='NOT IMPLEMENTED. Force refresh of cache.',
+            action="store_true",
+            default=False,
+            required=False)
+
+        parser.add_argument(
+            '--host',
+            metavar="HOST",
+            type=str,
+            help='Get all the variables about a specific instance.',
+            required=False)
+
+        args = parser.parse_args()
+
+        if args.list:
+            return self.print_dictionary()
+        if args.host:
+            return self.print_host(args.host)
+
+        if args.refresh_cache:
+            pass
+
+        return self.print_default()
+
+    def print_default(self):
+        """Prints out a string formated as a ansible inventory."""
+        hosts = self.get_dictionary()
+        for group, hosts in hosts.items():
+            print('[{0}]'.format(group))
+            for ip in hosts['hosts']:
+                print(ip)
+        return 0
+
+    def print_dictionary(self):
+        """Display the JSON encoded inventory."""
+        print(json.dumps(self.get_dictionary(),
+                         indent=4))
+        return 0
+
+    def get_dictionary(self):
+        """Get a dictionary of the inventory from a Terraform
+        state file."""
+
+        out = {}
+        with open("../../edx-terraform/{platform}/{tier}/{customer}/state.tfstate".format(
+            platform=self.platform,
+            tier=self.tier,
+            customer=self.customer)) as f:
+
+            state_file = json.loads(f.read())
+            outputs = state_file["modules"][0]['outputs']
+            for k,v in outputs.items():
+                # name format from state file: "server_group_ips"
+                name = k.split("ips")[0][:-1]
+                ips = v.split(',')
+                out[name] = {'hosts': ips}
+        return out
+
+    def print_host(self, hostname):
+        print(json.dumps({}))
+        return 0
+
+
+if __name__ == '__main__':
+    inventory = DynamicInventory()
+    sys.exit(inventory.main(sys.argv))
+
