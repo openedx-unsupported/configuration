@@ -4,22 +4,34 @@ SCORM_S3_BACKUP: false
 # log will be sent to the following address.
 # This relies on your server being able to send mail
 SCORM_S3_LOGS_NOTIFY_EMAIL: dummy@example.com
-SCORM_S3_LOGS_FROM_EMAIL: technical@appsembler.com
+SCORM_S3_LOGS_FROM_EMAIL: dummy@example.com
 
 scorm_name: "scorm"
-scorm_local_storage_path: "{{ COMMON_DATA_DIR }}/edxapp/media/scorms"
+scorm_asset_local_storage_path: "{{ edxapp_media_dir }}/{{ EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PKG_STORAGE_DIR | default('scorms')}}"
+scorm_player_local_storage_root: "{{ COMMON_DATA_DIR }}/{{ EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_LOCAL_STORAGE_ROOT|default('scormplayers') }}"
 
 scorm_dirs:
   home:
     path: "{{ COMMON_APP_DIR }}/{{ scorm_name }}"
     owner: "root"
     group: "root"
-    mode: "0755"
+    mode: "0740"
   logs:
     path: "{{ COMMON_LOG_DIR }}/{{ scorm_name }}"
     owner: "syslog"
     group: "syslog"
     mode: "0650"
+  scorm_content_assets:
+    path: "{{ scorm_asset_local_storage_path }}"
+    owner: "www-data"
+    group: "www-data"
+    mode: "0744"
+
+scorm_player_dir:
+    path_root: "{{ scorm_player_local_storage_root }}"
+    owner: "edxapp"
+    group: "www-data"
+    mode: "0744"
 
 scorm_s3_sync_script: "{{ scorm_dirs.home.path }}/sync-scorm-content-to-s3"
 scorm_s3_sync_logfile: "{{ scorm_dirs.logs.path }}/s3-scorm-sync.log"

@@ -2,6 +2,8 @@
 # SYNC LOCAL SCORM CONTENT PACKAGES WITH S3 IF NOT STORED THERE TO BEGIN WITH
 
 - include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/common_vars/defaults/main.yml"
+- include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/edxapp/defaults/main.yml"
+
 - name: create all service directories
   file: >
     path="{{ item.value.path }}"
@@ -10,7 +12,17 @@
     group="{{ item.value.group }}"
     mode="{{ item.value.mode }}"
   with_dict: scorm_dirs
-  when: SCORM_S3_BACKUP
+  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
+
+- name: create scorm player asset directories
+  file: >
+    path="{{ scorm_player_dir.path_root }}/{{item}}"
+    state="directory"
+    owner="{{ scorm_player_dir.owner }}"
+    group="{{ scorm_player_dir.group }}"
+    mode="{{ scorm_player_dir.mode }}"
+  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
+  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS
 
 - name: install uuencode for emailing errors
   apt: >
