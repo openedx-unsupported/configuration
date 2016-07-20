@@ -1,0 +1,20 @@
+---
+
+- name: Add Stackdriver public key
+  apt_key: url={{ stackdriver_pubkey_url }} state=present
+  tags: ['stackdriver', 'stackdriver:install']
+
+- name: Add Stackdriver repository
+  apt_repository: >
+    repo="deb {{ stackdriver_repo_url }} {{ stackdriver_distro_codename }} main"
+    update_cache=yes
+  tags: ['stackdriver', 'stackdriver:install']
+
+- name: Install Stackdriver agent
+  apt: name=stackdriver-agent
+  tags: ['stackdriver', 'stackdriver:install']
+
+- name: Copy Stackdriver configuration
+  template: src=stackdriver-agent dest=/etc/default/stackdriver-agent
+  notify: restart stackdriver
+  tags: ['stackdriver', 'stackdriver:configuration']
