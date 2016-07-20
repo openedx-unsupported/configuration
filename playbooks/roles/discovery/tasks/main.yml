@@ -66,8 +66,28 @@
     - install
     - install:app-requirements
 
+- name: create nodeenv
+  command: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --prebuilt"
+  args:
+    creates: "{{ discovery_nodeenv_dir }}"
+    chdir: "{{ discovery_code_dir }}"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install application js requirements
+  command: . {{ discovery_nodeenv_bin }}/activate && make production-requirements.js
+  args:
+    chdir: "{{ discovery_code_dir }}"
+  become_user: "{{ discovery_user }}"
+  environment: "{{ discovery_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: install development requirements
-  command: make requirements
+  command: . {{ discovery_nodeenv_bin }}/activate && make requirements
   args:
     chdir: "{{ discovery_code_dir }}"
   become_user: "{{ discovery_user }}"
