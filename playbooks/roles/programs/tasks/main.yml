@@ -36,23 +36,6 @@
   become_user: "{{ programs_user }}"
   with_items: "{{ programs_requirements }}"
 
-- name: create nodeenv
-  shell: >
-    creates={{ programs_nodeenv_dir }}
-    {{ programs_venv_dir }}/bin/nodeenv {{ programs_nodeenv_dir }} --node={{ programs_node_version }} --prebuilt
-  become_user: "{{ programs_user }}"
-
-- name: install node dependencies
-  npm: executable={{ programs_nodeenv_bin }}/npm path={{ programs_code_dir }} production=yes
-  become_user: "{{ programs_user }}"
-  environment: "{{ programs_environment }}"
-
-- name: install bower dependencies
-  shell: >
-    chdir={{ programs_code_dir }}
-    . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/bower install --production --config.interactive=false
-  become_user: "{{ programs_user }}"
-
 - name: migrate
   shell: >
     chdir={{ programs_code_dir }}
@@ -63,19 +46,6 @@
   environment: "{{ programs_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
-- name: compile sass
-  shell: >
-    chdir={{ programs_code_dir }}
-    . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/gulp css
-  become_user: "{{ programs_user }}"
-  when: not devstack
-
-- name: run r.js optimizer
-  shell: >
-    chdir={{ programs_code_dir }}
-    . {{ programs_nodeenv_bin }}/activate && {{ programs_node_bin }}/r.js -o build.js
-  become_user: "{{ programs_user }}"
-  when: not devstack
 
 - name: run collectstatic
   shell: >
