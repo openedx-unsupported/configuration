@@ -7,9 +7,9 @@ function usage
 {
     cat << EOM
 
-    --- install_devstack.sh ---
+    --- install_stack.sh ---
 
-    Usage: $ bash install_devstack.sh stack release [-p] [-b vagrant_mount_base] [-l] [-v] [-h]
+    Usage: $ bash install_stack.sh stack release [-p] [-b vagrant_mount_base] [-l] [-v] [-h]
 
     Installs the Open edX devstack or fullstack. Reach out on the Open edX community Slack 
     on #ops (https://open.edx.org/blog/open-edx-slack) or the Open edX Ops Google Group
