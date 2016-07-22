@@ -97,7 +97,7 @@ class JsonFormatter(object):
                 for name, timestamp in results:
                     log_message = {
                         'task': name,
-                        'playbook': self.callback_module.playbook_name,
+                        'playbook': playbook_name,
                         'started_at': timestamp.start.isoformat(),
                         'ended_at': timestamp.end.isoformat(),
                         'duration': timestamp.duration.total_seconds(),
@@ -123,7 +123,7 @@ class JsonFormatter(object):
 
             with open(log_path, 'a') as outfile:
                 log_message = {
-                    'playbook': self.callback_module.playbook_name,
+                    'playbook': playbook_name,
                     'started_at': self.callback_module.playbook_timestamp.start.isoformat(),
                     'ended_at': self.callback_module.playbook_timestamp.end.isoformat(),
                     'duration': duration,
