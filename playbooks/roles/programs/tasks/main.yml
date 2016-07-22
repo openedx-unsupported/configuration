@@ -46,16 +46,12 @@
   environment: "{{ programs_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
 
-
 - name: run collectstatic
   shell: >
     chdir={{ programs_code_dir }}
-    {{ programs_venv_dir }}/bin/python manage.py {{ item }}
+    {{ programs_venv_dir }}/bin/python manage.py collectstatic --noinput
   become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
-  with_items:
-    - "collectstatic --noinput"
-    - "compress"
   when: not devstack
 
 # NOTE this isn't used or needed when s3 is used for PROGRAMS_MEDIA_STORAGE_BACKEND
