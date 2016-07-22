@@ -56,6 +56,34 @@ class CallbackModule(object):
         self.current_task = name
         self.stats[self.current_task] = time.time()
 
+    def _datadog_log_tasks(self, playbook_name, results):
+        if self.datadog_api_initialized:
+            datadog_tasks_metrics = []
+            for name, points in results:
+                datadog_tasks_metrics.append({'metric': 'edx.ansible.task_duration',
+                                              'date_happened': points[0],
+                                              'points': points[1],
+                                              'tags': ['task:{0}'.format(self.clean_tag_value(name)),
+                                                       'playbook:{0}'.format(self.clean_tag_value(playbook_name))
+                                                       ]
+                                              }
+                                             )
+            try:
+                datadog.api.Metric.send(datadog_tasks_metrics)
+            except Exception as ex:
+                logger.error(ex.message)
+
+    def _datadog_log_play(self, playbook_name, duration):
+        if self.datadog_api_initialized:
+            try:
+                datadog.api.Metric.send(metric="edx.ansible.playbook_duration",
+                                        date_happened=time.time(),
+                                        points=duration,
+                                        tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
+                                        )
+            except Exception as ex:
+                logger.error(ex.message)
+
     def playbook_on_stats(self, stats):
         """
         Prints the timing of each task and total time to
@@ -74,26 +102,8 @@ class CallbackModule(object):
         total_seconds = sum([x[1][1] for x in self.stats.items()])
           
         # send the metric to datadog
-        if self.datadog_api_initialized:
-            datadog_tasks_metrics = []
-            for name, points in results:
-                datadog_tasks_metrics.append({'metric': 'edx.ansible.task_duration',
-                                              'date_happened': points[0],
-                                              'points': points[1],
-                                              'tags': ['task:{0}'.format(self.clean_tag_value(name)),
-                                                       'playbook:{0}'.format(self.clean_tag_value(self.playbook_name))
-                                                       ]
-                                              }
-                                             )
-            try:
-                datadog.api.Metric.send(datadog_tasks_metrics)
-                datadog.api.Metric.send(metric="edx.ansible.playbook_duration",
-                                        date_happened=time.time(),
-                                        points=total_seconds,
-                                        tags=["playbook:{0}".format(self.clean_tag_value(self.playbook_name))]
-                                        )
-            except Exception as ex:
-                logger.error(ex.message)
+        self._datadog_log_tasks(self.playbook_name, results)
+        self._datadog_log_play(self.playbook_name, total_seconds)
 
         # Log the time of each task
         for name, elapsed in results[:10]:
