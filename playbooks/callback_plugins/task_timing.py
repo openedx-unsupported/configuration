@@ -45,8 +45,7 @@ class CallbackModule(object):
         self.stats = {}
         self.current_task = None
         self.playbook_name = None
-        self.playbook_start = None
-        self.playbook_end = None
+        self.playbook_timestamp = None
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
 
@@ -64,7 +63,7 @@ class CallbackModule(object):
         self.playbook_name, _ = splitext(
             basename(self.play.playbook.filename)
         )
-        self.playbook_start = datetime.utcnow()
+        self.playbook_timestamp = Timestamp()
 
     def playbook_on_task_start(self, name, is_conditional):
         """
@@ -128,7 +127,7 @@ class CallbackModule(object):
 
     def _json_log_tasks(self, playbook_name, results):
         if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.playbook_start.strftime(ANSIBLE_TIMER_LOG)
+            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
             if not exists(dirname(log_path)):
                 os.makedirs(dirname(log_path))
@@ -156,7 +155,7 @@ class CallbackModule(object):
         # across all of Open edX tooling, so it deliberately eschews standard
         # python logging infrastructure.
         if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.playbook_start.strftime(ANSIBLE_TIMER_LOG)
+            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
             if not exists(dirname(log_path)):
                 os.makedirs(dirname(log_path))
@@ -164,8 +163,8 @@ class CallbackModule(object):
             with open(log_path, 'a') as outfile:
                 log_message = {
                     'playbook': self.playbook_name,
-                    'started_at': self.playbook_start.isoformat(),
-                    'ended_at': self.playbook_end.isoformat(),
+                    'started_at': self.playbook_timestamp.start.isoformat(),
+                    'ended_at': self.playbook_timestamp.end.isoformat(),
                     'duration': duration,
                 }
 
@@ -187,7 +186,7 @@ class CallbackModule(object):
         if self.current_task is not None:
             self.stats[self.current_task].stop()
 
-        self.playbook_end = datetime.utcnow()
+        self.playbook_timestamp.stop()
 
         # Sort the tasks by their running time
         results = sorted(
@@ -198,8 +197,8 @@ class CallbackModule(object):
 
         # log the stats
 
-        total_seconds = (self.playbook_end - self.playbook_start).total_seconds()
-
+        total_seconds = self.playbook_timestamp.duration.total_seconds()
+i
         self._json_log_tasks(self.playbook_name, results)
         self._json_log_play(self.playbook_name, total_seconds)
 
