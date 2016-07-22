@@ -84,6 +84,24 @@ class CallbackModule(object):
             except Exception as ex:
                 logger.error(ex.message)
 
+    def _logger_log_tasks(self, playbook_name, results):
+        for name, elapsed in results[:10]:
+            logger.info(
+                "{0:-<80}{1:->8}".format(
+                    '{0} '.format(name),
+                    ' {0:.02f}s'.format(elapsed[1]),
+                )
+            )
+
+    def _logger_log_play(self, playbook_name, duration, task_count):
+        logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
+                playbook_name,
+                time.asctime(),
+                task_count,
+                datetime.timedelta(seconds=(int(duration)))
+                )
+          )
+
     def playbook_on_stats(self, stats):
         """
         Prints the timing of each task and total time to
@@ -106,18 +124,5 @@ class CallbackModule(object):
         self._datadog_log_play(self.playbook_name, total_seconds)
 
         # Log the time of each task
-        for name, elapsed in results[:10]:
-            logger.info(
-                "{0:-<80}{1:->8}".format(
-                    '{0} '.format(name),
-                    ' {0:.02f}s'.format(elapsed[1]),
-                )
-            )
-
-        logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
-                self.playbook_name,
-                time.asctime(),
-                len(self.stats.items()),
-                datetime.timedelta(seconds=(int(total_seconds)))
-                )
-          )
+        self._logger_log_tasks(self.playbook_name, results)
+        self._logger_log_play(self.playbook_name, total_seconds, len(self.stats))
