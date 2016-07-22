@@ -1,5 +1,7 @@
 import os
-import datetime
+from os.path import splitext, basename, exists, dirname
+from datetime import datetime, timedelta
+import json
 import time
 import logging
 import datadog
@@ -16,6 +18,22 @@ Originally written by 'Jharrod LaFon'
 
 """
 
+ANSIBLE_TIMER_LOG = os.environ.get('ANSIBLE_TIMER_LOG')
+
+
+class Timestamp(object):
+    def __init__(self):
+        self.start = datetime.utcnow()
+        self.end = None
+
+    def stop(self):
+        self.end = datetime.utcnow()
+
+    @property
+    def duration(self):
+        return self.end - self.start
+
+
 
 class CallbackModule(object):
 
@@ -27,6 +45,8 @@ class CallbackModule(object):
         self.stats = {}
         self.current_task = None
         self.playbook_name = None
+        self.playbook_start = None
+        self.playbook_end = None
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
 
@@ -41,9 +61,10 @@ class CallbackModule(object):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
     def playbook_on_play_start(self, pattern):
-        self.playbook_name, _ = os.path.splitext(
-            os.path.basename(self.play.playbook.filename)
+        self.playbook_name, _ = splitext(
+            basename(self.play.playbook.filename)
         )
+        self.playbook_start = datetime.utcnow()
 
     def playbook_on_task_start(self, name, is_conditional):
         """
@@ -52,20 +73,20 @@ class CallbackModule(object):
 
         if self.current_task is not None:
             # Record the running time of the last executed task
-            self.stats[self.current_task] = (time.time(), time.time() - self.stats[self.current_task])
+            self.stats[self.current_task].stop()
 
         # Record the start time of the current task
         self.current_task = name
-        self.stats[self.current_task] = time.time()
+        self.stats[self.current_task] = Timestamp()
 
     def _datadog_log_tasks(self, playbook_name, results):
         if self.datadog_api_initialized:
             datadog_tasks_metrics = []
-            for name, points in results:
+            for name, timestamp in results:
                 datadog_tasks_metrics.append({
                     'metric': 'edx.ansible.task_duration',
-                    'date_happened': points[0],
-                    'points': points[1],
+                    'date_happened': timestamp.start,
+                    'points': timestamp.duration.total_seconds(),
                     'tags': [
                         'task:{0}'.format(self.clean_tag_value(name)),
                         'playbook:{0}'.format(self.clean_tag_value(playbook_name))
@@ -89,11 +110,11 @@ class CallbackModule(object):
                 logger.error(ex.message)
 
     def _logger_log_tasks(self, playbook_name, results):
-        for name, elapsed in results[:10]:
+        for name, timestamp in results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
-                    ' {0:.02f}s'.format(elapsed[1]),
+                    ' {0:.02f}s'.format(timestamp.duration.total_seconds()),
                 )
             )
 
@@ -102,7 +123,7 @@ class CallbackModule(object):
             playbook_name,
             time.asctime(),
             task_count,
-            datetime.timedelta(seconds=(int(duration)))
+            timedelta(seconds=(int(duration)))
         ))
 
     def playbook_on_stats(self, stats):
@@ -113,14 +134,62 @@ class CallbackModule(object):
         # Record the timing of the very last task, we use it here, because we
         # don't have stop task function by default
         if self.current_task is not None:
-            self.stats[self.current_task] = (time.time(), time.time() - self.stats[self.current_task])
+            self.stats[self.current_task].stop()
+
+        self.playbook_end = datetime.utcnow()
 
         # Sort the tasks by their running time
-        results = sorted(self.stats.items(),
-                         key=lambda value: value[1][1], reverse=True)
+        results = sorted(
+            self.stats.items(),
+            key=lambda (task, timestamp): timestamp.duration,
+            reverse=True
+        )
 
-        # Total time to run the complete playbook
-        total_seconds = sum([x[1][1] for x in self.stats.items()])
+        # log the stats
+
+        # N.B. This is intended to provide a consistent interface and message format
+        # across all of Open edX tooling, so it deliberately eschews standard
+        # python logging infrastructure.
+        if ANSIBLE_TIMER_LOG is not None:
+            log_path = self.playbook_start.strftime(ANSIBLE_TIMER_LOG)
+
+            if not exists(dirname(log_path)):
+                os.makedirs(dirname(log_path))
+
+            with open(log_path, 'a') as outfile:
+                for name, timestamp in results:
+                    log_message = {
+                        'task': name,
+                        'playbook': self.playbook_name,
+                        'started_at': timestamp.start.isoformat(),
+                        'ended_at': timestamp.end.isoformat(),
+                        'duration': timestamp.duration.total_seconds(),
+                    }
+
+                    json.dump(
+                        log_message,
+                        outfile,
+                        separators=(',', ':'),
+                        sort_keys=True,
+                    )
+                    outfile.write('\n')
+
+                log_message = {
+                    'playbook': self.playbook_name,
+                    'started_at': self.playbook_start.isoformat(),
+                    'ended_at': self.playbook_end.isoformat(),
+                    'duration': (self.playbook_end - self.playbook_start).total_seconds(),
+                }
+
+                json.dump(
+                    log_message,
+                    outfile,
+                    separators=(',', ':'),
+                    sort_keys=True,
+                )
+                outfile.write('\n')
+
+        total_seconds = (self.playbook_end - self.playbook_start).total_seconds()
 
         # send the metric to datadog
         self._datadog_log_tasks(self.playbook_name, results)
