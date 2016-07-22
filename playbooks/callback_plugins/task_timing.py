@@ -34,6 +34,118 @@ class Timestamp(object):
         return self.end - self.start
 
 
+class DatadogFormatter(object):
+    def __init__(self, callback_module):
+        self.callback_module = callback_module
+
+    def log_tasks(self, playbook_name, results, task_count):
+        if self.callback_module.datadog_api_initialized:
+            datadog_tasks_metrics = []
+            for name, timestamp in results:
+                datadog_tasks_metrics.append({
+                    'metric': 'edx.ansible.task_duration',
+                    'date_happened': timestamp.start,
+                    'points': timestamp.duration.total_seconds(),
+                    'tags': [
+                        'task:{0}'.format(self.callback_module.clean_tag_value(name)),
+                        'playbook:{0}'.format(self.callback_module.clean_tag_value(playbook_name))
+                    ]
+                })
+            try:
+                datadog.api.Metric.send(datadog_tasks_metrics)
+            except Exception as ex:
+                logger.error(ex.message)
+
+    def log_play(self, playbook_name, duration):
+        if self.callback_module.datadog_api_initialized:
+            try:
+                datadog.api.Metric.send(
+                    metric="edx.ansible.playbook_duration",
+                    date_happened=time.time(),
+                    points=duration,
+                    tags=["playbook:{0}".format(self.callback_module.clean_tag_value(playbook_name))]
+                )
+            except Exception as ex:
+                logger.error(ex.message)
+
+
+class JsonFormatter(object):
+    def __init__(self, callback_module):
+        self.callback_module = callback_module
+
+    def log_tasks(self, playbook_name, results):
+        if ANSIBLE_TIMER_LOG is not None:
+            log_path = self.callback_module.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+
+            if not exists(dirname(log_path)):
+                os.makedirs(dirname(log_path))
+
+            with open(log_path, 'a') as outfile:
+                for name, timestamp in results:
+                    log_message = {
+                        'task': name,
+                        'playbook': self.callback_module.playbook_name,
+                        'started_at': timestamp.start.isoformat(),
+                        'ended_at': timestamp.end.isoformat(),
+                        'duration': timestamp.duration.total_seconds(),
+                    }
+
+                    json.dump(
+                        log_message,
+                        outfile,
+                        separators=(',', ':'),
+                        sort_keys=True,
+                    )
+                    outfile.write('\n')
+
+    def log_play(self, playbook_name, duration, task_count):
+        # N.B. This is intended to provide a consistent interface and message format
+        # across all of Open edX tooling, so it deliberately eschews standard
+        # python logging infrastructure.
+        if ANSIBLE_TIMER_LOG is not None:
+            log_path = self.callback_module.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+
+            if not exists(dirname(log_path)):
+                os.makedirs(dirname(log_path))
+
+            with open(log_path, 'a') as outfile:
+                log_message = {
+                    'playbook': self.callback_module.playbook_name,
+                    'started_at': self.callback_module.playbook_timestamp.start.isoformat(),
+                    'ended_at': self.callback_module.playbook_timestamp.end.isoformat(),
+                    'duration': duration,
+                }
+
+                json.dump(
+                    log_message,
+                    outfile,
+                    separators=(',', ':'),
+                    sort_keys=True,
+                )
+                outfile.write('\n')
+
+
+class LoggingFormatter(object):
+    def __init__(self, callback_module):
+        self.callback_module = callback_module
+
+    def log_tasks(self, playbook_name, results):
+        for name, timestamp in results[:10]:
+            logger.info(
+                "{0:-<80}{1:->8}".format(
+                    '{0} '.format(name),
+                    ' {0:.02f}s'.format(timestamp.duration.total_seconds()),
+                )
+            )
+
+    def log_play(self, playbook_name, duration, task_count):
+        logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
+            playbook_name,
+            time.asctime(),
+            task_count,
+            timedelta(seconds=(int(duration)))
+        ))
+
 
 class CallbackModule(object):
 
@@ -46,6 +158,13 @@ class CallbackModule(object):
         self.current_task = None
         self.playbook_name = None
         self.playbook_timestamp = None
+
+        self.formatters = [
+            DatadogFormatter,
+            LoggingFormatter,
+            JsonFormatter,
+        ]
+
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
 
@@ -78,103 +197,6 @@ class CallbackModule(object):
         self.current_task = name
         self.stats[self.current_task] = Timestamp()
 
-    def _datadog_log_tasks(self, playbook_name, results):
-        if self.datadog_api_initialized:
-            datadog_tasks_metrics = []
-            for name, timestamp in results:
-                datadog_tasks_metrics.append({
-                    'metric': 'edx.ansible.task_duration',
-                    'date_happened': timestamp.start,
-                    'points': timestamp.duration.total_seconds(),
-                    'tags': [
-                        'task:{0}'.format(self.clean_tag_value(name)),
-                        'playbook:{0}'.format(self.clean_tag_value(playbook_name))
-                    ]
-                })
-            try:
-                datadog.api.Metric.send(datadog_tasks_metrics)
-            except Exception as ex:
-                logger.error(ex.message)
-
-    def _datadog_log_play(self, playbook_name, duration):
-        if self.datadog_api_initialized:
-            try:
-                datadog.api.Metric.send(
-                    metric="edx.ansible.playbook_duration",
-                    date_happened=time.time(),
-                    points=duration,
-                    tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
-                )
-            except Exception as ex:
-                logger.error(ex.message)
-
-    def _logger_log_tasks(self, playbook_name, results):
-        for name, timestamp in results[:10]:
-            logger.info(
-                "{0:-<80}{1:->8}".format(
-                    '{0} '.format(name),
-                    ' {0:.02f}s'.format(timestamp.duration.total_seconds()),
-                )
-            )
-
-    def _logger_log_play(self, playbook_name, duration, task_count):
-        logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
-            playbook_name,
-            time.asctime(),
-            task_count,
-            timedelta(seconds=(int(duration)))
-        ))
-
-    def _json_log_tasks(self, playbook_name, results):
-        if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
-
-            if not exists(dirname(log_path)):
-                os.makedirs(dirname(log_path))
-
-            with open(log_path, 'a') as outfile:
-                for name, timestamp in results:
-                    log_message = {
-                        'task': name,
-                        'playbook': self.playbook_name,
-                        'started_at': timestamp.start.isoformat(),
-                        'ended_at': timestamp.end.isoformat(),
-                        'duration': timestamp.duration.total_seconds(),
-                    }
-
-                    json.dump(
-                        log_message,
-                        outfile,
-                        separators=(',', ':'),
-                        sort_keys=True,
-                    )
-                    outfile.write('\n')
-
-    def _json_log_play(self, playbook_name, duration):
-        # N.B. This is intended to provide a consistent interface and message format
-        # across all of Open edX tooling, so it deliberately eschews standard
-        # python logging infrastructure.
-        if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
-
-            if not exists(dirname(log_path)):
-                os.makedirs(dirname(log_path))
-
-            with open(log_path, 'a') as outfile:
-                log_message = {
-                    'playbook': self.playbook_name,
-                    'started_at': self.playbook_timestamp.start.isoformat(),
-                    'ended_at': self.playbook_timestamp.end.isoformat(),
-                    'duration': duration,
-                }
-
-                json.dump(
-                    log_message,
-                    outfile,
-                    separators=(',', ':'),
-                    sort_keys=True,
-                )
-                outfile.write('\n')
 
     def playbook_on_stats(self, stats):
         """
@@ -195,17 +217,9 @@ class CallbackModule(object):
             reverse=True
         )
 
-        # log the stats
-
         total_seconds = self.playbook_timestamp.duration.total_seconds()
-i
-        self._json_log_tasks(self.playbook_name, results)
-        self._json_log_play(self.playbook_name, total_seconds)
 
-        # send the metric to datadog
-        self._datadog_log_tasks(self.playbook_name, results)
-        self._datadog_log_play(self.playbook_name, total_seconds)
-
-        # Log the time of each task
-        self._logger_log_tasks(self.playbook_name, results)
-        self._logger_log_play(self.playbook_name, total_seconds, len(self.stats))
+        for fmt_class in self.formatters:
+            formatter = fmt_class(self)
+            formatter.log_tasks(self.playbook_name, results)
+            formatter.log_play(self.playbook_name, total_seconds, len(self.stats))
