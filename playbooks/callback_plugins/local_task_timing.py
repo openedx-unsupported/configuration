@@ -9,7 +9,7 @@ Originally written by 'Jharrod LaFon'
 
 """
 
-ANSIBLE_TIMER_LOG = os.environ.get('ANSIBLE_TIMER_LOG')
+ANSIBLE_TIMER_LOG = os.environ.get('ANSIBLE_TIMER_LOG', 'ansible_timing.log')
 
 
 class Timestamp(object):
@@ -83,8 +83,9 @@ class CallbackModule(object):
         # python logging infrastructure.
         if ANSIBLE_TIMER_LOG is not None:
             log_path = self.playbook_start.strftime(ANSIBLE_TIMER_LOG)
-
+            print('log_path for timing: {}'.format(log_path))
             if not exists(dirname(log_path)):
+                print('creating directories: {}'.format(dirname(log_path)))
                 os.makedirs(dirname(log_path))
 
             with open(log_path, 'a') as outfile:
@@ -119,3 +120,9 @@ class CallbackModule(object):
                     sort_keys=True,
                 )
                 outfile.write('\n')
+
+            print('full path to log file: {}'.format(os.path.abspath(log_path)))
+            print("contents of log file are: ")
+            with open(log_path, 'r') as log_file:
+                print log_file.read()
+            print("end contents of log file.")
