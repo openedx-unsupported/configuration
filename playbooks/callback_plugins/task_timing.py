@@ -51,7 +51,7 @@ class DatadogFormatter(object):
     def clean_tag_value(self, value):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
-    def log_tasks(self, playbook_name, results, task_count):
+    def log_tasks(self, playbook_name, results):
         if self.datadog_api_initialized:
             datadog_tasks_metrics = []
             for name, timestamp in results:
