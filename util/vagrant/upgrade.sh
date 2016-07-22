@@ -3,28 +3,44 @@
 # Stop if any command fails
 set -e
 
+# Logging: write all the output to a timestamped log file.
+sudo mkdir -p /var/log/edx
+exec > >(sudo tee /var/log/edx/upgrade-$(date +%Y%m%d-%H%M%S).log) 2>&1
+
 # defaults
 CONFIGURATION="none"
 TARGET="none"
 INTERACTIVE=true
 OPENEDX_ROOT="/edx"
 
-show_help () {
-  cat <<- EOM
+# Use this function to exit the script: it helps keep the output right with the
+# exec-logging we started above.
+exit_cleanly () {
+  sleep .25
+  echo
+  exit $@
+}
 
-Migrates your Open edX installation to a different release.
+show_help () {
+  cat << EOM
+
+Upgrades your Open edX installation to a newer release.
 
 -c CONFIGURATION
-    Use the given configuration. Either \"devstack\" or \"fullstack\". You
+    Use the given configuration. Either "devstack" or "fullstack". You
     must specify this.
+
 -t TARGET
-    Migrate to the given git ref. You must specify this.  Named releases are
-    called \"named-release/cypress\", \"named-release/dogwood.rc2\", and so on.
+    Upgrade to the given git ref. You must specify this.  Named releases are
+    called "named-release/cypress", "named-release/dogwood.rc2", and so on.
+
 -y
-    Run in non-interactive mode (reply \"yes\" to all questions)
+    Run in non-interactive mode (reply "yes" to all questions)
+
 -r OPENEDX_ROOT
     The root directory under which all Open edX applications are installed.
-    Defaults to \"$OPENEDX_ROOT\"
+    Defaults to "$OPENEDX_ROOT"
+
 -h
     Show this help and exit.
 
@@ -36,7 +52,7 @@ while getopts "hc:t:y" opt; do
   case "$opt" in
     h)
       show_help
-      exit 0
+      exit_cleanly 0
       ;;
     c)
       CONFIGURATION=$OPTARG
@@ -59,14 +75,14 @@ confirm_proceed () {
   read input
   if [[ "$input" != "yes" && "$input" != "y" ]]; then
     echo "Quitting"
-    exit 1
+    exit_cleanly 1
   fi
 }
 
 # Check we are in the right place, and have the info we need.
-if [[ ! -d /edx/app/edxapp ]]; then
+if [[ ! -d ${OPENEDX_ROOT}/app/edxapp ]]; then
   echo "Run this on your Open edX machine."
-  exit 1
+  exit_cleanly 1
 fi
 
 if [[ $TARGET == none ]]; then
@@ -76,12 +92,12 @@ you are currently running.  This script can only move forward one release at
 a time.
 EOM
   show_help
-  exit 1
+  exit_cleanly 1
 fi
 
 if [[ $CONFIGURATION == none ]]; then
   echo "You must specify a configuration, either fullstack or devstack."
-  exit 1
+  exit_cleanly 1
 fi
 
 APPUSER=edxapp
@@ -148,7 +164,7 @@ if [[ $TARGET == *cypress* ]] ; then
   sudo -u forum git -C ${OPENEDX_ROOT}/app/forum/.rbenv reset --hard
 fi
 
-if [[ -f /edx/app/edx_ansible/server-vars.yml ]]; then
+if [[ -f ${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml ]]; then
   SERVER_VARS="--extra-vars=\"@${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml\""
 fi
 
@@ -189,7 +205,7 @@ EOF
   mongo cs_comments_service migrate-008-context.js
 
   # We are upgrading Python from 2.7.3 to 2.7.10, so remake the venvs.
-  sudo rm -rf /edx/app/*/v*envs/*
+  sudo rm -rf ${OPENEDX_ROOT}/app/*/v*envs/*
 
   echo "Upgrading to the end of Django 1.4"
   cd configuration/playbooks/vagrant
@@ -209,7 +225,7 @@ EOF
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u edxapp /edx/bin/pip.edxapp uninstall -y South
+  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
@@ -226,18 +242,52 @@ EOF
 
   echo "Running the Django 1.8 faked migrations"
   for item in lms cms; do
-    sudo -u $APPUSER -E /edx/bin/python.edxapp \
-      /edx/bin/manage.edxapp $item migrate --settings=aws --noinput --fake-initial
+    sudo -u $APPUSER -E ${OPENEDX_ROOT}/bin/python.edxapp \
+      ${OPENEDX_ROOT}/bin/manage.edxapp $item migrate --settings=aws --noinput --fake-initial
   done
 
   if [[ $CONFIGURATION == fullstack ]] ; then
     sudo -u xqueue \
     SERVICE_VARIANT=xqueue \
-    /edx/app/xqueue/venvs/xqueue/bin/python \
-    /edx/app/xqueue/xqueue/manage.py migrate \
+    ${OPENEDX_ROOT}/app/xqueue/venvs/xqueue/bin/python \
+    ${OPENEDX_ROOT}/app/xqueue/xqueue/manage.py migrate \
     --settings=xqueue.aws_settings --noinput --fake-initial
   fi
 fi
+
+# Eucalyptus details
+
+if [[ $TARGET == *eucalyptus* ]] ; then
+  echo "Uninstall edx-oauth2-provider"
+  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
+
+  if [[ $CONFIGURATION == devstack ]] ; then
+    echo "Remove old Firefox"
+    sudo apt-get purge -y firefox
+  fi
+
+  echo "Upgrade the code"
+  cd configuration/playbooks/vagrant
+  sudo ansible-playbook \
+    --inventory-file=localhost, \
+    --connection=local \
+    $SERVER_VARS \
+    --extra-vars="edx_platform_version=$TARGET" \
+    --extra-vars="xqueue_version=$TARGET" \
+    --extra-vars="migrate_db=no" \
+    --skip-tags="edxapp-sandbox,gather_static_assets" \
+    vagrant-$CONFIGURATION-delta.yml
+  cd ../../..
+
+  echo "Migrate to fix oauth2_provider"
+  ${OPENEDX_ROOT}/bin/edxapp-migrate-lms --fake oauth2_provider zero
+  ${OPENEDX_ROOT}/bin/edxapp-migrate-lms --fake-initial
+
+  echo "Clean up forums Ruby detritus"
+  sudo rm -rf ${OPENEDX_ROOT}/app/forum/.rbenv ${OPENEDX_ROOT}/app/forum/.gem
+fi
+
+# Update to target.
 
 echo "Updating to final version of code"
 cd configuration/playbooks
@@ -254,13 +304,15 @@ sudo ansible-playbook \
     vagrant-$CONFIGURATION.yml
 cd ../..
 
+# Post-upgrade work.
+
 if [[ $TARGET == *dogwood* ]] ; then
   echo "Running data fixup management commands"
-  sudo -u $APPUSER -E /edx/bin/python.edxapp \
-    /edx/bin/manage.edxapp lms --settings=aws generate_course_overview --all
+  sudo -u $APPUSER -E ${OPENEDX_ROOT}/bin/python.edxapp \
+    ${OPENEDX_ROOT}/bin/manage.edxapp lms --settings=aws generate_course_overview --all
 
-  sudo -u $APPUSER -E /edx/bin/python.edxapp \
-    /edx/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
+  sudo -u $APPUSER -E ${OPENEDX_ROOT}/bin/python.edxapp \
+    ${OPENEDX_ROOT}/bin/manage.edxapp lms --settings=aws post_cohort_membership_fix --commit
 
   # Run the forums migrations again to catch things made while this script
   # was running.
@@ -269,4 +321,4 @@ fi
 
 cd /
 sudo rm -rf $TEMPDIR
-echo "Migration complete. Please reboot your machine."
+echo "Upgrade complete. Please reboot your machine."
