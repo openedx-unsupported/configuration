@@ -69,7 +69,7 @@ class DatadogFormatter(object):
             except Exception as ex:
                 logger.error(ex.message)
 
-    def log_play(self, playbook_name, duration):
+    def log_play(self, playbook_name, duration, task_count):
         if self.datadog_api_initialized:
             try:
                 datadog.api.Metric.send(
