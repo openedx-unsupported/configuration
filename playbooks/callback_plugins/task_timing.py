@@ -20,7 +20,7 @@ Originally written by 'Jharrod LaFon'
 """
 
 ANSIBLE_TIMER_LOG = os.environ.get('ANSIBLE_TIMER_LOG')
-
+print("ANSIBLE_TIMER_LOG value: {}".format(ANSIBLE_TIMER_LOG))
 
 class Timestamp(object):
     """
@@ -155,9 +155,11 @@ class JsonTimingLogger(TimingLogger):
         })
 
         log_path = playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+        print('ANSIBLE_TIMER_LOG full path to file: {}'.format(os.path.abspath(log_path)))
 
         try:
             if not exists(dirname(log_path)):
+                print('ANSIBLE_TIMER_LOG Creating directories in path {}'.format(dirname(log_path)))
                 os.makedirs(dirname(log_path))
 
             with open(log_path, 'a') as outfile:
@@ -171,6 +173,14 @@ class JsonTimingLogger(TimingLogger):
                     outfile.write('\n')
         except Exception:
             LOGGER.exception("Unable to write json timing log messages")
+
+        try:
+            print("ANSIBLE_TIMER_LOG contents of the file are: ")
+            with open(log_path, 'r') as log_file:
+                print log_file.read()
+            print("ANSIBLE_TIMER_LOG end contents of the file.")
+        except Exception:
+            LOGGER.exception("Unable to read the ANSIBLE_TIMER_LOG json timing log messages")
 
 
 class LoggingTimingLogger(TimingLogger):
