@@ -25,16 +25,25 @@
   apt_key:
     url: "{{ neo4j_gpg_key_url }}"
     state: present
+  tags:
+    - install
+    - install:system-requirements
 
 - name: add neo4j apt repository
   apt_repository:
     repo: "{{ neo4j_apt_repository }}"
     state: present
+  tags:
+    - install
+    - install:system-requirements
 
 - name: install neo4j
   apt:
-    name: neo4j=2.3.4
+    name: "neo4j={{neo4j_version}}"
     state: present
+  tags:
+    - install
+    - install:base
 
 - name: set to listen on all IPs
   lineinfile:
@@ -42,18 +51,32 @@
     regexp: "{{ neo4j_address_settings_key }}="
     line: "{{ neo4j_address_settings_key }}=0.0.0.0"
     state: present
-  notify: restart neo4j
+  tags:
+    - install
+    - install:configuration
 
 - name: set to listen on specific port for https
   lineinfile:
     dest: "{{ neo4j_server_config_file }}"
     regexp: "{{ neo4j_https_settings_key }}="
     line: "{{ neo4j_https_settings_key }}={{ neo4j_https_port }}"
-  notify: restart neo4j
+  tags:
+    - install
+    - install:configuration
 
 - name: set to listen on specific port for http
   lineinfile:
     dest: "{{ neo4j_server_config_file }}"
     regexp: "{{ neo4j_http_settings_key }}="
     line: "{{ neo4j_http_settings_key }}={{ neo4j_http_port }}"
-  notify: restart neo4j
+  tags:
+    - install
+    - install:configuration
+
+- name: restart neo4j
+  service: 
+    name: neo4j-service 
+    state: restarted
+  tags:
+    - manage
+    - manage:start
