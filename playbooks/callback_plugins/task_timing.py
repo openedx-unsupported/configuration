@@ -31,17 +31,19 @@ class CallbackModule(object):
         self.datadog_api_initialized = False
 
         if self.datadog_api_key:
-            datadog.initialize(api_key=self.datadog_api_key,
-                               app_key=None)
+            datadog.initialize(
+                api_key=self.datadog_api_key,
+                app_key=None
+            )
             self.datadog_api_initialized = True
 
     def clean_tag_value(self, value):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
     def playbook_on_play_start(self, pattern):
-            self.playbook_name, _ = os.path.splitext(
-                os.path.basename(self.play.playbook.filename)
-            )
+        self.playbook_name, _ = os.path.splitext(
+            os.path.basename(self.play.playbook.filename)
+        )
 
     def playbook_on_task_start(self, name, is_conditional):
         """
@@ -60,14 +62,15 @@ class CallbackModule(object):
         if self.datadog_api_initialized:
             datadog_tasks_metrics = []
             for name, points in results:
-                datadog_tasks_metrics.append({'metric': 'edx.ansible.task_duration',
-                                              'date_happened': points[0],
-                                              'points': points[1],
-                                              'tags': ['task:{0}'.format(self.clean_tag_value(name)),
-                                                       'playbook:{0}'.format(self.clean_tag_value(playbook_name))
-                                                       ]
-                                              }
-                                             )
+                datadog_tasks_metrics.append({
+                    'metric': 'edx.ansible.task_duration',
+                    'date_happened': points[0],
+                    'points': points[1],
+                    'tags': [
+                        'task:{0}'.format(self.clean_tag_value(name)),
+                        'playbook:{0}'.format(self.clean_tag_value(playbook_name))
+                    ]
+                })
             try:
                 datadog.api.Metric.send(datadog_tasks_metrics)
             except Exception as ex:
@@ -76,11 +79,12 @@ class CallbackModule(object):
     def _datadog_log_play(self, playbook_name, duration):
         if self.datadog_api_initialized:
             try:
-                datadog.api.Metric.send(metric="edx.ansible.playbook_duration",
-                                        date_happened=time.time(),
-                                        points=duration,
-                                        tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
-                                        )
+                datadog.api.Metric.send(
+                    metric="edx.ansible.playbook_duration",
+                    date_happened=time.time(),
+                    points=duration,
+                    tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
+                )
             except Exception as ex:
                 logger.error(ex.message)
 
@@ -95,12 +99,11 @@ class CallbackModule(object):
 
     def _logger_log_play(self, playbook_name, duration, task_count):
         logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
-                playbook_name,
-                time.asctime(),
-                task_count,
-                datetime.timedelta(seconds=(int(duration)))
-                )
-          )
+            playbook_name,
+            time.asctime(),
+            task_count,
+            datetime.timedelta(seconds=(int(duration)))
+        ))
 
     def playbook_on_stats(self, stats):
         """
@@ -118,7 +121,7 @@ class CallbackModule(object):
 
         # Total time to run the complete playbook
         total_seconds = sum([x[1][1] for x in self.stats.items()])
-          
+
         # send the metric to datadog
         self._datadog_log_tasks(self.playbook_name, results)
         self._datadog_log_play(self.playbook_name, total_seconds)
