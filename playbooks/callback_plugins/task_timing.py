@@ -86,7 +86,7 @@ class CallbackModule(object):
                 datadog_tasks_metrics.append({
                     'metric': 'edx.ansible.task_duration',
                     'date_happened': timestamp.start,
-                    'points': timestamp.duration,
+                    'points': timestamp.duration.total_seconds(),
                     'tags': [
                         'task:{0}'.format(self.clean_tag_value(name)),
                         'playbook:{0}'.format(self.clean_tag_value(playbook_name))
@@ -114,7 +114,7 @@ class CallbackModule(object):
             logger.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
-                    ' {0:.02f}s'.format(timestamp.duration),
+                    ' {0:.02f}s'.format(timestamp.duration.total_seconds()),
                 )
             )
 
