@@ -38,8 +38,21 @@ class DatadogFormatter(object):
     def __init__(self, callback_module):
         self.callback_module = callback_module
 
+        self.datadog_api_key = os.getenv('DATADOG_API_KEY')
+        self.datadog_api_initialized = False
+
+        if self.datadog_api_key:
+            datadog.initialize(
+                api_key=self.datadog_api_key,
+                app_key=None
+            )
+            self.datadog_api_initialized = True
+
+    def clean_tag_value(self, value):
+        return value.replace(" | ", ".").replace(" ", "-").lower()
+
     def log_tasks(self, playbook_name, results, task_count):
-        if self.callback_module.datadog_api_initialized:
+        if self.datadog_api_initialized:
             datadog_tasks_metrics = []
             for name, timestamp in results:
                 datadog_tasks_metrics.append({
@@ -47,8 +60,8 @@ class DatadogFormatter(object):
                     'date_happened': timestamp.start,
                     'points': timestamp.duration.total_seconds(),
                     'tags': [
-                        'task:{0}'.format(self.callback_module.clean_tag_value(name)),
-                        'playbook:{0}'.format(self.callback_module.clean_tag_value(playbook_name))
+                        'task:{0}'.format(self.clean_tag_value(name)),
+                        'playbook:{0}'.format(self.clean_tag_value(playbook_name))
                     ]
                 })
             try:
@@ -57,13 +70,13 @@ class DatadogFormatter(object):
                 logger.error(ex.message)
 
     def log_play(self, playbook_name, duration):
-        if self.callback_module.datadog_api_initialized:
+        if self.datadog_api_initialized:
             try:
                 datadog.api.Metric.send(
                     metric="edx.ansible.playbook_duration",
                     date_happened=time.time(),
                     points=duration,
-                    tags=["playbook:{0}".format(self.callback_module.clean_tag_value(playbook_name))]
+                    tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
                 )
             except Exception as ex:
                 logger.error(ex.message)
@@ -165,18 +178,6 @@ class CallbackModule(object):
             JsonFormatter,
         ]
 
-        self.datadog_api_key = os.getenv('DATADOG_API_KEY')
-        self.datadog_api_initialized = False
-
-        if self.datadog_api_key:
-            datadog.initialize(
-                api_key=self.datadog_api_key,
-                app_key=None
-            )
-            self.datadog_api_initialized = True
-
-    def clean_tag_value(self, value):
-        return value.replace(" | ", ".").replace(" ", "-").lower()
 
     def playbook_on_play_start(self, pattern):
         self.playbook_name, _ = splitext(
