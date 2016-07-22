@@ -209,7 +209,7 @@ class CallbackModule(object):
         if self.current_task is not None:
             self.stats[self.current_task].stop()
 
-        self.playbook_end = datetime.utcnow()
+        self.playbook_timestamp.stop()
 
         # Sort the tasks by their running time
         results = sorted(
