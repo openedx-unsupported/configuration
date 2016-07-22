@@ -126,30 +126,7 @@ class CallbackModule(object):
             timedelta(seconds=(int(duration)))
         ))
 
-    def playbook_on_stats(self, stats):
-        """
-        Prints the timing of each task and total time to
-        run the complete playbook
-        """
-        # Record the timing of the very last task, we use it here, because we
-        # don't have stop task function by default
-        if self.current_task is not None:
-            self.stats[self.current_task].stop()
-
-        self.playbook_end = datetime.utcnow()
-
-        # Sort the tasks by their running time
-        results = sorted(
-            self.stats.items(),
-            key=lambda (task, timestamp): timestamp.duration,
-            reverse=True
-        )
-
-        # log the stats
-
-        # N.B. This is intended to provide a consistent interface and message format
-        # across all of Open edX tooling, so it deliberately eschews standard
-        # python logging infrastructure.
+    def _json_log_tasks(self, playbook_name, results):
         if ANSIBLE_TIMER_LOG is not None:
             log_path = self.playbook_start.strftime(ANSIBLE_TIMER_LOG)
 
@@ -174,11 +151,22 @@ class CallbackModule(object):
                     )
                     outfile.write('\n')
 
+    def _json_log_play(self, playbook_name, duration):
+        # N.B. This is intended to provide a consistent interface and message format
+        # across all of Open edX tooling, so it deliberately eschews standard
+        # python logging infrastructure.
+        if ANSIBLE_TIMER_LOG is not None:
+            log_path = self.playbook_start.strftime(ANSIBLE_TIMER_LOG)
+
+            if not exists(dirname(log_path)):
+                os.makedirs(dirname(log_path))
+
+            with open(log_path, 'a') as outfile:
                 log_message = {
                     'playbook': self.playbook_name,
                     'started_at': self.playbook_start.isoformat(),
                     'ended_at': self.playbook_end.isoformat(),
-                    'duration': (self.playbook_end - self.playbook_start).total_seconds(),
+                    'duration': duration,
                 }
 
                 json.dump(
@@ -189,7 +177,31 @@ class CallbackModule(object):
                 )
                 outfile.write('\n')
 
+    def playbook_on_stats(self, stats):
+        """
+        Prints the timing of each task and total time to
+        run the complete playbook
+        """
+        # Record the timing of the very last task, we use it here, because we
+        # don't have stop task function by default
+        if self.current_task is not None:
+            self.stats[self.current_task].stop()
+
+        self.playbook_end = datetime.utcnow()
+
+        # Sort the tasks by their running time
+        results = sorted(
+            self.stats.items(),
+            key=lambda (task, timestamp): timestamp.duration,
+            reverse=True
+        )
+
+        # log the stats
+
         total_seconds = (self.playbook_end - self.playbook_start).total_seconds()
+
+        self._json_log_tasks(self.playbook_name, results)
+        self._json_log_play(self.playbook_name, total_seconds)
 
         # send the metric to datadog
         self._datadog_log_tasks(self.playbook_name, results)
