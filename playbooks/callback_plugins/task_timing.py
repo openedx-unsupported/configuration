@@ -58,7 +58,7 @@ class DatadogFormatter(Formatter):
     def clean_tag_value(self, value):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
-    def log_tasks(self):
+    def log_play(self):
         if self.datadog_api_initialized:
             datadog_tasks_metrics = []
             for name, timestamp in self.results:
@@ -73,12 +73,6 @@ class DatadogFormatter(Formatter):
                 })
             try:
                 datadog.api.Metric.send(datadog_tasks_metrics)
-            except Exception as ex:
-                logger.error(ex.message)
-
-    def log_play(self):
-        if self.datadog_api_initialized:
-            try:
                 datadog.api.Metric.send(
                     metric="edx.ansible.playbook_duration",
                     date_happened=time.time(),
@@ -90,7 +84,10 @@ class DatadogFormatter(Formatter):
 
 
 class JsonFormatter(Formatter):
-    def log_tasks(self):
+    def log_play(self):
+        # N.B. This is intended to provide a consistent interface and message format
+        # across all of Open edX tooling, so it deliberately eschews standard
+        # python logging infrastructure.
         if ANSIBLE_TIMER_LOG is not None:
             log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
@@ -115,17 +112,6 @@ class JsonFormatter(Formatter):
                     )
                     outfile.write('\n')
 
-    def log_play(self):
-        # N.B. This is intended to provide a consistent interface and message format
-        # across all of Open edX tooling, so it deliberately eschews standard
-        # python logging infrastructure.
-        if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
-
-            if not exists(dirname(log_path)):
-                os.makedirs(dirname(log_path))
-
-            with open(log_path, 'a') as outfile:
                 log_message = {
                     'playbook': self.playbook_name,
                     'started_at': self.playbook_timestamp.start.isoformat(),
@@ -143,7 +129,7 @@ class JsonFormatter(Formatter):
 
 
 class LoggingFormatter(Formatter):
-    def log_tasks(self):
+    def log_play(self):
         for name, timestamp in self.results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
@@ -152,7 +138,6 @@ class LoggingFormatter(Formatter):
                 )
             )
 
-    def log_play(self):
         logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
             self.playbook_name,
             time.asctime(),
@@ -225,5 +210,4 @@ class CallbackModule(object):
                 self.playbook_timestamp,
                 results,
             )
-            formatter.log_tasks()
             formatter.log_play()
