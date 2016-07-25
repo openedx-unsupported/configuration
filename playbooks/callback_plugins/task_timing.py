@@ -64,7 +64,7 @@ class DatadogFormatter(Formatter):
         for name, timestamp in results:
             datadog_tasks_metrics.append({
                 'metric': 'edx.ansible.task_duration',
-                'date_happened': timestamp.start,
+                'date_happened': time.mktime(timestamp.start.timetuple()),
                 'points': timestamp.duration.total_seconds(),
                 'tags': [
                     'task:{0}'.format(self.clean_tag_value(name)),
@@ -75,7 +75,7 @@ class DatadogFormatter(Formatter):
             datadog.api.Metric.send(datadog_tasks_metrics)
             datadog.api.Metric.send(
                 metric="edx.ansible.playbook_duration",
-                date_happened=time.time(),
+                date_happened=time.mktime(playbook_timestamp.start.timetuple()),
                 points=playbook_timestamp.duration.total_seconds(),
                 tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
             )
