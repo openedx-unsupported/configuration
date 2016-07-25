@@ -88,22 +88,34 @@ class JsonFormatter(Formatter):
         # N.B. This is intended to provide a consistent interface and message format
         # across all of Open edX tooling, so it deliberately eschews standard
         # python logging infrastructure.
-        if ANSIBLE_TIMER_LOG is not None:
-            log_path = playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+        if ANSIBLE_TIMER_LOG is None:
+            return
 
+        messages = []
+        for name, timestamp in results:
+            messages.append({
+                'task': name,
+                'playbook': playbook_name,
+                'started_at': timestamp.start.isoformat(),
+                'ended_at': timestamp.end.isoformat(),
+                'duration': timestamp.duration.total_seconds(),
+            })
+
+        messages.append({
+            'playbook': playbook_name,
+            'started_at': playbook_timestamp.start.isoformat(),
+            'ended_at': playbook_timestamp.end.isoformat(),
+            'duration': playbook_timestamp.duration.total_seconds(),
+        })
+
+        log_path = playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+
+        try:
             if not exists(dirname(log_path)):
                 os.makedirs(dirname(log_path))
 
             with open(log_path, 'a') as outfile:
-                for name, timestamp in results:
-                    log_message = {
-                        'task': name,
-                        'playbook': playbook_name,
-                        'started_at': timestamp.start.isoformat(),
-                        'ended_at': timestamp.end.isoformat(),
-                        'duration': timestamp.duration.total_seconds(),
-                    }
-
+                for log_message in messages:
                     json.dump(
                         log_message,
                         outfile,
@@ -111,21 +123,8 @@ class JsonFormatter(Formatter):
                         sort_keys=True,
                     )
                     outfile.write('\n')
-
-                log_message = {
-                    'playbook': playbook_name,
-                    'started_at': playbook_timestamp.start.isoformat(),
-                    'ended_at': playbook_timestamp.end.isoformat(),
-                    'duration': playbook_timestamp.duration.total_seconds(),
-                }
-
-                json.dump(
-                    log_message,
-                    outfile,
-                    separators=(',', ':'),
-                    sort_keys=True,
-                )
-                outfile.write('\n')
+        except OSError:
+            LOGGER.exception("Unable to write json timing log messages")
 
 
 class LoggingFormatter(Formatter):
