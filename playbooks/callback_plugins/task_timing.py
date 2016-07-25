@@ -123,7 +123,7 @@ class JsonFormatter(Formatter):
                         sort_keys=True,
                     )
                     outfile.write('\n')
-        except OSError:
+        except Exception:
             LOGGER.exception("Unable to write json timing log messages")
 
 
