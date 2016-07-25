@@ -75,13 +75,13 @@ class DatadogFormatter(Formatter):
             except Exception as ex:
                 logger.error(ex.message)
 
-    def log_play(self, playbook_name, duration, task_count):
+    def log_play(self, playbook_name, task_count):
         if self.datadog_api_initialized:
             try:
                 datadog.api.Metric.send(
                     metric="edx.ansible.playbook_duration",
                     date_happened=time.time(),
-                    points=duration,
+                    points=self.playbook_timestamp.duration.total_seconds(),
                     tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
                 )
             except Exception as ex:
@@ -114,7 +114,7 @@ class JsonFormatter(Formatter):
                     )
                     outfile.write('\n')
 
-    def log_play(self, playbook_name, duration, task_count):
+    def log_play(self, playbook_name, task_count):
         # N.B. This is intended to provide a consistent interface and message format
         # across all of Open edX tooling, so it deliberately eschews standard
         # python logging infrastructure.
@@ -129,7 +129,7 @@ class JsonFormatter(Formatter):
                     'playbook': playbook_name,
                     'started_at': self.playbook_timestamp.start.isoformat(),
                     'ended_at': self.playbook_timestamp.end.isoformat(),
-                    'duration': duration,
+                    'duration': self.playbook_timestamp.duration.total_seconds(),
                 }
 
                 json.dump(
@@ -151,12 +151,12 @@ class LoggingFormatter(Formatter):
                 )
             )
 
-    def log_play(self, playbook_name, duration, task_count):
+    def log_play(self, playbook_name, task_count):
         logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
             playbook_name,
             time.asctime(),
             task_count,
-            timedelta(seconds=(int(duration)))
+            timedelta(seconds=(int(self.playbook_timestamp.duration.total_seconds())))
         ))
 
 
@@ -218,9 +218,7 @@ class CallbackModule(object):
             reverse=True
         )
 
-        total_seconds = self.playbook_timestamp.duration.total_seconds()
-
         for fmt_class in self.formatters:
             formatter = fmt_class(self, playbook_timestamp)
             formatter.log_tasks(self.playbook_name, results)
-            formatter.log_play(self.playbook_name, total_seconds, len(self.stats))
+            formatter.log_play(self.playbook_name, len(self.stats))
