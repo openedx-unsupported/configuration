@@ -41,8 +41,8 @@ class Formatter(object):
 
 
 class DatadogFormatter(Formatter):
-    def __init__(self, callback_module):
-        super(DatadogFormatter, self).__init__(callback_module)
+    def __init__(self, callback_module, playbook_timestamp):
+        super(DatadogFormatter, self).__init__(callback_module, playbook_timestamp)
 
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
