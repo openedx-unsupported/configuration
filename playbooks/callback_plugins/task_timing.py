@@ -35,14 +35,15 @@ class Timestamp(object):
 
 
 class Formatter(object):
-    def __init__(self, playbook_name, playbook_timestamp):
+    def __init__(self, playbook_name, playbook_timestamp, results):
         self.playbook_name = playbook_name
         self.playbook_timestamp = playbook_timestamp
+        self.results = results
 
 
 class DatadogFormatter(Formatter):
-    def __init__(self, playbook_name, playbook_timestamp):
-        super(DatadogFormatter, self).__init__(playbook_name, playbook_timestamp)
+    def __init__(self, playbook_name, playbook_timestamp, results):
+        super(DatadogFormatter, self).__init__(playbook_name, playbook_timestamp, results)
 
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
@@ -57,10 +58,10 @@ class DatadogFormatter(Formatter):
     def clean_tag_value(self, value):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
-    def log_tasks(self, results):
+    def log_tasks(self):
         if self.datadog_api_initialized:
             datadog_tasks_metrics = []
-            for name, timestamp in results:
+            for name, timestamp in self.results:
                 datadog_tasks_metrics.append({
                     'metric': 'edx.ansible.task_duration',
                     'date_happened': timestamp.start,
@@ -75,7 +76,7 @@ class DatadogFormatter(Formatter):
             except Exception as ex:
                 logger.error(ex.message)
 
-    def log_play(self, task_count):
+    def log_play(self):
         if self.datadog_api_initialized:
             try:
                 datadog.api.Metric.send(
@@ -89,7 +90,7 @@ class DatadogFormatter(Formatter):
 
 
 class JsonFormatter(Formatter):
-    def log_tasks(self, results):
+    def log_tasks(self):
         if ANSIBLE_TIMER_LOG is not None:
             log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
@@ -97,7 +98,7 @@ class JsonFormatter(Formatter):
                 os.makedirs(dirname(log_path))
 
             with open(log_path, 'a') as outfile:
-                for name, timestamp in results:
+                for name, timestamp in self.results:
                     log_message = {
                         'task': name,
                         'playbook': self.playbook_name,
@@ -114,7 +115,7 @@ class JsonFormatter(Formatter):
                     )
                     outfile.write('\n')
 
-    def log_play(self, task_count):
+    def log_play(self):
         # N.B. This is intended to provide a consistent interface and message format
         # across all of Open edX tooling, so it deliberately eschews standard
         # python logging infrastructure.
@@ -142,8 +143,8 @@ class JsonFormatter(Formatter):
 
 
 class LoggingFormatter(Formatter):
-    def log_tasks(self, results):
-        for name, timestamp in results[:10]:
+    def log_tasks(self):
+        for name, timestamp in self.results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
@@ -151,11 +152,11 @@ class LoggingFormatter(Formatter):
                 )
             )
 
-    def log_play(self, task_count):
+    def log_play(self):
         logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
             self.playbook_name,
             time.asctime(),
-            task_count,
+            len(self.results),
             timedelta(seconds=(int(self.playbook_timestamp.duration.total_seconds())))
         ))
 
@@ -219,6 +220,10 @@ class CallbackModule(object):
         )
 
         for fmt_class in self.formatters:
-            formatter = fmt_class(self.playbook_name, self.playbook_timestamp)
-            formatter.log_tasks(results)
-            formatter.log_play(len(self.stats))
+            formatter = fmt_class(
+                self.playbook_name,
+                self.playbook_timestamp,
+                results,
+            )
+            formatter.log_tasks()
+            formatter.log_play()
