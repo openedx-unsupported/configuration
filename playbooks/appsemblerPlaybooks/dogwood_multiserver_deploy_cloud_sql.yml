@@ -1,0 +1,68 @@
+---
+
+# Example sandbox configuration
+# for single server community
+# installs
+
+- name: Configure mongo
+  hosts: "mongo-server"
+  sudo: True
+  gather_facts: True
+  roles:
+  - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+  - mongo
+  - oraclejdk
+  - elasticsearch
+  - memcached
+  - newrelic
+
+- name: Configure instance(s)
+  hosts: "edxapp-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    #EDXAPP_LMS_NGINX_PORT: '80'
+    #edx_platform_version: 'master'
+    # Set to false if deployed behind another proxy/load balancer.
+    #NGINX_SET_X_FORWARDED_HEADERS: True
+    # These should stay false for the public AMI
+    COMMON_ENABLE_DATADOG: False
+    #COMMON_ENABLE_SPLUNKFORWARDER: False
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - certs
+      - cms
+      - lms
+      - forum
+      - xqueue
+      nginx_default_sites:
+      - lms
+#    - role: mysql
+#      when: EDXAPP_MYSQL_HOST == 'localhost'
+#    - edxlocal
+#    - role: mongo
+#      when: "'localhost' in EDXAPP_MONGO_HOSTS"
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - notifier
+    - analytics_api
+    - edx_notes_api
+    - demo
+    - oauth_client_setup
+    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - certs
+    - edx_ansible
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
