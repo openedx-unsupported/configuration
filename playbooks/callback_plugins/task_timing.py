@@ -57,28 +57,30 @@ class DatadogFormatter(Formatter):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
     def log_play(self, playbook_name, playbook_timestamp, results):
-        if self.datadog_api_initialized:
-            datadog_tasks_metrics = []
-            for name, timestamp in results.items():
-                datadog_tasks_metrics.append({
-                    'metric': 'edx.ansible.task_duration',
-                    'date_happened': timestamp.start,
-                    'points': timestamp.duration.total_seconds(),
-                    'tags': [
-                        'task:{0}'.format(self.clean_tag_value(name)),
-                        'playbook:{0}'.format(self.clean_tag_value(playbook_name))
-                    ]
-                })
-            try:
-                datadog.api.Metric.send(datadog_tasks_metrics)
-                datadog.api.Metric.send(
-                    metric="edx.ansible.playbook_duration",
-                    date_happened=time.time(),
-                    points=playbook_timestamp.duration.total_seconds(),
-                    tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
-                )
-            except Exception as ex:
-                LOGGER.error(ex.message)
+        if not self.datadog_api_initialized:
+            return
+
+        datadog_tasks_metrics = []
+        for name, timestamp in results.items():
+            datadog_tasks_metrics.append({
+                'metric': 'edx.ansible.task_duration',
+                'date_happened': timestamp.start,
+                'points': timestamp.duration.total_seconds(),
+                'tags': [
+                    'task:{0}'.format(self.clean_tag_value(name)),
+                    'playbook:{0}'.format(self.clean_tag_value(playbook_name))
+                ]
+            })
+        try:
+            datadog.api.Metric.send(datadog_tasks_metrics)
+            datadog.api.Metric.send(
+                metric="edx.ansible.playbook_duration",
+                date_happened=time.time(),
+                points=playbook_timestamp.duration.total_seconds(),
+                tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
+            )
+        except Exception as ex:
+            LOGGER.error(ex.message)
 
 
 class JsonFormatter(Formatter):
