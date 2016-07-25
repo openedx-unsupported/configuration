@@ -1,11 +1,12 @@
-import os
-from os.path import splitext, basename, exists, dirname
 from datetime import datetime, timedelta
 import json
-import time
 import logging
-import datadog
+import os
+from os.path import splitext, basename, exists, dirname
 import sys
+import time
+
+import datadog
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -36,6 +37,7 @@ class Timestamp(object):
 
 class Formatter(object):
     pass
+
 
 class DatadogFormatter(Formatter):
     def __init__(self):
