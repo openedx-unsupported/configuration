@@ -79,8 +79,8 @@ class DatadogFormatter(Formatter):
                 points=playbook_timestamp.duration.total_seconds(),
                 tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
             )
-        except Exception as ex:
-            LOGGER.error(ex.message)
+        except Exception:
+            LOGGER.exception("Failed to log timing data to datadog")
 
 
 class JsonFormatter(Formatter):
