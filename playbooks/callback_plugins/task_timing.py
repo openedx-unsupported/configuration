@@ -35,13 +35,14 @@ class Timestamp(object):
 
 
 class Formatter(object):
-    def __init__(self, callback_module):
+    def __init__(self, callback_module, playbook_timestamp):
         self.callback_module = callback_module
+        self.playbook_timestamp = playbook_timestamp
 
 
 class DatadogFormatter(Formatter):
-    def __init__(self, callback_module):
-        super(DatadogFormatter, self).__init__(callback_module)
+    def __init__(self, callback_module, playbook_timestamp):
+        super(DatadogFormatter, self).__init__(callback_module, playbook_timestamp)
 
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
@@ -90,7 +91,7 @@ class DatadogFormatter(Formatter):
 class JsonFormatter(Formatter):
     def log_tasks(self, playbook_name, results):
         if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.callback_module.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
             if not exists(dirname(log_path)):
                 os.makedirs(dirname(log_path))
@@ -118,7 +119,7 @@ class JsonFormatter(Formatter):
         # across all of Open edX tooling, so it deliberately eschews standard
         # python logging infrastructure.
         if ANSIBLE_TIMER_LOG is not None:
-            log_path = self.callback_module.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
+            log_path = self.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
             if not exists(dirname(log_path)):
                 os.makedirs(dirname(log_path))
@@ -126,8 +127,8 @@ class JsonFormatter(Formatter):
             with open(log_path, 'a') as outfile:
                 log_message = {
                     'playbook': playbook_name,
-                    'started_at': self.callback_module.playbook_timestamp.start.isoformat(),
-                    'ended_at': self.callback_module.playbook_timestamp.end.isoformat(),
+                    'started_at': self.playbook_timestamp.start.isoformat(),
+                    'ended_at': self.playbook_timestamp.end.isoformat(),
                     'duration': duration,
                 }
 
@@ -220,6 +221,6 @@ class CallbackModule(object):
         total_seconds = self.playbook_timestamp.duration.total_seconds()
 
         for fmt_class in self.formatters:
-            formatter = fmt_class(self)
+            formatter = fmt_class(self, playbook_timestamp)
             formatter.log_tasks(self.playbook_name, results)
             formatter.log_play(self.playbook_name, total_seconds, len(self.stats))
