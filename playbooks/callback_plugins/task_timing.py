@@ -34,9 +34,14 @@ class Timestamp(object):
         return self.end - self.start
 
 
-class DatadogFormatter(object):
+class Formatter(object):
     def __init__(self, callback_module):
         self.callback_module = callback_module
+
+
+class DatadogFormatter(Formatter):
+    def __init__(self, callback_module):
+        super(DatadogFormatter, self).__init__(callback_module)
 
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
@@ -82,10 +87,7 @@ class DatadogFormatter(object):
                 logger.error(ex.message)
 
 
-class JsonFormatter(object):
-    def __init__(self, callback_module):
-        self.callback_module = callback_module
-
+class JsonFormatter(Formatter):
     def log_tasks(self, playbook_name, results):
         if ANSIBLE_TIMER_LOG is not None:
             log_path = self.callback_module.playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
@@ -138,10 +140,7 @@ class JsonFormatter(object):
                 outfile.write('\n')
 
 
-class LoggingFormatter(object):
-    def __init__(self, callback_module):
-        self.callback_module = callback_module
-
+class LoggingFormatter(Formatter):
     def log_tasks(self, playbook_name, results):
         for name, timestamp in results[:10]:
             logger.info(
