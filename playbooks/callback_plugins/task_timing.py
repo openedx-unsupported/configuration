@@ -149,7 +149,7 @@ class LoggingFormatter(Formatter):
             playbook_name,
             time.asctime(),
             len(results),
-            timedelta(seconds=(int(playbook_timestamp.duration.total_seconds())))
+            playbook_timestamp,
         ))
 
 
