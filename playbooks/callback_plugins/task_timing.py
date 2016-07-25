@@ -126,6 +126,14 @@ class JsonFormatter(Formatter):
 
 class LoggingFormatter(Formatter):
     def log_play(self, playbook_name, playbook_timestamp, results):
+
+        # Sort the tasks by their running time
+        results = sorted(
+            results.items(),
+            key=lambda (task, timestamp): timestamp.duration,
+            reverse=True
+        )
+
         for name, timestamp in results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
@@ -193,16 +201,9 @@ class CallbackModule(object):
 
         self.playbook_timestamp.stop()
 
-        # Sort the tasks by their running time
-        results = sorted(
-            self.stats.items(),
-            key=lambda (task, timestamp): timestamp.duration,
-            reverse=True
-        )
-
         for formatter in self.formatters:
             formatter.log_play(
                 self.playbook_name,
                 self.playbook_timestamp,
-                results,
+                self.stats,
             )
