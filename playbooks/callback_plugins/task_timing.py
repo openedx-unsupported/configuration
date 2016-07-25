@@ -112,7 +112,7 @@ class JsonFormatter(Formatter):
                     'playbook': playbook_name,
                     'started_at': playbook_timestamp.start.isoformat(),
                     'ended_at': playbook_timestamp.end.isoformat(),
-                    'duration': slaybook_timestamp,
+                    'duration': playbook_timestamp,
                 }
 
                 json.dump(
