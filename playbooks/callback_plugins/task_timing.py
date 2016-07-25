@@ -218,6 +218,6 @@ class CallbackModule(object):
         )
 
         for fmt_class in self.formatters:
-            formatter = fmt_class(playbook_timestamp)
+            formatter = fmt_class(self.playbook_timestamp)
             formatter.log_tasks(self.playbook_name, results)
             formatter.log_play(self.playbook_name, len(self.stats))
