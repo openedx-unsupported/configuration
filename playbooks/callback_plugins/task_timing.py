@@ -35,14 +35,13 @@ class Timestamp(object):
 
 
 class Formatter(object):
-    def __init__(self, callback_module, playbook_timestamp):
-        self.callback_module = callback_module
+    def __init__(self, playbook_timestamp):
         self.playbook_timestamp = playbook_timestamp
 
 
 class DatadogFormatter(Formatter):
-    def __init__(self, callback_module, playbook_timestamp):
-        super(DatadogFormatter, self).__init__(callback_module, playbook_timestamp)
+    def __init__(self, playbook_timestamp):
+        super(DatadogFormatter, self).__init__(playbook_timestamp)
 
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
@@ -219,6 +218,6 @@ class CallbackModule(object):
         )
 
         for fmt_class in self.formatters:
-            formatter = fmt_class(self, playbook_timestamp)
+            formatter = fmt_class(playbook_timestamp)
             formatter.log_tasks(self.playbook_name, results)
             formatter.log_play(self.playbook_name, len(self.stats))
