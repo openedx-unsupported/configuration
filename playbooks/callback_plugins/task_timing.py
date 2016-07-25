@@ -57,7 +57,7 @@ class DatadogFormatter(Formatter):
     def log_play(self, playbook_name, playbook_timestamp, results):
         if self.datadog_api_initialized:
             datadog_tasks_metrics = []
-            for name, timestamp in results:
+            for name, timestamp in results.items():
                 datadog_tasks_metrics.append({
                     'metric': 'edx.ansible.task_duration',
                     'date_happened': timestamp.start,
@@ -86,12 +86,11 @@ class JsonFormatter(Formatter):
         # python logging infrastructure.
         if ANSIBLE_TIMER_LOG is not None:
             log_path = playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
-
             if not exists(dirname(log_path)):
                 os.makedirs(dirname(log_path))
 
             with open(log_path, 'a') as outfile:
-                for name, timestamp in results:
+                for name, timestamp in results.items():
                     log_message = {
                         'task': name,
                         'playbook': playbook_name,
@@ -126,7 +125,15 @@ class JsonFormatter(Formatter):
 
 class LoggingFormatter(Formatter):
     def log_play(self, playbook_name, playbook_timestamp, results):
-        for name, timestamp in results[:10]:
+
+        # Sort the tasks by their running time
+        sorted_results = sorted(
+            results.items(),
+            key=lambda (task, timestamp): timestamp.duration,
+            reverse=True
+        )
+
+        for name, timestamp in sorted_results[:10]:
             logger.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
@@ -193,16 +200,9 @@ class CallbackModule(object):
 
         self.playbook_timestamp.stop()
 
-        # Sort the tasks by their running time
-        results = sorted(
-            self.stats.items(),
-            key=lambda (task, timestamp): timestamp.duration,
-            reverse=True
-        )
-
         for formatter in self.formatters:
             formatter.log_play(
                 self.playbook_name,
                 self.playbook_timestamp,
-                results,
+                self.stats,
             )
