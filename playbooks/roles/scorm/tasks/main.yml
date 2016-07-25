@@ -24,6 +24,35 @@
   with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
   when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS
 
+
+## check out any custom player repos
+- debug: 
+    msg: "{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item] }}"
+  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
+
+- name: install read-only ssh key for the scormplayer repo(s)   
+  copy: >
+    content="{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item] }}" dest=/tmp/scormplayer_{{ item }}_identity
+    force=yes owner={{ scorm_player_dir.owner }} mode=0600
+  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
+  when: EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item]|default(False)
+
+- name: checkout player repo
+  git: >
+    dest={{ scorm_player_dir.path_root }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
+    accept_hostkey=yes key_file=/tmp/scormplayer_{{ item.key }}_identity
+    ssh_opts="-o StrictHostKeyChecking=no"
+  sudo_user: "{{ scorm_player_dir.owner }}"
+  register: "{{item.key}}_scormplayer_checkout"
+  with_dict: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS
+  when: (EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item.key]|default(False)) and not ({{item.key}}_scormplayer_checkout|default(False))
+
+- name: remove read-only ssh key for the scormplayer repo
+  file: path=/tmp/scormplayer_{{ item }}_identity state=absent
+  when: EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item]|default(False)
+  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
+
+
 - name: install uuencode for emailing errors
   apt: >
     pkg=sharutils
