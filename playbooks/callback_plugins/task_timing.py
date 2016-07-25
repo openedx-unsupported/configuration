@@ -10,7 +10,7 @@ import sys
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("dd").setLevel(logging.WARNING)
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 """
 Originally written by 'Jharrod LaFon'
@@ -76,7 +76,7 @@ class DatadogFormatter(Formatter):
                     tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
                 )
             except Exception as ex:
-                logger.error(ex.message)
+                LOGGER.error(ex.message)
 
 
 class JsonFormatter(Formatter):
@@ -135,14 +135,14 @@ class LoggingFormatter(Formatter):
         )
 
         for name, timestamp in results[:10]:
-            logger.info(
+            LOGGER.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
                     ' {0:.02f}s'.format(timestamp.duration.total_seconds()),
                 )
             )
 
-        logger.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
+        LOGGER.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
             playbook_name,
             time.asctime(),
             len(results),
