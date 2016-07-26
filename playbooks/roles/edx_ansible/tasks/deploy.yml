@@ -22,7 +22,19 @@
     - install
     - install:app-requirements
 
-- name: Create update and show-repo-heads script
+- name: Create update script
+  template:
+    dest: "{{ edx_ansible_app_dir}}/update"
+    src: "update.j2"
+    owner: "{{ edx_ansible_user }}"
+    group: "{{ edx_ansible_user }}"
+    mode: "0755"
+  when: devstack is not defined or not devstack
+  tags:
+    - install
+    - install:configuration
+
+- name: Create utility scripts
   template:
     dest: "{{ edx_ansible_app_dir}}/{{ item.dest }}"
     src: "{{ item.src }}"
@@ -30,7 +42,6 @@
     group: "{{ edx_ansible_user }}"
     mode: "0755"
   with_items:
-    - { src: 'update.j2', dest: 'update' }
     - { src: 'show-repo-heads.j2', dest: 'show-repo-heads' }
   tags:
     - install
