@@ -23,25 +23,57 @@ ANSIBLE_TIMER_LOG = os.environ.get('ANSIBLE_TIMER_LOG')
 
 
 class Timestamp(object):
+    """
+    A class for capturing start, end and duration for an action.
+    """
     def __init__(self):
         self.start = datetime.utcnow()
         self.end = None
 
     def stop(self):
+        """
+        Record the end time of the timed period.
+        """
         self.end = datetime.utcnow()
 
     @property
     def duration(self):
+        """
+        Return the duration that this Timestamp covers.
+        """
         return self.end - self.start
 
 
-class Formatter(object):
-    pass
+# This class only has a single method (which would ordinarily make it a
+# candidate to be turned into a function). However, the TimingLoggers are
+# instanciated once when ansible starts up, and then called for every play.
+class TimingLogger(object):
+    """
+    Base-class for logging timing about ansible tasks and plays.
+    """
+    def log_play(self, playbook_name, playbook_timestamp, results):
+        """
+        Record the timing results of an ansible play.
+
+        Arguments:
+            playbook_name: the name of the playbook being logged.
+            playbook_timestamp (Timestamp): the timestamps measuring how
+                long the play took.
+            results (dict(string -> Timestamp)): a dict mapping task names
+                to Timestamps that measure how long each task took.
+        """
+        pass
 
 
-class DatadogFormatter(Formatter):
+class DatadogTimingLogger(TimingLogger):
+    """
+    Record ansible task and play timing to Datadog.
+
+    Requires that the environment variable DATADOG_API_KEY be set in order
+    to log any data.
+    """
     def __init__(self):
-        super(DatadogFormatter, self).__init__()
+        super(DatadogTimingLogger, self).__init__()
 
         self.datadog_api_key = os.getenv('DATADOG_API_KEY')
         self.datadog_api_initialized = False
@@ -54,6 +86,12 @@ class DatadogFormatter(Formatter):
             self.datadog_api_initialized = True
 
     def clean_tag_value(self, value):
+        """
+        Remove any characters that aren't allowed in Datadog tags.
+
+        Arguments:
+            value: the string to be cleaned.
+        """
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
     def log_play(self, playbook_name, playbook_timestamp, results):
@@ -83,11 +121,19 @@ class DatadogFormatter(Formatter):
             LOGGER.exception("Failed to log timing data to datadog")
 
 
-class JsonFormatter(Formatter):
+class JsonTimingLogger(TimingLogger):
+    """
+    Record task and play timing to a local file in a JSON format.
+
+    Requires that the environment variable ANSIBLE_TIMER_LOG be set in order
+    to log any data. This specifies the file that timing data should be logged
+    to. That variable can include strftime interpolation variables,
+    which will be replaced with the start time of the play.
+    """
     def log_play(self, playbook_name, playbook_timestamp, results):
-        # N.B. This is intended to provide a consistent interface and message format
-        # across all of Open edX tooling, so it deliberately eschews standard
-        # python logging infrastructure.
+        # N.B. This is intended to provide a consistent interface and message
+        # format across all of Open edX tooling, so it deliberately eschews
+        # standard python logging infrastructure.
         if ANSIBLE_TIMER_LOG is None:
             return
 
@@ -127,7 +173,10 @@ class JsonFormatter(Formatter):
             LOGGER.exception("Unable to write json timing log messages")
 
 
-class LoggingFormatter(Formatter):
+class LoggingTimingLogger(TimingLogger):
+    """
+    Log timing information for the play and the top 10 tasks to stdout.
+    """
     def log_play(self, playbook_name, playbook_timestamp, results):
 
         # Sort the tasks by their running time
@@ -166,14 +215,16 @@ class CallbackModule(object):
         self.playbook_name = None
         self.playbook_timestamp = None
 
-        self.formatters = [
-            DatadogFormatter(),
-            LoggingFormatter(),
-            JsonFormatter(),
+        self.loggers = [
+            DatadogTimingLogger(),
+            LoggingTimingLogger(),
+            JsonTimingLogger(),
         ]
 
-
     def playbook_on_play_start(self, pattern):
+        """
+        Record the start of a play.
+        """
         self.playbook_name, _ = splitext(
             basename(self.play.playbook.filename)
         )
@@ -204,8 +255,8 @@ class CallbackModule(object):
 
         self.playbook_timestamp.stop()
 
-        for formatter in self.formatters:
-            formatter.log_play(
+        for logger in self.loggers:
+            logger.log_play(
                 self.playbook_name,
                 self.playbook_timestamp,
                 self.stats,
