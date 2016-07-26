@@ -145,12 +145,13 @@ class LoggingFormatter(Formatter):
                 )
             )
 
-        LOGGER.info("\nPlaybook {0} finished: {1}, {2} total tasks.  {3} elapsed. \n".format(
+        LOGGER.info(
+            "\nPlaybook %s finished: %s, %d total tasks.  %s elapsed. \n",
             playbook_name,
-            time.asctime(),
+            playbook_timestamp.end,
             len(results),
-            playbook_timestamp,
-        ))
+            playbook_timestamp.duration,
+        )
 
 
 class CallbackModule(object):
@@ -190,7 +191,6 @@ class CallbackModule(object):
         # Record the start time of the current task
         self.current_task = name
         self.stats[self.current_task] = Timestamp()
-
 
     def playbook_on_stats(self, stats):
         """
