@@ -227,6 +227,7 @@
     name: "{{ supervisor_service }}"
     state: started
   register: start_supervisor
+  when: not disable_edx_services
   tags:
     - manage
     - manage:start
@@ -250,6 +251,7 @@
   # See https://github.com/ansible/ansible/issues/4853
 - name: Update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
   register: supervisor_update
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   tags:
