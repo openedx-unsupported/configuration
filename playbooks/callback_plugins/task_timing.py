@@ -6,6 +6,12 @@ from os.path import splitext, basename, exists, dirname
 import sys
 import time
 
+try:
+    from ansible.plugins.callback import CallbackBase
+except ImportError:
+    # Support Ansible 1.9.x
+    CallbackBase = object
+
 import datadog
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -203,7 +209,7 @@ class LoggingTimingLogger(TimingLogger):
         )
 
 
-class CallbackModule(object):
+class CallbackModule(CallbackBase):
 
     """
     Ansible plugin get the time of each task and total time
@@ -214,12 +220,17 @@ class CallbackModule(object):
         self.current_task = None
         self.playbook_name = None
         self.playbook_timestamp = None
+        self.play = None
 
         self.loggers = [
             DatadogTimingLogger(),
             LoggingTimingLogger(),
             JsonTimingLogger(),
         ]
+
+    def v2_playbook_on_play_start(self, play):
+        self.play = play
+        super(CallbackModule, self).v2_playbook_on_play_start(play)
 
     def playbook_on_play_start(self, pattern):
         """
