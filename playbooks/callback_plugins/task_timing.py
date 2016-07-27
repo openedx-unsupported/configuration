@@ -6,6 +6,12 @@ from os.path import splitext, basename, exists, dirname
 import sys
 import time
 
+try:
+    from ansible.plugins.callback import CallbackBase
+except ImportError:
+    # Support Ansible 1.9.x
+    CallbackBase = object
+
 import datadog
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -16,7 +22,6 @@ LOGGER = logging.getLogger(__name__)
 """
 Originally written by 'Jharrod LaFon'
 #https://github.com/jlafon/ansible-profile/blob/master/callback_plugins/profile_tasks.py
-
 """
 
 ANSIBLE_TIMER_LOG = os.environ.get('ANSIBLE_TIMER_LOG')
