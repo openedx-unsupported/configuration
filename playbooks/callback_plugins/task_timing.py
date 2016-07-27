@@ -62,6 +62,7 @@ class TimingLogger(object):
             results (dict(string -> Timestamp)): a dict mapping task names
                 to Timestamps that measure how long each task took.
         """
+        print('JZJZJZ in log_play for TimingLogger')
         pass
 
 
@@ -95,7 +96,9 @@ class DatadogTimingLogger(TimingLogger):
         return value.replace(" | ", ".").replace(" ", "-").lower()
 
     def log_play(self, playbook_name, playbook_timestamp, results):
+        print('JZJZJZ in log_play for DatadogTimingLogger')
         if not self.datadog_api_initialized:
+            print('JZJZJZ datadog_api_initialized was not True')
             return
 
         datadog_tasks_metrics = []
@@ -134,7 +137,9 @@ class JsonTimingLogger(TimingLogger):
         # N.B. This is intended to provide a consistent interface and message
         # format across all of Open edX tooling, so it deliberately eschews
         # standard python logging infrastructure.
+        print('JZJZJZ in log_play for JsonTimingLogger')
         if ANSIBLE_TIMER_LOG is None:
+            print('JZJZJZ ANSIBLE_TIMER_LOG was None')
             return
 
         messages = []
@@ -188,6 +193,7 @@ class LoggingTimingLogger(TimingLogger):
     Log timing information for the play and the top 10 tasks to stdout.
     """
     def log_play(self, playbook_name, playbook_timestamp, results):
+        print('JZJZJZ in log_play for LoggingTimingLogger')
 
         # Sort the tasks by their running time
         results = sorted(
