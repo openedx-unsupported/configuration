@@ -102,7 +102,7 @@ class DatadogTimingLogger(TimingLogger):
             return
 
         datadog_tasks_metrics = []
-        for name, timestamp in results:
+        for name, timestamp in results.items():
             datadog_tasks_metrics.append({
                 'metric': 'edx.ansible.task_duration',
                 'date_happened': time.mktime(timestamp.start.timetuple()),
@@ -143,7 +143,7 @@ class JsonTimingLogger(TimingLogger):
             return
 
         messages = []
-        for name, timestamp in results:
+        for name, timestamp in results.items():
             messages.append({
                 'task': name,
                 'playbook': playbook_name,
@@ -196,13 +196,13 @@ class LoggingTimingLogger(TimingLogger):
         print('JZJZJZ in log_play for LoggingTimingLogger')
 
         # Sort the tasks by their running time
-        results = sorted(
+        sorted_results = sorted(
             results.items(),
             key=lambda (task, timestamp): timestamp.duration,
             reverse=True
         )
 
-        for name, timestamp in results[:10]:
+        for name, timestamp in sorted_results[:10]:
             LOGGER.info(
                 "{0:-<80}{1:->8}".format(
                     '{0} '.format(name),
