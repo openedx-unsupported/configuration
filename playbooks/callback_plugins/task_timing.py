@@ -185,6 +185,11 @@ class JsonTimingLogger(TimingLogger):
             LOGGER.exception("Unable to write json timing log messages")
 
         try:
+            os.chmod(log_path, 0666)
+        except Exception:
+            LOGGER.exception("Could not make the ANSIBLE_TIMER_LOG json timing log file rw for everyone.")
+
+        try:
             print("ANSIBLE_TIMER_LOG contents of the file are: ")
             with open(log_path, 'r') as log_file:
                 print log_file.read()
