@@ -61,7 +61,7 @@
   tags:
     - install
     - install:base
-    
+
 - name: Create supervisor and service user accessible directories
   file:
     path: "{{ item }}"
@@ -121,6 +121,19 @@
     dest: "/etc/init/{{ supervisor_service }}.conf"
     owner: root
     group: root
+  when: ansible_distribution_major_version < 16
+  tags:
+    - install
+    - install:base
+
+# NB: with systemd, pre_supervisor is a pre-task for supervisor, not a separate service
+- name: Create supervisor systemd job
+  template:
+    src: "etc/init/supervisor-systemd.service.j2"
+    dest: "/etc/systemd/system/{{ supervisor_service }}.service"
+    owner: root
+    group: root
+  when: ansible_distribution_major_version >= 16
   tags:
     - install
     - install:base
@@ -134,7 +147,9 @@
     dest: "/etc/init/pre_supervisor.conf"
     owner: root
     group: root
-  when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+  when: >
+    supervisor_service == "supervisor" and disable_edx_services and not devstack
+    and ansible_distribution_major_version < 16
   tags:
     - to-remove
     - aws-specfic
@@ -197,6 +212,15 @@
   tags:
     - install
     - install:configuration
+
+- name: Enable supervisor to start on boot
+  service:
+    name: "{{ supervisor_service }}.service"
+    enabled: yes
+  when: ansible_distribution_major_version >= 16
+  tags:
+    - install
+    - install:base
 
 - name: Start supervisor
   service:
