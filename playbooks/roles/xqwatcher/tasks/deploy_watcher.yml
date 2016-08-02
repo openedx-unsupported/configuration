@@ -28,30 +28,20 @@
 - name: Write supervisord config
   template:
     src: "edx/app/supervisor/conf.d/xqwatcher.conf.j2"
-    dest: "{{ xqwatcher_supervisor_available_dir }}/xqwatcher.conf"
-    group: "{{ xqwatcher_user }}"
-    mode: "0650"
-  tags:
-    - install
-    - install:configuration
-
-- name: Enable supervisor script
-  file:
-    src: "{{ xqwatcher_supervisor_available_dir }}/xqwatcher.conf"
-    dest: "{{ xqwatcher_supervisor_cfg_dir }}/xqwatcher.conf"
-    state: link
-    force: yes
-  when: not disable_edx_services
+    dest: "{{ supervisor_available_dir }}/xqwatcher.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
   tags:
     - install
     - install:configuration
 
 - name: Update supervisor configuration
-  shell: "{{ xqwatcher_supervisor_ctl }} -c {{ xqwatcher_supervisor_app_dir }}/supervisord.conf update"
+  command: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
     - manage
-    - manage:update
+    - manage:start
 
 - name: Restart xqwatcher
   supervisorctl:

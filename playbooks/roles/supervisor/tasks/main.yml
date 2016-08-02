@@ -61,7 +61,7 @@
   tags:
     - install
     - install:base
-    
+
 - name: Create supervisor and service user accessible directories
   file:
     path: "{{ item }}"
@@ -121,6 +121,7 @@
     dest: "/etc/init/{{ supervisor_service }}.conf"
     owner: root
     group: root
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16
   tags:
     - install
     - install:base
@@ -134,10 +135,24 @@
     dest: "/etc/init/pre_supervisor.conf"
     owner: root
     group: root
-  when: supervisor_service == "supervisor" and disable_edx_services and not devstack
+  when: >
+    supervisor_service == "supervisor" and disable_edx_services and not devstack
+    and ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16
   tags:
     - to-remove
     - aws-specfic
+
+# NB: with systemd, pre_supervisor is a pre-task for supervisor, not a separate service
+- name: Create supervisor systemd job
+  template:
+    src: "etc/init/supervisor-systemd.service.j2"
+    dest: "/etc/systemd/system/{{ supervisor_service }}.service"
+    owner: root
+    group: root
+  when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16)
+  tags:
+    - install
+    - install:base
 
 - name: Write the pre_suprevisor python script
   copy:
@@ -198,11 +213,21 @@
     - install
     - install:configuration
 
+- name: Enable supervisor to start on boot
+  service:
+    name: "{{ supervisor_service }}.service"
+    enabled: yes
+  when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16)
+  tags:
+    - install
+    - install:base
+
 - name: Start supervisor
   service:
     name: "{{ supervisor_service }}"
     state: started
   register: start_supervisor
+  when: not disable_edx_services
   tags:
     - manage
     - manage:start
@@ -226,6 +251,7 @@
   # See https://github.com/ansible/ansible/issues/4853
 - name: Update supervisor configuration
   shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
   register: supervisor_update
   changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
   tags:
