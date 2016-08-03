@@ -8,12 +8,20 @@
   hosts: "mongo-server"
   sudo: True
   gather_facts: True
+  vars:
+    migrate_db: "yes"
   roles:
-  - { role: swapfile, SWAPFILE_SIZE: "2GB" }
-  - mongo
-  - oraclejdk
-  - elasticsearch
-  - memcached
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - mongo
+    - oraclejdk
+    - elasticsearch
+    - memcached
+    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
 
 - name: Configure instance(s)
   hosts: "edxapp-server"
@@ -53,9 +61,6 @@
     - edx_notes_api
     - demo
     - oauth_client_setup
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - forum
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
-    - { role: "xqueue", update_users: True }
     - certs
     - edx_ansible
