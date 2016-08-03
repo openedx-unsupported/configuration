@@ -146,7 +146,7 @@ def clean_up(backup_path):
         os.remove(backup_path)
 
 
-def restore(service_name, backup_path, uncompress=True):
+def restore(service_name, backup_path, uncompress=True, settings=None):
     """
     Restore a database from a backup.
 
@@ -160,7 +160,7 @@ def restore(service_name, backup_path, uncompress=True):
     if service_name == 'mongodb':
         restore_mongodb(backup_path, uncompress)
     elif service_name == 'mysql':
-        restore_mysql(backup_path, uncompress)
+        restore_mysql(backup_path, uncompress, settings=settings)
 
 
 def restore_mongodb(backup_path, uncompress=True):
@@ -187,7 +187,7 @@ def restore_mongodb(backup_path, uncompress=True):
     logging.info('MongoDB successfully restored')
 
 
-def restore_mysql(backup_path, uncompress=True):
+def restore_mysql(backup_path, uncompress=True, settings=None):
     """
     Restore a MySQL database from a backup.
 
@@ -223,7 +223,7 @@ def restore_mysql(backup_path, uncompress=True):
         raise Exception(error_msg)
 
     cmd = ('source /edx/app/edxapp/edxapp_env && /edx/bin/manage.edxapp '
-           'lms migrate --settings=aws_appsembler --delete-ghost-migrations')
+           'lms migrate --settings={} --delete-ghost-migrations'.format(settings))
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
     if ret:  # if non-zero return
         error_msg = 'Error occurred while running edx migrations'
@@ -279,6 +279,9 @@ def _parse_args():
     parser.add_argument('-n', '--no-compress', dest='compress',
                         action='store_false', default=True,
                         help='disable compression')
+    parser.add_argument('-s', '--settings',
+                        help='Django settings used when running database '
+                             'migrations')
 
     return parser.parse_args()
 
@@ -295,6 +298,7 @@ def _main():
     restore_path = args.restore_path
     s3_id = args.s3_id or os.environ.get('BACKUP_AWS_ACCESS_KEY_ID')
     s3_key = args.s3_key or os.environ.get('BACKUP_AWS_SECRET_ACCESS_KEY')
+    settings = args.settings or os.environ.get('BACKUP_SETTINGS') or 'aws_appsembler'
     service = args.service
 
     if program_name == 'edx_backup':
@@ -317,7 +321,7 @@ def _main():
         clean_up(backup_path.replace('.tar.gz', ''))
 
     elif program_name == 'edx_restore':
-        restore(service, restore_path)
+        restore(service, restore_path, settings=settings)
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
