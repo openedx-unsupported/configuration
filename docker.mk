@@ -42,7 +42,9 @@ $(docker_build)%: docker/build/%/Dockerfile
 	docker build -f $< .
 
 $(docker_test)%: .build/%/Dockerfile.test
+	time
 	docker build -t $*:test -f $< .
+	time
 
 $(docker_pkg)%: .build/%/Dockerfile.pkg
 	docker build -t $*:latest -f $< .
