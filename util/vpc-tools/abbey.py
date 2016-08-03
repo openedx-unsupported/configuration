@@ -316,6 +316,12 @@ fi
 # Must upgrade to latest before pinning to work around bug
 # https://github.com/pypa/pip/issues/3862
 pip install --upgrade pip
+if ! which pip &> /dev/null; then
+  if [[ -x /usr/local/bin/pip && ! -x /usr/bin/pip ]]; then
+    ln -s /usr/local/bin/pip /usr/bin/pip
+  fi
+fi
+
 pip install --upgrade pip==8.1.2
 
 # upgrade setuptools early to avoid no distribution errors
