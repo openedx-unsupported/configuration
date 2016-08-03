@@ -316,6 +316,7 @@ fi
 # Must upgrade to latest before pinning to work around bug
 # https://github.com/pypa/pip/issues/3862
 pip install --upgrade pip
+hash -r   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
 pip install --upgrade pip==8.1.2
 
 # upgrade setuptools early to avoid no distribution errors
