@@ -67,6 +67,34 @@ ANALYTICS_API_DATETIME_FORMAT: '%Y-%m-%dT%H%M%S'
 ANALYTICS_API_DEFAULT_PAGE_SIZE: 25
 ANALYTICS_API_MAX_PAGE_SIZE: 100
 
+ANALYTICS_API_BASE_URL: 'http://localhost:8100'
+ANALYTICS_API_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ analytics_api_service_name }}'
+ANALYTICS_API_MEDIA_ROOT: '{{ ANALYTICS_API_DATA_DIR }}/static/reports'
+ANALYTICS_API_MEDIA_URL: '/static/reports/'
+
+# Example settings to use Amazon S3 as a storage backend for course reports.
+#
+# This storage mechanism also provides support for pre-authenticated URLs with an expiry time,
+# allowing temporary report downloads from secured S3 file locations.
+#
+# ANALYTICS_API_REPORT_DOWNLOAD_BACKEND:
+#   DEFAULT_FILE_STORAGE: 'storages.backends.s3boto.S3BotoStorage'
+#   AWS_ACCESS_KEY_ID: 'put-your-access-key-id-here'
+#   AWS_SECRET_ACCESS_KEY: 'put-your-secret-access-key-here'
+#   AWS_STORAGE_BUCKET_NAME: 'report-download-bucket'
+#   COURSE_REPORT_FILE_LOCATION_TEMPLATE: '/{course_id}_{report_name}.csv'
+#   COURSE_REPORT_DOWNLOAD_EXPIRY_TIME: 120
+#
+# By default, instead we use the local filesystem.
+#
+# Other storage providers can be used, as long as they provide the .url() method.
+
+ANALYTICS_API_REPORT_DOWNLOAD_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ ANALYTICS_API_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ ANALYTICS_API_BASE_URL }}{{ ANALYTICS_API_MEDIA_URL }}'
+  COURSE_REPORT_FILE_LOCATION_TEMPLATE: '{course_id}_{report_name}.csv'
+
 ANALYTICS_API_SERVICE_CONFIG:
   ANALYTICS_DATABASE: 'reports'
   SECRET_KEY: '{{ ANALYTICS_API_SECRET_KEY }}'
@@ -95,6 +123,7 @@ ANALYTICS_API_SERVICE_CONFIG:
   DATETIME_FORMAT: '{{ ANALYTICS_API_DATETIME_FORMAT }}'
   DEFAULT_PAGE_SIZE: '{{ ANALYTICS_API_DEFAULT_PAGE_SIZE }}'
   MAX_PAGE_SIZE: '{{ ANALYTICS_API_MAX_PAGE_SIZE }}'
+  REPORT_DOWNLOAD_BACKEND: '{{ ANALYTICS_API_REPORT_DOWNLOAD_BACKEND }}'
 
 ANALYTICS_API_REPOS:
   - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
