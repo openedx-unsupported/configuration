@@ -27,8 +27,8 @@ pkg: docker.pkg
 clean:
 	rm -rf .build
 
-docker.test.shard: $(foreach image,$(shell echo $(images) | python util/balancecontainers.py $(SHARDS) | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
-# docker.test.shard: $(foreach image,$(shell echo $(images) | tr ' ' '\n' | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
+# docker.test.shard: $(foreach image,$(shell echo $(images) | python util/balancecontainers.py $(SHARDS) | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
+docker.test.shard: $(foreach image,$(shell echo $(images) | tr ' ' '\n' | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
 
 docker.build: $(foreach image,$(images),$(docker_build)$(image))
 docker.test: $(foreach image,$(images),$(docker_test)$(image))
@@ -42,9 +42,9 @@ $(docker_build)%: docker/build/%/Dockerfile
 	docker build -f $< .
 
 $(docker_test)%: .build/%/Dockerfile.test
-	time
+	date
 	docker build -t $*:test -f $< .
-	time
+	date
 
 $(docker_pkg)%: .build/%/Dockerfile.pkg
 	docker build -t $*:latest -f $< .
