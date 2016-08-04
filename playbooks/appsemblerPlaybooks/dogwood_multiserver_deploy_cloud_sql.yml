@@ -1,29 +1,20 @@
 ---
 
-# Example sandbox configuration
-# for single server community
-# installs
+# Appsembler pro tier deployment
+# Docs: https://github.com/appsembler/openedx-docs/blob/master/openedx/pro_tier_deployment.md
 
 - name: Configure mongo
   hosts: "mongo-server"
   sudo: True
   gather_facts: True
-  vars:
-    migrate_db: "yes"
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
-    - role: nginx
-      nginx_sites:
-      - xqueue
     - mongo
     - oraclejdk
     - elasticsearch
     - memcached
-    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
-    - { role: "xqueue", update_users: True }
 
-- name: Configure instance(s)
+- name: Configure stateless edxapp server
   hosts: "edxapp-server"
   sudo: True
   gather_facts: True
@@ -55,7 +46,7 @@
 #      when: "'localhost' in EDXAPP_MONGO_HOSTS"
     - { role: 'edxapp', celery_worker: True }
     - edxapp
-    - notifier
+    #- notifier
     - analytics_api
     - edx_notes_api
     - demo
@@ -63,3 +54,19 @@
     - forum
     - certs
     - edx_ansible
+
+- name: Install xqueue, notifier and rabbitmq
+  hosts: "mongo-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
+    - notifier
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
