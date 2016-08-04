@@ -286,9 +286,11 @@ EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
 
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
+ECOMMERCE_ECOMMERCE_DOMAIN: "ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-
+ECOMMERCE_PARTNER_CODE: edx
+OTTO_MULTITENANT_SETUP_FROM_EMAIL: sandbox-notifications@edx.org
 PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
 PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
 PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
@@ -387,6 +389,8 @@ if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
     run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
+
+run_ansible otto_multitenant_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
