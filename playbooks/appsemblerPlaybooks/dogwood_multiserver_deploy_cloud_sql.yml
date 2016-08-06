@@ -27,7 +27,6 @@
     - mysql_init
     - role: nginx
       nginx_sites:
-      - certs
       - cms
       - lms
       - forum
@@ -40,7 +39,6 @@
     - demo
     - oauth_client_setup
     - forum
-    - certs
     - edx_ansible
     # scorm if desired.  requires more setup in server-vars
     # see https://github.com/appsembler/ssla-scorm-player/blob/nyif/master/README.md
@@ -61,3 +59,16 @@
     - notifier
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
+
+# must come after xqueue running
+- name: Install certs
+  hosts: "edxapp-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - certs
+    - role: nginx
+      nginx_sites:
+      - certs

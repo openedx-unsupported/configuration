@@ -6,6 +6,7 @@ Run this playbook from the edxapp server.
 sudo apt-get -y update
 sudo apt-get -y upgrade
 sudo apt-get install -y build-essential software-properties-common python-software-properties curl git-core libxml2-dev libxslt1-dev libfreetype6-dev python-pip python-apt python-dev libxmlsec1-dev swig libmysqlclient-dev libffi-dev
+sudo apt-get build-dep python-numpy python-scipy
 sudo pip install --upgrade pip
 sudo pip install --upgrade virtualenv
 
