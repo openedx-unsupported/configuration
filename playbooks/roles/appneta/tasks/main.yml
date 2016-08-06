@@ -1,0 +1,83 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role appneta
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+
+- name: write static config in case of static IPs
+  lineinfile:
+    dest: /etc/default/tracelyzer
+    regexp: ^STATIC_IP=
+    line: "STATIC_IP=YES"
+    state: present
+    create: yes
+  when: USE_STATIC_CONFIG
+
+- name: change config in case of non-static IPs
+  lineinfile:
+    dest: /etc/default/tracelyzer
+    regexp: ^STATIC_IP=
+    line: "STATIC_IP=NO"
+    state: present
+    create: yes
+  when: not USE_STATIC_CONFIG
+
+- name: create appneta sources.list
+  apt_repository:
+    repo: "{{ appneta_apt_repo }}"
+
+- name: adding AppNeta package signature public key to system list
+  apt_key:
+    url: https://{{ apt_server }}/appneta-apt-key.pub
+    state: present
+
+- name: adding key to tracelyzer conf
+  lineinfile:
+    dest: /etc/tracelytics.conf
+    line: "tracelyzer.access_key={{ ACCESS_KEY }}"
+    state: present
+    create: yes
+
+- name: install common library and headers
+  apt:
+    name: "{{ item }}"
+    force: yes
+  with_items: appneta_debian_pkgs
+
+- name: install appneta-sequencer
+  apt:
+    name: appneta-sequencer
+    state: present
+    force: yes
+  when: install_sequencer
+
+- name: start appneta-sequencer
+  service:
+    name: appneta-sequencer
+    state: started
+    enabled: yes
+  when: install_sequencer
+
+- name: install oboe
+  pip:
+    name: oboe
+    virtualenv: "{{ edxapp_venv_dir }}"
+    virtualenv_command: virtualenv
+    state: present
+  sudo_user: "{{ edxapp_user }}"
