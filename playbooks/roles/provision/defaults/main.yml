@@ -1,0 +1,51 @@
+---
+# provision_ec2_keypair not defined, needed in secure_vars
+provision_org: my_org
+provision_ha: yes
+
+provision_backup_type: t1.micro
+provision_selenium_type: t1.micro
+provision_mongo_type: m1.small
+provision_apps_type: m1.medium
+provision_lb_type: t1.micro
+
+provision_backup_ip: 254.20
+provision_selenium_ip: 254.30
+provision_lb1_az1_ip: 0.10
+provision_lb1_az2_ip: 1.10
+provision_mongo1_az1_ip: 128.10
+provision_mongo1_az2_ip: 129.10
+provision_mongo1_az3_ip: 130.10
+provision_apps1_az1_ip: 16.10
+provision_apps1_az2_ip: 17.10
+
+provision_backup_ver: 0
+provision_selenium_ver: 0
+provision_lb1_az1_ver: 0
+provision_lb1_az2_ver: 0
+provision_mongo1_az1_ver: 0
+provision_mongo1_az2_ver: 0
+provision_mongo1_az3_ver: 0
+provision_apps1_az1_ver: 0
+provision_apps1_az2_ver: 0
+
+# 12.04 LTS ebs amd64 in US-West-2
+provsion_ec2_image: ami-30079e00
+
+# Use a little jinja magic to get the subnet IDs out of the vpc dictionary
+vpc_subnet_admin: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s254.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_data_1: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s128.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_data_2: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s129.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_data_3: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s130.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_apps_1: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s16.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_apps_2: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s17.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_lb_1: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s0.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
+vpc_subnet_lb_2: >
+  {% for s in vpc.subnets %}{% if s['cidr']=='%s1.0/24'|format(vpc_cidr_top) %}{{ s['id'] }}{% endif %}{%endfor%}
