@@ -1,6 +1,7 @@
 # Set up a user and SFTP-only group
 # Create directories for download of reports
 # SFTP_user_password must be set in server-vars.yml
+# set up cronjobs for custom ISC reports
 
 - hosts: "edxapp-server"
   sudo: true
@@ -49,4 +50,32 @@
     - name: restart ssh
       service: name=ssh state=restarted
       sudo: True
-  
+
+
+  - name: cron job for generating reports
+    cron: >
+      user=root
+      name="{{ item.value.name }}"
+      job="{{ item.value.cmd }}"
+      minute="{{ item.value.minute }}"
+      hour="{{ item.value.hour }}"
+    with_dict: {
+      "cmc": {
+        "name": "ISC CMC course completion and access report every morning 8:00PM GMT",
+        "minute": 0,
+        "hour": 20,
+        "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms cmc_course_completion --settings=aws > /dev/null 2>&1"
+      },
+      "va": {
+        "name": "ISC VA Learning Path enrollment report every morning 1:00AM ET",
+        "minute": 0,
+        "hour": 6,
+        "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms va_enrollment_status --settings=aws > /dev/null 2>&1"
+      },
+      "isc_daily": {
+        "name": "ISC all-course participation report every morning 1:05AM ET",
+        "minute": 5,
+        "hour": 6,
+        "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms isc_course_participation --settings=aws > /dev/null 2>&1"
+      }
+    }
