@@ -34,50 +34,61 @@
       with_items:
         - "{{ course_participation_dir }}"
 
-# would rather use blockinfile here but not present < ansible 2.0
-# these aren't working on GCloud VM and will kill your sshd and you will be locked out.
-# TODO: FIXME.  try lineinfile validate command, and sshd -t to test the config before restarting sshd
-    # - name: Update sshd config to force SFTP group to chrooted internal-sftp only
-    #   lineinfile: 
-    #     dest: /etc/ssh/sshd_config
-    #     line: "{{ item }}"
-    #   with_items: 
-    #     - Match group {{sftp_group}}
-    #     -   PasswordAuthentication yes
-    #     -   ChrootDirectory %h
-    #     -   X11Forwarding no
-    #     -   AllowTcpForwarding
-    #     -   ForceCommand internal-sftp
+  # would rather use blockinfile here but not present < ansible 2.0
+  # these aren't working on GCloud VM and will kill your sshd and you will be locked out.
+  # TODO: FIXME.  try lineinfile validate command, and sshd -t to test the config before restarting sshd
+    - name: Update sshd config to force SFTP group to chrooted internal-sftp only
+      sudo: True
+      lineinfile: 
+        dest: /etc/ssh/sshd_config
+        line: "{{ item }}"
+        validate: "sshd -t -f %s"
+        backup: yes
+      with_items: 
+        - Match group {{sftp_group}}
+        -   PasswordAuthentication yes
+        -   ChrootDirectory %h
+        -   X11Forwarding no
+        -   AllowTcpForwarding no
+        -   ForceCommand internal-sftp
 
-    # - name: restart ssh
-    #   service: name=ssh state=restarted
-    #   sudo: True
+    - name: check sshd config
+      sudo: True
+      shell: sshd -t
+      register: sshd_check
+
+    - debug: msg="This output of sshd -t should be empty... {{ sshd_check }}"
+
+    - name: restart ssh
+      service: name=ssh state=restarted
+      sudo: True
+      when: sshd_check.stdout == ""
 
 
-  - name: cron job for generating reports
-    cron: >
-      user=root
-      name="{{ item.value.name }}"
-      job="{{ item.value.cmd }}"
-      minute="{{ item.value.minute }}"
-      hour="{{ item.value.hour }}"
-    with_dict: {
-      "cmc": {
-        "name": "ISC CMC course completion and access report every morning 8:00PM GMT",
-        "minute": 0,
-        "hour": 20,
-        "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms cmc_course_completion --settings=aws > /dev/null 2>&1"
-      },
-      "va": {
-        "name": "ISC VA Learning Path enrollment report every morning 1:00AM ET",
-        "minute": 0,
-        "hour": 6,
-        "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms va_enrollment_status --settings=aws > /dev/null 2>&1"
-      },
-      "isc_daily": {
-        "name": "ISC all-course participation report every morning 1:05AM ET",
-        "minute": 5,
-        "hour": 6,
-        "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms isc_course_participation --settings=aws > /dev/null 2>&1"
+    - name: cron job for generating reports
+      cron: >
+        user=root
+        name="{{ item.value.name }}"
+        job="{{ item.value.cmd }}"
+        minute="{{ item.value.minute }}"
+        hour="{{ item.value.hour }}"
+      with_dict: {
+        "cmc": {
+          "name": "ISC CMC course completion and access report every morning 8:00PM GMT",
+          "minute": 0,
+          "hour": 20,
+          "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms cmc_course_completion --settings=aws > /dev/null 2>&1"
+        },
+        "va": {
+          "name": "ISC VA Learning Path enrollment report every morning 1:00AM ET",
+          "minute": 0,
+          "hour": 6,
+          "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms va_enrollment_status --settings=aws > /dev/null 2>&1"
+        },
+        "isc_daily": {
+          "name": "ISC all-course participation report every morning 1:05AM ET",
+          "minute": 5,
+          "hour": 6,
+          "cmd": "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms isc_course_participation --settings=aws > /dev/null 2>&1"
+        }
       }
-    }
