@@ -35,21 +35,23 @@
         - "{{ course_participation_dir }}"
 
 # would rather use blockinfile here but not present < ansible 2.0
-    - name: Update sshd config to force SFTP group to chrooted internal-sftp only
-      lineinfile: 
-        dest: /etc/ssh/sshd_config
-        line: "{{ item }}"
-      with_items: 
-        - Match group {{sftp_group}}
-        -   PasswordAuthentication yes
-        -   ChrootDirectory %h
-        -   X11Forwarding no
-        -   AllowTcpForwarding
-        -   ForceCommand internal-sftp
+# these aren't working on GCloud VM and will kill your sshd and you will be locked out.
+# TODO: FIXME.  try lineinfile validate command, and sshd -t to test the config before restarting sshd
+    # - name: Update sshd config to force SFTP group to chrooted internal-sftp only
+    #   lineinfile: 
+    #     dest: /etc/ssh/sshd_config
+    #     line: "{{ item }}"
+    #   with_items: 
+    #     - Match group {{sftp_group}}
+    #     -   PasswordAuthentication yes
+    #     -   ChrootDirectory %h
+    #     -   X11Forwarding no
+    #     -   AllowTcpForwarding
+    #     -   ForceCommand internal-sftp
 
-    - name: restart ssh
-      service: name=ssh state=restarted
-      sudo: True
+    # - name: restart ssh
+    #   service: name=ssh state=restarted
+    #   sudo: True
 
 
   - name: cron job for generating reports
