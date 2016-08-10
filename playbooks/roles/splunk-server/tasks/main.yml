@@ -27,6 +27,36 @@
   when: ('source' in item and 'sourcetype' in item) or ('source' not in item and 'sourcetype' not in item)
   with_items: SPLUNK_FIELD_EXTRACTIONS
 
+- name: Make sure necessary dirs exist
+  file:
+    path: "{{ item }}"
+    owner: splunk
+    group: splunk
+    state: directory
+  with_items:
+    - "{{ splunk_home }}/{{ splunk_cert_path }}"
+    - "{{ splunk_home }}/etc/system/local"
+
+- name: Write SSL certs to disk
+  copy:
+    dest: "/opt/splunk/{{ splunkforwarder_ssl_cert_path }}/{{ item.0 }}"
+    content: "{{ item.1 }}"
+    owner: splunk
+    group: splunk
+    mode: "0400"
+  when: "{{ SPLUNK_SSL_CERT }}"
+  with_together:
+    - [forwarder.pem, cacert.pem]
+    - ["{{ SPLUNK_SSL_CERT }}", "{{ SPLUNK_SSL_ROOT_CA }}"]
+
+- name: Create inputs configuration
+  template:
+    src: opt/splunk/etc/system/local/inputs.conf.j2
+    dest: "{{ splunk_home }}/etc/system/local/inputs.conf"
+    owner: splunk
+    group: splunk
+    mode: "0644"
+
 - name: Create bucket directories
   file:
     path: "{{ item }}"
