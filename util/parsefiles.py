@@ -179,6 +179,19 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
             if file_path in candidate_files:
                 # get name of role and add it to set of roles of the change set
                 items.add(_get_resource_name(file_path, "roles"))
+    return items
+
+def get_plays(files, git_dir, playbooks_dirs):
+    """ 
+    Determines which files in the change set are aws playbooks
+
+    files: A list of files modified by a commit range.
+    git_dir: A path to the top-most directory in the local git repository tool is to be run in.
+    playbook_dirs: A list of relative paths to directories in which Ansible playbooks reside.
+
+    """
+
+    plays = set()
 
     # for all directories containing playbooks
     for play_dir in playbooks_dirs:
@@ -192,17 +205,21 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
         for f in files:
             file_path = pathlib2.Path(git_dir, f)
 
-            # if the change set file is in teh set of playbook files
+            # if the change set file is in the set of playbook files
             if file_path in candidate_files:
-
-                # gets first level of children of playbook in graph, which represents
-                # all roles the playbook uses
-                descendants = nx.all_neighbors(graph, (file_path.stem, "aws_playbook"))
-
-                # adds all the roles that a playbook uses to set of roles of the change set
-                items |= {desc.name for desc in descendants}
-    return items
-
+                # if looking in playbooks directory
+                if play_dir == "playbooks":
+                    play = _get_resource_name(file_path, "playbooks")
+                    # remove ".yml" file ending
+                    play = play[:-4]
+                    plays.add(play)
+                elif play_dir == "playbooks/edx-east":
+                    play = _get_resource_name(file_path, "edx-east")
+                    # remove ".yml" file ending
+                    play = play[:-4]
+                    plays.add(play)
+    return plays
+                
 def _get_resource_name(path, kind):
     """
     Gets name of resource from the filepath, which is the directory following occurence of kind.
@@ -355,6 +372,9 @@ if __name__ == '__main__':
     # build graph
     graph = build_graph(TRAVIS_BUILD_DIR, config["roles_paths"], config["aws_plays_paths"], config["docker_plays_paths"])
 
+    # gets any playbooks in the commit range
+    plays = get_plays(change_set, TRAVIS_BUILD_DIR, config["aws_plays_paths"])
+
     # transforms list of roles and plays into list of original roles and the roles contained in the plays
     roles = change_set_to_roles(change_set, TRAVIS_BUILD_DIR, config["roles_paths"], config["aws_plays_paths"], graph)
 
@@ -363,6 +383,8 @@ if __name__ == '__main__':
 
     # determine which docker plays cover at least one role
     docker_plays = get_docker_plays(dependent_roles, graph)
+
+    docker_plays = docker_plays | plays
 
     # filter out docker plays without a Dockerfile
     docker_plays = filter_docker_plays(docker_plays, TRAVIS_BUILD_DIR)
