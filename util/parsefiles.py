@@ -81,8 +81,8 @@ def _map_roles_to_roles(graph, dirs, git_dir, key, type_1, type_2):
                             # add node for type_2, typically dependent role
                             node_2 = Node(name, type_2)
 
-                            # add edge, typically role - dependent role
-                            graph.add_edge(node_1, node_2)
+                            # add edge, typically dependent role - role
+                            graph.add_edge(node_2, node_1)
 
 def _map_plays_to_roles(graph, dirs, git_dir, key, type_1, type_2):
     """
@@ -130,8 +130,8 @@ def _map_plays_to_roles(graph, dirs, git_dir, key, type_1, type_2):
                                 # add node for type_2, typically for role
                                 node_2 = Node(name, type_2)
 
-                                 # add edge, typically playbook - role it uses
-                                graph.add_edge(node_1, node_2)
+                                 # add edge, typically role - playbook that uses it
+                                graph.add_edge(node_2, node_1)
 
 def _open_yaml_file(file_str):
     """
