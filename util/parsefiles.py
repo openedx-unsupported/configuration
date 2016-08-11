@@ -178,7 +178,7 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
             # if the change set file is in the set of role files
             if file_path in candidate_files:
                 # get name of role and add it to set of roles of the change set
-                items.add(_get_resource_name(file_path, "roles"))
+                items.add(_get_role_name_from_file(file_path))
     return items
 
 def get_plays(files, git_dir, playbooks_dirs):
@@ -207,35 +207,33 @@ def get_plays(files, git_dir, playbooks_dirs):
 
             # if the change set file is in the set of playbook files
             if file_path in candidate_files:
-                # if looking in playbooks directory
-                if play_dir == "playbooks":
-                    play = _get_resource_name(file_path, "playbooks")
-                    # remove ".yml" file ending
-                    play = play[:-4]
-                    plays.add(play)
-                elif play_dir == "playbooks/edx-east":
-                    play = _get_resource_name(file_path, "edx-east")
-                    # remove ".yml" file ending
-                    play = play[:-4]
-                    plays.add(play)
+                plays.add(_get_playbok_name_from_file(file_path))
+
     return plays
                 
-def _get_resource_name(path, kind):
+def _get_playbook_name_from_file(path):
     """
-    Gets name of resource from the filepath, which is the directory following occurence of kind.
+    Gets name of playbook from the filepath, which is the last part of the filepath.
 
     Input:
-    path: A path to the resource (e.g. a role or a playbook)
-    kind: A description of the type of resource; this keyword precedes the name of a role or a playbook
-        in a file path and allows for the separation of its name;
-        e.g. for "configuration/playbooks/roles/discovery/...", kind = "roles" returns
-        "discovery" as the role name
+    path: A path to the playbook
+    """
+    # get last part of filepath
+    return path.stem
+   
+
+def _get_role_name_from_file(path):
+    """
+    Gets name of role from the filepath, which is the directory following occurence of the word "roles".
+
+    Input:
+    path: A path to the role
     """
     # get individual parts of a file path
     dirs = path.parts
 
-    # type of resource is the next part of the file path after kind (e.g. after "roles" or "playbooks")
-    return dirs[dirs.index(kind)+1]
+    # name of role is the next part of the file path after "roles"
+    return dirs[dirs.index("roles")+1]
 
 def get_dependencies(roles, graph):
     """
