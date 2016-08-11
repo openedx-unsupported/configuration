@@ -84,7 +84,7 @@ while getopts "b:vh" opt; do
             if  [[ $stack == "devstack" ]]; then
                 vagrant_mount_location=$OPTARG
             else
-                echo -e "${ERROR}Cannot change mount location if installing fullstack!${NC}"
+                echo -e "${ERROR}Fullstack has no mount location. The -b option is not valid for fullstack!${NC}"
                 exit 1
             fi
             ;;
