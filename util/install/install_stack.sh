@@ -9,11 +9,11 @@ function usage
 
     --- install_stack.sh ---
 
-    Usage: $ bash install_stack.sh stack release [-p] [-b vagrant_mount_base] [-l] [-v] [-h]
+    Usage: $ bash install_stack.sh stack release [-b vagrant_mount_base] [-v] [-h]
 
-    Installs the Open edX devstack or fullstack. Reach out on the Open edX community Slack 
-    on #ops (https://open.edx.org/blog/open-edx-slack) or the Open edX Ops Google Group
-    (https://groups.google.com/forum/#!forum/openedx-ops) to get support questions answered.
+    Installs the Open edX devstack or fullstack. If you encounter any trouble or have 
+    questions regarding installation of devstack/fullstack, head over to 
+    https://open.edx.org/getting-help.
 
     This script captures a log of all output produced during runtime, and saves it in a .log
     file within the current directory. If you encounter an error during installation, this is
@@ -28,26 +28,21 @@ function usage
         Either 'fullstack' or 'devstack' (no quotes). Full stack mimics a production 
         environment, whereas devstack is useful if you plan on modifying the Open edX 
         code. You must specify this. If you choose fullstack, 'release' should be the
-        latest named-release. If you choose devstack, 'release' should be the latest
-        named-release or master.
+        latest open-release. If you choose devstack, 'release' should be the latest
+        open-release or master.
 
     release
         The release of Open edX you wish to run. Install the given git ref 'release'.
-        You must specify this. Named releases are called "named-release/dogwood",
-        "named-release/dogwood.2", and so on. We recommend the latest stable named 
+        You must specify this. Named releases are called "open-release/eucalyptus",
+        "open-release/eucalyptus.2", and so on. We recommend the latest stable open 
         release for general members of the open source community. Named releases can
         be found at: https://openedx.atlassian.net/wiki/display/DOC/Open+edX+Releases.
-        If you plan on modifying the code, we recommend the "master" branch.
-
-    -p
-        Enable use of "preview" from within Studio. 
+        If you plan on modifying the code, we recommend the "master" branch. 
 
     -b vagrant_mount_base
         Customize the location of the source code that gets cloned during the 
-        devstack provisioning.
-
-    -l
-        Disable logging. Enabled by default.
+        devstack provisioning. The default is the current directory. This option is
+        not valid if installing fullstack.
 
     -v 
         Verbose output from ansible playbooks.
@@ -60,14 +55,16 @@ function usage
 EOM
 }
 
-# Logging
-logging=1
+
+ERROR='\033[0;31m' # Red
+WARN='\033[1;33m' # Yellow
+SUCCESS='\033[0;32m' # Green
+NC='\033[0m' # No Color
+
 # Output verbosity
 verbosity=0
 # OPENEDX_RELEASE
 release=""
-# Enable preview in Studio
-enable_preview=0
 # Vagrant source code provision location
 vagrant_mount_location=""
 
@@ -81,16 +78,15 @@ shift
 release=$1
 shift
 
-while getopts "pb:lvh" opt; do
+while getopts "b:vh" opt; do
     case "$opt" in
-        p)
-            enable_preview=1
-            ;;
         b)
-            vagrant_mount_location=$OPTARG
-            ;;
-        l)
-            logging=0
+            if  [[ $stack == "devstack" ]]; then
+                vagrant_mount_location=$OPTARG
+            else
+                echo -e "${ERROR}Cannot change mount location if installing fullstack!${NC}"
+                exit 1
+            fi
             ;;
         v)
             verbosity=1
@@ -106,45 +102,41 @@ while getopts "pb:lvh" opt; do
     esac
 done
 
-if [[ $logging > 0 ]]; then
-    exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
-    echo "Logging enabled."
-else
-    echo "Logging disabled."
-fi
-
-ERROR='\033[0;31m' # Red
-WARN='\033[1;33m' # Yellow
-SUCCESS='\033[0;32m' # Green
-NC='\033[0m' # No Color
+exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
+echo "Capturing output to install-$(date +%Y%m%d-%H%M%S).log."
 
 export OPENEDX_RELEASE=$release
 
 # Check if mount location was changed
 if [[ $vagrant_mount_location != "" ]]; then
-    echo "Changing Vagrant provision location to "$vagrant_mount_location"..."
+    echo "Changing Vagrant provision location to $vagrant_mount_location..."
     export VAGRANT_MOUNT_BASE=vagrant_mount_location
 fi
 
+if [[ -d "$stack" ]]; then
+    echo -e "${ERROR}A $stack directory already exists here. If you already tried installing $stack, make sure to vagrant destroy the $stack machine and rm -rf the $stack directory before trying to reinstall. If you would like to install a separate $stack, change to a different directory and try running the script again.${NC}"
+    exit 1
+fi
+
 if [[ $stack == "devstack" ]]; then # Install devstack
-    # Warn if release chosen is not master or named-releaser
-    if [[ $release != "master" && $release != *"named-release"* ]]; then
-        echo -e "${WARN}The release you entered is not 'master' or a named-release. Please be aware that a branch other than master or a release other than the latest named-release could cause errors when installing devstack.${NC}"
+    # Warn if release chosen is not master or open-release (Eucalyptus and up)
+    if [[ $release != "master" && $release != *"open-release"* ]]; then
+        echo -e "${WARN}The release you entered is not 'master' or an open-release. Please be aware that a branch other than master or a release other than the latest open-release could cause errors when installing $stack.${NC}"
     fi
 
     wiki_link="https://openedx.atlassian.net/wiki/display/OpenOPS/Running+Devstack"
-    mkdir -p devstack
+    mkdir devstack
     cd devstack
     curl -L https://raw.githubusercontent.com/edx/configuration/${OPENEDX_RELEASE}/vagrant/release/devstack/Vagrantfile > Vagrantfile
     vagrant plugin install vagrant-vbguest
 elif [[ $stack == "fullstack" ]]; then # Install fullstack
-    # Warn if release chosen is not named-release
-    if [[ $release != *"named-release"* ]]; then
-        echo -e "${WARN}The release you entered is not a named-release. Please be aware that a branch other than the latest named-release could cause errors when installing fullstack.${NC}"
+    # Warn if release chosen is not open-release (Eucalyptus and up)
+    if [[ $release != *"open-release"* ]]; then
+        echo -e "${WARN}The release you entered is not an open-release. Please be aware that a branch other than the latest open-release could cause errors when installing $stack.${NC}"
     fi
 
     wiki_link="https://openedx.atlassian.net/wiki/display/OpenOPS/Running+Fullstack"
-    mkdir -p fullstack
+    mkdir fullstack
     cd fullstack
     curl -L https://raw.githubusercontent.com/edx/configuration/${OPENEDX_RELEASE}/vagrant/release/fullstack/Vagrantfile > Vagrantfile
     vagrant plugin install vagrant-hostsupdater
@@ -161,12 +153,12 @@ fi
 vagrant up --provider virtualbox
 
 # Check if preview mode was chosen
-if [[ $enable_preview != 1 ]] || grep -q '192.168.33.10  preview.localhost' /etc/hosts; then
+if grep -q '192.168.33.10  preview.localhost' /etc/hosts; then
     echo "Studio preview already enabled, skipping..."
 else
     echo "Enabling use of preview within Studio..."
     sudo bash -c "echo '192.168.33.10  preview.localhost' >> /etc/hosts"
 fi
 
-echo -e "${SUCCESS}Finished installing! You may now login using 'vagrant ssh'"
-echo -e "Refer to the edX wiki ("$wiki_link") for more information on using "$stack".${NC}"
+echo -e "${SUCCESS}Finished installing! You may now 'cd $stack' and login using 'vagrant ssh'"
+echo -e "Refer to the edX wiki ($wiki_link) for more information on using $stack.${NC}"
