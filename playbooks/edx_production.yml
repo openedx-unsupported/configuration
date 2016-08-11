@@ -1,0 +1,127 @@
+---
+
+# Production app server configuration, designed to be used with external
+# services.
+
+
+- name: Server setup
+  hosts: all
+  sudo: True
+  roles:
+    - swapfile
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+
+
+- name: RabbitMQ
+  hosts: rabbitmq
+  sudo: True
+  roles:
+    - role: rabbitmq
+      rabbitmq_ip: ''
+
+
+- name: Elasticsearch
+  hosts: elasticsearch
+  sudo: True
+  roles:
+    - elasticsearch
+
+
+- name: Postfix Queue
+  hosts: postfix_queue
+  sudo: True
+  roles:
+    - postfix_queue
+
+
+# https://github.com/edx/edx-platform
+- name: Worker
+  hosts: worker
+  sudo: True
+  vars: &edxapp_vars
+    EDXAPP_LMS_NGINX_PORT: '80'
+    migrate_db: 'yes'
+    openid_workaround: True
+  roles:
+    - role: edxapp
+      celery_worker: True
+
+
+# https://github.com/edx/edx-platform
+- name: App server
+  hosts: web
+  sudo: True
+  vars:
+    <<: *edxapp_vars
+  roles:
+    - role: nginx
+      nginx_sites:
+        - cms
+        - lms
+      nginx_default_sites:
+        - lms
+    - edxapp
+
+
+# https://github.com/edx/cs_comments_service
+- name: Forum
+  hosts: forum
+  sudo: True
+  roles:
+    - role: nginx
+      nginx_sites:
+        - forum
+    - forum
+
+
+# https://github.com/edx/notifier
+- name: Notifier
+  hosts: notifier
+  sudo: True
+  roles:
+    - role: notifier
+      NOTIFIER_DIGEST_TASK_INTERVAL: '5'
+
+
+# https://github.com/edx/xqueue
+- name: XQueue
+  hosts: xqueue
+  sudo: True
+  vars:
+    migrate_db: 'yes'
+  roles:
+    - role: nginx
+      nginx_sites:
+        - xqueue
+    - role: xqueue
+      update_users: True
+
+
+# https://github.com/edx/edx-certificates
+- name: Certificates
+  hosts: certs
+  sudo: True
+  roles:
+    - role: nginx
+      nginx_sites:
+        - certs
+    - certs
+
+
+# https://github.com/edx/ecommerce
+- name: Ecommerce
+  hosts: ecommerce
+  sudo: True
+  vars:
+    migrate_db: 'yes'
+  roles:
+    - role: nginx
+      nginx_sites:
+        - ecommerce
+    - ecommerce
+    - ecomworker
