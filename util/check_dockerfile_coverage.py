@@ -5,35 +5,24 @@ import itertools
 import argparse
 import logging
 import sys
+import docker_images
 
 TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
 CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
 LOGGER = logging.getLogger(__name__)
 
-def check_coverage(containers):
-    # open config file containing container weights
-    config_file_path = pathlib2.Path(CONFIG_FILE_PATH)
+def check_coverage(images, used_images):
+    """
+    Checks whether all images are described in parsefiles_config.yml and raises an error otherwise, directing toward documentation to resolving the error.
 
-    with (config_file_path.open(mode='r')) as file:
-        try:
-            config = yaml.load(file)
-        except yaml.YAMLError, exc:
-            LOGGER.error("error in configuration file: %s" % str(exc))
-            sys.exit(1)
-
-    # get container weights
-    weights = config.get("weights")
-
-    # convert all containers in config file to a list of tuples (<container>, <weight>)
-    weights_list = [x.items() for x in weights]
-    weights_list = list(itertools.chain.from_iterable(weights_list))
-
-    # performs intersection between weighted containers and input containers
-    used_containers = [x for x in weights_list if x[0] in containers]
+    Input:
+    images: the set of images scheduled to be built
+    used_images: the subset of images with their ranks that are in the parsefiles_config.yml file
+    """
 
     # determine which Dockerfiles are not covered; i.e. the set difference of the Dockerfiles to build minus the Dockerfile
     # available to be built is non-empty
-    uncovered = set(containers) - set([x[0] for x in used_containers])
+    uncovered = set(images) - set([x[0] for x in used_images])
 
     # exit with error code if uncovered Dockerfiles exist
     if uncovered:
@@ -42,11 +31,8 @@ def check_coverage(containers):
 
 def arg_parse():
 
-    parser = argparse.ArgumentParser(description = 'Given a list of containers as input and a number of shards, '
-        'finds an approximation of the optimal distribution of the containers over the shards, provided a set of hard-coded weights '
-        'in parsefiles_config.yml.')
-    parser.add_argument('containers', help = "the Dockerfiles that need to be built as the result of some commit change and whose coverage is checked")
-
+    parser = argparse.ArgumentParser(description = 'Given a list of images as input checks that each input image is described correctly in parsefiles_config.yml')
+    parser.add_argument('images', help = "the Dockerfiles that need to be built as the result of some commit change and whose coverage is checked")
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -56,9 +42,13 @@ if __name__ == '__main__':
     # configure logging
     logging.basicConfig()
 
-    containers = []
+    # read input
+    images = []
 
-    for word in args.containers.split():
-        containers.append(word)
+    for i in args.images.split():
+        images.append(i)
 
-    check_coverage(containers)
+    # get images that are used and described in configuration file
+    used_images = docker_images.get_used_images(images)
+
+    check_coverage(images, used_images)
