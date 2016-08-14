@@ -25,14 +25,16 @@
   fail:
     msg: "Domain list is empty"
   when: LETS_ENCRYPT_DOMAINS|length < 1
+  tags:
+    - install
+    - update
 
-- name: install deps
-  debug: TODO
-
-- name: "Install let's encrypt"
+- name: install certbot
   git:
-    repo: https://github.com/letsencrypt/letsencrypt
-    dest: /opt/letsencrypt
+    repo: https://github.com/certbot/certbot
+    dest: /opt/certbot
+  tags:
+   - install
 
 - name: create .well-known directory
   file:
@@ -40,20 +42,67 @@
     state: directory
     owner: www-data
     group: www-data
-
-- name: "render let's encrypt script"
+  tags:
+    - install
+    - update
+    
+- name: render certbot script
   template:
-    src: run_lets_encrypt.sh.j2
-    dest: /tmp/run_lets_encrypt.sh
+    src: run_certbot.sh.j2
+    dest: /tmp/run_certbot.sh
     mode: u+x
+  tags:
+    - install
+    - update
 
-- name: "run let's encrypt"
-  command: /tmp/run_lets_encrypt.sh
+- name: run certbot
+  command: /tmp/run_certbot.sh
+  tags:
+    - install
+    - update
 
-- name: create auto-renew cron job
-  debug: Ask the intern
+# Create symlinks to the letsencrypt certificates into
+# the main cert folder. When requesting multi-domain
+# certs they are shared: symlink only required to the first
+
+- name: symlink certificates
+  file: >
+    src=/etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/{{ item.src }}
+    dest=/etc/ssl/{{ item.dest }} 
+    state=link
+  with_items:
+    - { src: 'fullchain.pem', dest: 'certs/fullchain.pem' }
+    - { src: 'privkey.pem',  dest: 'private/privkey.pem' }
+  tags:
+    - install
+
+- name: replace nginx cert configuration file
+  template:
+    src: ssl-certs.conf.j2
+    dest: /etc/nginx/ssl-certs.conf
+    owner: root
+  tags:
+    - install
+    - install:configuration
+
+# Renewal will auto-update the certs in place at the linked-to locations
+# checks twice daily @ 6hr±60mins
+- name: create monthly auto-renew cron job
+  cron: 
+        name      : "Renew Let's Encrypt certificates via certbot"
+        hour      : 0,12
+        cron_file : "lets-encrypt-renew"
+        user      : "root"
+        job       : sleep $[RANDOM\%60]m; /opt/certbot/certbot-auto renew
+        state     : present
+  tags:
+    - install
+    - install:cron
 
 - name: reload nginx config
   service:
     name: nginx
     state: reloaded
+  tags:
+    - install
+    - update
