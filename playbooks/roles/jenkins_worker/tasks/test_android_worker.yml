@@ -1,0 +1,26 @@
+---
+# Test that ubuntu make has been installed and is at least at version
+# 16.00
+- name: Verify Ubuntu Make is installed
+  shell: umake --version
+  register: umake_version
+- assert:
+    that:
+      - "float(umake_version.stdout) >= 16.00"
+
+# Test that the Android sdk has been installed to the correct location
+- name: Verify Android SDK is installed
+  shell: "stat {{ android_home }}/tools/android"
+  register: android_version
+- assert:
+    that:
+       - "android_version.rc == 0"
+
+# Test that the necessary build targets for building the edx app have
+# been installed
+ - name: Verify correct Android build targets installed
+   shell: "{{ android_home }}/tools/android list target"
+   register: build_targets
+ - assert:
+     that:
+       - "'{{ android_build_targets }}' in build_target.stdout"

@@ -1,0 +1,25 @@
+---
+# Configure the Jenkins worker system for building the edx android application
+
+# Ubuntu 16 offers the android sdk in their apt repos, however it does not contain the sdk
+# manager script. Instead, ubuntu is now managing sdks/ides via Ubuntu Make
+# (see https://wiki.ubuntu.com/ubuntu-make).
+- name: Add Ubuntu Make PPA
+  apt_repository:
+    repo: "{{ ubuntu_make_ppa }}"
+    state: present
+    become: yes
+- name: Install Ubuntu Make
+  apt:
+    name: ubuntu-make
+    update_cache: yes
+    install_recommends: yes
+    become: yes
+    state: yes
+# Use ubuntu-make to install the android sdk and developer tools.
+- name: Install Android SDK
+  shell: "umake android android-studio --accept-license destdir {{ android_home }}"
+# Use the android sdk manager to install the build targets necessary for the edx mobile app
+# If needed, just add more targets to the with_items clause
+- name: Install Android API levels
+  shell: "{{ android_home }}/tools/android sdk -f --no-ui --filter {{ ','.join(android_build_targets) }}"
