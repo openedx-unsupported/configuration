@@ -9,17 +9,45 @@
 #
 #
 #
-# Tasks for role lets_encrupt
+# Tasks for role lets_encrypt
 # 
 # Overview:
 # 
+# Automatically install SSL certificates for a list of domains
+# using the Let's Encrypt service. Certificates are automatically
+# installed in nginx and a renewal check is scheduled to run 
+# twice daily, to check for expiry/revocation. Updated certificates
+# are automatically installed where required.
+#
+# This uses the certbot-auto script pulling from the current master 
+# branch at github.com/certbot/certbot.
+#
+# There is currently no plugin for nginx, so this implementation
+# uses the webroot method for ACME authorisation. This works
+# by placing a secret file under ./well-known/ in the web root.
+# This path is served direct from the nginx web root folder
+# (see nginx configuration).
+#
+# The nginx service must be running for this to work. For best results
+# install nginx with NGINX_SSLNGINX_SSL=true. This will start the server
+# using a self-signed insecure certificate which this play will replace. 
+#
+# Downloaded certificates/keys are symlinked to /etc/ssl/certs and 
+# /etc/ssl/private respectively and the nginx configuration 
+# /etc/nginx/ssl-certs.conf is rewritten to point to the correct files.
+#
+# Multiple domains will receive a single shared certificate.
+#
+# Finally, the nginx service is restarted to load the new certificates.
 #
 # Dependencies:
 #
+# * nginx (running; SSL enabled for auto-certificate install)
+# * git
 # 
 # Example play:
 #
-#
+# ansible-playbook ./run_role.yml -i '<ip-addr>,' -e '{"role":"lets_encrypt","LETS_ENCRYPT_DOMAINS":["www1.example.org","www2.example.org"]}'
 
 - name: check domains
   fail:
@@ -86,14 +114,22 @@
     - install:configuration
 
 # Renewal will auto-update the certs in place at the linked-to locations
-# checks twice daily @ 6hr±60mins
-- name: create monthly auto-renew cron job
+# checks twice daily @ 12hr interval ±60mins
+- name: calculate random hour for cron
+  set_fact:
+    le_cron_hour: "{{ 12|random }}"
+  tags:
+    - install
+    - install:cron
+
+- name: create cronjob to check certificate renewal 2x daily
   cron: 
         name      : "Renew Let's Encrypt certificates via certbot"
-        hour      : 0,12
+        hour      : "{{ le_cron_hour }},{{ le_cron_hour|int+12 }}"
+        minute    : "{{ 59|random }}"
         cron_file : "lets-encrypt-renew"
         user      : "root"
-        job       : sleep $[RANDOM\%60]m; /opt/certbot/certbot-auto renew
+        job       : /opt/certbot/certbot-auto renew --post-hook "service nginx restart"
         state     : present
   tags:
     - install
