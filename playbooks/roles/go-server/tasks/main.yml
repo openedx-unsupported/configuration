@@ -126,6 +126,41 @@
     - { username: GO_SERVER_GOMATIC_USERNAME, password: GO_SERVER_GOMATIC_PASSWORD, password_hash: gomatic_user_password_line }
   when: item.username and item.password and item.password_hash
 
+- name: install ssh key for the secure repos
+  copy:
+    content: "{{ GO_GIT_KEY }}"
+    dest: ~/.ssh/id_rsa
+    mode: 0600
+  become_user: "{{ GO_SERVER_USER }}"
+  tags:
+    - git_identity
+
+- name: Check to see if the known hosts file exists
+  stat: path=~/.ssh/known_hosts
+  become_user: "{{ GO_SERVER_USER }}"
+  register: known_hosts_register
+  tags:
+    - git_identity
+
+- name: create known_hosts file
+  file:
+    path: ~/.ssh/known_hosts
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+    mode: 0600
+    state: "{{ 'file' if known_hosts_register.stat.exists else 'touch'}}"
+  become_user: "{{ GO_SERVER_USER }}"
+  tags:
+    - git_identity
+
+# Ensure there is no bloat in the known_hosts file and that any duplicates are sorted out. This way the play can be run
+# multiple times on the host without any side effects.
+- name: setup known_hosts for github.com
+  command: bash -c "ssh-keyscan -t rsa,dsa github.com 2>&1 | sort -u - ~/.ssh/known_hosts > ~/.ssh/tmp_hosts && mv ~/.ssh/tmp_hosts ~/.ssh/known_hosts"
+  become_user: "{{ GO_SERVER_USER }}"
+  tags:
+    - git_identity
+
 - name: restart go-server
   service:
     name: "{{ GO_SERVER_SERVICE_NAME }}"
