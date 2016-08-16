@@ -34,6 +34,16 @@
     - install
     - install:configuration
 
+- name: Create symlinks for update script
+  file:
+    src: "{{ edx_ansible_app_dir }}/update"
+    dest: "{{ COMMON_BIN_DIR }}/update"
+    state: link
+  when: devstack is not defined or not devstack
+  tags:
+    - install
+    - install:configuration
+
 - name: Create utility scripts
   template:
     dest: "{{ edx_ansible_app_dir}}/{{ item.dest }}"
@@ -47,13 +57,12 @@
     - install
     - install:configuration
 
-- name: Create symlinks for update and show-repo-heads scripts
+- name: Create symlinks for utility scripts
   file:
     src: "{{ edx_ansible_app_dir }}/{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ item }}"
     state: link
   with_items:
-    - update
     - show-repo-heads
   tags:
     - install
