@@ -30,7 +30,7 @@
     ebs_volume_size: 8
     ec2_timeout: 500
     ec2_assign_public_ip: no
-    automtion_prefix: "gocd automation run -- {{ ansible_date_time.iso8601 }} -- "
+    automation_prefix: "gocd automation run -- {{ ansible_date_time.iso8601 }} -- "
   gather_facts: True
   connection: local
   tasks:
@@ -41,7 +41,7 @@
 
   - name: Generate ec2 keypair to use for this instance
     ec2_key:
-      name: "{{ automtion_prefix }} {{ unique_key_name.stdout }}"
+      name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
       region: "{{ ec2_region }}"
     register: ssh_key_register
 
@@ -53,9 +53,9 @@
 
   - name: Launch EC2 instance
     ec2:
-      instance_tags: {"Name" : "{{ automtion_prefix }} {{ unique_key_name.stdout }}"}
+      instance_tags: {"Name" : "{{ automation_prefix }} {{ unique_key_name.stdout }}"}
       region: "{{ ec2_region }}"
-      key_name: "{{ unique_key_name.stdout }}"
+      key_name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
       instance_type: "{{ ec2_instance_type }}"
       image: "{{ base_ami_id }}"
       wait: yes
