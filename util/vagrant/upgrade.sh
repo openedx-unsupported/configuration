@@ -21,6 +21,17 @@ exit_cleanly () {
   exit $@
 }
 
+# check_pip succeeds if its first argument is found in the output of pip freeze.
+PIP_EDXAPP="sudo -u edxapp -H $OPENEDX_ROOT/bin/pip.edxapp --disable-pip-version-check"
+check_pip () {
+  how_many=$($PIP_EDXAPP list 2>&- | grep -c $1)
+  if (( $how_many > 0 )); then
+    return 0
+  else
+    return 1
+  fi
+}
+
 show_help () {
   cat << EOM
 
@@ -225,7 +236,7 @@ EOF
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall -y South
+  $PIP_EDXAPP uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
@@ -258,8 +269,21 @@ fi
 # Eucalyptus details
 
 if [[ $TARGET == *eucalyptus* ]] ; then
-  echo "Uninstall edx-oauth2-provider"
-  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
+  if check_pip edx-oauth2-provider ; then
+    echo "Uninstall edx-oauth2-provider"
+    $PIP_EDXAPP uninstall -y django-oauth2-provider edx-oauth2-provider
+  fi
+
+  # edx-milestones changed how it was installed, so it is possible to have it
+  # installed twice.  Try to uninstall it twice.
+  if check_pip edx-milestones ; then
+    echo "Uninstall edx-milestones"
+    $PIP_EDXAPP uninstall -y edx-milestones
+  fi
+  if check_pip edx-milestones ; then
+    echo "Uninstall edx-milestones again"
+    $PIP_EDXAPP uninstall -y edx-milestones
+  fi
 
   if [[ $CONFIGURATION == devstack ]] ; then
     echo "Remove old Firefox"
