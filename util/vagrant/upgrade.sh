@@ -320,10 +320,13 @@ fi
 echo "Updating to final version of code"
 cd configuration/playbooks
 echo "edx_platform_version: $TARGET" > vars.yml
-echo "ora2_version: $TARGET" >> vars.yml
 echo "certs_version: $TARGET" >> vars.yml
 echo "forum_version: $TARGET" >> vars.yml
 echo "xqueue_version: $TARGET" >> vars.yml
+echo "NOTIFIER_VERSION: $TARGET" >> vars.yml
+echo "ECOMMERCE_VERSION: $TARGET" >> vars.yml
+echo "ECOMMERCE_WORKER_VERSION: $TARGET" >> vars.yml
+echo "PROGRAMS_VERSION: $TARGET" >> vars.yml
 $ANSIBLE_PLAYBOOK \
     --extra-vars="@vars.yml" \
     $SERVER_VARS \
