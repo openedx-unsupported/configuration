@@ -69,7 +69,8 @@ if [[ -z $github_username  ]]; then
   github_username=$BUILD_USER_ID
 fi
 
-if [[ ! -f $BOTO_CONFIG ]]; then
+# Having access keys OR a boto config allows sandboxes to be built.
+if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
   echo "AWS credentials not found for $aws_account"
   exit 1
 fi
