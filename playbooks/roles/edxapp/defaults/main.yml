@@ -351,20 +351,18 @@ EDXAPP_PYTHON_SANDBOX: true
 # it puts the sandbox in 'complain' mode, for reporting but not enforcement
 EDXAPP_SANDBOX_ENFORCE: true
 
-# Supply authorized keys used for remote management via the user
-# role.
-EDXAPP_AUTOMATOR_NAME: automator
-EDXAPP_AUTOMATOR_AUTHORIZED_KEYS: []
-# These are the commands allowed by the automator role.
-# The --settings parameter must be set at the end so that
-# is caught by the glob.
-# Example: sudo -u www-data /edx/bin/python.edxapp /edx/bin/manage.edxapp lms migrate --settings=aws
-EDXAPP_AUTOMATOR_SUDO_CMDS:
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms migrate *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp cms migrate *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms seed_permissions_roles *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms set_staff *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms transfer_students *"
+# Vars that are used when the automated role is "mixed-in" via the deploying play
+# This data structure specifies all the users with access to run command remotely
+# over SSH and the fully qualified command that they can run via sudo to the
+# application user
+
+EDXAPP_AUTOMATED_USERS:
+  automated_user:
+    sudo_commands:
+      - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms migrate --list --settings=aws"
+        sudo_user: "edxapp"
+    authorized_keys:
+      - "SSH authorized key"
 
 EDXAPP_USE_GIT_IDENTITY: false
 # Paste the contents of the git identity
