@@ -64,3 +64,17 @@ RUN pip install awscli
 ADD docker/build/go-agent/files/go-agent-start.sh /etc/service/go-agent/run
 ADD docker/build/go-agent/files/go-agent-env-vars /etc/default/go-agent
 RUN update-java-alternatives -s java-7-oracle
+
+# !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace go_github_key.pem with the REAL key material
+# that can checkout private github repositories used as pipeline materials. The key material here is faked and is only
+# used to pass CI!
+# setup the github identity
+ADD docker/build/go-agent/files/go_github_key.pem /var/go/.ssh/id_rsa
+RUN chmod 600 /var/go/.ssh/id_rsa && \
+    chown go:go /var/go/.ssh/id_rsa
+
+# setup the known_hosts
+RUN touch /var/go/.ssh/known_hosts && \
+    chmod 600 /var/go/.ssh/known_hosts && \
+    chown go:go /var/go/.ssh/known_hosts && \
+    ssh-keyscan -t rsa,dsa github.com > /var/go/.ssh/known_hosts

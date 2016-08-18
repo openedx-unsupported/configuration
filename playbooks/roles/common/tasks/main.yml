@@ -158,3 +158,25 @@
     state: restarted
   become: True
   when: config_templates.changed
+
+- name: Add ntp alert script
+  template:
+    src: "log-ntp-alerts.sh.j2"
+    dest: "{{ COMMON_BIN_DIR }}/log-ntp-alerts.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set up a cron job to run the script
+  cron:
+    name: "log-ntp-alerts"
+    job: "{{ COMMON_BIN_DIR }}/log-ntp-alerts.sh >/dev/null 2>&1"
+
+- name: install logrotate configuration
+  template:
+    src: etc/logrotate.d/ntp.j2
+    dest: /etc/logrotate.d/ntp
+  tags:
+    - "install"
+    - "install:configuration"
+    - "logrotate"
