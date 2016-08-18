@@ -9,7 +9,7 @@ exec > >(sudo tee /var/log/edx/upgrade-$(date +%Y%m%d-%H%M%S).log) 2>&1
 
 # defaults
 CONFIGURATION="none"
-TARGET="none"
+TARGET=${OPENEDX_RELEASE-none}
 INTERACTIVE=true
 OPENEDX_ROOT="/edx"
 
@@ -42,9 +42,9 @@ Upgrades your Open edX installation to a newer release.
     must specify this.
 
 -t TARGET
-    Upgrade to the given git ref. You must specify this.  Open edX releases are
-    called "open-release/eucalyptus.1", "open-release/eucalyptus.latest", and
-    so on.
+    Upgrade to the given git ref. Open edX releases are called
+    "open-release/eucalyptus.1", "open-release/eucalyptus.latest", and so on.
+    Defaults to \$OPENEDX_RELEASE if it is defined.
 
 -y
     Run in non-interactive mode (reply "yes" to all questions)
