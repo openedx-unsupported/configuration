@@ -24,7 +24,7 @@ exit_cleanly () {
 # check_pip succeeds if its first argument is found in the output of pip freeze.
 PIP_EDXAPP="sudo -u edxapp -H $OPENEDX_ROOT/bin/pip.edxapp --disable-pip-version-check"
 check_pip () {
-  how_many=$($PIP_EDXAPP list 2>&- | grep -c $1)
+  how_many=$($PIP_EDXAPP list 2>&- | grep -c "^$1 ")
   if (( $how_many > 0 )); then
     return 0
   else
