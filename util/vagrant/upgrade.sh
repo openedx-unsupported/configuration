@@ -42,8 +42,9 @@ Upgrades your Open edX installation to a newer release.
     must specify this.
 
 -t TARGET
-    Upgrade to the given git ref. You must specify this.  Named releases are
-    called "named-release/cypress", "named-release/dogwood.rc2", and so on.
+    Upgrade to the given git ref. You must specify this.  Open edX releases are
+    called "open-release/eucalyptus.1", "open-release/eucalyptus.latest", and
+    so on.
 
 -y
     Run in non-interactive mode (reply "yes" to all questions)
@@ -98,9 +99,9 @@ fi
 
 if [[ $TARGET == none ]]; then
   cat <<"EOM"
-You must specify a target. This should be the next named release after the one
-you are currently running.  This script can only move forward one release at
-a time.
+You must specify a target. This should be the next Open edX release after the
+one you are currently running.  This script can only move forward one release
+at a time.
 EOM
   show_help
   exit_cleanly 1
