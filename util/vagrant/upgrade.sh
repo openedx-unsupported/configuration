@@ -273,7 +273,11 @@ fi
 if [[ $TARGET == *eucalyptus* ]] ; then
   if check_pip edx-oauth2-provider ; then
     echo "Uninstall edx-oauth2-provider"
-    $PIP_EDXAPP uninstall -y django-oauth2-provider edx-oauth2-provider
+    $PIP_EDXAPP uninstall -y edx-oauth2-provider
+  fi
+  if check_pip django-oauth2-provider ; then
+    echo "Uninstall django-oauth2-provider"
+    $PIP_EDXAPP uninstall -y django-oauth2-provider
   fi
 
   # edx-milestones changed how it was installed, so it is possible to have it
