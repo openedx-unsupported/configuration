@@ -160,7 +160,6 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 cd playbooks/edx-east
 
 cat << EOF > $extra_vars_file
-ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
