@@ -22,6 +22,13 @@ env
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
+# docker on OS-X includes your Mac's home directory in the socket path
+# that SSH/Ansible uses for the control socket, pushing you over
+# the 108 character limit.
+if [ -f /.dockerenv ]; then
+    export ANSIBLE_SSH_CONTROL_PATH=/tmp/%%C
+fi
+
 run_ansible() {
   if [[ "$VERBOSE" == "true" ]]; then
     verbose_arg='-vvv'
