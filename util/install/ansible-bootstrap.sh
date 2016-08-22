@@ -136,6 +136,7 @@ cd "${CONFIGURATION_DIR}"/playbooks/edx-east
 rm -rf "${ANSIBLE_DIR}"
 rm -rf "${CONFIGURATION_DIR}"
 rm -rf "${VIRTUAL_ENV}"
+rm -rf "${HOME}/.ansible"
 
 cat << EOF
 ******************************************************************************
