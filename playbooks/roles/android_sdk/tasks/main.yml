@@ -1,11 +1,11 @@
 ---
-# Configure the Jenkins worker system for building the edx android application
-- name: Create jenkins group
-  group: name={{ jenkins_group }} state=present
+# Configure a system for building the edx android application
 
-# The Jenkins account needs a login shell because Jenkins uses scp
-- name: Add the jenkins user to the group and configure shell
-  user: name={{ jenkins_user }} append=yes group={{ jenkins_group }} shell=/bin/bash
+# Configure a user/group to own/run the android sdk
+- name: Create group for the user of the sdk
+  group: name={{ android_group }} state=present
+- name: Add the user to the group and configure shell
+  user: name={{ android_user }} append=yes group={{ android_group }} shell=/bin/bash
 
 # Download the Android SDK/tools tarball from Google's download site. 
 # NOTE: while it is the general policy to use repositories/ppas as much as possible
@@ -29,11 +29,11 @@
     src: /tmp/android-sdk.tgz
     dest: /opt
     creates: "{{ android_home }}"
-    owner: "{{ jenkins_user }}"
-    group: "{{ jenkins_group }}" 
+    owner: "{{ android_user }}"
+    group: "{{ android_group }}" 
   become: yes
 # Use the android sdk manager to install the build targets necessary for the edx mobile app
 - name: Install Android API levels
   shell: "echo 'y' | {{ android_home }}/tools/android update sdk --no-ui --filter {{ ','.join(android_build_targets) }}"
   become: yes
-  become_user: "{{ jenkins_user }}"
+  become_user: "{{ android_user }}"
