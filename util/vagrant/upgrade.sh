@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-# Stop if any command fails
+# Setting OPENEDX_DEBUG makes this more verbose.
+if [[ $OPENEDX_DEBUG ]]; then
+    set -x
+fi
+
+# Stop if any command fails.
 set -e
 
 # Logging: write all the output to a timestamped log file.
