@@ -11,46 +11,50 @@ function usage
 
     Usage: $ bash install_stack.sh stack release [-b vagrant_mount_base] [-v] [-h]
 
-    Installs the Open edX devstack or fullstack. If you encounter any trouble or have 
-    questions regarding installation of devstack/fullstack, head over to 
-    https://open.edx.org/getting-help.
+    Installs the Open edX devstack or fullstack. If you encounter any trouble
+    or have questions, head over to https://open.edx.org/getting-help.
 
-    This script captures a log of all output produced during runtime, and saves it in a .log
-    file within the current directory. If you encounter an error during installation, this is
-    an invaluable tool for edX developers to help discover what went wrong, so please share it
-    if you reach out for support!
+    This script captures a log of all output produced during runtime, and saves
+    it in a .log file within the current directory. If you encounter an error
+    during installation, this is an invaluable tool for edX developers to help
+    discover what went wrong, so please share it if you reach out for support!
 
-    NOTE: This script assumes you have never installed devstack before. Installing multiple 
-    versions of devstack can often cause conflicts that this script is not prepared to handle.
-    
+    NOTE: This script assumes you have never installed devstack before.
+    Installing multiple versions of devstack can often cause conflicts that
+    this script is not prepared to handle.
 
     stack
-        Either 'fullstack' or 'devstack' (no quotes). Full stack mimics a production 
-        environment, whereas devstack is useful if you plan on modifying the Open edX 
-        code. You must specify this. If you choose fullstack, 'release' should be the
-        latest open-release. If you choose devstack, 'release' should be the latest
-        open-release or master.
+        Either 'fullstack' or 'devstack'. Fullstack mimics a production
+        environment, whereas devstack is useful if you plan on modifying the
+        Open edX code. You must specify this.
+
+        If you choose fullstack, 'release' should be the latest Open edX
+        release.
+
+        If you choose devstack, 'release' should be the latest Open edX
+        release or master.
 
     release
-        The release of Open edX you wish to run. Install the given git ref 'release'.
-        You must specify this. Named releases are called "open-release/eucalyptus",
-        "open-release/eucalyptus.2", and so on. We recommend the latest stable open 
-        release for general members of the open source community. Named releases can
-        be found at: https://openedx.atlassian.net/wiki/display/DOC/Open+edX+Releases.
-        If you plan on modifying the code, we recommend the "master" branch. 
+        The release of Open edX you wish to run. Install the given git ref
+        'release'.  You must specify this. Open edX releases are called
+        "open-release/eucalyptus.1", "open-release/eucalyptus.2", and so on.
+
+        We recommend the latest stable open release for general members of the
+        open source community. Details on available open releases can be found
+        at: https://openedx.atlassian.net/wiki/display/DOC/Open+edX+Releases.
+
+        If you plan on modifying the code, we recommend the "master" branch.
 
     -b vagrant_mount_base
-        Customize the location of the source code that gets cloned during the 
-        devstack provisioning. The default is the current directory. This option is
-        not valid if installing fullstack.
+        Customize the location of the source code that gets cloned during the
+        devstack provisioning. The default is the current directory. This
+        option is not valid if installing fullstack.
 
-    -v 
+    -v
         Verbose output from ansible playbooks.
 
     -h
         Show this help and exit.
-
-    ---------------------------
 
 EOM
 }
@@ -69,8 +73,8 @@ release=""
 vagrant_mount_location=""
 
 if [[ $# -lt 2 || ${1:0:1} == '-' || ${2:0:1} == '-' ]]; then
-  usage
-  exit 1
+    usage
+    exit 1
 fi
 
 stack=$1
