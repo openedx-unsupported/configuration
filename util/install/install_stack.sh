@@ -115,6 +115,7 @@ exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
 echo "Capturing output to install-$(date +%Y%m%d-%H%M%S).log."
 
 export OPENEDX_RELEASE=$release
+echo "Installing release '$OPENEDX_RELEASE'"
 
 # Check if mount location was changed
 if [[ $vagrant_mount_location != "" ]]; then
@@ -161,7 +162,7 @@ fi
 
 vagrant up --provider virtualbox
 
-# Check if preview mode was chosen
+# Set preview host.
 if grep -q '192.168.33.10  preview.localhost' /etc/hosts; then
     echo "Studio preview already enabled, skipping..."
 else
