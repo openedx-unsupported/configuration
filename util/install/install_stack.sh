@@ -113,6 +113,7 @@ done
 
 exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
 echo "Capturing output to install-$(date +%Y%m%d-%H%M%S).log."
+echo "Installation started at $(date '+%Y-%m-%d %H:%M:%S')"
 
 export OPENEDX_RELEASE=$release
 echo "Installing release '$OPENEDX_RELEASE'"
@@ -170,5 +171,6 @@ else
     sudo bash -c "echo '192.168.33.10  preview.localhost' >> /etc/hosts"
 fi
 
+echo "Installation finished at $(date '+%Y-%m-%d %H:%M:%S')"
 echo -e "${SUCCESS}Finished installing! You may now 'cd $stack' and login using 'vagrant ssh'"
 echo -e "Refer to the edX wiki ($wiki_link) for more information on using $stack.${NC}"
