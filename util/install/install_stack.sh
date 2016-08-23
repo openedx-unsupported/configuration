@@ -12,9 +12,7 @@ function usage
 {
     cat << EOM
 
-    --- install_stack.sh ---
-
-    Usage: $ bash install_stack.sh stack release [-b vagrant_mount_base] [-v] [-h]
+    Usage: $ bash ${0##*/} [-b mount_base] [-v] [-h] STACK [RELEASE]
 
     Installs the Open edX devstack or fullstack. If you encounter any trouble
     or have questions, head over to https://open.edx.org/getting-help.
@@ -28,7 +26,7 @@ function usage
     Installing multiple versions of devstack can often cause conflicts that
     this script is not prepared to handle.
 
-    stack
+    STACK
         Either 'fullstack' or 'devstack'. Fullstack mimics a production
         environment, whereas devstack is useful if you plan on modifying the
         Open edX code. You must specify this.
@@ -39,10 +37,10 @@ function usage
         If you choose devstack, 'release' should be the latest Open edX
         release or master.
 
-    release
-        The release of Open edX you wish to run. Install the given git ref
-        'release'.  You must specify this. Open edX releases are called
-        "open-release/eucalyptus.1", "open-release/eucalyptus.2", and so on.
+    RELEASE
+        The release of Open edX to install.  Defaults to \$OPENEDX_RELEASE.
+        Open edX releases are called "open-release/eucalyptus.1",
+        "open-release/eucalyptus.2", and so on.
 
         We recommend the latest stable open release for general members of the
         open source community. Details on available open releases can be found
@@ -50,7 +48,7 @@ function usage
 
         If you plan on modifying the code, we recommend the "master" branch.
 
-    -b vagrant_mount_base
+    -b mount_base
         Customize the location of the source code that gets cloned during the
         devstack provisioning. The default is the current directory. This
         option is not valid if installing fullstack.
@@ -77,16 +75,6 @@ release=""
 # Vagrant source code provision location
 vagrant_mount_location=""
 
-if [[ $# -lt 2 || ${1:0:1} == '-' || ${2:0:1} == '-' ]]; then
-    usage
-    exit 1
-fi
-
-stack=$1
-shift
-release=$1
-shift
-
 while getopts "b:vh" opt; do
     case "$opt" in
         b)
@@ -110,6 +98,22 @@ while getopts "b:vh" opt; do
             ;;
     esac
 done
+
+shift "$((OPTIND-1))" # Shift off the options we've already parsed
+
+# STACK is a required positional argument.
+stack=$1
+shift
+
+# RELEASE is an optional position argument, defaulting to OPENEDX_RELEASE.
+release=${1-$OPENEDX_RELEASE}
+shift
+
+# If there are positional arguments left, something is wrong.
+if [[ $1 ]]; then
+    usage
+    exit 1
+fi
 
 exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
 echo "Capturing output to install-$(date +%Y%m%d-%H%M%S).log."
