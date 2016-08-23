@@ -1,0 +1,17 @@
+---
+# Test that the Android sdk has been installed to the correct location
+- name: Verify Android SDK is installed
+  shell: "stat {{ android_home }}/tools/android"
+  register: android_version
+- assert:
+    that:
+       - "android_version.rc == 0"
+# Test that the necessary build targets for building the edx app have
+# been installed.
+- name: Verify correct Android build targets installed
+  shell: "{{ android_home }}/tools/android list target |tr '\n' ' '"
+  register: build_targets
+- with_items: "{{ android_build_targets }}"
+  assert:
+    that:
+      - "'{{ item }}' in build_targets.stdout"
