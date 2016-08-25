@@ -2,6 +2,7 @@
 - name: Get the list of hpi files
   shell: "ls {{ jenkins_home }}/plugins/*.hpi"
   register: hpi_files
+  ignore_errors: true
 
 - name: Set the permission on hpi files
   file: 
@@ -10,6 +11,7 @@
     group: "{{ jenkins_group }}"
     mode: 0644
   with_items: hpi_files.stdout_lines
+  when: hpi_files
   notify:
     - restart Jenkins
 
