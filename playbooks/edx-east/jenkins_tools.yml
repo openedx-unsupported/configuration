@@ -8,6 +8,10 @@
   serial: "{{ serial_count }}"
   roles:
     - aws
+    # jenkins_master role does extra tweaks to datadog if COMMON_ENABLE_DATADOG is set
+    # so this needs to run early.
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
     - tools_jenkins
     # This requires an override of the following form:
     # SPLUNKFORWARDER_LOG_ITEMS:
@@ -18,3 +22,5 @@
     #     crcSalt: <SOURCE>
     - role: splunkforwarder
       when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
