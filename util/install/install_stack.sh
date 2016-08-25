@@ -102,15 +102,25 @@ done
 shift "$((OPTIND-1))" # Shift off the options we've already parsed
 
 # STACK is a required positional argument.
+if [[ ! $1 ]]; then
+    echo "STACK is required"
+    usage
+    exit 1
+fi
 stack=$1
 shift
 
-# RELEASE is an optional position argument, defaulting to OPENEDX_RELEASE.
-release=${1-$OPENEDX_RELEASE}
-shift
+# RELEASE is an optional positional argument, defaulting to OPENEDX_RELEASE.
+if [[ $1 ]]; then
+    release=$1
+    shift
+else
+    release=$OPENEDX_RELEASE
+fi
 
 # If there are positional arguments left, something is wrong.
 if [[ $1 ]]; then
+    echo "Don't understand extra arguments: $*"
     usage
     exit 1
 fi
