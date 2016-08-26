@@ -18,7 +18,10 @@
 # - environment
 # - name_tag
 set -x
-env
+
+# Seeing the environment is fine, spewing secrets to the log isn't ok
+env | grep -v AWS | grep -v ARN
+
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
