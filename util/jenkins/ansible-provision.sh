@@ -168,6 +168,7 @@ xqueue_version: $xqueue_version
 xserver_version: $xserver_version
 certs_version: $certs_version
 configuration_version: $configuration_version
+demo_version: $demo_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
