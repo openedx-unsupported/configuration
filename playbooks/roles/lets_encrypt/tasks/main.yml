@@ -77,7 +77,7 @@
 - name: render certbot script
   template:
     src: run_certbot.sh.j2
-    dest: /tmp/run_certbot.sh
+    dest: /opt/run_certbot.sh
     mode: u+x
   tags:
     - install
@@ -102,34 +102,10 @@
     - update
 
 - name: run certbot
-  command: /tmp/run_certbot.sh
+  command: /opt/run_certbot.sh
   tags:
     - install
     - update
-
-# Create symlinks to the letsencrypt certificates into
-# the main cert folder. When requesting multi-domain
-# certs they are shared: symlink only required to the first
-
-- name: symlink certificates
-  file:
-    src: /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/{{ item.src }}
-    dest: /etc/ssl/{{ item.dest }} 
-    state: link
-  with_items:
-    - { src: 'fullchain.pem', dest: 'certs/fullchain.pem' }
-    - { src: 'privkey.pem',  dest: 'private/privkey.pem' }
-  tags:
-    - install
-
-- name: replace nginx cert configuration file
-  template:
-    src: ssl-certs.conf.j2
-    dest: /etc/nginx/ssl-certs.conf
-    owner: root
-  tags:
-    - install
-    - install:configuration
 
 # Renewal will auto-update the certs in place at the linked-to locations
 # checks twice daily @ 12hr interval ±60mins
