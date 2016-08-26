@@ -1,2 +1,9 @@
 #!/bin/bash
 /opt/certbot/certbot-auto certonly --webroot --webroot-path=/usr/share/nginx/www --non-interactive --email {{ LETS_ENCRYPT_EMAIL }} --agree-tos --http-01-port {{ LETS_ENCRYPT_PORT }} {% for domain in LETS_ENCRYPT_DOMAINS -%} -d {{ domain }} {%- endfor -%}
+
+# Create symlinks to Lets Encrypt certificates
+ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/certs/fullchain.pem /etc/ssl/le_fullchain.pem
+ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/certs/privkey.pem /etc/ssl/le_privkey.pem
+
+# Copy the configuration file (with the above certs) into place
+cp /edx/app/edxapp/configuration/playbooks/roles/lets_encrypt/templates/ssl-certs.conf /etc/nginx/ssl-certs.conf
