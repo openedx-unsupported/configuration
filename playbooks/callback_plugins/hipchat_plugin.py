@@ -126,7 +126,7 @@ class CallbackModule(object):
     def runner_on_ok(self, host, res):
         if self.enabled:
             # don't send the setup results
-            if res['invocation']['module_name'] != "setup":
+            if 'invocation' in res and 'module_name' in res['invocation'] and res['invocation']['module_name'] != "setup":
                 self._process_message(res, 'OK')
 
 
