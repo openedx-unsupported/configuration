@@ -14,9 +14,9 @@
   become_user: "{{ common_web_user }}"
   when: demo_checkout.changed
 
-- name: create some test users and enroll them in the course
+- name: create some test users
   shell: >
-    {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e {{ item.email }} -p {{ item.password }} -m {{ item.mode }} -c {{ demo_course_id }}
+    {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}
     chdir={{ demo_edxapp_code_dir }}
   become_user: "{{ common_web_user }}"
   with_items: demo_test_users
@@ -24,12 +24,23 @@
 
 - name: create staff user
   shell: >
-    {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms create_user -e staff@example.com -p edx -s -c {{ demo_course_id }}
+    {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms manage_user staff staff@example.com --initial-password-hash {{ demo_hashed_password | quote }} --staff
     chdir={{ demo_edxapp_code_dir }}
   become_user: "{{ common_web_user }}"
   when:
     - demo_checkout.changed
     - DEMO_CREATE_STAFF_USER
+
+- name: enroll test users in the demo course
+  shell: >
+    {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms enroll_user_in_course -e {{ item.email }} -c {{ demo_course_id }}
+    chdir={{ demo_edxapp_code_dir }}
+  become_user: "{{ common_web_user }}"
+  with_items:
+      - "{{ demo_test_users }}"
+      - { email: 'staff@example.com' }
+  when: demo_checkout.changed
+
 
 - name: add test users to the certificate whitelist
   shell: >
