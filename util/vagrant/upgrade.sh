@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-# Stop if any command fails
+# Setting OPENEDX_DEBUG makes this more verbose.
+if [[ $OPENEDX_DEBUG ]]; then
+    set -x
+fi
+
+# Stop if any command fails.
 set -e
 
 # Logging: write all the output to a timestamped log file.
@@ -9,7 +14,7 @@ exec > >(sudo tee /var/log/edx/upgrade-$(date +%Y%m%d-%H%M%S).log) 2>&1
 
 # defaults
 CONFIGURATION="none"
-TARGET="none"
+TARGET=${OPENEDX_RELEASE-none}
 INTERACTIVE=true
 OPENEDX_ROOT="/edx"
 
@@ -19,6 +24,17 @@ exit_cleanly () {
   sleep .25
   echo
   exit $@
+}
+
+# check_pip succeeds if its first argument is found in the output of pip freeze.
+PIP_EDXAPP="sudo -u edxapp -H $OPENEDX_ROOT/bin/pip.edxapp --disable-pip-version-check"
+check_pip () {
+  how_many=$($PIP_EDXAPP list 2>&- | grep -c "^$1 ")
+  if (( $how_many > 0 )); then
+    return 0
+  else
+    return 1
+  fi
 }
 
 show_help () {
@@ -31,8 +47,9 @@ Upgrades your Open edX installation to a newer release.
     must specify this.
 
 -t TARGET
-    Upgrade to the given git ref. You must specify this.  Named releases are
-    called "named-release/cypress", "named-release/dogwood.rc2", and so on.
+    Upgrade to the given git ref. Open edX releases are called
+    "open-release/eucalyptus.1", "open-release/eucalyptus.latest", and so on.
+    Defaults to \$OPENEDX_RELEASE if it is defined.
 
 -y
     Run in non-interactive mode (reply "yes" to all questions)
@@ -87,9 +104,9 @@ fi
 
 if [[ $TARGET == none ]]; then
   cat <<"EOM"
-You must specify a target. This should be the next named release after the one
-you are currently running.  This script can only move forward one release at
-a time.
+You must specify a target. This should be the next Open edX release after the
+one you are currently running.  This script can only move forward one release
+at a time.
 EOM
   show_help
   exit_cleanly 1
@@ -168,6 +185,12 @@ if [[ -f ${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml ]]; then
   SERVER_VARS="--extra-vars=\"@${OPENEDX_ROOT}/app/edx_ansible/server-vars.yml\""
 fi
 
+# When tee'ing to a log, ansible (like many programs) buffers its output. This
+# makes it hard to tell what is actually happening during the upgrade.
+# "stdbuf -oL" will run ansible with line-buffered stdout, which makes the
+# messages scroll in the way people expect.
+ANSIBLE_PLAYBOOK="sudo stdbuf -oL ansible-playbook --inventory-file=localhost, --connection=local "
+
 make_config_venv () {
   virtualenv venv
   source venv/bin/activate
@@ -209,9 +232,7 @@ EOF
 
   echo "Upgrading to the end of Django 1.4"
   cd configuration/playbooks/vagrant
-  sudo ansible-playbook \
-    --inventory-file=localhost, \
-    --connection=local \
+  $ANSIBLE_PLAYBOOK \
     $SERVER_VARS \
     --extra-vars="edx_platform_version=release-2015-11-09" \
     --extra-vars="xqueue_version=named-release/cypress" \
@@ -225,13 +246,11 @@ EOF
   make_config_venv
 
   # Need to get rid of South from edx-platform, or things won't work.
-  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall -y South
+  $PIP_EDXAPP uninstall -y South
 
   echo "Upgrading to the beginning of Django 1.8"
   cd configuration/playbooks/vagrant
-  sudo ansible-playbook \
-    --inventory-file=localhost, \
-    --connection=local \
+  $ANSIBLE_PLAYBOOK \
     $SERVER_VARS \
     --extra-vars="edx_platform_version=dogwood-first-18" \
     --extra-vars="xqueue_version=dogwood-first-18" \
@@ -258,8 +277,25 @@ fi
 # Eucalyptus details
 
 if [[ $TARGET == *eucalyptus* ]] ; then
-  echo "Uninstall edx-oauth2-provider"
-  sudo -u edxapp ${OPENEDX_ROOT}/bin/pip.edxapp uninstall --disable-pip-version-check -y django-oauth2-provider edx-oauth2-provider
+  if check_pip edx-oauth2-provider ; then
+    echo "Uninstall edx-oauth2-provider"
+    $PIP_EDXAPP uninstall -y edx-oauth2-provider
+  fi
+  if check_pip django-oauth2-provider ; then
+    echo "Uninstall django-oauth2-provider"
+    $PIP_EDXAPP uninstall -y django-oauth2-provider
+  fi
+
+  # edx-milestones changed how it was installed, so it is possible to have it
+  # installed twice.  Try to uninstall it twice.
+  if check_pip edx-milestones ; then
+    echo "Uninstall edx-milestones"
+    $PIP_EDXAPP uninstall -y edx-milestones
+  fi
+  if check_pip edx-milestones ; then
+    echo "Uninstall edx-milestones again"
+    $PIP_EDXAPP uninstall -y edx-milestones
+  fi
 
   if [[ $CONFIGURATION == devstack ]] ; then
     echo "Remove old Firefox"
@@ -268,9 +304,7 @@ if [[ $TARGET == *eucalyptus* ]] ; then
 
   echo "Upgrade the code"
   cd configuration/playbooks/vagrant
-  sudo ansible-playbook \
-    --inventory-file=localhost, \
-    --connection=local \
+  $ANSIBLE_PLAYBOOK \
     $SERVER_VARS \
     --extra-vars="edx_platform_version=$TARGET" \
     --extra-vars="xqueue_version=$TARGET" \
@@ -292,13 +326,15 @@ fi
 echo "Updating to final version of code"
 cd configuration/playbooks
 echo "edx_platform_version: $TARGET" > vars.yml
-echo "ora2_version: $TARGET" >> vars.yml
 echo "certs_version: $TARGET" >> vars.yml
 echo "forum_version: $TARGET" >> vars.yml
 echo "xqueue_version: $TARGET" >> vars.yml
-sudo ansible-playbook \
-    --inventory-file=localhost, \
-    --connection=local \
+echo "demo_version: $TARGET" >> vars.yml
+echo "NOTIFIER_VERSION: $TARGET" >> vars.yml
+echo "ECOMMERCE_VERSION: $TARGET" >> vars.yml
+echo "ECOMMERCE_WORKER_VERSION: $TARGET" >> vars.yml
+echo "PROGRAMS_VERSION: $TARGET" >> vars.yml
+$ANSIBLE_PLAYBOOK \
     --extra-vars="@vars.yml" \
     $SERVER_VARS \
     vagrant-$CONFIGURATION.yml
