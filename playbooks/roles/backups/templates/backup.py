@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import logging
+import math
 import os
 import shutil
 import socket
@@ -11,6 +12,7 @@ import sys
 
 import boto
 import gcs_oauth2_boto_plugin
+from filechunkio import FileChunkIO
 
 
 def make_file_name(base_name):
@@ -40,9 +42,20 @@ def upload_to_s3(file_path, bucket, aws_access_key_id, aws_secret_access_key):
     conn = boto.connect_s3(aws_access_key_id, aws_secret_access_key)
     bucket = conn.lookup(bucket)
     file_name = os.path.basename(file_path)
+    file_size = os.stat(file_path).st_size
+    chunk_size = 104857600  # 100 MB
+    chunk_count = int(math.ceil(file_size / float(chunk_size)))
 
-    key = boto.s3.key.Key(bucket, file_name)
-    key.set_contents_from_filename(file_path)
+    multipart_upload = bucket.initiate_multipart_upload(file_name)
+    for i in range(chunk_count):
+        offset = chunk_size * i
+        bytes_to_read = min(chunk_size, file_size - offset)
+
+        with FileChunkIO(file_path, 'r', offset=offset, bytes=bytes_to_read) as fp:
+            logging.info('Upload chunk {}/{}'.format(i + 1, chunk_count))
+            multipart_upload.upload_part_from_file(fp, part_num=(i + 1))
+
+    multipart_upload.complete_upload()
     logging.info('Upload successful')
 
 
