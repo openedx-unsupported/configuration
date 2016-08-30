@@ -125,6 +125,18 @@
   tags:
     - migrate
 
+- name: migrate oauth2_provider to edx_oauth2_provider
+  command: "{{ COMMON_BIN_DIR }}/edxapp-migrate-lms {{ item }}"
+  when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and COMMON_EUCALYPTUS_UPGRADE
+  environment:
+    DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+  with_items:
+    - "--fake oauth2_provider zero"
+    - "--fake-initial"
+  tags:
+    - migrate
+
 # There are problems with django collectstatic copying files.  It doesn't retain
 # last modified timestamps, but relies on those same timestamps to know if a new file
 # should be recopied.  While collectstatic --clear exists, it only clears some of the
