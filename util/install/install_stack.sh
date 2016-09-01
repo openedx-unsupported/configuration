@@ -118,6 +118,11 @@ else
     release=$OPENEDX_RELEASE
 fi
 
+if [[ ! $release ]]; then
+    echo "You must specify RELEASE, or define OPENEDX_RELEASE before running."
+    exit 1
+fi
+
 # If there are positional arguments left, something is wrong.
 if [[ $1 ]]; then
     echo "Don't understand extra arguments: $*"
@@ -125,8 +130,10 @@ if [[ $1 ]]; then
     exit 1
 fi
 
-exec > >(tee install-$(date +%Y%m%d-%H%M%S).log) 2>&1
-echo "Capturing output to install-$(date +%Y%m%d-%H%M%S).log."
+mkdir -p logs
+log_file=logs/install-$(date +%Y%m%d-%H%M%S).log
+exec > >(tee $log_file) 2>&1
+echo "Capturing output to $log_file"
 echo "Installation started at $(date '+%Y-%m-%d %H:%M:%S')"
 
 export OPENEDX_RELEASE=$release
@@ -138,32 +145,28 @@ if [[ $vagrant_mount_location != "" ]]; then
     export VAGRANT_MOUNT_BASE=vagrant_mount_location
 fi
 
-if [[ -d "$stack" ]]; then
-    echo -e "${ERROR}A $stack directory already exists here. If you already tried installing $stack, make sure to vagrant destroy the $stack machine and rm -rf the $stack directory before trying to reinstall. If you would like to install a separate $stack, change to a different directory and try running the script again.${NC}"
+if [[ -d .vagrant ]]; then
+    echo -e "${ERROR}A .vagrant directory already exists here. If you already tried installing $stack, make sure to vagrant destroy the $stack machine and 'rm -rf .vagrant' before trying to reinstall. If you would like to install a separate $stack, change to a different directory and try running the script again.${NC}"
     exit 1
 fi
 
 if [[ $stack == "devstack" ]]; then # Install devstack
     # Warn if release chosen is not master or open-release (Eucalyptus and up)
-    if [[ $release != "master" && $release != *"open-release"* ]]; then
-        echo -e "${WARN}The release you entered is not 'master' or an open-release. Please be aware that a branch other than master or a release other than the latest open-release could cause errors when installing $stack.${NC}"
+    if [[ $release != "master" && $release != "open-release"* ]]; then
+        echo -e "${WARN}The release you entered is not 'master' or an open-release. Please be aware that a branch other than master or a release other than the latest open-release could cause errors when installing $stack.${NC}" | fmt
     fi
 
     wiki_link="https://openedx.atlassian.net/wiki/display/OpenOPS/Running+Devstack"
-    mkdir devstack
-    cd devstack
-    curl -L https://raw.githubusercontent.com/edx/configuration/${OPENEDX_RELEASE}/vagrant/release/devstack/Vagrantfile > Vagrantfile
+    curl -fOL# https://raw.githubusercontent.com/edx/configuration/${OPENEDX_RELEASE}/vagrant/release/devstack/Vagrantfile
     vagrant plugin install vagrant-vbguest
 elif [[ $stack == "fullstack" ]]; then # Install fullstack
     # Warn if release chosen is not open-release (Eucalyptus and up)
-    if [[ $release != *"open-release"* ]]; then
+    if [[ $release != "open-release"* ]]; then
         echo -e "${WARN}The release you entered is not an open-release. Please be aware that a branch other than the latest open-release could cause errors when installing $stack.${NC}"
     fi
 
     wiki_link="https://openedx.atlassian.net/wiki/display/OpenOPS/Running+Fullstack"
-    mkdir fullstack
-    cd fullstack
-    curl -L https://raw.githubusercontent.com/edx/configuration/${OPENEDX_RELEASE}/vagrant/release/fullstack/Vagrantfile > Vagrantfile
+    curl -fOL# https://raw.githubusercontent.com/edx/configuration/${OPENEDX_RELEASE}/vagrant/release/fullstack/Vagrantfile
     vagrant plugin install vagrant-hostsupdater
 else # Throw error
     echo -e "${ERROR}Unrecognized stack name, must be either devstack or fullstack!${NC}"
@@ -186,5 +189,5 @@ else
 fi
 
 echo "Installation finished at $(date '+%Y-%m-%d %H:%M:%S')"
-echo -e "${SUCCESS}Finished installing! You may now 'cd $stack' and login using 'vagrant ssh'"
+echo -e "${SUCCESS}Finished installing! You may now log in using 'vagrant ssh'"
 echo -e "Refer to the edX wiki ($wiki_link) for more information on using $stack.${NC}"
