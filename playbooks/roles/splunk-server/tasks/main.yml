@@ -39,12 +39,12 @@
 
 - name: Write SSL certs to disk
   copy:
-    dest: "/opt/splunk/{{ splunkforwarder_ssl_cert_path }}/{{ item.0 }}"
+    dest: "{{ splunk_home }}/{{ splunk_cert_path }}/{{ item.0 }}"
     content: "{{ item.1 }}"
     owner: splunk
     group: splunk
     mode: "0400"
-  when: "{{ SPLUNK_SSL_CERT }}"
+  when: "{{ SPLUNK_SSL_CERT is defined and SPLUNK_SSL_CERT | length > 0 }}"
   with_together:
     - [forwarder.pem, cacert.pem]
     - ["{{ SPLUNK_SSL_CERT }}", "{{ SPLUNK_SSL_ROOT_CA }}"]
@@ -79,7 +79,7 @@
     owner: "{{ splunk_user  }}"
     group: "{{ splunk_user }}"
   with_items:
-    - "/opt/splunk/etc/apps/search/local"
+    - "{{ splunk_home }}/etc/apps/search/local"
   tags:
     - "install"
     - "install:configuration"
@@ -87,7 +87,7 @@
 - name: configure splunk buckets
   template:
     src: "opt/splunk/etc/apps/search/local/indexes.conf.j2"
-    dest: "/opt/splunk/etc/apps/search/local/indexes.conf"
+    dest: "{{ splunk_home }}/etc/apps/search/local/indexes.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
     mode: 0700
@@ -98,7 +98,7 @@
 - name: configure splunk email
   template:
     src: opt/splunk/etc/system/local/alert_actions.conf.j2
-    dest: /opt/splunk/etc/system/local/alert_actions.conf
+    dest: "{{ splunk_home }}/etc/system/local/alert_actions.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
     mode: 0700
@@ -109,7 +109,7 @@
 - name: configure splunk searches
   template:
     src: "opt/splunk/etc/apps/search/local/savedsearches.conf.j2"
-    dest: "/opt/splunk/etc/apps/search/local/savedsearches.conf"
+    dest: "{{ splunk_home }}/etc/apps/search/local/savedsearches.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
     mode: 0700
@@ -121,7 +121,7 @@
 - name: configure splunk field extractions
   template:
     src: opt/splunk/etc/apps/search/local/props.conf.j2
-    dest: /opt/splunk/etc/apps/search/local/props.conf
+    dest: "{{ splunk_home }}/etc/apps/search/local/props.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
     mode: 0700
@@ -133,14 +133,14 @@
 - name: Make dashboards directory
   file:
     state: directory
-    path: /opt/splunk/etc/apps/search/local/data/ui/views
+    path: "{{ splunk_home }}/etc/apps/search/local/data/ui/views"
     owner: "{{ splunk_user  }}"
     group: "{{ splunk_user }}"
 
 - name: configure splunk dashboards
   template:
     src: "{{ item }}"
-    dest: /opt/splunk/etc/apps/search/local/data/ui/views/{{ item.rstrip('.j2') | basename }}
+    dest: "{{ splunk_home }}/etc/apps/search/local/data/ui/views/{{ item.rstrip('.j2') | basename }}"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
     mode: 0700
