@@ -52,6 +52,14 @@
   gather_facts: False
   connection: local
   tasks:
+
+  - name: Fetch tags on the instance
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ instance_id }}"
+      state: list
+    register: instance_tags
+
   - name: Create AMI
     ec2_ami_2_0_0_1:
       instance_id: "{{ instance_id }}"
@@ -72,6 +80,12 @@
                 'deployment':'{{ deployment }}'
             }"
     register: ami_register
+
+  - name: Add any tags that are on the instance to the AMI
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ ami_register.image_id }}"
+      tags: "{{ instance_tags.tags }}"
 
   - name: add optional edx-theme tag
     ec2_tag:
