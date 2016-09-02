@@ -83,19 +83,12 @@
     - install
     - update
 
-- name: set not-configured semaphore
-  file:
-    path: /opt/.certbot-config-incomplete
-    state: touch
-  tags:
-    - install
-    - update
-
 - name: run certbot
   command: /opt/run_certbot.sh
   tags:
     - install
     - update
+  ignore_errors: true
 
 # Renewal will auto-update the certs in place at the linked-to locations
 # checks twice daily @ 12hr interval ±60mins
@@ -113,7 +106,7 @@
         minute    : "{{ 59|random }}"
         cron_file : "lets-encrypt-renew"
         user      : "root"
-        job       : /opt/certbot/certbot-auto renew --pre-hook "/opt/run_certbot.sh" --post-hook "service nginx restart"
+        job       : /opt/run_certbot.sh
         state     : present
   tags:
     - install
