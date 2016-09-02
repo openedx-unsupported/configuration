@@ -83,20 +83,10 @@
     - install
     - update
 
-# Store nginx running status to var
-# test for running later
-- name: check status of nginx
-  command: service nginx status
-  register: le_nginx_status
-  tags:
-    - install
-    - update
-  ignore_errors: True
-
-- name: start nginx if not running
-  service:
-    name: nginx
-    state: started
+- name: set not-configured semaphore
+  file:
+    path: /opt/.certbot-config-incomplete
+    state: touch
   tags:
     - install
     - update
@@ -123,28 +113,8 @@
         minute    : "{{ 59|random }}"
         cron_file : "lets-encrypt-renew"
         user      : "root"
-        job       : /opt/certbot/certbot-auto renew --post-hook "service nginx restart"
+        job       : /opt/certbot/certbot-auto renew --pre-hook "/opt/run_certbot.sh" --post-hook "service nginx restart"
         state     : present
   tags:
     - install
     - install:cron
-
-# Reload nginx if it was running (reload certificates)
-- name: reload nginx
-  service:
-    name: nginx
-    state: reloaded
-  tags:
-    - install
-    - update
-  when: le_nginx_status|success
-
-# Stop nginx if it was not running
-- name: stop nginx
-  service:
-    name: nginx
-    state: stopped
-  tags:
-   - install
-   - update
-  when: le_nginx_status|failed

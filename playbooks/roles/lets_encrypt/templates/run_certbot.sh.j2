@@ -1,9 +1,41 @@
 #!/bin/bash
-/opt/certbot/certbot-auto certonly --webroot --webroot-path=/usr/share/nginx/www --non-interactive --email {{ LETS_ENCRYPT_EMAIL }} --agree-tos --http-01-port {{ LETS_ENCRYPT_PORT }} {% for domain in LETS_ENCRYPT_DOMAINS -%} -d {{ domain }} {%- endfor -%}
+set -e # Quit on error
+
+if [ -e /opt/.certbot-config-incomplete ]; then
+
+# Store the current nginx status
+service nginx status
+if [ $? -ne 0 ]; then
+  nginxstate="stopped"
+fi
+
+# Start nginx up (ignore if already running)
+service nginx start || true
+
+echo "Request certificate via certbot..."
+
+# Run certbot installation
+/opt/certbot/certbot-auto certonly --webroot --webroot-path=/usr/share/nginx/www --email {{ LETS_ENCRYPT_EMAIL }} --agree-tos --http-01-port {{ LETS_ENCRYPT_PORT }} {% for domain in LETS_ENCRYPT_DOMAINS %} -d {{ domain }} {% endfor %} --non-interactive
+
+echo "Create symlinks to Let's Encrypt certificates..."
 
 # Create symlinks to Lets Encrypt certificates
-ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/certs/fullchain.pem /etc/ssl/le_fullchain.pem
-ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/certs/privkey.pem /etc/ssl/le_privkey.pem
+ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/fullchain.pem /etc/ssl/certs/le_fullchain.pem
+ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/privkey.pem /etc/ssl/private/le_privkey.pem
+
+echo "Writing nginx certificate configuration..."
 
 # Copy the configuration file (with the above certs) into place
 cp /edx/app/edxapp/configuration/playbooks/roles/lets_encrypt/templates/ssl-certs.conf /etc/nginx/ssl-certs.conf
+
+# Clear configuration-incomplete semaphore
+rm /opt/.certbot-config-incomplete
+
+# Stop nginx again if it wasn't running, or restart it if it was
+if [ "$nginxstate" == "stopped" ]; then
+service nginx stop
+else
+service restart
+fi
+
+fi
