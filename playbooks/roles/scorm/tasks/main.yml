@@ -3,6 +3,7 @@
 
 - include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/common_vars/defaults/main.yml"
 - include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/edxapp/defaults/main.yml"
+- include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/edx_ansible/defaults/main.yml"
 
 - name: create all service directories
   file: >
@@ -88,3 +89,16 @@
     minute: 0
     job: "{{ scorm_s3_sync_script }}"
   when: SCORM_S3_BACKUP
+
+# you must still run the Nginx role after this.
+- name: copy Nginx templates to nginx role
+  copy: >
+    src=nginx_extra_templates/{{item}}
+    dest={{ edx_ansible_code_dir }}/playbooks/roles/nginx/templates/edx/app/nginx/sites-available/{{item}}
+    owner=edx-ansible
+    group=edx-ansible
+    mode=0644
+  with_items: 
+   - extra_locations_lms.j2
+   - static-files-extra.j2
+  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
