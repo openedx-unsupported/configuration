@@ -55,7 +55,7 @@
     when: APPLICATION_NAME != "edxapp"
 
   - name: generate list of edxapp unapplied migrations
-    shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} show_unapplied_migrations --database "{{ item }}" --output_file "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --settings "{{ EDX_PLATFORM_SETTINGS }}"'
+    shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} show_unapplied_migrations --database "{{ item }}" --output_file "{{ temp_output_dir.stdout }}/{{ item }}_{{ unapplied_migrations_output }}" --settings "{{ EDX_PLATFORM_SETTINGS }}"'
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
     with_items: edxapp_databases.keys()
@@ -66,10 +66,14 @@
     when: APPLICATION_NAME != "edxapp"
 
   - name: migrate to apply any edxapp unapplied migrations
-    shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_migrations "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --database "{{ item }}" --settings "{{ EDX_PLATFORM_SETTINGS }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"'
+    shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_migrations "{{ temp_output_dir.stdout }}/{{ item }}_{{ unapplied_migrations_output }}" --database "{{ item }}" --settings "{{ EDX_PLATFORM_SETTINGS }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"'
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
     with_items: edxapp_databases.keys()
+
+  - name: List all migration files
+    action: "command ls -1 {{ temp_output_dir.stdout }}"
+    register: migration_files
 
   - name: Transfer artifacts to the proper place.
     fetch:
@@ -79,8 +83,7 @@
       fail_on_missing: True
       mode: 0700
     with_items:
-      - "{{ unapplied_migrations_output }}"
-      - "{{ migration_output }}"
+      - "{{ migration_files.stdout_lines }}"
 
   - name: Send Hipchat notification cleanup has finished
     hipchat_2_0_0_1:
