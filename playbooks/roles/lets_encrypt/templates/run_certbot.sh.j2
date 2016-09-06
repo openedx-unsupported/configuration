@@ -13,7 +13,11 @@ service nginx start || true
 echo "Request certificate via certbot... (or renew)"
 
 # Run certbot installation
-/opt/certbot/certbot-auto certonly --webroot --webroot-path=/usr/share/nginx/www --email {{ LETS_ENCRYPT_EMAIL }} --agree-tos --http-01-port {{ LETS_ENCRYPT_PORT }} {% for domain in LETS_ENCRYPT_DOMAINS %} -d {{ domain }} {% endfor %} --non-interactive --post-hook "service nginx restart"
+/opt/certbot/certbot-auto certonly --webroot --webroot-path=/usr/share/nginx/www --email {{ LETS_ENCRYPT_EMAIL }} --agree-tos --http-01-port {{ LETS_ENCRYPT_PORT }} {% for domain in LETS_ENCRYPT_DOMAINS %} -d {{ domain }} {% endfor %} --non-interactive
+
+echo "Restarting nginx service to reload config..."
+
+service nginx restart
 
 echo "Create symlinks to Let's Encrypt certificates..."
 
