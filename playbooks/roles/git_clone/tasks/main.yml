@@ -17,17 +17,6 @@
 # require in our default configuration.
 #
 #
-# Rewrite this task using the ansible git-config module once we'll migrate to Ansible 2.x
-# https://docs.ansible.com/ansible/git_config_module.html#git-config
-#
-- name: Set git fetch.prune to ignore deleted remote refs
-  shell: git config --global fetch.prune true
-  become_user: "{{ repo_owner }}"
-  when: GIT_REPOS is defined
-  tags:
-    - install
-    - install:code
-
 - name: Validate git protocol
   fail:
     msg: '{{ GIT_REPOS.PROTOCOL }} must be "https" or "ssh"'
@@ -58,6 +47,7 @@
     version: "{{ item.VERSION }}"
     accept_hostkey: yes
     key_file: "{{ git_home }}/.ssh/{{ item.REPO }}"
+    force: true
   become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
@@ -71,6 +61,7 @@
     repo: "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
     dest: "{{ item.DESTINATION }}"
     version: "{{ item.VERSION }}"
+    force: true
   become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "https" and GIT_REPOS is defined
