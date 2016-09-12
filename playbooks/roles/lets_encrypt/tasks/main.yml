@@ -68,7 +68,7 @@
 - name: install certbot
   git:
     repo: https://github.com/certbot/certbot
-    dest: /opt/certbot
+    dest: /opt/letsencrypt/certbot
   tags:
    - install
 
@@ -85,7 +85,7 @@
 - name: render certbot script
   template:
     src: run_certbot.sh.j2
-    dest: /opt/run_certbot.sh
+    dest: /opt/letsencrypt/run_certbot.sh
     mode: u+x
   tags:
     - install
@@ -94,13 +94,13 @@
 - name: render nginx cert configuration file
   template:
     src: ssl-certs.conf.j2
-    dest: /opt/ssl-certs.conf
+    dest: /opt/letsencrypt/ssl-certs.conf
     owner: root
   tags:
     - install
 
 - name: run certbot
-  command: /opt/run_certbot.sh
+  command: /opt/letsencrypt/run_certbot.sh
   tags:
     - install
     - update
@@ -122,7 +122,7 @@
         minute    : "{{ 59|random }}"
         cron_file : "lets-encrypt-renew"
         user      : "root"
-        job       : /opt/run_certbot.sh
+        job       : /opt/letsencrypt/run_certbot.sh
         state     : present
   tags:
     - install
