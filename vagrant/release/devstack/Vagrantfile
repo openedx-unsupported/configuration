@@ -60,54 +60,44 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "open-release/eucalyptus.master" => {
-    :name => "eucalyptus-devstack-2016-09-01", :file => "eucalyptus-devstack-2016-09-01.box",
-  },
-  "open-release/eucalyptus.1rc2" => {
-    :name => "eucalyptus-devstack-2016-08-19", :file => "eucalyptus-devstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.1" => {
-    :name => "eucalyptus-devstack-2016-08-19", :file => "eucalyptus-devstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.2" => {
-    :name => "eucalyptus-devstack-2016-09-01", :file => "eucalyptus-devstack-2016-09-01.box",
-  },
-  # Note: the devstack and fullstack boxes differ, because devstack had an issue
-  # that needed fixing, but it didn't affect fullstack.
-  "named-release/dogwood.rc" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
-  "named-release/dogwood.1" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
-  "named-release/dogwood.2" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
-  "named-release/dogwood.3" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
+  "open-release/eucalyptus.master" => "eucalyptus-devstack-2016-09-01",
+  "open-release/eucalyptus.1rc2" => "eucalyptus-devstack-2016-08-19",
+  "open-release/eucalyptus.1" => "eucalyptus-devstack-2016-08-19",
+  "open-release/eucalyptus.2" => "eucalyptus-devstack-2016-09-01",
+  "named-release/dogwood.rc" => "dogwood-devstack-2016-03-09",
+  "named-release/dogwood.1" => "dogwood-devstack-2016-03-09",
+  "named-release/dogwood.2" => "dogwood-devstack-2016-03-09",
+  "named-release/dogwood.3" => "dogwood-devstack-2016-03-09",
   "named-release/dogwood" => {
     :name => "dogwood-devstack-rc2", :file => "20151221-dogwood-devstack-rc2.box",
   },
   # Cypress is deprecated and unsupported
   # "named-release/cypress" => {
-  #   :name => "cypress-devstack", :file => "cypress-devstack.box",
+  #   :name => "cypress-devstack",
   # },
   # Birch is deprecated and unsupported
   # "named-release/birch.2" => {
   #   :name => "birch-devstack-2", :file => "birch-2-devstack.box",
   # },
 }
-openedx_releases.default = {
-  :name => "eucalyptus-devstack-2016-09-01", :file => "eucalyptus-devstack-2016-09-01.box",
-}
+openedx_releases.default = "eucalyptus-devstack-2016-09-01"
+
 rel = ENV['OPENEDX_RELEASE']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  reldata = openedx_releases[rel]
+  if Hash == reldata.class
+    boxname = openedx_releases[rel][:name]
+    boxfile = openedx_releases[rel].fetch(:file, "#{boxname}.box")
+  else
+    boxname = reldata
+    boxfile = "#{boxname}.box"
+  end
+
   # Creates an edX devstack VM from an official release
-  config.vm.box     = openedx_releases[rel][:name]
-  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
+  config.vm.box     = boxname
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
