@@ -1,4 +1,4 @@
-.PHONY = monitoring deploy-testdrive mysql-init-testdrive mongo-replicaset-testdrive
+.PHONY = monitoring deploy-testdrive mysql-init-testdrive mongo-replicaset-testdrive deploy-amc
 
 .DEFAULT_GOAL = help
 
@@ -17,6 +17,12 @@ deploy-testdrive:
 	$(eval EDXCONFIGS_REPO_LOCAL_BRANCH := $(shell cd ../../edx-configs && git symbolic-ref --short -q HEAD))
 	@appsembler/scripts/check_git_is_up2date.sh
 	@ansible-playbook --inventory-file=../../edx-configs/appsembler/testdrive/hosts/inventory testdrive.yml --ask-vault-pass
+
+## Deploy AMC
+deploy-amc:
+	$(eval EDXCONFIGS_REPO_LOCAL_BRANCH := $(shell cd ../../edx-configs && git symbolic-ref --short -q HEAD))
+	@appsembler/scripts/check_git_is_up2date.sh
+	@ansible-playbook --inventory-file=../../edx-configs/appsembler/amc/hosts/inventory amc.yml
 
 ## Run mysql_init.yml playbook for testdrive
 mysql-init-testdrive:
