@@ -7,7 +7,7 @@
 - name: Add the user to the group and configure shell
   user: name={{ android_user }} append=yes group={{ android_group }} shell=/bin/bash
 
-# Download the Android SDK/tools tarball from Google's download site. 
+# Download the Android SDK/tools tarball from Google's download site.
 # NOTE: while it is the general policy to use repositories/ppas as much as possible
 #       it did not seem reliable for this work. Other avenues were explored:
 #   - pre-Ubuntu 16 releases do not contain the android sdk in their apt repos
@@ -23,22 +23,37 @@
 - assert:
     that:
       "'{{ android_checksum }}' in sdk_checksum.stdout"
-- name: Unarchive tarball to /opt/android-sdk
+- name: Unarchive tarball to /opt/android-sdk-linux
   unarchive:
     copy: no
     src: /tmp/android-sdk.tgz
     dest: /opt
     creates: "{{ android_home }}"
     owner: "{{ android_user }}"
-    group: "{{ android_group }}" 
+    group: "{{ android_group }}"
   become: yes
 # Use the android sdk manager to install the build targets necessary for the edx mobile app
 - name: Install Android API levels
-  shell: "echo 'y' | {{ android_home }}/tools/android update sdk --no-ui --filter {{ ','.join(android_build_targets) }}"
+  shell: "echo 'y' | {{ android_home }}/tools/android update sdk -a --no-ui --filter {{ android_build_targets | join(',') }}"
   become: yes
   become_user: "{{ android_user }}"
+# Put Android package names into a list for easier installation command
+- name: Gather Android packages to download into a list
+  util_map:
+    function: 'zip_to_list'
+    input: "{{ android_tools }}"
+    args:
+      - "package"
+  register: android_packages
 # Use the android sdk manager to install the build tools necessary for the edx mobile app
 - name: Install other Android tools
-  shell: "echo 'y' | {{ android_home }}/tools/android update sdk --no-ui --filter {{ ','.join(android_tools) }}"
+  shell: "echo 'y' | {{ android_home }}/tools/android update sdk -a --no-ui --filter {{ android_packages.function_output | join(',') }}"
   become: yes
   become_user: "{{ android_user }}"
+# The following libraries are only needed to run AVD emulation, not for compiling
+- name: Install additional libraries used for Android emulation
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    state: present
+  with_items: "{{ android_apt_libraries }}"

@@ -5,7 +5,7 @@
   register: android_version
 - assert:
     that:
-       - "android_version.rc == 0"
+      - "android_version.rc == 0"
 # Test that the necessary build targets for building the edx app have
 # been installed.
 - name: Verify correct Android build targets installed
@@ -15,3 +15,21 @@
   assert:
     that:
       - "'{{ item }}' in build_targets.stdout"
+# Put the paths of downloaded packages into a list, so they can be iterated over
+# in an assert block
+- name: Gather paths of installed Android packages into a list
+  util_map:
+    function: 'zip_to_list'
+    input: "{{ android_tools }}"
+    args:
+      - "android_test_path"
+  register: android_test_paths
+# Test that the correct android tools are installed
+- name: Verify build tools installed
+  stat: path={{ android_home }}/{{ item }}
+  register: android_package_stats
+  with_items: "{{ android_test_paths.function_output }}"
+- with_items: "{{ android_package_stats.results }}"
+  assert:
+    that:
+      - "item.stat.exists == True"
