@@ -142,7 +142,7 @@ echo "Installing release '$OPENEDX_RELEASE'"
 # Check if mount location was changed
 if [[ $vagrant_mount_location != "" ]]; then
     echo "Changing Vagrant provision location to $vagrant_mount_location..."
-    export VAGRANT_MOUNT_BASE=vagrant_mount_location
+    export VAGRANT_MOUNT_BASE=$vagrant_mount_location
 fi
 
 if [[ -d .vagrant ]]; then
