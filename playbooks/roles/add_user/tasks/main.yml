@@ -1,0 +1,71 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role add_user
+#
+# Overview:
+#
+# This role performs the repetitive tasks that most edX roles
+# require in our default configuration.
+
+# create groups for the user
+- name: create user groups
+  group:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ user_name }}"
+  tags:
+    - install
+    - install:base
+
+# Generating an ssh key so users can do a git
+# clone over ssh for public repositories without any
+# additional configuration
+- name: create application user
+  user:
+    name: "{{ user_name }}"
+    home: "{{ user_home }}"
+    createhome: yes
+    shell: /bin/false
+    generate_ssh_key: yes
+  tags:
+    - install
+    - install:base
+
+# Assumes that the home directory has been created above.
+# In some cases(vagrant boxes) the home directory gets created
+# but does not have the correct owner and group. In vagrant for
+# example we were seeing it defaulting to `root` for both.
+# Here we ensure that the ownership
+# of the home directory is always correct before proceeding.
+- name: ensure correct ownership of home directory
+  file:
+    path: "{{ user_home }}"
+    state: directory
+    owner: "{{ user_name }}"
+    group: "{{ group_name }}"
+  tags:
+    - install
+    - install:base
+
+- name: create dirs for the user
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode | default('0755') }}"
+  with_items: dirs
+  when: dirs is defined
+  tags:
+    - install
+    - install:base

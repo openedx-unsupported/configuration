@@ -1,0 +1,221 @@
+---
+
+- name: install jenkins analytics extra system packages
+  apt:
+    pkg={{ item }} state=present update_cache=yes
+  with_items: JENKINS_ANALYTICS_EXTRA_PKGS
+  tags:
+  - jenkins
+
+- name: Install httplib2 (required by uri module used in this role)
+  pip:
+    name: httplib2
+  tags:
+  - jenkins
+
+# Jenkins authentication/authorization
+
+- fail: msg="Please change default password for jenkins user"
+  when: jenkins_auth_realm.name == "unix" and jenkins_auth_realm.plain_password == jenkins_auth_realm.username
+  tags:
+    - jenkins-auth
+
+- fail: msg="Please change default github oauth client key and secret"
+  when: jenkins_auth_realm.name == "github_oauth" and ((not jenkins_auth_realm.clientId) or (not jenkins_auth_realm.clientSecret))
+  tags:
+    - jenkins-auth
+
+- name: generate jenkins user password
+  shell: "openssl passwd -1 '{{ jenkins_auth_realm.plain_password | quote }}'"
+  register: jenkins_user_password_hash
+  no_log: True
+  when: jenkins_auth_realm.name == "unix"
+  tags:
+    - jenkins-auth
+
+- user:
+    name: "{{ jenkins_user }}"
+    state: present
+    groups: shadow
+    append: yes
+    password: '!' # locked
+    update_password: always
+    generate_ssh_key: yes
+    ssh_key_file: "{{ jenkins_private_keyfile }}"
+  tags:
+    - jenkins-auth
+
+- user:
+    name: "{{ jenkins_user }}"
+    password: "{{ jenkins_user_password_hash.stdout }}"
+  when: jenkins_auth_realm.name == "unix"
+  tags:
+    - jenkins-auth
+
+- name: template config.xml
+  template:
+    src: jenkins.config.main.xml
+    dest: "{{ jenkins_home }}/config.xml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-auth
+
+- name: jenkins user config dir
+  file:
+    name: "{{ jenkins_home }}/users/{{ jenkins_user }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-auth
+
+- name: template jenkins user config.xml
+  template:
+    src: jenkins.user.config.xml
+    dest: "{{ jenkins_home }}/users/{{ jenkins_user }}/config.xml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    force: no  # don't overwrite if already there
+  tags:
+    - jenkins-auth
+
+- name: fetch jenkins user public key
+  shell: "cat {{ jenkins_public_keyfile }}"
+  register: jenkins_public_key
+  tags:
+    - jenkins-auth
+
+- name: add jenkins user public key
+  lineinfile:
+    dest: "{{ jenkins_home }}/users/{{ jenkins_user }}/config.xml"
+    state: present
+    regexp: "^\\s*<authorizedKeys>"
+    line: "<authorizedKeys>{{ jenkins_public_key.stdout }}</authorizedKeys>"
+  tags:
+    - jenkins-auth
+
+# Unconditionally restart Jenkins, this has two side-effects:
+# 1. Jenkins uses new auth realm
+# 2. We guarantee that jenkins is started (this is not certain
+#    as Jenkins is started by handlers from jenkins_master,
+#    these handlers are launched after this role).
+
+- name: restart Jenkins
+  service: name=jenkins state=restarted
+  tags:
+    - jenkins-auth
+
+# Upload Jenkins credentials
+
+- name: create credentials dir
+  file: name={{ jenkins_credentials_root }} state=directory
+  tags:
+    - jenkins-credentials
+
+- name: upload groovy credentials script
+  template:
+    src: addCredentials.groovy
+    dest: "{{ jenkins_credentials_script }}"
+    mode: "600"
+  tags:
+    - jenkins-credentials
+
+- name: upload credentials file
+  template:
+    src: credentials_file.json.j2
+    dest: "{{ jenkins_credentials_file_dest }}"
+    mode: "600"
+    owner: "{{ jenkins_user }}"
+  tags:
+    - jenkins-credentials
+
+- name: add credentials
+  include: execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "groovy {{ jenkins_credentials_script }}"
+  tags:
+    - jenkins-credentials
+
+- name: clean up
+  file: name={{ jenkins_credentials_root }} state=absent
+  tags:
+    - jenkins-credentials
+
+# Upload seed job
+
+- name: create seed job dir
+  file: name={{ jenkins_seed_job_root }} state=directory owner={{ jenkins_user }} group={{ jenkins_group }}
+  tags:
+    - jenkins-seed-job
+
+- name: clone job-dsl-plugin repo
+  git:
+    repo: https://github.com/jenkinsci/job-dsl-plugin.git
+    depth: 1
+    dest: "{{ jenkins_seed_job_root }}"
+  become: yes
+  become_user: "{{ jenkins_user }}"
+  tags:
+    - jenkins-seed-job
+
+- name: upload groovy seed job script
+  template:
+    src: seedJob.groovy
+    dest: "{{ jenkins_seed_job_script }}"
+    mode: "600"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-seed-job
+
+- name: generate seed job xml
+  shell: >
+    cd {{ jenkins_seed_job_root }} &&
+    GRADLE_OPTS="-Dorg.gradle.daemon=true" ./gradlew run -Pargs={{ jenkins_seed_job_script }}
+  become: yes
+  become_user: "{{ jenkins_user }}"
+  tags:
+    - jenkins-seed-job
+
+- name: check if job is present
+  include: execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "get-job {{ jenkins_seed_job.name }}"
+    jenkins_ignore_cli_errors: yes
+  tags:
+    - jenkins-seed-job
+
+- set_fact:
+    get_job_output: "{{ jenkins_command_output }}"
+  tags:
+    - jenkins-seed-job
+
+# Upload seed job to Jenkins
+
+- name: Create seed job if absent
+  include: execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "create-job {{ jenkins_seed_job.name }}"
+    jenkins_command_prefix: "cat {{ jenkins_seed_job_xmlfile }} | "
+  when: get_job_output.rc != 0
+  tags:
+    - jenkins-seed-job
+
+- name: update seed job
+  include: execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "update-job {{ jenkins_seed_job.name }}"
+    jenkins_command_prefix: "cat {{ jenkins_seed_job_xmlfile }} | "
+  when: get_job_output.rc == 0
+  tags:
+    - jenkins-seed-job
+
+# Build the seed job
+
+- name: Build the seed job
+  include: execute_jenkins_cli.yaml
+  vars:
+    jenkins_command_string: "build {{ jenkins_seed_job.name }} -s"
+  tags:
+    - jenkins-seed-job

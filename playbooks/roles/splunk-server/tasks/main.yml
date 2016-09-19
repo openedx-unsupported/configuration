@@ -1,0 +1,130 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role splunk-server
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: Validate field extractions
+  fail:
+    msg: Please define either "source" or "sourcetype", not both or neither
+  when: ('source' in item and 'sourcetype' in item) or ('source' not in item and 'sourcetype' not in item)
+  with_items: SPLUNK_FIELD_EXTRACTIONS
+
+- name: Create bucket directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ splunk_user  }}"
+    group: "{{ splunk_user }}"
+  with_items:
+    - "{{ splunk_hot_dir }}"
+    - "{{ splunk_thawed_dir }}"
+    - "{{ splunk_cold_dir }}"
+    - "{{ splunk_frozen_dir }}"
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: Create configuration directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ splunk_user  }}"
+    group: "{{ splunk_user }}"
+  with_items:
+    - "/opt/splunk/etc/apps/search/local"
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: configure splunk buckets
+  template:
+    src: "opt/splunk/etc/apps/search/local/indexes.conf.j2"
+    dest: "/opt/splunk/etc/apps/search/local/indexes.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: configure splunk email
+  template:
+    src: opt/splunk/etc/system/local/alert_actions.conf.j2
+    dest: /opt/splunk/etc/system/local/alert_actions.conf
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - install
+    - install:configuration
+
+- name: configure splunk searches
+  template:
+    src: "opt/splunk/etc/apps/search/local/savedsearches.conf.j2"
+    dest: "/opt/splunk/etc/apps/search/local/savedsearches.conf"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - "install"
+    - "install:configuration"
+  when: SPLUNK_ALERTS is defined
+
+- name: configure splunk field extractions
+  template:
+    src: opt/splunk/etc/apps/search/local/props.conf.j2
+    dest: /opt/splunk/etc/apps/search/local/props.conf
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - install
+    - install:configuration
+  when: SPLUNK_FIELD_EXTRACTIONS is defined
+
+- name: Make dashboards directory
+  file:
+    state: directory
+    path: /opt/splunk/etc/apps/search/local/data/ui/views
+    owner: "{{ splunk_user  }}"
+    group: "{{ splunk_user }}"
+
+- name: configure splunk dashboards
+  template:
+    src: "{{ item }}"
+    dest: /opt/splunk/etc/apps/search/local/data/ui/views/{{ item.rstrip('.j2') | basename }}
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  with_items: SPLUNK_DASHBOARDS
+  tags:
+    - install
+    - install:configuration
+
+- name: restart splunk
+  service: 
+    name: splunk
+    state: restarted 
+  tags:
+    - "install"
+    - "install:configuration"
+    - "restart"
+

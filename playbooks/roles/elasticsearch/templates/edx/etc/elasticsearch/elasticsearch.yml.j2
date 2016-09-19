@@ -33,14 +33,9 @@ script.disable_dynamic: true
 #    to perform discovery when new nodes (master or data) are started:
 #
 # discovery.zen.ping.unicast.hosts: ["host1", "host2:port", "host3[portX-portY]"]
-{%- if ELASTICSEARCH_CLUSTERED -%}
-  {%- set hosts= [] -%}
+{% if ELASTICSEARCH_CLUSTER_MEMBERS|length > 1 -%}
 
-  {%- for host in hostvars.keys() -%}
-    {% do hosts.append(host) %}
-  {%- endfor %}
-
-discovery.zen.ping.unicast.hosts: ['{{hosts|join("\',\'") }}']
+discovery.zen.ping.unicast.hosts: ['{{ELASTICSEARCH_CLUSTER_MEMBERS|join("\',\'") }}']
 
 {% endif -%}
 

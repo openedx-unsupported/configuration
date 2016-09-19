@@ -31,28 +31,34 @@ server {
 
   {% endif %}
 
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
   {% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
   # Redirect http to https over single instance
   if ($scheme != "https") 
   { 
    set $do_redirect_to_https "true";
   }
 
-  # Nginx does not support nested conditions 
+     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
+
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
   if ($http_x_forwarded_proto = "http") 
   {
    set $do_redirect_to_https "true";
   }
+     {% endif %}
 
+  # Execute the actual redirect
   if ($do_redirect_to_https = "true")
   {
-  rewrite ^ https://$host$request_uri? permanent;
+  return 301 https://$host$request_uri;
   }
   {% endif %}
 
   location ~ ^/static/(?P<file>.*) {
-    root {{ COMMON_DATA_DIR }}/{{ programs_service_name }};
+    root {{ PROGRAMS_DATA_DIR  }};
     try_files /staticfiles/$file =404;
 
     # Request that the browser use SSL for these connections. Repeated here
@@ -65,16 +71,37 @@ server {
     add_header Cache-Control "public; max-age=3600";
   }
 
+  location ~ ^/media/(?P<file>.*) {
+    root {{ PROGRAMS_DATA_DIR }};
+    try_files /media/$file =404;
+    # django / app always assigns new filenames so these can be cached forever.
+    add_header Cache-Control "public; max-age=31536000";
+  }
+
   location / {
+    {% if PROGRAMS_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
+    try_files $uri @proxy_to_app;
+  }
+
+  # The API should be secured with OAuth 2.0 or or JWT.
+  location /api {
     try_files $uri @proxy_to_app;
   }
 
   {% include "robots.j2" %}
 
 location @proxy_to_app {
+    {% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {% else %}
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {% endif %}
     proxy_set_header Host $http_host;
 
     proxy_redirect off;

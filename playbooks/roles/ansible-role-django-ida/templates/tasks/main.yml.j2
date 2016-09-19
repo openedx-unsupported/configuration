@@ -23,6 +23,16 @@
     - install
     - install:configuration
 
+- name: build virtualenv
+  command: "virtualenv {{ '{{' }} {{ role_name }}_venv_dir }}"
+  args:
+    creates: "{{ '{{' }} {{ role_name }}_venv_dir }}/bin/pip"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: install application requirements
   command: make requirements
   args:
@@ -43,45 +53,6 @@
     - devstack
     - devstack:install
 
-- name: wait for database
-  wait_for:
-    host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    port: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PORT }}"
-    delay: 2
-  tags:
-    - devstack
-    - devstack:migrate
-
-- name: create databases
-  mysql_db:
-    login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_USER }}"
-    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_PASSWORD }}"
-    db: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}"
-    state: present
-    encoding: utf8
-  tags:
-    - devstack
-    - devstack:migrate
-
-- name: create database users
-  mysql_user:
-    login_host: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.HOST }}"
-    login_user: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_USER }}"
-    login_password: "{{ '{{' }} {{ role_name|upper }}_DB_ADMIN_PASSWORD }}"
-    name: "{{ '{{' }} item.name }}"
-    host: "%"
-    password: "{{ '{{' }} item.password }}"
-    priv: "{{ '{{' }} {{ role_name|upper }}_DEFAULT_DB_NAME }}.*:ALL"
-  with_items:
-    - name: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.USER }}"
-      password: "{{ '{{' }} {{ role_name|upper }}_DATABASES.default.PASSWORD }}"
-    - name: "{{ '{{' }} COMMON_MYSQL_MIGRATE_USER }}"
-      password: "{{ '{{' }} COMMON_MYSQL_MIGRATE_PASS }}"
-  tags:
-    - devstack
-    - devstack:migrate
-
 - name: migrate database
   command: make migrate
   args:
@@ -92,8 +63,6 @@
   tags:
     - migrate
     - migrate:db
-    - devstack
-    - devstack:migrate
 
 - name: write out the supervisor wrapper
   template:

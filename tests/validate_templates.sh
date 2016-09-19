@@ -3,6 +3,7 @@
 # The 'root_dir' and 'environment_deployments' variables
 # should be set when we source this.
 
+FAIL=0
 for e_d in $environment_deployments
 do
   GREP_DIR="$root_dir/${e_d}"

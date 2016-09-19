@@ -15,4 +15,5 @@ if [ "$help" = "true" ]; then
   manage="$manage help"
 fi
 
-$ansible "$manage $command $options --settings aws"
+echo "Running $ansible \"$manage $command $options\""
+$ansible "$manage $command $options"

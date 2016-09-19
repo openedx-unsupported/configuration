@@ -29,47 +29,91 @@
 #    - elasticsearch
 #
 
-- name: download elasticsearch
-  get_url: >
-    url={{ elasticsearch_url }}
-    dest=/var/tmp/{{ elasticsearch_file }}
-    force=no
+- name: Install Elasticsearch repo key 
+  apt_key:
+    id: "{{ elasticsearch_apt_key }}"
+    keyserver: "{{ elasticsearch_apt_keyserver }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add Elasticsearch Repo
+  apt_repository:
+    repo: "{{ elasticsearch_repo }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: install elasticsearch
+  apt:
+    pkg: "{{ elasticsearch_package_name }}={{ ELASTICSEARCH_VERSION }}"
+    state: present 
+    install_recommends: yes
+    force: yes 
+    update_cache: yes
+  tags:
+    - install
+    - install:base
   register: elasticsearch_reinstall
 
-- name: install elasticsearch from local package
-  shell: >
-    dpkg -i  --force-confold /var/tmp/elasticsearch-{{ elasticsearch_version }}.deb
-    executable=/bin/bash
-  when: elasticsearch_reinstall.changed
-
 - name: create directories
-  file: >
-    path="{{ item }}"
-    state=directory
-    owner="{{ elasticsearch_user }}"
-    group="{{ elasticsearch_group }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
   with_items:
     - "{{ elasticsearch_data_dir }}"
     - "{{ elasticsearch_log_dir }}"
     - "{{ elasticsearch_cfg_dir }}"
+  tags:
+    - install
+    - install:base
 
 - name: update elasticsearch defaults
-  template: >
-    src=etc/default/elasticsearch.j2 dest=/etc/default/elasticsearch
+  template:
+    src: etc/default/elasticsearch.j2 
+    dest: /etc/default/elasticsearch
+  tags:
+    - install
+    - install:configuration
 
 - name: drop the elasticsearch config
-  template: >
-    src=edx/etc/elasticsearch/elasticsearch.yml.j2 dest={{ elasticsearch_cfg_dir }}/elasticsearch.yml
-    mode=0744
+  template:
+    src: edx/etc/elasticsearch/elasticsearch.yml.j2 
+    dest: "{{ elasticsearch_cfg_dir }}/elasticsearch.yml"
+    mode: 0744
+  tags:
+    - install
+    - install:configuration
 
 - name: drop the elasticsearch logging config
-  template: >
-    src=edx/etc/elasticsearch/logging.yml.j2 dest={{ elasticsearch_cfg_dir }}/logging.yml
-    mode=0744
+  template:
+    src: edx/etc/elasticsearch/logging.yml.j2 
+    dest: "{{ elasticsearch_cfg_dir }}/logging.yml"
+    mode: 0744
+  tags:
+    - install
+    - install:configuration
 
 - name: Ensure elasticsearch is enabled and started
-  service: name=elasticsearch state=started enabled=yes
+  service: 
+    name: elasticsearch
+    state: started 
+    enabled: yes
+  tags:
+    - manage
+    - manage:start
 
 - name: Restart elastic when there has been an upgrade
-  service: name=elasticsearch state=restarted enabled=yes
+  service: 
+    name: elasticsearch 
+    state: restarted 
+    enabled: yes
   when: elasticsearch_reinstall.changed
+  tags:
+    - manage
+    - manage:restart
+    - install

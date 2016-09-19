@@ -3,7 +3,11 @@
 {% for loggable in SPLUNKFORWARDER_LOG_ITEMS%}
 [monitor://{{ loggable.source }}]
 blacklist = \.(gz)$
-recursive = {{ loggable.recursive|default(false) }}
+{% if loggable.recursive | default(False) %}
+{# There's a bug in which "recursive" must be unset for logs to be forwarded #}
+{# See https://answers.splunk.com/answers/420901/splunk-not-matching-files-with-wildcard-in-monitor.html #}
+recursive = true
+{% endif %}
 {% if loggable.sourcetype is defined %}
 sourcetype = {{ loggable.sourcetype }}
 {% endif %}

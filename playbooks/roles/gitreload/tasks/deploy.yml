@@ -1,10 +1,10 @@
 - name: create ssh dir for the content repos key
   file: path=~/.ssh state=directory mode=0700
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
 
 - name: install ssh key for the content repos
   copy: content="{{ GITRELOAD_GIT_IDENTITY }}" dest=~/.ssh/id_rsa mode=0600
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
 
 - include: course_pull.yml
   when: GITRELOAD_COURSE_CHECKOUT|bool
@@ -15,18 +15,18 @@
     name=git+{{ gitreload_repo }}@{{ gitreload_version }}#egg=gitreload
     virtualenv={{ gitreload_venv }}
     extra_args="--exists-action w"
-  sudo_user: "{{ gitreload_user }}"
+  become_user: "{{ gitreload_user }}"
   notify: restart gitreload
 
 - name: copy configuration
   template: src=edx/app/gitreload/gr.env.json.j2 dest={{ gitreload_dir }}/gr.env.json
-  sudo_user: "{{ gitreload_user }}"
+  become_user: "{{ gitreload_user }}"
   notify: restart gitreload
 
 - name: "add gunicorn configuration file"
   template: >
     src=edx/app/gitreload/gitreload_gunicorn.py.j2 dest={{ gitreload_dir }}/gitreload_gunicorn.py
-  sudo_user: "{{ gitreload_user }}"
+  become_user: "{{ gitreload_user }}"
   notify: restart gitreload
 
 - name: "writing supervisor script"

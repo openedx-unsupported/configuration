@@ -6,8 +6,13 @@ module: mongodb_rs_status
 short_description: Get the status of a replica set of a mongo cluster.
 description:
   - Get the status of the replica set of a mongo cluster. Provide the same info as rs.status() or replSetGetStatus.
+    Returns a status dictionary key containing the replica set JSON document from Mongo, or no status key if there
+    was no status found.  This usually indicates that either Mongo was configured to run without replica sets or
+    that the replica set has not been initiated yet.
 version_added: "1.9"
-author: Feanil Patel
+author:
+  - Feanil Patel
+  - Kevin Falcone
 options:
   host:
     description:
@@ -35,17 +40,26 @@ options:
 
 EXAMPLES = '''
 - name: Get status for the stage cluster
-  mongo_status:
+  mongodb_rs_status:
     host: localhost:27017
     username: root
     password: password
   register: mongo_status
+
+Note that you're testing for the presence of the status member of the dictionary not the contents of it
+
+- debug: msg="I don't have a replica set available"
+  when: mongo_status.status is not defined
+
+- debug: var=mongo_status.status
+
 '''
 # Magic import
 from ansible.module_utils.basic import *
 
 try:
     from pymongo import MongoClient
+    from pymongo.errors import OperationFailure
     from bson import json_util
 except ImportError:
     pymongo_found = False
@@ -89,7 +103,22 @@ def main():
         mongo_uri += '/{}'.format(quote_plus(auth_database))
 
     client = MongoClient(mongo_uri)
-    status = client.admin.command("replSetGetStatus")
+
+    # This checks to see if you have a replSetName configured
+    # This generally means that /etc/mongod.conf has been changed
+    # from the default to use a replica set and mongo has been
+    # restarted to use it.
+
+    try:
+        repl_set = client.admin.command('getCmdLineOpts')['parsed']['replication']['replSetName']
+    except (OperationFailure, KeyError):
+        module.exit_json(changed=False)
+
+    # If mongo was started with a repl_set, it is safe to run replSetGetStatus
+    if repl_set:
+        status = client.admin.command("replSetGetStatus")
+    else:
+        module.exit_json(changed=False)
 
     # This converts the bson into a python dictionary that ansible's standard
     # jsonify function can process and output without throwing errors on bson

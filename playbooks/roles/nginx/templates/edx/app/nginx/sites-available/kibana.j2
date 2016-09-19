@@ -22,7 +22,33 @@ server {
   {% else %}
   listen {{ KIBANA_NGINX_PORT }} {{ default_site }};
   {% endif %}
+  
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
+  # Redirect http to https over single instance
+  if ($scheme != "https") 
+  { 
+   set $do_redirect_to_https "true";
+  }
 
+     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
+
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
+  if ($http_x_forwarded_proto = "http") 
+  {
+   set $do_redirect_to_https "true";
+  }
+  {% endif %}
+
+  # Execute the actual redirect
+  if ($do_redirect_to_https = "true")
+  {
+  return 301 https://$host$request_uri;
+  }
+  {% endif %}
+  
   server_name {{ KIBANA_SERVER_NAME }};
 
   root {{ kibana_app_dir }}/htdocs;
@@ -31,7 +57,9 @@ server {
   error_log {{ nginx_log_dir }}/kibana.error.log error;
 
   # Access restriction
-  {% include "basic-auth.j2" %}
+  {% if KIBANA_ENABLE_BASIC_AUTH|bool %}
+    {% include "basic-auth.j2" %}
+  {% endif %}
 
   # Set image format types to expire in a very long time
   location ~* ^.+\.(jpg|jpeg|gif|png|ico)$ {

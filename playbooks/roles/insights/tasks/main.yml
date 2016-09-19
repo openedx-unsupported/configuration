@@ -3,8 +3,8 @@
 # edX Configuration
 #
 # github:     https://github.com/edx/configuration
-# wiki:       https://github.com/edx/configuration/wiki
-# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
 #
@@ -35,9 +35,9 @@
 - name: install application requirements
   pip: >
     requirements="{{ insights_requirements_base }}/{{ item }}"
-    virtualenv="{{ insights_home }}/venvs/{{ insights_service_name }}" 
+    virtualenv="{{ insights_venv_dir }}" 
     state=present extra_args="--exists-action w"
-  sudo_user: "{{ insights_user }}"
+  become_user: "{{ insights_user }}"
   with_items: insights_requirements
   tags:
     - install
@@ -46,24 +46,25 @@
 - name: create nodeenv
   shell: >
     creates={{ insights_nodeenv_dir }}
-    {{ insights_home }}/venvs/{{ insights_service_name }}/bin/nodeenv {{ insights_nodeenv_dir }}  --prebuilt
-  sudo_user: "{{ insights_user }}"
+    {{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --prebuilt
+  become_user: "{{ insights_user }}"
   tags:
     - install
     - install:base
 
 - name: install node dependencies
   npm: executable={{ insights_nodeenv_bin }}/npm path={{ insights_code_dir }} production=yes
-  sudo_user: "{{ insights_user }}"
+  become_user: "{{ insights_user }}"
   tags:
     - install
     - install:app-requirements
+  environment: "{{ insights_environment }}"
 
 - name: install bower dependencies
   shell: >
     chdir={{ insights_code_dir }}
     . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false
-  sudo_user: "{{ insights_user }}"
+  become_user: "{{ insights_user }}"
   tags:
     - install
     - install:app-requirements
@@ -71,10 +72,10 @@
 - name: migrate
   shell: >
     chdir={{ insights_code_dir }}
-    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
-    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ insights_home }}/venvs/{{ insights_service_name }}/bin/python {{ insights_manage }} migrate --noinput
-  sudo_user: "{{ insights_user }}"
+    DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
+    DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
+    {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput
+  become_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
@@ -85,7 +86,7 @@
   shell: >
     chdir={{ insights_code_dir }}
     . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js
-  sudo_user: "{{ insights_user }}"
+  become_user: "{{ insights_user }}"
   tags:
     - assets
     - assets:gather
@@ -93,8 +94,8 @@
 - name: run collectstatic
   shell: >
     chdir={{ insights_code_dir }}
-    {{ insights_home }}/venvs/{{ insights_service_name }}/bin/python {{ insights_manage }} {{ item }}
-  sudo_user: "{{ insights_user }}"
+    {{ insights_venv_dir }}/bin/python {{ insights_manage }} {{ item }}
+  become_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   with_items:
     - "collectstatic --noinput"
@@ -106,8 +107,8 @@
 - name: compile translations
   shell: >
     chdir={{ insights_code_dir }}/analytics_dashboard
-    . {{ insights_home }}/venvs/{{ insights_service_name }}/bin/activate && i18n_tool generate -v
-  sudo_user: "{{ insights_user }}"
+    . {{ insights_venv_dir }}/bin/activate && i18n_tool generate -v
+  become_user: "{{ insights_user }}"
   tags:
     - assets
     - assets:gather
@@ -145,12 +146,12 @@
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
-    - install
-    - install:configuration
+    - manage
+    - manage:start
 
 - name: create symlinks from the venv bin dir
   file: >
-    src="{{ insights_home }}/venvs/{{ insights_service_name }}/bin/{{ item }}"
+    src="{{ insights_venv_dir }}/bin/{{ item }}"
     dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ insights_service_name }}"
     state=link
   with_items:
@@ -177,6 +178,6 @@
     config={{ supervisor_cfg }}
     name={{ insights_service_name }}
   when: not disable_edx_services
-  sudo_user: "{{ supervisor_service_user }}"
+  become_user: "{{ supervisor_service_user }}"
   tags:
     - manage:start

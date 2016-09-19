@@ -1,11 +1,10 @@
 - name: Configure instance(s)
   hosts: all
-  sudo: True
+  become: True
   gather_facts: True
   serial: 10
   vars:
     migrate_db: "yes"
-    openid_workaround: True
   roles:
     - aws
     - role: nginx
@@ -18,11 +17,13 @@
       - analytics_api
       - ecommerce
       - programs
+      - credentials
       nginx_default_sites:
       - lms
     - mysql
     - role: edxlocal
       tags: edxlocal
+    - memcache
     - mongo
     - { role: 'edxapp', celery_worker: True }
     - edxapp
@@ -40,7 +41,7 @@
     - analytics_api
     - ecommerce
     - programs
-    - course_discovery
+    - credentials
     - oauth_client_setup
     - role: datadog
       when: COMMON_ENABLE_DATADOG

@@ -1,0 +1,132 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role go-server
+#
+# Overview:
+#
+# Deploys go-server using aptitude!
+#
+# Dependencies:
+#    - openjdk7
+#
+# Example play:
+#
+# - name: Configure instance(s)
+#   hosts: go-server
+#   become: True
+#   vars_files:
+#     - "{{ secure_dir }}/admin/sandbox.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#
+
+- name: install go-server aptitude repository
+  apt_repository:
+    repo: "{{ GO_SERVER_APT_SOURCE }}"
+    state: present
+
+- name: install aptitude key for go-server/go-server
+  apt_key:
+    url: "{{ GO_SERVER_APT_KEY_URL }}"
+    state: present
+
+- name: install go-server using apt-get
+  apt:
+    name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
+    update_cache: yes
+    state: present
+
+- name: install other needed system packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  with_items: GO_SERVER_APT_PKGS
+
+- name: create go-server plugin directory
+  file:
+    path: "{{ GO_SERVER_PLUGIN_DIR }}"
+    state: directory
+    mode: 0776
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: install go-server plugins
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ GO_SERVER_PLUGIN_DIR }}"
+    mode: 0776
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+    # uncomment ansible has been upgraded to 2.0+
+    # checksum=md5:{{ item.md5 }}
+  with_items:
+    - { url: "{{ GO_SERVER_OAUTH_LOGIN_JAR_URL }}", md5: "{{ GO_SERVER_OAUTH_LOGIN_MD5 }}" }
+    - { url: "{{ GO_SERVER_GITHUB_PR_PLUGIN_JAR_URL }}", md5: "{{ GO_SERVER_GITHUB_PR_PLUGIN_MD5 }}" }
+
+- name: generate line for go-server password file for admin user
+  command: >
+    /usr/bin/htpasswd -nbs "{{ GO_SERVER_ADMIN_USERNAME }}" "{{ GO_SERVER_ADMIN_PASSWORD }}"
+  register: admin_user_password_line
+  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
+
+- name: generate line for go-server password file for backup user
+  command: >
+    /usr/bin/htpasswd -nbs "{{ GO_SERVER_BACKUP_USERNAME }}" "{{ GO_SERVER_BACKUP_PASSWORD }}"
+  register: backup_user_password_line
+  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+
+- name: setup password file
+  template:
+    src: edx/app/go-server/password.txt.j2
+    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+    force: no
+  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD
+
+- name: install go-server configuration
+  template:
+    src: edx/app/go-server/cruise-config.xml.j2
+    dest: "{{ GO_SERVER_CONF_HOME }}/cruise-config.xml"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+    force: no
+
+- include: download_backup.yml
+  when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT and GO_SERVER_RESTORE_BACKUP
+
+- name: replace the admin line in the password file post-restore
+  lineinfile:
+    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
+    regexp: "^{{ GO_SERVER_ADMIN_USERNAME }}"
+    line: "{{ admin_user_password_line.stdout }}"
+  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
+
+- name: replace the backup line in the password file post-restore
+  lineinfile:
+    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
+    regexp: "^{{ GO_SERVER_BACKUP_USERNAME }}"
+    line: "{{ backup_user_password_line.stdout }}"
+  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+
+- name: restart go-server
+  service:
+    name: "{{ GO_SERVER_SERVICE_NAME }}"
+    state: restarted
+
+- include: setup_regular_backup.yml
+  when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT and GO_SERVER_CONFIGURE_BACKUPS

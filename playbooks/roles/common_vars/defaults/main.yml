@@ -7,12 +7,18 @@
 COMMON_ENABLE_BASIC_AUTH: False
 COMMON_HTPASSWD_USER: edx
 COMMON_HTPASSWD_PASS: edx
+COMMON_BASIC_AUTH_EXCEPTIONS:
+  - 192.168.0.0/16
+  - 172.16.0.0/12
+
 # Turn on syncing logs on rotation for edx
 # application and tracking logs, must also
-# have the AWS role installed
-COMMON_AWS_SYNC: False
-COMMON_AWS_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
-COMMON_AWS_S3_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-s3"
+# have the aws or openstack role installed
+COMMON_OBJECT_STORE_LOG_SYNC: False
+COMMON_OBJECT_STORE_LOG_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
+COMMON_OBJECT_STORE_LOG_SYNC_PREFIX: "logs/tracking/"
+COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-object-store"
+
 COMMON_BASE_DIR: /edx
 COMMON_DATA_DIR: "{{ COMMON_BASE_DIR}}/var"
 COMMON_APP_DIR: "{{ COMMON_BASE_DIR}}/app"
@@ -39,6 +45,7 @@ common_directories:
     
 COMMON_ENVIRONMENT: 'default_env'
 COMMON_DEPLOYMENT: 'default_deployment'
+COMMON_PIP_VERBOSITY: ''
 COMMON_PYPI_MIRROR_URL: 'https://pypi.python.org/simple'
 COMMON_NPM_MIRROR_URL: 'http://registry.npmjs.org'
 COMMON_UBUNTU_APT_KEYSERVER: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search="
@@ -61,8 +68,6 @@ COMMON_CUSTOM_DHCLIENT_CONFIG: false
 # uncomment and specifity your domains.
 # COMMON_DHCLIENT_DNS_SEARCH: ["ec2.internal","example.com"]
 
-
-COMMON_MOTD_TEMPLATE: "motd.tail.j2"
 COMMON_SSH_PASSWORD_AUTH: "no"
 
 COMMON_SECURITY_UPDATES: no
@@ -90,8 +95,17 @@ COMMON_ENABLE_NEWRELIC_APP: False
 COMMON_ENABLE_MINOS: False
 COMMON_TAG_EC2_INSTANCE: False
 common_boto_version: '2.34.0'
+common_redhat_pkgs:
+  - ntp
+  - lynx
+  - logrotate
+  - rsyslog
+  - git
+  - unzip
+  - acl
 common_debian_pkgs:
   - ntp
+  - acl
   - lynx-cur
   - logrotate
   - rsyslog
@@ -166,3 +180,6 @@ common_close_all_caches: |
         cache = django_cache.cache
         if hasattr(cache, 'close'):
             cache.close()
+
+COMMON_TRACKING_LOG_ROTATION:
+  - size 1M

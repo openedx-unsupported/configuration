@@ -3,16 +3,16 @@
 # edX Configuration
 #
 # github:     https://github.com/edx/configuration
-# wiki:       https://github.com/edx/configuration/wiki
-# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
 #
 #
 # Tasks for role analytics_pipeline
-# 
+#
 # Overview:
-# 
+#
 # Prepare the machine to run the edX Analytics Data Pipeline. The pipeline currently "installs itself"
 # via an ansible playbook that is not included in the edx/configuration repo. However, in order to
 # run the pipeline in a devstack environment, some configuration needs to be performed. In a production
@@ -24,12 +24,12 @@
 # hadoop_master: ensures hadoop services are installed
 # hive: the pipeline makes extensive usage of hive, so that needs to be installed as well
 # sqoop: similarly to hive, the pipeline uses this tool extensively
-# 
+#
 # Example play:
 #
 # - name: Deploy all dependencies of edx-analytics-pipeline to the node
 #   hosts: all
-#   sudo: True
+#   become: True
 #   gather_facts: True
 #   roles:
 #     - analytics_pipeline
@@ -136,7 +136,7 @@
 - name: ensure package dir exists in HDFS
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/
-  sudo_user: "{{ hadoop_common_user }}"
+  become_user: "{{ hadoop_common_user }}"
   tags:
     - install
     - install:app-requirements
@@ -144,7 +144,7 @@
 - name: ensure util library is in HDFS
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/
-  sudo_user: "{{ hadoop_common_user }}"
+  become_user: "{{ hadoop_common_user }}"
   tags:
     - install
     - install:app-requirements
@@ -152,7 +152,7 @@
 - name: ensure the data directory exists
   shell: >
     . {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}
-  sudo_user: "{{ hadoop_common_user }}"
+  become_user: "{{ hadoop_common_user }}"
   tags:
     - install
     - install:base
@@ -171,6 +171,25 @@
     user={{ hadoop_common_user }}
     name="Sync tracking log to HDFS"
     job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+  tags:
+    - install
+    - install:configuration
+
+- name: store configuration for acceptance tests
+  copy: >
+    src=acceptance.json
+    dest=/var/tmp/acceptance.json
+    mode=644
+  tags:
+    - install
+    - install:configuration
+
+- name: grant access to table storing test data in output database
+  mysql_user: >
+    user={{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}
+    password={{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}
+    priv=acceptance%.*:ALL
+    append_privs=yes
   tags:
     - install
     - install:configuration

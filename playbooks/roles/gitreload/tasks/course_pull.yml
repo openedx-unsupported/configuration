@@ -2,7 +2,7 @@
 
 - name: clone all course repos
   git_2_0_1: dest={{ GITRELOAD_REPODIR }}/{{ item.name }} repo={{ item.url }} version={{ item.commit }}
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   with_items: GITRELOAD_REPOS
 
 - name: do import of courses
@@ -10,7 +10,7 @@
     executable=/bin/bash
     chdir="{{ edxapp_code_dir }}"
     SERVICE_VARIANT=lms {{ edxapp_venv_bin }}/python manage.py lms --settings=aws git_add_course {{ item.url }} {{ GITRELOAD_REPODIR }}/{{ item.name }}
-  sudo_user: "{{ common_web_user }}"
+  become_user: "{{ common_web_user }}"
   with_items: GITRELOAD_REPOS
 
 - name: change ownership on repos for access by edxapp and www-data

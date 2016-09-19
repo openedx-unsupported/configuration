@@ -3,8 +3,8 @@
 # edX Configuration
 #
 # github:     https://github.com/edx/configuration
-# wiki:       https://github.com/edx/configuration/wiki
-# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
 ##
@@ -42,14 +42,21 @@ ECOMMERCE_TIME_ZONE: 'UTC'
 ECOMMERCE_LANGUAGE_CODE: 'en-us'
 ECOMMERCE_EDX_API_KEY: 'PUT_YOUR_API_KEY_HERE'  # This should match the value set for edxapp
 ECOMMERCE_ECOMMERCE_URL_ROOT: 'http://localhost:8002'
+ECOMMERCE_LOGOUT_URL: '{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}/logout/'
 ECOMMERCE_LMS_URL_ROOT: 'http://127.0.0.1:8000'
-ECOMMERCE_JWT_SECRET_KEY: 'SET-ME-PLEASE' # This should match the value set for edxapp
+ECOMMERCE_JWT_SECRET_KEY: '{{ EDXAPP_JWT_SECRET_KEY | default("lms-secret") }}'
 ECOMMERCE_JWT_ALGORITHM: 'HS256'
 ECOMMERCE_JWT_VERIFY_EXPIRATION: true
 ECOMMERCE_JWT_DECODE_HANDLER: 'ecommerce.extensions.api.handlers.jwt_decode_handler'
 ECOMMERCE_JWT_ISSUERS:
   - '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
-  - 'ecommerce_worker'
+  - 'ecommerce_worker'  # Must match the value of JWT_ISSUER configured for the ecommerce worker.
+
+# NOTE: We have an array of keys to allow for support of multiple when, for example,
+# we change keys. This will ensure we continue to operate with JWTs issued signed with the old key
+# while migrating to the new key.
+ECOMMERCE_JWT_SECRET_KEYS:
+  - '{{ ECOMMERCE_JWT_SECRET_KEY }}'
 
 # Used to automatically configure OAuth2 Client
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
@@ -58,6 +65,9 @@ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 # Analytics related
 ECOMMERCE_SEGMENT_KEY: !!null
+
+# Settings for affiliate cookie tracking
+ECOMMERCE_AFFILIATE_COOKIE_NAME: '{{ EDXAPP_AFFILIATE_COOKIE_NAME | default("dev_affiliate_id") }}'
 
 # CyberSource related
 ECOMMERCE_CYBERSOURCE_PROFILE_ID: 'SET-ME-PLEASE'
@@ -80,6 +90,7 @@ ECOMMERCE_PAYPAL_CANCEL_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/can
 ECOMMERCE_PAYPAL_ERROR_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/error/'
 
 ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
+  edx:
     cybersource:
       profile_id: '{{ ECOMMERCE_CYBERSOURCE_PROFILE_ID }}'
       merchant_id: '{{ ECOMMERCE_CYBERSOURCE_MERCHANT_ID }}'
@@ -102,6 +113,13 @@ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
 ECOMMERCE_PLATFORM_NAME: 'Your Platform Name Here'
 ECOMMERCE_THEME_SCSS: 'sass/themes/default.scss'
 
+# Directory name inside edx-themes repo that contain ecommerce themes
+ECOMMERCE_THEMES_DIR_NAME: 'ecommerce'
+
+ECOMMERCE_COMPREHENSIVE_THEME_DIRS: !!null
+ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING: false
+ECOMMERCE_DEFAULT_SITE_THEME: !!null
+
 # Celery
 ECOMMERCE_BROKER_USERNAME: 'celery'
 ECOMMERCE_BROKER_PASSWORD: 'celery'
@@ -111,6 +129,9 @@ ECOMMERCE_BROKER_HOST: '{{ ansible_default_ipv4.address }}'
 ECOMMERCE_BROKER_PORT: 5672
 ECOMMERCE_BROKER_URL: 'amqp://{{ ECOMMERCE_BROKER_USERNAME }}:{{ ECOMMERCE_BROKER_PASSWORD }}@{{ ECOMMERCE_BROKER_HOST }}:{{ ECOMMERCE_BROKER_PORT }}'
 
+ECOMMERCE_COURSE_CATALOG_URL: 'http://localhost:8008'
+ECOMMERCE_SUPPORT_URL: 'SET_ME_PLEASE'
+
 ECOMMERCE_SERVICE_CONFIG:
   SECRET_KEY: '{{ ECOMMERCE_SECRET_KEY }}'
   TIME_ZONE: '{{ ECOMMERCE_TIME_ZONE }}'
@@ -118,6 +139,7 @@ ECOMMERCE_SERVICE_CONFIG:
   EDX_API_KEY: '{{ ECOMMERCE_EDX_API_KEY }}'
   OSCAR_FROM_EMAIL: '{{ ECOMMERCE_OSCAR_FROM_EMAIL }}'
 
+  COURSE_CATALOG_API_URL: '{{ ECOMMERCE_COURSE_CATALOG_URL }}/api/v1/'
   ECOMMERCE_URL_ROOT: '{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}'
   LMS_URL_ROOT: '{{ ECOMMERCE_LMS_URL_ROOT }}'
   LMS_HEARTBEAT_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/heartbeat'
@@ -128,14 +150,18 @@ ECOMMERCE_SERVICE_CONFIG:
     JWT_SECRET_KEY: '{{ ECOMMERCE_JWT_SECRET_KEY }}'
     JWT_ALGORITHM: '{{ ECOMMERCE_JWT_ALGORITHM }}'
     JWT_VERIFY_EXPIRATION: '{{ ECOMMERCE_JWT_VERIFY_EXPIRATION }}'
+    JWT_LEEWAY: 1
     JWT_DECODE_HANDLER: '{{ ECOMMERCE_JWT_DECODE_HANDLER }}'
     JWT_ISSUERS: '{{ ECOMMERCE_JWT_ISSUERS }}'
+    JWT_SECRET_KEYS: '{{ ECOMMERCE_JWT_SECRET_KEYS }}'
   SOCIAL_AUTH_EDX_OIDC_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }}'
   SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
+  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/logout'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
   SEGMENT_KEY: '{{ ECOMMERCE_SEGMENT_KEY }}'
+  AFFILIATE_COOKIE_KEY: '{{ ECOMMERCE_AFFILIATE_COOKIE_NAME }}'
 
   STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ ecommerce_service_name }}/staticfiles"
   # db config
@@ -149,7 +175,14 @@ ECOMMERCE_SERVICE_CONFIG:
   PLATFORM_NAME: '{{ ECOMMERCE_PLATFORM_NAME }}'
   THEME_SCSS: '{{ ECOMMERCE_THEME_SCSS }}'
 
+  SUPPORT_URL: '{{ ECOMMERCE_SUPPORT_URL }}'
+
   BROKER_URL: '{{ ECOMMERCE_BROKER_URL }}'
+
+  # Theming config
+  COMPREHENSIVE_THEME_DIRS: "{{ ECOMMERCE_COMPREHENSIVE_THEME_DIRS }}"
+  ENABLE_COMPREHENSIVE_THEMING: "{{ ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING }}"
+  DEFAULT_SITE_THEME: "{{ ECOMMERCE_DEFAULT_SITE_THEME }}"
 
 
 ECOMMERCE_REPOS:
@@ -160,7 +193,6 @@ ECOMMERCE_REPOS:
     VERSION: "{{ ECOMMERCE_VERSION }}"
     DESTINATION: "{{ ecommerce_code_dir }}"
     SSH_KEY: "{{ ECOMMERCE_GIT_IDENTITY }}"
-
 
 ECOMMERCE_GUNICORN_WORKERS: "2"
 ECOMMERCE_GUNICORN_EXTRA: ""
@@ -195,7 +227,7 @@ ecommerce_requirements:
 ecommerce_environment:
   DJANGO_SETTINGS_MODULE: "{{ ECOMMERCE_DJANGO_SETTINGS_MODULE }}"
   ECOMMERCE_CFG: "{{ COMMON_CFG_DIR }}/{{ ecommerce_service_name }}.yml"
-  PATH: "{{ ecommerce_venv_dir }}/bin:{{ ansible_env.PATH }}"
+  PATH: "{{ ecommerce_nodeenv_bin }}:{{ ecommerce_venv_dir }}/bin:{{ ansible_env.PATH }}"
 
 #
 # OS packages

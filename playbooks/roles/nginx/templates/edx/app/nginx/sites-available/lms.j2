@@ -62,23 +62,33 @@ error_page {{ k }} {{ v }};
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
   {% endif %}
 
+  # Prevent invalid display courseware in IE 10+ with high privacy settings
+  add_header P3P '{{ NGINX_P3P_MESSAGE }}';
+
+
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
   {% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
   # Redirect http to https over single instance
   if ($scheme != "https") 
   { 
    set $do_redirect_to_https "true";
   }
 
-  # Nginx does not support nested conditions 
+     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
+
   # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
   if ($http_x_forwarded_proto = "http") 
   {
    set $do_redirect_to_https "true";
   }
+     {% endif %}
 
+  # Execute the actual redirect
   if ($do_redirect_to_https = "true")
   {
-  rewrite ^ https://$host$request_uri? permanent;
+  return 301 https://$host$request_uri;
   }
   {% endif %}
   
@@ -110,10 +120,12 @@ error_page {{ k }} {{ v }};
   }
 
   location / {
-    {% include "basic-auth.j2" %}
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
     {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
     if ( $embargo ) {
-      rewrite ^ /embargo;
+      return 302 /embargo;
     }
     {% endif -%}
     try_files $uri @proxy_to_lms_app;
@@ -166,6 +178,14 @@ error_page {{ k }} {{ v }};
     try_files $uri @proxy_to_lms_app;
   }
 
+  # No basic auth security on assets
+  location /c4x {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /asset {
+    try_files $uri @proxy_to_lms_app;
+  }
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
@@ -185,11 +205,13 @@ error_page {{ k }} {{ v }};
   location /courses {
     {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
     # Set Limit
-    limit_req zone=cookies burst={{ EDXAPP_COURSE_REQUEST_BURST_RATE }};
+    limit_req zone=cookies burst={{ EDXAPP_COURSES_REQUEST_BURST_RATE }};
     error_page  503 = /server/rate-limit.html;
     {%- endif -%}
 
-    {%- include "basic-auth.j2" %}
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {%- include "basic-auth.j2" %}
+    {% endif %}
     try_files $uri @proxy_to_lms_app;
   }
 

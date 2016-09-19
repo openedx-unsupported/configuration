@@ -1,0 +1,71 @@
+# This playbook will check for migrations that need to be run for Django applications within a larger
+# Django application. If migrations exist, it will run the migrations while saving the output as an artifact.
+#
+# The playbook uses the Django management commands found in this Django app repo:
+# https://github.com/edx/edx-django-release-util
+# So the Django app above needs to be installed in the Django app being checked for migrations.
+#
+# Required variables for this playbook:
+#
+#   - APPLICATION_PATH                - the top-level path of the Django application; the application lives underneath
+#                                       this directory in a directory with the same name as APPLICATION_NAME.
+#                                       NOTE: It is assumed that edx-django-release-util is one of its INSTALLED_APPS.
+#   - APPLICATION_NAME                - The name of the application that we are migrating.
+#   - APPLICATION_USER                - user which is meant to run the application
+#   - ARTIFACT_PATH                   - the path where the migration artifacts should be copied after completion
+#   - HIPCHAT_TOKEN                   - API token to send messages to hipchat
+#   - HIPCHAT_ROOM                    - ID or name of the room to send the notification
+#   - HIPCHAT_URL                     - URL of the hipchat API  (defaults to v1 of the api)
+#
+# Other variables:
+#   - unapplied_migrations_output     - the filename where the unapplied migration YAML output is stored
+#   - migration_output                - the filename where the migration output is saved
+#
+# Example command line to run this playbook:
+#    ansible-playbook -vvvv -i "localhost," -c local \
+#       -e @overrides.yml \
+#       run_migrations.yml
+#
+
+
+- hosts: all
+  vars:
+    unapplied_migrations_output: unapplied_migrations.yml
+    migration_output: migration_output.yml
+    HIPCHAT_URL: https://api.hipchat.com/v2/
+    COMMAND_PREFIX: ". {{ APPLICATION_PATH }}/{{ APPLICATION_NAME }}_env; DB_MIGRATION_USER={{ DB_MIGRATION_USER }} DB_MIGRATION_PASS={{ DB_MIGRATION_PASS }} /edx/bin/python.{{ APPLICATION_NAME }} /edx/bin/manage.{{ APPLICATION_NAME }} "
+  gather_facts: False
+  tasks:
+
+  - name: Create a temporary directory for the migration output.
+    command: mktemp -d
+    become_user: "{{ APPLICATION_USER }}"
+    register: temp_output_dir
+
+  - name: generate list of unapplied migrations
+    shell: '{{ COMMAND_PREFIX }} show_unapplied_migrations --output_file "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}"'
+    become_user: "{{ APPLICATION_USER }}"
+
+  - name: migrate to apply any unapplied migrations
+    shell: '{{ COMMAND_PREFIX }} run_migrations "{{ temp_output_dir.stdout }}/{{ unapplied_migrations_output }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_output }}"'
+    become_user: "{{ APPLICATION_USER }}"
+
+  - name: Transfer artifacts to the proper place.
+    fetch:
+      src: "{{ temp_output_dir.stdout }}/{{ item }}"
+      dest: "{{ ARTIFACT_PATH }}"
+      flat: True
+      fail_on_missing: True
+      mode: 0700
+    with_items:
+      - "{{ unapplied_migrations_output }}"
+      - "{{ migration_output }}"
+
+  - name: Send Hipchat notification cleanup has finished
+    hipchat_2_0_0_1:
+      api: "{{ HIPCHAT_URL }}"
+      token: "{{ HIPCHAT_TOKEN }}"
+      room: "{{ HIPCHAT_ROOM }}"
+      msg: "Migrations have completed."
+    ignore_errors: yes
+    when: HIPCHAT_TOKEN is defined

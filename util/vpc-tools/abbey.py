@@ -9,7 +9,7 @@ import requests
 try:
     import boto.ec2
     import boto.sqs
-    from boto.vpc import VPCConnection
+    import boto.vpc
     from boto.exception import NoAuthHandlerFound, EC2ResponseError
     from boto.sqs.message import RawMessage
     from boto.ec2.blockdevicemapping import BlockDeviceType, BlockDeviceMapping
@@ -90,7 +90,7 @@ def parse_args():
                         help="configuration-private repo gitref",
                         default="master")
     parser.add_argument('--configuration-private-repo', required=False,
-                        default="git@github.com:edx-ops/ansible-private",
+                        default="",
                         help="repo to use for private playbooks")
     parser.add_argument('-c', '--cache-id', required=True,
                         help="unique id to use as part of cache prefix")
@@ -157,6 +157,18 @@ def get_instance_sec_group(vpc_id):
     )
 
     if len(grp_details) < 1:
+        #
+        # try scheme for non-cloudformation builds
+        #
+
+        grp_details = ec2.get_all_security_groups(
+            filters={
+                'tag:play': args.play,
+                'tag:environment': args.environment,
+                'tag:deployment': args.deployment}
+        )
+
+    if len(grp_details) < 1:
         sys.stderr.write("ERROR: Expected atleast one security group, got {}\n".format(
             len(grp_details)))
 
@@ -188,7 +200,7 @@ def create_instance_args():
     user data
     """
 
-    vpc = VPCConnection()
+    vpc = boto.vpc.connect_to_region(args.region)
     subnet = vpc.get_all_subnets(
         filters={
             'tag:aws:cloudformation:stack-name': stack_name,
@@ -202,14 +214,14 @@ def create_instance_args():
 
         subnet = vpc.get_all_subnets(
             filters={
-                'tag:cluster': args.play,
+                'tag:play': args.play,
                 'tag:environment': args.environment,
                 'tag:deployment': args.deployment}
         )
 
     if len(subnet) < 1:
-        sys.stderr.write("ERROR: Expected at least one subnet, got {}\n".format(
-            len(subnet)))
+        sys.stderr.write("ERROR: Expected at least one subnet, got {} for {}-{}-{}\n".format(
+            len(subnet), args.environment, args.deployment, args.play))
         sys.exit(1)
     subnet_id = subnet[0].id
     vpc_id = subnet[0].vpc_id
@@ -238,6 +250,7 @@ configuration_private_version="{configuration_private_version}"
 environment="{environment}"
 deployment="{deployment}"
 play="{play}"
+cluster="{play}"
 config_secure={config_secure}
 git_repo_name="configuration"
 git_repo="https://github.com/edx/$git_repo_name"
@@ -264,7 +277,7 @@ fi
 
 ANSIBLE_ENABLE_SQS=true
 SQS_NAME={queue_name}
-SQS_REGION=us-east-1
+SQS_REGION={region}
 SQS_MSG_PREFIX="[ $instance_id $instance_ip $environment-$deployment $play ]"
 PYTHONUNBUFFERED=1
 HIPCHAT_TOKEN={hipchat_token}
@@ -285,6 +298,11 @@ if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
         git-core build-essential python-dev libxml2-dev \\
         libxslt-dev curl libmysqlclient-dev --force-yes
 fi
+
+# this is missing on 14.04 (base package on 12.04)
+# we need to do this on any build, since the above apt-get
+# only runs on a build from scratch
+/usr/bin/apt-get install -y python-httplib2 --force-yes
 
 # upgrade setuptools early to avoid no distributin errors
 pip install --upgrade setuptools==18.3.2
@@ -391,7 +409,8 @@ rm -rf $base_dir
                 extra_vars_yml=extra_vars_yml,
                 secure_vars_file=secure_vars_file,
                 cache_id=args.cache_id,
-                datadog_api_key=args.datadog_api_key)
+                datadog_api_key=args.datadog_api_key,
+                region=args.region)
 
     mapping = BlockDeviceMapping()
     root_vol = BlockDeviceType(size=args.root_vol_size,
@@ -547,6 +566,8 @@ def create_ami(instance_id, name, description):
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("deployment", args.deployment)
                 time.sleep(AWS_API_WAIT_TIME)
+                img.add_tag("cluster", args.play)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("play", args.play)
                 time.sleep(AWS_API_WAIT_TIME)
                 conf_tag = "{} {}".format("http://github.com/edx/configuration", args.configuration_version)
@@ -634,7 +655,7 @@ def launch_and_configure(ec2_args):
     system_start = time.time()
     for _ in xrange(EC2_STATUS_TIMEOUT):
         status = ec2.get_all_instance_status(inst.id)
-        if status[0].system_status.status == u'ok':
+        if status and status[0].system_status.status == u'ok':
             system_delta = time.time() - system_start
             run_summary.append(('EC2 Status Checks', system_delta))
             print "[ OK ] {:0>2.0f}:{:0>2.0f}".format(

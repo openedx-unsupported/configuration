@@ -1,19 +1,12 @@
+#
+#  {{ ansible_managed }}
+#
+
 [program:{{ edx_notes_api_service_name }}]
 
-{% set edx_notes_api_venv_bin = edx_notes_api_home + '/venvs/' + edx_notes_api_service_name + '/bin' %}
-{% if COMMON_ENABLE_NEWRELIC_APP %}
-{% set executable = edx_notes_api_venv_bin + '/newrelic-admin run-program ' + edx_notes_api_venv_bin + '/gunicorn' %}
-{% else %}
-{% set executable = edx_notes_api_venv_bin + '/gunicorn' %}
-{% endif %}
-
-command={{ executable }} -c {{ edx_notes_api_home }}/edx_notes_api_gunicorn.py {{ EDX_NOTES_API_GUNICORN_WORKERS_EXTRA }} {{ edx_notes_api_wsgi }}
-
+command={{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}.sh
 user={{ common_web_user }}
 directory={{ edx_notes_api_code_dir }}
-
-environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDX_NOTES_API_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}PID=/var/tmp/edx_notes_api.pid,PORT={{ edx_notes_api_gunicorn_port }},ADDRESS={{ edx_notes_api_gunicorn_host }},LANG={{ EDX_NOTES_API_LANG }},DJANGO_SETTINGS_MODULE=notesserver.settings.yaml_config,SERVICE_VARIANT="{{ edx_notes_api_service_name }}",EDXNOTES_CONFIG_ROOT="{{ COMMON_CFG_DIR }}"
-
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)-stderr.log
 killasgroup=true

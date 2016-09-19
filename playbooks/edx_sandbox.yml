@@ -6,17 +6,17 @@
 
 - name: Configure instance(s)
   hosts: all
-  sudo: True
+  become: True
   gather_facts: True
   vars:
     migrate_db: "yes"
-    openid_workaround: True
     EDXAPP_LMS_NGINX_PORT: '80'
     edx_platform_version: 'master'
     # Set to false if deployed behind another proxy/load balancer.
     NGINX_SET_X_FORWARDED_HEADERS: True
     # These should stay false for the public AMI
     COMMON_ENABLE_DATADOG: False
+    SANDBOX_ENABLE_ECOMMERCE: False
     COMMON_ENABLE_SPLUNKFORWARDER: False
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
@@ -29,16 +29,26 @@
       - xqueue
       nginx_default_sites:
       - lms
-    - role: mysql
+    - role: nginx
+      nginx_sites:
+      - ecommerce
+      when: SANDBOX_ENABLE_ECOMMERCE
+    - role: edxlocal
       when: EDXAPP_MYSQL_HOST == 'localhost'
-    - edxlocal
+    - role: memcache
+      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
     - role: mongo
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
     - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - { role: 'edxapp', celery_worker: True }
     - edxapp
+    - role: ecommerce
+      when: SANDBOX_ENABLE_ECOMMERCE
+    - role: ecomworker
+      when: SANDBOX_ENABLE_ECOMMERCE
     - notifier
     - analytics_api
+    - insights
     - edx_notes_api
     - demo
     - oauth_client_setup

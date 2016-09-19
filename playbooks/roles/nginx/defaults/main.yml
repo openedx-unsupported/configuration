@@ -18,6 +18,12 @@ NGINX_EDXAPP_EXTRA_SITES: []
 NGINX_EDXAPP_EXTRA_CONFIGS: []
 NGINX_EDXAPP_CUSTOM_REDIRECTS: {}
 
+# Override these vars for adding user to nginx.htpasswd
+NGINX_USERS:
+  - name: "{{ COMMON_HTPASSWD_USER }}"
+    password: "{{ COMMON_HTPASSWD_PASS }}"
+    state: present
+
 NGINX_ENABLE_SSL: False
 NGINX_REDIRECT_TO_HTTPS: False
 # Set these to real paths on your
@@ -28,6 +34,10 @@ NGINX_REDIRECT_TO_HTTPS: False
 # to your certificate:
 #
 # cat www.example.com.crt bundle.crt > www.example.com.chained.crt
+
+# This variable is only checked if NGINX_REDIRECT_TO_HTTPS is true
+# It should be set to one of !!null, "scheme" or "forward_for_proto"
+NGINX_HTTPS_REDIRECT_STRATEGY: "scheme"
 
 NGINX_SSL_CERTIFICATE: 'ssl-cert-snakeoil.pem'
 NGINX_SSL_KEY: 'ssl-cert-snakeoil.key'
@@ -56,6 +66,7 @@ NGINX_SERVER_HTML_FILES:
     img: "{{ NGINX_SERVER_ERROR_IMG }}"
     heading: 'Uh oh, we are having some server issues..'
 
+NGINX_APT_REPO: deb http://nginx.org/packages/ubuntu/ {{ ansible_distribution_release }} nginx
 
 
 nginx_app_dir: "{{ COMMON_APP_DIR }}/nginx"
@@ -69,7 +80,6 @@ nginx_user: root
 nginx_htpasswd_file: "{{ nginx_app_dir }}/nginx.htpasswd"
 nginx_default_sites: []
 nginx_debian_pkgs:
-  - nginx
   - python-passlib
 
 NGINX_EDXAPP_ENABLE_S3_MAINTENANCE: False
@@ -82,6 +92,7 @@ NGINX_EDXAPP_ERROR_PAGES:
 CMS_HOSTNAME: '~^((stage|prod)-)?studio.*'
 ECOMMERCE_HOSTNAME: '~^((stage|prod)-)?ecommerce.*'
 PROGRAMS_HOSTNAME: '~^((stage|prod)-)?programs.*'
+CREDENTIALS_HOSTNAME: '~^((stage|prod)-)?credentials.*'
 
 nginx_template_dir: "edx/app/nginx/sites-available"
 
@@ -109,6 +120,8 @@ nginx_ecommerce_gunicorn_hosts:
   - 127.0.0.1
 nginx_programs_gunicorn_hosts:
   - 127.0.0.1
+nginx_credentails_gunicorn_hosts:
+  - 127.0.0.1
 
 nginx_cfg:
   #   - link - turn on
@@ -123,3 +136,29 @@ nginx_cfg:
 
 NGINX_ROBOT_RULES: [ ]
 NGINX_EDXAPP_EMBARGO_CIDRS: []
+NGINX_P3P_MESSAGE: 'CP="Open edX does not have a P3P policy."'
+
+COMMON_ENABLE_BASIC_AUTH: False
+
+CERTS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+ECOMMERCE_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+EDXAPP_CMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+EDXAPP_LMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+KIBANA_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+PROGRAMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+XQUEUE_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+XSERVER_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+
+NGINX_CREATE_HTPASSWD_FILE: >
+  {{
+    CERTS_ENABLE_BASIC_AUTH|bool or
+    ECOMMERCE_ENABLE_BASIC_AUTH|bool or
+    EDXAPP_CMS_ENABLE_BASIC_AUTH|bool or
+    EDXAPP_LMS_ENABLE_BASIC_AUTH|bool or
+    EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH|bool or
+    KIBANA_ENABLE_BASIC_AUTH|bool or
+    PROGRAMS_ENABLE_BASIC_AUTH|bool or
+    XQUEUE_ENABLE_BASIC_AUTH|bool or
+    XSERVER_ENABLE_BASIC_AUTH|bool
+  }}

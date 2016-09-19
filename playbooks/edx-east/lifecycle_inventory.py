@@ -30,8 +30,10 @@ group and state.
 """
 import argparse
 import boto
+import boto.ec2.autoscale
 import json
 from collections import defaultdict
+from os import environ
 
 class LifecycleInventory():
 
@@ -54,7 +56,7 @@ class LifecycleInventory():
         return environment,deployment
 
     def get_instance_dict(self):
-        ec2 = boto.connect_ec2(profile_name=self.profile)
+        ec2 = boto.ec2.connect_to_region(region,profile_name=self.profile)
         reservations = ec2.get_all_instances()
 
         dict = {}
@@ -65,8 +67,8 @@ class LifecycleInventory():
         return dict
 
     def run(self):
-        autoscale = boto.connect_autoscale(profile_name=self.profile)
-        groups = autoscale.get_all_groups()
+        asg = boto.ec2.autoscale.connect_to_region(region,profile_name=self.profile)
+        groups = asg.get_all_groups()
 
         instances = self.get_instance_dict()
         inventory = defaultdict(list)
@@ -92,7 +94,6 @@ if __name__=="__main__":
     parser.add_argument('-l', '--list', help='Ansible passes this, we ignore it.', action='store_true', default=True)
     args = parser.parse_args()
 
+    region = environ.get('AWS_REGION','us-east-1')
+
     LifecycleInventory(args.profile).run()
-
-
-

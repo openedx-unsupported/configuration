@@ -1,3 +1,11 @@
 {% include "edxapp_common.j2" %}
 
-sudo -E -u {{ edxapp_user }} env "PATH=$PATH" {{ edxapp_venv_bin}}/python manage.py cms migrate --noinput --settings $EDX_PLATFORM_SETTINGS
+if [[ -z "$NO_EDXAPP_SUDO" ]]; then
+    SUDO='sudo -E -u {{ edxapp_user }} env "PATH=$PATH"'
+fi
+
+{% for db in cms_auth_config.DATABASES.keys() %}
+  {%- if db != 'read_replica' %}
+$SUDO {{ edxapp_venv_bin}}/python manage.py cms migrate --database {{ db }} --noinput --settings $EDX_PLATFORM_SETTINGS $@
+  {% endif %}
+{% endfor %}

@@ -1,0 +1,35 @@
+# -*- mode: ruby -*-
+
+VAGRANTFILE_API_VERSION = '2'
+MEMORY = 2048
+PRIVATE_IP = ENV['VAGRANT_PRIVATE_IP'] || '192.168.33.15'
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = 'ubuntu/trusty64'
+
+  config.vm.network 'private_network', ip: PRIVATE_IP
+  config.vm.synced_folder  '.', '/vagrant', disabled: true
+
+  config.vm.provider 'virtualbox' do |vb|
+    vb.memory = MEMORY
+  end
+
+  unless ENV['VAGRANT_NO_PORTS']
+    config.vm.network :forwarded_port, guest: 8080, host: 8080  # Jenkins
+  end
+
+  unless ENV['VAGRANT_JENKINS_LOCAL_VARS_FILE']
+    raise 'Please set VAGRANT_JENKINS_LOCAL_VARS_FILE environment variable. '\
+          'That variable should point to a file containing variable '\
+          'overrides for analytics_jenkins role. For required overrides '\
+          'see README.md in the analytics_jenkins role folder.'
+  end
+
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = '../../../playbooks/analytics-jenkins.yml'
+    ansible.verbose = 'vvvv'
+
+    ansible.extra_vars = ENV['VAGRANT_JENKINS_LOCAL_VARS_FILE']
+  end
+
+end

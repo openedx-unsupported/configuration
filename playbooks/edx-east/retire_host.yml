@@ -10,7 +10,7 @@
 #
 - name: Stop all services
   hosts: "{{TARGET}}"
-  sudo: True
+  become: True
   gather_facts: False
   vars:
     STOP_ALL_EDX_SERVICES_EXTRA_ARGS: "--no-wait"
@@ -19,7 +19,7 @@
 
 - name: Server retirement workflow
   hosts: "{{TARGET}}"
-  sudo: True
+  become: True
   gather_facts: False
   tasks:
     - name: Terminate existing s3 log sync
@@ -38,11 +38,11 @@
         - "edx-services"
     # This catches the case where tracking.log is 0b
     - name: Sync again
-      command: /edx/bin/send-logs-to-s3 -d "{{ COMMON_LOG_DIR }}/tracking/*" -b "{{ COMMON_AWS_SYNC_BUCKET }}/logs/tracking"
+      command: /edx/bin/send-logs-to-s3 -d "{{ COMMON_LOG_DIR }}/tracking/*" -b "{{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }}/logs/tracking"
     
 - name: Run minos verification
   hosts: "{{TARGET}}"
-  sudo: True
+  become: True
   gather_facts: False
   tasks:
     - name: Run minos
