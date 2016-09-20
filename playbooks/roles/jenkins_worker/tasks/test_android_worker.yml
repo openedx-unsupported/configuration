@@ -28,7 +28,11 @@
 - name: Verify build tools installed
   stat: path={{ android_home }}/{{ item }}
   register: android_package_stats
-  with_items: "{{ android_test_paths.function_output }}"
+  # When this task is skipped, ansible still tries to resolve the variable
+  # returned from zip_to_list, but cannot. Add a default value to avoid these
+  # failures when other tasks are run, but not mask true failures when this
+  # task is run.
+  with_items: "{{ android_test_paths.function_output | default(['non-existent-package']) }}"
 - with_items: "{{ android_package_stats.results }}"
   assert:
     that:
