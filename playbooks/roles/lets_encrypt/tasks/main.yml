@@ -115,6 +115,8 @@
     - install
     - install:cron
 
+# Setup renewal cron, either using either the specified time
+# or a random 12 hour interval if no time is given
 - name: create cronjob to check certificate renewal 2x daily
   cron: 
         name      : "Renew Let's Encrypt certificates via certbot"
@@ -127,3 +129,21 @@
   tags:
     - install
     - install:cron
+  when: not (LETS_ENCRYPT_CRON_TASK_HOUR or LETS_ENCRYPT_CRON_TASK_DAY or LETS_ENCRYPT_CRON_TASK_MINUTE)
+
+- name: create cronjob to check certificate at specified time
+  cron:
+        name      : "Renew Let's Encrypt certificates via certbot"
+        day       : "{{ LETS_ENCRYPT_CRON_TASK_HOUR or '*' }}"
+        hour      : "{{ LETS_ENCRYPT_CRON_TASK_DAY or '*'}}"
+        minute    : "{{ LETS_ENCRYPT_CRON_TASK_MINUTE or '*' }}"
+        cron_file : "lets-encrypt-renew"
+        user      : "root"
+        job       : /opt/letsencrypt/run_certbot.sh
+        state     : present
+  tags:
+    - install
+    - install:cron
+  when: LETS_ENCRYPT_CRON_TASK_HOUR or LETS_ENCRYPT_CRON_TASK_DAY or LETS_ENCRYPT_CRON_TASK_MINUTE
+
+
