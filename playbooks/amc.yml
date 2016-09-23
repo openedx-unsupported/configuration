@@ -1,18 +1,13 @@
 ---
 
-# Example sandbox configuration
-# for single server community
-# installs
-
 - name: Configure instance(s)
-  hosts: all
+  hosts: edx
   sudo: True
   gather_facts: True
   vars:
     migrate_db: "yes"
     openid_workaround: True
     EDXAPP_LMS_NGINX_PORT: '80'
-    edx_platform_version: 'master'
     # Set to false if deployed behind another proxy/load balancer.
     NGINX_SET_X_FORWARDED_HEADERS: True
     # These should stay false for the public AMI
@@ -20,8 +15,6 @@
     COMMON_ENABLE_SPLUNKFORWARDER: False
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
-    - role: scorm
-      when: "{{ EDXAPP_XBLOCK_SETTINGS }}.get('ScormXBlock', False)"
     - role: nginx
       nginx_sites:
       - certs
@@ -41,8 +34,8 @@
     - edxapp
     - notifier
     - analytics_api
-    - edx_notes_api
     - insights
+    - edx_notes_api
     - demo
     - oauth_client_setup
     - oraclejdk

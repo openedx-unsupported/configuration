@@ -29,7 +29,7 @@ if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
 // Check that the cluster has the right number of members
 // and add them if we are the master
 if(rs.isMaster().ismaster) {
-    if(rs.status().members.length!={{ hosts|length }}) {
+    if(rs.status().members.length!={{ hosts|list|length }}) {
         {% for host in hosts %}
           {%- if host != ansible_default_ipv4["address"] -%}
             rs.add({_id: {{ loop.index }}, host: '{{ host }}'});
@@ -38,7 +38,7 @@ if(rs.isMaster().ismaster) {
         sleep(30000);
         // Check status and member account, throw exception if not
         if(!rs.status().ok) { throw 'Mongo Cluster Not Ok';}
-        if(rs.status().members.length!={{ hosts|length }}) {
+        if(rs.status().members.length!={{ hosts|list|length }}) {
             throw 'Could not add all members to cluster'
         }
     }
