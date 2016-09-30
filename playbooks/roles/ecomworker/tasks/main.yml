@@ -17,6 +17,9 @@
     state: present
   become_user: '{{ ecommerce_worker_user }}'
   with_items: ecommerce_worker_requirements
+  tags:
+    - install
+    - install:configuration
 
 - name: write out the supervisor wrapper
   template:
@@ -25,6 +28,9 @@
     mode: 0650
     owner: '{{ supervisor_user }}'
     group: '{{ common_web_user }}'
+  tags:
+    - install
+    - install:configuration
 
 - name: write supervisord config
   template:
@@ -33,6 +39,9 @@
     owner: '{{ supervisor_user }}'
     group: '{{ common_web_user }}'
     mode: 0644
+  tags:
+    - install
+    - install:configuration
 
 - name: setup the ecommerce_worker env file
   template:
@@ -41,6 +50,9 @@
     owner: '{{ ecommerce_worker_user }}'
     group: '{{ ecommerce_worker_user }}'
     mode: 0644
+  tags:
+    - install
+    - install:configuration
 
 - name: enable supervisor script
   file:
@@ -49,10 +61,16 @@
     state: link
     force: yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: update supervisor configuration
   shell: '{{ supervisor_ctl }} -c {{ supervisor_cfg }} update'
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
 
 - name: create symlinks from the venv bin dir
   file:
@@ -62,6 +80,9 @@
   with_items:
   - python
   - pip
+  tags:
+    - install
+    - install:app-requirements
 
 - name: restart the applicaton
   supervisorctl:
@@ -71,3 +92,6 @@
     name: '{{ ecommerce_worker_service_name }}'
   when: not disable_edx_services
   become_user: '{{ supervisor_service_user }}'
+  tags:
+    - manage
+    - manage:start
