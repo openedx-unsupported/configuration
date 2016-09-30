@@ -21,8 +21,8 @@
 #   - ami_wait                        - (yes/no) should ansible pause while
 #   - no_reboot                       - (yes/no) should the instance not be rebooted during AMI creation
 #   - artifact_path                   - the path to where this ansible run stores the artifacts for the pipeline
-#   - edx_app_theme_repo              - the edx_app_theme repository
-#   - edx_app_theme_version           - the edx_app_theme repository version (git hash)
+#   - edxapp_theme_source_repo        - the edx_app_theme repository
+#   - edxapp_theme_version            - the edx_app_theme repository version (git hash)
 #   - hipchat_token                   - API token to send messages to hipchat
 #   - hipchat_room                    - ID or name of the room to send the notification
 #   - hipchat_url                     - URL of the hipchat API  (defaults to v1 of the api)
@@ -65,7 +65,7 @@
   - name: Create AMI
     ec2_ami_2_0_0_1:
       instance_id: "{{ instance_id }}"
-      name: "{{ edx_environment }} -- {{ deployment }} -- {{ play }} -- {{ app_version }} -- {{ extra_name_identifier }}"
+      name: "{{ edx_environment }} -- {{ deployment }} -- {{ play }} -- {{ app_version[:7] }} -- {{ extra_name_identifier }}"
       region: "{{ ec2_region }}"
       wait: "{{ ami_wait }}"
       wait_timeout: "{{ ami_creation_timeout }}"
@@ -73,9 +73,9 @@
       description: "AMI built via edX continuous delivery pipeline - Ansible version: {{ ansible_version }}"
       # used a JSON object here as there is a string interpolation in the keys.
       tags: "{
-                'version:{{ play }}':'{{ app_repo }} {{ app_version }}',
-                'version:configuration':'{{ configuration_repo }} {{ configuration_version }}',
-                'version:configuration_secure':'{{ configuration_secure_repo }} {{ configuration_secure_version }}',
+                'version:{{ play }}':'{{ app_repo }} {{ app_version[:7] }}',
+                'version:configuration':'{{ configuration_repo }} {{ configuration_version[:7] }}',
+                'version:configuration_secure':'{{ configuration_secure_repo }} {{ configuration_secure_version[:7] }}',
                 'play':'{{ play }}',
                 'cache_id':'{{ cache_id }}',
                 'environment':'{{ edx_environment }}',
@@ -94,8 +94,8 @@
       region: "{{ ec2_region }}"
       resource: "{{ ami_register.image_id }}"
       tags:
-        version:edxapp_theme: "{{ edx_app_theme_repo }} {{ edx_app_theme_version }}"
-    when: edx_app_theme_version is defined and edx_app_theme_repo is defined
+        version:edxapp_theme: "{{ edxapp_theme_source_repo }} {{ edxapp_theme_version[:7] }}"
+    when: edxapp_theme_version is defined and edxapp_theme_source_repo is defined
 
   - name: Ensure artifact directory exists
     file:
