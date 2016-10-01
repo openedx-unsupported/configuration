@@ -1,5 +1,6 @@
 # Configuration Management
 
+
 ## Introduction
 
 The goal of the edx/configuration project is to provide a simple, but
