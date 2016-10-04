@@ -276,6 +276,9 @@ EDXAPP_LANG: 'en_US.UTF-8'
 EDXAPP_LANGUAGE_CODE : 'en'
 EDXAPP_TIME_ZONE: 'America/New_York'
 
+EDXAPP_LMS_DOC_LINK_BASE_URL: 'https://edx.readthedocs.io/projects/open-edx-learner-guide'
+EDXAPP_CMS_DOC_LINK_BASE_URL: 'https://edx.readthedocs.io/projects/open-edx-building-and-running-a-course'
+
 EDXAPP_TECH_SUPPORT_EMAIL: 'technical@example.com'
 EDXAPP_CONTACT_EMAIL: 'info@example.com'
 EDXAPP_BUGS_EMAIL: 'bugs@example.com'
@@ -351,20 +354,18 @@ EDXAPP_PYTHON_SANDBOX: true
 # it puts the sandbox in 'complain' mode, for reporting but not enforcement
 EDXAPP_SANDBOX_ENFORCE: true
 
-# Supply authorized keys used for remote management via the user
-# role.
-EDXAPP_AUTOMATOR_NAME: automator
-EDXAPP_AUTOMATOR_AUTHORIZED_KEYS: []
-# These are the commands allowed by the automator role.
-# The --settings parameter must be set at the end so that
-# is caught by the glob.
-# Example: sudo -u www-data /edx/bin/python.edxapp /edx/bin/manage.edxapp lms migrate --settings=aws
-EDXAPP_AUTOMATOR_SUDO_CMDS:
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms migrate *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp cms migrate *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms seed_permissions_roles *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms set_staff *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms transfer_students *"
+# Vars that are used when the automated role is "mixed-in" via the deploying play
+# This data structure specifies all the users with access to run command remotely
+# over SSH and the fully qualified command that they can run via sudo to the
+# application user
+
+EDXAPP_AUTOMATED_USERS:
+  automated_user:
+    sudo_commands:
+      - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms migrate --list --settings=aws"
+        sudo_user: "edxapp"
+    authorized_keys:
+      - "SSH authorized key"
 
 EDXAPP_USE_GIT_IDENTITY: false
 # Paste the contents of the git identity
@@ -681,6 +682,11 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   user: "{{ EDXAPP_MONGO_USER }}"
   collection:  'modulestore'
   ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
+  # https://api.mongodb.com/python/2.9.1/api/pymongo/mongo_client.html#module-pymongo.mongo_client
+  socketTimeoutMS: 3000 # default is never timeout while the connection is open, this means it needs to explicitly close raising pymongo.errors.NetworkTimeout
+  connectTimeoutMS: 2000 # default is 20000, I believe raises pymongo.errors.ConnectionFailure
+  # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
+  
 
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
@@ -819,6 +825,7 @@ generic_env_config:  &edxapp_generic_env
   STATIC_ROOT_BASE: "{{ edxapp_staticfile_dir }}"
   LMS_BASE: "{{ EDXAPP_LMS_BASE }}"
   CMS_BASE: "{{ EDXAPP_CMS_BASE }}"
+  LMS_ROOT_URL: "{{ EDXAPP_LMS_ROOT_URL }}"
   BOOK_URL:  "{{ EDXAPP_BOOK_URL }}"
   PARTNER_SUPPORT_EMAIL: "{{ EDXAPP_PARTNER_SUPPORT_EMAIL }}"
   PLATFORM_NAME: "{{ EDXAPP_PLATFORM_NAME }}"
@@ -1005,6 +1012,7 @@ lms_env_config:
   API_ACCESS_FROM_EMAIL: "{{ EDXAPP_API_ACCESS_FROM_EMAIL }}"
   API_DOCUMENTATION_URL: "{{ EDXAPP_API_DOCUMENTATION_URL }}"
   AUTH_DOCUMENTATION_URL: "{{ EDXAPP_AUTH_DOCUMENTATION_URL }}"
+  DOC_LINK_BASE_URL: "{{ EDXAPP_LMS_DOC_LINK_BASE_URL }}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
@@ -1034,6 +1042,7 @@ cms_env_config:
   <<: *edxapp_generic_env
   SITE_NAME:  "{{ EDXAPP_CMS_SITE_NAME }}"
   GIT_REPO_EXPORT_DIR: "{{ EDXAPP_GIT_REPO_EXPORT_DIR }}"
+  DOC_LINK_BASE_URL: "{{ EDXAPP_CMS_DOC_LINK_BASE_URL }}"
 
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"

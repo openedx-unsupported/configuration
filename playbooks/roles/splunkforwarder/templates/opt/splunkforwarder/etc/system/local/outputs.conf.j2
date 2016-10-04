@@ -9,5 +9,13 @@ defaultGroup = {{ server.target_group }}
 {% for server in SPLUNKFORWARDER_SERVERS %}
 [tcpout:{{ server.target_group }}]
 server = {{ server.server }}
+compressed = true
+{% if server.ssl_cert is defined %}
+sslCertPath = $SPLUNK_HOME/{{ splunkforwarder_ssl_cert_path }}/{{ server.target_group }}.pem
+sslRootCAPath = $SPLUNK_HOME/{{ splunkforwarder_ssl_cert_path }}/{{ server.target_group }}-rootca.pem
+sslPassword = {{ server.ssl_cert_password }}
+sslVerifyServerCert = true
+sslCommonNameToCheck = {{ server.ssl_common_name }}
+{% endif %}
 
 {% endfor %}

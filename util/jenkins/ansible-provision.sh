@@ -18,9 +18,19 @@
 # - environment
 # - name_tag
 set -x
-env
+
+# Seeing the environment is fine, spewing secrets to the log isn't ok
+env | grep -v AWS | grep -v ARN
+
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
+
+# docker on OS-X includes your Mac's home directory in the socket path
+# that SSH/Ansible uses for the control socket, pushing you over
+# the 108 character limit.
+if [ -f /.dockerenv ]; then
+    export ANSIBLE_SSH_CONTROL_PATH=/tmp/%%C
+fi
 
 run_ansible() {
   if [[ "$VERBOSE" == "true" ]]; then
@@ -69,7 +79,8 @@ if [[ -z $github_username  ]]; then
   github_username=$BUILD_USER_ID
 fi
 
-if [[ ! -f $BOTO_CONFIG ]]; then
+# Having access keys OR a boto config allows sandboxes to be built.
+if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
   echo "AWS credentials not found for $aws_account"
   exit 1
 fi
@@ -160,7 +171,6 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 cd playbooks/edx-east
 
 cat << EOF > $extra_vars_file
-ansible_ssh_private_key_file: /var/lib/jenkins/${keypair}.pem
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
@@ -293,6 +303,7 @@ COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+DISCOVERY_PROGRAMS_API_URL: "{{ PROGRAMS_URL_ROOT }}/api/v1/"
 
 EOF
 fi
@@ -331,7 +342,7 @@ EOF
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg -e 'elb_pre_post=false' --user ubuntu
         run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi

@@ -59,7 +59,7 @@ def _map_roles_to_roles(graph, dirs, git_dir, key, type_1, type_2):
         for item in d.iterdir():
 
             # attempts to find meta/*.yml file in item directory tree
-            roles = [f for f in item.glob("meta/*.yml")]
+            roles = {f for f in item.glob("meta/*.yml")}
 
             # if a meta/*.yml file(s) exists for a role
             if roles:
@@ -81,8 +81,8 @@ def _map_roles_to_roles(graph, dirs, git_dir, key, type_1, type_2):
                             # add node for type_2, typically dependent role
                             node_2 = Node(name, type_2)
 
-                            # add edge, typically role - dependent role
-                            graph.add_edge(node_1, node_2)
+                            # add edge, typically dependent role - role
+                            graph.add_edge(node_2, node_1)
 
 def _map_plays_to_roles(graph, dirs, git_dir, key, type_1, type_2):
     """
@@ -130,8 +130,8 @@ def _map_plays_to_roles(graph, dirs, git_dir, key, type_1, type_2):
                                 # add node for type_2, typically for role
                                 node_2 = Node(name, type_2)
 
-                                 # add edge, typically playbook - role it uses
-                                graph.add_edge(node_1, node_2)
+                                 # add edge, typically role - playbook that uses it
+                                graph.add_edge(node_2, node_1)
 
 def _open_yaml_file(file_str):
     """
@@ -169,7 +169,7 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
         role_dir_path = pathlib2.Path(git_dir, role_dir)
 
         # get all files in the directories containing roles (i.e. all the roles in that directory)
-        candidate_files = (f for f in role_dir_path.glob("**/*"))
+        candidate_files = {f for f in role_dir_path.glob("**/*")}
 
         # for all the files in the change set
         for f in files:
@@ -178,7 +178,20 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
             # if the change set file is in the set of role files
             if file_path in candidate_files:
                 # get name of role and add it to set of roles of the change set
-                items.add(_get_resource_name(file_path, "roles"))
+                items.add(_get_role_name_from_file(file_path))
+    return items
+
+def get_plays(files, git_dir, playbooks_dirs):
+    """ 
+    Determines which files in the change set are aws playbooks
+
+    files: A list of files modified by a commit range.
+    git_dir: A path to the top-most directory in the local git repository tool is to be run in.
+    playbook_dirs: A list of relative paths to directories in which Ansible playbooks reside.
+
+    """
+
+    plays = set()
 
     # for all directories containing playbooks
     for play_dir in playbooks_dirs:
@@ -186,39 +199,41 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
 
         # get all files in directory containing playbook that end with yml extension
         # (i.e. all playbooks in that directory)
-        candidate_files = (f for f in play_dir_path.glob("*.yml"))
+        candidate_files = {f for f in play_dir_path.glob("*.yml")}
 
         # for all filse in the change set
         for f in files:
             file_path = pathlib2.Path(git_dir, f)
 
-            # if the change set file is in teh set of playbook files
+            # if the change set file is in the set of playbook files
             if file_path in candidate_files:
+                plays.add(_get_playbok_name_from_file(file_path))
 
-                # gets first level of children of playbook in graph, which represents
-                # all roles the playbook uses
-                descendants = nx.all_neighbors(graph, (file_path.stem, "aws_playbook"))
-
-                # adds all the roles that a playbook uses to set of roles of the change set
-                items |= {desc.name for desc in descendants}
-    return items
-
-def _get_resource_name(path, kind):
+    return plays
+                
+def _get_playbook_name_from_file(path):
     """
-    Gets name of resource from the filepath, which is the directory following occurence of kind.
+    Gets name of playbook from the filepath, which is the last part of the filepath.
 
     Input:
-    path: A path to the resource (e.g. a role or a playbook)
-    kind: A description of the type of resource; this keyword precedes the name of a role or a playbook
-        in a file path and allows for the separation of its name;
-        e.g. for "configuration/playbooks/roles/discovery/...", kind = "roles" returns
-        "discovery" as the role name
+    path: A path to the playbook
+    """
+    # get last part of filepath
+    return path.stem
+   
+
+def _get_role_name_from_file(path):
+    """
+    Gets name of role from the filepath, which is the directory following occurence of the word "roles".
+
+    Input:
+    path: A path to the role
     """
     # get individual parts of a file path
     dirs = path.parts
 
-    # type of resource is the next part of the file path after kind (e.g. after "roles" or "playbooks")
-    return dirs[dirs.index(kind)+1]
+    # name of role is the next part of the file path after "roles"
+    return dirs[dirs.index("roles")+1]
 
 def get_dependencies(roles, graph):
     """
@@ -250,7 +265,7 @@ def get_docker_plays(roles, graph):
 
     items = set()
 
-    docker_plays = (node.name for node in graph.nodes() if node.type == "docker_playbook")
+    docker_plays = {node.name for node in graph.nodes() if node.type == "docker_playbook"}
 
     for play in docker_plays:
         # all roles that are used by play
@@ -347,13 +362,16 @@ if __name__ == '__main__':
     # aws_plays_paths:
     #       - <all paths relative to configuration repository that contain aws Ansible playbooks>
     # docker_plays_paths:
-    #       - <all paths relative to configuration repositroy that contain Docker Ansible playbooks>
+    #       - <all paths relative to configuration repository that contain Docker Ansible playbooks>
 
     # read config file
     config = _open_yaml_file(CONFIG_FILE_PATH)
 
     # build graph
     graph = build_graph(TRAVIS_BUILD_DIR, config["roles_paths"], config["aws_plays_paths"], config["docker_plays_paths"])
+
+    # gets any playbooks in the commit range
+    plays = get_plays(change_set, TRAVIS_BUILD_DIR, config["aws_plays_paths"])
 
     # transforms list of roles and plays into list of original roles and the roles contained in the plays
     roles = change_set_to_roles(change_set, TRAVIS_BUILD_DIR, config["roles_paths"], config["aws_plays_paths"], graph)
@@ -363,6 +381,8 @@ if __name__ == '__main__':
 
     # determine which docker plays cover at least one role
     docker_plays = get_docker_plays(dependent_roles, graph)
+
+    docker_plays = docker_plays | plays
 
     # filter out docker plays without a Dockerfile
     docker_plays = filter_docker_plays(docker_plays, TRAVIS_BUILD_DIR)

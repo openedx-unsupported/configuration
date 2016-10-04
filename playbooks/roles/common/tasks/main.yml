@@ -34,24 +34,32 @@
     path: /home/vagrant
   register: vagrant_home_dir
 
+# Ensure that we get a current version of Git
+# GitHub requires version 1.7.10 or later
+# https://help.github.com/articles/https-cloning-errors
+- name: Add git apt repository
+  apt_repository:
+    repo: "{{ common_git_ppa }}"
+  when: ansible_distribution in common_debian_variants
+
+
+# Ensure that we get the latest version of python 2.7
 - name: add edx ppa apt key
   apt_key:
     id: "{{ COMMON_EDX_PPA_KEY_ID }}"
     keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
     state: "present"
-  when: ansible_distribution in common_debian_variants
+  when: >
+    ansible_distribution in common_debian_variants and
+    ansible_distribution_release in common_custom_ppa_releases
 
-
-# Ensure that we get a current version of Git and latest version of python 2.7
-# GitHub requires version 1.7.10 or later
-# https://help.github.com/articles/https-cloning-errors
-- name: Add git apt repository
+- name: Add custom edX PPA
   apt_repository:
-    repo: "{{ item }}"
-  with_items:
-    - "{{ common_git_ppa }}"
-    - "{{ COMMON_EDX_PPA }}"
-  when: ansible_distribution in common_debian_variants
+    repo: "{{ COMMON_EDX_PPA }}"
+  when: >
+    ansible_distribution in common_debian_variants and
+    ansible_distribution_release in common_custom_ppa_releases
+
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -62,6 +70,17 @@
     update_cache: yes
   with_items: "{{ common_debian_pkgs }}"
   when: ansible_distribution in common_debian_variants
+
+- name: Install role-independent useful system packages from custom PPA
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+    update_cache: yes
+  with_items: "{{ common_custom_debian_pkgs }}"
+  when: >
+    ansible_distribution in common_debian_variants and 
+    ansible_distribution_release in common_custom_ppa_releases
 
 - name: Install role-independent useful system packages
   yum:
@@ -139,3 +158,25 @@
     state: restarted
   become: True
   when: config_templates.changed
+
+- name: Add ntp alert script
+  template:
+    src: "log-ntp-alerts.sh.j2"
+    dest: "{{ COMMON_BIN_DIR }}/log-ntp-alerts.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set up a cron job to run the script
+  cron:
+    name: "log-ntp-alerts"
+    job: "{{ COMMON_BIN_DIR }}/log-ntp-alerts.sh >/dev/null 2>&1"
+
+- name: install logrotate configuration
+  template:
+    src: etc/logrotate.d/ntp.j2
+    dest: /etc/logrotate.d/ntp
+  tags:
+    - "install"
+    - "install:configuration"
+    - "logrotate"

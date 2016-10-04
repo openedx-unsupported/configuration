@@ -1,0 +1,92 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role automated
+#
+# Overview:
+#
+# This role is included as a dependency by other roles which provide
+# automated jobs.  Automation occurs over ssh.  The automator user is
+# is allowed to run explicitly listed commands via sudo.
+#
+# Dependencies:
+#
+# This role depends upon variables provided by an including role
+# via the my_role/meta/main.yml file.  Includes take the following forms:
+#
+# For example, the edxapp role might designate that ecom and analytics users
+# are allowed to run specific management commands on edxapp instancs.
+#
+# EDXAPP_AUTOMATED_USERS:
+#   ecom:
+#     sudo_commands:
+#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --list --settings=aws"
+#         sudo_user: "edxapp"
+#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --list --settings=aws"
+#         sudo_user: "edxapp"
+#     authorized_keys:
+#       - 'ssh-rsa <REDACTED> ecom+admin@example.com'
+#       - 'ssh-rsa <REDACTED> ecom+devel@example.com'
+#   analytics:
+#     sudo_commands:
+#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms help --settings=aws"
+#         sudo_user: "edxapp"
+#     authorized_keys: ['ssh-rsa <REDACTED> analytics@example.com']
+#
+# The play for the role enabling automation should include the role like so
+#
+#  - role: automated
+#    AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}"
+#
+
+- name: Create automated user
+  user:
+    name: "{{ item.key }}"
+    state: present
+    shell: "/bin/bash"
+    createhome: yes
+  with_dict: "{{ AUTOMATED_USERS }}"
+
+- name: Create sudoers file from template
+  template:
+    dest: "/etc/sudoers.d/99-{{ item.key }}"
+    src: "{{ automated_sudoers_template }}"
+    owner: "root"
+    group: "root"
+    mode: "0440"
+    validate: 'visudo -cf %s'
+  when: automated_sudoers_template
+  with_dict: "{{ AUTOMATED_USERS }}"
+  
+- name: Create .ssh directory
+  file:
+    path: "/home/{{ item.key }}/.ssh"
+    state: "directory"
+    mode: "0700"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+  with_dict: "{{ AUTOMATED_USERS }}"
+    
+- name: Build authorized_keys file
+  template:
+    src: "home/automator/.ssh/authorized_keys.j2"
+    dest: "/home/{{ item.key }}/.ssh/authorized_keys"
+    mode: "0600"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+  with_dict: "{{ AUTOMATED_USERS }}"
+    
+- name: Build known_hosts file
+  file:
+    path: "/home/{{ item.key }}/.ssh/known_hosts"
+    state: "touch"
+    mode: "0755"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+  with_dict: "{{ AUTOMATED_USERS }}"
