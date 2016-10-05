@@ -14,11 +14,22 @@ upstream lms-backend {
 {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
 # Make Zone
 limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
-#Iterate through the list of User agent and add limit_req_zone for each user agent
+
+# Iterate through the list of User agent and add limit_req_zone for each user agent
+
 {% for agent in EDXAPP_RATE_LIMITED_USER_AGENTS %}
+
+# Map directive is used in the configuration. Map is used to create a variable
+# whose value depends on other variable. So here Map is used actually to 
+# dynamically have different rate limits for different user agents 
+
+
 map $http_user_agent {{ "$limit_bot_" ~ agent.alias }} {
           {{ agent.agent_name }} $binary_remote_addr;
       }
+
+# Limit_req_zone for each user agent in EDXAPP_RATE_LIMITED_USER_AGENTS list
+
 limit_req_zone {{ "$limit_bot_" ~ agent.alias }} zone=agents:10m rate={{ agent.rate }};
 {% endfor %}
 
