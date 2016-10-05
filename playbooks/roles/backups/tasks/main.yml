@@ -11,12 +11,14 @@
   when: BACKUPS_PROVIDER == 'gs'
   tags: ['backups']
 
-- name: Install boto plugin for Google Cloud Storage
+- name: Install Python packages required for backup script
   pip: name={{ item.name }} version={{ item.version }}
   with_items:
     - {name: gcs-oauth2-boto-plugin, version: 1.9}
     - {name: oauth2client, version: 1.5.2}
     - {name: pyopenssl, version: 0.15.1}
+    - {name: cryptography, version: 1.4}
+    - {name: raven, version: 5.27.1}
   when: BACKUPS_PROVIDER == 'gs'
   tags: ['backups']
 
@@ -41,11 +43,11 @@
   tags: ['backups']
 
 - name: Copy database backup script
-  template: src=backup.py dest=/usr/local/bin/edx_backup owner=root group=root mode=0700
+  copy: src=backup.py dest=/usr/local/bin/edx_backup owner=root group=root mode=0700
   tags: ['backups']
 
 - name: Copy database restore script
-  template: src=backup.py dest=/usr/local/bin/edx_restore owner=root group=root mode=0700
+  copy: src=backup.py dest=/usr/local/bin/edx_restore owner=root group=root mode=0700
   tags: ['backups']
 
 - name: Create cron job for Mongo backups
@@ -66,6 +68,7 @@
     BACKUP_PROVIDER: '{{ BACKUPS_PROVIDER }}'
     BACKUP_AWS_ACCESS_KEY_ID: '{{ BACKUPS_AWS_ACCESS_KEY_ID }}'
     BACKUP_AWS_SECRET_ACCESS_KEY: '{{ BACKUPS_AWS_SECRET_ACCESS_KEY }}'
+    BACKUPS_SENTRY_DSN: '{{ BACKUPS_SENTRY_DSN }}'
   when: BACKUPS_MONGO and "{{ item.value }}" != ""
   tags: ['backups']
 
@@ -87,5 +90,6 @@
     BACKUP_PROVIDER: '{{ BACKUPS_PROVIDER }}'
     BACKUP_AWS_ACCESS_KEY_ID: '{{ BACKUPS_AWS_ACCESS_KEY_ID }}'
     BACKUP_AWS_SECRET_ACCESS_KEY: '{{ BACKUPS_AWS_SECRET_ACCESS_KEY }}'
+    BACKUPS_SENTRY_DSN: '{{ BACKUPS_SENTRY_DSN }}'
   when: BACKUPS_MYSQL and "{{ item.value }}" != ""
   tags: ['backups']

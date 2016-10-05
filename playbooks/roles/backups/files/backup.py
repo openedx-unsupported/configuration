@@ -13,6 +13,7 @@ import sys
 import boto
 import gcs_oauth2_boto_plugin
 from filechunkio import FileChunkIO
+import raven
 
 
 def make_file_name(base_name):
@@ -295,6 +296,7 @@ def _parse_args():
     parser.add_argument('-s', '--settings',
                         help='Django settings used when running database '
                              'migrations')
+    parser.add_argument('--sentry-dsn', help='Sentry data source name')
 
     return parser.parse_args()
 
@@ -312,26 +314,34 @@ def _main():
     s3_id = args.s3_id or os.environ.get('BACKUP_AWS_ACCESS_KEY_ID')
     s3_key = args.s3_key or os.environ.get('BACKUP_AWS_SECRET_ACCESS_KEY')
     settings = args.settings or os.environ.get('BACKUP_SETTINGS') or 'aws_appsembler'
+    sentry_dsn = args.sentry_dsn or os.environ.get('BACKUPS_SENTRY_DSN') or ''
     service = args.service
 
+    sentry = raven.Client(sentry_dsn)
+
     if program_name == 'edx_backup':
-        if not os.path.exists(backup_dir):
-            os.makedirs(backup_dir)
-        backup_path = dump_service(service, backup_dir)
+        backup_path = ''
 
-        if compress:
-            backup_path = compress_backup(backup_path)
+        try:
+            if not os.path.exists(backup_dir):
+                os.makedirs(backup_dir)
+            backup_path = dump_service(service, backup_dir)
 
-        if provider == 'gs':
-            upload_to_gcloud_storage(backup_path, bucket)
-        elif provider == 's3':
-            upload_to_s3(backup_path, bucket, aws_access_key_id=s3_id,
-                         aws_secret_access_key=s3_key)
-        else:
-            error_msg = 'Error occurred while compressing backup'
-            logging.warning(error_msg)
+            if compress:
+                backup_path = compress_backup(backup_path)
 
-        clean_up(backup_path.replace('.tar.gz', ''))
+            if provider == 'gs':
+                upload_to_gcloud_storage(backup_path, bucket)
+            elif provider == 's3':
+                upload_to_s3(backup_path, bucket, aws_access_key_id=s3_id,
+                             aws_secret_access_key=s3_key)
+            else:
+                error_msg = 'Error occurred while compressing backup'
+                logging.warning(error_msg)
+        except:
+            sentry.captureException()
+        finally:
+            clean_up(backup_path.replace('.tar.gz', ''))
 
     elif program_name == 'edx_restore':
         restore(service, restore_path, settings=settings)
