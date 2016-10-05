@@ -12,16 +12,39 @@
     - install
     - install:base
 
+# Do this first so symlinks can be resolved in the next step
+- name: Create jail virtualenv
+  shell: "/usr/local/bin/virtualenv --python={{ item.PYTHON_EXECUTABLE }} --no-site-packages {{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+  with_items: "{{ XQWATCHER_COURSES }}"
+  tags:
+    - install
+    - install:code
+
 #
 # Need to disable apparmor to update the virutalenv
+
+# When Apparmor is pointed at a symlink and an application uses the symlink
+# target, Apparmor does not guard that execution.
+# But when Apparmor is pointed at a real executable and an application uses a
+# symlink to that executable, Apparmor DOES guard that execution.
+- name: Resolve potential symlinks
+  shell: readlink -vf {{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.bin_path }}
+  with_items: "{{ XQWATCHER_COURSES }}"
+  register: xqwatcher_python_real_executables
+  tags:
+    - install
+    - install:configuration
+
 - name: Write out apparmor config
   template:
     src: "etc/apparmor.d/code.jail.j2"
-    dest: "/etc/apparmor.d/code.jail.{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
+    dest: "/etc/apparmor.d/code.jail.{{ item.0.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
     owner: root
     group: root
     mode: "0644"
-  with_items: "{{ XQWATCHER_COURSES }}"
+  with_together:
+    - "{{ XQWATCHER_COURSES }}"
+    - "{{ xqwatcher_python_real_executables.results }}"
   tags:
     - install
     - install:configuration
@@ -46,13 +69,6 @@
   tags:
     - manage
     - manage:sandbox
-
-- name: Create jail virtualenv
-  shell: "/usr/local/bin/virtualenv --python={{ item.PYTHON_EXECUTABLE }} --no-site-packages {{ xqwatcher_app_dir }}/venvs/{{ item.QUEUE_CONFIG.HANDLERS[0].CODEJAIL.name }}"
-  with_items: "{{ XQWATCHER_COURSES }}"
-  tags:
-    - install
-    - install:code
 
 - name: Write out requirements.txt
   template:
