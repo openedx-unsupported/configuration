@@ -8,13 +8,20 @@
   hosts: "mongo-server"
   sudo: True
   gather_facts: True
+  vars:
+    BACKUPS_MONGO: yes
+    BACKUPS_MYSQL: no
   roles:
   - mongo
+  - backups
 
 - name: Configure mysql
   hosts: "mysql-server"
   sudo: True
   gather_facts: True
+  vars:
+    BACKUPS_MONGO: no
+    BACKUPS_MYSQL: yes
   vars_files:
   - roles/edxapp/defaults/main.yml
   - roles/xqueue/defaults/main.yml
@@ -22,6 +29,7 @@
   - roles/analytics_api/defaults/main.yml
   roles:
   - edxlocal
+  - backups
 
 - name: Configure instance(s)
   hosts: "edxapp-server"
