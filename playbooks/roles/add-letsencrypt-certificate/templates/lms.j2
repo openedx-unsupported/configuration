@@ -53,15 +53,15 @@ error_page {{ k }} {{ v }};
 
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
- {% if NGINX_ENABLE_SSL and USE_LETSENCRYPT != "yes" %}
-
+  {% if NGINX_ENABLE_SSL and USE_LETSENCRYPT == "yes" %}
   listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
 
-  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
-  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  ssl_certificate /etc/letsencrypt/live/{{ EDXAPP_SITE_NAME }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ EDXAPP_SITE_NAME }}/privkey.pem;
   # request the browser to use SSL for all connections
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
   {% endif %}
+
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
 
@@ -102,13 +102,11 @@ error_page {{ k }} {{ v }};
 
   rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
 
-  {% if USE_LETSENCRYPT == "yes" %}
   location '/.well-known/acme-challenge' {
     allow all;
     default_type "text/plain";
     root /var/www/letsencrypt;
   }
-  {% endif %}
 
   location @proxy_to_lms_app {
     {% if NGINX_SET_X_FORWARDED_HEADERS %}

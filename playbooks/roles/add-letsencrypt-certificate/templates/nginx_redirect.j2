@@ -1,0 +1,22 @@
+{%- if "default" in item.value -%}
+  {%- set default_site = "default" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+server {
+  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
+
+  {% if "ssl" in item.value and item.value['ssl'] == true -%}
+  listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif -%}
+
+  server_name {% for server in item.value['server_names'] %}
+                
+                {{ server }}{% endfor -%};
+
+                 
+  return 301 {{ item.value['redirect_destination'] }}$request_uri;
+}
