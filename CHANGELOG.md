@@ -1,3 +1,5 @@
+- Role: edxapp
+  - Renamed edxmako to openedx.core.djangoapps.edxmako
 - Role: common
   - Renamed `COMMON_AWS_SYNC` to `COMMON_OBJECT_STORE_LOG_SYNC`
   - Renamed `COMMON_AWS_SYNC_BUCKET` to `COMMON_OBJECT_STORE_LOG_SYNC_BUCKET`
