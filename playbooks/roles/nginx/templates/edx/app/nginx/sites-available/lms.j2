@@ -14,6 +14,17 @@ upstream lms-backend {
 {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
 # Make Zone
 limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
+
+{% for agent in EDXAPP_RATE_LIMITED_USER_AGENTS %}
+
+# Map of http user agent with name limit_bot_agent_alias having binary IP of the agent
+map $http_user_agent {{ "$limit_bot_" ~ agent.alias }} {
+          {{ agent.agent_name }} $binary_remote_addr;
+      }
+
+limit_req_zone {{ "$limit_bot_" ~ agent.alias }} zone=agents:10m rate={{ agent.rate }};
+{% endfor %}
+
 {%- endif %}
 
 
@@ -205,6 +216,7 @@ error_page {{ k }} {{ v }};
     {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
     # Set Limit
     limit_req zone=cookies burst={{ EDXAPP_COURSES_REQUEST_BURST_RATE }};
+    limit_req zone=agents burst={{ EDXAPP_COURSES_USER_AGENT_BURST_RATE }};
     error_page  503 = /server/rate-limit.html;
     {%- endif -%}
 
