@@ -1,0 +1,90 @@
+#
+# {{ ansible_managed }}
+#
+
+upstream {{ nginx_config_app_service_name }} {
+{% for host in nginx_config_gunicorn_hosts %}
+    server {{ host }}:{{ nginx_config_gunicorn_port }} fail_timeout=0;
+{% endfor %}
+}
+
+{# Black hole server to deny all requests without a known "Host" header #}
+server {
+  listen {{ nginx_config_port }} default_server;
+  return 444;
+}
+
+server {
+  server_name
+    {%- for allowed_host in nginx_config_allowed_hosts %}
+    {{ allowed_host }}
+    {%- endfor %}
+    ;
+
+  listen {{ nginx_config_port }};
+
+  {%- if nginx_config_enable_ssl -%}
+  listen {{ nginx_config_ssl_port }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ nginx_config_ssl_certificate | basename }};
+  ssl_certificate_key /etc/ssl/private/{{ nginx_config_ssl_key | basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  {%- endif -%}
+
+  {#-  Prevent invalid display courseware in IE 10+ with high privacy settings -#}
+  add_header P3P '{{ nginx_config_p3p_message }}';
+
+  {%- if nginx_config_redirect_to_https -%}
+  
+  {#- This is an ansible variable that contains the name of an nginx variable.
+      For example, if NGINX_HTTPS_REDIRECT_PROTOCOL_HEADER = "scheme",
+      this renders to $scheme, thus the scheme nginx variable will be checked. #}
+  if (${{ nginx_config_https_redirect_protocol_var }} = "http") {
+    return 301 https://$server_name$request_uri;
+  }
+  
+  {%- endif %}
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ nginx_config_app_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
+  location / {
+    {%- if nginx_config_enable_basic_auth | bool %}
+      {% include "basic-auth.j2" %}
+    {%- endif %}
+    try_files $uri @proxy_to_app;
+  }
+
+  {#- APIs should be secured with OAuth 2.0 or or JWT. #}
+  location /api {
+    try_files $uri @proxy_to_app;
+  }
+
+  {% if nginx_config_robot_rules | length > 0 -%}
+  location /robots.txt {
+    root {{ COMMON_DATA_DIR }}/{{ nginx_config_app_service_name }};
+    try_files $uri /robots.txt =404;
+  }
+  {%- endif %}
+
+  location @proxy_to_app {
+    {%- if nginx_config_set_x_forwarded_headers %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {%- else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {%- endif %}
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://{{ nginx_config_app_service_name }};
+  }
+
+}
+

@@ -1,0 +1,144 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Tasks for role nginx_config
+#
+# Overview:
+#
+# This role creates nginx configuration files from a shared template
+# for the referencing role.
+#
+# Example play:
+#
+# Rather than being included in the play, this role
+# is included as a dependency by other roles in the meta/main.yml
+# file. The including role should add the following
+# depency definition.
+#
+# dependencies:
+#   - role: nginx_config
+#
+# Every task in this role is tagged with the "install:vhosts" lifecycle tag,
+# so if you run nginx on separate servers from your apps you can simply exclude
+# that tag.
+#
+# NB: this role requires that the nginx role has ever run on the server
+# on which it runs. If that is not the case, this role will immediately fail.
+
+- name: Check for the sites-available directory
+  stat: 
+    path: "{{ item }}"
+  with_items:
+    - "{{ nginx_config_sites_available_dir }}"
+    - "{{ nginx_config_sites_enabled_dir }}"
+  register: nginx_config_required_dirs
+  tags:
+    - install
+    - install:vhosts
+
+- fail:
+    msg: >
+      {{ item }} does not exist.
+      The nginx role has not been run, or the value of
+      nginx_config_sites_available_dir or nginx_config_sites_enabled_dir
+      does not match that of nginx_sites_available_dir and nginx_sites_enabled_dir,
+      respectively.
+  when: not (item.stat.exists and item.stat.isdir)
+  with_items: nginx_config_required_dirs.results
+  tags:
+    - install
+    - install:vhosts
+
+- name: Create robot rules
+  template:
+    src: "edx/var/app/robots.txt.j2"
+    dest: "{{ COMMON_DATA_DIR }}/{{ nginx_config_app_service_name }}/robots.txt"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0644
+  when: nginx_config_robot_rules | length > 0
+  tags:
+    - install
+    - install:vhosts
+
+- name: Create nginx config for {{ nginx_config_app_service_name }}
+  template:
+    src: "edx/etc/nginx/sites-available/master.j2"
+    dest: "{{ nginx_config_sites_available_dir }}/{{ nginx_config_app_service_name }}"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: "0640"
+  tags:
+    - install
+    - install:vhosts
+
+- name: Link nginx config for {{ nginx_app_service_name }}
+  file:
+    src: "{{ nginx_config_sites_available_dir }}/{{ nginx_config_app_service_name  }}"
+    dest: "{{ nginx_config_sites_enabled_dir }}/{{ nginx_config_app_service_name }}"
+    state: link
+    owner: root
+    group: root
+  tags:
+    - install
+    - install:vhosts
+
+# Check to see if the ssl cert/key exists before copying.
+# This extra check is done to prevent failures when
+# ansible-playbook is run locally
+- local_action:
+    module: stat
+    path: "{{ nginx_config_ssl_certificate }}"
+  become: False
+  register: ssl_cert
+  tags:
+    - install
+    - install:vhosts
+
+- local_action:
+    module: stat
+    path: "{{ nginx_config_ssl_key }}"
+  become: False
+  register: ssl_key
+  tags:
+    - install
+    - install:vhosts
+
+- name: copy ssl cert
+  copy:
+    src: "{{ nginx_config_ssl_certificate }}"
+    dest: "/etc/ssl/certs/"
+    owner: root
+    group: root
+    mode: 0644
+  when: ssl_cert.stat.exists and nginx_config_enable_ssl and nginx_config_ssl_certificate != 'ssl-cert-snakeoil.pem'
+  tags:
+    - install
+    - install:vhosts
+
+- name: copy ssl key
+  copy:
+    src: "{{ nginx_config_ssl_key }}"
+    dest: "/etc/ssl/private/"
+    owner: root
+    group: root
+    mode: 0640
+  when: ssl_key.stat.exists and nginx_config_enable_ssl and nginx_config_ssl_key != 'ssl-cert-snakeoil.key'
+  no_log: True
+  tags:
+    - install
+    - install:vhosts
+
+- name: Reload nginx
+  service:
+    name: nginx
+    state: reloaded
+  tags:
+    - install
+    - install:vhosts
