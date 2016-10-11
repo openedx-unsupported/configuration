@@ -1,3 +1,4 @@
+---
 # override this in your server-vars.yml to back up to S3
 SCORM_S3_BACKUP: false
 # If there are any issues with the s3 sync an error
@@ -10,28 +11,35 @@ scorm_name: "scorm"
 scorm_asset_local_storage_path: "{{ edxapp_media_dir }}/{{ EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PKG_STORAGE_DIR | default('scorms')}}"
 scorm_player_local_storage_root: "{{ COMMON_DATA_DIR }}/edxapp/{{ EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_LOCAL_STORAGE_ROOT|default('scormplayers') }}"
 
+nginx_includes_dir: "{{ nginx_app_dir }}/includes"
+
 scorm_dirs:
   home:
     path: "{{ COMMON_APP_DIR }}/{{ scorm_name }}"
     owner: "root"
     group: "root"
-    mode: "0740"
+    mode: "0750"
   logs:
     path: "{{ COMMON_LOG_DIR }}/{{ scorm_name }}"
     owner: "syslog"
     group: "syslog"
-    mode: "0650"
+    mode: "0750"
   scorm_content_assets:
     path: "{{ scorm_asset_local_storage_path }}"
     owner: "www-data"
     group: "www-data"
-    mode: "0744"
+    mode: "0755"
+  nginx_includes_dir:
+    path: "{{ nginx_includes_dir }}"
+    owner: "root"
+    group: "www-data"
+    mode: "0755"
 
 scorm_player_dir:
     path_root: "{{ scorm_player_local_storage_root }}"
     owner: "edxapp"
     group: "www-data"
-    mode: "0744"
+    mode: "0755"
 
 scorm_s3_sync_script: "{{ scorm_dirs.home.path }}/sync-scorm-content-to-s3"
 scorm_s3_sync_logfile: "{{ scorm_dirs.logs.path }}/s3-scorm-sync.log"

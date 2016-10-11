@@ -78,14 +78,14 @@ server {
 
   {% if NGINX_REDIRECT_TO_HTTPS %}
   # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
+  if ($scheme != "https")
+  {
    set $do_redirect_to_https "true";
   }
 
-  # Nginx does not support nested conditions 
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
+  # Nginx does not support nested conditions
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
+  if ($http_x_forwarded_proto = "http")
   {
    set $do_redirect_to_https "true";
   }
@@ -96,7 +96,10 @@ server {
   }
   {% endif %}
 
-  {% include "extra_locations_lms.j2" ignore missing %}
+  {% if EDXAPP_XBLOCK_SETTINGS.get('ScormXBlock', False) %}
+    # asterisk needed so it doesn't break if the file doesn't exist
+    include {{nginx_app_dir}}/includes/scorm_extra_locations_lms*;
+  {% endif %}
 }
 
 {% include "extra_http_lms.j2" ignore missing %}
