@@ -77,10 +77,12 @@
   vars:
     python_path: /edx/bin/python.edxapp
     manage_path: /edx/bin/manage.edxapp
+    ignore_user_creation_errors: no
+    deployment_settings: "{{ EDXAPP_SETTINGS | default('aws') }}"
   tasks:
     - name: Manage groups
       shell: >
-        {{ python_path }} {{ manage_path }} lms --settings=aws
+        {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
         manage_group {{ item.name | quote }}
         {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
@@ -88,7 +90,7 @@
 
     - name: Manage users
       shell: >
-        {{ python_path }} {{ manage_path }} lms --settings=aws
+        {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
         manage_user {{ item.username | quote }} {{ item.email | quote }}
         {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
@@ -97,3 +99,17 @@
         {% if item.get('unusable_password') %}--unusable-password{% endif %}
         {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
       with_items: django_users
+      ignore_errors: yes
+      register: manage_users_result
+
+# Note that we're doing something a bit odd with this play. Unfortunately, it appears that the
+# version of Ansible we're using (1.9.3-edx as of October 2016) does not support variable statements
+# in the `ignore_errors` field. As a result, we're capturing the result of that play, and using it
+# to determine if we execute an explicit `fail` play.
+
+    - name: "Managing users fails on error unless {{ ignore_user_creation_errors }}"
+      fail: item
+      when:
+        - item|failed
+        - not ignore_user_creation_errors | bool
+      with_items: manage_users_result.results
