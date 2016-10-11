@@ -3,3 +3,17 @@
   service: 
     name: jenkins 
     state: restarted
+  # This is a little hack to run more than one task in a handler.
+  # Reference: http://stackoverflow.com/a/31618968/1851299
+  notify:
+    - Wait for Jenkins Web UI
+
+- name: Wait for Jenkins Web UI
+  uri:
+    url: "http://localhost:{{ JENKINS_PORT }}/login"
+    status_code: 200
+  register: jenkins_login_page
+  until: jenkins_login_page.status == 200
+  retries: 30
+  delay: 2
+  become: no

@@ -1,0 +1,14 @@
+import jenkins.model.Jenkins
+import hudson.security.SecurityRealm
+import org.jenkinsci.plugins.GithubSecurityRealm
+String githubWebUri = '{{ GitHub_OAuth_Settings.githubweburi }}'
+String githubApiUri = '{{ GitHub_OAuth_Settings.githubapiuri }}'
+String clientID = '{{ GitHub_OAuth_Settings.clientid }}'
+String clientSecret = '{{ GitHub_OAuth_Settings.clientsecret }}'
+String oauthScopes = '{{ GitHub_OAuth_Settings.oauthscopes }}'
+SecurityRealm github_realm = new GithubSecurityRealm(githubWebUri, githubApiUri, clientID, clientSecret, oauthScopes)
+//check for equality, no need to modify the runtime if no settings changed
+if(!github_realm.equals(Jenkins.instance.getSecurityRealm())) {
+    Jenkins.instance.setSecurityRealm(github_realm)
+    Jenkins.instance.save()
+}

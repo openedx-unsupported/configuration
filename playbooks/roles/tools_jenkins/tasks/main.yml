@@ -30,3 +30,27 @@
   when: jpi_files
   notify:
     - restart Jenkins
+
+# Need to call the handlers so that plugins get activiate
+- meta: flush_handlers
+
+- name: Create Jenkins init Script Directory
+  file:
+    path: "{{ jenkins_home }}/init.groovy.d"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 0755
+
+- name: Copy the Jenkins Groovy Script to "{{ jenkins_home }}/init.groovy.d"
+  template:
+    src: "{{ item }}"
+    dest: "{{ jenkins_groovy_directory }}/{{ item.rstrip('.j2') }}"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 0744
+  with_items:
+    - githubSecurityRealm.groovy.j2
+    - projectBasedMatrixSecurity.groovy.j2
+  notify:
+    - restart Jenkins

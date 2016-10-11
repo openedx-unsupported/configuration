@@ -1,0 +1,87 @@
+import jenkins.model.*
+import hudson.security.*
+import com.cloudbees.plugins.credentials.*
+
+def instance = Jenkins.getInstance()
+def strategy = new hudson.security.ProjectMatrixAuthorizationStrategy()
+
+// Roles based on https://wiki.jenkins-ci.org/display/JENKINS/Matrix-based+security
+//Overall - http://javadoc.jenkins-ci.org/jenkins/model/Jenkins.html
+strategy.add(Jenkins.ADMINISTER, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.RUN_SCRIPTS, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.READ, '{{ JENKINS_ADMIN_GROUP }}')
+
+strategy.add(Jenkins.ADMINISTER, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.RUN_SCRIPTS, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.READ, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// root# grep anonymous /local/jenkins/config.xml
+strategy.add(Jenkins.READ, 'anonymous')
+//strategy.add(hudson.model.Item.READ, 'anonymous')
+//strategy.add(hudson.model.View.READ, 'anonymous')
+
+
+
+// Agent (Slave < 2.0) - http://javadoc.jenkins-ci.org/jenkins/model/Jenkins.MasterComputer.html
+strategy.add(Jenkins.MasterComputer.BUILD, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.MasterComputer.CONFIGURE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.MasterComputer.CONNECT, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.MasterComputer.CREATE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.MasterComputer.DELETE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(Jenkins.MasterComputer.DISCONNECT, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// Job - http://javadoc.jenkins-ci.org/hudson/model/Item.html
+strategy.add(hudson.model.Item.BUILD, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.CANCEL, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.CONFIGURE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.CREATE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.DELETE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.DISCOVER, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.EXTENDED_READ, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.READ, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.WIPEOUT, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Item.WORKSPACE, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// Run - http://javadoc.jenkins-ci.org/hudson/model/Run.html
+strategy.add(hudson.model.Run.DELETE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Run.UPDATE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.Run.ARTIFACTS, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// View - http://javadoc.jenkins-ci.org/hudson/model/View.html
+strategy.add(hudson.model.View.CONFIGURE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.View.CREATE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.View.DELETE, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.model.View.READ, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// SCM - http://javadoc.jenkins-ci.org/hudson/model/View.html
+strategy.add(hudson.scm.SCM.TAG, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// Credentials - https://github.com/jenkinsci/credentials-plugin/blob/master/src/main/java/com/cloudbees/plugins/credentials/CredentialsProvider.java
+strategy.add(CredentialsProvider.CREATE, "{{ JENKINS_ADMIN_GROUP }}")
+strategy.add(CredentialsProvider.UPDATE, "{{ JENKINS_ADMIN_GROUP }}")
+strategy.add(CredentialsProvider.VIEW, "{{ JENKINS_ADMIN_GROUP }}")
+strategy.add(CredentialsProvider.DELETE, "{{ JENKINS_ADMIN_GROUP }}")
+strategy.add(CredentialsProvider.MANAGE_DOMAINS, "{{ JENKINS_ADMIN_GROUP }}")
+
+
+// Plugin Manager http://javadoc.jenkins-ci.org/hudson/PluginManager.html
+strategy.add(hudson.PluginManager.UPLOAD_PLUGINS, '{{ JENKINS_ADMIN_GROUP }}')
+strategy.add(hudson.PluginManager.CONFIGURE_UPDATECENTER, '{{ JENKINS_ADMIN_GROUP }}')
+
+
+// Team that has access to RUN the Job(s)
+strategy.add(Jenkins.READ, '{{ JENKINS_DEVELOPER_GROUP }}')
+strategy.add(hudson.model.Item.BUILD, '{{ JENKINS_DEVELOPER_GROUP }}')
+strategy.add(hudson.model.Item.CANCEL, '{{ JENKINS_DEVELOPER_GROUP }}')
+strategy.add(hudson.model.Item.DISCOVER, '{{ JENKINS_DEVELOPER_GROUP }}')
+strategy.add(hudson.model.Item.READ, '{{ JENKINS_DEVELOPER_GROUP }}')
+
+
+instance.setAuthorizationStrategy(strategy)
+instance.save()
