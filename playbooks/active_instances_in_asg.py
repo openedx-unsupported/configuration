@@ -19,9 +19,11 @@ ansible -i $(active_instances_in_asg.py --asg stage-edx-edxapp) -m shell -a 'man
 
 """
 
+from __future__ import print_function
 import argparse
 import botocore.session
 import botocore.exceptions
+import sys
 from collections import defaultdict
 from os import environ
 
@@ -57,6 +59,7 @@ class ActiveInventory():
                         active_groups[instances_to_groups[instance_id]] = 1 
             if len(active_groups) > 1:
                 # When we have more than a single active ASG, we need to bail out as we don't know what ASG to pick an instance from
+                print("Multiple active ASGs - unable to choose an instance", file=sys.stderr)
                 return
         else:
             active_groups = { g['AutoScalingGroupName']: 1 for g in matching_groups }
@@ -66,7 +69,7 @@ class ActiveInventory():
             for group_instance in groups_to_instances[group]:
                 instance = ec2.describe_instances(InstanceIds=[group_instance])['Reservations'][0]['Instances'][0]
                 if 'PrivateIpAddress' in instance:
-                    print "{},".format(instance['PrivateIpAddress'])
+                    print("{},".format(instance['PrivateIpAddress']))
                     return # We only want a single IP
 
 
