@@ -2,12 +2,14 @@
 
 # assume-role function for use by machine services that don't use MFA to assume role.
 # source this into your bash script and then
-# set +x
-# assume-role(${AWS_MFA_ARN})
-# set -x
-# You can skip set +-x if you aren't concerned about leaking the tokens in your logs.
+#
+# assume-role(${AWS_ROLE_ARN})
+#
+# The function turns off echoing, so no tokens are exposed.
+# If you wish to hide your Role's ARN, you can set +x before calling the function.
 
 assume-role() {
+    set +x
     ROLE_ARN="${1}"
     SESSIONID=$(date +"%s")
 
@@ -20,5 +22,6 @@ assume-role() {
     export AWS_SECRET_ACCESS_KEY=${RESULT[1]}
     export AWS_SECURITY_TOKEN=${RESULT[2]}
     export AWS_SESSION_TOKEN=${AWS_SECURITY_TOKEN}
+    set -x
 }
 
