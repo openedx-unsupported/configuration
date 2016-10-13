@@ -227,7 +227,7 @@
   # This command and the subsequent check in the when condition are related
   # to this bug: https://github.com/ansible/ansible-modules-core/issues/593
 - name: Are we in a Docker container
-  shell: egrep -q 'docker' /proc/self/cgroup
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
   ignore_errors: yes
   register: docker_container
   tags:
@@ -238,7 +238,7 @@
   service:
     name: "{{ supervisor_service }}.service"
     enabled: yes
-  when: ansible_distribution_release == 'xenial' and docker_container.rc != 0
+  when: ansible_distribution_release == 'xenial' and docker_container.stdout != 'yes'
   tags:
     - install
     - install:base
