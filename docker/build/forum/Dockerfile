@@ -1,5 +1,4 @@
-#FROM edxops/precise-common:latest
-FROM edxops/xenial-common:v0
+FROM edxops/xenial-common:latest
 MAINTAINER edxops
 
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
