@@ -22,6 +22,13 @@
     mode: "0644"
   when: SECURITY_UNATTENDED_UPGRADES
 
+- name: Disable unattended-upgrades if Xenial (16.04)
+  command: "{{ item }}"
+  when: ansible_distribution_release == 'xenial' and not SECURITY_UNATTENDED_UPGRADES
+  with_items:
+    - "systemctl disable apt-daily.service"
+    - "systemctl disable apt-daily.timer"
+
 - name: Disable unattended-upgrades
   file:
     path: "/etc/apt/apt.conf.d/10periodic"
