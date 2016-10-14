@@ -60,7 +60,7 @@
     state: present
     regexp: "^LogLevel .*"
     line: "LogLevel VERBOSE"
-  register: sshd_config
+  register: sshd_config_line1
 
 - name: Update sshd logging to VERBOSE
   lineinfile:
@@ -68,18 +68,22 @@
     state: present
     regexp: "^PasswordAuthentication .*"
     line: "PasswordAuthentication {{ COMMON_SSH_PASSWORD_AUTH }}"
-  register: sshd_config
+  register: sshd_config_line2
 
 - name: Restart ssh
   service:
     name: ssh
     state: restarted
   become: True
-  when: sshd_config.changed and ansible_distribution in common_debian_variants
+  when: >
+    (sshd_config_line1.changed or sshd_config_line2.changed) and
+    ansible_distribution in common_debian_variants
 
 - name: Restart ssh
   service:
     name: sshd
     state: restarted
   become: True
-  when: sshd_config.changed and ansible_distribution in common_redhat_variants
+  when: >
+    (sshd_config_line1.changed or sshd_config_line2.changed) and
+    ansible_distribution in common_redhat_variants
