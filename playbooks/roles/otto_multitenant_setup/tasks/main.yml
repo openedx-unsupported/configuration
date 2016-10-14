@@ -1,0 +1,46 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role otto_multitenant_setup
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: Setup Site and Site Configurations for Otto
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.ecommerce {{ COMMON_BIN_DIR }}/manage.ecommerce create_or_update_site
+    --settings=ecommerce.settings.production
+    --site-domain='{{ ECOMMERCE_ECOMMERCE_DOMAIN }}'
+    --site-name='{{ ECOMMERCE_ECOMMERCE_DOMAIN }}'
+    --partner-code='{{ ECOMMERCE_PARTNER_CODE }}'
+    --partner-name='{{ ECOMMERCE_PARTNER_NAME }}'
+    --lms-url-root='{{ ECOMMERCE_LMS_URL_ROOT }}'
+    --theme-scss-path='{{ OTTO_MULTITENANT_SETUP_THEME_SASS_PATH }}'
+    --payment-processors='{{ OTTO_MULTITENANT_SETUP_PAYMENT_PROCESSORS }}'
+    --client-id='{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }}'
+    --client-secret='{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
+    --from-email='{{ OTTO_MULTITENANT_SETUP_FROM_EMAIL }}'
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+
+- name: Configure commerce configuration for lms
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings=aws
+    configure_commerce
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
