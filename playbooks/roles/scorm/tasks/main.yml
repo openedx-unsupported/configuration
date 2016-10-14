@@ -19,6 +19,15 @@
   with_dict: scorm_dirs
   when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
 
+- name: create missing scrormplayes dir
+  file: >
+    path="{{ scorm_player_dir.path }}"
+    state="directory"
+    owner="{{ scorm_player_dir.owner }}"
+    group="{{ scorm_player_dir.group }}"
+    mode="{{ scorm_player_dir.mode }}"
+  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
+
 - name: install read-only ssh key for the scormplayer repo(s)
   copy: >
     content="{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item] }}" dest=/tmp/scormplayer_{{ item }}_identity
@@ -28,7 +37,7 @@
 
 - name: checkout player repo
   git: >
-    dest={{ scorm_player_dir.path_root }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
+    dest={{ scorm_player_dir.path }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
     accept_hostkey=yes key_file=/tmp/scormplayer_{{ item.key }}_identity
     ssh_opts="-o StrictHostKeyChecking=no"
   sudo_user: "{{ scorm_player_dir.owner }}"
