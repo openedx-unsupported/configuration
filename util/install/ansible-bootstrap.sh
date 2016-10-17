@@ -44,7 +44,7 @@ PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
 EDX_PPA="deb http://ppa.edx.org precise main"
-EDX_PPA_KEY_SERVER="pgp.mit.edu"
+EDX_PPA_KEY_SERVER="hkp://pgp.mit.edu:80"
 EDX_PPA_KEY_ID="69464050"
 
 cat << EOF
@@ -72,10 +72,13 @@ then
 elif grep -q 'Trusty Tahr' /etc/os-release
 then
     SHORT_DIST="trusty"
+elif grep -q 'Xenial Xerus' /etc/os-release
+then
+    SHORT_DIST="xenial"
 else    
     cat << EOF
     
-    This script is only known to work on Ubuntu Precise and Trusty,
+    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 
@@ -93,24 +96,39 @@ if [ "${UPGRADE_OS}" = true ]; then
     echo "Upgrading the OS..."
     apt-get upgrade -y
 fi
-
+    
 # Required for add-apt-repository
 apt-get install -y software-properties-common python-software-properties
 
 # Add git PPA
 add-apt-repository -y ppa:git-core/ppa
 
-# Add python PPA
-apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
-add-apt-repository -y "${EDX_PPA}"
+# For older distributions we need to install a PPA for Python 2.7.10
+if [[ "precise" = "${SHORT_DIST}" || "trusty" = "${SHORT_DIST}" ]]; then
 
+    # Add python PPA
+    apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
+    add-apt-repository -y "${EDX_PPA}"
+fi
+    
 # Install python 2.7 latest, git and other common requirements
 # NOTE: This will install the latest version of python 2.7 and
 # which may differ from what is pinned in virtualenvironments
 apt-get update -y
-apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
-pip install --upgrade pip=="${PIP_VERSION}"
+apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
+
+# Workaround for a 16.04 bug, need to upgrade to latest and then
+# potentially downgrade to the preferred version.
+if [[ "xenial" = "${SHORT_DIST}" ]]; then
+    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2
+    pip install --upgrade pip
+    pip install --upgrade pip=="${PIP_VERSION}"
+    #apt-get install -y build-essential sudo git-core libmysqlclient-dev
+else
+    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
+    pip install --upgrade pip=="${PIP_VERSION}"
+fi
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}

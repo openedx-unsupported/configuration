@@ -1,5 +1,4 @@
-#FROM edxops/trusty-common:v3
-FROM hacking/edxapp
+FROM edxops/xenial-common
 MAINTAINER edxops
 
 ADD . /edx/app/edx_ansible/edx_ansible
