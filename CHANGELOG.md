@@ -186,3 +186,6 @@
 
 - Role: edxapp
   - Added COMPREHENSIVE_THEME_LOCALE_PATHS to support internationalization of strings originating from custom themes.
+
+- Role: edxapp
+  - Added `EXPIRING_SOON_WINDOW` to show message to learners if their verification is expiring soon.
