@@ -1,0 +1,57 @@
+---
+# Install a custom version of the Python Sqlite library
+
+# This is an effort to fix sporadically occurring seg faults caused by the
+# default python sqlite version (see: https://code.djangoproject.com/ticket/24080)
+
+# Variables for install on a Jenkins worker
+- include_vars: ../vars/jenkins_worker.yml
+  when: platform_worker is defined
+# Variables for installing on a devstack
+- include_vars: ../vars/devstack.yml
+  when: devstack_sqlite is defined
+
+- name: Install dependency libraries for sqlite
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: sqlite_apt_pkgs
+- name: Download sqlite source tarball
+  get_url:
+    url: "https://github.com/ghaering/pysqlite/archive/{{ sqlite_version }}.tar.gz"
+    dest: "/tmp/sqlite-{{ sqlite_version }}.tar.gz"
+- name: Download sqlite configuration
+  get_url:
+    url: "https://www.sqlite.org/2016/sqlite-autoconf-{{ sqlite_autoconf_version }}.tar.gz"
+    dest: "/tmp/sqlite-autoconf-{{ sqlite_autoconf_version }}.tar.gz"
+- name: Verify checksum of sqlite configuration
+  shell: "sha1sum /tmp/sqlite-autoconf-{{ sqlite_autoconf_version }}.tar.gz"
+  register: autoconf_download_checksum
+- name: Unarchive sqlite source
+  unarchive:
+    copy: no
+    src: "/tmp/sqlite-{{ sqlite_version }}.tar.gz"
+    dest: /tmp
+    creates: "pysqlite-{{ sqlite_version }}"
+    owner: "{{ sqlite_user }}"
+    group: "{{ sqlite_user }}"
+- name: Unarchive sqlite configuration
+  unarchive:
+    copy: no
+    src: /tmp/sqlite-autoconf-3140100.tar.gz
+    dest: /tmp
+    creates: "sqlite-autoconf-{{ sqlite_autoconf_version }}"
+    owner: "{{ sqlite_user }}"
+    group: "{{ sqlite_user }}"
+- name: Copy sqlite configuration into sqlite source
+  command: "/bin/cp -av /tmp/sqlite-autoconf-{{ sqlite_autoconf_version }}/. /tmp/pysqlite-{{ sqlite_version }}/"
+- name: run command
+  command: chdir=/tmp/pysqlite-{{ sqlite_version }} {{ sqlite_venv_dir }}/bin/python setup.py build_static install
+  become_user: "{{ sqlite_user }}"
+- name: Verify that correct version of sqlite is installed
+  shell: "{{ sqlite_venv_dir }}/bin/pip freeze"
+  register: pip_sqlite_version
+- assert:
+    that:
+      - "'{{ sqlite_version }}' in pip_sqlite_version.stdout"
