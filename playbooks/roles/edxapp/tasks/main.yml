@@ -76,6 +76,19 @@
     - install
     - install:base
 
+- name: Remove installed node
+  apt:
+    name: "{{ item }}"
+    state: absent
+    purge: yes
+  tags:
+    - install
+    - install:base
+  when: ansible_distribution_release == 'precise' 
+  with_items:
+    - nodejs
+    - npm
+  
 # adding chris-lea nodejs repo
 # TODO: 16.04
 - name: add ppas for current versions of nodejs
@@ -84,8 +97,8 @@
   tags:
     - install
     - install:base
-  when: ansible_distribution_release == 'precise' 
-    
+  when: ansible_distribution_release == 'precise'
+  
 - name: install system packages on which LMS and CMS rely
   apt:
     name: "{{ item }}"
@@ -95,6 +108,58 @@
   tags:
     - install
     - install:base
+
+# adding chris-lea nodejs repo
+# TODO: 16.04
+- name: Remove installed node
+  apt:
+    name: "{{ item }}"
+    state: absent
+    purge: yes
+  tags:
+    - install
+    - install:base
+  when: ansible_distribution_release == 'trusty' or ansible_distribution_release == 'xenial'
+  with_items:
+    - nodejs
+    - npm
+
+- name: add key
+  apt_key:
+    id: C7917B12
+    keyserver: keyserver.ubuntu.com
+    state: present
+  tags:
+    - install
+    - install:base
+  when: ansible_distribution_release == 'trusty' or ansible_distribution_release == 'xenial' 
+
+- name: add ppas for current versions of nodejs
+  apt_repository:
+    repo: "deb http://ppa.launchpad.net/chris-lea/node.js/ubuntu trusty main"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+  when: ansible_distribution_release == 'trusty' or ansible_distribution_release == 'xenial' 
+
+- name: install and pin nodejs on trusty and xenial
+  apt:
+    name: "nodejs=0.10.37-1chl1~trusty1"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+  when: ansible_distribution_release == 'trusty' or ansible_distribution_release == 'xenial' 
+
+- name: mark nodejs as held
+  shell: apt-mark hold nodejs
+  tags:
+    - install
+    - install:base
+  when: ansible_distribution_release == 'trusty' or ansible_distribution_release == 'xenial' 
 
 - name: set up edxapp .npmrc
   template:
