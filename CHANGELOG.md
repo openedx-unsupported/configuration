@@ -189,3 +189,6 @@
 
 - Role: edxapp
   - Added `EXPIRING_SOON_WINDOW` to show message to learners if their verification is expiring soon.
+
+- Role: discovery
+  - Added `PUBLISHER_FROM_EMAIL` for sending emails to publisher app users.
