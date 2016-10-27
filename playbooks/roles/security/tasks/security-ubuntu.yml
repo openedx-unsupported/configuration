@@ -11,7 +11,7 @@
 - name: Update all system packages
   apt:
     upgrade: safe
-  when: SECURITY_UPGRADE_ON_ANSIBLE
+  when: SAFE_UPGRADE_ON_ANSIBLE
 
 - name: Configure periodic unattended-upgrades
   template:
@@ -49,6 +49,14 @@
     path: "/etc/apt/apt.conf.d/20unattended-upgrade"
     state: absent
   when: SECURITY_UPDATE_ALL_PACKAGES or not SECURITY_UNATTENDED_UPGRADES
+
+# We dry-run because unattended-upgrade is quiet, and only had -d (debug) not -v (verbose)
+- name: "Take security updates during ansible runs"
+  command: "{{ item }}"
+  when: SECURITY_UPGRADE_ON_ANSIBLE
+  with_items:
+    - unattended-upgrade --dry-run
+    - unattended-upgrade
 
 #### Bash security vulnerability
 
