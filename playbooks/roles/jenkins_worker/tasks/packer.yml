@@ -3,6 +3,11 @@
   shell: "curl -L {{ packer_url }} -o /var/tmp/packer.zip"
   args:
       creates: /var/tmp/packer.zip
-
+- name: Verify checksum of downloaded packer zip
+  shell: "sha256sum /var/tmp/packer.zip"
+  register: packer_download_checksum
+- assert:
+    that:
+      "'{{ packer_checksum }}' in packer_download_checksum.stdout"
 - name: Unzip packer
   unarchive: src=/var/tmp/packer.zip dest=/usr/local/bin copy=no
