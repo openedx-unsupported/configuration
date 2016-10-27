@@ -192,3 +192,7 @@
 
 - Role: discovery
   - Added `PUBLISHER_FROM_EMAIL` for sending emails to publisher app users.
+
+- Role: security
+  - Changed SECURITY_UPGRADE_ON_ANSIBLE to only apply security updates.  If you want to retain the behavior of running safe-upgrade,
+    you should switch to using SAFE_UPGRADE_ON_ANSIBLE.
