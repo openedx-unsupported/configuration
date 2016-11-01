@@ -1,5 +1,7 @@
 # Docker Support
 
+For the 'Getting started guide' see our wiki: [Rapid Ansible Iteration with Docker](https://openedx.atlassian.net/wiki/display/OpenOPS/Rapid+Ansible+Iteration+with+Docker).
+
 ## Introduction
 
 Docker support for edX services is volatile and experimental.
