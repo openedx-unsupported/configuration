@@ -86,6 +86,12 @@ def parse_args():
     parser.add_argument('--configuration-secure-repo', required=False,
                         default="git@github.com:edx-ops/prod-secure",
                         help="repo to use for the secure files")
+    parser.add_argument('--configuration-internal-version', required=False,
+                        help="configuration-internal repo gitref",
+                        default="master")
+    parser.add_argument('--configuration-internal-repo', required=False,
+                        default="",
+                        help="repo to use for internal (non-secure) configuration data")
     parser.add_argument('--configuration-private-version', required=False,
                         help="configuration-private repo gitref",
                         default="master")
@@ -247,6 +253,7 @@ git_ssh="$base_dir/git_ssh.sh"
 configuration_version="{configuration_version}"
 configuration_secure_version="{configuration_secure_version}"
 configuration_private_version="{configuration_private_version}"
+configuration_internal_version="{configuration_internal_version}"
 environment="{environment}"
 deployment="{deployment}"
 play="{play}"
@@ -258,9 +265,13 @@ git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name=$(basename $git_repo_secure .git)
 git_repo_private="{configuration_private_repo}"
 git_repo_private_name=$(basename $git_repo_private .git)
+git_repo_internal="{configuration_internal_repo}"
+git_repo_internal_name=$(basename $git_repo_internal .git)
 secure_vars_file={secure_vars_file}
 environment_deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{environment}-{deployment}.yml"
 deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{deployment}.yml"
+environment_deployment_internal_vars="$base_dir/$git_repo_internal_name/ansible/vars/{environment}-{deployment}.yml"
+deployment_internal_vars="$base_dir/$git_repo_internal_name/ansible/vars/{deployment}.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -380,12 +391,27 @@ if [[ ! -z $git_repo_private ]]; then
     cd $base_dir
 fi
 
+if [[ ! -z $git_repo_internal ]]; then
+    $git_cmd clone $git_repo_internal $git_repo_internal_name
+    cd $git_repo_internal_name
+    $git_cmd checkout $configuration_internal_version
+    cd $base_dir
+fi
+
 
 cd $base_dir/$git_repo_name
 sudo pip install -r pre-requirements.txt
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
+
+if [[ -r "$deployment_internal_vars" ]]; then
+    extra_args_opts+=" -e@$deployment_internal_vars"
+fi
+
+if [[ -r "$environment_deployment_internal_vars" ]]; then
+    extra_args_opts+=" -e@$environment_deployment_internal_vars"
+fi
 
 if [[ -r "$deployment_secure_vars" ]]; then
     extra_args_opts+=" -e@$deployment_secure_vars"
@@ -414,6 +440,8 @@ rm -rf $base_dir
                 configuration_secure_repo=args.configuration_secure_repo,
                 configuration_private_version=args.configuration_private_version,
                 configuration_private_repo=args.configuration_private_repo,
+                configuration_internal_version=args.configuration_internal_version,
+                configuration_internal_repo=args.configuration_internal_repo,
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play,
