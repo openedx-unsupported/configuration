@@ -9,23 +9,11 @@ CPU_COUNT = 2
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "open-release/eucalyptus.master" => {
-    :name => "eucalyptus-fullstack-2016-09-01", :file => "eucalyptus-fullstack-2016-09-01.box",
-  },
-  "open-release/eucalyptus/1rc1" => {
-    :name => "eucalyptus-fullstack-1rc1", :file => "eucalyptus-fullstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.1rc2" => {
-    :name => "eucalyptus-fullstack-2016-08-19", :file => "eucalyptus-fullstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.1" => {
-    :name => "eucalyptus-fullstack-2016-08-25", :file => "eucalyptus-fullstack-2016-08-25.box",
-  },
-  "open-release/eucalyptus.2" => {
-    :name => "eucalyptus-fullstack-2016-09-01", :file => "eucalyptus-fullstack-2016-09-01.box",
-  },
-  # Note: the devstack and fullstack boxes differ, because devstack had an issue
-  # that needed fixing, but it didn't affect fullstack.
+  "open-release/eucalyptus.master" => "eucalyptus-fullstack-2016-09-01",
+  "open-release/eucalyptus/1rc1" => "eucalyptus-fullstack-1rc1",
+  "open-release/eucalyptus.1rc2" => "eucalyptus-fullstack-2016-08-19",
+  "open-release/eucalyptus.1" => "eucalyptus-fullstack-2016-08-25",
+  "open-release/eucalyptus.2" => "eucalyptus-fullstack-2016-09-01",
   "named-release/dogwood" => {
     :name => "dogwood-fullstack-rc2", :file => "20151221-dogwood-fullstack-rc2.box",
   },
@@ -43,23 +31,31 @@ openedx_releases = {
   },
   # Cypress is deprecated and unsupported
   # "named-release/cypress" => {
-  #   :name => "cypress-fullstack", :file => "cypress-fullstack.box",
+  #   :name => "cypress-fullstack",
   # },
   # Birch is deprecated and unsupported
   # "named-release/birch.2" => {
   #   :name => "birch-fullstack-2", :file => "birch-2-fullstack.box",
   # },
 }
-openedx_releases.default = {
-  :name => "eucalyptus-fullstack-2016-09-01", :file => "eucalyptus-fullstack-2016-09-01.box",
-}
+openedx_releases.default = "eucalyptus-fullstack-2016-09-01"
+
 rel = ENV['OPENEDX_RELEASE']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  reldata = openedx_releases[rel]
+  if Hash == reldata.class
+    boxname = openedx_releases[rel][:name]
+    boxfile = openedx_releases[rel].fetch(:file, "#{boxname}.box")
+  else
+    boxname = reldata
+    boxfile = "#{boxname}.box"
+  end
+
   # Creates an edX fullstack VM from an official release
-  config.vm.box     = openedx_releases[rel][:name]
-  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
+  config.vm.box     = boxname
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
 
   config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.ssh.insert_key = true

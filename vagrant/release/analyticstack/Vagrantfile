@@ -70,12 +70,8 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "open-release/eucalyptus" => {
-    :name => "eucalyptus-analyticstack-2016-09-04", :file => "eucalyptus-analyticstack-2016-09-04.box",
-  },
-  "open-release/eucalyptus.2" => {
-    :name => "eucalyptus-analyticstack-2016-09-04", :file => "eucalyptus-analyticstack-2016-09-04.box",
-  },
+  "open-release/eucalyptus" => "eucalyptus-analyticstack-2016-09-04",
+  "open-release/eucalyptus.2" => "eucalyptus-analyticstack-2016-09-04",
   "named-release/dogwood.3" => {
     :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
   },
@@ -90,9 +86,18 @@ rel = ENV['OPENEDX_RELEASE']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates an edX analyticstack VM from an official release
-  config.vm.box     = openedx_releases[rel][:name]
-  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
+  reldata = openedx_releases[rel]
+  if Hash == reldata.class
+    boxname = openedx_releases[rel][:name]
+    boxfile = openedx_releases[rel].fetch(:file, "#{boxname}.box")
+  else
+    boxname = reldata
+    boxfile = "#{boxname}.box"
+  end
+
+  # Creates an edX devstack VM from an official release
+  config.vm.box     = boxname
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
