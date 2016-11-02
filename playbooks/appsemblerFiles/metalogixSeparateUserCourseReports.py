@@ -1,8 +1,7 @@
 #
-# updated based on HS request #1058
-#	https://secure.helpscout.net/conversation/176977648/1059/?folderId=423470
-#	
-# this is a mess with unused fields everywhere. i'll clean it up if this script ends up being used regularly.
+# metalogix report generation script
+#
+# TODO: clean up unused fields
 #
 #
 #
@@ -15,10 +14,12 @@
 #       inside the django shell, execute this script
 #       
 #  ---after script has executed
-#  scp academy.metalogix.com:/tmp/gradeReport<CURRENT_DATE>.csv .
-#  scp academy.metalogix.com:/tmp/userReport<CURRENT_DATE>.csv .
-#  
+#  scp files from site to personal computer
+#  there will be two files: 
+#	/tmp/gradeReport<DATE>.csv
+#	/tmp/userReport<DATE>.csv
 #
+
 from xmodule.modulestore.django import modulestore
 from django.contrib.auth.models import User
 from instructor.utils import DummyRequest
@@ -105,6 +106,10 @@ writer.writerow(['#user_id','username','full_name','email_address','email_domain
 users = User.objects.all()
 for u in users:
     cag = u.courseaccessgroup_set.all()
+    try:
+        email_domain = u.email.split('@')[1]
+    except Exception:
+        email_domain = ''
     if not cag:
         cag = ''
     else:
@@ -126,7 +131,7 @@ for u in users:
                    u.username,
 				   full_name,
                    u.email,
-                   '',
+                   email_domain,
                    u.is_active,
                    u.last_login,
                    u.date_joined,

@@ -1,9 +1,13 @@
-# CONFIGURE NGINX 
+# CONFIGURE NGINX
 # SYNC LOCAL SCORM CONTENT PACKAGES WITH S3 IF NOT STORED THERE TO BEGIN WITH
 
-- include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/common_vars/defaults/main.yml"
-- include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/edxapp/defaults/main.yml"
-- include_vars: "/edx/app/edx_ansible/edx_ansible/playbooks/roles/edx_ansible/defaults/main.yml"
+- name: FIXME create application user (copied over from edxapp/tasks/main.yml)
+  user: >
+    name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
+    createhome=no shell=/bin/false
+  tags:
+    - install
+    - install:base
 
 - name: create all service directories
   file: >
@@ -15,23 +19,16 @@
   with_dict: scorm_dirs
   when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
 
-- name: create scorm player asset directories
+- name: create missing scrormplayes dir
   file: >
-    path="{{ scorm_player_dir.path_root }}/{{item}}"
+    path="{{ scorm_player_dir.path }}"
     state="directory"
     owner="{{ scorm_player_dir.owner }}"
     group="{{ scorm_player_dir.group }}"
     mode="{{ scorm_player_dir.mode }}"
-  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
-  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS
+  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
 
-
-## check out any custom player repos
-- debug: 
-    msg: "{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item] }}"
-  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
-
-- name: install read-only ssh key for the scormplayer repo(s)   
+- name: install read-only ssh key for the scormplayer repo(s)
   copy: >
     content="{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item] }}" dest=/tmp/scormplayer_{{ item }}_identity
     force=yes owner={{ scorm_player_dir.owner }} mode=0600
@@ -40,7 +37,7 @@
 
 - name: checkout player repo
   git: >
-    dest={{ scorm_player_dir.path_root }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
+    dest={{ scorm_player_dir.path }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
     accept_hostkey=yes key_file=/tmp/scormplayer_{{ item.key }}_identity
     ssh_opts="-o StrictHostKeyChecking=no"
   sudo_user: "{{ scorm_player_dir.owner }}"
@@ -58,9 +55,9 @@
   apt: >
     pkg=sharutils
     state=present
-    update_cache=yes  
+    update_cache=yes
   when: SCORM_S3_BACKUP
-  
+
 - name: create s3 config for SCORM backup
   template: >
     dest={{ scorm_dirs.home.path }}/.s3cfg
@@ -92,13 +89,13 @@
 
 # you must still run the Nginx role after this.
 - name: copy Nginx templates to nginx role
-  copy: >
-    src=nginx_extra_templates/{{item}}
-    dest={{ edx_ansible_code_dir }}/playbooks/roles/nginx/templates/edx/app/nginx/sites-available/{{item}}
-    owner=edx-ansible
-    group=edx-ansible
+  template: >
+    src=nginx_extra_templates/{{item}}.j2
+    dest={{ nginx_includes_dir}}/{{item}}
+    owner=root
+    group=www-data
     mode=0644
-  with_items: 
-   - extra_locations_lms.j2
-   - static-files-extra.j2
-  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
+  with_items:
+   - scorm_extra_locations_lms
+   - scorm_static_files
+  when: EDXAPP_XBLOCK_SETTINGS.get('ScormXBlock') is defined

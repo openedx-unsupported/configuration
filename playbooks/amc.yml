@@ -1,27 +1,20 @@
 ---
 
-# Example sandbox configuration
-# for single server community
-# installs
-
 - name: Configure instance(s)
-  hosts: all
-  become: True
+  hosts: edx
+  sudo: True
   gather_facts: True
   vars:
     migrate_db: "yes"
+    openid_workaround: True
     EDXAPP_LMS_NGINX_PORT: '80'
-    edx_platform_version: 'master'
     # Set to false if deployed behind another proxy/load balancer.
     NGINX_SET_X_FORWARDED_HEADERS: True
     # These should stay false for the public AMI
     COMMON_ENABLE_DATADOG: False
-    SANDBOX_ENABLE_ECOMMERCE: False
     COMMON_ENABLE_SPLUNKFORWARDER: False
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
-    - role: scorm
-      when: "{{ EDXAPP_XBLOCK_SETTINGS }}.get('ScormXBlock', False)"
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
     - role: nginx
       nginx_sites:
       - certs
@@ -29,31 +22,20 @@
       - lms
       - forum
       - xqueue
-      - edx_notes_api
       nginx_default_sites:
       - lms
-    - role: nginx
-      nginx_sites:
-      - ecommerce
-      when: SANDBOX_ENABLE_ECOMMERCE
-    - role: edxlocal
+    - role: mysql
       when: EDXAPP_MYSQL_HOST == 'localhost'
-    - role: memcache
-      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
+    - edxlocal
     - role: mongo
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
     - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - { role: 'edxapp', celery_worker: True }
     - edxapp
-    - role: ecommerce
-      when: SANDBOX_ENABLE_ECOMMERCE
-    - role: ecomworker
-      when: SANDBOX_ENABLE_ECOMMERCE
     - notifier
     - analytics_api
     - insights
     - edx_notes_api
-    - insights
     - demo
     - oauth_client_setup
     - oraclejdk

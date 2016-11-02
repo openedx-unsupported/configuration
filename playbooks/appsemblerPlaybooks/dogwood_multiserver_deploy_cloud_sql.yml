@@ -7,12 +7,16 @@
   hosts: "mongo-server"
   sudo: True
   gather_facts: True
+  vars:
+    BACKUPS_MONGO: yes
+    BACKUPS_MYSQL: no
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
     - mongo
     - oraclejdk
     - elasticsearch
     - memcached
+    - backups
 
 - name: Configure stateless edxapp server
   hosts: "edxapp-server"
@@ -23,7 +27,7 @@
     openid_workaround: True
     COMMON_ENABLE_DATADOG: False
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
     - mysql_init
     - role: scorm
       when: "{{ EDXAPP_XBLOCK_SETTINGS }}.get('ScormXBlock', False)"

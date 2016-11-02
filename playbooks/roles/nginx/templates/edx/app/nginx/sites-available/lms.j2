@@ -37,13 +37,13 @@ server {
 
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
 
-  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # Do not include a 502 error in NGINX_ERROR_PAGES when
   # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
 
   error_page 502 @maintenance;
 
     {% include "s3_maintenance.j2" %}
-  
+
   {% endif %}
 
   # error pages
@@ -71,15 +71,15 @@ error_page {{ k }} {{ v }};
   {% if NGINX_REDIRECT_TO_HTTPS %}
      {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
   # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
+  if ($scheme != "https")
+  {
    set $do_redirect_to_https "true";
   }
 
      {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
 
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
+  if ($http_x_forwarded_proto = "http")
   {
    set $do_redirect_to_https "true";
   }
@@ -91,7 +91,7 @@ error_page {{ k }} {{ v }};
   return 301 https://$host$request_uri;
   }
   {% endif %}
-  
+
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
   error_log {{ nginx_log_dir }}/error.log error;
 
@@ -223,7 +223,13 @@ location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
 
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
+
   {% include "extra_locations_lms.j2" ignore missing %}
+
+  {% if EDXAPP_XBLOCK_SETTINGS.get('ScormXBlock', False) %}
+    # asterisk needed so it doesn't break if the file doesn't exist
+    include {{nginx_app_dir}}/includes/scorm_extra_locations_lms*;
+  {% endif %}
 
 }
 
