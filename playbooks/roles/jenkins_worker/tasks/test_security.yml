@@ -1,0 +1,17 @@
+---
+- name: Get os release number
+  shell: "lsb_release -r |cut -f2"
+  register: os_version
+- name: Check which kernel version grub is linked to for next boot
+  shell: basename $(readlink /vmlinuz) |cut -d'-' -f2,3 |tr '-' '.'
+  register: grub_kernel
+# Test that the kernel version which grub will use on next boot is above the
+# minimum version number for the system being built.
+# For more information on version numbering, see:
+# https://github.com/dirtycow/dirtycow.github.io/wiki/Patched-Kernel-Versions
+- assert:
+    that:
+      - "{{ grub_kernel.stdout | version_compare(item.min_kernel_version, '>=', strict=False) }}"
+    when: "{{ item.os_release }} == os_version.stdout"
+  with_items: patched_kernel_releases
+
