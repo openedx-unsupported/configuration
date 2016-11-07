@@ -24,6 +24,7 @@ env | grep -v AWS | grep -v ARN
 
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
+export ANSIBLE_SSH_ARGS='-o ControlMaster=auto -o ControlPersist=60s -o ControlPath="~/.ansible/tmp/ansible-ssh-%h-%p-%r" -o ServerAliveInterval=30'
 
 # docker on OS-X includes your Mac's home directory in the socket path
 # that SSH/Ansible uses for the control socket, pushing you over
