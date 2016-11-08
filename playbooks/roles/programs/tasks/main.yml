@@ -26,6 +26,9 @@
     src: edx/app/programs/programs_gunicorn.py.j2
     dest: "{{ programs_home }}/programs_gunicorn.py"
   become_user: "{{ programs_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: install application requirements
   pip:
@@ -35,6 +38,9 @@
     state: present
   become_user: "{{ programs_user }}"
   with_items: "{{ programs_requirements }}"
+  tags:
+    - install
+    - install:app-requirements
 
 - name: migrate
   shell: >
@@ -45,6 +51,9 @@
   become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: run collectstatic
   shell: >
@@ -53,6 +62,9 @@
   become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
   when: not devstack
+  tags:
+    - assets
+    - assets:gather
 
 # NOTE this isn't used or needed when s3 is used for PROGRAMS_MEDIA_STORAGE_BACKEND
 - name: create programs media dir
@@ -61,6 +73,9 @@
     owner="{{ programs_user }}" group="{{ common_web_group }}"
   with_items:
     - "{{ PROGRAMS_MEDIA_ROOT }}"
+  tags:
+    - install
+    - install:base
 
 - name: write out the supervisor wrapper
   template:
@@ -69,6 +84,9 @@
     mode: 0650
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: write supervisord config
   template:
@@ -77,6 +95,9 @@
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
     mode: 0644
+  tags:
+    - install
+    - install:configuration
 
 - name: setup the programs env file
   template:
@@ -85,6 +106,9 @@
     owner: "{{ programs_user }}"
     group: "{{ programs_user }}"
     mode: 0644
+  tags:
+    - install
+    - install:configuration
 
 - name: enable supervisor script
   file:
@@ -93,10 +117,16 @@
     state: link
     force: yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
 
 - name: create symlinks from the venv bin dir
   file:
@@ -107,6 +137,9 @@
   - python
   - pip
   - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
 
 - name: create symlinks from the repo dir
   file:
@@ -115,6 +148,9 @@
     state: link
   with_items:
   - manage.py
+  tags:
+    - install
+    - install:app-requirements
 
 - name: restart the application
   supervisorctl: 
@@ -124,3 +160,6 @@
     name: "{{ programs_service_name }}"
   when: not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start

@@ -115,13 +115,14 @@
     - install
     - install:base
 
+  # 12.04, 14.04, etc.
 - name: Create supervisor upstart job
   template:
     src: "etc/init/supervisor-upstart.conf.j2"
     dest: "/etc/init/{{ supervisor_service }}.conf"
     owner: root
     group: root
-  when: ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
   tags:
     - install
     - install:base
@@ -129,6 +130,8 @@
 # This script is aws specific and looks up instances
 # tags and enables services based on the 'services' tag
 # on instance startup.
+# TODO: 16.04 this cannot simply be dropped, enabling needs to be moved somewhere
+# also should not be here, should be in the aws role if it's aws specific
 - name: create pre_supervisor upstart job
   template:
     src: "etc/init/pre_supervisor.conf.j2"
@@ -137,7 +140,7 @@
     group: root
   when: >
     supervisor_service == "supervisor" and disable_edx_services and not devstack
-    and ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16
+    and (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
   tags:
     - to-remove
     - aws-specfic
@@ -149,7 +152,7 @@
     dest: "/etc/systemd/system/{{ supervisor_service }}.service"
     owner: root
     group: root
-  when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16)
+  when: ansible_distribution_release == 'xenial'
   tags:
     - install
     - install:base
@@ -213,11 +216,21 @@
     - install
     - install:configuration
 
+  # This command and the subsequent check in the when condition are related
+  # to this bug: https://github.com/ansible/ansible-modules-core/issues/593
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+  tags:
+    - install
+    - install:base
+
 - name: Enable supervisor to start on boot
   service:
     name: "{{ supervisor_service }}.service"
     enabled: yes
-  when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_major_version|int < 16)
+  when: ansible_distribution_release == 'xenial' and docker_container.stdout != 'yes'
   tags:
     - install
     - install:base
