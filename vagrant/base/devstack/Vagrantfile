@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.8.7"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
@@ -16,8 +16,7 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates a devstack from a base Ubuntu 16.04 image for virtualbox
-  config.vm.box     = "ubuntu/xenial64"
-  #config.vm.box_url = "http://files.vagrantup.com/ubuntu/xenial64.box"
+  config.vm.box = "ubuntu/xenial64"
 
   config.vm.network :private_network, ip: vm_guest_ip
 
@@ -56,10 +55,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
-
   # Make LC_ALL default to en_US.UTF-8 instead of en_US.
   # See: https://github.com/mitchellh/vagrant/issues/1188
   config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
+
+  # Get ready for ansible on this box.
+  config.vm.provision "shell", path: '../../../util/install/ansible-bootstrap.sh'
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
   config.vbguest.auto_reboot = true
