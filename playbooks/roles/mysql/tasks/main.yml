@@ -1,24 +1,46 @@
 ---
-- name: Look for mysql 5.6
-  shell: "dpkg -s mysql-server"
-  ignore_errors: yes
-  register: mysql_56_installed
-  changed_when: no
+# TODO remove after we release a 16.04 Devstack
+- name: Add MySQL community apt key
+  apt_key:
+    id: 8C718D3B5072E1F5
+    keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
+    state: present
+  when: ansible_distribution_release == 'precise'
 
-- name: Important message
-  debug:
-    msg: |
-      "MySQL experimental is already installed, make 'remove_experimental_mysql: true' in defaults/main.yml, 
-      if you want to remove it and install the stable version of MySQL"
-  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+# TODO remove after we release a 16.04 Devstack
+# Despite ondrej's ppa having 12.04 support, we would need to do shenanigans and uninstalling
+# to switch back cleanly without publishing a new base devstack box.  Easier to just clean this
+# up with Ficus.
+- name: Install MySQL from their community PPA
+  apt_repository:
+    repo: "deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6"
+    update_cache: yes
+  when: ansible_distribution_release == 'precise'
 
-- pause:
-    seconds: 10
-  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+# repo.mysql.com does not have 5.6 packages for xenial
+- name: Install MySQL from ondrej PPA
+  apt_repository:
+    repo: "ppa:ondrej/mysql-5.6"
+    update_cache: yes
+  when: ansible_distribution_release == 'xenial'
 
-# remove this, once the new devstack is out
-- include: remove_mysql_experimental.yml
-  when: remove_experimental_mysql
+- name: Install mysql-5.6 and dependencies
+  apt: 
+    name: "{{ item }}" 
+    install_recommends: yes
+    state: present
+  with_items: mysql_debian_pkgs
 
-- include: mysql.yml
-  when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)
+- name: Start mysql
+  service: 
+    name: mysql 
+    state: started
+
+- name: Ensure Anonymous user(s) does not exist
+  mysql_user: 
+    name: '' 
+    host: "{{ item }}" 
+    state: absent
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
