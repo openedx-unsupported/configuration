@@ -38,15 +38,23 @@
     id: 8C718D3B5072E1F5
     keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
     state: present
+  when: ansible_distribution_release == 'precise'
+
+# Despite ondrej's ppa having 12.04 support, we would need to do shenanigans and uninstalling
+# to switch back cleanly without publishing a new base devstack box.  Easier to just clean this
+# up with Ficus.
+- name: Install MySQL from their community PPA
+  apt_repository:
+    repo: "deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6"
+    update_cache: yes
+  when: ansible_distribution_release == 'precise'
 
 # repo.mysql.com does not have 5.6 packages for xenial
-# This broke back in 2015-12 but the packages for precise are back for 5.6
-# If this goes away again, we should just install from ppa.edx.org until we
-# can run on 5.7
 - name: Install MySQL from ondrej PPA
   apt_repository:
     repo: "ppa:ondrej/mysql-5.6"
     update_cache: yes
+  when: ansible_distribution_release == 'xenial'
 
 - name: Install mysql-5.6 and dependencies
   apt: 
