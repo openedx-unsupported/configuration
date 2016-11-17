@@ -109,37 +109,6 @@
     - install:code
     - install:app-requirements
 
-# Set the npm registry
-# This needs to be done as root since npm is weird about
-# chown - https://github.com/npm/npm/issues/3565
-- name: Set the npm registry
-  shell:
-    npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
-    creates="{{ edxapp_app_dir }}/.npmrc"
-  environment: "{{ edxapp_environment }}"
-  tags:
-    - install
-    - install:app-requirements
-
-# Set the npm registry permissions
-- name: Set the npm registry permissions
-  file:
-    path: "{{ edxapp_app_dir }}/.npmrc"
-    owner: "{{ edxapp_user }}"
-    group: "{{ edxapp_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-# Node play that need to be run after platform updates.
-- name: Install edx-platform npm dependencies
-  shell: npm install chdir={{ edxapp_code_dir }}
-  become_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  tags:
-    - install
-    - install:app-requirements
-
 - name: Create the virtualenv to install the Python requirements
   command: >
     virtualenv {{ edxapp_venv_dir }}
@@ -237,6 +206,49 @@
   - "{{ sandbox_post_requirements }}"
   become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
+  tags:
+    - install
+    - install:app-requirements
+
+- name: create nodeenv
+  shell: >
+    {{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt
+  args:
+    creates: "{{ edxapp_nodeenv_dir }}"
+  tags:
+    - install
+    - install:app-requirements
+
+# Set the npm registry
+# This needs to be done as root since npm is weird about
+# chown - https://github.com/npm/npm/issues/3565
+- name: Set the npm registry
+  shell: >
+    npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
+  args:
+    creates: "{{ edxapp_app_dir }}/.npmrc"
+  environment: "{{ edxapp_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+# Set the npm registry permissions
+- name: Set the npm registry permissions
+  file:
+    path: "{{ edxapp_app_dir }}/.npmrc"
+    owner: "{{ edxapp_user }}"
+    group: "{{ edxapp_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install node dependencies
+  npm:
+    executable: "{{ edxapp_node_bin }}/npm"
+    path: "{{ edxapp_code_dir }}"
+    production: yes
+  environment: "{{ edxapp_environment }}"
+  become_user: "{{ edxapp_user }}"
   tags:
     - install
     - install:app-requirements
