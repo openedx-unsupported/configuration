@@ -163,8 +163,9 @@ class JsonTimingLogger(TimingLogger):
         log_path = playbook_timestamp.start.strftime(ANSIBLE_TIMER_LOG)
 
         try:
-            if not exists(dirname(log_path)):
-                os.makedirs(dirname(log_path))
+            log_dir = dirname(log_path)
+            if log_dir and not exists(log_dir):
+                os.makedirs(log_dir)
 
             with open(log_path, 'a') as outfile:
                 for log_message in messages:
