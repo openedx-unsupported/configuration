@@ -1,0 +1,77 @@
+---
+# for single server community
+# This file based on `edx_sandbox.yml`
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    EDXAPP_LMS_NGINX_PORT: '80'
+    edx_platform_version: 'master'
+    # Set to false if deployed behind another proxy/load balancer.
+    NGINX_SET_X_FORWARDED_HEADERS: True
+    # These should stay false for the public AMI
+    COMMON_ENABLE_DATADOG: False
+    SANDBOX_ENABLE_ECOMMERCE: False
+    COMMON_ENABLE_SPLUNKFORWARDER: False
+    COMMON_ENABLE_INSIGHTS: False
+    COMMON_ENABLE_OAUTH_CLIENT: False
+    COMMON_ENABLE_BACKUPS: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: nginx
+      nginx_sites:
+      - certs
+      - cms
+      - lms
+      - forum
+      - xqueue
+      - edx_notes_api
+      nginx_default_sites:
+      - lms
+    - role: nginx
+      nginx_sites:
+      - ecommerce
+      when: SANDBOX_ENABLE_ECOMMERCE
+    - role: edxlocal
+      when: EDXAPP_MYSQL_HOST == 'localhost'
+    - role: memcache
+      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
+    - role: mongo
+      when: "'localhost' in EDXAPP_MONGO_HOSTS"
+    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - role: ecommerce
+      when: SANDBOX_ENABLE_ECOMMERCE
+    - role: ecomworker
+      when: SANDBOX_ENABLE_ECOMMERCE
+    - notifier
+    - analytics_api
+    - role: insights
+      when: COMMON_ENABLE_INSIGHTS
+    - edx_notes_api
+    - role: insights
+      when: COMMON_ENABLE_INSIGHTS
+    - demo
+    - role: oauth_client_setup
+      when: COMMON_ENABLE_OAUTH_CLIENT
+    - oraclejdk
+    - role: elasticsearch
+      when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - certs
+    - edx_ansible
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+    - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }
+
