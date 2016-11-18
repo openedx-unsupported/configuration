@@ -4,7 +4,7 @@
 
 EDXCONFIGS_BRANCH=master
 
-## Install monitoring on customer cluster. Example: CUSTOMER=qa ENVIRONMENT=production TIER=basic PLATFORM=azure make monitoring
+## Install monitoring on customer cluster. Example: CUSTOMER=qa ENVIRONMENT=prod TIER=basic PLATFORM=azure make monitoring
 monitoring:
 	@@if test -z "$$CUSTOMER"; then echo "ERROR: CUSTOMER is not defined."; exit 1; fi;
 	@@if test -z "$$PLATFORM"; then echo "ERROR: PLATFORM is not defined."; exit 1; fi;
@@ -12,7 +12,7 @@ monitoring:
 	@@if test -z "$$ENVIRONMENT"; then echo "ERROR: ENVIRONMENT is not defined."; exit 1; fi;
 	@ansible-playbook -i inventory monitoring.yml --extra-vars "@../../edx-configs/$$CUSTOMER/$$ENVIRONMENT/server-vars.yml"
 
-## Deploy testdrive. Needs ENVIRONMENT defined. For example. ENVIRONEMT=production make deploy-testdrive
+## Deploy testdrive. Needs ENVIRONMENT defined. For example. ENVIRONEMT=prod make deploy-testdrive
 deploy-testdrive:
 	$(eval EDXCONFIGS_REPO_LOCAL_BRANCH := $(shell cd ../../edx-configs && git symbolic-ref --short -q HEAD))
 	@@if test -z "$$ENVIRONMENT"; then echo "ERROR: ENVIRONMENT is not defined."; exit 1; fi;
@@ -21,7 +21,7 @@ deploy-testdrive:
 		--extra-vars "@../../edx-configs/appsembler/testdrive/$$ENVIRONMENT/files/vault/secrets.yml" \
 		--extra-vars "@../../edx-configs/appsembler/testdrive/$$ENVIRONMENT/files/server-vars.yml"
 
-## Deploy AMC. Needs ENVIRONMENT defined. For example. ENVIRONEMT=production make deploy-amc
+## Deploy AMC. Needs ENVIRONMENT defined. For example. ENVIRONEMT=prod make deploy-amc
 deploy-amc:
 	$(eval EDXCONFIGS_REPO_LOCAL_BRANCH := $(shell cd ../../edx-configs && git symbolic-ref --short -q HEAD))
 	@@if test -z "$$ENVIRONMENT"; then echo "ERROR: ENVIRONMENT is not defined."; exit 1; fi;
@@ -29,7 +29,7 @@ deploy-amc:
 	@ansible-playbook --inventory-file=../../edx-configs/appsembler/amc/$$ENVIRONMENT/hosts/inventory amc.yml \
 		--extra-vars "@../../edx-configs/appsembler/amc/$$ENVIRONMENT/files/server-vars.yml"
 
-## Run mysql_init.yml playbook for testdrive. Needs ENVIRONMENT defined. For example. ENVIRONEMT=production make mysql-init-testdrive
+## Run mysql_init.yml playbook for testdrive. Needs ENVIRONMENT defined. For example. ENVIRONEMT=prod make mysql-init-testdrive
 mysql-init-testdrive:
 	$(eval EDXCONFIGS_REPO_LOCAL_BRANCH := $(shell cd ../../edx-configs && git symbolic-ref --short -q HEAD))
 	@@if test -z "$$ENVIRONMENT"; then echo "ERROR: ENVIRONMENT is not defined."; exit 1; fi;
@@ -40,7 +40,7 @@ mysql-init-testdrive:
 		--extra-vars "@../../edx-configs/appsembler/testdrive/$$ENVIRONMENT/files/server-vars.yml" \
 		--limit mysql_init
 
-## Run mongo_replicasets.yml playbook for testdrive. Needs ENVIRONMENT defined. For example. ENVIRONEMT=production make mongo-replicaset-testdrive
+## Run mongo_replicasets.yml playbook for testdrive. Needs ENVIRONMENT defined. For example. ENVIRONEMT=prod make mongo-replicaset-testdrive
 mongo-replicaset-testdrive:
 	$(eval EDXCONFIGS_REPO_LOCAL_BRANCH := $(shell cd ../../edx-configs && git symbolic-ref --short -q HEAD))
 	@@if test -z "$$ENVIRONMENT"; then echo "ERROR: ENVIRONMENT is not defined."; exit 1; fi;
