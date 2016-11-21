@@ -49,7 +49,7 @@ $(docker_pkg)%: .build/%/Dockerfile.pkg
 	docker build -t $*:latest -f $< .
 
 $(docker_push)%: $(docker_pkg)%
-	docker tag -f $*:latest edxops/$*:latest
+	docker tag $*:latest edxops/$*:latest
 	docker push edxops/$*:latest
 
 
