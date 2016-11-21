@@ -66,11 +66,12 @@ openedx_releases = {
 }
 openedx_releases.default = "eucalyptus-devstack-2016-09-01"
 
-rel = ENV['OPENEDX_RELEASE']
+openedx_release = ENV['OPENEDX_RELEASE']
 
 extra_vars_lines = ""
-if rel
-  VERSION_VARS.each do |var|
+VERSION_VARS.each do |var|
+  rel = ENV[var.upcase] || openedx_release
+  if rel
     extra_vars_lines += "-e #{var}=#{rel} \\\n"
   end
 end
@@ -85,7 +86,7 @@ source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
 
 EXTRA_VARS="#{extra_vars_lines}"
-CONFIG_VER="#{rel || 'master'}"
+CONFIG_VER="#{openedx_release || 'master'}"
 
 ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
 ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
@@ -94,10 +95,10 @@ SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  reldata = openedx_releases[rel]
+  reldata = openedx_releases[openedx_release]
   if Hash == reldata.class
-    boxname = openedx_releases[rel][:name]
-    boxfile = openedx_releases[rel].fetch(:file, "#{boxname}.box")
+    boxname = openedx_releases[openedx_release][:name]
+    boxfile = openedx_releases[openedx_release].fetch(:file, "#{boxname}.box")
   else
     boxname = reldata
     boxfile = "#{boxname}.box"
