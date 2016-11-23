@@ -158,6 +158,21 @@ error_page {{ k }} {{ v }};
     try_files $uri @proxy_to_lms_app;
   }
 
+  # /login?next=<any image> can be used by 3rd party sites in <img> tags to
+  # determine whether a user on their site is logged into edX.
+  # The most common image to use is favicon.ico.
+  location /login {
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
+
+    if ( $arg_next = "favicon.ico" ) {
+      return 403;
+    }
+
+    try_files $uri @proxy_to_lms_app;
+  }
+
 {% if NGINX_EDXAPP_EMBARGO_CIDRS %}
   location /embargo {
     try_files $uri @proxy_to_lms_app;
