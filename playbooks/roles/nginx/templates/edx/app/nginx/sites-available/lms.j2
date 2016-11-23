@@ -116,6 +116,20 @@ error_page {{ k }} {{ v }};
   {% include "python_lib.zip.j2" %}
   {% include "common-settings.j2" %}
 
+  {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
+  #only redirect to embargo when $embargo == true and $uri != /embargo
+  #this is a hack to do multiple conditionals
+  if ( $embargo ) {
+    set $do_embargo "A";
+  }
+  if ( $uri != "/embargo" ) {
+    set $do_embargo "${do_embargo}B";
+  }
+  if ( $do_embargo = "AB" ) {
+    return 302 /embargo;
+  }
+  {% endif -%}
+
   location @proxy_to_lms_app {
     {% if NGINX_SET_X_FORWARDED_HEADERS %}
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -140,11 +154,7 @@ error_page {{ k }} {{ v }};
     {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
       {% include "basic-auth.j2" %}
     {% endif %}
-    {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
-    if ( $embargo ) {
-      return 302 /embargo;
-    }
-    {% endif -%}
+
     try_files $uri @proxy_to_lms_app;
   }
 
