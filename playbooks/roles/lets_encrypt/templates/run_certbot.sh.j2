@@ -1,0 +1,37 @@
+#!/bin/bash
+set -e
+
+# Store the current nginx status
+service nginx status
+if [ $? -ne 0 ]; then
+  nginxstate="stopped"
+fi
+
+# Start nginx up (ignore if already running)
+echo "Ensure nginx is running..."
+service nginx start || true
+
+echo "Request certificate via certbot... (or renew)"
+
+# Run certbot installation
+/opt/letsencrypt/certbot/certbot-auto certonly --webroot --webroot-path=/usr/share/nginx/www --email {{ LETS_ENCRYPT_EMAIL }} --agree-tos --http-01-port {{ LETS_ENCRYPT_PORT }} {% for domain in LETS_ENCRYPT_DOMAINS %} -d {{ domain }} {% endfor %} --non-interactive
+
+echo "Create symlinks to Let's Encrypt certificates..."
+
+# Create symlinks to Lets Encrypt certificates
+ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/fullchain.pem /etc/ssl/certs/le_fullchain.pem
+ln -sf /etc/letsencrypt/live/{{ LETS_ENCRYPT_DOMAINS|first }}/privkey.pem /etc/ssl/private/le_privkey.pem
+
+echo "Writing nginx certificate configuration..."
+
+# Copy the configuration file (with the above certs) into place
+cp /opt/letsencrypt/ssl-certs.conf /etc/nginx/ssl-certs.conf
+
+# Stop nginx again if it wasn't running, or restart it if it was
+if [ "$nginxstate" == "stopped" ]; then
+echo "Stopping nginx..."
+service nginx stop
+else
+echo "Restarting nginx..."
+service nginx restart
+fi
