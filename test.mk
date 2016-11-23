@@ -2,7 +2,7 @@
 yml_files:=$(shell find . -name "*.yml")
 json_files:=$(shell find . -name "*.json")
 jinja_files:=$(shell find . -name "*.j2")
-images = $(if $(TRAVIS_COMMIT_RANGE), $(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py), $(all_images))
+# $(images) is calculated in the docker.mk file
 
 test: test.syntax test.edx_east_roles
 
