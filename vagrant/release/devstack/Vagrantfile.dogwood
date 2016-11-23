@@ -13,7 +13,7 @@ if [ ! -d /edx/app/edx_ansible ]; then
     echo "Error: Base box is missing provisioning scripts." 1>&2
     exit 1
 fi
-OPENEDX_RELEASE=$1
+OPENEDX_RELEASE="named-release/dogwood.rc"
 export PYTHONUNBUFFERED=1
 source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 cd /edx/app/edx_ansible/edx_ansible/playbooks
@@ -26,7 +26,7 @@ if [ -n "$OPENEDX_RELEASE" ]; then
     -e xqueue_version=$OPENEDX_RELEASE \
     -e NOTIFIER_VERSION=$OPENEDX_RELEASE \
     -e ECOMMERCE_VERSION=$OPENEDX_RELEASE \
-    -e PROGRAMS_VERSION=$OPENEDX_RELEASE \
+    -e PROGRAMS_VERSION=5b8ef24fc9124dbeaf1ea1b2dc870083f77b8eef \
   "
   CONFIG_VER=$OPENEDX_RELEASE
   # Need to ensure that the configuration repo is updated
@@ -39,13 +39,13 @@ else
 fi
 
 APPSEMBLER_VARS="-e edx_platform_repo="https://github.com/appsembler/edx-platform.git" \
-  -e edx_platform_version="appsembler/feature/mergeDogwood.3" \
+  -e edx_platform_version="appsembler/dogwood/develop" \
   -e edx_ansible_source_repo="https://github.com/appsembler/configuration.git" \
-  -e configuration_version="appsembler/feature/mergeDogwood.3" \
+  -e configuration_version="appsembler/dogwood/develop" \
 "
 
-ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS $APPSEMBLER_VARS
-ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS $APPSEMBLER_VARS
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible $EXTRA_VARS $APPSEMBLER_VARS
+ansible-playbook -i localhost, -c local vagrant-devstack.yml $EXTRA_VARS $APPSEMBLER_VARS
 
 
 SCRIPT
