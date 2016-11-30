@@ -65,3 +65,25 @@
     state: link
     owner: "{{ android_user }}"
     group: "{{ android_group }}"
+# TEMPORARY FIX TO https://code.google.com/p/android/issues/detail?id=228113
+# The version of the Android ARM system image used by the mobile team for screenshot
+# testing is currently unavailable. In the meantime, download a cached version on
+# s3.
+# Download cached version of Android Sys image, because it is no longer available
+# via the Android SDK
+- name: Download cached version of Android Sys Image 23 from s3
+  shell: "curl -L {{ android_sys_image_url }} -o /var/tmp/android-sysimage-23.tar.gz"
+  args:
+    creates: /var/tmp/android-sysimage-23.tar.gz
+- name: Verify checksum of downloaded android tarball
+  shell: "sha256sum /var/tmp/android-sysimage-23.tar.gz"
+  register: android_sys_image_download_checksum
+- assert:
+    that:
+        "'{{ android_sys_image_checksum }}' in android_sys_image_download_checksum.stdout"
+- name: Unzip Android system image
+  unarchive:
+    src: /var/tmp/android-sysimage-23.tar.gz
+    dest: "{{ android_home }}/system-images"
+    creates: "{{ android_home }}/system-images/android-23"
+    copy: no
