@@ -13,10 +13,12 @@
 #   - ebs_volume_size         - Size in GB for the root volume
 #   - ec2_timeout             - Time in seconds to wait for an ec2 instance become available
 #   - ec2_assign_public_ip    - (yes/no) should the instance have a public IP address?
+#   - ami_id                  - overrides 'base_ami_id' (used when passing in the ami.yml file produced by
+#                               the create_ami.yml ansilble script)
 #
 # This playbook generates a directory with 2 artifact files:
 #   - launch_template.yml     - A yaml file with information such as the instance ID and internal IP address of the instance launched
-#   - key.pem                  - The private key file for the newly generated keypair
+#   - key.pem                 - The private key file for the newly generated keypair
 #
 # Example command line to run this playbook:
 #    ansible-playbook -i "localhost," -c local -e @overrides.yml launch_instance.yml
@@ -51,13 +53,23 @@
       state: directory
       force: yes
 
+  - name: Use ami_id if available
+    set_fact:
+      launch_ami_id: "{{ ami_id }}"
+    when: ami_id is defined
+
+  - name: Use base_ami_id if ami_id is not available
+    set_fact:
+      launch_ami_id: "{{ base_ami_id }}"
+    when: ami_id is not defined
+
   - name: Launch EC2 instance
     ec2:
       instance_tags: {"Name" : "{{ automation_prefix }} {{ unique_key_name.stdout }}"}
       region: "{{ ec2_region }}"
       key_name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
       instance_type: "{{ ec2_instance_type }}"
-      image: "{{ base_ami_id }}"
+      image: "{{ launch_ami_id }}"
       wait: yes
       group_id: "{{ ec2_security_group_id }}"
       count: 1
