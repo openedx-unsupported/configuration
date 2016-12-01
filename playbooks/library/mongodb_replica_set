@@ -206,11 +206,13 @@ def is_member_subset(old_members,new_members):
     '''
 
     # Mongo returns the member set in no particular order, and we were
-    # indexing into the list using _id before witout sorting which led to failure.
-    sorted_new_members = sorted(new_members, key=itemgetter('_id'))
-    for member in sorted(old_members, key=itemgetter('_id')):
-        for k in member:
-            if member[k] != sorted_new_members[member['_id']][k]: return False
+    # indexing into the list using _id before without sorting which led to failure.
+    old_members, new_members = [sorted(k, key=itemgetter('_id'))
+        for k in (old_members, new_members)]
+
+    for k1, k2 in zip(old_members, new_members):
+        for key, value in k1.items():
+            if value != k2[key]: return False
 
     return True
 
@@ -267,6 +269,11 @@ def update_replset(rs_config):
         if not check_config_subset(rs_config, changed_rs_config):
             module.fail_json(msg="Failed to validate that the replica set was changed", new_config=changed_rs_config, config=rs_config)
 
+    #Remove settings from changed_rs_config before exit to avoid
+    #problem with exit_json() and unserializable ObjectId
+    if changed_rs_config.get('settings') is not None:
+        changed_rs_config['settings'] = None
+    
     module.exit_json(changed=changed, config=rs_config, new_config=changed_rs_config)
 
 
