@@ -7,12 +7,12 @@ COMMAND=$1
 
 case $COMMAND in
     start)
-        {% set discovery_venv_bin = discovery_home + "/venvs/" + discovery_service_name + "/bin" %}
+        {% set discovery_venv_bin = discovery_venv_dir + "/bin" %}
 
         {{ supervisor_venv_bin }}/supervisord --configuration {{ supervisor_cfg }}
 
         cd /edx/app/edx_ansible/edx_ansible/docker/plays
-        ansible-playbook discovery.yml -c local -i '127.0.0.1,' \
+        /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook discovery.yml -c local -i '127.0.0.1,' \
             -t 'install:app-requirements,assets:gather,devstack,migrate,manage:start' \
             --extra-vars="migrate_db=yes" \
             --extra-vars="@/ansible_overrides.yml"
