@@ -1,14 +1,15 @@
 #!/bin/bash
 
-apt-get update && \
-apt-get upgrade -y && \
-apt-get install -y build-essential \
-                   linux-headers-virtual-lts-xenial \
-                   linux-image-extra-virtual-lts-xenial \
-                   curl \
-                   wget \
-                   cifs-utils \
-                   acl
+apt-get update
+apt-get upgrade -y
+apt-get install -y \
+    build-essential \
+    linux-headers-virtual-lts-xenial \
+    linux-image-extra-virtual-lts-xenial \
+    curl \
+    wget \
+    cifs-utils \
+    acl
 
 sed -i -e 's/noatime,/noatime,acl,/g' /etc/fstab
 
