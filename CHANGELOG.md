@@ -1,3 +1,6 @@
+- Role: common_vars
+  - Added `COMMON_ENABLE_AWS_INTEGRATION` to run the `aws` role when enabled. Default: `False`
+  - Added `COMMON_ENABLE_OPENSTACK_INTEGRATION` to run the `openstack` role when enabled. Default: `False`
 - Role: credentials
   - Added `CREDENTIALS_EXTRA_APPS` to enable the inclusion of additional Django apps in the Credentials Service.
 - Role: common
