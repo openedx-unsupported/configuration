@@ -1,26 +1,19 @@
 # Install browsers required to run the JavaScript
 # and acceptance test suite locally without a display
 ---
+- name: install Google public key for apt
+  apt_key:
+    url: "https://dl-ssl.google.com/linux/linux_signing_key.pub"
+    state: present
+
+- name: add Google Chrome repo to the sources list
+  apt_repository:
+    repo: "{{ chrome_repo }}"
+    state: present
+
 - name: install system packages
   apt: pkg={{','.join(browser_deb_pkgs)}}
        state=present update_cache=yes
-
-- name: download browser debian packages from S3
-  get_url: dest="/tmp/{{ item.name }}" url="{{ item.url }}"
-  register: download_deb
-  with_items: "{{ browser_s3_deb_pkgs }}"
-
-- name: install browser debian packages
-  shell: gdebi -nq /tmp/{{ item.name }}
-  when: download_deb.changed
-  with_items: "{{ browser_s3_deb_pkgs }}"
-
-# Because the source location has been deprecated, we need to
-# ensure it does not interfere with subsequent apt commands
-- name: remove google chrome debian source list
-  file:
-    path: /etc/apt/sources.list.d/google-chrome.list
-    state: absent
 
 - name: download ChromeDriver
   get_url:
