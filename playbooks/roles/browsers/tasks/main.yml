@@ -15,6 +15,16 @@
   apt: pkg={{','.join(browser_deb_pkgs)}}
        state=present update_cache=yes
 
+- name: download browser debian packages
+  get_url: dest="/tmp/{{ item.name }}" url="{{ item.url }}"
+  register: download_deb
+  with_items: browser_custom_deb_pkgs
+
+- name: install browser debian packages
+  shell: gdebi -nq /tmp/{{ item.name }}
+  when: download_deb.changed
+  with_items: browser_custom_deb_pkgs
+
 - name: download ChromeDriver
   get_url:
     url={{ chromedriver_url }}
