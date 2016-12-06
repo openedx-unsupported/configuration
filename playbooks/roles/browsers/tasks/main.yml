@@ -64,9 +64,11 @@
 - assert:
     that: "phantomjs.stat.exists"
 
-- name: create xvfb upstart script
-  template: src=xvfb.conf.j2 dest=/etc/init/xvfb.conf owner=root group=root
+- name: create xvfb systemd service
+  template: src=xvfb.service.j2 dest=/etc/systemd/system/xvfb.service owner=root group=root
+
+- name: register xvfb systemd service
+  shell: systemctl enable /etc/systemd/system/xvfb.service
 
 - name: start xvfb
-  shell: start xvfb
-  ignore_errors: yes
+  service: name=xvfb state=started
