@@ -264,7 +264,7 @@ def restore_mysql(backup_path, uncompress=True, settings=None):
         raise Exception(error_msg)
 
     cmd = ('source /edx/app/edxapp/edxapp_env && /edx/bin/manage.edxapp '
-           'lms migrate --settings={} --delete-ghost-migrations'.format(settings))
+           'lms migrate --settings={}'.format(settings))
     ret = subprocess.call(cmd, shell=True, executable="/bin/bash")
     if ret:  # if non-zero return
         error_msg = 'Error occurred while running edx migrations'
@@ -321,7 +321,7 @@ def _parse_args():
                         help='Azure storage account')
     parser.add_argument('--azure-key', dest='azure_key',
                         help='Azure storage account key')
-    parser.add_argument('-n', '--no-compress', dest='compress',
+    parser.add_argument('-n', '--uncompressed', dest='compressed',
                         action='store_false', default=True,
                         help='disable compression')
     parser.add_argument('-s', '--settings',
@@ -339,7 +339,7 @@ def _main():
     backup_dir = (args.backup_dir or os.environ.get('BACKUP_DIR',
                                                     '/tmp/db_backups'))
     bucket = args.bucket or os.environ.get('BACKUP_BUCKET')
-    compress = args.compress
+    compressed = args.compressed
     provider = args.provider or os.environ.get('BACKUP_PROVIDER', 'gs')
     restore_path = args.restore_path
     s3_id = args.s3_id or os.environ.get('BACKUP_AWS_ACCESS_KEY_ID')
@@ -360,7 +360,7 @@ def _main():
                 os.makedirs(backup_dir)
             backup_path = dump_service(service, backup_dir)
 
-            if compress:
+            if compressed:
                 backup_path = compress_backup(backup_path)
 
             if provider == 'gs':
@@ -382,7 +382,7 @@ def _main():
             clean_up(backup_path.replace('.tar.gz', ''))
 
     elif program_name == 'edx_restore':
-        restore(service, restore_path, settings=settings)
+        restore(service, restore_path, compressed, settings=settings)
 
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
