@@ -56,9 +56,9 @@
     - migrate:db
 
 - name: run collectstatic
-  shell: >
-    chdir={{ programs_code_dir }}
-    {{ programs_venv_dir }}/bin/python manage.py collectstatic --noinput
+  shell: "{{ programs_venv_dir }}/bin/python manage.py collectstatic --noinput"
+  args:
+    chdir: "{{ programs_code_dir }}"
   become_user: "{{ programs_user }}"
   environment: "{{ programs_environment }}"
   when: not devstack
@@ -68,9 +68,12 @@
 
 # NOTE this isn't used or needed when s3 is used for PROGRAMS_MEDIA_STORAGE_BACKEND
 - name: create programs media dir
-  file: >
-    path="{{ item }}" state=directory mode=0775
-    owner="{{ programs_user }}" group="{{ common_web_group }}"
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: 0775
+    owner: "{{ programs_user }}"
+    group: "{{ common_web_group }}"
   with_items:
     - "{{ PROGRAMS_MEDIA_ROOT }}"
   tags:
