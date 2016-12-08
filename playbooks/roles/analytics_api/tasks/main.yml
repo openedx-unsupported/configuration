@@ -75,8 +75,8 @@
     - migrate:db
 
 - name: run collectstatic
-  shell:
-  args: "{{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py collectstatic  --noinput"
+  shell: "{{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py collectstatic  --noinput"
+  args:
     chdir: "{{ analytics_api_code_dir }}"
   become_user: "{{ analytics_api_user }}"
   environment: "{{ analytics_api_environment }}"
@@ -110,7 +110,8 @@
   template:
     src: edx/app/supervisor/conf.d.available/analytics_api.conf.j2
     dest: "{{ supervisor_available_dir }}/{{ analytics_api_service_name }}.conf"
-    owner: "{{ supervisor_user }} group={{ common_web_user }}"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
     mode: 0644
   tags:
     - install
