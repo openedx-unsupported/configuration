@@ -48,9 +48,10 @@
   template:
     src: "{{ item }}"
     dest: "/etc/security/limits.d/sandbox.conf"
-  first_available_file:
-    - "{{ secure_dir }}/sandbox.conf.j2"
-    - "sandbox.conf.j2"
+    with_first_found:
+      -files:
+        - "{{ secure_dir }}/sandbox.conf.j2"
+        - "sandbox.conf.j2"
 
 - name: Install system dependencies of xserver
   apt:
@@ -62,9 +63,10 @@
   template:
     src: "{{ item }}"
     dest: "/etc/apparmor.d/edx_apparmor_sandbox"
-  first_available_file:
-    - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
-    - "usr.bin.python-sandbox.j2"
+  with_first_found:
+    -files:
+      - "{{ secure_dir }}/files/edx_apparmor_sandbox.j2"
+      - "usr.bin.python-sandbox.j2"
 
 - include: deploy.yml
   tags:
