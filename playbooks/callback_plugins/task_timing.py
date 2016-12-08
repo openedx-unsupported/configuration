@@ -238,7 +238,7 @@ class CallbackModule(CallbackBase):
         Record the start of a play.
         """
         self.playbook_name, _ = splitext(
-            basename(self.play.playbook.filename)
+            basename(self.play.get_name())
         )
         self.playbook_timestamp = Timestamp()
 
