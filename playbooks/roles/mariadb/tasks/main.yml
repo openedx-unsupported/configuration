@@ -29,9 +29,9 @@
   apt_key: url="{{ COMMON_UBUNTU_APT_KEYSERVER }}{{ MARIADB_APT_KEY_ID }}"
 
 - name: add the mariadb repo to the sources list
-  apt_repository: >
-    repo='{{ MARIADB_REPO }}'
-    state=present
+  apt_repository:
+    repo: "{{ MARIADB_REPO }}"
+    state: present
 
 - name: install mariadb solo packages
   apt: name={{ item }} update_cache=yes
@@ -44,10 +44,10 @@
   when: MARIADB_CLUSTERED|bool
 
 - name: remove bind-address
-  lineinfile: >
-    dest=/etc/mysql/my.cnf
-    regexp="^bind-address\s+=\s+127\.0\.0\.1$"
-    state=absent
+  lineinfile:
+    dest: /etc/mysql/my.cnf
+    regexp: "^bind-address\s+=\s+127\.0\.0\.1$"
+    state: absent
   when: MARIADB_LISTEN_ALL|bool or MARIADB_CLUSTERED|bool
 
 - include: cluster.yml
@@ -57,37 +57,37 @@
   service: name=mysql state=started
 
 - name: create all databases
-  mysql_db: >
-    db={{ item }}
-    state=present
-    encoding=utf8
+  mysql_db:
+    db: "{{ item }}"
+    state: present
+    encoding: utf8
   with_items: MARIADB_DATABASES
   when: MARIADB_CREATE_DBS|bool
 
 - name: create all analytics dbs
-  mysql_db: >
-    db={{ item }}
-    state=present
-    encoding=utf8
+  mysql_db:
+    db: {{ item }}
+    state: present
+    encoding: utf8
   with_items: MARIADB_ANALYTICS_DATABASES
   when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined
 
 - name: create all users/privs
-  mysql_user: >
-    name="{{ item.name }}"
-    password="{{ item.pass }}"
-    priv="{{ item.priv }}"
-    host="{{ item.host }}"
-    append_privs=yes
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host }}"
+    append_privs: yes
   with_items: MARIADB_USERS
   when: MARIADB_CREATE_DBS|bool
 
 - name: create all analytics users/privs
-  mysql_user: >
-    name="{{ item.name }}"
-    password="{{ item.pass }}"
-    priv="{{ item.priv }}"
-    host="{{ item.host }}"
-    append_privs=yes
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host }}"
+    append_privs: yes
   with_items: MARIADB_ANALYTICS_USERS
   when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined

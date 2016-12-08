@@ -38,25 +38,25 @@
     - deploy
 
 - name: create gitreload user
-  user: >
-    name="{{ gitreload_user }}"
-    home="{{ gitreload_dir }}"
-    createhome=no
-    shell=/bin/false
+  user:
+    name: "{{ gitreload_user }}"
+    home: "{{ gitreload_dir }}"
+    createhome: no
+    shell: /bin/false
 
 - name: ensure home folder exists
-  file: >
-    path={{ gitreload_dir }}
-    state=directory
-    owner={{ gitreload_user }}
-    group={{ gitreload_user }}
+  file:
+    path: "{{ gitreload_dir }}"
+    state: directory
+    owner: "{{ gitreload_user }}"
+    group: "{{ gitreload_user }}"
 
 - name: ensure repo dir exists
-  file: >
-    path={{ GITRELOAD_REPODIR }}
-    state=directory
-    owner={{ common_web_user }}
-    group={{ common_web_group }}
+  file:
+    path: "{{ GITRELOAD_REPODIR }}"
+    state: directory
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_group }}"
 
 - name: grab ssh host keys
   shell: ssh-keyscan {{ item }}
@@ -65,17 +65,17 @@
   register: gitreload_repo_host_keys
 
 - name: add host keys if needed to known_hosts
-  lineinfile: >
-    create=yes
-    dest=~/.ssh/known_hosts
-    line="{{ item.stdout }}"
+  lineinfile:
+    create: yes
+    dest: ~/.ssh/known_hosts
+    line: "{{ item.stdout }}"
   become_user: "{{ common_web_user }}"
   with_items: gitreload_repo_host_keys.results
 
 - name: create a symlink for venv python
-  file: >
-    src="{{ gitreload_venv_bin }}/{{ item }}"
-    dest={{ COMMON_BIN_DIR }}/{{ item }}.gitreload
+  file:
+    src: "{{ gitreload_venv_bin }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item }}.gitreload"
     state=link
   with_items:
   - python

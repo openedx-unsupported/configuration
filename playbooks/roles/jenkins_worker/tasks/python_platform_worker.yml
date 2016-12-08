@@ -6,22 +6,21 @@
 # refers to the --depth-setting of git clone. A value of 1
 # will truncate all history prior to the last revision.
 - name: Create shallow clone of edx-platform
-  git_2_0_1: >
-    repo=https://github.com/edx/edx-platform.git
-    dest={{ jenkins_home }}/shallow-clone
-    version={{ jenkins_edx_platform_version }}
-    depth=1
+  git_2_0_1:
+    repo: https://github.com/edx/edx-platform.git
+    dest: "{{ jenkins_home }}/shallow-clone"
+    version: "{{ jenkins_edx_platform_version }}"
+    depth: 1
   become_user: "{{ jenkins_user }}"
-
 
 # Install the platform requirements using pip.
 - name: Install edx-platform requirements using pip
-  pip: >
-    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
-    extra_args="--exists-action=w"
-    virtualenv={{ jenkins_home }}/edx-venv
-    virtualenv_command=virtualenv
-    executable=pip
+  pip:
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
+    extra_args: "--exists-action=w"
+    virtualenv: "{{ jenkins_home }}/edx-venv"
+    virtualenv_command: virtualenv
+    executable: pip
   with_items:
     - pre.txt
     - github.txt
@@ -39,12 +38,12 @@
   become_user: "{{ jenkins_user }}"
 
 - name: Install edx-platform post requirements using pip
-  pip: >
-    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
-    extra_args="--exists-action=w"
-    virtualenv={{ jenkins_home }}/edx-venv
-    virtualenv_command=virtualenv
-    executable=pip
+  pip:
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
+    extra_args: "--exists-action=w"
+    virtualenv: "{{ jenkins_home }}/edx-venv"
+    virtualenv_command: virtualenv
+    executable: pip
   with_items:
     - post.txt
   become_user: "{{ jenkins_user }}"
@@ -55,9 +54,9 @@
 # The edx-venv directory is deleted and then recreated
 # cleanly from the archive by the jenkins build scripts.
 - name: Create a clean virtualenv archive
-  command: >
-    tar -cpzf edx-venv_clean.tar.gz edx-venv
-    chdir={{ jenkins_home }}
+  command: "tar -cpzf edx-venv_clean.tar.gz edx-venv"
+  args:
+    chdir: "{{ jenkins_home }}"
   become_user: "{{ jenkins_user }}"
 
 # Remove the shallow-clone directory now that we are
