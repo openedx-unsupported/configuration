@@ -1,9 +1,15 @@
 - name: create ssh dir for the content repos key
-  file: path=~/.ssh state=directory mode=0700
+  file:
+    path: "~/.ssh"
+    state: "directory"
+    mode: "0700"
   become_user: "{{ common_web_user }}"
 
 - name: install ssh key for the content repos
-  copy: content="{{ GITRELOAD_GIT_IDENTITY }}" dest=~/.ssh/id_rsa mode=0600
+  copy:
+    content: "{{ GITRELOAD_GIT_IDENTITY }}"
+    dest: "~/.ssh/id_rsa"
+    mode: "0600"
   become_user: "{{ common_web_user }}"
 
 - include: course_pull.yml
@@ -19,27 +25,36 @@
   notify: restart gitreload
 
 - name: copy configuration
-  template: src=edx/app/gitreload/gr.env.json.j2 dest={{ gitreload_dir }}/gr.env.json
+  template:
+    src: "edx/app/gitreload/gr.env.json.j2"
+    dest: "{{ gitreload_dir }}/gr.env.json"
   become_user: "{{ gitreload_user }}"
   notify: restart gitreload
 
 - name: "add gunicorn configuration file"
   template:
-    src: "edx/app/gitreload/gitreload_gunicorn.py.j2 dest={{ gitreload_dir }}/gitreload_gunicorn.py"
+    src: "edx/app/gitreload/gitreload_gunicorn.py.j2"
+    dest: "{{ gitreload_dir }}/gitreload_gunicorn.py"
   become_user: "{{ gitreload_user }}"
   notify: restart gitreload
 
 - name: "writing supervisor script"
   template:
-    src: "edx/app/supervisor/conf.available.d/gitreload.conf.j2 dest={{ supervisor_available_dir }}/gitreload.conf"
-    owner: "{{ supervisor_user }} group={{ common_web_user }} mode=0644"
+    src: "edx/app/supervisor/conf.available.d/gitreload.conf.j2"
+    dest: "{{ supervisor_available_dir }}/gitreload.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
 
 - name: "enable supervisor script"
   file:
     src: "{{ supervisor_available_dir }}/gitreload.conf"
     dest: "{{ supervisor_cfg_dir }}/gitreload.conf"
-    owner: "{{ supervisor_user }} group={{ common_web_user }} mode=0644"
-    state: link force=yes
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
+    state: link
+    force: "yes"
   when: not disable_edx_services
 
   # call supervisorctl update. this reloads

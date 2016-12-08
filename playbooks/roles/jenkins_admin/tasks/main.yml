@@ -34,12 +34,19 @@
   when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
 
 - name: add admin specific apt repositories
-  apt_repository: repo="{{ item }}" state=present update_cache=yes
+  apt_repository:
+    repo: "{{ item }}"
+    state: "present"
+    update_cache: "yes"
   with_items: jenkins_admin_debian_repos
 
 - name: create the scripts directory
-  file: path={{ jenkins_admin_scripts_dir }} state=directory
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode=755
+  file:
+    path: "{{ jenkins_admin_scripts_dir }}"
+    state: "directory"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "755"
 
 - name: configure s3 plugin
   template:
@@ -47,7 +54,7 @@
     dest: "{{ jenkins_home }}/hudson.plugins.s3.S3BucketPublisher.xml"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
-    mode=0644
+    mode: "0644"
 
 - name: configure the boto profiles for jenkins
   template:
@@ -60,8 +67,12 @@
     - aws-config
 
 - name: create the .aws directory
-  file: path={{ jenkins_home }}/.aws state=directory
-        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  file:
+    path: "{{ jenkins_home }}/.aws"
+    state: "directory"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "700"
   tags:
     - aws-config
 
@@ -116,17 +127,23 @@
 
 # adding chris-lea nodejs repo
 - name: add ppas for current versions of nodejs
-  apt_repository: repo="{{ jenkins_chrislea_ppa }}"
+  apt_repository:
+    repo: "{{ jenkins_chrislea_ppa }}"
 
 - name: install system packages for edxapp virtualenvs
-  apt: pkg={{','.join(jenkins_admin_debian_pkgs)}} state=present update_cache=yes
+  apt:
+    pkg: "{{','.join(jenkins_admin_debian_pkgs)}}"
+    state: "present"
+    update_cache: yes
 
 # This is necessary so that ansible can run with
 # sudo set to True (as the jenkins user) on jenkins
 - name: grant sudo access to the jenkins user
   copy:
     content: "{{ jenkins_user }} ALL=({{ jenkins_user }}) NOPASSWD:ALL"
-    dest: "/etc/sudoers.d/99-jenkins owner=root group=root"
+    dest: "/etc/sudoers.d/99-jenkins"
+    owner: "root"
+    group: "root"
     mode: 0440
     validate: "visudo -cf %s"
 
