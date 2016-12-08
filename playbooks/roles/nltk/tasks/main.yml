@@ -5,7 +5,7 @@
 
 - name: create the nltk data directory and subdirectories
   file: path={{ NLTK_DATA_DIR }}/{{ item.path|dirname }} state=directory
-  with_items: NLTK_DATA
+  with_items: "{{ NLTK_DATA }}"
   tags:
     - deploy
 
@@ -13,7 +13,7 @@
   get_url:
     dest: "{{ NLTK_DATA_DIR }}/{{ item.url|basename }}"
     url: "{{ item.url }}"
-  with_items: NLTK_DATA
+  with_items: "{{ NLTK_DATA }}"
   register: nltk_download
   tags:
     - deploy
@@ -22,7 +22,7 @@
   shell: "unzip {{ NLTK_DATA_DIR }}/{{ item.url|basename }}"
   args:
     chdir: "{{ NLTK_DATA_DIR }}/{{ item.path|dirname }}"
-  with_items: NLTK_DATA
+  with_items: "{{ NLTK_DATA }}"
   when: nltk_download|changed
   tags:
     - deploy
