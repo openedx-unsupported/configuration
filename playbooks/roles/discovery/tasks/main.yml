@@ -77,9 +77,9 @@
     - devstack:install
 
 - name: create nodeenv
-  shell: >
-    creates={{ discovery_nodeenv_dir }}
-    {{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt
+  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt"
+    args:
+      creates: "{{ discovery_nodeenv_dir }}"
   become_user: "{{ discovery_user }}"
   tags:
     - install
@@ -94,9 +94,9 @@
     - install:app-requirements
 
 - name: install bower dependencies
-  shell: >
-    chdir={{ discovery_code_dir }}
-    . {{ discovery_nodeenv_bin }}/activate && {{ discovery_node_bin }}/bower install --production --config.interactive=false
+  shell: ". {{ discovery_nodeenv_bin }}/activate && {{ discovery_node_bin }}/bower install --production --config.interactive=false"
+    args:
+      chdir: "{{ discovery_code_dir }}"
   become_user: "{{ discovery_user }}"
   tags:
     - install

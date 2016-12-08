@@ -13,25 +13,27 @@
     keyfile: "/home/{{ owner }}/.ssh/authorized_keys"
   serial: "{{ serial_count }}"
   tasks:
-    - fail: msg="You must pass in a public_key"
+    - fail:
+        msg: "You must pass in a public_key"
       when: public_key is not defined
-    - fail: msg="public does not exist in secrets"
+    - fail:
+        msg: "public does not exist in secrets"
       when: ubuntu_public_keys[public_key] is not defined
     - command: mktemp
       register: mktemp
     - name: Validate the public key before we add it to authorized_keys
-      copy: >
-        content="{{ ubuntu_public_keys[public_key] }}"
-        dest={{ mktemp.stdout }}
+      copy:
+        content: "{{ ubuntu_public_keys[public_key] }}"
+        dest: "{{ mktemp.stdout }}"
     # This tests the public key and will not continue if it does not look valid
     - command: ssh-keygen -l -f {{ mktemp.stdout }}
-    - file: >
-        path={{ mktemp.stdout }}
-        state=absent
-    - lineinfile: >
-        dest={{ keyfile }}
-        line="{{ ubuntu_public_keys[public_key] }}"
-    - file: >
-        path={{ keyfile }}
-        owner={{ owner }}
-        mode=0600
+    - file:
+        path: "{{ mktemp.stdout }}"
+        state: absent
+    - lineinfile:
+        dest: "{{ keyfile }}"
+        line: "{{ ubuntu_public_keys[public_key] }}"
+    - file:
+        path: "{{ keyfile }}"
+        owner: "{{ owner }}"
+        mode: 0600
