@@ -3,13 +3,13 @@
 
 #
 # Tasks for role {{ role_name }}
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
@@ -149,7 +149,7 @@
   tags:
     - install
     - install:app-requirements
-    
+
 - name: run collectstatic
   command: make static
   args:
@@ -161,23 +161,23 @@
     - assets:gather
 
 - name: restart the application
-  supervisorctl: 
+  supervisorctl:
     state: restarted
-    supervisorctl_path: "{{ '{{' }} supervisor_ctl }}"
-    config: "{{ '{{' }} supervisor_cfg }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
     name: "{{ '{{' }} {{ role_name }}_service_name }}"
   when: not disable_edx_services
-  sudo_user: "{{ '{{' }} supervisor_service_user }}"
+  sudo_user: "{{ supervisor_service_user }}"
   tags:
     - manage
     - manage:start
 
 - name: Copying nginx configs for {{ role_name }}
   template:
-    src: edx/app/nginx/sites-available/{{ role_name }}.j2
-    dest: "{{ '{{' }} nginx_sites_available_dir }}/{{ role_name }}"
+    src: "edx/app/nginx/sites-available/{{ role_name }}.j2"
+    dest: "{{ nginx_sites_available_dir }}/{{ role_name }}"
     owner: root
-    group: "{{ '{{' }} common_web_user }}"
+    group: "{{ common_web_user }}"
     mode: 0640
   notify: reload nginx
   tags:
@@ -186,8 +186,8 @@
 
 - name: Creating nginx config links for {{ role_name }}
   file:
-    src: "{{ '{{' }} nginx_sites_available_dir }}/{{ role_name  }}"
-    dest: "{{ '{{' }} nginx_sites_enabled_dir }}/{{ role_name }}"
+    src: "{{ nginx_sites_available_dir }}/{{ role_name }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ role_name }}"
     state: link
     owner: root
     group: root
