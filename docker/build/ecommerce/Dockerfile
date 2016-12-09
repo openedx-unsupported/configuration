@@ -15,7 +15,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 RUN apt-get update
 
-ENV ECOMMERCE_VERSION=clintonb/devstack
+ENV ECOMMERCE_VERSION=master
 ENV REPO_OWNER=edx
 
 COPY docker/build/ecommerce/ansible_overrides.yml /

@@ -15,7 +15,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 RUN apt-get update
 
-ENV DISCOVERY_VERSION=clintonb/devstack
+ENV DISCOVERY_VERSION=master
 ENV REPO_OWNER=edx
 
 COPY docker/build/discovery/ansible_overrides.yml /

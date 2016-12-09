@@ -15,7 +15,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 RUN apt-get update
 
-ENV PROGRAMS_VERSION=clintonb/devstack
+ENV PROGRAMS_VERSION=master
 ENV REPO_OWNER=edx
 
 COPY docker/build/programs/ansible_overrides.yml /

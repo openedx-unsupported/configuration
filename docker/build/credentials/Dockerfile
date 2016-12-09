@@ -10,7 +10,7 @@
 FROM edxops/trusty-common:latest
 MAINTAINER edxops
 
-ARG CREDENTIALS_VERSION=clintonb/devstack
+ARG CREDENTIALS_VERSION=master
 ARG REPO_OWNER=edx
 
 ADD . /edx/app/edx_ansible/edx_ansible
