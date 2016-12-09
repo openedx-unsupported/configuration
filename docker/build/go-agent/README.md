@@ -37,8 +37,8 @@ necessary.
 * Log docker in to AWS
     - ```sh -c `aws ecr get-login --region us-east-1` ```
 * Tag image 
-    - ```docker tag -f <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/release-pipeline:latest```
-    - ```docker tag -f <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/release-pipeline:<version_number>```
+    - ```docker tag -f <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent:latest```
+    - ```docker tag -f <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent:<version_number>```
 * upload: 
-    - ```docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/go-agent/python:latest```
-    - ```docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/go-agent/python:<version_number>```
+    - ```docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent:latest```
+    - ```docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent:<version_number>```
