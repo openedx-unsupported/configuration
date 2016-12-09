@@ -33,33 +33,35 @@
   with_items: gh_mirror_pip_pkgs
 
 - name: install debian packages
-  apt: >
-    pkg={{ ",".join(gh_mirror_debian_pkgs) }}
-    state=present
-    update_cache=yes
+  apt:
+    pkg: '{{ ",".join(gh_mirror_debian_pkgs) }}'
+    state: present
+    update_cache: yes
 
 - name: create gh_mirror user
-  user: >
-    name={{ gh_mirror_user }}
-    state=present
+  user:
+    name: "{{ gh_mirror_user }}"
+    state: present
 
 - name: create the gh_mirror data directory
-  file: >
-    path={{ gh_mirror_data_dir }}
-    state=directory
-    owner={{ gh_mirror_user }}
-    group={{ gh_mirror_group }}
+  file:
+    path: "{{ gh_mirror_data_dir }}"
+    state: directory
+    owner: "{{ gh_mirror_user }}"
+    group: "{{ gh_mirror_group }}"
 
 - name: create the gh_mirror app directory
-  file: >
-    path={{ gh_mirror_app_dir }}
-    state=directory
+  file:
+    path: "{{ gh_mirror_app_dir }}"
+    state: directory
 
 - name: create org config
   template: src=orgs.yml.j2 dest={{ gh_mirror_app_dir }}/orgs.yml
 
 - name: copying sync scripts
-  copy: src={{ item }} dest={{ gh_mirror_app_dir }}/{{ item }}
+  copy:
+    src: "{{ item }}"
+    dest: "{{ gh_mirror_app_dir }}/{{ item }}"
   with_items: gh_mirror_app_files
 
 - name: creating cron job to update repos
