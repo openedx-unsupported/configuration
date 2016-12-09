@@ -7,7 +7,7 @@ import logging
 import sys
 import docker_images
 
-TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
+TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR", ".")
 CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
 LOGGER = logging.getLogger(__name__)
 
