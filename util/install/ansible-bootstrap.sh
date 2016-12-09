@@ -26,7 +26,7 @@ if [[ -z "${CONFIGURATION_REPO}" ]]; then
 fi
 
 if [[ -z "${CONFIGURATION_VERSION}" ]]; then
-  CONFIGURATION_VERSION="master"
+  CONFIGURATION_VERSION="feanil/ansible_2_x"
 fi
 
 if [[ -z "${UPGRADE_OS}" ]]; then
