@@ -29,45 +29,53 @@
       - install
       - install:configuration
 
-- name: Install application requirements
-  pip:
-    requirements: "{{ ecommerce_requirements_base }}/{{ item }}"
-    virtualenv: "{{ ecommerce_venv_dir }}"
-    state: present
+- name: build virtualenv
+  command: "virtualenv {{ ecommerce_venv_dir }}"
+  args:
+    creates: "{{ ecommerce_venv_dir }}/bin/pip"
   become_user: "{{ ecommerce_user }}"
-  with_items: "{{ ecommerce_requirements }}"
   tags:
     - install
-    - install:app-requirements
+    - install:system-requirements
 
-- name: Create nodeenv
-  shell: "{{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt"
+- name: install nodenv
+  pip:
+    name: "nodeenv"
+    virtualenv: "{{ ecommerce_venv_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  command: "nodeenv {{ ecommerce_nodeenv_dir }} --node={{ ecommerce_node_version }} --prebuilt"
   args:
     creates: "{{ ecommerce_nodeenv_dir }}"
   become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
   tags:
     - install
-    - install:app-requirements
+    - install:system-requirements
 
-- name: Install node dependencies
-  npm:
-    executable: "{{ ecommerce_nodeenv_bin }}/npm"
-    path: "{{ ecommerce_code_dir }}"
-    production: yes
+- name: install application requirements
+  command: make production-requirements
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   tags:
     - install
     - install:app-requirements
 
-- name: Install bower dependencies
-  shell: ". {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/bower install --production --config.interactive=false"
+- name: install development requirements
+  command: make requirements
   args:
     chdir: "{{ ecommerce_code_dir }}"
   become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
   tags:
-    - install
-    - install:app-requirements
+    - devstack
+    - devstack:install
 
 - name: Migrate
   shell: >
@@ -134,7 +142,7 @@
   environment: "{{ ecommerce_environment }}"
   with_items:
     - "collectstatic --noinput"
-    - "compress"
+    - "compress --force"
   when: not devstack
   tags:
     - assets
@@ -161,6 +169,17 @@
   tags:
     - install
     - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/ecommerce/devstack.sh.j2"
+    dest: "{{ ecommerce_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  tags:
+    - devstack
+    - devstack:install
 
 - name: Setup the ecommence env file
   template:
@@ -226,3 +245,27 @@
   tags:
     - manage
     - manage:start
+
+- name: Copying nginx configs for ecommerce
+  template:
+    src: "edx/app/nginx/sites-available/ecommerce.j2"
+    dest: "{{ nginx_sites_available_dir }}/ecommerce"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+
+- name: Creating nginx config links for ecommerce
+  file:
+    src: "{{ nginx_sites_available_dir }}/ecommerce"
+    dest: "{{ nginx_sites_enabled_dir }}/ecommerce"
+    state: link
+    owner: root
+    group: root
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
