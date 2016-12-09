@@ -30,17 +30,34 @@
     - install
     - install:configuration
 
-- name: install application requirements
-  pip:
-    requirements: "{{ programs_requirements_base }}/{{ item }}"
-    # Ansible will initialize this virtualenv if it's missing.
-    virtualenv: "{{ programs_venv_dir }}"
-    state: present
+- name: build virtualenv
+  command: "virtualenv {{ programs_venv_dir }}"
+  args:
+    creates: "{{ programs_venv_dir }}/bin/pip"
   become_user: "{{ programs_user }}"
-  with_items: "{{ programs_requirements }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install application requirements
+  command: make production-requirements
+  args:
+    chdir: "{{ programs_code_dir }}"
+  become_user: "{{ programs_user }}"
+  environment: "{{ programs_environment }}"
   tags:
     - install
     - install:app-requirements
+
+- name: install development requirements
+  command: make requirements
+  args:
+    chdir: "{{ programs_code_dir }}"
+  become_user: "{{ programs_user }}"
+  environment: "{{ programs_environment }}"
+  tags:
+    - devstack
+    - devstack:install
 
 - name: migrate
   shell: >
@@ -98,6 +115,17 @@
   tags:
     - install
     - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/programs/devstack.sh.j2"
+    dest: "{{ programs_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  tags:
+    - devstack
+    - devstack:install
 
 - name: setup the programs env file
   template:
@@ -163,3 +191,27 @@
   tags:
     - manage
     - manage:start
+
+- name: Copying nginx configs for programs
+  template:
+    src: "edx/app/nginx/sites-available/programs.j2"
+    dest: "{{ nginx_sites_available_dir }}/programs"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+
+- name: Creating nginx config links for programs
+  file:
+    src: "{{ nginx_sites_available_dir }}/programs"
+    dest: "{{ nginx_sites_enabled_dir }}/programs"
+    state: link
+    owner: root
+    group: root
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
