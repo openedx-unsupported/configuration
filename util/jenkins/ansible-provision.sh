@@ -392,7 +392,7 @@ if [[ $run_oauth == "true" ]]; then
 fi
 
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu -vvv
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
