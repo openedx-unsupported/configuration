@@ -61,7 +61,7 @@
     shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} show_unapplied_migrations --database "{{ item }}" --output_file "{{ temp_output_dir.stdout }}/{{ item }}_{{ migration_plan }}" --settings "{{ EDX_PLATFORM_SETTINGS }}"'
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
-    with_items: edxapp_databases.keys()
+    with_items: "{{ edxapp_databases.keys() }}"
 
   - name: migrate to apply any unapplied migrations
     shell: '{{ COMMAND_PREFIX }} run_migrations  --output_file "{{ temp_output_dir.stdout }}/{{ migration_result }}"'
@@ -72,7 +72,7 @@
     shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_migrations --database "{{ item }}" --settings "{{ EDX_PLATFORM_SETTINGS }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_result }}"'
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
-    with_items: edxapp_databases.keys()
+    with_items: "{{ edxapp_databases.keys() }}"
 
   - name: List all migration files
     action: "command ls -1 {{ temp_output_dir.stdout }}"

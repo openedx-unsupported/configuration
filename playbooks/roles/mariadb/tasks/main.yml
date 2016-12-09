@@ -23,10 +23,11 @@
 
 - name: Install pre-req debian packages
   apt: name={{ item }} state=present
-  with_items: mariadb_debian_pkgs
+  with_items: "{{ mariadb_debian_pkgs }}"
 
 - name: Add mariadb apt key
-  apt_key: url="{{ COMMON_UBUNTU_APT_KEYSERVER }}{{ MARIADB_APT_KEY_ID }}"
+  apt_key:
+    url: "{{ COMMON_UBUNTU_APT_KEYSERVER }}{{ MARIADB_APT_KEY_ID }}"
 
 - name: add the mariadb repo to the sources list
   apt_repository:
@@ -35,12 +36,12 @@
 
 - name: install mariadb solo packages
   apt: name={{ item }} update_cache=yes
-  with_items: mariadb_solo_packages
+  with_items: "{{ mariadb_solo_packages }}"
   when: not MARIADB_CLUSTERED|bool
 
 - name: install mariadb cluster packages
   apt: name={{ item }} update_cache=yes
-  with_items: mariadb_cluster_packages
+  with_items: "{{ mariadb_cluster_packages }}"
   when: MARIADB_CLUSTERED|bool
 
 - name: remove bind-address
@@ -61,7 +62,7 @@
     db: "{{ item }}"
     state: present
     encoding: utf8
-  with_items: MARIADB_DATABASES
+  with_items: "{{ MARIADB_DATABASES }}"
   when: MARIADB_CREATE_DBS|bool
 
 - name: create all analytics dbs
@@ -69,7 +70,7 @@
     db: "{{ item }}"
     state: present
     encoding: utf8
-  with_items: MARIADB_ANALYTICS_DATABASES
+  with_items: "{{ MARIADB_ANALYTICS_DATABASES }}"
   when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined
 
 - name: create all users/privs
@@ -79,7 +80,7 @@
     priv: "{{ item.priv }}"
     host: "{{ item.host }}"
     append_privs: yes
-  with_items: MARIADB_USERS
+  with_items: "{{ MARIADB_USERS }}"
   when: MARIADB_CREATE_DBS|bool
 
 - name: create all analytics users/privs
@@ -89,5 +90,5 @@
     priv: "{{ item.priv }}"
     host: "{{ item.host }}"
     append_privs: yes
-  with_items: MARIADB_ANALYTICS_USERS
+  with_items: "{{ MARIADB_ANALYTICS_USERS }}"
   when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined

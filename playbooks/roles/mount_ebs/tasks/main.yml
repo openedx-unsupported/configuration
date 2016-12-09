@@ -24,7 +24,7 @@
     fstype: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype }}"
     state: unmounted
   when: "{{ UNMOUNT_DISKS and (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype != item.fstype }}"
-  with_items: volumes
+  with_items: "{{ volumes }}"
 
 # Noop & reports "ok" if fstype is correct
 # Errors if fstype is wrong and disk is mounted (hence above task)
@@ -34,7 +34,7 @@
     fstype: "{{ item.fstype }}"
     # Necessary because AWS gives some ephemeral disks the wrong fstype by default
     force: true
-  with_items: volumes
+  with_items: "{{ volumes }}"
 
 # This can fail if one volume is mounted on a child directory as another volume
 # and it attempts to unmount the parent first.  This is generally fixable by rerunning.
@@ -53,7 +53,7 @@
     UNMOUNT_DISKS and
     volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
     (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
-  with_items: ansible_mounts
+  with_items: "{{ ansible_mounts }}"
 
 # If there are disks we want to be unmounting, but we can't because UNMOUNT_DISKS is false
 # that is an errorable condition, since it can easily allow us to double mount a disk.
@@ -63,7 +63,7 @@
     not UNMOUNT_DISKS and
     volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
     (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
-  with_items: ansible_mounts
+  with_items: "{{ ansible_mounts }}"
 
 - name: Mount disks
   mount:
@@ -72,4 +72,4 @@
     state: mounted
     fstype: "{{ item.fstype }}"
     opts: "{{ item.options }}"
-  with_items: volumes
+  with_items: "{{ volumes }}"
