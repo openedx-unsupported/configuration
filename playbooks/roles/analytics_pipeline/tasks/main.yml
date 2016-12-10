@@ -10,9 +10,9 @@
 #
 #
 # Tasks for role analytics_pipeline
-#
+# 
 # Overview:
-#
+# 
 # Prepare the machine to run the edX Analytics Data Pipeline. The pipeline currently "installs itself"
 # via an ansible playbook that is not included in the edx/configuration repo. However, in order to
 # run the pipeline in a devstack environment, some configuration needs to be performed. In a production
@@ -24,12 +24,12 @@
 # hadoop_master: ensures hadoop services are installed
 # hive: the pipeline makes extensive usage of hive, so that needs to be installed as well
 # sqoop: similarly to hive, the pipeline uses this tool extensively
-#
+# 
 # Example play:
 #
 # - name: Deploy all dependencies of edx-analytics-pipeline to the node
 #   hosts: all
-#   become: True
+#   sudo: True
 #   gather_facts: True
 #   roles:
 #     - analytics_pipeline
@@ -37,38 +37,91 @@
 # ansible-playbook -i 'localhost,' ./analytics_pipeline.yml  -e@/ansible/vars/deployment.yml -e@/ansible/vars/env-deployment.yml
 #
 
-- name: Create config directory
+- name: ensure system packages are installed
+  command: make system-requirements
+  args:
+    chdir: "{{ analytics_pipeline_code_dir }}"
+  sudo: True
+  tags:
+    - install
+    - install:system-requirements
+
+- name: virtualenv installed
+  pip:
+    name: virtualenv
+    version: 1.10.1
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv
+  command: "virtualenv --python={{ ANALYTICS_PIPELINE_PYTHON }} {{ analytics_pipeline_venv_dir }}"
+  args:
+    creates: "{{ analytics_pipeline_venv_dir }}/bin/pip"
+  become_user: "{{ analytics_pipeline_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: pip upgraded
+  shell: ". {{ analytics_pipeline_venv_dir }}/bin/activate && pip install -U pip"
+  args:
+    chdir: "{{ analytics_pipeline_code_dir }}"
+  become_user: "{{ analytics_pipeline_user }}"
+  environment: analytics_pipeline_install_env
+  tags:
+    - install
+    - install:app-requirements
+
+- name: installed
+  shell: ". {{ analytics_pipeline_venv_dir }}/bin/activate && make install"
+  args:
+    chdir: "{{ analytics_pipeline_code_dir }}"
+  become_user: "{{ analytics_pipeline_user }}"
+  environment: analytics_pipeline_install_env
+  tags:
+    - install
+    - install:app-requirements
+
+- name: converted to development mode
+  shell: ". {{ analytics_pipeline_venv_dir }}/bin/activate && make uninstall && make develop && make test-requirements"
+  args:
+    chdir: "{{ analytics_pipeline_code_dir }}"
+  become_user: "{{ analytics_pipeline_user }}"
+  environment: analytics_pipeline_install_env
+  tags:
+    - devstack
+    - devstack:install
+
+- name: create log directory
   file:
-    path: "{{ ANALYTICS_PIPELINE_CONFIG_DIR }}"
+    path: "{{ analytics_pipeline_log_dir }}"
+    mode: "0777"
+    owner: "{{ analytics_pipeline_user }}"
+    group: "{{ analytics_pipeline_user }}"
     state: directory
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: logging configured
+  template:
+    src: logging.cfg.j2
+    dest: "{{ analytics_pipeline_code_dir }}/logging.cfg"
+  tags:
+    - install
+    - install:configuration
+
+- name: create config directory
+  file:
+    path: "{{ analytics_pipeline_config_dir }}"
     mode: "0755"
+    owner: "{{ analytics_pipeline_user }}"
+    group: "{{ analytics_pipeline_user }}"
+    state: directory
   tags:
-    - install
-    - install:configuration
-
-- name: Store output database credentials for analytics pipeline
-  copy:
-    content: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE | to_json }}"
-    dest: "{{ COMMON_CFG_DIR }}/edx-analytics-pipeline/output.json"
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
-    mode: "0644"
-  tags:
-    - install
-    - install:configuration
-
-- name: Store input database credentials for analytics pipeline
-  copy:
-    content: "{{ ANALYTICS_PIPELINE_INPUT_DATABASE | to_json }}"
-    dest: "{{ COMMON_CFG_DIR }}/edx-analytics-pipeline/input.json"
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
-    mode: "0644"
-  tags:
-    - install
-    - install:configuration
+    - devstack
+    - devstack:install
 
 - name: luigi configuration directory created
   file:
@@ -88,14 +141,14 @@
     - install
     - install:configuration
 
-- name: Util library source checked out
+- name: util library source checked out
   git:
-    repo: "{{ analytics_pipeline_util_library.repo }}"
     dest: "{{ analytics_pipeline_util_library.path }}"
+    repo: "{{ analytics_pipeline_util_library.repo }}"
     version: "{{ analytics_pipeline_util_library.version }}"
   tags:
-    - install
-    - install:code
+    - devstack
+    - devstack:install
 
 - name: lib directory created
   file:
@@ -104,18 +157,18 @@
     group: "{{ hadoop_common_group }}"
     state: directory
   tags:
-    - install
-    - install:app-requirements
+    - devstack
+    - devstack:install
 
-- name: Check if the util library needs to be built
+- name: check if the util library needs to be built
   stat:
     path: "{{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar"
   register: util_lib_built
   tags:
-    - install
-    - install:app-requirements
+    - devstack
+    - devstack:install
 
-- name: Util library built
+- name: util library built
   shell: >
     {{ hadoop_common_java_home }}/bin/javac -cp `{{ HADOOP_COMMON_HOME }}/bin/hadoop classpath` org/edx/hadoop/input/ManifestTextInputFormat.java &&
     {{ hadoop_common_java_home }}/bin/jar cf {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar org/edx/hadoop/input/ManifestTextInputFormat.class &&
@@ -124,63 +177,27 @@
     chdir: "{{ analytics_pipeline_util_library.path }}"
   when: not util_lib_built.stat.exists
   tags:
-    - install
-    - install:app-requirements
+    - devstack
+    - devstack:install
 
-- name: Ensure hdfs services are started
-  service:
-    name: hdfs
-    state: started
+- name: env vars sourced in hadoop env
+  lineinfile:
+    dest: "{{ hadoop_common_env }}"
+    regexp: "^. {{ analytics_pipeline_venv_dir }}/bin/activate"
+    line: ". {{ analytics_pipeline_venv_dir }}/bin/activate"
+    state: present
   tags:
-    - manage
-    - manage:start
+    - devstack
+    - devstack:install
 
-- name: Ensure map reduce services are started
-  service:
-    name: yarn
-    state: started
+- name: write devstack script
+  template:
+    src: "edx/app/analytics_pipeline/docker-entrypoint.sh.j2"
+    dest: "/docker-entrypoint.sh"
+    mode: "0777"
   tags:
-    - manage
-    - manage:start
-
-- name: Ensure package dir exists in HDFS
-  shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/"
-  become_user: "{{ hadoop_common_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: Ensure util library is in HDFS
-  shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -put -f {{ HADOOP_COMMON_USER_HOME }}/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/"
-  become_user: "{{ hadoop_common_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: Ensure the data directory exists
-  shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}"
-  become_user: "{{ hadoop_common_user }}"
-  tags:
-    - install
-    - install:base
-
-- name: Ensure tracking log file can be read
-  file:
-    path: "{{ COMMON_LOG_DIR }}/tracking/tracking.log"
-    mode: "0644"
-  ignore_errors: yes
-  tags:
-    - install
-    - install:configuration
-
-- name: Cron job syncs tracking log file to hdfs
-  cron:
-    user: "{{ hadoop_common_user }}"
-    name: "Sync tracking log to HDFS"
-    job: "{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
-  tags:
-    - install
-    - install:configuration
+    - devstack
+    - devstack:install
 
 - name: store configuration for acceptance tests
   copy:
@@ -188,15 +205,5 @@
     dest: /var/tmp/acceptance.json
     mode: "0644"
   tags:
-    - install
-    - install:configuration
-
-- name: Grant access to table storing test data in output database
-  mysql_user:
-    user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}"
-    password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
-    priv: 'acceptance%.*:ALL'
-    append_privs: yes
-  tags:
-    - install
-    - install:configuration
+    - devstack
+    - devstack:install

@@ -24,6 +24,9 @@
   stat:
     path: "{{ HIVE_HOME }}"
   register: extracted_dir
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution downloaded
   get_url:
@@ -31,12 +34,18 @@
     sha256sum: "{{ hive_dist.sha256sum }}"
     dest: "{{ hive_temporary_dir }}"
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution extracted
   shell: "tar -xzf {{ hive_temporary_dir }}/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hive-{{ HIVE_VERSION }}-bin"
   args:
     chdir: "{{ HADOOP_COMMON_USER_HOME }}"
   when: not extracted_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: versioned directory symlink created
   file:
@@ -45,43 +54,31 @@
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
     state: link
+  tags:
+    - install
+    - install:system-requirements
 
-- name: hive mysql connector distribution downloaded
-  get_url:
-    url: "{{ hive_mysql_connector_dist.url }}"
-    sha256sum: "{{ hive_mysql_connector_dist.sha256sum }}"
-    dest: "{{ hive_temporary_dir }}"
-  when: not extracted_dir.stat.exists
-
-- name: hive mysql connector distribution extracted
-  shell: "tar -xzf {{ hive_temporary_dir }}/{{ hive_mysql_connector_dist.filename }}"
-  args:
-    chdir: "{{ hive_temporary_dir }}"
-  when: not extracted_dir.stat.exists
-
-- name: hive lib exists
-  file:
-    path: "{{ HIVE_LIB }}"
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
-    state: directory
-
-- name: hive mysql connector installed
-  shell: "cp mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ HIVE_LIB }} && chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HIVE_LIB }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar"
-  args:
-    chdir: "/{{ hive_temporary_dir }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}"
-  when: not extracted_dir.stat.exists
-
-- name: configuration installed
+- name: environment configuration installed
   template:
-    src: "{{ item }}.j2"
-    dest: "{{ HIVE_CONF }}/{{ item }}"
+    src: "hive-env.sh.j2"
+    dest: "{{ HIVE_CONF }}/hive-env.sh"
     mode: 0640
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
-  with_items:
-    - hive-env.sh
-    - hive-site.xml
+  tags:
+    - install
+    - install:system-requirements
+
+- name: hive configured
+  hadoop_configuration:
+    property: "{{ item.key }}"
+    value: "{{ item.value }}"
+    path: "{{ HIVE_CONF }}/hive-site.xml"
+  become_user: "{{ hadoop_common_user }}"
+  with_dict: hive_site_config
+  tags:
+    - install
+    - install:system-requirements
 
 - name: env vars sourced in hadoop env
   lineinfile:
@@ -89,3 +86,6 @@
     state: present
     regexp: "^. {{ HIVE_CONF }}/hive-env.sh"
     line: ". {{ HIVE_CONF }}/hive-env.sh"
+  tags:
+    - install
+    - install:system-requirements

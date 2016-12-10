@@ -1,0 +1,53 @@
+- name: Deploy dependencies needed to run edx-analytics-pipeline
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    serial_count: 1
+  serial: "{{ serial_count }}"
+  roles:
+    - analytics_pipeline
+  tasks:
+    - name: store database credentials for analytics pipeline
+      copy:
+        content: "{{ item.value | to_json }}"
+        dest: "{{ analytics_pipeline_config_dir }}/{{ item.key }}.json"
+        mode: "0644"
+        owner: "{{ analytics_pipeline_user }}"
+        group: "{{ analytics_pipeline_user }}"
+      with_dict: ANALYTICS_PIPELINE_DATABASES
+      tags:
+        - devstack:start
+
+    - name: use the YARN map-reduce execution framework
+      hadoop_configuration:
+        property: mapreduce.framework.name
+        value: yarn
+        path: "{{ HADOOP_COMMON_CONF_DIR }}/mapred-site.xml"
+      tags:
+        - devstack:start
+
+    - name: set the resource manager hostname
+      hadoop_configuration:
+        property: yarn.resourcemanager.hostname
+        value: "{{ HADOOP_COMMON_RESOURCE_MANAGER_HOST }}"
+        path: "{{ HADOOP_COMMON_CONF_DIR }}/yarn-site.xml"
+      tags:
+        - devstack:start
+
+    - name: set the default distributed filesystem
+      hadoop_configuration:
+        property: fs.defaultFS
+        value: "{{ HADOOP_DEFAULT_FS }}"
+        path: "{{ HADOOP_COMMON_CONF_DIR }}/core-site.xml"
+      tags:
+        - devstack:start
+
+#    - name: refresh registered entrypoints
+#      shell: ". {{ analytics_pipeline_venv_dir }}/bin/activate && make develop-local"
+#      args:
+#        chdir: "{{ analytics_pipeline_code_dir }}"
+#      environment: analytics_pipeline_install_env
+#      ignore_errors: yes
+#      tags:
+#        - devstack:start

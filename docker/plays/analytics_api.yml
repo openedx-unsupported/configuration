@@ -5,7 +5,67 @@
   vars:
     serial_count: 1
   serial: "{{ serial_count }}"
+
+  pre_tasks:
+    - name: rsyslog started
+      service:
+        name: rsyslog
+        state: started
+      tags:
+        - devstack:start
+
+    - name: databases ready
+      wait_for:
+        host: "{{ item.HOST }}"
+        port: "{{ item.PORT }}"
+        delay: 2
+      with_items: "{{ ANALYTICS_API_DATABASES.values() }}"
+      tags:
+        - devstack:start
+
+    - name: databases created
+      mysql_db:
+        login_host: "{{ item.HOST }}"
+        login_port: "{{ item.PORT }}"
+        login_user: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        login_password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        db: "{{ item.NAME }}"
+        state: present
+        encoding: utf8
+      with_items: "{{ ANALYTICS_API_DATABASES.values() }}"
+      tags:
+        - devstack:start
+
+    - name: default django user created
+      mysql_user:
+        login_host: "{{ item.HOST }}"
+        login_port: "{{ item.PORT }}"
+        login_user: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        login_password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        name: "{{ item.USER }}"
+        password: "{{ item.PASSWORD }}"
+        priv: '{{ item.NAME }}.*:ALL/{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+        host: '%'
+      with_items:
+        - "{{ ANALYTICS_API_DATABASES.default }}"
+      tags:
+        - devstack:start
+
+    - name: read-only reporting user created
+      mysql_user:
+        login_host: "{{ item.HOST }}"
+        login_port: "{{ item.PORT }}"
+        login_user: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        login_password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        name: "{{ item.USER }}"
+        name: "{{ item.USER }}"
+        password: "{{ item.PASSWORD }}"
+        priv: '{{ item.NAME }}.*:SELECT'
+        host: '%'
+      with_items:
+        - "{{ ANALYTICS_API_DATABASES.reports }}"
+      tags:
+        - devstack:start
+
   roles:
-    - common_vars
-    - docker
     - analytics_api

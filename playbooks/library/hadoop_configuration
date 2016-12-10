@@ -1,0 +1,81 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+DOCUMENTATION = '''
+---
+module: hadoop_configuration
+short_description: Manages settings in hadoop configuration files
+description:
+    - Manages symbolic links using the 'update-alternatives' tool
+    - Useful when multiple programs are installed but provide similar functionality (e.g. different editors).
+options:
+  property:
+    description:
+      - The property to set the value of.
+    required: true
+  value:
+    description:
+      - The value for the property.
+    required: true
+  path:
+    description:
+      - The path to the configuration file to modify. The file is created if it doesn't already exist.
+    required: true
+'''
+
+EXAMPLES = '''
+- name: set default FS
+  hadoop_configuration: property=fs.defaultFS value=hdfs://namenode:8020/ path=/etc/hadoop/core-site.xml
+'''
+
+import xml.etree.ElementTree as et
+
+def main():
+
+    module = AnsibleModule(
+        argument_spec = dict(
+            property = dict(required=True),
+            value  = dict(required=True),
+            path = dict(required=True),
+        )
+    )
+
+    params = module.params
+    property_name = params['property']
+    value = params['value']
+    path = params['path']
+
+    try:
+        tree = et.parse(path)
+        root = tree.getroot()
+    except:
+        root = et.Element('configuration')
+        tree = et.ElementTree(root)
+
+    found_property = False
+    for property_element in root.findall('property'):
+        name_element = property_element.find('name')
+        value_element = property_element.find('value')
+        if name_element is not None and property_name == name_element.text:
+            found_property = True
+            if value_element is not None:
+                if value_element.text == value:
+                    module.exit_json(changed=False)
+                else:
+                    value_element.text = value
+                    break
+
+    if not found_property:
+        property_element = et.SubElement(root, 'property')
+        name_element = et.SubElement(property_element, 'name')
+        name_element.text = property_name
+        value_element = et.SubElement(property_element, 'value')
+        value_element.text = value
+
+    tree.write(path, xml_declaration=True, encoding='utf-8')
+    module.exit_json(changed=True)
+
+
+# import module snippets
+from ansible.module_utils.basic import *
+main()

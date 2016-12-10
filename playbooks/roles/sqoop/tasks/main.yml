@@ -23,6 +23,9 @@
   stat:
     path: "{{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar"
   register: installed
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution downloaded
   get_url:
@@ -30,6 +33,9 @@
     sha256sum: "{{ sqoop_dist.sha256sum }}"
     dest: "{{ sqoop_temporary_dir }}"
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Distribution extracted
   unarchive:
@@ -37,12 +43,18 @@
     dest: "{{ HADOOP_COMMON_USER_HOME }}"
     copy: no
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Set the Permission
   shell: chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ sqoop_base_filename }}
   args:
     chdir: "{{ HADOOP_COMMON_USER_HOME }}"
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Versioned directory symlink created
   file:
@@ -51,6 +63,9 @@
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
     state: link
+  tags:
+    - install
+    - install:system-requirements
 
 - name: MySQL connector distribution downloaded
   get_url:
@@ -58,6 +73,9 @@
     sha256sum: "{{ sqoop_mysql_connector_dist.sha256sum }}"
     dest: "{{ sqoop_temporary_dir }}"
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: MySQL connector distribution extracted
   unarchive:
@@ -65,6 +83,9 @@
     dest: "{{ sqoop_temporary_dir }}"
     copy: no
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Sqoop lib exists
   file:
@@ -72,6 +93,9 @@
     state: directory
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
+  tags:
+    - install
+    - install:system-requirements
 
 #TODO use copy module with remote_src: True once migrate to Ansible 2.x
 - name: MySQL connector installed
@@ -79,13 +103,19 @@
   args:
     chdir: "{{ sqoop_temporary_dir }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}"
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
-- name: FIx MySQL connector permission
+- name: Fix MySQL connector permission
   file:
     path: "{{ SQOOP_LIB }}/mysql-connector-java-{{ SQOOP_MYSQL_CONNECTOR_VERSION }}-bin.jar"
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
   when: not installed.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Configuration installed
   template:
@@ -96,6 +126,9 @@
     group: "{{ hadoop_common_group }}"
   with_items:
     - sqoop-env.sh
+  tags:
+    - install
+    - install:system-requirements
 
 - name: env vars sourced in hadoop env
   lineinfile:
@@ -103,3 +136,6 @@
     state: present
     regexp: "^. {{ SQOOP_CONF }}/sqoop-env.sh"
     line: ". {{ SQOOP_CONF }}/sqoop-env.sh"
+  tags:
+    - install
+    - install:system-requirements

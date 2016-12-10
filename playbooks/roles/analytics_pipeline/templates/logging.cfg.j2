@@ -1,0 +1,47 @@
+#
+# Define logging for use with analytics tasks.
+#
+
+[loggers]
+keys=root,edx_analytics,luigi_interface
+
+[handlers]
+keys=stdoutHandler,localHandler
+
+[formatters]
+keys=standard
+
+[logger_root]
+level=INFO
+handlers=localHandler
+
+[logger_edx_analytics]
+# Errors from edx/analytics get routed to stderr.
+level=DEBUG
+handlers=stdoutHandler,localHandler
+qualname=edx.analytics
+propagate=0
+
+[logger_luigi_interface]
+# Errors from luigi-interface get routed to stdout.
+level=DEBUG
+handlers=stdoutHandler,localHandler
+qualname=luigi-interface
+propagate=0
+
+[handler_stdoutHandler]
+# Define as in luigi/interface.py.
+class=StreamHandler
+level=INFO
+formatter=standard
+args=(sys.stdout,)
+
+[handler_localHandler]
+# Define as in edx-platform/common/lib/logsettings.py (for dev logging, not syslog).
+class=logging.handlers.RotatingFileHandler
+formatter=standard
+args=('{{ analytics_pipeline_log_dir }}/{{ analytics_pipeline_service_name }}.log', 'w')
+
+[formatter_standard]
+# Define as in edx-platform/common/lib/logsettings.py (for dev logging, not syslog).
+format=%(asctime)s %(levelname)s %(process)d [%(name)s] %(filename)s:%(lineno)d - %(message)s

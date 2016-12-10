@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+set -e
+
+cat >/ansible_overrides.yml <<EOL
+---
+migrate_db: 'yes'
+DEVSTACK_HOST: ${DEVSTACK_HOST:-open.edx}
+ANALYTICS_API_ELASTICSEARCH_LEARNERS_HOST: ${ANALYTICS_API_ELASTICSEARCH_LEARNERS_HOST:-fulltextindex}
+COMMON_MYSQL_MIGRATE_USER: "${COMMON_MYSQL_MIGRATE_USER:-root}"
+COMMON_MYSQL_MIGRATE_PASS: "${COMMON_MYSQL_MIGRATE_PASS:-}"
+ANALYTICS_API_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: 'analytics-api'
+    USER: 'api001'
+    PASSWORD: 'password'
+    HOST: '${ANALYTICS_API_DATABASE_HOST:-resultstore}'
+    PORT: '${ANALYTICS_API_DATABASE_PORT:-3306}'
+  # read-only user
+  reports:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: 'reports'
+    USER: 'reports001'
+    PASSWORD: 'password'
+    HOST: '${ANALYTICS_API_DATABASE_HOST:-resultstore}'
+    PORT: '${ANALYTICS_API_DATABASE_PORT:-3306}'
+
+EOL
+
+echo "Initializing the runtime environment"
+/edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook analytics_api.yml \
+    -i '127.0.0.1,' -c local \
+    -t "install:app-configuration,devstack:start" \
+    --extra-vars="@/ansible_overrides.yml"
+
+/edx/app/supervisor/venvs/supervisor/bin/supervisord --configuration /edx/app/supervisor/supervisord.conf
+
+exec "$@"

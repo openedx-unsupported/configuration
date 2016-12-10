@@ -5,6 +5,96 @@
   vars:
     serial_count: 1
   serial: "{{ serial_count }}"
+
+  pre_tasks:
+    - name: rsyslog started
+      service:
+        name: rsyslog
+        state: started
+      tags:
+        - devstack:start
+
+    - name: databases ready
+      wait_for:
+        host: "{{ item.HOST }}"
+        port: "{{ item.PORT }}"
+        delay: 2
+      with_items: "{{ INSIGHTS_DATABASES.values() }}"
+      tags:
+        - devstack:start
+
+    - name: databases created
+      mysql_db:
+        login_host: "{{ item.HOST }}"
+        login_port: "{{ item.PORT }}"
+        login_user: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        login_password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        db: "{{ item.NAME }}"
+        state: present
+        encoding: utf8
+      with_items: "{{ INSIGHTS_DATABASES.values() }}"
+      tags:
+        - devstack:start
+
+    - name: default django user created
+      mysql_user:
+        login_host: "{{ item.HOST }}"
+        login_port: "{{ item.PORT }}"
+        login_user: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+        login_password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+        name: "{{ item.USER }}"
+        password: "{{ item.PASSWORD }}"
+        priv: '{{ item.NAME }}.*:ALL'
+        host: '%'
+      with_items:
+        - "{{ INSIGHTS_DATABASES.default }}"
+      tags:
+        - devstack:start
+
   roles:
-    - docker
     - insights
+
+  tasks:
+
+    # We need to allow the www-data user to be able write dynamically compiled
+    # static files to the common data dir.
+    - name: insights can write to the data dir
+      file:
+        path: "{{ COMMON_DATA_DIR }}/{{ insights_service_name }}"
+        state: directory
+        mode: "0775"
+      tags:
+        - devstack:start
+
+    - name: set configuration vars
+      lineinfile:
+        dest: "{{ COMMON_CFG_DIR  }}/{{ insights_service_name }}.yml"
+        regexp: '^{{ item.key }}:'
+        line: '{{ item.key }}: {{ item.value }}'
+      with_items:
+        - key: DEBUG
+          value: "true"
+        - key: ENABLE_INSECURE_STATIC_FILES
+          value: "true"
+      tags:
+        - devstack:start
+
+    # Since the docker container mounts the user's working directory as a volume, it likely doesn't contain the
+    # "node_modules" directory that is needed to run bower
+    - name: install node dependencies
+      npm:
+        executable: "{{ insights_nodeenv_bin }}/npm"
+        path: "{{ insights_code_dir }}"
+        production: yes
+      environment: "{{ insights_environment }}"
+      tags:
+        - devstack:start
+
+    # Similarly we have to pull the bower deps into the user's working directory. Note that we have to do this as root
+    # since permissions get all wonky when you mount a host directory into a docker container.
+    - name: install bower dependencies
+      shell: ". {{ insights_venv_dir }}/bin/activate && . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false --allow-root"
+      args:
+        chdir: "{{ insights_code_dir }}"
+      tags:
+        - devstack:start

@@ -1,0 +1,14 @@
+description     "luigid"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+setuid {{ luigid_user }}
+
+pre-start script
+    luigid --background --pidfile {{ luigid_pidfile_path }} --address={{ luigid_bind_address }} --port {{ luigid_port }} --state-path=/var/tmp/luigi-state.pickle
+end script
+
+post-stop script
+    pkill -F {{ luigid_pidfile_path }}
+end script

@@ -1,0 +1,76 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role luigid
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: install application requirements
+  pip: >
+    name="{{ item }}"
+    virtualenv="{{ luigid_venv_dir }}"
+    state=present
+  become_user: "{{ luigid_user }}"
+  with_items: "{{ luigid_python_requirements }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install luigi
+  pip: >
+    name="{{ luigid_code_dir }}"
+    virtualenv="{{ luigid_venv_dir }}"
+    state=present
+  become_user: "{{ luigid_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: config directory created
+  file:
+    path: "{{ luigid_conf_dir }}"
+    state: directory
+    owner: "{{ luigid_user }}"
+    group: "{{ luigid_user }}"
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: configuration installed
+  template: >
+    src={{ item }}.j2
+    dest={{ luigid_conf_dir }}/{{ item }}
+    mode=0640 owner={{ luigid_user }} group={{ luigid_user }}
+  with_items:
+    - logging.conf
+    - client.cfg
+  tags:
+    - install
+
+- name: upstart scripts installed
+  template: >
+    src={{ item }}.j2
+    dest=/etc/init/{{ item }}
+    mode=0640 owner=root group=root
+  with_items:
+    - luigid.conf
+  tags:
+    - install
+

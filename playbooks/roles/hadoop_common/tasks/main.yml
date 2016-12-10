@@ -27,12 +27,18 @@
     pkg: "{{ item }}"
     state: present
   with_items: "{{ hadoop_common_debian_pkgs }}"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: ensure group exists
   group:
     name: "{{ hadoop_common_group }}"
     system: yes
     state: present
+  tags:
+    - install
+    - install:system-requirements
 
 - name: ensure user exists
   user:
@@ -44,22 +50,9 @@
     system: yes
     generate_ssh_key: yes
     state: present
-
-- name: own key authorized
-  file:
-    src: "{{ HADOOP_COMMON_USER_HOME }}/.ssh/id_rsa.pub"
-    dest: "{{ HADOOP_COMMON_USER_HOME }}/.ssh/authorized_keys"
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
-    state: link
-
-- name: ssh configured
-  template:
-    src: hadoop_user_ssh_config.j2
-    dest: "{{ HADOOP_COMMON_USER_HOME }}/.ssh/config"
-    mode: 0600
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: ensure user is in sudoers
   lineinfile:
@@ -68,23 +61,36 @@
     regexp: '^%hadoop ALL\='
     line: '%hadoop ALL=(ALL) NOPASSWD:ALL'
     validate: 'visudo -cf %s'
+  tags:
+    - install
+    - install:system-requirements
 
 - name: check if downloaded and extracted
-  stat: path={{ HADOOP_COMMON_HOME }}
+  stat:
+    path: "{{ HADOOP_COMMON_HOME }}"
   register: extracted_hadoop_dir
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution downloaded
   get_url:
     url: "{{ hadoop_common_dist.url }}"
-    sha256sum: "{{ hadoop_common_dist.sha256sum }}"
     dest: "{{ hadoop_common_temporary_dir }}"
+    sha256sum: "{{ hadoop_common_dist.sha256sum }}"
   when: not extracted_hadoop_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: distribution extracted
   shell: "tar -xzf {{ hadoop_common_temporary_dir }}/{{ hadoop_common_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hadoop-{{ HADOOP_COMMON_VERSION }}"
   args:
     chdir: "{{ HADOOP_COMMON_USER_HOME }}"
   when: not extracted_hadoop_dir.stat.exists
+  tags:
+    - install
+    - install:system-requirements
 
 - name: versioned directory symlink created
   file:
@@ -93,6 +99,9 @@
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
     state: link
+  tags:
+    - install
+    - install:system-requirements
 
 - name: configuration installed
   template:
@@ -103,21 +112,9 @@
     group: "{{ hadoop_common_group }}"
   with_items:
     - hadoop-env.sh
-    - mapred-site.xml
-    - core-site.xml
-    - hdfs-site.xml
-    - yarn-site.xml
-
-- name: upstart scripts installed
-  template:
-    src: "{{ item }}.j2"
-    dest: "/etc/init/{{ item }}"
-    mode: 0640
-    owner: root
-    group: root
-  with_items:
-    - hdfs.conf
-    - yarn.conf
+  tags:
+    - install
+    - install:system-requirements
 
 - name: hadoop env file exists
   file:
@@ -125,6 +122,9 @@
     state: touch
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: env vars sourced in bashrc
   lineinfile:
@@ -133,6 +133,9 @@
     regexp: "^. {{ hadoop_common_env }}"
     line: ". {{ hadoop_common_env }}"
     insertbefore: BOF
+  tags:
+    - install
+    - install:system-requirements
 
 - name: env vars sourced in hadoop env
   lineinfile:
@@ -140,81 +143,6 @@
     state: present
     regexp: "^. {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh"
     line: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh"
-
-- name: check if native libraries need to be built
-  stat: path={{ HADOOP_COMMON_USER_HOME }}/.native_libs_built
-  register: native_libs_built
-
-- name: protobuf downloaded
-  get_url:
-    url: "{{ hadoop_common_protobuf_dist.url }}"
-    sha256sum: "{{ hadoop_common_protobuf_dist.sha256sum }}"
-    dest: "{{ hadoop_common_temporary_dir }}"
-  when: not native_libs_built.stat.exists
-
-- name: protobuf extracted
-  shell: "tar -xzf {{ hadoop_common_protobuf_dist.filename }}"
-  args:
-    chdir: "{{ hadoop_common_temporary_dir }}"
-  when: not native_libs_built.stat.exists
-
-- name: protobuf installed
-  shell: "./configure --prefix=/usr/local && make && make install"
-  args:
-    chdir: "{{ hadoop_common_temporary_dir }}/protobuf-{{ HADOOP_COMMON_PROTOBUF_VERSION }}"
-  when: not native_libs_built.stat.exists
-
-- name: native lib source downloaded
-  get_url:
-    url: "{{ hadoop_common_native_dist.url }}"
-    sha256sum: "{{ hadoop_common_native_dist.sha256sum }}"
-    dest: "{{ hadoop_common_temporary_dir }}/{{ hadoop_common_native_dist.filename }}"
-  when: not native_libs_built.stat.exists
-
-- name: native lib source extracted
-  shell: "tar -xzf {{ hadoop_common_native_dist.filename }}"
-  args:
-    chdir: "{{ hadoop_common_temporary_dir }}"
-  when: not native_libs_built.stat.exists
-
-- name: native lib built
-  shell: "mvn package -X -Pnative -DskipTests"
-  args:
-    chdir: "{{ hadoop_common_temporary_dir }}/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project"
-  environment:
-    LD_LIBRARY_PATH: /usr/local/lib
-  when: not native_libs_built.stat.exists
-
-- name: old native libs renamed
-  shell: "mv {{ HADOOP_COMMON_HOME }}/lib/native/{{ item.name }} {{ HADOOP_COMMON_HOME }}/lib/native/{{ item.new_name }}"
-  with_items:
-    - { name: libhadoop.a, new_name: libhadoop32.a }
-    - { name: libhadoop.so, new_name: libhadoop32.so }
-    - { name: libhadoop.so.1.0.0, new_name: libhadoop32.so.1.0.0 }
-  when: not native_libs_built.stat.exists
-
-- name: new native libs installed
-  shell: "chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ item }} && cp {{ item }} {{ HADOOP_COMMON_HOME }}/lib/native/{{ item }}"
-  args:
-    chdir={{ hadoop_common_temporary_dir }}/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project/hadoop-common/target/native/target/usr/local/lib
-  with_items:
-    - libhadoop.a
-    - libhadoop.so
-    - libhadoop.so.1.0.0
-  when: not native_libs_built.stat.exists
-
-- name: native lib marker touched
-  file:
-    path: "{{ HADOOP_COMMON_USER_HOME }}/.native_libs_built"
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
-    state: touch
-  when: not native_libs_built.stat.exists
-
-- name: service directory exists
-  file:
-    path: "{{ HADOOP_COMMON_SERVICES_DIR }}"
-    mode: "0750"
-    owner: "{{ hadoop_common_user }}"
-    group: "{{ hadoop_common_group }}"
-    state: directory
+  tags:
+    - install
+    - install:system-requirements

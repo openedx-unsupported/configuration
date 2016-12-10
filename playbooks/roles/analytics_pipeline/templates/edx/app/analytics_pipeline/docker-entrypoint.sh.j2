@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+set -e
+
+export HOST_IP=$(ip route show 0.0.0.0/0 | grep -Eo 'via \S+' | awk '{ print $2 }' | head -n 1)
+
+INPUT_DATABASE_HOST=${INPUT_DATABASE_HOST:-$HOST_IP}
+COMMON_MYSQL_MIGRATE_USER="${COMMON_MYSQL_MIGRATE_USER:-root}"
+COMMON_MYSQL_MIGRATE_PASS="${COMMON_MYSQL_MIGRATE_PASS:-}"
+HADOOP_USER_HOME={{ HADOOP_COMMON_USER_HOME }}
+HADOOP_CONF_DIR={{ HADOOP_COMMON_CONF_DIR }}
+
+export HADOOP_HOME={{ HADOOP_COMMON_HOME }}
+
+# wait for HDFS to startup and get out of safe mode
+echo -n "Waiting for HDFS... "
+until sudo /bin/bash -c ". $HADOOP_USER_HOME/.bashrc && $HADOOP_HOME/bin/hdfs dfs -touchz /.devstack_init 2>/dev/null"
+do
+    sleep 1
+done
+echo "done"
+
+if ! sudo /bin/bash -c ". $HADOOP_USER_HOME/.bashrc && $HADOOP_HOME/bin/hdfs dfs -cat /.devstack_ready 2>/dev/null"
+then
+    echo -n "Initializing HDFS files and directories... "
+    sudo /bin/bash -c ". $HADOOP_USER_HOME/.bashrc && $HADOOP_HOME/bin/hdfs dfs -mkdir -p /tmp/hadoop-root /data /user/hadoop /user/hive /edx-analytics-pipeline"
+    sudo /bin/bash -c ". $HADOOP_USER_HOME/.bashrc && $HADOOP_HOME/bin/hdfs dfs -chmod 777 /data /tmp"
+    sudo /bin/bash -c ". $HADOOP_USER_HOME/.bashrc && $HADOOP_HOME/bin/hdfs dfs -chown {{ hadoop_common_user }} /user/hadoop /user/hive /edx-analytics-pipeline /tmp/hadoop-root"
+    $HADOOP_HOME/bin/hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/
+    $HADOOP_HOME/bin/hdfs dfs -put -f $HADOOP_USER_HOME/lib/edx-analytics-hadoop-util.jar /edx-analytics-pipeline/packages/
+    echo "done"
+
+    sudo /bin/bash -c ". $HADOOP_USER_HOME/.bashrc && $HADOOP_HOME/bin/hdfs dfs -touchz /.devstack_ready"
+fi
+
+cat >/tmp/ansible_overrides.yml <<EOL
+---
+migrate_db: yes
+DEVSTACK_HOST: ${DEVSTACK_HOST:-open.edx}
+HADOOP_DEFAULT_FS: ${HADOOP_DEFAULT_FS:-hdfs://namenode:8020}
+HADOOP_COMMON_RESOURCE_MANAGER_HOST: ${HADOOP_COMMON_RESOURCE_MANAGER_HOST:-resourcemanager}
+
+ANALYTICS_PIPELINE_DATABASES:
+  input:
+    username: '${COMMON_MYSQL_MIGRATE_USER}'
+    password: '${COMMON_MYSQL_MIGRATE_PASS}'
+    host: ${INPUT_DATABASE_HOST}
+    port: ${INPUT_DATABASE_PORT:-3307}
+  output:
+    username: '${COMMON_MYSQL_MIGRATE_USER}'
+    password: '${COMMON_MYSQL_MIGRATE_PASS}'
+    host: ${OUTPUT_DATABASE_HOST:-resultstore}
+    port: ${OUTPUT_DATABASE_PORT:-3306}
+  warehouse:
+    username: '${WAREHOUSE_USER:-dbadmin}'
+    password: '${WAREHOUSE_PASS:-}'
+    host: '${WAREHOUSE_HOST:-vertica}'
+    port: '${WAREHOUSE_PORT:-5433}'
+EOL
+
+echo "Initializing the runtime environment"
+pushd /edx/app/edx_ansible/edx_ansible/docker/plays/
+/edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook analytics_pipeline.yml \
+    -i '127.0.0.1,' -c local \
+    -t "devstack:start" \
+    --extra-vars="@/tmp/ansible_overrides.yml"
+popd
+
+{{ HIVE_HOME }}/bin/hive -e "CREATE DATABASE IF NOT EXISTS docker"
+
+exec "$@"

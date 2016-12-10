@@ -73,6 +73,7 @@
   tags:
     - migrate
     - migrate:db
+    - devstack:start
 
 - name: run collectstatic
   shell: "{{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py collectstatic  --noinput"
@@ -94,6 +95,7 @@
   tags:
     - manage
     - manage:app-users
+    - devstack:start
 
 - name: write out the supervisor wrapper
   template:
@@ -169,3 +171,15 @@
   become_user: "{{ supervisor_service_user }}"
   tags:
     - manage:start
+
+- name: write docker scripts
+  template:
+    src: "edx/app/analytics_api/{{ item }}.j2"
+    dest: "/{{ item }}"
+    mode: 0744
+  with_items:
+    - "docker-entrypoint.sh"
+    - "docker-command.sh"
+  tags:
+    - devstack
+    - devstack:install

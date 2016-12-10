@@ -54,25 +54,27 @@
     - install:base
 
 - name: install node dependencies
-  npm: executable={{ insights_nodeenv_bin }}/npm path={{ insights_code_dir }} production=yes
+  npm:
+    executable: "{{ insights_nodeenv_bin }}/npm"
+    path: "{{ insights_code_dir }}"
+    production: yes
   become_user: "{{ insights_user }}"
+  environment: "{{ insights_environment }}"
   tags:
     - install
     - install:app-requirements
-  environment: "{{ insights_environment }}"
 
 - name: install bower dependencies
   shell: ". {{ insights_venv_dir }}/bin/activate && . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false"
   args:
     chdir: "{{ insights_code_dir }}"
-
   become_user: "{{ insights_user }}"
   tags:
     - install
     - install:app-requirements
 
 - name: migrate
-  shell: "DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}' DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}' {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput"
+  shell: "DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}' DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}' {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput --run-syncdb"
   args:
     chdir: "{{ insights_code_dir }}"
   become_user: "{{ insights_user }}"
@@ -81,6 +83,7 @@
   tags:
     - migrate
     - migrate:db
+    - devstack:start
 
 - name: run r.js optimizer
   shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js"
@@ -185,3 +188,15 @@
   become_user: "{{ supervisor_service_user }}"
   tags:
     - manage:start
+
+- name: write devstack scripts
+  template:
+    src: "edx/app/insights/{{ item }}.j2"
+    dest: "/{{ item }}"
+    mode: 0744
+  with_items:
+    - "docker-entrypoint.sh"
+    - "docker-command.sh"
+  tags:
+    - devstack
+    - devstack:install
