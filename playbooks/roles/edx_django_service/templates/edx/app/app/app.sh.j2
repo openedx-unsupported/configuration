@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set edx_django_service_venv_bin = edx_django_service_venv_dir + "/bin" %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = edx_django_service_venv_bin + '/newrelic-admin run-program ' + edx_django_service_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = edx_django_service_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ edx_django_service_newrelic_appname }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+source {{ edx_django_service_home }}/{{ edx_django_service_name }}_env
+{{ executable }} -c {{ edx_django_service_home }}/{{ edx_django_service_name }}_gunicorn.py {{ edx_django_service_gunicorn_extra }} {{ edx_django_service_wsgi_name }}.wsgi:application

@@ -1,0 +1,104 @@
+#
+# {{ ansible_managed }}
+#
+
+{% if nginx_default_sites is defined and edx_django_service_name in nginx_default_sites %}
+  {% set default_site = "default_server" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
+upstream {{ edx_django_service_name }}_app_server {
+{% for host in nginx_edx_django_service_gunicorn_hosts %}
+    server {{ host }}:{{ edx_django_service_gunicorn_port }} fail_timeout=0;
+{% endfor %}
+}
+
+# The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+# but only the server name (e.g. https://www.example.com).
+# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+#
+# Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+# of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+map $http_origin $cors_origin {
+default "null";
+{% for host in edx_django_service_cors_whitelist %}
+  "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+{% endfor %}
+}
+
+server {
+  server_name {{ edx_django_service_hostname }};
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ edx_django_service_nginx_port }} {{ default_site }};
+  listen {{ edx_django_service_ssl_nginx_port }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+  listen {{ edx_django_service_nginx_port }} {{ default_site }};
+  {% endif %}
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ edx_django_service_name }};
+    add_header 'Access-Control-Allow-Origin' $cors_origin;
+
+    # Inform downstream caches to take certain headers into account when reading/writing to cache.
+    add_header 'Vary' 'Accept-Encoding,Origin';
+
+    try_files /staticfiles/$file =404;
+  }
+
+  location ~ ^/media/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ edx_django_service_name }};
+    try_files /media/$file =404;
+  }
+
+  location / {
+    {% if edx_django_service_enable_basic_auth|bool %}
+      {% include 'basic-auth.j2' %}
+    {% endif %}
+
+    try_files $uri @proxy_to_app;
+  }
+
+  # API endpoints have their own authentication and authorization
+  # schemes, so we bypass basic auth.
+  location ~ ^/({{ edx_django_service_basic_auth_exempted_paths | join('|') }})/ {
+    try_files $uri @proxy_to_app;
+  }
+
+  {% include 'robots.j2' %}
+
+  location @proxy_to_app {
+    {% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {% else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {% endif %}
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://{{ edx_django_service_name }}_app_server;
+  }
+
+  # Forward to HTTPS if we're an HTTP request...
+  if ($http_x_forwarded_proto = "http") {
+    set $do_redirect "true";
+  }
+
+  # Run our actual redirect...
+  if ($do_redirect = "true") {
+    rewrite ^ https://$host$request_uri? permanent;
+  }
+}
