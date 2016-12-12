@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+source {{ edx_django_service_home }}/{{ edx_django_service_name }}_env
+COMMAND=$1
+
+case $COMMAND in
+    start)
+        {{ supervisor_venv_bin }}/supervisord --configuration {{ supervisor_cfg }}
+
+        # Needed to run bower as root. See explanation around 'edx_django_service_user=root'
+        echo '{ "allow_root": true }' > /root/.bowerrc
+
+        # Docker requires an active foreground task. Tail the logs to appease Docker and
+        # provide useful output for development.
+        tail -f {{ edx_django_service_name_devstack_logs | join(" -f ") }}
+        ;;
+    open)
+        . {{ edx_django_service_nodeenv_bin }}/activate
+        . {{ edx_django_service_venv_bin_dir }}/activate
+        cd {{ edx_django_service_code_dir }}
+
+        /bin/bash
+        ;;
+esac

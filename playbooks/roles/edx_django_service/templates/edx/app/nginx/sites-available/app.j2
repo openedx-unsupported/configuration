@@ -1,0 +1,85 @@
+#
+# {{ ansible_managed }}
+#
+
+{% if nginx_default_sites is defined and edx_django_service_name in nginx_default_sites %}
+  {% set default_site = "default_server" %}
+{% else %}
+  {% set default_site = "" %}
+{% endif %}
+
+upstream {{ edx_django_service_name }}_app_server {
+{% for host in nginx_edx_django_service_gunicorn_hosts %}
+    server {{ host }}:{{ edx_django_service_gunicorn_port }} fail_timeout=0;
+{% endfor %}
+}
+
+map $http_origin $cors_header {
+  default "";
+  '~*^({{ edx_django_service_cors_whitelist|join('|')|replace('.', '\.') }})$' "$http_origin";
+}
+
+server {
+  server_name {{ edx_django_service_hostname }};
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ edx_django_service_nginx_port }} {{ default_site }};
+  listen {{ edx_django_service_ssl_nginx_port }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% else %}
+  listen {{ edx_django_service_nginx_port }} {{ default_site }};
+  {% endif %}
+
+  location ~ ^/static/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ edx_django_service_name }};
+    try_files /staticfiles/$file =404;
+  }
+
+  location ~ ^/media/(?P<file>.*) {
+    root {{ COMMON_DATA_DIR }}/{{ edx_django_service_name }};
+    try_files /media/$file =404;
+  }
+
+  location / {
+    try_files $uri @proxy_to_app;
+  }
+
+  {% if NGINX_ROBOT_RULES|length > 0 %}
+  location /robots.txt {
+      root {{ nginx_app_dir }};
+      try_files $uri /robots.txt =404;
+  }
+  {% endif %}
+
+  location @proxy_to_app {
+    {% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {% else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {% endif %}
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://{{ edx_django_service_name }}_app_server;
+  }
+
+  # Forward to HTTPS if we're an HTTP request...
+  if ($http_x_forwarded_proto = "http") {
+    set $do_redirect "true";
+  }
+
+  # Run our actual redirect...
+  if ($do_redirect = "true") {
+    rewrite ^ https://$host$request_uri? permanent;
+  }
+}
