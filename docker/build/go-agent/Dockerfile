@@ -42,8 +42,8 @@ RUN apt-get update && apt-get install -y \
     php5-common \
     php5-cli
 
-# Install libffi-dev - a dependency for Ansible 2.x
-RUN apt-get update && apt-get install -y libffi-dev
+# Install dependencies needed for Ansible 2.x
+RUN apt-get update && apt-get install -y libffi-dev libssl-dev
 
 # Install drush (drupal shell) for access to Drupal commands/Acquia
 RUN php -r "readfile('http://files.drush.org/drush.phar');" > drush && \
