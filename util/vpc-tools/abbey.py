@@ -307,7 +307,7 @@ if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
     /usr/bin/apt-get update
     /usr/bin/apt-get install -y git python-pip python-apt \\
         git-core build-essential python-dev libxml2-dev \\
-        libxslt-dev curl libmysqlclient-dev --force-yes
+        libxslt-dev curl libmysqlclient-dev libffi-dev libssl-dev --force-yes
 fi
 
 # python3 is required for certain other things
