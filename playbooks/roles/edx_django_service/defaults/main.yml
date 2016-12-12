@@ -112,6 +112,8 @@ edx_django_service_default_db_name: '{{ edx_django_service_name }}'
 edx_django_service_default_db_atomic_requests: false
 edx_django_service_db_user: 'REPLACE-ME'
 edx_django_service_db_password: 'password'
+edx_django_service_db_options:
+  connect_timeout: 10
 
 edx_django_service_databases:
   default:
@@ -123,19 +125,20 @@ edx_django_service_databases:
     PORT: '3306'
     ATOMIC_REQUESTS: '{{ edx_django_service_default_db_atomic_requests }}'
     CONN_MAX_AGE: 60
+    OPTIONS: '{{ edx_django_service_db_options }}'
 
 edx_django_service_social_auth_edx_oidc_key: '{{ edx_django_service_name }}-key'
 edx_django_service_social_auth_edx_oidc_secret: '{{ edx_django_service_name }}-secret'
 edx_django_service_social_auth_redirect_is_https: false
 
-edx_django_service_oauth_public_url_root: '{{ EDXAPP_LMS_PUBLIC_ROOT_URL | default("http://127.0.0.1:8000") }}/oauth2'
-edx_django_service_oauth_url_root: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}/oauth2'
-edx_django_service_oidc_logout_url: '{{ EDXAPP_LMS_PUBLIC_ROOT_URL | default("http://127.0.0.1:8000") }}/logout'
-edx_django_service_oidc_issuer: '{{ edx_django_service_oauth_url_root }}'
+edx_django_service_oauth_public_url_root: '{{ COMMON_OAUTH_PUBLIC_URL_ROOT }}'
+edx_django_service_oauth_url_root: '{{COMMON_OAUTH_URL_ROOT }}'
+edx_django_service_oidc_logout_url: '{{ COMMON_OAUTH_LOGOUT_URL }}'
+edx_django_service_oidc_issuer: '{{ COMMON_OIDC_ISSUER }}'
 
-edx_django_service_jwt_audience: '{{ EDXAPP_JWT_AUDIENCE | default("SET-ME-PLEASE") }}'
-edx_django_service_jwt_issuer: '{{ edx_django_service_oauth_url_root }}'
-edx_django_service_jwt_secret_key: '{{ EDXAPP_JWT_SECRET_KEY | default("lms-secret") }}'
+edx_django_service_jwt_audience: '{{ COMMON_JWT_AUDIENCE }}'
+edx_django_service_jwt_issuer: '{{ COMMON_JWT_ISSUER }}'
+edx_django_service_jwt_secret_key: '{{ COMMON_JWT_SECRET_KEY }}'
 
 edx_django_service_session_expire_at_browser_close: false
 
@@ -181,3 +184,11 @@ edx_django_service_config_default:
 # NOTE: This should be overridden by inheriting service-specific role.
 edx_django_service_config_overrides: {}
 edx_django_service_config: '{{ edx_django_service_config_default|combine(edx_django_service_config_overrides) }}'
+
+edx_django_service_automated_users:
+  automated_user:
+    sudo_commands:
+      - command: '{{ edx_django_service_venv_dir }}/python {{ edx_django_service_code_dir }}/manage.py migrate --list'
+        sudo_user: '{{ edx_django_service_user }}'
+    authorized_keys:
+      - 'SSH authorized key'
