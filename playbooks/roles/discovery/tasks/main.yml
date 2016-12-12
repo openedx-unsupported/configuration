@@ -56,6 +56,25 @@
     - install
     - install:system-requirements
 
+- name: install nodenv
+  pip:
+    name: "nodeenv"
+    virtualenv: "{{ discovery_venv_dir }}"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  command: "nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt"
+  args:
+    creates: "{{ discovery_nodeenv_dir }}"
+  become_user: "{{ discovery_user }}"
+  environment: "{{ discovery_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install application requirements
   command: make production-requirements
   args:
@@ -75,15 +94,6 @@
   tags:
     - devstack
     - devstack:install
-
-- name: create nodeenv
-  shell: >
-    creates={{ discovery_nodeenv_dir }}
-    {{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt
-  become_user: "{{ discovery_user }}"
-  tags:
-    - install
-    - install:app-requirements
 
 - name: install node dependencies
   npm: executable={{ discovery_nodeenv_bin }}/npm path={{ discovery_code_dir }} production=yes
@@ -244,4 +254,3 @@
   tags:
     - install
     - install:vhosts
-
