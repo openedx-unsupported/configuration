@@ -29,6 +29,11 @@ necessary.
 
 ##Building and Uploading the container to ECS
 
+* Copy the go-agent GitHub private key to this path:
+    - ```docker/build/go-agent/files/go_github_key.pem```
+    - A dummy key is in the repo file.
+    - The actual private key is kept in LastPass - see DevOps for access.
+    - WARNING: Do *NOT* commit/push the real private key to the public configuration repo!
 * Create image
     - This must be run from the root of the configuration repository
     - ```docker build -f docker/build/go-agent/Dockerfile .```
