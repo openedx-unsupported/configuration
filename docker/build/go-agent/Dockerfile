@@ -59,7 +59,7 @@ RUN /bin/bash /tmp/docker/docker_install.sh
 RUN usermod -aG docker go
 
 # Assign the go user root privlidges
-RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip\n" >> /etc/sudoers
+RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip, /usr/local/bin/pip\n" >> /etc/sudoers
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install awscli
