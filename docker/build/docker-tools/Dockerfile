@@ -18,6 +18,8 @@ ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/docker-tools/ansible_overrides.yml /
-RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook docker-tools.yml \
+RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook docker-tools.yml \
     -c local -i '127.0.0.1,' \
     -t 'install'
+RUN which docker
+RUN which docker-compose
