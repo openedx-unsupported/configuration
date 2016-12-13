@@ -25,6 +25,7 @@ from django.contrib.auth.models import User
 from instructor.utils import DummyRequest
 from instructor.views.legacy import get_student_grade_summary_data
 from student.models import CourseEnrollment
+from certificates.models import GeneratedCertificate
 
 import csv 
 from datetime import datetime
@@ -72,6 +73,12 @@ for course in mongo_courses:
             city = ''
             country = ''
             full_name = ''
+        certificate = GeneratedCertificate.objects.filter(user=u).filter(course_id=course.id)
+        if certificate:
+            cert = certificate[0]
+            completion_date = cert.created_date
+        else:
+            completion_date = ''
         ce = CourseEnrollment.objects.filter(user_id=u.id).filter(course_id=course.id)[0]
         # try:
         #     course_access_group = user.courseaccessgroup_set.all()[0].name #assume there's at least one group and get it
@@ -85,7 +92,7 @@ for course in mongo_courses:
                         u.email,
                         d[len(d)-1],
                         str(ce.created),
-                        '?',
+                        str(completion_date),
                         '?'
                     ]
         encoded_row = [unicode(s).encode('utf-8') for s in output_data]
@@ -118,6 +125,10 @@ for u in users:
         loc = u.profile.location
     except Exception:
         loc = ''
+    if not u.last_login:
+        last_login = u.date_joined
+    else: 
+        last_login = u.last_login
     try:
         p = u.profile
         city = str(p.city)
@@ -133,7 +144,7 @@ for u in users:
                    u.email,
                    email_domain,
                    u.is_active,
-                   u.last_login,
+                   last_login,
                    u.date_joined,
                    city,
                    country,
