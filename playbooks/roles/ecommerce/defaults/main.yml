@@ -17,39 +17,22 @@ ECOMMERCE_GIT_IDENTITY: !!null
 # and a key being provided via NEWRELIC_LICENSE_KEY
 ECOMMERCE_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ ecommerce_service_name }}"
 ECOMMERCE_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
-ECOMMERCE_NGINX_PORT: "18130"
+ECOMMERCE_NGINX_PORT: 18130
 ECOMMERCE_SSL_NGINX_PORT: 48130
 
-ECOMMERCE_MEMCACHE: [ 'localhost:11211' ]
+ECOMMERCE_MEMCACHE:
+  - localhost:11211
 
-ECOMMERCE_DEFAULT_DB_NAME: 'ecommerce'
-ECOMMERCE_DATABASE_USER: "ecomm001"
-ECOMMERCE_DATABASE_PASSWORD: "password"
-ECOMMERCE_DATABASE_HOST: "localhost"
-ECOMMERCE_DATABASE_PORT: 3306
-ECOMMERCE_MYSQL_OPTIONS:
-  connect_timeout: 10
-  init_command: "SET sql_mode='STRICT_TRANS_TABLES'"
-
-ECOMMERCE_DATABASES:
-  # rw user
-  default:
-    ENGINE: 'django.db.backends.mysql'
-    NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
-    USER: '{{ ECOMMERCE_DATABASE_USER }}'
-    PASSWORD: '{{ ECOMMERCE_DATABASE_PASSWORD }}'
-    HOST: '{{ ECOMMERCE_DATABASE_HOST }}'
-    PORT: '{{ ECOMMERCE_DATABASE_PORT }}'
-    OPTIONS: '{{ ECOMMERCE_MYSQL_OPTIONS }}'
-    ATOMIC_REQUESTS: true
-    CONN_MAX_AGE: 60
+ECOMMERCE_DATABASE_NAME: ecommerce
+ECOMMERCE_DATABASE_USER: ecomm001
+ECOMMERCE_DATABASE_PASSWORD: password
+ECOMMERCE_DATABASE_HOST: localhost
 
 ECOMMERCE_VERSION: "master"
 ECOMMERCE_DJANGO_SETTINGS_MODULE: "ecommerce.settings.production"
 
 ECOMMERCE_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
 ECOMMERCE_SECRET_KEY: 'Your secret key here'
-ECOMMERCE_TIME_ZONE: 'UTC'
 ECOMMERCE_LANGUAGE_CODE: 'en'
 ECOMMERCE_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
 ECOMMERCE_EDX_API_KEY: 'PUT_YOUR_API_KEY_HERE'  # This should match the value set for edxapp
@@ -70,8 +53,8 @@ ECOMMERCE_JWT_SECRET_KEYS:
   - '{{ COMMON_JWT_SECRET_KEY }}'
 
 # Used to automatically configure OAuth2 Client
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET : 'ecommerce-secret'
+ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY: 'ecommerce-key'
+ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET: 'ecommerce-secret'
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 # Settings for affiliate cookie tracking
@@ -151,11 +134,10 @@ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
 # Theming
 ECOMMERCE_PLATFORM_NAME: 'Your Platform Name Here'
 ECOMMERCE_THEME_SCSS: 'sass/themes/default.scss'
+ECOMMERCE_COMPREHENSIVE_THEME_DIRS:
+  - '{{ THEMES_CODE_DIR }}'
+  - '{{ COMMON_APP_DIR }}/{{ ecommerce_service_name }}/{{ ecommerce_service_name }}/ecommerce/themes'
 
-# Directory name inside edx-themes repo that contain ecommerce themes
-ECOMMERCE_THEMES_DIR_NAME: 'ecommerce'
-
-ECOMMERCE_COMPREHENSIVE_THEME_DIRS: !!null
 ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING: false
 ECOMMERCE_DEFAULT_SITE_THEME: !!null
 
@@ -168,27 +150,17 @@ ECOMMERCE_BROKER_HOST: '{{ ansible_default_ipv4.address }}'
 ECOMMERCE_BROKER_PORT: 5672
 ECOMMERCE_BROKER_URL: 'amqp://{{ ECOMMERCE_BROKER_USERNAME }}:{{ ECOMMERCE_BROKER_PASSWORD }}@{{ ECOMMERCE_BROKER_HOST }}:{{ ECOMMERCE_BROKER_PORT }}'
 
-ECOMMERCE_COURSE_CATALOG_URL: 'http://localhost:8008'
 ECOMMERCE_ENTERPRISE_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}'
 
-ECOMMERCE_SERVICE_CONFIG:
-  SESSION_EXPIRE_AT_BROWSER_CLOSE: '{{ ECOMMERCE_SESSION_EXPIRE_AT_BROWSER_CLOSE }}'
-
-  SECRET_KEY: '{{ ECOMMERCE_SECRET_KEY }}'
-  TIME_ZONE: '{{ ECOMMERCE_TIME_ZONE }}'
+ecommerce_service_config_overrides:
   LANGUAGE_COOKIE_NAME: '{{ ECOMMERCE_LANGUAGE_COOKIE_NAME }}'
-  LANGUAGE_CODE: '{{ ECOMMERCE_LANGUAGE_CODE }}'
   EDX_API_KEY: '{{ ECOMMERCE_EDX_API_KEY }}'
   OSCAR_FROM_EMAIL: '{{ ECOMMERCE_OSCAR_FROM_EMAIL }}'
 
-  COURSE_CATALOG_API_URL: '{{ ECOMMERCE_COURSE_CATALOG_URL }}/api/v1/'
   ENTERPRISE_SERVICE_URL: '{{ ECOMMERCE_ENTERPRISE_URL }}/enterprise/'
   ECOMMERCE_URL_ROOT: '{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}'
-  LMS_URL_ROOT: '{{ ECOMMERCE_LMS_URL_ROOT }}'
-  LMS_HEARTBEAT_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/heartbeat'
-  ENROLLMENT_API_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/api/enrollment/v1/enrollment'
-  COMMERCE_API_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/api/commerce/v1/'
-  LMS_DASHBOARD_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/dashboard'
+
+  # TODO LEARNER-3041: Update this service and ecomworker to only use the central JWT access token issuer
   JWT_AUTH:
     JWT_SECRET_KEY: '{{ COMMON_JWT_SECRET_KEY }}'
     JWT_ALGORITHM: '{{ ECOMMERCE_JWT_ALGORITHM }}'
@@ -197,21 +169,10 @@ ECOMMERCE_SERVICE_CONFIG:
     JWT_DECODE_HANDLER: '{{ ECOMMERCE_JWT_DECODE_HANDLER }}'
     JWT_ISSUERS: '{{ ECOMMERCE_JWT_ISSUERS }}'
     JWT_SECRET_KEYS: '{{ ECOMMERCE_JWT_SECRET_KEYS }}'
-  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }}'
-  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ COMMON_OAUTH_URL_ROOT }}'
-  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ COMMON_OAUTH_LOGOUT_URL }}'
-  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
-  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ COMMON_JWT_ISSUER }}'
+
   AFFILIATE_COOKIE_KEY: '{{ ECOMMERCE_AFFILIATE_COOKIE_NAME }}'
 
-  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ ecommerce_service_name }}/staticfiles"
-  # db config
-  DATABASES: '{{ ECOMMERCE_DATABASES }}'
-
   PAYMENT_PROCESSOR_CONFIG: '{{ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG }}'
-  OAUTH2_PROVIDER_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
 
   PLATFORM_NAME: '{{ ECOMMERCE_PLATFORM_NAME }}'
   THEME_SCSS: '{{ ECOMMERCE_THEME_SCSS }}'
@@ -223,26 +184,8 @@ ECOMMERCE_SERVICE_CONFIG:
   ENABLE_COMPREHENSIVE_THEMING: "{{ ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING }}"
   DEFAULT_SITE_THEME: "{{ ECOMMERCE_DEFAULT_SITE_THEME }}"
 
-  CACHES:
-    default:
-      BACKEND: 'django.core.cache.backends.memcached.MemcachedCache'
-      KEY_PREFIX: 'ecommerce'
-      LOCATION: '{{ ECOMMERCE_MEMCACHE }}'
 
-ECOMMERCE_REPOS:
-  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
-    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
-    PATH: "{{ COMMON_GIT_PATH }}"
-    REPO: ecommerce.git
-    VERSION: "{{ ECOMMERCE_VERSION }}"
-    DESTINATION: "{{ ecommerce_code_dir }}"
-    SSH_KEY: "{{ ECOMMERCE_GIT_IDENTITY }}"
-
-ECOMMERCE_GUNICORN_WORKERS: "2"
 ECOMMERCE_GUNICORN_EXTRA: ""
-ECOMMERCE_GUNICORN_EXTRA_CONF: ""
-ECOMMERCE_GUNICORN_WORKER_CLASS: "gevent"
-ECOMMERCE_GUNICORN_MAX_REQUESTS: !!null
 
 #
 # vars are namespace with the module name.
@@ -253,27 +196,10 @@ ecommerce_home: "{{ COMMON_APP_DIR }}/{{ ecommerce_service_name }}"
 ecommerce_code_dir: "{{ ecommerce_home }}/{{ ecommerce_service_name }}"
 ecommerce_venv_dir: "{{ ecommerce_home }}/venvs/{{ ecommerce_service_name }}"
 
-ecommerce_nodeenv_dir: "{{ ecommerce_home }}/nodeenvs/{{ ecommerce_service_name }}"
-ecommerce_nodeenv_bin: "{{ ecommerce_nodeenv_dir }}/bin"
-ecommerce_node_modules_dir: "{{ ecommerce_code_dir }}/node_modules"
-ecommerce_node_bin: "{{ ecommerce_node_modules_dir }}/.bin"
-ecommerce_node_version: "{{ common_node_version }}"
-
-ecommerce_gunicorn_host: "127.0.0.1"
 ecommerce_gunicorn_port: "8130"
-ecommerce_gunicorn_timeout: "300"
-
-ecommerce_log_dir: "{{ COMMON_LOG_DIR }}/{{ ecommerce_service_name }}"
-
-ecommerce_requirements_base: "{{ ecommerce_code_dir }}/requirements"
-ecommerce_requirements:
-  - production.txt
-  - optional.txt
 
 ecommerce_environment:
-  DJANGO_SETTINGS_MODULE: "{{ ECOMMERCE_DJANGO_SETTINGS_MODULE }}"
   ECOMMERCE_CFG: "{{ COMMON_CFG_DIR }}/{{ ecommerce_service_name }}.yml"
-  PATH: "{{ ecommerce_nodeenv_bin }}:{{ ecommerce_venv_dir }}/bin:{{ ansible_env.PATH }}"
 
 #
 # OS packages
@@ -286,3 +212,7 @@ ecommerce_debian_pkgs:
   - libffi-dev
 
 ecommerce_redhat_pkgs: []
+
+ecommerce_post_migrate_commands:
+  - command: './manage.py oscar_populate_countries --initial-only'
+    when: true
