@@ -332,7 +332,7 @@ PIP_VERSION="8.1.2"
 SETUPTOOLS_VERSION="24.0.3"
 EDX_PPA="deb http://ppa.edx.org precise main"
 EDX_PPA_KEY_SERVER="hkp://pgp.mit.edu:80"
-EDX_PPA_KEY_ID="69464050"
+EDX_PPA_KEY_ID="B41E5E3969464050"
 
 cat << EOF
 ******************************************************************************
