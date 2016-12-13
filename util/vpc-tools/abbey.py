@@ -303,27 +303,24 @@ export HIPCHAT_TOKEN HIPCHAT_ROOM HIPCHAT_MSG_PREFIX HIPCHAT_FROM
 export HIPCHAT_MSG_COLOR DATADOG_API_KEY
 
 
-# Lifted from ansible-bootstrap.sh
-
-set -xe
-
-if [[ -z "${ANSIBLE_REPO}" ]]; then
+#################################### Lifted from ansible-bootstrap.sh
+if [[ -z "$ANSIBLE_REPO" ]]; then
   ANSIBLE_REPO="https://github.com/edx/ansible.git"
 fi
 
-if [[ -z "${ANSIBLE_VERSION}" ]]; then
+if [[ -z "$ANSIBLE_VERSION" ]]; then
   ANSIBLE_VERSION="master"
 fi
 
-if [[ -z "${CONFIGURATION_REPO}" ]]; then
+if [[ -z "$CONFIGURATION_REPO" ]]; then
   CONFIGURATION_REPO="https://github.com/edx/configuration.git"
 fi
 
-if [[ -z "${CONFIGURATION_VERSION}" ]]; then
+if [[ -z "$CONFIGURATION_VERSION" ]]; then
   CONFIGURATION_VERSION="master"
 fi
 
-if [[ -z "${UPGRADE_OS}" ]]; then
+if [[ -z "$UPGRADE_OS" ]]; then
   UPGRADE_OS=false
 fi
 
@@ -342,10 +339,10 @@ cat << EOF
 
 Running the abbey with the following arguments:
 
-ANSIBLE_REPO="${ANSIBLE_REPO}"
-ANSIBLE_VERSION="${ANSIBLE_VERSION}"
-CONFIGURATION_REPO="${CONFIGURATION_REPO}"
-CONFIGURATION_VERSION="${CONFIGURATION_VERSION}"
+ANSIBLE_REPO="$ANSIBLE_REPO"
+ANSIBLE_VERSION="$ANSIBLE_VERSION"
+CONFIGURATION_REPO="$CONFIGURATION_REPO"
+CONFIGURATION_VERSION="$CONFIGURATION_VERSION"
 
 ******************************************************************************
 EOF
@@ -376,13 +373,13 @@ EOF
    exit 1;
 fi
 
-EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
+EDX_PPA="deb http://ppa.edx.org $SHORT_DIST main"
 
 # Upgrade the OS
 apt-get update -y
 apt-key update -y
 
-if [ "${UPGRADE_OS}" = true ]; then
+if [ "$UPGRADE_OS" = true ]; then
     echo "Upgrading the OS..."
     apt-get upgrade -y
 fi
@@ -394,11 +391,11 @@ apt-get install -y software-properties-common python-software-properties
 add-apt-repository -y ppa:git-core/ppa
 
 # For older distributions we need to install a PPA for Python 2.7.10
-if [[ "precise" = "${SHORT_DIST}" || "trusty" = "${SHORT_DIST}" ]]; then
+if [[ "precise" = "$SHORT_DIST" || "trusty" = "$SHORT_DIST" ]]; then
 
     # Add python PPA
-    apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
-    add-apt-repository -y "${EDX_PPA}"
+    apt-key adv --keyserver "$EDX_PPA_KEY_SERVER" --recv-keys "$EDX_PPA_KEY_ID"
+    add-apt-repository -y "$EDX_PPA"
 fi
 
 # Install python 2.7 latest, git and other common requirements
@@ -411,18 +408,18 @@ apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml pyt
 # Workaround for a 16.04 bug, need to upgrade to latest and then
 # potentially downgrade to the preferred version.
 # https://github.com/pypa/pip/issues/3862
-if [[ "xenial" = "${SHORT_DIST}" ]]; then
+if [[ "xenial" = "$SHORT_DIST" ]]; then
     pip install --upgrade pip
-    pip install --upgrade pip=="${PIP_VERSION}"
+    pip install --upgrade pip=="$PIP_VERSION"
 else
-    pip install --upgrade pip=="${PIP_VERSION}"
+    pip install --upgrade pip=="$PIP_VERSION"
 fi
 
 # pip moves to /usr/local/bin when upgraded
 hash -r   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
-PATH=/usr/local/bin:${PATH}
-pip install setuptools=="${SETUPTOOLS_VERSION}"
-pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
+PATH=/usr/local/bin:$PATH
+pip install setuptools=="$SETUPTOOLS_VERSION"
+pip install virtualenv=="$VIRTUAL_ENV_VERSION"
 
 
 ##################### END Lifted from ansible-bootstrap.sh
