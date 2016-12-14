@@ -45,7 +45,7 @@ ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
 EDX_PPA="deb http://ppa.edx.org precise main"
 EDX_PPA_KEY_SERVER="hkp://pgp.mit.edu:80"
-EDX_PPA_KEY_ID="69464050"
+EDX_PPA_KEY_ID="B41E5E3969464050"
 
 cat << EOF
 ******************************************************************************
@@ -116,7 +116,8 @@ fi
 # which may differ from what is pinned in virtualenvironments
 apt-get update -y
 
-apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
+apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev openssl-dev
+
 
 # Workaround for a 16.04 bug, need to upgrade to latest and then
 # potentially downgrade to the preferred version.

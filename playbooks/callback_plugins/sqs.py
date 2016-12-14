@@ -28,9 +28,10 @@ except ImportError:
 else:
     import boto.sqs
     from boto.exception import NoAuthHandlerFound
+from ansible.plugins.callback import CallbackBase
 
 
-class CallbackModule(object):
+class CallbackModule(CallbackBase):
     """
     This Ansible callback plugin sends task events
     to SQS.

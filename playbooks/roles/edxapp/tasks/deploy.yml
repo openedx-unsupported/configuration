@@ -110,10 +110,10 @@
     - install:app-requirements
 
 - name: Create the virtualenv to install the Python requirements
-  command: >
-    virtualenv {{ edxapp_venv_dir }}
-    chdir={{ edxapp_code_dir }}
-    creates={{ edxapp_venv_dir }}/bin/pip
+  command: "virtualenv {{ edxapp_venv_dir }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+    creates: "{{ edxapp_venv_dir }}/bin/pip"
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   tags:
@@ -134,9 +134,9 @@
   # Need to use command rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  command: >
-    {{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item.item }}
-    chdir={{ edxapp_code_dir }}
+  command: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item.item }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   when: item.stat.exists
@@ -151,9 +151,9 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: >
-    {{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
-    chdir={{ edxapp_code_dir }}
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   with_items:
   - "{{ private_requirements_file }}"
   become_user: "{{ edxapp_user }}"
@@ -172,7 +172,7 @@
     extra_args: "--exists-action w {{ item.extra_args|default('') }}"
     virtualenv: "{{ edxapp_venv_dir }}"
     state: present
-  with_items: EDXAPP_EXTRA_REQUIREMENTS
+  with_items: "{{ EDXAPP_EXTRA_REQUIREMENTS }}"
   become_user: "{{ edxapp_user }}"
   tags:
     - install
@@ -197,9 +197,9 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: >
-    {{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
-    chdir={{ edxapp_code_dir }}
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   with_items:
   - "{{ sandbox_base_requirements }}"
   - "{{ sandbox_local_requirements }}"
@@ -211,8 +211,7 @@
     - install:app-requirements
 
 - name: create nodeenv
-  shell: >
-    {{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt
+  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt"
   args:
     creates: "{{ edxapp_nodeenv_dir }}"
   tags:
@@ -223,8 +222,7 @@
 # This needs to be done as root since npm is weird about
 # chown - https://github.com/npm/npm/issues/3565
 - name: Set the npm registry
-  shell: >
-    npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'
+  shell: "npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'"
   args:
     creates: "{{ edxapp_app_dir }}/.npmrc"
   environment: "{{ edxapp_environment }}"
@@ -279,9 +277,9 @@
     - install:app-requirements
 
 - name: code sandbox | Install sandbox requirements into sandbox venv
-  shell: >
-    {{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
-    chdir={{ edxapp_code_dir }}
+  shell: "{{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   with_items:
     - "{{ sandbox_local_requirements }}"
     - "{{ sandbox_post_requirements }}"
