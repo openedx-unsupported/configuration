@@ -11,8 +11,8 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-lms --noinput --list",
-        'cms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-cms --noinput --list",
+        'lms':     "/edx/bin/edxapp-migrate-lms --noinput --list",
+        'cms':     "/edx/bin/edxapp-migrate-cms --noinput --list",
         'xqueue':  "SERVICE_VARIANT=xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
         'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
         'programs':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
@@ -265,7 +265,7 @@ if __name__ == '__main__':
             available_file = os.path.join(args.available, "{}.conf".format(service))
             link_location = os.path.join(args.enabled, "{}.conf".format(service))
             if os.path.exists(available_file):
-                subprocess.call("ln -sf {} {}".format(available_file, link_location), shell=True)
+                subprocess.call("sudo -u supervisor ln -sf {} {}".format(available_file, link_location), shell=True)
                 report.append("Enabling service: {}".format(service))
             else:
                 raise Exception("No conf available for service: {}".format(link_location))
