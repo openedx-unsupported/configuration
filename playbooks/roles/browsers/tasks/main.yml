@@ -10,10 +10,19 @@
   apt_repository:
     repo: "{{ chrome_repo }}"
     state: present
+- name: lock Firefox version
+  copy:
+    dest: /etc/apt/preferences.d/firefox-pinned-version
+    content: |
+      Package: firefox
+      Pin: {{ firefox_version }}
+      Pin-Priority: 1001
 
 - name: install system packages
-  apt: pkg={{','.join(browser_deb_pkgs)}}
-       state=present update_cache=yes
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items: "{{ browser_deb_pkgs }}"
 
 - name: download ChromeDriver
   get_url:
