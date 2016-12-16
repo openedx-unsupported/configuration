@@ -72,11 +72,21 @@
     line: ". {{ localdev_home }}/share_x11"
     state: present
 
+# Create a .bashrc.d directory to hold extra bash initializations
+- name: Create .bashrc.d dir
+  file:
+    path: "{{ item.home }}/.bashrc.d"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    state: directory
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+
 # Create scripts to add paver autocomplete
 - name: Add paver autocomplete
   copy:
-    src: paver_autocomplete
-    dest: "{{ item.home }}/.paver_autocomplete"
+    src: paver_autocomplete.sh
+    dest: "{{ item.home }}/.bashrc.d/paver_autocomplete.sh"
     owner: "{{ item.user }}"
     group: "{{ common_web_group }}"
     mode: "0755"
