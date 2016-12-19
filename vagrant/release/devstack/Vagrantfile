@@ -67,6 +67,7 @@ openedx_releases = {
 openedx_releases.default = "eucalyptus-devstack-2016-09-01"
 
 openedx_release = ENV['OPENEDX_RELEASE']
+boxname = ENV['OPENEDX_BOXNAME']
 
 # Build -e override lines for each overridable variable.
 extra_vars_lines = ""
@@ -96,12 +97,17 @@ SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  reldata = openedx_releases[openedx_release]
-  if Hash == reldata.class
-    boxname = openedx_releases[openedx_release][:name]
-    boxfile = openedx_releases[openedx_release].fetch(:file, "#{boxname}.box")
-  else
-    boxname = reldata
+  boxfile = ""
+  if not boxname
+    reldata = openedx_releases[openedx_release]
+    if Hash == reldata.class
+      boxname = openedx_releases[openedx_release][:name]
+      boxfile = openedx_releases[openedx_release].fetch(:file, "")
+    else
+      boxname = reldata
+    end
+  end
+  if boxfile == ""
     boxfile = "#{boxname}.box"
   end
 
