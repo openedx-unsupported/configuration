@@ -337,7 +337,9 @@ elb: $elb
 EOF
 
 
-
+    if [[ $server_type != "full_edx_installation_from_scratch" ]]; then
+	extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
+    fi
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
     run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
