@@ -1,101 +1,22 @@
 # CONFIGURE NGINX
 # SYNC LOCAL SCORM CONTENT PACKAGES WITH S3 IF NOT STORED THERE TO BEGIN WITH
 
-- name: FIXME create application user (copied over from edxapp/tasks/main.yml)
-  user: >
-    name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
-    createhome=no shell=/bin/false
-  tags:
-    - install
-    - install:base
+# do these as includes since Vagrant  < 2.0 doesn't obey
+# conditionals to include the whole scorm role
 
-- name: create all service directories
-  file: >
-    path="{{ item.value.path }}"
-    state="directory"
-    owner="{{ item.value.owner }}"
-    group="{{ item.value.group }}"
-    mode="{{ item.value.mode }}"
-  with_dict: scorm_dirs
-  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
+- name: define scorm config from settings if available
+  set_fact: 
+    scorm_config: EDXAPP_XBLOCK_SETTINGS.ScormXBlock|default('{}')
 
-- name: create missing scrormplayes dir
-  file: >
-    path="{{ scorm_player_dir.path }}"
-    state="directory"
-    owner="{{ scorm_player_dir.owner }}"
-    group="{{ scorm_player_dir.group }}"
-    mode="{{ scorm_player_dir.mode }}"
-  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock
+- include: scorm_base.yml
+  when: EDXAPP_XBLOCK_SETTINGS.ScormXBlock is defined
 
-- name: install read-only ssh key for the scormplayer repo(s)
-  copy: >
-    content="{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item] }}" dest=/tmp/scormplayer_{{ item }}_identity
-    force=yes owner={{ scorm_player_dir.owner }} mode=0600
-  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
-  when: EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item]|default(False)
+- include: scorm_backup.yml
+  when: 
+    - EDXAPP_XBLOCK_SETTINGS.ScormXBlock is defined
+    - SCORM_S3_BACKUP
 
-- name: checkout player repo
-  git: >
-    dest={{ scorm_player_dir.path }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
-    accept_hostkey=yes key_file=/tmp/scormplayer_{{ item.key }}_identity
-    ssh_opts="-o StrictHostKeyChecking=no"
-  sudo_user: "{{ scorm_player_dir.owner }}"
-  register: "{{item.key}}_scormplayer_checkout"
-  with_dict: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS
-  when: (item.value.repo|default(False))
-
-- name: remove read-only ssh key for the scormplayer repo
-  file: path=/tmp/scormplayer_{{ item }}_identity state=absent
-  when: EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item]|default(False)
-  with_items: EDXAPP_XBLOCK_SETTINGS.ScormXBlock.SCORM_PLAYER_BACKENDS.keys()
-
-
-- name: install uuencode for emailing errors
-  apt: >
-    pkg=sharutils
-    state=present
-    update_cache=yes
-  when: SCORM_S3_BACKUP
-
-- name: create s3 config for SCORM backup
-  template: >
-    dest={{ scorm_dirs.home.path }}/.s3cfg
-    src=.s3cfg.j2 mode=0644 owner=root group=root
-  when: SCORM_S3_BACKUP
-
-- name: create s3 scorm sync script
-  template: >
-    dest={{ scorm_s3_sync_script }}
-    src=sync-scorm-content-to-s3.j2 mode=0755 owner=root group=root
-  when: SCORM_S3_BACKUP
-
-- name: create symlink for s3 log sync script
-  file: >
-    state=link
-    src={{ scorm_s3_sync_script }}
-    dest={{ COMMON_BIN_DIR }}/{{ scorm_s3_sync_script|basename }}
-  when: SCORM_S3_BACKUP
-
-  # cron job runs the s3 sync script
-  # this job will log its output to /var/log/scorm
-- name: cronjob for s3 scorm sync
-  cron:
-    name: "cronjob for s3 scorm sync"
-    user: root
-    minute: 0
-    job: "{{ scorm_s3_sync_script }}"
-  when: SCORM_S3_BACKUP
-
-# you must still run the Nginx role after this.
-- name: copy Nginx templates to nginx role
-  template: >
-    src=nginx_extra_templates/{{item}}.j2
-    dest={{ nginx_includes_dir}}/{{item}}
-    owner=root
-    group=www-data
-    mode=0644
-  with_items:
-   - scorm_extra_locations_lms
-   - scorm_static_files
-  when: EDXAPP_XBLOCK_SETTINGS.get('ScormXBlock') is defined
+- include: scorm_players.yml
+  when: 
+    - EDXAPP_XBLOCK_SETTINGS.ScormXBlock is defined
+    - EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES is defined

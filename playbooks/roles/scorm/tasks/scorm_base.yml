@@ -1,0 +1,29 @@
+
+- name: FIXME create application user (copied over from edxapp/tasks/main.yml)
+  user: >
+    name="{{ edxapp_user }}" home="{{ edxapp_app_dir }}"
+    createhome=no shell=/bin/false
+  tags:
+    - install
+    - install:base
+
+- name: create all service directories
+  file: >
+    path="{{ item.value.path }}"
+    state="directory"
+    owner="{{ item.value.owner }}"
+    group="{{ item.value.group }}"
+    mode="{{ item.value.mode }}"
+  with_dict: "{{ scorm_dirs|default({}) }}"
+
+# you must still run the Nginx role after this.
+- name: copy Nginx templates to nginx role
+  template: >
+    src=nginx_extra_templates/{{item}}.j2
+    dest={{ nginx_includes_dir}}/{{item}}
+    owner=root
+    group=www-data
+    mode=0644
+  with_items:
+   - scorm_extra_locations_lms
+   - scorm_static_files
