@@ -180,7 +180,7 @@
     - devstack
     - devstack:install
 
-- name: env vars sourced in hadoop env
+- name: virtualenv activated in hadoop env
   lineinfile:
     dest: "{{ hadoop_common_env }}"
     regexp: "^. {{ analytics_pipeline_venv_dir }}/bin/activate"
@@ -190,11 +190,14 @@
     - devstack
     - devstack:install
 
-- name: write devstack script
-  template:
-    src: "edx/app/analytics_pipeline/docker-entrypoint.sh.j2"
-    dest: "/docker-entrypoint.sh"
-    mode: "0777"
+- name: env vars sourced in hadoop env
+  lineinfile:
+    dest: "{{ hadoop_common_env }}"
+    regexp: "^export {{ item.key }}="
+    line: "export {{ item.key }}={{ item.value }}"
+    state: present
+  with_dict:
+    ACCEPTANCE_TEST_CONFIG: "{{ analytics_pipeline_config_dir }}/acceptance.json"
   tags:
     - devstack
     - devstack:install
@@ -202,8 +205,17 @@
 - name: store configuration for acceptance tests
   copy:
     src: acceptance.json
-    dest: /var/tmp/acceptance.json
+    dest: "{{ analytics_pipeline_config_dir }}/acceptance.json"
     mode: "0644"
+  tags:
+    - devstack
+    - devstack:install
+
+- name: write devstack script
+  template:
+    src: "edx/app/analytics_pipeline/docker-entrypoint.sh.j2"
+    dest: "/docker-entrypoint.sh"
+    mode: "0777"
   tags:
     - devstack
     - devstack:install
