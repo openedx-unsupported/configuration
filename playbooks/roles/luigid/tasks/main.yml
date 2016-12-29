@@ -22,10 +22,10 @@
 #
 
 - name: install application requirements
-  pip: >
-    name="{{ item }}"
-    virtualenv="{{ luigid_venv_dir }}"
-    state=present
+  pip:
+    name: "{{ item }}"
+    virtualenv: "{{ luigid_venv_dir }}"
+    state: present
   become_user: "{{ luigid_user }}"
   with_items: "{{ luigid_python_requirements }}"
   tags:
@@ -33,10 +33,10 @@
     - install:app-requirements
 
 - name: install luigi
-  pip: >
-    name="{{ luigid_code_dir }}"
-    virtualenv="{{ luigid_venv_dir }}"
-    state=present
+  pip:
+    name: "{{ luigid_code_dir }}"
+    virtualenv: "{{ luigid_venv_dir }}"
+    state: present
   become_user: "{{ luigid_user }}"
   tags:
     - install
@@ -54,10 +54,12 @@
     - install:base
 
 - name: configuration installed
-  template: >
-    src={{ item }}.j2
-    dest={{ luigid_conf_dir }}/{{ item }}
-    mode=0640 owner={{ luigid_user }} group={{ luigid_user }}
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ luigid_conf_dir }}/{{ item }}"
+    mode: "0640"
+    owner: "{{ luigid_user }}"
+    group: "{{ luigid_user }}"
   with_items:
     - logging.conf
     - client.cfg
@@ -65,10 +67,12 @@
     - install
 
 - name: upstart scripts installed
-  template: >
-    src={{ item }}.j2
-    dest=/etc/init/{{ item }}
-    mode=0640 owner=root group=root
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/init/{{ item }}"
+    mode: "0640"
+    owner: root
+    group: root
   with_items:
     - luigid.conf
   tags:
