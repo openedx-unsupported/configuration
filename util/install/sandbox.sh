@@ -50,9 +50,11 @@ VERSION_VARS=(
   NOTIFIER_VERSION
   INSIGHTS_VERSION
   ANALYTICS_API_VERSION
+  ECOMMERCE_VERSION
+  ECOMMERCE_WORKER_VERSION
 )
 
-EXTRA_VARS=""
+EXTRA_VARS="-e SANDBOX_ENABLE_ECOMMERCE=True"
 for var in ${VERSION_VARS[@]}; do
   # Each variable can be overridden by a similarly-named environment variable,
   # or OPENEDX_RELEASE, if provided.
