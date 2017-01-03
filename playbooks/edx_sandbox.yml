@@ -16,7 +16,6 @@
     NGINX_SET_X_FORWARDED_HEADERS: True
     # These should stay false for the public AMI
     COMMON_ENABLE_DATADOG: False
-    SANDBOX_ENABLE_ECOMMERCE: False
     COMMON_ENABLE_SPLUNKFORWARDER: False
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
@@ -27,12 +26,9 @@
       - lms
       - forum
       - xqueue
+      - ecommerce
       nginx_default_sites:
       - lms
-    - role: nginx
-      nginx_sites:
-      - ecommerce
-      when: SANDBOX_ENABLE_ECOMMERCE
     - role: edxlocal
       when: EDXAPP_MYSQL_HOST == 'localhost'
     - role: memcache
@@ -43,9 +39,7 @@
     - { role: 'edxapp', celery_worker: True }
     - edxapp
     - role: ecommerce
-      when: SANDBOX_ENABLE_ECOMMERCE
     - role: ecomworker
-      when: SANDBOX_ENABLE_ECOMMERCE
     - analytics_api
     - insights
     # not ready yet: - edx_notes_api
