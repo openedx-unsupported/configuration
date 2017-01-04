@@ -14,12 +14,12 @@ MIGRATION_COMMANDS = {
         'lms':     "/edx/bin/edxapp-migrate-lms --noinput --list",
         'cms':     "/edx/bin/edxapp-migrate-cms --noinput --list",
         'xqueue':  "SERVICE_VARIANT=xqueue sudo -E -u xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
-        'ecommerce':     ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py migrate --noinput --list",
-        'programs':      ". {env_file}; sudo -E -u programs {python} {code_dir}/manage.py migrate --noinput --list",
-        'insights':      ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py migrate --noinput --list",
-        'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py migrate --noinput --list",
-        'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py migrate --noinput --list",
-        'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py migrate --noinput --list",
+        'ecommerce':     ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
+        'programs':      ". {env_file}; sudo -E -u programs {python} {code_dir}/manage.py showmigrations",
+        'insights':      ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
+        'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
+        'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
+        'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
     }
 HIPCHAT_USER = "PreSupervisor"
 
