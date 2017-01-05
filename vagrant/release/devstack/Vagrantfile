@@ -109,7 +109,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box     = boxname
   config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
 
-  config.vm.network :private_network, ip: "192.168.33.10", nic_type: "virtio"
+  config.vm.network :private_network, ip: "192.168.33.10"
 
   # If you want to run the box but don't need network ports, set VAGRANT_NO_PORTS=1.
   # This is useful if you want to run more than one box at once.
@@ -155,6 +155,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+
+    # Virtio is faster, but the box needs to have support for it.  We didn't
+    # have support in the boxes before Ficus.
+    if !(boxname.include?("dogwood") || boxname.include?("eucalyptus"))
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+    end
   end
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
