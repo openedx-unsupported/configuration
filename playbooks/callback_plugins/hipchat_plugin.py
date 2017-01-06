@@ -9,9 +9,10 @@ try:
     import hipchat
 except ImportError:
     hipchat = None
+from ansible.plugins.callback import CallbackBase
 
 
-class CallbackModule(object):
+class CallbackModule(CallbackBase):
     """Send status updates to a HipChat channel during playbook execution.
 
     This plugin makes use of the following environment variables:

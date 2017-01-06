@@ -6,37 +6,20 @@
 # refers to the --depth-setting of git clone. A value of 1
 # will truncate all history prior to the last revision.
 - name: Create shallow clone of edx-platform
-  git_2_0_1: >
-    repo=https://github.com/edx/edx-platform.git
-    dest={{ jenkins_home }}/shallow-clone
-    version={{ jenkins_edx_platform_version }}
-    depth=1
+  git:
+    repo: https://github.com/edx/edx-platform.git
+    dest: "{{ jenkins_home }}/shallow-clone"
+    version: "{{ jenkins_edx_platform_version }}"
+    depth: 1
   become_user: "{{ jenkins_user }}"
 
-# pip-accel skipped due to conflicting versions of pip required
-# by the pip-accel package and edx-platform
-# - name: Pip installs that are needed for pip-accel to work for us
-#   pip: >
-#     name="{{ item }}"
-#     virtualenv={{ jenkins_home }}/edx-venv
-#     virtualenv_command=virtualenv-2.7
-#   become_user: "{{ jenkins_user }}"
-#   with_items: pip_accel_reqs
-
 # Install the platform requirements using pip.
-# Installing the platform requirements using pip-accel
-# would allow the binary distributions to be downloaded from S3
-# rather than compiled each time. This was previously enabled,
-# but reverted back to pip because the current version of pip-accel
-# (0.22.4) is only compatible with pip >= 1.4, < 1.5 and the current
-# version of pip in edx-platform is 6.0.8.
 - name: Install edx-platform requirements using pip
-  pip: >
-    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
-    extra_args="--exists-action=w"
-    virtualenv={{ jenkins_home }}/edx-venv
-    virtualenv_command=virtualenv
-    executable=pip
+  pip:
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
+    extra_args: "--exists-action=w"
+    virtualenv: "{{ jenkins_home }}/edx-venv"
+    virtualenv_command: virtualenv
   with_items:
     - pre.txt
     - github.txt
@@ -54,12 +37,11 @@
   become_user: "{{ jenkins_user }}"
 
 - name: Install edx-platform post requirements using pip
-  pip: >
-    requirements={{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}
-    extra_args="--exists-action=w"
-    virtualenv={{ jenkins_home }}/edx-venv
-    virtualenv_command=virtualenv
-    executable=pip
+  pip:
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
+    extra_args: "--exists-action=w"
+    virtualenv: "{{ jenkins_home }}/edx-venv"
+    virtualenv_command: virtualenv
   with_items:
     - post.txt
   become_user: "{{ jenkins_user }}"
@@ -70,9 +52,9 @@
 # The edx-venv directory is deleted and then recreated
 # cleanly from the archive by the jenkins build scripts.
 - name: Create a clean virtualenv archive
-  command: >
-    tar -cpzf edx-venv_clean.tar.gz edx-venv
-    chdir={{ jenkins_home }}
+  command: "tar -cpzf edx-venv_clean.tar.gz edx-venv"
+  args:
+    chdir: "{{ jenkins_home }}"
   become_user: "{{ jenkins_user }}"
 
 # Remove the shallow-clone directory now that we are

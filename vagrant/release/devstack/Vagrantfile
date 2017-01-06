@@ -155,6 +155,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+
+    # Virtio is faster, but the box needs to have support for it.  We didn't
+    # have support in the boxes before Ficus.
+    if !(boxname.include?("dogwood") || boxname.include?("eucalyptus"))
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+    end
   end
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync

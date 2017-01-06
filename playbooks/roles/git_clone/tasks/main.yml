@@ -23,8 +23,8 @@
 - name: Set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   become_user: "{{ repo_owner }}"
-  when: GIT_REPOS is defined
   no_log: true
+  when: repo_owner is defined and GIT_REPOS|length > 0
   tags:
     - install
     - install:code
@@ -33,7 +33,7 @@
   fail:
     msg: '{{ GIT_REPOS.PROTOCOL }} must be "https" or "ssh"'
   when: (item.PROTOCOL != "https") and (item.PROTOCOL != "ssh") and GIT_REPOS is defined
-  with_items: GIT_REPOS
+  with_items: "{{ GIT_REPOS }}"
   no_log: true
   tags:
     - install
@@ -48,14 +48,14 @@
     group: "{{ repo_group }}"
     mode: "0600"
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
-  with_items: GIT_REPOS
+  with_items: "{{ GIT_REPOS }}"
   no_log: true
   tags:
     - install
     - install:code
 
 - name: Checkout code over ssh
-  git_2_0_1:
+  git:
     repo: "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
     dest: "{{ item.DESTINATION }}"
     version: "{{ item.VERSION }}"
@@ -64,21 +64,21 @@
   become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
-  with_items: GIT_REPOS
+  with_items: "{{ GIT_REPOS }}"
   no_log: true
   tags:
     - install
     - install:code
 
 - name: Checkout code over https
-  git_2_0_1:
+  git:
     repo: "https://{{ item.DOMAIN }}/{{ item.PATH }}/{{ item.REPO }}"
     dest: "{{ item.DESTINATION }}"
     version: "{{ item.VERSION }}"
   become_user: "{{ repo_owner }}"
   register: code_checkout
   when: item.PROTOCOL == "https" and GIT_REPOS is defined
-  with_items: GIT_REPOS
+  with_items: "{{ GIT_REPOS }}"
   no_log: true
   tags:
     - install
@@ -89,7 +89,7 @@
     dest: "{{ git_home }}/.ssh/{{ item.REPO }}"
     state: absent
   when: item.PROTOCOL == "ssh" and GIT_REPOS is defined
-  with_items: GIT_REPOS
+  with_items: "{{ GIT_REPOS }}"
   no_log: true
   tags:
     - install

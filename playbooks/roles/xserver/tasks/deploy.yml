@@ -21,12 +21,14 @@
   template:
     src: xserver_gunicorn.py.j2
     dest: "{{ xserver_app_dir }}/xserver_gunicorn.py"
-  become_user: "{{ xserver_user }}"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
   notify:
     - restart xserver
 
 - name: Checkout code
-  git_2_0_1:
+  git:
     dest: "{{ xserver_code_dir }}"
     repo: "{{ xserver_source_repo }}"
     version: "{{xserver_version}}"
@@ -84,7 +86,7 @@
     - restart xserver
 
 - name: Checkout grader code
-  git_2_0_1:
+  git:
     dest: "{{ XSERVER_GRADER_DIR }}"
     repo: "{{ XSERVER_GRADER_SOURCE }}"
     version: "{{ xserver_grader_version }}"

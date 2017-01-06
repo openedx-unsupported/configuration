@@ -1,0 +1,68 @@
+# Install docker-engine and docker-compose
+# Add users to docker group
+---
+- name: add docker group
+  group:
+    name: "{{ docker_group }}"
+  tags:
+    - install
+    - install:base
+
+- name: add users to docker group
+  user:
+    name: "{{ item }}"
+    groups: "{{ docker_group }}"
+    append: yes
+  with_items: "{{ docker_users }}"
+  tags:
+    - install
+    - install:base
+
+- name: install package dependencies
+  apt:
+    name: "{{ docker_tools_deps_deb_pkgs }}"
+    update_cache: yes
+    cache_valid_time: "{{ cache_valid_time }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: add docker apt key
+  apt_key:
+    keyserver: "{{ docker_apt_keyserver }}"
+    id: "{{ docker_apt_key_id }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: add docker repo
+  apt_repository:
+    repo: "{{ docker_repo }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: install docker-engine
+  apt:
+    name: "docker-engine"
+    update_cache: yes
+    cache_valid_time: "{{ cache_valid_time }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: start docker service
+  service:
+    name: docker
+    enabled: yes
+    state: started
+  tags:
+    - install
+    - install:configuration
+
+- name: install docker-compose
+  pip:
+    name: "docker-compose"
+  tags:
+    - install
+    - install:system-requirements

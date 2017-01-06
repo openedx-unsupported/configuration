@@ -13,11 +13,13 @@
 #   - APPLICATION_NAME                - The name of the application that we are migrating.
 #   - APPLICATION_USER                - user which is meant to run the application
 #   - ARTIFACT_PATH                   - the path where the migration artifacts should be copied after completion
+#   - DB_MIGRATION_USER               - the database username
+#   - DB_MIGRATION_PASS               - the database password
+#
+# Other variables:
 #   - HIPCHAT_TOKEN                   - API token to send messages to hipchat
 #   - HIPCHAT_ROOM                    - ID or name of the room to send the notification
 #   - HIPCHAT_URL                     - URL of the hipchat API  (defaults to v1 of the api)
-#
-# Other variables:
 #   - migration_plan                  - the filename where the unapplied migration YAML output is stored
 #   - migration_result                - the filename where the migration output is saved
 #   - SUB_APPLICATION_NAME            - used for migrations in edxapp {lms|cms}, must be specified
@@ -59,7 +61,7 @@
     shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} show_unapplied_migrations --database "{{ item }}" --output_file "{{ temp_output_dir.stdout }}/{{ item }}_{{ migration_plan }}" --settings "{{ EDX_PLATFORM_SETTINGS }}"'
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
-    with_items: edxapp_databases.keys()
+    with_items: "{{ edxapp_databases.keys() }}"
 
   - name: migrate to apply any unapplied migrations
     shell: '{{ COMMAND_PREFIX }} run_migrations  --output_file "{{ temp_output_dir.stdout }}/{{ migration_result }}"'
@@ -70,7 +72,7 @@
     shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_migrations --database "{{ item }}" --settings "{{ EDX_PLATFORM_SETTINGS }}" --output_file "{{ temp_output_dir.stdout }}/{{ migration_result }}"'
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
-    with_items: edxapp_databases.keys()
+    with_items: "{{ edxapp_databases.keys() }}"
 
   - name: List all migration files
     action: "command ls -1 {{ temp_output_dir.stdout }}"

@@ -44,6 +44,7 @@ EDXAPP_AWS_ACCESS_KEY_ID:  "None"
 EDXAPP_AWS_SECRET_ACCESS_KEY:  "None"
 EDXAPP_AWS_QUERYSTRING_AUTH: false
 EDXAPP_AWS_STORAGE_BUCKET_NAME: "SET-ME-PLEASE (ex. bucket-name)"
+EDXAPP_IMPORT_EXPORT_BUCKET: "SET-ME-PLEASE (ex. bucket-name)"
 EDXAPP_AWS_S3_CUSTOM_DOMAIN: "SET-ME-PLEASE (ex. bucket-name.s3.amazonaws.com)"
 EDXAPP_SWIFT_USERNAME: "None"
 EDXAPP_SWIFT_KEY: "None"
@@ -55,7 +56,6 @@ EDXAPP_SWIFT_REGION_NAME: "None"
 EDXAPP_SWIFT_USE_TEMP_URLS: false
 EDXAPP_SWIFT_TEMP_URL_KEY: "None"
 EDXAPP_SWIFT_TEMP_URL_DURATION: 1800  # seconds
-EDXAPP_USE_SWIFT_STORAGE: false
 EDXAPP_DEFAULT_FILE_STORAGE:  "django.core.files.storage.FileSystemStorage"
 EDXAPP_XQUEUE_BASIC_AUTH: [ "{{ COMMON_HTPASSWD_USER }}", "{{ COMMON_HTPASSWD_PASS }}" ]
 EDXAPP_XQUEUE_DJANGO_AUTH:
@@ -134,6 +134,7 @@ EDXAPP_ZENDESK_API_KEY: ""
 EDXAPP_CELERY_USER: 'celery'
 EDXAPP_CELERY_PASSWORD: 'celery'
 EDXAPP_CELERY_BROKER_VHOST: ""
+EDXAPP_CELERY_BROKER_USE_SSL: false
 
 EDXAPP_VIDEO_CDN_URLS:
   EXAMPLE_COUNTRY_CODE: "http://example.com/edx/video?s3_url="
@@ -498,8 +499,8 @@ EDXAPP_CELERY_WORKERS:
     monitor: False
     max_tasks_per_child: 1
 EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
-EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\\\1')|list }}"
-EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\\\1')|list }}"
+EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\1')|list }}"
+EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\1')|list }}"
 
 EDXAPP_DEFAULT_CACHE_VERSION: "1"
 EDXAPP_OAUTH_ENFORCE_SECURE: True
@@ -639,10 +640,12 @@ edxapp_venvs_dir: "{{ edxapp_app_dir }}/venvs"
 edxapp_venv_dir: "{{ edxapp_venvs_dir }}/edxapp"
 edxapp_venv_bin: "{{ edxapp_venv_dir }}/bin"
 edxapp_nodeenv_dir: "{{ edxapp_app_dir }}/nodeenvs/edxapp"
-edxapp_node_bin: "{{ edxapp_nodeenv_dir }}/bin"
-edxapp_node_version: "0.10.37"
+edxapp_nodeenv_bin: "{{ edxapp_nodeenv_dir }}/bin"
+edxapp_node_version: "6.9.2"
+# This is where node installs modules, not node itself
+edxapp_node_bin: "{{ edxapp_code_dir }}/node_modules/.bin"
 edxapp_user: edxapp
-edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:{{ edxapp_nodeenv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_media_dir: "{{ edxapp_data_dir }}/media"
 edxapp_course_static_dir: "{{ edxapp_data_dir }}/course_static"
@@ -799,8 +802,6 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
 generic_cache_config: &default_generic_cache
   BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
   KEY_FUNCTION:  'util.memcache.safe_key'
-  KEY_PREFIX: 'default'
-  LOCATION: "{{ EDXAPP_MEMCACHE }}"
 
 generic_env_config:  &edxapp_generic_env
   ECOMMERCE_PUBLIC_URL_ROOT: "{{ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT }}"
@@ -821,6 +822,7 @@ generic_env_config:  &edxapp_generic_env
   ANALYTICS_DATA_URL: "{{ EDXAPP_ANALYTICS_DATA_URL }}"
   ANALYTICS_DASHBOARD_URL: '{{ EDXAPP_ANALYTICS_DASHBOARD_URL }}'
   CELERY_BROKER_VHOST: "{{ EDXAPP_CELERY_BROKER_VHOST }}"
+  CELERY_BROKER_USE_SSL: "{{ EDXAPP_CELERY_BROKER_USE_SSL }}"
   PAYMENT_SUPPORT_EMAIL: "{{ EDXAPP_PAYMENT_SUPPORT_EMAIL }}"
   ZENDESK_URL: "{{ EDXAPP_ZENDESK_URL }}"
   COURSES_WITH_UNSAFE_CODE: "{{ EDXAPP_COURSES_WITH_UNSAFE_CODE }}"
@@ -884,23 +886,29 @@ generic_env_config:  &edxapp_generic_env
     default:
       <<: *default_generic_cache
       KEY_PREFIX: 'default'
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
       VERSION: "{{ EDXAPP_DEFAULT_CACHE_VERSION }}"
     general:
       <<: *default_generic_cache
       KEY_PREFIX:  'general'
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     mongo_metadata_inheritance:
       <<: *default_generic_cache
       KEY_PREFIX:  'mongo_metadata_inheritance'
       TIMEOUT: 300
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     staticfiles:
       <<: *default_generic_cache
       KEY_PREFIX: "{{ ansible_hostname|default('staticfiles') }}_general"
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     configuration:
       <<: *default_generic_cache
       KEY_PREFIX: "{{ ansible_hostname|default('configuration') }}"
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     celery:
       <<: *default_generic_cache
       KEY_PREFIX:  'celery'
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
       TIMEOUT: "7200"
     course_structure_cache:
       <<: *default_generic_cache
@@ -1029,6 +1037,7 @@ lms_env_config:
   DOC_LINK_BASE_URL: "{{ EDXAPP_LMS_DOC_LINK_BASE_URL }}"
   RECALCULATE_GRADES_ROUTING_KEY: "{{ EDXAPP_RECALCULATE_GRADES_ROUTING_KEY }}"
   CELERY_QUEUES: "{{ EDXAPP_LMS_CELERY_QUEUES }}"
+  ALTERNATE_WORKER_QUEUES: "cms"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
@@ -1060,6 +1069,8 @@ cms_env_config:
   GIT_REPO_EXPORT_DIR: "{{ EDXAPP_GIT_REPO_EXPORT_DIR }}"
   DOC_LINK_BASE_URL: "{{ EDXAPP_CMS_DOC_LINK_BASE_URL }}"
   CELERY_QUEUES: "{{ EDXAPP_CMS_CELERY_QUEUES }}"
+  ALTERNATE_WORKER_QUEUES: "lms"
+  COURSE_IMPORT_EXPORT_BUCKET: "{{ EDXAPP_IMPORT_EXPORT_BUCKET }}"
 
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"

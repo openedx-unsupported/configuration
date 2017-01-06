@@ -117,16 +117,17 @@ error_page {{ k }} {{ v }};
   {% include "common-settings.j2" %}
 
   {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
-  #only redirect to embargo when $embargo == true and $uri != /embargo
+  #only redirect to embargo when $embargo == true and $uri != $embargo_url
   #this is a hack to do multiple conditionals
+  set $embargo_url "/embargo/blocked-message/courseware/embargo/";
   if ( $embargo ) {
     set $do_embargo "A";
   }
-  if ( $uri != "/embargo" ) {
+  if ( $uri != $embargo_url ) {
     set $do_embargo "${do_embargo}B";
   }
   if ( $do_embargo = "AB" ) {
-    return 302 /embargo;
+    return 302 $embargo_url;
   }
   {% endif -%}
 
@@ -166,7 +167,7 @@ error_page {{ k }} {{ v }};
       {% include "basic-auth.j2" %}
     {% endif %}
 
-    if ( $arg_next = "favicon.ico" ) {
+    if ( $arg_next ~* "favicon.ico" ) {
       return 403;
     }
 
@@ -174,7 +175,7 @@ error_page {{ k }} {{ v }};
   }
 
 {% if NGINX_EDXAPP_EMBARGO_CIDRS %}
-  location /embargo {
+  location $embargo_url {
     try_files $uri @proxy_to_lms_app;
   }
 {% endif %}

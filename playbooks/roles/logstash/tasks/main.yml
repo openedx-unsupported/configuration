@@ -49,26 +49,26 @@
 
 - name: Install python requirements
   pip: name={{ item }} state=present
-  with_items: logstash_python_requirements
+  with_items: "{{ logstash_python_requirements }}"
 
 - name: Checkout logstash rotation scripts
   git: repo={{ logstash_scripts_repo }} dest={{ logstash_app_dir }}/share/logstash-elasticsearch-scripts
   when: LOGSTASH_ROTATE|bool
 
 - name: Setup cron to run rotation
-  cron: >
-    user=root
-    name="Elasticsearch logstash index rotation"
-    hour={{ logstash_rotate_cron.hour }}
-    minute={{ logstash_rotate_cron.minute }}
-    job="/usr/bin/python {{ logstash_app_dir }}/share/logstash-elasticsearch-scripts/logstash_index_cleaner.py -d {{ LOGSTASH_DAYS_TO_KEEP }} > {{ logstash_log_dir }}/rotation_cron"
+  cron:
+    user: root
+    name: "Elasticsearch logstash index rotation"
+    hour: "{{ logstash_rotate_cron.hour }}"
+    minute: "{{ logstash_rotate_cron.minute }}"
+    job: "/usr/bin/python {{ logstash_app_dir }}/share/logstash-elasticsearch-scripts/logstash_index_cleaner.py -d {{ LOGSTASH_DAYS_TO_KEEP }} > {{ logstash_log_dir }}/rotation_cron"
   when: LOGSTASH_ROTATE|bool
 
 - name: Setup cron to run rotation
-  cron: >
-    user=root
-    name="Elasticsearch logstash index optimization"
-    hour={{ logstash_optimize_cron.hour }}
-    minute={{ logstash_optimize_cron.minute }}
-    job="/usr/bin/python {{ logstash_app_dir }}/share/logstash-elasticsearch-scripts/logstash_index_optimize.py -d {{ LOGSTASH_DAYS_TO_KEEP }} > {{ logstash_log_dir }}/optimize_cron"
+  cron:
+    user: root
+    name: "Elasticsearch logstash index optimization"
+    hour: "{{ logstash_optimize_cron.hour }}"
+    minute: "{{ logstash_optimize_cron.minute }}"
+    job: "/usr/bin/python {{ logstash_app_dir }}/share/logstash-elasticsearch-scripts/logstash_index_optimize.py -d {{ LOGSTASH_DAYS_TO_KEEP }} > {{ logstash_log_dir }}/optimize_cron"
   when: LOGSTASH_ROTATE|bool

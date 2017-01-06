@@ -26,10 +26,6 @@
     owner={{ jenkins_user }} group={{ jenkins_group }} mode=400
   ignore_errors: yes
 
-# adding chris-lea nodejs repo
-- name: add ppas for current versions of nodejs
-  apt_repository: repo="{{ jenkins_chrislea_ppa }}"
-
 - name: Install system packages
   apt: pkg={{','.join(jenkins_debian_pkgs)}}
        state=present update_cache=yes
@@ -43,22 +39,9 @@
 # Need to add Github to known_hosts to avoid
 # being prompted when using git through ssh
 - name: Add github.com to known_hosts if it does not exist
-  shell: >
-     ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts
+  shell: "ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts"
 
 # Edit the /etc/hosts file so that the Preview button will work in Studio
 - name: add preview.localhost to /etc/hosts
   shell: sed -i -r 's/^127.0.0.1\s+.*$/127.0.0.1 localhost preview.localhost/' /etc/hosts
   become: yes
-
-# Set up configuration for pip-accel for caching python requirements
-- name: Create directory for pip-accel config file
-  file: path={{ jenkins_home }}/.pip-accel state=directory
-    owner={{ jenkins_user }} group={{ jenkins_group }} mode=0777 recurse=yes
-  when: platform_worker is defined
-
-- name: Create pip-accel config file
-  template:
-    src=pip-accel.conf.j2 dest={{ jenkins_home }}/.pip-accel/pip-accel.conf
-    owner={{ jenkins_user }} group={{ jenkins_group }} mode=0664
-  when: platform_worker is defined

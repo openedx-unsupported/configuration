@@ -38,42 +38,47 @@
   when: rbenv_ruby_version is not defined
 
 - name: create rbenv user {{ rbenv_user }}
-  user: >
-    name={{ rbenv_user }} home={{ rbenv_dir }}
-    shell=/bin/false createhome=no
+  user:
+    name: "{{ rbenv_user }}"
+    home: "{{ rbenv_dir }}"
+    shell: /bin/false
+    createhome: no
   when: rbenv_user != common_web_user
   tags:
     - install
     - install:base
 
 - name: create rbenv dir if it does not exist
-  file: >
-    path="{{ rbenv_dir }}" owner="{{ rbenv_user }}"
-    state=directory
+  file:
+    path: "{{ rbenv_dir }}"
+    owner: "{{ rbenv_user }}"
+    state: directory
   tags:
     - install
     - install:base
 
 - name: install build depends
   apt: pkg={{ ",".join(rbenv_debian_pkgs) }} update_cache=yes state=present install_recommends=no
-  with_items: rbenv_debian_pkgs
+  with_items: "{{ rbenv_debian_pkgs }}"
   tags:
     - install
     - install:base
 
 - name: update rbenv repo
-  git_2_0_1: >
-    repo=https://github.com/sstephenson/rbenv.git
-    dest={{ rbenv_dir }}/.rbenv version={{ rbenv_version }}
-    accept_hostkey=yes
+  git:
+    repo: https://github.com/sstephenson/rbenv.git
+    dest: "{{ rbenv_dir }}/.rbenv"
+    version: "{{ rbenv_version }}"
+    accept_hostkey: yes
   become_user: "{{ rbenv_user }}"
   tags:
     - install
     - install:base
 
 - name: ensure ruby_env exists
-  template: >
-    src=ruby_env.j2 dest={{ rbenv_dir }}/ruby_env
+  template:
+    src: ruby_env.j2
+    dest: "{{ rbenv_dir }}/ruby_env"
   become_user: "{{ rbenv_user }}"
   tags:
     - install
@@ -107,9 +112,10 @@
     - install:base
 
 - name: clone ruby-build repo
-  git: >
-    repo=https://github.com/sstephenson/ruby-build.git dest={{ tempdir.stdout }}/ruby-build
-    accept_hostkey=yes
+  git:
+    repo: https://github.com/sstephenson/ruby-build.git
+    dest: "{{ tempdir.stdout }}/ruby-build"
+    accept_hostkey: yes
   when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   become_user: "{{ rbenv_user }}"
   tags:

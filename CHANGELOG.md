@@ -201,3 +201,10 @@
   - Changed MONGO_STORAGE_ENGINE to default to wiredTiger which is the default in 3.2 and 3.4 and what edX suggests be used even on 3.0.
     If you have a mmapv1 3.0 install, override MONGO_STORAGE_ENGINE to be mmapv1 which was the old default.
   - Ready for deploying Mongo 3.2  
+
+- Role: xqueue
+  - Added `EDXAPP_CELERY_BROKER_USE_SSL` to allow configuring celery to use TLS.
+
+- Role: edxapp
+  - Added `XQUEUE_RABBITMQ_VHOST` to allow configuring the xqueue RabbitMQ host.
+  - Added `XQUEUE_RABBITMQ_PORT` and `XQUEUE_RABBITMQ_TLS` to allow configuring the RabbitMQ port, and enabling TLS respectively.
