@@ -89,6 +89,7 @@ extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
+play_file="/var/tmp/play-$$.yml"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -104,7 +105,7 @@ fi
 if [[ -z $zone ]]; then
   zone="us-east-1c"
 fi
-
+f
 if [[ -z $vpc_subnet_id ]]; then
   vpc_subnet_id="subnet-cd867aba"
 fi
@@ -140,7 +141,7 @@ fi
 if [[ -z $enable_newrelic ]]; then
   enable_newrelic="false"
 fi
-
+a/
 if [[ -z $enable_datadog ]]; then
   enable_datadog="false"
 fi
@@ -170,6 +171,12 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 cd playbooks/edx-east
 
 cat << EOF > $extra_vars_file
+SANDBOX_ENABLE_ECOMMERCE: false
+SANDBOX_ENABLE_ANALYTICS_API: false
+SANDBOX_ENABLE_INSIGHTS: false
+SANDBOX_ENABLE_FORUM: true
+SANDBOX_ENABLE_CERTS: false
+
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
@@ -361,21 +368,32 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
+cat <<EOF >> $play_file
+- hosts: all
+  tasks:
+    - include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml
+EOF
+
+
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
+
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
-            cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+
+	    printf "%s\n" "    - include: $WORKSPACE/configuration/playbooks/edx-east/${i}.yml" >> $play_file 
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+		printf  "%s\n" "    - include: $WORKSPACE/configuration/playbooks/edx-east/worker.yml" >> $play_file
             fi
         fi
     done
+    cat $play_file
+    echo
+    cat $extra_vars_file
+    #run_ansible $play_file -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible $WORKSPACE/configuration/playbooks/edx_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
-# deploy the edx_ansible role
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
