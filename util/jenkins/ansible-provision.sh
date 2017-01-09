@@ -376,9 +376,9 @@ EOF
 
 
 
-	    echo "    ${i}.yml" >> $play_file 
+	    echo "    $WORKSPACE/configuration/playbooks/edx-east/${i}.yml" >> $play_file 
             if [[ ${i} == "edxapp" ]]; then
-		echo "    worker.yml" >> $play_file
+		echo "    $WORKSPACE/configuration/playbooks/edx-east/worker.yml" >> $play_file
             fi
         fi
     done
