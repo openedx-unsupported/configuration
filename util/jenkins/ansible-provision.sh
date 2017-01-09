@@ -89,6 +89,7 @@ extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
+play_file="/var/tmp/play-$$.yml"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -364,15 +365,27 @@ fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
+
+    cat << EOF >> $play_file
+---
+- include:
+EOF
+
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
-            cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+
+
+
+	    echo "    ${i}.yml" >> $play_file 
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+		echo "    worker.yml" >> $play_file
             fi
         fi
     done
+    cat $play_file
+    echo
+    cat $extra_vars_file
+    run_ansible $play_file -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 # deploy the edx_ansible role
