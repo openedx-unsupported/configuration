@@ -369,6 +369,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     cat << EOF >> $play_file
 ---
 - include:
+    $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml
 EOF
 
     for i in $roles; do
@@ -388,8 +389,6 @@ EOF
     run_ansible $play_file -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
-# deploy the edx_ansible role
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
