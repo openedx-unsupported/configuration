@@ -363,19 +363,22 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
+cat <<EOF >> $play_file
+- hosts: all
+  tasks:
+    - include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml
+EOF
+
+
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
-
-    printf "%s\n" "- include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml" > $play_file
 
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
 
-
-
-	    printf "%s\n" "- include: $WORKSPACE/configuration/playbooks/edx-east/${i}.yml" >> $play_file 
+	    printf "%s\n" "    - include: $WORKSPACE/configuration/playbooks/edx-east/${i}.yml" >> $play_file 
             if [[ ${i} == "edxapp" ]]; then
-		printf  "%s\n" "- include: $WORKSPACE/configuration/playbooks/edx-east/worker.yml" >> $play_file
+		printf  "%s\n" "    - include: $WORKSPACE/configuration/playbooks/edx-east/worker.yml" >> $play_file
             fi
         fi
     done
