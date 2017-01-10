@@ -366,7 +366,7 @@ fi
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
 
-printf "- include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml" > $play_file
+    printf "- include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml" > $play_file
 
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
