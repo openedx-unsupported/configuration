@@ -385,7 +385,8 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     cat $play_file
     echo
     cat $extra_vars_file
-    run_ansible $play_file -i "${deploy_host}," $extra_var_arg --user ubuntu
+    #run_ansible $play_file -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible $WORKSPACE/configuration/playbooks/edx_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
