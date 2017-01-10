@@ -65,14 +65,6 @@
   with_items: "{{ MARIADB_DATABASES }}"
   when: MARIADB_CREATE_DBS|bool
 
-- name: create all analytics dbs
-  mysql_db:
-    db: "{{ item }}"
-    state: present
-    encoding: utf8
-  with_items: "{{ MARIADB_ANALYTICS_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined
-
 - name: create all users/privs
   mysql_user:
     name: "{{ item.name }}"
@@ -83,12 +75,3 @@
   with_items: "{{ MARIADB_USERS }}"
   when: MARIADB_CREATE_DBS|bool
 
-- name: create all analytics users/privs
-  mysql_user:
-    name: "{{ item.name }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
-    append_privs: yes
-  with_items: "{{ MARIADB_ANALYTICS_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined

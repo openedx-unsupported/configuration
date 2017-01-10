@@ -17,9 +17,9 @@
 - name: setup bootstrap on primary
   lineinfile:
     dest: "/etc/mysql/conf.d/galera.cnf"
-    regexp: "^wsrep_cluster_address=gcomm://{{ hostvars.keys()|sort|join(',') }}$"
+    regexp: "^wsrep_cluster_address=gcomm://{{ groups[group_names[0]]|sort|join(',') }}$"
     line: "wsrep_cluster_address=gcomm://"
-  when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
+  when: ansible_hostname == hostvars[groups[group_names[0]][0]].ansible_hostname and not mariadb_bootstrap.stat.exists
 
 - name: fetch debian.cnf file so start-stop will work properly
   fetch:
@@ -27,7 +27,7 @@
     dest: /tmp/debian.cnf
     fail_on_missing: yes
     flat: yes
-  when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
+  when: ansible_hostname == hostvars[groups[group_names[0]][0]].ansible_hostname and not mariadb_bootstrap.stat.exists
   register: mariadb_new_debian_cnf
 
 - name: copy fetched file to other cluster members
@@ -52,6 +52,12 @@
 
 # This is needed for mysql-check in haproxy or other mysql monitor
 # scripts to prevent haproxy checks exceeding `max_connect_errors`.
+# It's better to use ansible mysql_user to avoid creation of user
+# on every node of the cluster
 - name: create haproxy monitor user
-  command: "mysql -e \"INSERT INTO mysql.user (Host,User) values ('{{ item }}','{{ MARIADB_HAPROXY_USER }}'); FLUSH PRIVILEGES;\""
+  mysql_user: >
+    name={{ MARIADB_HAPROXY_USER }}
+    host={{ item }}
+    password=""
+    state=present
   with_items: "{{ MARIADB_HAPROXY_HOSTS }}"
