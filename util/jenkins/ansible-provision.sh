@@ -105,7 +105,7 @@ fi
 if [[ -z $zone ]]; then
   zone="us-east-1c"
 fi
-
+f
 if [[ -z $vpc_subnet_id ]]; then
   vpc_subnet_id="subnet-cd867aba"
 fi
@@ -141,7 +141,7 @@ fi
 if [[ -z $enable_newrelic ]]; then
   enable_newrelic="false"
 fi
-
+a/
 if [[ -z $enable_datadog ]]; then
   enable_datadog="false"
 fi
@@ -366,7 +366,7 @@ fi
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the roles selected
 
-    printf "- include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml" > $play_file
+    printf "%s" "- include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml" > $play_file
 
     for i in $roles; do
         if [[ ${deploy[$i]} == "true" ]]; then
