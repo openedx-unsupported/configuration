@@ -368,8 +368,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
 
     cat << EOF >> $play_file
 ---
-- include:
-    $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml
+- include: $WORKSPACE/configuration/playbooks/edx-east/edx_ansible.yml
 EOF
 
     for i in $roles; do
@@ -377,9 +376,9 @@ EOF
 
 
 
-	    echo "    $WORKSPACE/configuration/playbooks/edx-east/${i}.yml" >> $play_file 
+	    printf " $WORKSPACE/configuration/playbooks/edx-east/${i}.yml" >> $play_file 
             if [[ ${i} == "edxapp" ]]; then
-		echo "    $WORKSPACE/configuration/playbooks/edx-east/worker.yml" >> $play_file
+		printf " $WORKSPACE/configuration/playbooks/edx-east/worker.yml" >> $play_file
             fi
         fi
     done
