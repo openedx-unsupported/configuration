@@ -171,6 +171,12 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 cd playbooks/edx-east
 
 cat << EOF > $extra_vars_file
+SANDBOX_ENABLE_ECOMMERCE: false
+SANDBOX_ENABLE_ANALYTICS_API: false
+SANDBOX_ENABLE_INSIGHTS: false
+SANDBOX_ENABLE_FORUM: true
+SANDBOX_ENABLE_CERTS: false
+
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
