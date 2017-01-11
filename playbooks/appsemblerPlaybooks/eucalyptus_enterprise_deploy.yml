@@ -3,53 +3,60 @@
 # Appsembler pro tier deployment
 # Docs: https://github.com/appsembler/openedx-docs/blob/master/openedx/pro_tier_deployment.md
 
-# - name: Install Mongo Replica Set
-#   hosts: "mongo-servers"
-#   sudo: True
-#   gather_facts: True
-#   vars:
-#     BACKUPS_MONGO: no
-#     BACKUPS_MYSQL: no
-#   roles:
-#     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
-#     - mongo_3_0
-
-# - name: Install Mongo Replica Set Secondary
-#   hosts: "mongo-server-1"
-#   sudo: True
-#   gather_facts: True
-#   vars:
-#     BACKUPS_MONGO: no
-#     BACKUPS_MYSQL: no
-#   roles:
-#     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
-#     - mongo
+- name: Install Mongo Replica Set
+  hosts: "mongo-servers"
+  sudo: True
+  gather_facts: True
+  vars:
+    BACKUPS_MONGO: False
+    BACKUPS_MYSQL: False
+    COMMON_ENABLE_BACKUPS: False
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - mongo_3_0
 
 
+- name: Install Mongo Backups
+  hosts: "mongo-arbiter"
+  sudo: True
+  gather_facts: True
+  vars:
+    BACKUPS_MONGO: True
+    BACKUPS_MYSQL: False
+    COMMON_ENABLE_BACKUPS: True
+  roles:
+    - backups
 
 
-- name: Install Services Server
+- name: Install Needed Packages On Services Server
   hosts: "services-server"
   sudo: True
   gather_facts: True
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: sudo
     - oraclejdk
     - elasticsearch
     - memcached
 
-- name: Configure stateless edxapp server
+
+- name: Configure Stateless edxapp-server
   hosts: "edxapp-servers"
   sudo: True
   gather_facts: True
   vars:
     migrate_db: "yes"
     openid_workaround: True
+    # Set to false if deployed behind another proxy/load balancer.
+    NGINX_SET_X_FORWARDED_HEADERS: False
+    # These should stay false for the public AMI
+    SANDBOX_ENABLE_ECOMMERCE: False
+    COMMON_ENABLE_INSIGHTS: False
+    COMMON_ENABLE_OAUTH_CLIENT: False
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: sudo
     - mysql_init
-    # - role: scorm
-    #   when: "{{ EDXAPP_XBLOCK_SETTINGS }}.get('ScormXBlock', False)"
     - role: nginx
       nginx_sites:
       - cms
@@ -64,8 +71,7 @@
     - oauth_client_setup
     - forum
     - edx_ansible
-    # scorm if desired.  requires more setup in server-vars
-    # see https://github.com/appsembler/ssla-scorm-player/blob/nyif/master/README.md
+
 
 - name: Install xqueue, notifier and rabbitmq on services
   hosts: "services-server"
@@ -83,6 +89,7 @@
     - notifier
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
+
 
 # must come after xqueue running
 - name: Install certs
