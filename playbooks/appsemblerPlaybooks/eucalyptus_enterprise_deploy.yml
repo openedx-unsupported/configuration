@@ -1,0 +1,105 @@
+---
+
+# Appsembler pro tier deployment
+# Docs: https://github.com/appsembler/openedx-docs/blob/master/openedx/pro_tier_deployment.md
+
+- name: Install Mongo Replica Set
+  hosts: "mongo-servers"
+  sudo: True
+  gather_facts: True
+  vars:
+    BACKUPS_MONGO: False
+    BACKUPS_MYSQL: False
+    COMMON_ENABLE_BACKUPS: False
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - mongo_3_0
+
+
+- name: Install Mongo Backups
+  hosts: "mongo-arbiter"
+  sudo: True
+  gather_facts: True
+  vars:
+    BACKUPS_MONGO: True
+    BACKUPS_MYSQL: False
+    COMMON_ENABLE_BACKUPS: True
+  roles:
+    - backups
+
+
+- name: Install Needed Packages On Services Server
+  hosts: "services-server"
+  sudo: True
+  gather_facts: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: sudo
+    - oraclejdk
+    - elasticsearch
+    - memcached
+
+
+- name: Configure Stateless edxapp-server
+  hosts: "edxapp-servers"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    # Set to false if deployed behind another proxy/load balancer.
+    NGINX_SET_X_FORWARDED_HEADERS: False
+    # These should stay false for the public AMI
+    SANDBOX_ENABLE_ECOMMERCE: False
+    COMMON_ENABLE_INSIGHTS: False
+    COMMON_ENABLE_OAUTH_CLIENT: False
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: sudo
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      - forum
+      nginx_default_sites:
+      - lms
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - edx_notes_api
+    - demo
+    - oauth_client_setup
+    - forum
+    - edx_ansible
+
+
+- name: Install xqueue, notifier and rabbitmq on services
+  hosts: "services-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - edxapp_common
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
+    - notifier
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+
+
+# must come after xqueue running
+- name: Install certs
+  hosts: "edxapp-servers"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - certs
+    - role: nginx
+      nginx_sites:
+      - certs
