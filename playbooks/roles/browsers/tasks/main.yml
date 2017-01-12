@@ -71,9 +71,42 @@
 - assert:
     that: "phantomjs.stat.exists"
 
-- name: create xvfb upstart script
-  template: src=xvfb.conf.j2 dest=/etc/init/xvfb.conf owner=root group=root
+- name: create xvfb upstart script for Precise and Trusty (12.04 and 14.04)
+  template:
+    src: xvfb.conf.j2
+    dest: /etc/init/xvfb.conf
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:configuration
 
-- name: start xvfb
+- name: start xvfb upstart script for Precise and Trusty (12.04 and 14.04)
   shell: start xvfb
   ignore_errors: yes
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:configuration
+
+- name: create xvfb systemd service for Xenial (16.04)
+  template:
+    src: xvfb.service.j2
+    dest: /etc/systemd/system/xvfb.service
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - install
+    - install:configuration
+
+- name: enable and start xvfb systemd service for Xenial (16.04)
+  systemd:
+    name: xvfb
+    enabled: yes
+    state: started
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - install
+    - install:configuration
