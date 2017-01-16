@@ -128,7 +128,7 @@ def compress_backup(backup_path):
     return compressed_backup_path
 
 
-def dump_service(service_name, backup_dir):
+def dump_service(service_name, backup_dir, user='', password=''):
     """
     Dump the database contents for a service.
 
@@ -143,6 +143,10 @@ def dump_service(service_name, backup_dir):
         'mysql': 'mysqldump -u root --all-databases --single-transaction > {}',
         'mongodb': 'mongodump -o {}',
     }
+
+    if user and password:
+        commands['mongodb'] += (' --authenticationDatabase admin -u {} -p {}'
+                                .format(user, password))
 
     cmd_template = commands.get(service_name)
     if cmd_template:
@@ -311,6 +315,8 @@ def _parse_args():
                         help='path to a backup used to restore a database')
     parser.add_argument('-d', '--dir', dest='backup_dir',
                         help='temporary storage directory used during backup')
+    parser.add_argument('-u', '--user', help='database user')
+    parser.add_argument('--password', help='database password')
     parser.add_argument('-p', '--provider', help='gs or s3')
     parser.add_argument('-b', '--bucket', help='bucket name')
     parser.add_argument('-i', '--s3-id', dest='s3_id',
@@ -338,6 +344,8 @@ def _main():
     program_name = os.path.basename(sys.argv[0])
     backup_dir = (args.backup_dir or os.environ.get('BACKUP_DIR',
                                                     '/tmp/db_backups'))
+    user = args.user or os.environ.get('BACKUP_USER', '')
+    password = args.password or os.environ.get('BACKUP_PASSWORD', '')
     bucket = args.bucket or os.environ.get('BACKUP_BUCKET')
     compressed = args.compressed
     provider = args.provider or os.environ.get('BACKUP_PROVIDER', 'gs')
@@ -358,7 +366,7 @@ def _main():
         try:
             if not os.path.exists(backup_dir):
                 os.makedirs(backup_dir)
-            backup_path = dump_service(service, backup_dir)
+            backup_path = dump_service(service, backup_dir, user, password)
 
             if compressed:
                 backup_path = compress_backup(backup_path)
