@@ -1,0 +1,84 @@
+---
+
+# Appsembler pro tier deployment
+# Docs: TO-DO
+
+- name: Configure mongo
+  hosts: "mongo-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    BACKUPS_MONGO: yes
+    BACKUPS_MYSQL: no
+    COMMON_ENABLE_BACKUPS: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - sudo
+    - edxapp_common
+    - mongo
+    - oraclejdk
+    - elasticsearch
+    - memcached
+    - backups
+    - role: stackdriver
+      when: "stackdriver_api_key != ''"
+
+
+- name: Configure stateless edxapp server
+  hosts: "edxapp-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - sudo
+    - edxapp_common
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      - forum
+      nginx_default_sites:
+      - lms
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - analytics_api
+    - edx_notes_api
+    - demo
+    - oauth_client_setup
+    - forum
+    - edx_ansible
+    - role: stackdriver
+      when: "stackdriver_api_key != ''"
+
+- name: Install xqueue, notifier and rabbitmq
+  hosts: "mongo-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
+    - notifier
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+
+# must come after xqueue running
+- name: Install certs
+  hosts: "edxapp-server"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - certs
+    - role: nginx
+      nginx_sites:
+      - certs
