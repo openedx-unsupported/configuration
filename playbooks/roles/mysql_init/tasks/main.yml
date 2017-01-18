@@ -1,5 +1,20 @@
 ---
 
+- name: Copy TLS certificates
+  copy: >
+    content="{{ item.content }}" dest="{{ item.dest }}"
+    owner="{{ common_web_user }}" group="{{ common_web_user }}" mode=400
+  with_items:
+    - { content: "{{ mysql_client_cert }}", dest: "{{ mysql_client_cert_path }}" }
+    - { content: "{{ mysql_client_key  }}", dest: "{{ mysql_client_key_path }}" }
+    - { content: "{{ mysql_ca_cert }}", dest: "{{ mysql_ca_cert_path }}" }
+  when: mysql_client_cert != '' and mysql_client_key != '' and mysql_ca_cert != ''
+  tags: ['mysql', 'mysql:tls']
+
+- name: Copy mysql-connect-tls script
+  template: src=mysql-connect-tls dest=/usr/local/bin/mysql-connect-tls dest mode=0755
+  tags: ['mysql', 'mysql:tls']
+
 - name: create databases
   mysql_db:
     db: "{{ item }}"
@@ -11,6 +26,7 @@
     login_port: "{{ mysql_login_port }}"
   when: item != None and item != ''
   with_items: "{{ mysql_databases }}"
+  tags: ['mysql', 'mysql:databases']
 
 - name: create database users
   mysql_user:
@@ -25,6 +41,7 @@
     login_port: "{{ mysql_login_port }}"
   when: item.db != None and item.db != ''
   with_items: "{{ mysql_database_users }}"
+  tags: ['mysql', 'mysql:users']
 
 - name: setup the migration db user
   mysql_user:
@@ -39,6 +56,7 @@
     login_port: "{{ mysql_login_port }}"
   when: item != None and item != ''
   with_items: "{{ mysql_databases }}"
+  tags: ['mysql', 'mysql:users']
 
 - name: create api user for the analytics api
   mysql_user:
@@ -51,6 +69,7 @@
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
   when: ANALYTICS_API_SERVICE_CONFIG is defined
+  tags: ['mysql', 'mysql:users']
 
 - name: create read-only reports user for the analytics-api
   mysql_user:
@@ -63,6 +82,7 @@
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
   when: ANALYTICS_API_SERVICE_CONFIG is defined
+  tags: ['mysql', 'mysql:users']
 
 - name: create a database for the hive metastore
   mysql_db:
@@ -74,6 +94,7 @@
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
   when: HIVE_METASTORE_DATABASE is defined
+  tags: ['mysql', 'mysql:databases']
 
 - name: setup the edx-notes-api db user
   mysql_user:
@@ -86,6 +107,7 @@
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
+  tags: ['mysql', 'mysql:users']
 
 - name: setup the read-only db user
   mysql_user:
@@ -97,6 +119,7 @@
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+  tags: ['mysql', 'mysql:users']
 
 - name: setup the admin db user
   mysql_user:
@@ -108,4 +131,4 @@
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
-
+  tags: ['mysql', 'mysql:users']
