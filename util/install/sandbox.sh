@@ -55,7 +55,7 @@ VERSION_VARS=(
   PROGRAMS_VERSION
 )
 
-EXTRA_VARS="-e SANDBOX_ENABLE_ECOMMERCE=True"
+EXTRA_VARS="-e SANDBOX_ENABLE_ECOMMERCE=True $EXTRA_VARS"
 for var in ${VERSION_VARS[@]}; do
   # Each variable can be overridden by a similarly-named environment variable,
   # or OPENEDX_RELEASE, if provided.
