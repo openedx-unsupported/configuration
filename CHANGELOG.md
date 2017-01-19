@@ -1,3 +1,5 @@
+- Role: credentials
+  - Removed `CREDENTIALS_PLATFORM_NAME` from credentials playbook
 - Role: common
   - Renamed `COMMON_AWS_SYNC` to `COMMON_OBJECT_STORE_LOG_SYNC`
   - Renamed `COMMON_AWS_SYNC_BUCKET` to `COMMON_OBJECT_STORE_LOG_SYNC_BUCKET`
