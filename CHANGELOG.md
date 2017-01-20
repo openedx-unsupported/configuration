@@ -3,6 +3,7 @@
   - Renamed `COMMON_AWS_SYNC_BUCKET` to `COMMON_OBJECT_STORE_LOG_SYNC_BUCKET`
   - Renamed `COMMON_AWS_S3_SYNC_SCRIPT` to `COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT`
   - Added `COMMON_OBJECT_STORE_LOG_SYNC_PREFIX`. Default: `logs/tracking/`
+  - Added `COMMON_EDXAPP_SETTINGS`. Default: `aws`
 - Role: aws
   - Removed `AWS_S3_LOGS`
   - Added `vhost` role as dependency
