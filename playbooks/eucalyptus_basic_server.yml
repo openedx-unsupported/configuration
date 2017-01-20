@@ -8,17 +8,13 @@
   gather_facts: True
   vars:
     migrate_db: "yes"
-    EDXAPP_LMS_NGINX_PORT: '80'
-    edx_platform_version: 'master'
-    # Set to false if deployed behind another proxy/load balancer.
-    NGINX_SET_X_FORWARDED_HEADERS: True
-    # These should stay false for the public AMI
     SANDBOX_ENABLE_ECOMMERCE: False
     COMMON_ENABLE_INSIGHTS: False
     COMMON_ENABLE_OAUTH_CLIENT: False
     COMMON_ENABLE_BACKUPS: True
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - sudo
     - role: nginx
       nginx_sites:
       - certs
@@ -64,4 +60,5 @@
     - { role: "xqueue", update_users: True }
     - certs
     - edx_ansible
+    - stackdriver
     - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }
