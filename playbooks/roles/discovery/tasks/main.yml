@@ -56,6 +56,26 @@
     - install
     - install:system-requirements
 
+- name: install nodenv
+  pip:
+    name: "nodeenv"
+    version: "1.1.0"
+    # NOTE (CCB): Using the "virtualenv" option here doesn't seem to work.
+    executable: "{{ discovery_venv_dir }}/bin/pip"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt"
+  args:
+    creates: "{{ discovery_nodeenv_dir }}"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install application requirements
   command: make production-requirements
   args:
@@ -75,15 +95,6 @@
   tags:
     - devstack
     - devstack:install
-
-- name: create nodeenv
-  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt"
-  args:
-    creates: "{{ discovery_nodeenv_dir }}"
-  become_user: "{{ discovery_user }}"
-  tags:
-    - install
-    - install:app-requirements
 
 - name: install node dependencies
   npm: executable={{ discovery_nodeenv_bin }}/npm path={{ discovery_code_dir }} production=yes
