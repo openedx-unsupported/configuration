@@ -92,11 +92,14 @@ fi
 
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
-# Temporarily turn off the automatic updates for Xenial (16.04) to avoid 
+# Temporarily turn off the automatic updates for Xenial (16.04) to avoid
 # conflicts with this script
 if [ $SHORT_DIST == "xenial" ]; then
-    systemctl stop apt-daily.service
-    systemctl kill --kill-who=all apt-daily.service
+    APT_DAILY=apt-daily.service
+    if systemctl --state=active | grep -q $APT_DAILY; then
+        systemctl stop $APT_DAILY
+        systemctl kill --kill-who=all $APT_DAILY
+    fi
     while lsof |grep -q /var/lib/dpkg/lock; do
         echo "Waiting for apt to release the dpkg lock..."
         sleep 5
