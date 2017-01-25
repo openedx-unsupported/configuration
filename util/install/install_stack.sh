@@ -108,10 +108,6 @@ if [[ ! $1 ]]; then
     exit 1
 fi
 stack=$1
-if [[ $stack == "fullstack" ]]; then
-    echo -e "${ERROR}Fullstack is not yet supported for Ficus. Soon..."
-    exit 1
-fi
 shift
 
 # RELEASE is an optional positional argument, defaulting to OPENEDX_RELEASE.
@@ -124,6 +120,11 @@ fi
 
 if [[ ! $release ]]; then
     echo "You must specify RELEASE, or define OPENEDX_RELEASE before running."
+    exit 1
+fi
+
+if [[ $release == *ficus* && $stack == "fullstack" ]]; then
+    echo -e "${ERROR}Fullstack is not yet supported for Ficus. Soon..."
     exit 1
 fi
 
