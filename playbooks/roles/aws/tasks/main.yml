@@ -67,6 +67,15 @@
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   with_items: "{{ aws_pip_pkgs }}"
 
+- name: Create required directories
+  file:
+    path: "{{ item.value.path }}"
+    state: directory
+    owner: "{{ item.value.owner }}"
+    group: "{{ item.value.group }}"
+    mode: "{{ item.value.mode }}"
+  with_dict: "{{ aws_dirs }}"
+
 - name: Create s3 log sync script
   template:
     dest: "{{ aws_s3_sync_script }}"
@@ -74,14 +83,14 @@
     mode: 0755
     owner: root
     group: root
-  when: COMMON_OBJECT_STORE_LOG_SYNC
+  when: COMMON_S3_LOG_SYNC
 
 - name: Create symlink for s3 log sync script
   file:
     state: link
     src: "{{ aws_s3_sync_script }}"
-    dest: "{{ COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT }}"
-  when: COMMON_OBJECT_STORE_LOG_SYNC
+    dest: "{{ COMMON_S3_LOG_SYNC_SCRIPT }}"
+  when: COMMON_S3_LOG_SYNC
 
  # update the ssh motd on Ubuntu
  # Remove some of the default motd display on ubuntu
