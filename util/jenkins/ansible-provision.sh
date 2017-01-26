@@ -333,8 +333,8 @@ elb: $elb
 EOF
 
 
-    if [[ $server_type != "full_edx_installation_from_scratch" ]]; then
-	extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
+    if [[ $server_type == "full_edx_installation" ]]; then
+        extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
     fi
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
@@ -355,7 +355,7 @@ for role in $roles; do
     deploy[$role]=${!role}
 done
 
-# If reconfigure was selected or if starting from an ubuntu 12.04 AMI
+# If reconfigure was selected or if starting from an ubuntu 16.04 AMI
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
