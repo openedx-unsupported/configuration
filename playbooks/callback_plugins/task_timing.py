@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime, timedelta
 import json
 import logging
@@ -196,7 +197,7 @@ class LoggingTimingLogger(TimingLogger):
         for name, timestamp in sorted_results[:10]:
             LOGGER.info(
                 "{0:-<80}{1:->8}".format(
-                    '{0} '.format(name),
+                    ' {0} '.format(name),
                     ' {0:.02f}s'.format(timestamp.duration.total_seconds()),
                 )
             )
@@ -217,7 +218,7 @@ class CallbackModule(CallbackBase):
     to run the complete playbook
     """
     def __init__(self):
-        self.stats = {}
+        self.stats = collections.defaultdict(list)
         self.current_task = None
         self.playbook_name = None
         self.playbook_timestamp = None
@@ -249,11 +250,11 @@ class CallbackModule(CallbackBase):
 
         if self.current_task is not None:
             # Record the running time of the last executed task
-            self.stats[self.current_task].stop()
+            self.stats[self.current_task][-1].stop()
 
         # Record the start time of the current task
         self.current_task = name
-        self.stats[self.current_task] = Timestamp()
+        self.stats[self.current_task].append(Timestamp())
 
     def playbook_on_stats(self, stats):
         """
@@ -263,13 +264,24 @@ class CallbackModule(CallbackBase):
         # Record the timing of the very last task, we use it here, because we
         # don't have stop task function by default
         if self.current_task is not None:
-            self.stats[self.current_task].stop()
+            self.stats[self.current_task][-1].stop()
 
         self.playbook_timestamp.stop()
+
+        # Flatten the stats so that multiple runs of the same task get listed
+        # individually.
+        flat_stats = {}
+        for task_name, task_runs in self.stats.iteritems():
+            if len(task_runs) == 1:
+                flat_stats[task_name] = task_runs[0]
+            else:
+                for i, run in enumerate(task_runs):
+                    run_name = "{} [{}]".format(task_name, i)
+                    flat_stats[run_name] = run
 
         for logger in self.loggers:
             logger.log_play(
                 self.playbook_name,
                 self.playbook_timestamp,
-                self.stats,
+                flat_stats,
             )
