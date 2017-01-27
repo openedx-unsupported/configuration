@@ -16,22 +16,23 @@
   become_user: "{{ common_web_user }}"
   when: demo_checkout.changed
 
-- name: create some test users
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}"
-  args:
-    chdir: "{{ demo_edxapp_code_dir }}"
-  become_user: "{{ common_web_user }}"
-  with_items: "{{ demo_test_users }}"
-  when: demo_checkout.changed
+- name: build staff and test user list
+  set_fact:
+    demo_test_and_staff_users: "{{ demo_test_users + [demo_staff_user] }}"
+  when: DEMO_CREATE_STAFF_USER
 
-- name: create staff user
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user staff staff@example.com --initial-password-hash {{ demo_hashed_password | quote }} --staff"
+- name: build staff and test user list
+  set_fact:
+    demo_test_and_staff_users: "{{ demo_test_users }}"
+  when: not DEMO_CREATE_STAFF_USER
+
+- name: create some test users
+  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}{% if item.is_staff %} --staff{% endif %}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
-  when:
-    - demo_checkout.changed
-    - DEMO_CREATE_STAFF_USER
+  with_items: "{{ demo_test_and_staff_users }}"
+  when: demo_checkout.changed
 
 - name: enroll test users in the demo course
   shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms enroll_user_in_course -e {{ item.email }} -c {{ demo_course_id }}"
@@ -39,10 +40,8 @@
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
   with_items:
-      - "{{ demo_test_users }}"
-      - { email: 'staff@example.com' }
+      - "{{ demo_test_and_staff_users }}"
   when: demo_checkout.changed
-
 
 - name: add test users to the certificate whitelist
   shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms cert_whitelist -a {{ item.email }} -c {{ demo_course_id }}"
