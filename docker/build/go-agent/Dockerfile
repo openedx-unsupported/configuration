@@ -60,6 +60,7 @@ RUN usermod -aG docker go
 
 # Assign the go user root privlidges
 RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip, /usr/local/bin/pip\n" >> /etc/sudoers
+RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3, /usr/local/bin/pip3\n" >> /etc/sudoers
 
 # Upgrade pip and setup tools. Needed for Ansible 2.x
 # Must upgrade to latest before pinning to work around bug
