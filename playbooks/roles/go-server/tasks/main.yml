@@ -158,6 +158,15 @@
   tags:
     - git_identity
 
+# Setup environment variables to cleanup the git config repository
+- name: Set go-server environment variables
+  lineinfile:
+    destfile: /etc/default/go-server
+    regexp: "^export GO_SERVER_SYSTEM_PROPERTIES=*"
+    line: "export GO_SERVER_SYSTEM_PROPERTIES=\"-Dgo.config.repo.gc.cron=\"0 0 2 ? * SAT\" go.config.repo.gc.periodic=\"Y\"\""
+  tags:
+    - environment_variables
+
 - name: restart go-server
   service:
     name: "{{ GO_SERVER_SERVICE_NAME }}"
