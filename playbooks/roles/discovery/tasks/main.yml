@@ -56,6 +56,35 @@
     - install
     - install:system-requirements
 
+- name: install nodenv
+  pip:
+    name: "nodeenv"
+    version: "1.1.0"
+    # NOTE (CCB): Using the "virtualenv" option here doesn't seem to work.
+    executable: "{{ discovery_venv_dir }}/bin/pip"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+# See https://github.com/ekalinin/nodeenv/issues/182
+# This can be removed once https://github.com/ekalinin/nodeenv/pull/183 is merged
+- name: remove nodeenv src
+  file:
+    path: "{{ discovery_nodeenv_dir }}/src"
+    state: absent
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt --force"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install application requirements
   command: make production-requirements
   args:
@@ -75,45 +104,6 @@
   tags:
     - devstack
     - devstack:install
-
-# See https://github.com/ekalinin/nodeenv/issues/182
-# This can be removed once https://github.com/ekalinin/nodeenv/pull/183 is merged
-- name: Remove nodeenv src
-  file:
-    path: "{{ discovery_nodeenv_dir }}/src"
-    state: absent
-  become_user: "{{ discovery_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: create nodeenv
-  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt --force"
-  become_user: "{{ discovery_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: install node dependencies
-  npm:
-    executable: "{{ discovery_nodeenv_bin }}/npm"
-    path: "{{ discovery_code_dir }}"
-    production: yes
-    state: latest
-  become_user: "{{ discovery_user }}"
-  environment: "{{ discovery_environment }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: install bower dependencies
-  shell: ". {{ discovery_nodeenv_bin }}/activate && {{ discovery_node_bin }}/bower install --production --config.interactive=false"
-  args:
-    chdir: "{{ discovery_code_dir }}"
-  become_user: "{{ discovery_user }}"
-  tags:
-    - install
-    - install:app-requirements
 
 - name: migrate database
   command: make migrate
@@ -257,4 +247,3 @@
   tags:
     - install
     - install:vhosts
-
