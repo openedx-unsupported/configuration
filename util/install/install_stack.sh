@@ -123,11 +123,6 @@ if [[ ! $release ]]; then
     exit 1
 fi
 
-if [[ $release == *ficus* && $stack == "fullstack" ]]; then
-    echo -e "${ERROR}Fullstack is not yet supported for Ficus. Soon..."
-    exit 1
-fi
-
 # If there are positional arguments left, something is wrong.
 if [[ $1 ]]; then
     echo "Don't understand extra arguments: $*"
