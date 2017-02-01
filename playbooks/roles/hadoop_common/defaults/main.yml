@@ -62,6 +62,31 @@ hadoop_common_debian_pkgs:
 hadoop_common_redhat_pkgs: []
 
 #
+# Vars are used to fill in the following files:
+#     core-site.xml
+#     hdfs-site.xml
+#     mapred-site.xml
+#     yarn-site.xml
+#
+MAPRED_SITE_DEFAULT_CONFIG:
+  mapreduce.framework.name: "yarn"
+
+YARN_SITE_DEFAULT_CONFIG:
+  yarn.nodemanager.aux-services: "mapreduce_shuffle"
+  yarn.nodemanager.aux-services.mapreduce.shuffle.class: "org.apache.hadoop.mapred.ShuffleHandler"
+  yarn.log-aggregation-enable: "true"
+  # 24 hour log retention
+  yarn.log-aggregation.retain-seconds: 86400
+
+HADOOP_CORE_SITE_DEFAULT_CONFIG:
+  fs.default.name: "hdfs://localhost:9000"
+
+HDFS_SITE_DEFAULT_CONFIG:
+  dfs.replication: "1"
+  dfs.namenode.name.dir: "file:{{ HADOOP_COMMON_DATA }}/namenode"
+  dfs.datanode.data.dir: "file:{{ HADOOP_COMMON_DATA }}/datanode"
+
+#
 # MapReduce/Yarn memory config (defaults for m1.medium)
 # http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/TaskConfiguration_H2.html
 #
@@ -78,9 +103,16 @@ hadoop_common_redhat_pkgs: []
 #   yarn.nodemanager.resource.memory-mb: 2048
 #   yarn.nodemanager.vmem-pmem-ratio: 2.1
 
+#
+# Variables override the stock configuration for entry into
+# the following files. Ensure that you use unambiguous
+# string literals to avoid any confusion:
+#     core-site.xml
+#     hdfs-site.xml
+#     mapred-site.xml
+#     yarn-site.xml
+#
 mapred_site_config: {}
-yarn_site_config:
-  yarn.log-aggregation-enable: true
-  # 24 hour log retention
-  yarn.log-aggregation.retain-seconds: 86400
-
+yarn_site_config: {}
+HADOOP_CORE_SITE_EXTRA_CONFIG: {}
+HDFS_SITE_EXTRA_CONFIG: {}
