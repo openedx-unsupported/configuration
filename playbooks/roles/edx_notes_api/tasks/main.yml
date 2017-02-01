@@ -52,6 +52,9 @@
     extra_args: "--exists-action w"
   become_user: "{{ edx_notes_api_user }}"
   with_items: "{{ edx_notes_api_requirements }}"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Migrate
   shell: >
@@ -64,6 +67,9 @@
   environment:
     EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
 
 - name: Write out gunicorn.py
   template:
@@ -73,7 +79,8 @@
     group: "{{ common_web_user }}"
     mode: "0650"
   tags:
-    - deploy
+    - install
+    - install:configuration
 
 - name: Write out the supervisor wrapper
   template:
@@ -95,7 +102,8 @@
     group: "{{ common_web_user }}"
     mode: "0644"
   tags:
-    - deploy
+    - install
+    - install:configuration
 
 - name: Setup the edx_notes_api env file
   template:
@@ -117,13 +125,15 @@
     force: yes
   when: not disable_edx_services
   tags:
-    - deploy
+    - install
+    - install:configuration
 
 - name: Update supervisor configuration
   shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
   when: not disable_edx_services
   tags:
-    - deploy
+    - manage
+    - manage:start
 
 - name: Restart supervisor
   supervisorctl:
@@ -133,7 +143,8 @@
     state: restarted
   when: not disable_edx_services
   tags:
-    - deploy
+    - manage
+    - manage:start
 
 - name: Create symlinks from the venv bin dir
   file:
@@ -144,12 +155,18 @@
     - python
     - pip
     - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Create manage.py symlink
   file:
     src: "{{ edx_notes_api_manage }}"
     dest: "{{ COMMON_BIN_DIR }}/manage.{{ edx_notes_api_service_name }}"
     state: link
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Restart edx_notes_api
   supervisorctl:
@@ -159,3 +176,6 @@
     state: restarted
   when: not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
