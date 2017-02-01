@@ -40,6 +40,8 @@ necessary.
     - or
     - ```make docker.test.go-agent```
 * Log docker in to AWS
+    - Assume the role of the account you wish to log in to
+    -- ```source assume_role.sh <account name>```
     - ```sh -c `aws ecr get-login --region us-east-1` ```
         - You might need to remove the `-e` option returned by that command in order to successfully login.
 * Tag image 
