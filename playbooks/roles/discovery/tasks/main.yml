@@ -76,17 +76,30 @@
     - devstack
     - devstack:install
 
+# See https://github.com/ekalinin/nodeenv/issues/182
+# This can be removed once https://github.com/ekalinin/nodeenv/pull/183 is merged
+- name: Remove nodeenv src
+  file:
+    path: "{{ discovery_nodeenv_dir }}/src"
+    state: absent
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: create nodeenv
-  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt"
-  args:
-    creates: "{{ discovery_nodeenv_dir }}"
+  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt --force"
   become_user: "{{ discovery_user }}"
   tags:
     - install
     - install:app-requirements
 
 - name: install node dependencies
-  npm: executable={{ discovery_nodeenv_bin }}/npm path={{ discovery_code_dir }} production=yes
+  npm:
+    executable: "{{ discovery_nodeenv_bin }}/npm"
+    path: "{{ discovery_code_dir }}"
+    production: yes
+    state: latest
   become_user: "{{ discovery_user }}"
   environment: "{{ discovery_environment }}"
   tags:

@@ -1,7 +1,7 @@
 ---
 - name: create edxapp configuration dir
   file:
-    path: "{{ EDXAPP_CFG_DIR }}" 
+    path: "{{ EDXAPP_CFG_DIR }}"
     state: directory
     owner: "{{ edxapp_user }}"
     group: "{{ common_web_group }}"
@@ -13,7 +13,7 @@
   template:
     src: "{{ item.src }}"
     dest: "{{ item.dest }}"
-    owner: "{{ item.owner }}"  
+    owner: "{{ item.owner }}"
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
   with_items:
@@ -210,10 +210,18 @@
     - install
     - install:app-requirements
 
+# See https://github.com/ekalinin/nodeenv/issues/182
+# This can be removed once https://github.com/ekalinin/nodeenv/pull/183 is merged
+- name: Remove nodeenv src
+  file:
+    path: "{{ edxapp_nodeenv_dir }}/src"
+    state: absent
+  tags:
+    - install
+    - install:app-requirements
+
 - name: create nodeenv
-  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt"
-  args:
-    creates: "{{ edxapp_nodeenv_dir }}"
+  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt --force"
   tags:
     - install
     - install:app-requirements
@@ -245,6 +253,7 @@
     executable: "{{ edxapp_nodeenv_bin }}/npm"
     path: "{{ edxapp_code_dir }}"
     production: yes
+    state: latest
   environment: "{{ edxapp_environment }}"
   become_user: "{{ edxapp_user }}"
   tags:
