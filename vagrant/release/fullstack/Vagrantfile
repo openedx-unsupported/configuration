@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.8.7"
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -41,26 +41,33 @@ openedx_releases = {
 openedx_releases.default = "eucalyptus-fullstack-2016-09-01"
 
 openedx_release = ENV['OPENEDX_RELEASE']
+boxname = ENV['OPENEDX_BOXNAME']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  reldata = openedx_releases[openedx_release]
-  if Hash == reldata.class
-    boxname = openedx_releases[openedx_release][:name]
-    boxfile = openedx_releases[openedx_release].fetch(:file, "#{boxname}.box")
-  else
-    boxname = reldata
+  boxfile = ""
+  if not boxname
+    reldata = openedx_releases[openedx_release]
+    if Hash == reldata.class
+      boxname = openedx_releases[openedx_release][:name]
+      boxfile = openedx_releases[openedx_release].fetch(:file, "")
+    else
+      boxname = reldata
+    end
+  end
+  if boxfile == ""
     boxfile = "#{boxname}.box"
   end
 
   # Creates an edX fullstack VM from an official release
   config.vm.box     = boxname
   config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
+  config.vm.box_check_update = false
 
+  config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.ssh.insert_key = true
 
-  config.vm.network :private_network, ip: "192.168.33.10"
   config.hostsupdater.aliases = ["preview.localhost"]
 
   config.vm.provider :virtualbox do |vb|
@@ -70,5 +77,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+
+    # Virtio is faster, but the box needs to have support for it.  We didn't
+    # have support in the boxes before Ficus.
+    if !(boxname.include?("dogwood") || boxname.include?("eucalyptus"))
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+    end
   end
 end
