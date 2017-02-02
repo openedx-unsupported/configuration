@@ -35,7 +35,8 @@ RUN apt-get update && apt-get install -y -q \
     python-dev \
     python-distribute \
     python-pip \
-    libmysqlclient-dev
+    libmysqlclient-dev \
+    python3-pip
 
 # Install php
 RUN apt-get update && apt-get install -y \
