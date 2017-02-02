@@ -211,3 +211,6 @@
 - Role: edxapp
   - Added `XQUEUE_RABBITMQ_VHOST` to allow configuring the xqueue RabbitMQ host.
   - Added `XQUEUE_RABBITMQ_PORT` and `XQUEUE_RABBITMQ_TLS` to allow configuring the RabbitMQ port, and enabling TLS respectively.
+
+- Role: ecommerce
+  - Added `ECOMMERCE_ENTERPRISE_URL` for the `enterprise` API endpoint exposed by a new service `edx-enterprise` (currently hosted by `LMS`), which defaults to the existing setting `ECOMMERCE_LMS_URL_ROOT`.
