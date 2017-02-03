@@ -108,7 +108,7 @@ add-apt-repository -y "${EDX_PPA}"
 # NOTE: This will install the latest version of python 2.7 and
 # which may differ from what is pinned in virtualenvironments
 apt-get update -y
-apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
+apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev libffi-dev
 
 pip install --upgrade pip=="${PIP_VERSION}"
 
