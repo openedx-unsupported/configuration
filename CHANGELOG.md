@@ -203,7 +203,7 @@
 - Role: mongo_3_0
   - Changed MONGO_STORAGE_ENGINE to default to wiredTiger which is the default in 3.2 and 3.4 and what edX suggests be used even on 3.0.
     If you have a mmapv1 3.0 install, override MONGO_STORAGE_ENGINE to be mmapv1 which was the old default.
-  - Support parsing the replset JSON in 3.2 and 3.0 
+  - Support parsing the replset JSON in 3.2 and 3.0
 
 - Role: xqueue
   - Added `EDXAPP_CELERY_BROKER_USE_SSL` to allow configuring celery to use TLS.
@@ -214,3 +214,6 @@
 
 - Role: ecommerce
   - Added `ECOMMERCE_ENTERPRISE_URL` for the `enterprise` API endpoint exposed by a new service `edx-enterprise` (currently hosted by `LMS`), which defaults to the existing setting `ECOMMERCE_LMS_URL_ROOT`.
+
+- Role: ecommerce
+  - Removed `SEGMENT_KEY` which is no longer used.  Segment key is now defined in DB configuration. (https://github.com/edx/ecommerce/pull/1121)
