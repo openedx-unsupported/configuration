@@ -4,6 +4,13 @@
   {%- set default_site = "" -%}
 {%- endif -%}
 
+{% if NGINX_HEALTH_CHECK_ENABLED %}
+map $http_user_agent $healthcheck {
+ default 0;
+ "{{ NGINX_HEALTH_CHECK_USER_AGENT }}" 1;
+}
+{% endif %}
+
 upstream lms-backend {
     {% for host in nginx_lms_gunicorn_hosts %}
         server {{ host }}:{{ edxapp_lms_gunicorn_port }} fail_timeout=0;
@@ -64,6 +71,12 @@ error_page {{ k }} {{ v }};
 
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
+
+  {% if NGINX_HEALTH_CHECK_ENABLED %}
+  if ($healthcheck) {
+  return 200;
+  }
+  {% endif %}
 
 
   # Nginx does not support nested condition or or conditions so
