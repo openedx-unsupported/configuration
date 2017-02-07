@@ -4,20 +4,6 @@ FROM gocd/gocd-agent:17.1.0
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
 
-# Add Custom apt repositories
-RUN \
-  echo oracle-java8-installer shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
-  add-apt-repository -y ppa:webupd8team/java && \
-  add-apt-repository -y 'deb http://ppa.edx.org trusty main' && \
-  apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 69464050 && \
-  apt-get update
-
-# Install Java 7
-RUN \
-  apt-get install -y oracle-java8-installer && \
-  rm -rf /var/lib/apt/lists/* && \
-  rm -rf /var/cache/oracle-jdk8-installer
-
 # Install a modern git client
 RUN add-apt-repository -y ppa:git-core/ppa && \
     apt-get update && \
@@ -25,9 +11,6 @@ RUN add-apt-repository -y ppa:git-core/ppa && \
 
 # Define working directory.
 WORKDIR /data
-
-# Define commonly used JAVA_HOME variable
-ENV JAVA_HOME /usr/lib/jvm/java-8-oracle
 
 # Install Python and package mgmt tools.
 RUN apt-get update && apt-get install -y -q \
@@ -75,10 +58,6 @@ RUN \
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install awscli
-
-ADD docker/build/go-agent/files/go-agent-start.sh /etc/service/go-agent/run
-ADD docker/build/go-agent/files/go-agent-env-vars /etc/default/go-agent
-RUN update-java-alternatives -s java-8-oracle
 
 # !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace go_github_key.pem with the REAL key material
 # that can checkout private github repositories used as pipeline materials. The key material here is faked and is only
