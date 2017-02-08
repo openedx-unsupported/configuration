@@ -67,11 +67,14 @@ RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3, /usr/local/bin/pip3
 # Must upgrade to latest before pinning to work around bug
 # https://github.com/pypa/pip/issues/3862
 RUN \
+  pip3 install --upgrade pip && \
   pip install --upgrade pip && \
   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
   hash -r && \
+  pip3 install --upgrade pip==8.1.2 && \
   pip install --upgrade pip==8.1.2 && \
   # upgrade setuptools early to avoid no distribution errors
+  pip3 install --upgrade setuptools==24.0.3 && \
   pip install --upgrade setuptools==24.0.3
 
 
