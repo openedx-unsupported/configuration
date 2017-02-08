@@ -86,6 +86,12 @@ def parse_args():
     parser.add_argument('--configuration-secure-repo', required=False,
                         default="git@github.com:edx-ops/prod-secure",
                         help="repo to use for the secure files")
+    parser.add_argument('--configuration-internal-version', required=False,
+                        help="configuration-internal repo gitref",
+                        default="master")
+    parser.add_argument('--configuration-internal-repo', required=False,
+                        default="",
+                        help="repo to use for internal (non-secure) configuration data")
     parser.add_argument('--configuration-private-version', required=False,
                         help="configuration-private repo gitref",
                         default="master")
@@ -247,6 +253,7 @@ git_ssh="$base_dir/git_ssh.sh"
 configuration_version="{configuration_version}"
 configuration_secure_version="{configuration_secure_version}"
 configuration_private_version="{configuration_private_version}"
+configuration_internal_version="{configuration_internal_version}"
 environment="{environment}"
 deployment="{deployment}"
 play="{play}"
@@ -258,9 +265,13 @@ git_repo_secure="{configuration_secure_repo}"
 git_repo_secure_name=$(basename $git_repo_secure .git)
 git_repo_private="{configuration_private_repo}"
 git_repo_private_name=$(basename $git_repo_private .git)
+git_repo_internal="{configuration_internal_repo}"
+git_repo_internal_name=$(basename $git_repo_internal .git)
 secure_vars_file={secure_vars_file}
 environment_deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{environment}-{deployment}.yml"
 deployment_secure_vars="$base_dir/$git_repo_secure_name/ansible/vars/{deployment}.yml"
+environment_deployment_internal_vars="$base_dir/$git_repo_internal_name/ansible/vars/{environment}-{deployment}.yml"
+deployment_internal_vars="$base_dir/$git_repo_internal_name/ansible/vars/{deployment}.yml"
 instance_id=\\
 $(curl http://169.254.169.254/latest/meta-data/instance-id 2>/dev/null)
 instance_ip=\\
@@ -291,21 +302,142 @@ export ANSIBLE_ENABLE_SQS SQS_NAME SQS_REGION SQS_MSG_PREFIX PYTHONUNBUFFERED
 export HIPCHAT_TOKEN HIPCHAT_ROOM HIPCHAT_MSG_PREFIX HIPCHAT_FROM
 export HIPCHAT_MSG_COLOR DATADOG_API_KEY
 
-if [[ ! -x /usr/bin/git || ! -x /usr/bin/pip ]]; then
-    echo "Installing pkg dependencies"
+
+#################################### Lifted from ansible-bootstrap.sh
+if [[ -z "$ANSIBLE_REPO" ]]; then
+  ANSIBLE_REPO="https://github.com/edx/ansible.git"
+fi
+
+if [[ -z "$ANSIBLE_VERSION" ]]; then
+  ANSIBLE_VERSION="master"
+fi
+
+if [[ -z "$CONFIGURATION_REPO" ]]; then
+  CONFIGURATION_REPO="https://github.com/edx/configuration.git"
+fi
+
+if [[ -z "$CONFIGURATION_VERSION" ]]; then
+  CONFIGURATION_VERSION="master"
+fi
+
+if [[ -z "$UPGRADE_OS" ]]; then
+  UPGRADE_OS=false
+fi
+
+#
+# Bootstrapping constants
+#
+VIRTUAL_ENV_VERSION="15.0.2"
+PIP_VERSION="8.1.2"
+SETUPTOOLS_VERSION="24.0.3"
+EDX_PPA="deb http://ppa.edx.org precise main"
+EDX_PPA_KEY_SERVER="hkp://pgp.mit.edu:80"
+EDX_PPA_KEY_ID="B41E5E3969464050"
+
+cat << EOF
+******************************************************************************
+
+Running the abbey with the following arguments:
+
+ANSIBLE_REPO="$ANSIBLE_REPO"
+ANSIBLE_VERSION="$ANSIBLE_VERSION"
+CONFIGURATION_REPO="$CONFIGURATION_REPO"
+CONFIGURATION_VERSION="$CONFIGURATION_VERSION"
+
+******************************************************************************
+EOF
+
+
+if [[ $(id -u) -ne 0 ]] ;then
+    echo "Please run as root";
+    exit 1;
+fi
+
+if grep -q 'Precise Pangolin' /etc/os-release
+then
+    SHORT_DIST="precise"
+elif grep -q 'Trusty Tahr' /etc/os-release
+then
+    SHORT_DIST="trusty"
+elif grep -q 'Xenial Xerus' /etc/os-release
+then
+    SHORT_DIST="xenial"
+else
+    cat << EOF
+
+    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
+    exiting.  If you are interested in helping make installation possible
+    on other platforms, let us know.
+
+EOF
+   exit 1;
+fi
+
+EDX_PPA="deb http://ppa.edx.org $SHORT_DIST main"
+
+# Upgrade the OS
+apt-get update -y
+apt-key update -y
+
+if [ "$UPGRADE_OS" = true ]; then
+    echo "Upgrading the OS..."
+    apt-get upgrade -y
+fi
+
+# Required for add-apt-repository
+apt-get install -y software-properties-common python-software-properties
+
+# Add git PPA
+add-apt-repository -y ppa:git-core/ppa
+
+# For older distributions we need to install a PPA for Python 2.7.10
+if [[ "precise" = "$SHORT_DIST" || "trusty" = "$SHORT_DIST" ]]; then
+
+    # Add python PPA
+    apt-key adv --keyserver "$EDX_PPA_KEY_SERVER" --recv-keys "$EDX_PPA_KEY_ID"
+    add-apt-repository -y "$EDX_PPA"
+fi
+
+# Install python 2.7 latest, git and other common requirements
+# NOTE: This will install the latest version of python 2.7 and
+# which may differ from what is pinned in virtualenvironments
+apt-get update -y
+
+apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
+
+# Workaround for a 16.04 bug, need to upgrade to latest and then
+# potentially downgrade to the preferred version.
+# https://github.com/pypa/pip/issues/3862
+if [[ "xenial" = "$SHORT_DIST" ]]; then
+    pip install --upgrade pip
+    pip install --upgrade pip=="$PIP_VERSION"
+else
+    pip install --upgrade pip=="$PIP_VERSION"
+fi
+
+# pip moves to /usr/local/bin when upgraded
+hash -r   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
+PATH=/usr/local/bin:$PATH
+pip install setuptools=="$SETUPTOOLS_VERSION"
+pip install virtualenv=="$VIRTUAL_ENV_VERSION"
+
+
+##################### END Lifted from ansible-bootstrap.sh
+
+
+# python3 is required for certain other things
+# (currently xqwatcher so it can run python2 and 3 grader code,
+# but potentially more in the future). It's not available on Ubuntu 12.04,
+# but in those cases we don't need it anyways.
+if [[ -n "$(apt-cache search --names-only '^python3-pip$')" ]]; then
     /usr/bin/apt-get update
-    /usr/bin/apt-get install -y git python-pip python-apt \\
-        git-core build-essential python-dev libxml2-dev \\
-        libxslt-dev curl libmysqlclient-dev --force-yes
+    /usr/bin/apt-get install -y python3-pip python3-dev
 fi
 
 # this is missing on 14.04 (base package on 12.04)
 # we need to do this on any build, since the above apt-get
 # only runs on a build from scratch
 /usr/bin/apt-get install -y python-httplib2 --force-yes
-
-# upgrade setuptools early to avoid no distributin errors
-pip install --upgrade setuptools==18.3.2
 
 rm -rf $base_dir
 mkdir -p $base_dir
@@ -365,12 +497,27 @@ if [[ ! -z $git_repo_private ]]; then
     cd $base_dir
 fi
 
+if [[ ! -z $git_repo_internal ]]; then
+    $git_cmd clone $git_repo_internal $git_repo_internal_name
+    cd $git_repo_internal_name
+    $git_cmd checkout $configuration_internal_version
+    cd $base_dir
+fi
+
 
 cd $base_dir/$git_repo_name
 sudo pip install -r pre-requirements.txt
 sudo pip install -r requirements.txt
 
 cd $playbook_dir
+
+if [[ -r "$deployment_internal_vars" ]]; then
+    extra_args_opts+=" -e@$deployment_internal_vars"
+fi
+
+if [[ -r "$environment_deployment_internal_vars" ]]; then
+    extra_args_opts+=" -e@$environment_deployment_internal_vars"
+fi
 
 if [[ -r "$deployment_secure_vars" ]]; then
     extra_args_opts+=" -e@$deployment_secure_vars"
@@ -399,6 +546,8 @@ rm -rf $base_dir
                 configuration_secure_repo=args.configuration_secure_repo,
                 configuration_private_version=args.configuration_private_version,
                 configuration_private_repo=args.configuration_private_repo,
+                configuration_internal_version=args.configuration_internal_version,
+                configuration_internal_repo=args.configuration_internal_repo,
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play,
