@@ -26,6 +26,7 @@ import botocore.exceptions
 import sys
 from collections import defaultdict
 from os import environ
+from itertools import chain
 
 class ActiveInventory():
 
@@ -60,6 +61,12 @@ class ActiveInventory():
             if len(active_groups) > 1:
                 # When we have more than a single active ASG, we need to bail out as we don't know what ASG to pick an instance from
                 print("Multiple active ASGs - unable to choose an instance", file=sys.stderr)
+                return
+            # If we found no active groups, because there are no ELBs (edxapp workers normally)
+            # print a sensible reason why we failed
+            elbs = list(chain.from_iterable([group['LoadBalancerNames'] for group in matching_groups]))
+            if not (active_groups or elbs):
+                print("Multiple ASGs and no ELB - unable to choose an instance", file=sys.stderr)
                 return
         else:
             active_groups = { g['AutoScalingGroupName']: 1 for g in matching_groups }
