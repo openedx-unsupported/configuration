@@ -26,7 +26,7 @@
   tags:
     - install
     - install:configuration
-  
+
 - name: create the supervisor wrapper
   template:
     src: "{{ forum_supervisor_wrapper|basename }}.j2"
@@ -60,6 +60,17 @@
     - install
     - install:app-requirements
 
+- name: initialize elasticsearch
+  command: "{{ forum_code_dir }}/bin/rake search:initialize"
+  args:
+    chdir: "{{ forum_code_dir }}"
+  become_user: "{{ forum_user }}"
+  environment: "{{ forum_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
   # the services if any of the configurations
@@ -90,7 +101,7 @@
 
 - include: tag_ec2.yml
   when: COMMON_TAG_EC2_INSTANCE
-  tags: 
+  tags:
     - deploy
 
 - set_fact:
