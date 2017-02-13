@@ -1,9 +1,16 @@
-;
+
 ;  {{ ansible_managed }}
 ;
 [program:notifier-celery-workers]
 
-command={{ notifier_app_dir }}/notifier-celery-workers-supervisor.sh
+{% do notifier_env_vars.update(NOTIFIER_ENV_EXTRA) %}
+environment={% for name,value in notifier_env_vars.items() -%}
+                {{ name }}="{{ value }}",
+            {%- endfor -%}
+            PID="/var/tmp/notifier-scheduler.pid",LANG="en_US.UTF-8"
+            {%- if NOTIFIER_THEME_NAME != "" %},DJANGO_SETTINGS_MODULE="notifier.settings_local"{% endif %}
+
+command={{ NOTIFIER_VENV_DIR }}/bin/python manage.py celery worker -l {{ NOTIFIER_LOG_LEVEL }}
 
 process_name=%(program_name)s
 numprocs=1
