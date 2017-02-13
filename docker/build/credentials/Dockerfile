@@ -17,6 +17,11 @@ ADD . /edx/app/edx_ansible/edx_ansible
 
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
+RUN echo '{ "allow_root": true }' > /root/.bowerrc
+
+RUN apt-get update
+RUN apt install -y xvfb firefox gettext
+
 COPY docker/build/credentials/ansible_overrides.yml /
 RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook credentials.yml \
     -c local -i '127.0.0.1,' \
@@ -25,5 +30,5 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook credentials
     --extra-vars="CREDENTIALS_VERSION=$CREDENTIALS_VERSION" \
     --extra-vars="COMMON_GIT_PATH=$REPO_OWNER"
 
-USER root 
+USER root
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
