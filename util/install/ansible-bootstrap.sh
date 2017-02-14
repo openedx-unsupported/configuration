@@ -153,9 +153,8 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     cd ${CONFIGURATION_DIR}
     git checkout ${CONFIGURATION_VERSION}
     make requirements
-
     cd "${CONFIGURATION_DIR}"/playbooks/edx-east
-    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
+    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}" -e "edx_ansible_source_repo=${CONFIGURATION_REPO}"
 
     # cleanup
     rm -rf "${ANSIBLE_DIR}"
