@@ -78,8 +78,6 @@
     dest: /etc/default/jenkins
     regexp: '^JAVA_ARGS='
     line: 'JAVA_ARGS="{{ jenkins_jvm_args }}"'
-  notify:
-    - restart Jenkins
   tags:
     - java
     - jenkins
@@ -92,8 +90,6 @@
     dest: /etc/default/jenkins
     regexp: '^JENKINS_HOME='
     line: 'JENKINS_HOME="{{ jenkins_home }}"'
-  notify:
-    - restart Jenkins
   tags:
     - java
     - jenkins
@@ -129,8 +125,6 @@
     state: link
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
-  notify:
-    - restart Jenkins
   tags:
     - install
     - install:base
@@ -182,8 +176,6 @@
     mode: "0644"
   with_items: "{{ jenkins_plugin_downloads.results }}"
   when: item.changed
-  notify:
-    - restart Jenkins
   tags:
     - install
     - install:base
@@ -219,8 +211,6 @@
            {{ jenkins_home }}/plugins/{{ item.item.package }}
   with_items: "{{ jenkins_custom_plugins_checkout.results }}"
   when: item.changed
-  notify:
-    - restart Jenkins
   tags:
     - install
     - install:base
@@ -263,8 +253,6 @@
     src: "/etc/nginx/sites-available/jenkins"
     dest: "/etc/nginx/sites-enabled/jenkins"
     state: link
-  notify:
-    - start nginx
   tags:
     - install
     - install:vhosts
@@ -275,3 +263,11 @@
     - datadog
     - install
     - install:base
+
+- name: restart Jenkinks
+  service:
+    name: jenkins
+    state: restarted
+  tags:
+    - manage
+    - manage:start  
