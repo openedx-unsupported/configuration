@@ -1,0 +1,78 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role haproxy
+# 
+
+#
+# vars are namespace with the module name.
+#
+haproxy_role_name: haproxy
+
+#
+# OS packages
+#
+
+haproxy_debian_pkgs: []
+
+haproxy_redhat_pkgs: []
+
+pkgs:
+  haproxy:
+    state: installed
+
+haproxy_template_dir: .
+
+haproxy_extra_global_config: ''
+
+haproxy_default_config: |
+  log	global
+  mode	http
+  option	httplog
+  option	dontlognull
+  option redispatch
+  retries	3
+  maxconn	2000
+  contimeout	5000
+  clitimeout	50000
+  srvtimeout	50000
+
+# Sample rabbitmq load balance config
+# but this should likely get overidden with your
+# desired applications
+haproxy_applications:
+  - |
+    listen rabbitmq 127.0.0.1:35672
+    mode    tcp
+    balance roundrobin
+    option  tcplog
+    option  tcpka
+    server  rabbit01 192.168.33.100:5672 check inter 5000 rise 2 fall 3
+    server  rabbit02 192.168.33.110:5672 check inter 5000 rise 2 fall 3
+    server  rabbit03 192.168.33.120:5672 check inter 5000 rise 2 fall 3
+
+    listen mariadb 127.0.0.1:13306
+    mode    tcp
+    balance roundrobin
+    option  tcplog
+    option  tcpka
+    option mysql-check user haproxy
+    server  galera1 192.168.33.100:3306 check weight 1
+    server  galera2 192.168.33.110:3306 check weight 1
+    server  galera3 192.168.33.120:3306 check weight 1
+
+    listen elasticsearch 127.0.0.1:19200
+    mode    tcp
+    balance roundrobin
+    option  tcplog
+    option  tcpka
+    server  galera1 192.168.33.100:9200 check weight 1
+    server  galera2 192.168.33.110:9200 check weight 1
+    server  galera3 192.168.33.120:9200 check weight 1

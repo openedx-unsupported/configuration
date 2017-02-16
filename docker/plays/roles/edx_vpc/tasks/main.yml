@@ -1,0 +1,154 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_vpc
+# 
+# Overview:
+# This role creates an opinionated vpc for containing cluster of edx services.
+# 
+# It currently assumes that we will be multi-az, with a single NAT, and all
+# traffic going over that NAT.  A public subnet, and both public and private
+# route tables are created by default that can be used by new services in this
+# vpc.  The public subnet should house ELBs and any newly created private subnets
+# can use the existing private route table to be able to reach the internet from
+# private machines.
+# 
+#
+# Example play:
+#
+# ansible-playbook -c local -i localhost, edx_vpc.yml -e@/Users/feanil/src/edx-secure/cloud_migrations/vpcs/test.yml
+
+# DO NOT use the subnet or route table sections of this command.
+# They will delete any subnets or rts not defined here which is
+# probably not what you want, since other services were added
+# to the vpc whose subnets and rts are not enumerated here.
+- name: create a vpc
+  local_action:
+    profile: "{{ vpc_aws_profile }}"
+    module: "ec2_vpc_local"
+    resource_tags: "{{ vpc_tags }}"
+    cidr_block: "{{ vpc_cidr }}"
+    region: "{{ vpc_aws_region }}"
+    state: "{{ vpc_state }}"
+    internet_gateway: yes
+    wait: yes
+  register: created_vpc
+
+# A default network acl is created when a vpc is created so each VPC
+# should have one but we create one here that allows access to the
+# outside world using the internet gateway.
+- name: create public network acl
+  ec2_acl:
+    profile: "{{ vpc_aws_profile }}"
+    name: "{{ vpc_public_acl.name }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    state: "present"
+    region: "{{ vpc_aws_region }}"
+    rules: "{{ vpc_public_acl.rules }}"
+  register: created_public_acl
+
+- name: create public route table
+  ec2_rt:
+    profile: "{{ vpc_aws_profile }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    region: "{{ vpc_aws_region }}"
+    state: "present"
+    name: "{{ vpc_name }}-public"
+    routes: "{{ vpc_public_route_table }}"
+  register: created_public_rt
+
+- name: create public subnets
+  ec2_subnet:
+    profile: "{{ vpc_aws_profile }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    region: "{{ vpc_aws_region }}"
+    state: "present"
+    name: "{{ item.name }}"
+    cidr: "{{ item.cidr }}"
+    az: "{{ item.az }}"
+    route_table_id: "{{ created_public_rt.id }}"
+    network_acl_id: "{{ created_public_acl.id }}"
+  with_items: vpc_public_subnets
+  register: created_public_subnets
+
+- name: create NAT security group
+  ec2_group:
+    profile: "{{ vpc_aws_profile }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    state: "present"
+    region: "{{ vpc_aws_region }}"
+    name: "{{ nat_security_group.name }}"
+    rules: "{{ nat_security_group.rules }}"
+    description: "{{ nat_security_group.description }}"
+    rules_egress: "{{ nat_security_group.rules_egress }}"
+  register: created_nat_security_group
+
+- name: check to see if we already have a nat instance
+  local_action:
+    module: "ec2_lookup"
+    region: "{{ vpc_aws_region }}"
+    tags:
+      - Name: "{{ vpc_name }}-nat-instance"
+  register: nat_instance
+
+- name: create nat instance
+  local_action:
+    module: "ec2"
+    state: "present"
+    wait: yes
+    source_dest_check: false
+    region: "{{ vpc_aws_region }}"
+    profile: "{{ vpc_aws_profile }}"
+    group_id: "{{ created_nat_security_group.group_id }}"
+    key_name: "{{ vpc_keypair }}"
+    vpc_subnet_id: "{{ created_public_subnets.results[0].subnet_id }}"
+    instance_type: "{{ vpc_nat_instance_type }}"
+    instance_tags:
+      Name: "{{ vpc_name }}-nat-instance"
+    image: "{{ vpc_nat_ami_id }}"
+  register: new_nat_instance
+  when: nat_instance.instances|length == 0
+
+# We need to do this instead of registering the output of the above
+# command because if the above command get skipped, the output does
+# not contain information about the instance.
+- name: lookup the created nat_instance
+  local_action:
+    module: "ec2_lookup"
+    region: "{{ vpc_aws_region }}"
+    tags:
+      - Name: "{{ vpc_name }}-nat-instance"
+  register: nat_instance
+
+- name: assign eip to nat
+  ec2_eip:
+    profile: "{{ vpc_aws_profile }}"
+    region: "{{ vpc_aws_region }}"
+    instance_id: "{{ nat_instance.instances[0].id }}"
+    in_vpc: true
+    reuse_existing_ip_allowed: true
+  when: new_nat_instance.changed
+
+- name: create private route table
+  ec2_rt:
+    profile: "{{ vpc_aws_profile }}"
+    vpc_id: "{{ created_vpc.vpc_id }}"
+    region: "{{ vpc_aws_region }}"
+    state: "present"
+    name: "{{ vpc_name }}-private"
+    routes: "{{ vpc_private_route_table }}"
+  register: created_private_rt
+
+- name: output a vpc_config for using to build services
+  local_action:
+    module: template
+    src: "vpc_config.yml.j2"
+    dest: "~/{{ e_d }}.yml"

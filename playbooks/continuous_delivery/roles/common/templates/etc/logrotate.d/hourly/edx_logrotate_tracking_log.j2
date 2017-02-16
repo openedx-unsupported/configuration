@@ -1,0 +1,21 @@
+{{ COMMON_LOG_DIR }}/tracking/tracking.log {
+  {% for config in COMMON_TRACKING_LOG_ROTATION %}
+  {{ config }}
+  {% endfor %}
+  compress
+  create
+  dateext
+  dateformat -%Y%m%d-%s
+  missingok
+  nodelaycompress
+  notifempty
+  rotate 16000
+  postrotate
+    /usr/bin/killall -HUP rsyslogd
+  endscript
+  lastaction
+    {% if COMMON_OBJECT_STORE_LOG_SYNC -%}
+    {{ COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT }} -d "{{ COMMON_LOG_DIR }}/tracking" -b "{{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }}" -p "{{ COMMON_OBJECT_STORE_LOG_SYNC_PREFIX }}"
+    {% endif -%}
+  endscript
+}

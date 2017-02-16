@@ -37,22 +37,10 @@
     python_path: /edx/bin/python.edxapp
     manage_path: /edx/bin/manage.edxapp
   tasks:
-    - name: Create a temp directory
-      shell: mktemp -d /tmp/ansible_xblock_config.XXXXX
-      register: xblock_config_temp_directory
-    - name: Copy config file to remote server
-      copy:
-        src: "{{ file }}"
-        dest: "{{ xblock_config_temp_directory.stdout }}/{{ file | basename }}"
-      register: xblock_config_file
     - name: Manage xblock configurations
       shell: >
         {{ python_path }} {{ manage_path }} lms --settings=aws
-        populate_model -f {{ xblock_config_file.dest | quote }} -u {{ user }}
+        populate_model -f {{ file | quote }} -u {{ user }}
       register: command_result
       changed_when: "'Import complete, 0 new entries created' not in command_result.stdout"
     - debug: msg="{{ command_result.stdout }}"
-    - name: Clean up tempdir
-      file:
-        path: "{{ xblock_config_temp_directory.stdout }}"
-        state: absent

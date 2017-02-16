@@ -1,0 +1,49 @@
+# Installs apache and runs the lms wsgi by default
+---
+- name: Installs apache and mod_wsgi from apt
+  apt:
+    name: "{{ item }}"
+    install_recommends: no
+    state: present
+    update_cache: yes
+  with_items:
+    - apache2
+    - libapache2-mod-wsgi
+  notify: restart apache
+    
+- name: Disables default site
+  file:
+    path: /etc/apache2/sites-enabled/000-default
+    state: absent
+  notify: restart apache
+    
+- name: Rewrite apache ports conf
+  template:
+    src: ports.conf.j2
+    dest: /etc/apache2/ports.conf
+    owner: root
+    group: root
+  notify: restart apache
+
+- debug:
+    msg: "{{ apache_sites }}"
+
+- name: "Copying apache configs for {{ apache_sites }}"
+  template:
+    src: "{{ item }}.j2"
+    dest: "/etc/apache2/sites-available/{{ item }}"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: "0640"
+  notify: restart apache
+  with_items: "{{ apache_sites }}"
+
+- name: "Creating apache2 config links for {{ apache_sites }}"
+  file:
+    src: "/etc/apache2/sites-available/{{ item  }}"
+    dest: "/etc/apache2/sites-enabled/{{ item }}"
+    state: link
+    owner: root
+    group: root
+  notify: restart apache
+  with_items: "{{ apache_sites }}"

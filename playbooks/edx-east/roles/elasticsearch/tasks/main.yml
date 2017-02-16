@@ -1,0 +1,119 @@
+---
+
+# elasticsearch
+#
+# Dependencies:
+#
+#   * common
+#   * oraclejdk
+#
+# Example play:
+#
+# This role can be used to do a single-server or clustered
+# installation of the elasticsearch service.  When a cluster
+# is being installed, there are two important things that
+# you must know.
+
+# The ELASTICSEARCH_CLUSTERED var must be true.
+
+# All hosts targeted by your play will be cluster peers.
+# Elasticsearch will determine who the master should be.
+#
+# Ansible provides handy set operators for use in the
+# plays host declaration, as seen in the following example.
+#
+# -  hosts: tag_role_elasticsearch:&tag_environment_stage
+#    roles:
+#    - common
+#    - oraclejdk
+#    - elasticsearch
+#
+
+- name: Install Elasticsearch repo key 
+  apt_key:
+    id: "{{ elasticsearch_apt_key }}"
+    keyserver: "{{ elasticsearch_apt_keyserver }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add Elasticsearch Repo
+  apt_repository:
+    repo: "{{ elasticsearch_repo }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: install elasticsearch
+  apt:
+    pkg: "{{ elasticsearch_package_name }}={{ ELASTICSEARCH_VERSION }}"
+    state: present 
+    install_recommends: yes
+    force: yes 
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+  register: elasticsearch_reinstall
+
+- name: create directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ elasticsearch_user }}"
+    group: "{{ elasticsearch_group }}"
+  with_items:
+    - "{{ elasticsearch_data_dir }}"
+    - "{{ elasticsearch_log_dir }}"
+    - "{{ elasticsearch_cfg_dir }}"
+  tags:
+    - install
+    - install:base
+
+- name: update elasticsearch defaults
+  template:
+    src: etc/default/elasticsearch.j2 
+    dest: /etc/default/elasticsearch
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch config
+  template:
+    src: edx/etc/elasticsearch/elasticsearch.yml.j2 
+    dest: "{{ elasticsearch_cfg_dir }}/elasticsearch.yml"
+    mode: 0744
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch logging config
+  template:
+    src: edx/etc/elasticsearch/logging.yml.j2 
+    dest: "{{ elasticsearch_cfg_dir }}/logging.yml"
+    mode: 0744
+  tags:
+    - install
+    - install:configuration
+
+- name: Ensure elasticsearch is enabled and started
+  service: 
+    name: elasticsearch
+    state: started 
+    enabled: yes
+  tags:
+    - manage
+    - manage:start
+
+- name: Restart elastic when there has been an upgrade
+  service: 
+    name: elasticsearch 
+    state: restarted 
+    enabled: yes
+  when: elasticsearch_reinstall.changed
+  tags:
+    - manage
+    - manage:restart
+    - install

@@ -1,0 +1,62 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Handlers for role stop_all_edx_services
+#
+# Overview:
+#
+#   This stops all services on an edX server
+#   so that everything is shutdown prior to creating
+#   an AMI.
+#
+#
+- name: stop supervisor
+  service:
+    name: supervisor
+    state: stopped
+    arguments: "{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
+
+- name: stop nginx
+  service:
+    name: nginx
+    state: stopped
+    arguments: "{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
+
+- name: stop rabbitmq-server
+  service:
+    name: rabbitmq-server
+    state: stopped
+    arguments: "{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
+
+- name: stop mysql
+  service:
+    name: mysql
+    state: stopped
+    arguments: "{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
+
+- name: stop memcached
+  service:
+    name: memcached
+    state: stopped
+    arguments: "{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
+
+- name: stop mongodb
+  service:
+    name: mongodb
+    state: stopped
+    arguments: "{{ STOP_ALL_EDX_SERVICES_EXTRA_ARGS }}"
+
+# Celery and Supervisord should not be killed because they may have long running tasks that need to finish
+- name: kill processes by user
+  shell: pgrep -u {{ item }} -lf | grep -v celery | grep -v supervisord | grep -v gunicorn |  awk '{ print $1}' | xargs -I {} kill {} || true
+  with_items:
+    - www-data
+    - rabbitmq

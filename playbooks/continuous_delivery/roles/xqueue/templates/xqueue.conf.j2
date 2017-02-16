@@ -1,0 +1,19 @@
+[program:xqueue]
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = xqueue_venv_bin + '/newrelic-admin run-program ' + xqueue_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = xqueue_venv_bin + '/gunicorn' %}
+{% endif %}
+
+command={{ executable }} -c {{ xqueue_app_dir }}/xqueue_gunicorn.py {{ XQUEUE_GUNICORN_WORKERS_EXTRA }} xqueue.wsgi
+
+user={{ common_web_user }}
+directory={{ xqueue_code_dir }}
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ XQUEUE_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}PID=/var/tmp/xqueue.pid,PORT={{ xqueue_gunicorn_port }},ADDRESS={{ xqueue_gunicorn_host }},LANG={{ XQUEUE_LANG }},DJANGO_SETTINGS_MODULE=xqueue.{{ XQUEUE_SETTINGS }},SERVICE_VARIANT="xqueue"
+
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+killasgroup=true
+stopasgroup=true

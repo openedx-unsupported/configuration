@@ -1,0 +1,24 @@
+---
+- name: Look for mysql 5.6
+  shell: "dpkg -s mysql-server"
+  ignore_errors: yes
+  register: mysql_56_installed
+  changed_when: no
+
+- name: Important message
+  debug:
+    msg: |
+      "MySQL experimental is already installed, make 'remove_experimental_mysql: true' in defaults/main.yml, 
+      if you want to remove it and install the stable version of MySQL"
+  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+
+- pause:
+    seconds: 10
+  when: "'5.6.14' in  mysql_56_installed.stdout and not remove_experimental_mysql"
+
+# remove this, once the new devstack is out
+- include: remove_mysql_experimental.yml
+  when: remove_experimental_mysql
+
+- include: mysql.yml
+  when: (mysql_56_installed.rc == 1) or (remove_experimental_mysql)

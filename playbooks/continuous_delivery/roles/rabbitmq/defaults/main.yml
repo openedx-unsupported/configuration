@@ -1,0 +1,58 @@
+#Variables for rabbitmq
+---
+
+rabbitmq_app_dir: "{{ COMMON_APP_DIR }}/rabbitmq"
+rabbitmq_data_dir: "{{ COMMON_DATA_DIR }}/rabbitmq"
+rabbitmq_log_dir: "{{ COMMON_LOG_DIR }}/rabbitmq"
+rabbitmq_cfg_dir: "{{ COMMON_CFG_DIR }}/rabbitmq"
+
+rabbitmq_user: "rabbitmq"
+rabbitmq_group: "rabbitmq"
+
+# Environment specific vars
+RABBIT_ERLANG_COOKIE: 'DEFAULT_COOKIE'
+RABBIT_USERS:
+  - name: 'admin'
+    password: 'the example admin password'
+  - name: 'edx'
+    password: 'edx'
+  - name: 'celery'
+    password: 'celery'
+
+RABBITMQ_VHOSTS:
+  - '/'
+
+RABBITMQ_CLUSTERED_HOSTS: []
+
+# Internal role variables below this line
+
+# option to force deletion of the mnesia dir
+rabbitmq_refresh: false
+
+# We mirror the deb package for rabbitmq-server because
+# nodes need to be running the same version
+rabbitmq_pkg_url: "http://files.edx.org/rabbitmq_packages/rabbitmq-server_3.2.3-1_all.deb"
+rabbitmq_pkg: "rabbitmq-server"
+rabbitmq_debian_pkgs:
+  - python-software-properties
+  # for installing the deb package with
+  # dependencies
+  - gdebi
+
+rabbitmq_config_dir: "/etc/rabbitmq"
+rabbitmq_cookie_dir: "/var/lib/rabbitmq"
+rabbitmq_cookie_location: "{{ rabbitmq_cookie_dir }}/.erlang.cookie"
+
+rabbitmq_mnesia_folder: "{{ rabbitmq_cookie_dir }}/mnesia"
+
+rabbitmq_port: 5672
+rabbitmq_management_port: 15672
+rabbitmq_ip: "{{ ansible_default_ipv4.address }}"
+
+# Structure for auth config file.
+rabbitmq_auth_config:
+  erlang_cookie: "{{ RABBIT_ERLANG_COOKIE }}"
+  admins: "{{ RABBIT_USERS }}"
+
+rabbitmq_plugins:
+  - rabbitmq_management

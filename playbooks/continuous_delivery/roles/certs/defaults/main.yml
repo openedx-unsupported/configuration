@@ -1,0 +1,95 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role certs
+#
+
+CERTS_QUEUE_URL: "http://localhost:18040"
+CERTS_BUCKET: ""
+# basic auth credentials for connecting
+# to the xqueue server
+CERTS_XQUEUE_AUTH_USER: "{{ COMMON_HTPASSWD_USER }}"
+CERTS_XQUEUE_AUTH_PASS: "{{ COMMON_HTPASSWD_PASS }}"
+# credentials for connecting to the xqueue server
+CERTS_QUEUE_USER: "lms"
+CERTS_QUEUE_PASS: "password"
+# AWS credentials for certificate upload
+CERTS_AWS_KEY: ""
+CERTS_AWS_ID: ""
+# GPG key ID, defaults to the dummy key
+CERTS_KEY_ID: "FEF8D954"
+# Contents of the identity for a private
+# repo. Leave set to "none" if using the public
+# certificate repo
+CERTS_GIT_IDENTITY: "none"
+# Path to public and private gpg key for signing
+# the edX certificate. Default is a dummy key
+CERTS_LOCAL_PRIVATE_KEY: "example-private-key.txt"
+
+# This defaults to the public certificates repo which is
+# used for open-edx
+CERTS_REPO: "https://github.com/edx/edx-certificates"
+CERTS_NGINX_PORT: 18090
+CERTS_WEB_ROOT: "{{ certs_data_dir }}/www-data"
+CERTS_URL: "http://localhost:{{ CERTS_NGINX_PORT }}"
+CERTS_DOWNLOAD_URL: "http://localhost:{{ CERTS_NGINX_PORT }}"
+CERTS_VERIFY_URL: "http://localhost:{{ CERTS_NGINX_PORT }}"
+# Set to false if using s3 or if you don't want certificates
+# copied to the web root
+CERTS_COPY_TO_WEB_ROOT: true
+CERTS_S3_UPLOAD: false
+
+# Can be set to a different repo for private
+# templates, fonts, etc.
+CERTS_TEMPLATE_DATA_DIR: 'template_data'
+# this is the trust export, output of
+# gpg --export-ownertrust
+CERTS_OWNER_TRUST: "A9F9EAD11A0A6E7E5A037BDC044089B6FEF8D954:6:\n"
+
+########## Internal role vars below
+
+certs_user: certs
+certs_app_dir: "{{ COMMON_APP_DIR }}/certs"
+certs_data_dir: "{{ COMMON_DATA_DIR }}/certs"
+certs_code_dir: "{{ certs_app_dir }}/certificates"
+certs_venvs_dir: "{{ certs_app_dir }}/venvs"
+certs_venv_dir: "{{ certs_venvs_dir }}/certs"
+certs_venv_bin: "{{ certs_venv_dir }}/bin"
+certs_git_ssh: /tmp/git_ssh.sh
+certs_git_identity: "{{ certs_app_dir }}/certs-git-identity"
+certs_requirements_file: "{{ certs_code_dir }}/requirements.txt"
+certs_version: 'master'
+certs_gpg_dir: "{{ certs_app_dir }}/gnupg"
+certs_env_config:
+  # CERTS_DATA is legacy, not used
+  CERT_DATA: {}
+  QUEUE_NAME: "certificates"
+  QUEUE_URL: "{{ CERTS_QUEUE_URL }}"
+  CERT_BUCKET: "{{ CERTS_BUCKET }}"
+  # gnupg signing key
+  CERT_KEY_ID: "{{ CERTS_KEY_ID }}"
+  LOGGING_ENV: ""
+  CERT_GPG_DIR: "{{ certs_gpg_dir }}"
+  CERT_URL: "{{ CERTS_URL }}"
+  CERT_DOWNLOAD_URL: "{{ CERTS_DOWNLOAD_URL }}"
+  CERT_WEB_ROOT: "{{ CERTS_WEB_ROOT }}"
+  COPY_TO_WEB_ROOT: "{{ CERTS_COPY_TO_WEB_ROOT }}"
+  S3_UPLOAD: "{{ CERTS_S3_UPLOAD }}"
+  CERT_VERIFY_URL: "{{ CERTS_VERIFY_URL }}"
+  TEMPLATE_DATA_DIR: "{{ CERTS_TEMPLATE_DATA_DIR }}"
+
+certs_auth_config:
+  QUEUE_USER: "{{ CERTS_QUEUE_USER }}"
+  QUEUE_PASS: "{{ CERTS_QUEUE_PASS }}"
+  QUEUE_AUTH_USER: "{{ CERTS_XQUEUE_AUTH_USER }}"
+  QUEUE_AUTH_PASS: "{{ CERTS_XQUEUE_AUTH_PASS }}"
+  CERT_KEY_ID: "{{ CERTS_KEY_ID }}"
+  CERT_AWS_ID: "{{ CERTS_AWS_ID }}"
+  CERT_AWS_KEY: "{{ CERTS_AWS_KEY }}"

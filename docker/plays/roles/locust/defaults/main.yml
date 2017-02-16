@@ -1,0 +1,71 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role locust
+# 
+
+#
+# vars are namespace with the module name.
+#
+locust_service_name: "locust"
+locust_home: "{{ COMMON_APP_DIR }}/{{ locust_service_name }}"
+locust_user: "locust"
+locust_code_dir: "{{ locust_home }}/load-tests"
+locust_requirements_base: "{{ locust_code_dir }}"
+locust_requirements:
+  - "requirements.txt"
+locust_run_dir: "{{ locust_code_dir }}/{{ LOCUST_LOADTEST_DIR }}"
+
+LOCUST_GIT_IDENTITY: !!null
+
+LOCUST_LOADTEST_REPO: 'load-tests'
+LOCUST_LOADTEST_REPO_VERSION: 'master'
+LOCUST_LOADTEST_DIR: 'locust/lms'
+
+LOCUST_MASTER: !!null
+
+LOCUST_TARGET_HOST: 'http://localhost/'
+
+LOCUST_SERVICE_CONFIG: ''
+
+LOCUST_REPOS:
+  - PROTOCOL: "ssh"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: "{{ LOCUST_LOADTEST_REPO }}"
+    VERSION: "{{ LOCUST_LOADTEST_REPO_VERSION }}"
+    DESTINATION: "{{ locust_code_dir }}"
+    SSH_KEY: "{{ LOCUST_GIT_IDENTITY }}"
+#
+# OS packages
+#
+
+locust_debian_pkgs:
+  # Needed by our fork of locust :-( because it needs matplotlib.
+  - libfreetype6-dev
+  - libpng12-dev
+  # Needed for opaque-keys
+  - liblapack-dev
+  - gfortran
+
+locust_redhat_pkgs: []
+
+# ulimit variables
+ulimit_config:
+  - domain: '*'
+    type: soft
+    item: nofile
+    value: 4096
+  - domain: '*'
+    type: hard
+    item: nofile
+    value: 4096
+
+ulimit_conf_file: "/etc/security/limits.conf"

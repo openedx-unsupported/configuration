@@ -1,0 +1,42 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role haproxy
+#
+# Overview:
+# Installs and configures haproxy for load balancing.
+# HAProxy doesn't currently support included configuration
+# so it allows for a configuration template to be overriden
+# with a variable
+
+- name: Install haproxy
+  apt: pkg=haproxy state={{ pkgs.haproxy.state }}
+  notify: restart haproxy
+
+- name: Server configuration file
+  template: >
+    src={{ haproxy_template_dir }}/haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+    owner=root group=root mode=0644
+  notify: reload haproxy
+
+- name: Enabled in default
+  lineinfile: dest=/etc/default/haproxy regexp=^ENABLED=.$ line=ENABLED=1
+  notify: restart haproxy
+
+- name: install logrotate
+  template: src=haproxy.logrotate.j2 dest=/etc/logrotate.d/haproxy mode=0644
+
+- name: install rsyslog conf
+  template: src=haproxy.rsyslog.j2 dest=/etc/rsyslog.d/haproxy.conf mode=0644
+  notify: restart rsyslog
+
+- name: make sure haproxy has started
+  service: name=haproxy state=started

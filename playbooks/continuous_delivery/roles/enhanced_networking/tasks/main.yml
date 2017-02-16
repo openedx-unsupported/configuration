@@ -1,0 +1,71 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role enhanced_networking
+#
+# Overview:
+#
+# This role ensures that enhanced networking
+# (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/enhanced-networking.html)
+# is turned on on the AWS EC2 instances to which it it is applied.
+#
+# Note that turning on enhanced networking requires this role restart the instances
+# where it turns it on. Instances where enhanced networking is already on or where
+# enhanced networking is not supported for their instance type will NOT be restarted.
+#
+# Uses local actions so multiple actions can be done in parallel.
+#
+- name: Get ec2 facts
+  ec2_facts:
+
+- name: Test for enhanced networking
+  local_action:
+    module: shell aws --profile {{ profile }} ec2 describe-instance-attribute --instance-id {{ ansible_ec2_instance_id }} --attribute sriovNetSupport
+  changed_when: False
+  become: False
+  register: enhanced_networking_raw
+
+- name: Test for kernel module
+  shell: 'modinfo ixgbevf | grep -E ^version: | sed -E "s/^version: *//"'
+  register: ixgbevf_kernel_module
+  ignore_errors: yes
+
+- set_fact:
+    # AWS would like 2.16 or 2.14 of this module, but says that Ubuntu's default of 2.11.3-k is ok
+    has_ixgbevf_kernel_module: "{{ (ixgbevf_kernel_module.stdout | default('0.0.0')) | replace('-k','') | version_compare('2.11.3','>=', strict=True) }}"
+    supports_enhanced_networking: "{{ (ansible_ec2_instance_type[:2] | lower) in compatible_instance_types }}"
+    enhanced_networking_already_on: "{{ (enhanced_networking_raw.stdout | from_json).SriovNetSupport.Value | default(None) == 'simple' }}"
+
+- name: Shut down instances
+  local_action:
+    module: ec2
+    instance_ids: "{{ ansible_ec2_instance_id }}"
+    state: stopped
+    region: "{{ ansible_ec2_placement_region }}"
+    profile: "{{ profile }}"
+    wait: yes
+  become: False
+  when: supports_enhanced_networking and has_ixgbevf_kernel_module and not enhanced_networking_already_on
+
+- name: Set enhanced networking instance attribute
+  local_action:
+    module: shell aws --profile {{ profile }} ec2 modify-instance-attribute --instance-id {{ ansible_ec2_instance_id }} --sriov-net-support simple
+  when: supports_enhanced_networking and has_ixgbevf_kernel_module and not enhanced_networking_already_on
+
+- name: Start instances
+  local_action:
+    module: ec2
+    ansible_ec2_instance_ids: "{{ ansible_ec2_instance_id }}"
+    state: running
+    region: "{{ ansible_ec2_placement_region }}"
+    profile: "{{ profile }}"
+    wait: yes
+  become: False
+  when: supports_enhanced_networking and has_ixgbevf_kernel_module and not enhanced_networking_already_on

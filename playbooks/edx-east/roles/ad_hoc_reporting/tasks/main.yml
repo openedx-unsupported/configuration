@@ -1,0 +1,132 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Creates scripts and users to enable ad-hoc reporting using MySQL
+# read replicas and MongoDB secondary nodes.
+#
+# Overview:
+# Creates users and scripts for ad-hoc reporting environments from your
+# ansible var files.  You would run this role as follows
+#
+# ansible-playbook -i 'reporting.example.com,' ./ad_hoc_reporting.yml -e@/var/path/common_vars.yml -e@/vars/path/environnment-deployment.yml
+#
+# Dependencies:
+#   - aws
+#   - user
+
+- name: install system packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: ad_hoc_reporting_debian_pkgs
+  tags:
+    - install:system-requirements
+
+- name: add the mongodb signing key
+  apt_key:
+    id: "{{ MONGODB_APT_KEY }}"
+    keyserver: "{{ MONGODB_APT_KEYSERVER }}"
+    state: present
+  tags:
+    - install:system-requirements
+
+- name: add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO }}"
+    state: present
+  tags:
+    - install:system-requirements
+
+- name: install mongo shell
+  apt:
+    name: mongodb-org-shell={{ mongo_version }}
+    state: present
+    install_recommends: yes
+    force: yes
+    update_cache: yes
+  tags:
+    - install:system-requirements
+
+- name: install python packages
+  pip:
+    name: "{{ item }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: ad_hoc_reporting_pip_pkgs
+  tags:
+    - install:app-requirements
+
+- name: create directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - /edx/bin
+  tags:
+    - scripts
+    - install:base
+    
+#These templates rely on there being a global
+# read_only mysql user, you must override the default
+# in order for these templates to be written out.
+#Also, all of the *_REPLICA_DB_HOST vars are only defined
+# in secure config files.
+- name: install common mysql replica scripts
+  template:
+    src: edx/bin/mysql.sh.j2
+    dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode: 0755
+    owner: root
+    group: root
+  when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on
+  tags:
+    - scripts
+    - scripts:mysql
+    - install:code
+  with_items: AD_HOC_REPORTING_REPLICA_DB_HOSTS
+  
+# These templates rely on there being a global
+# read_only mongo user, you must override the default
+# in order for these templates to be written out
+- name: install mongodb replica scripts
+  template:
+    src: edx/bin/mongo.sh.j2
+    dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode: 0755
+    owner: root
+    group: root
+  with_items:
+    - db_hosts: "{{ EDXAPP_MONGO_HOSTS }}"
+      db_name: "{{ EDXAPP_MONGO_DB_NAME }}"
+      db_port: "{{ EDXAPP_MONGO_PORT }}"
+      script_name: edxapp-mongo.sh
+    - db_hosts: "{{ FORUM_MONGO_HOSTS }}"
+      db_name: "{{ FORUM_MONGO_DATABASE }}"
+      db_port: "{{ FORUM_MONGO_PORT }}"
+      script_name: forum-mongo.sh
+  when: COMMON_MONGO_READ_ONLY_PASS is defined
+  tags:
+    - scripts
+    - scripts:mongo
+    - install:code
+
+- name: install a global mongorc.js
+  template:
+    src: etc/mongorc.js.j2
+    dest: /etc/mongorc.js
+    mode: 0755
+    owner: root
+    group: root
+  tags:
+    - scripts
+    - scripts:mongo
+    - mongorc

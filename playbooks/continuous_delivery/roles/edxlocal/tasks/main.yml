@@ -1,0 +1,77 @@
+# Installs packages to run edx locally on a single instance
+#
+---
+- name: Install packages needed for single server
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: "{{ edxlocal_debian_pkgs }}"
+
+# TODO: Add a test to make sure mysql is running.
+
+- name: create databases
+  mysql_db:
+    db: "{{ item }}"
+    state: present
+    encoding: utf8
+  when: item != None and item != ''
+  with_items: "{{ edxlocal_databases }}"
+
+- name: create database users
+  mysql_user:
+    name: "{{ item.user }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.db }}.*:ALL"
+    append_privs: yes
+  when: item.db != None and item.db != ''
+  with_items: "{{ edxlocal_database_users }}"
+
+- name: setup the migration db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    priv: "{{ item }}.*:ALL"
+    append_privs: yes
+  when: item != None and item != ''
+  with_items: "{{ edxlocal_databases }}"
+
+- name: create api user for the analytics api
+  mysql_user:
+    name: "api001"
+    password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
+    priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create read-only reports user for the analytics-api
+  mysql_user:
+    name: reports001
+    password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
+    priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+  when: ANALYTICS_API_SERVICE_CONFIG is defined
+
+- name: create a database for the hive metastore
+  mysql_db:
+    db: "{{ HIVE_METASTORE_DATABASE.name }}"
+    state: "present"
+    encoding: "latin1"
+  when: HIVE_METASTORE_DATABASE is defined
+
+- name: setup the edx-notes-api db user
+  mysql_user:
+    name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
+    password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
+    priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+
+- name: setup the read-only db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
+    password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+    priv: "*.*:ALL"
+
+- name: setup the admin db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_ADMIN_USER }}"
+    password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
+    priv: "*.*:CREATE USER"

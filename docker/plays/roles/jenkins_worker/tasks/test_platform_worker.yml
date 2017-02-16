@@ -1,0 +1,43 @@
+---
+# Tests for this role
+
+
+# Set up #
+
+# To get a baseline comparison for timestamp comparisons
+# create a testfile and register its stat info
+- name: Create test file
+  file: path=testfile state=touch
+- name: Stat test file
+  stat: path=testfile
+  register: testfile
+
+
+### Tests ###
+
+# Firefox has a specific version, not the latest. This test also ensures it was not
+# pulled in via dependency or misuse/clobbering due to the sitespeed variable, which uses
+# the latest firefox.
+- name: Verify firefox version
+  shell: firefox --version
+  register: firefox_version
+- assert:
+    that:
+      - "'42.0' in firefox_version.stdout"
+
+# Verify the virtualenv tar is newly-built
+- name: Get info on virtualenv tar
+  stat: path={{ jenkins_home }}/edx-venv_clean.tar.gz
+  register: edxvenv
+- assert:
+    that:
+# Assert that it was modified at least within the hour
+      - "{{ testfile.stat.mtime }} - {{ edxvenv.stat.mtime }} < 3600"
+
+# Verify that postfix (mail server) is listening
+- wait_for: host={{ inventory_hostname }} port=25
+  delegate_to: localhost
+
+# Tear Down #
+- name: Remove test file
+  file: path=testfile state=absent

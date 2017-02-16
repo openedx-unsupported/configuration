@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+# This script runs edx_ansible locally
+
+set -e
+usage() {
+SAVE_IFS=$IFS
+IFS=","
+    cat<<EO
+
+    Usage: $PROG <repo> <version>
+            -v        add verbosity to edx_ansible run
+            -h        this
+
+    <repo> - must be one of edx-platform, edx-workers, xqueue, cs_comments_service, credentials, xserver, configuration, read-only-certificate-code, edx-analytics-data-api, edx-ora2, insights, ecommerce, programs, course_discovery
+    <version> - can be a commit or tag
+
+EO
+IFS=$SAVE_IFS
+}
+
+PROG=${0##*/}
+while getopts "vh" opt; do
+  case $opt in
+    v)
+        verbose="-vvvv"
+        shift
+        ;;
+    h)
+        usage
+        exit 0
+        ;;
+  esac
+done
+
+
+if [[ -f {{ edx_ansible_var_file }} ]]; then
+    extra_args="-e@{{ edx_ansible_var_file }}"
+fi
+
+{% if devstack %}
+extra_args="$extra_args -e 'disable_edx_services=true' -e devstack=true"
+{% endif %}
+
+declare -A repos_to_cmd
+edx_ansible_cmd="{{ edx_ansible_venv_bin }}/ansible-playbook -i localhost, -c local $extra_args"
+
+repos_to_cmd["edx-platform"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2'"
+repos_to_cmd["edx-workers"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2' -e 'celery_worker=true'"
+repos_to_cmd["xqueue"]="$edx_ansible_cmd xqueue.yml -e 'xqueue_version=$2' -e 'elb_pre_post=false'"
+repos_to_cmd["credentials"]="$edx_ansible_cmd credentials.yml -e 'credentials_version=$2'"
+repos_to_cmd["cs_comments_service"]="$edx_ansible_cmd forum.yml -e 'forum_version=$2'"
+repos_to_cmd["xserver"]="$edx_ansible_cmd xserver.yml -e 'xserver_version=$2'"
+repos_to_cmd["configuration"]="$edx_ansible_cmd edx_ansible.yml -e 'configuration_version=$2'"
+repos_to_cmd["read-only-certificate-code"]="$edx_ansible_cmd certs.yml -e 'certs_version=$2'"
+repos_to_cmd["edx-analytics-data-api"]="$edx_ansible_cmd analyticsapi.yml -e 'ANALYTICS_API_VERSION=$2'"
+repos_to_cmd["edx-ora2"]="$edx_ansible_cmd ora2.yml -e 'ora2_version=$2'"
+repos_to_cmd["insights"]="$edx_ansible_cmd insights.yml -e 'INSIGHTS_VERSION=$2'"
+repos_to_cmd["ecommerce"]="$edx_ansible_cmd ecommerce.yml -e 'ECOMMERCE_VERSION=$2'"
+repos_to_cmd["programs"]="$edx_ansible_cmd programs.yml -e 'PROGRAMS_VERSION=$2'"
+repos_to_cmd["discovery"]="$edx_ansible_cmd discovery.yml -e 'DISCOVERY_VERSION=$2'"
+
+
+if [[ -z $1 || -z $2 ]]; then
+    echo
+    echo "ERROR: You must specify a repo and commit"
+    usage
+    exit 1
+fi
+
+if [[ -z ${repos_to_cmd[$1]} ]]; then
+    echo
+    echo "ERROR: Invalid repo name"
+    usage
+    exit 1
+fi
+
+cd {{ edx_ansible_code_dir }}/playbooks/edx-east
+eval "sudo ${repos_to_cmd["$1"]} $verbose"

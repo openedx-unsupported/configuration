@@ -1,0 +1,42 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+---
+# Check out xqueue repo to {{ xqueue_code_dir }}
+#
+#
+- name: Create application user
+  user:
+    name: "{{ xqueue_user }}"
+    home: "{{ xqueue_app_dir }}"
+    createhome: no
+    shell: /bin/false
+  tags:
+    - install
+    - install:base
+
+- name: Create xqueue app and venv dir
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ xqueue_user }}"
+    group: "{{ common_web_group }}"
+  with_items:
+    - "{{ xqueue_app_dir }}"
+    - "{{ xqueue_venvs_dir }}"
+  tags:
+    - install
+    - install:base
+
+- name: Install a bunch of system packages on which xqueue relies
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ xqueue_debian_pkgs }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- include: deploy.yml
+  tags:
+    - deploy

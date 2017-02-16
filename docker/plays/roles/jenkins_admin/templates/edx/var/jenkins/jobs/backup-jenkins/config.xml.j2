@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>@daily</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>
+#!/bin/bash -x
+
+# Delete all files in the workspace
+rm -rf *
+# Create a directory for the job definitions
+mkdir -p $BUILD_ID/jobs
+# Copy global configuration files into the workspace
+cp $JENKINS_HOME/*.xml $BUILD_ID/
+# Copy keys and secrets into the workspace
+cp $JENKINS_HOME/secret.key $BUILD_ID/
+cp $JENKINS_HOME/secret.key.not-so-secret $BUILD_ID/
+cp -r $JENKINS_HOME/secrets $BUILD_ID/
+# Copy user configuration files into the workspace
+#cp -r $JENKINS_HOME/users $BUILD_ID/
+# Copy job definitions into the workspace
+rsync -am --include=&apos;config.xml&apos; --include=&apos;*/&apos; --prune-empty-dirs --exclude=&apos;*&apos; $JENKINS_HOME/jobs/ $BUILD_ID/jobs/
+# Create an archive from all copied files (since the S3 plugin cannot copy folders recursively)
+tar czf $BUILD_ID.tar.gz $BUILD_ID/
+# Remove the directory so only the archive gets copied to S3
+rm -rf $BUILD_ID
+</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.s3.S3BucketPublisher plugin="s3@0.5">
+      <profileName>{{ JENKINS_ADMIN_S3_PROFILE.name }}</profileName>
+      <entries>
+        <hudson.plugins.s3.Entry>
+          <bucket>edx-jenkins-backups/{{ JENKINS_ADMIN_NAME }}</bucket>
+          <sourceFile>${BUILD_ID}.tar.gz</sourceFile>
+          <storageClass>STANDARD</storageClass>
+          <selectedRegion>US_EAST_1</selectedRegion>
+        </hudson.plugins.s3.Entry>
+      </entries>
+      <userMetadata/>
+    </hudson.plugins.s3.S3BucketPublisher>
+  </publishers>
+  <buildWrappers/>
+</project>

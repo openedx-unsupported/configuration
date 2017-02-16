@@ -1,0 +1,17 @@
+{% for w in edxapp_workers %}
+[program:{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}]
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_WORKERS_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}CONCURRENCY={{ w.concurrency }},LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},PYTHONPATH={{ edxapp_code_dir }},SERVICE_VARIANT={{ w.service_variant }}
+user={{ common_web_user }}
+directory={{ edxapp_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edxapp_venv_dir + '/bin/newrelic-admin run-program ' if w.monitor and COMMON_ENABLE_NEWRELIC_APP else ''}}{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py {{ w.service_variant }} --settings={{ worker_django_settings_module }} celery worker --loglevel=info --queues=edx.{{ w.service_variant }}.core.{{ w.queue }} --hostname=edx.{{ w.service_variant }}.core.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--maxtasksperchild ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }}
+killasgroup=true
+stopwaitsecs={{ w.stopwaitsecs | default(EDXAPP_WORKER_DEFAULT_STOPWAITSECS) }}
+
+{% endfor %}
+
+[group:edxapp_worker]
+programs={%- for w in edxapp_workers %}{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %}

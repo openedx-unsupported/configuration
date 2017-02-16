@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors/>
+  <version>1.638</version>
+  <numExecutors>{{ JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT }}</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  {% if jenkins_auth_realm.name == "none" %}
+  <authorizationStrategy class="hudson.security.AuthorizationStrategy$Unsecured"/>
+  <securityRealm class="hudson.security.SecurityRealm$None"/>
+  {% else %}
+  <authorizationStrategy class="hudson.security.GlobalMatrixAuthorizationStrategy">
+  {% for permission_group, permissions in jenkins_auth_permissions.iteritems() %}
+    {% for permission in permissions %}
+      {% for user in jenkins_auth_users[permission_group] | default([]) %}
+      <permission>{{ permission }}:{{ user }}</permission>
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
+  </authorizationStrategy>
+  {% if jenkins_auth_realm.name == "unix" %}
+  <securityRealm class="hudson.security.PAMSecurityRealm" plugin="pam-auth@1.2">
+    <serviceName>{{ jenkins_auth_realm.service }}</serviceName>
+  </securityRealm>
+  {% elif jenkins_auth_realm.name == "github_oauth" %}
+  <securityRealm class="org.jenkinsci.plugins.GithubSecurityRealm">
+    <githubWebUri>{{ jenkins_auth_realm.webUri }}</githubWebUri>
+    <githubApiUri>{{ jenkins_auth_realm.apiUri }}</githubApiUri>
+    <clientID>{{ jenkins_auth_realm.clientId }}</clientID>
+    <clientSecret>{{ jenkins_auth_realm.clientSecret }}</clientSecret>
+    <oauthScopes>{{ jenkins_auth_realm.oauthScopes|join(',') }}</oauthScopes>
+  </securityRealm>
+  {% endif %}
+  {% endif %}
+  <disableRememberMe>false</disableRememberMe>
+  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+  <workspaceDir>${JENKINS_HOME}/workspace/${ITEM_FULLNAME}</workspaceDir>
+  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
+  <markupFormatter class="hudson.markup.EscapedMarkupFormatter"/>
+  <jdks/>
+  <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
+  <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
+  <clouds/>
+  <quietPeriod>5</quietPeriod>
+  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>All</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+    </hudson.model.AllView>
+  </views>
+  <primaryView>All</primaryView>
+  <slaveAgentPort>0</slaveAgentPort>
+  <label>312312321</label>
+  <nodeProperties/>
+  <globalNodeProperties/>
+</hudson>

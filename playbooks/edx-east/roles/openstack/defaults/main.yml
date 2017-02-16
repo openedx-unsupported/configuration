@@ -1,0 +1,41 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role openstack
+#
+
+# Both of these vars are required to work-around
+# some ansible variable precedence issues with
+# circular dependencies introduced in the openstack PR.
+# More investigation is required to determine the optimal
+# solution.
+vhost_name: openstack
+VHOST_NAME: "{{ vhost_name }}"
+
+# Credentials for log sync script
+SWIFT_LOG_SYNC_USERNAME: ''
+SWIFT_LOG_SYNC_PASSWORD: ''
+SWIFT_LOG_SYNC_TENANT_ID: ''
+SWIFT_LOG_SYNC_TENANT_NAME: ''
+SWIFT_LOG_SYNC_AUTH_URL: ''
+SWIFT_LOG_SYNC_REGION_NAME: ''
+
+openstack_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/openstack.txt"
+
+openstack_log_sync_script: "{{ vhost_dirs.home.path }}/send-logs-to-swift"
+openstack_log_sync_script_environment: "{{ vhost_dirs.home.path }}/log-sync-env.sh"
+openstack_swift_logfile: "{{ vhost_dirs.logs.path }}/log-sync.log"
+
+openstack_debian_pkgs:
+  - python-setuptools
+
+openstack_pip_pkgs:
+  - python-keystoneclient
+  - python-swiftclient

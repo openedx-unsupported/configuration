@@ -1,0 +1,144 @@
+# variables common to the xqueue role, automatically loaded
+# when the role is included
+---
+XQUEUE_SETTINGS: 'aws_settings'
+
+XQUEUE_NGINX_PORT: 18040
+XQUEUE_GUNICORN_WORKERS_EXTRA: ""
+XQUEUE_GUNICORN_WORKERS_EXTRA_CONF: ""
+
+XQUEUE_QUEUES:
+  # push queue
+  'edX-Open_DemoX': 'http://localhost:18050'
+  # pull queues
+  'test-pull': !!null
+  'certificates': !!null
+  'open-ended': !!null
+  'open-ended-message': !!null
+
+XQUEUE_LOGGING_ENV: sandbox
+XQUEUE_SYSLOG_SERVER: 'localhost'
+
+XQUEUE_UPLOAD_BUCKET: 'sandbox-bucket'
+XQUEUE_UPLOAD_PATH_PREFIX: 'sandbox-xqueue'
+
+# Deprecated, use XQUEUE_UPLOAD_BUCKET and XQUEUE_UPLOAD_PATH_PREFIX
+XQUEUE_S3_BUCKET : "{{ XQUEUE_UPLOAD_BUCKET }}"
+XQUEUE_S3_PATH_PREFIX: "{{ XQUEUE_UPLOAD_PATH_PREFIX }}"
+
+XQUEUE_LOCAL_LOGLEVEL: 'INFO'
+
+XQUEUE_AWS_ACCESS_KEY_ID : ''
+XQUEUE_AWS_SECRET_ACCESS_KEY : ''
+
+XQUEUE_SWIFT_USERNAME: ''
+XQUEUE_SWIFT_KEY: ''
+XQUEUE_SWIFT_TENANT_ID: ''
+XQUEUE_SWIFT_TENANT_NAME: ''
+XQUEUE_SWIFT_AUTH_URL: ''
+XQUEUE_SWIFT_AUTH_VERSION: 1
+XQUEUE_SWIFT_REGION_NAME: ''
+
+XQUEUE_BASIC_AUTH_USER: "{{ COMMON_HTPASSWD_USER }}"
+XQUEUE_BASIC_AUTH_PASSWORD: "{{ COMMON_HTPASSWD_PASS }}"
+XQUEUE_DJANGO_USERS:
+  lms: 'password'
+XQUEUE_RABBITMQ_USER: 'edx'
+XQUEUE_RABBITMQ_PASS: 'edx'
+XQUEUE_RABBITMQ_HOSTNAME: 'localhost'
+XQUEUE_LANG: 'en_US.UTF-8'
+
+XQUEUE_MYSQL_DB_NAME: 'xqueue'
+XQUEUE_MYSQL_USER: 'xqueue001'
+XQUEUE_MYSQL_PASSWORD: 'password'
+XQUEUE_MYSQL_HOST: 'localhost'
+XQUEUE_MYSQL_PORT: '3306'
+XQUEUE_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-xqueue"
+# Set the number of workers explicitely for xqueue
+XQUEUE_WORKERS: !!null
+XQUEUE_WORKERS_PER_QUEUE: 12
+
+# Internal vars below this line
+#############################################
+
+xqueue_app_dir: "{{ COMMON_APP_DIR }}/xqueue"
+xqueue_code_dir: "{{ xqueue_app_dir }}/xqueue"
+xqueue_data_dir: "{{ COMMON_DATA_DIR }}/xqueue"
+xqueue_venvs_dir: "{{ xqueue_app_dir }}/venvs"
+xqueue_venv_dir: "{{ xqueue_venvs_dir }}/xqueue"
+xqueue_venv_bin: "{{ xqueue_venv_dir }}/bin"
+xqueue_user: "xqueue"
+
+# Default nginx listen port
+# These should be overrided if you want
+# to serve all content on port 80
+xqueue_gunicorn_port: 8040
+xqueue_gunicorn_host: 127.0.0.1
+
+xqueue_env_config:
+  XQUEUES: "{{ XQUEUE_QUEUES }}"
+  XQUEUE_WORKERS_PER_QUEUE: "{{ XQUEUE_WORKERS_PER_QUEUE }}"
+  LOGGING_ENV: "{{ XQUEUE_LOGGING_ENV }}"
+  SYSLOG_SERVER: "{{ XQUEUE_SYSLOG_SERVER }}"
+  LOG_DIR: "{{ COMMON_DATA_DIR }}/logs/xqueue"
+  RABBIT_HOST: "{{ XQUEUE_RABBITMQ_HOSTNAME }}"
+  LOCAL_LOGLEVEL: "{{ XQUEUE_LOCAL_LOGLEVEL }}"
+  UPLOAD_BUCKET: "{{ XQUEUE_UPLOAD_BUCKET }}"
+  UPLOAD_PATH_PREFIX: "{{ XQUEUE_UPLOAD_PATH_PREFIX }}"
+
+  # Deprecated, use UPLOAD_BUCKET and UPLOAD_PATH_PREFIX instead
+  S3_BUCKET: "{{ XQUEUE_S3_BUCKET }}"
+  S3_PATH_PREFIX: "{{ XQUEUE_S3_PATH_PREFIX }}"
+
+xqueue_auth_config:
+  AWS_ACCESS_KEY_ID:  "{{ XQUEUE_AWS_ACCESS_KEY_ID }}"
+  AWS_SECRET_ACCESS_KEY: "{{ XQUEUE_AWS_SECRET_ACCESS_KEY }}"
+  SWIFT_USERNAME: "{{ XQUEUE_SWIFT_USERNAME }}"
+  SWIFT_KEY: "{{ XQUEUE_SWIFT_KEY }}"
+  SWIFT_TENANT_ID: "{{ XQUEUE_SWIFT_TENANT_ID }}"
+  SWIFT_TENANT_NAME: "{{ XQUEUE_SWIFT_TENANT_NAME }}"
+  SWIFT_AUTH_URL: "{{ XQUEUE_SWIFT_AUTH_URL }}"
+  SWIFT_AUTH_VERSION: "{{ XQUEUE_SWIFT_AUTH_VERSION }}"
+  SWIFT_REGION_NAME: "{{ XQUEUE_SWIFT_REGION_NAME }}"
+  REQUESTS_BASIC_AUTH: ["{{ XQUEUE_BASIC_AUTH_USER }}", "{{XQUEUE_BASIC_AUTH_PASSWORD}}"]
+  USERS: "{{ XQUEUE_DJANGO_USERS }}"
+  DATABASES:
+    default:
+      ENGINE: "django.db.backends.mysql"
+      NAME: "{{ XQUEUE_MYSQL_DB_NAME }}"
+      USER: "{{ XQUEUE_MYSQL_USER }}"
+      PASSWORD: "{{ XQUEUE_MYSQL_PASSWORD }}"
+      HOST: "{{ XQUEUE_MYSQL_HOST }}"
+      PORT: "{{ XQUEUE_MYSQL_PORT }}"
+      ATOMIC_REQUESTS: True
+  RABBITMQ_USER: "{{ XQUEUE_RABBITMQ_USER }}"
+  RABBITMQ_PASS: "{{ XQUEUE_RABBITMQ_PASS }}"
+
+xqueue_source_repo: "https://github.com/edx/xqueue.git"
+xqueue_version: 'master'
+xqueue_pre_requirements_file:       "{{ xqueue_code_dir }}/pre-requirements.txt"
+xqueue_post_requirements_file:      "{{ xqueue_code_dir }}/requirements.txt"
+xqueue_openstack_requirements_file: "{{ xqueue_code_dir }}/openstack-requirements.txt"
+
+# These packages are required for the xqueue server,
+# copied from the LMS role for now since there is a lot
+# of overlap
+xqueue_debian_pkgs:
+  # for compiling the virtualenv
+  # (only needed if wheel files aren't available)
+  - build-essential
+  - s3cmd
+  - pkg-config
+  - graphviz-dev
+  - graphviz
+  - libmysqlclient-dev
+  # apparmor
+  - apparmor-utils
+  # misc
+  - curl
+  - ipython
+  - ntp
+  # for shapely
+  - libgeos-dev
+  # Needed to be able to create the xqueue mysqldb.
+  - python-mysqldb

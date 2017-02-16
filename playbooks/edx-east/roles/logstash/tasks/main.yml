@@ -1,0 +1,74 @@
+# requires:
+# - oraclejdk
+# - elasticsearch
+---
+
+- name: Ensure app apt dependencies are installed
+  apt: pkg={{ item }} state=installed
+  with_items:
+    - redis-server
+
+- name: Ensure {{ logstash_app_dir }} exists
+  file: path={{ logstash_app_dir }} state=directory owner=root group=root mode=0755
+
+- name: Ensure subdirectories exist
+  file: path={{ logstash_app_dir }}/{{ item }} owner=root group=root mode=0755 state=directory
+  with_items:
+    - bin
+    - etc
+    - share
+
+- name: ensure logstash config is in place
+  template: src=logstash.conf.j2 dest={{ logstash_app_dir }}/etc/logstash.conf owner=root group=root mode=0644
+  notify: restart logstash
+
+- name: ensure logstash upstart job is in place
+  template: src=logstash.upstart.conf.j2 dest=/etc/init/logstash.conf owner=root group=root mode=0755
+
+- name: ensure logstash has a logging dir at {{ logstash_log_dir }}
+  file: path={{ logstash_log_dir }} owner=root group=root mode=0755 state=directory
+
+- name: ensure we have the specified logstash release
+  get_url: url={{ logstash_url }} dest={{ logstash_app_dir }}/share/{{ logstash_file }}
+
+- name: ensure symlink with no version exists at {{ logstash_app_dir }}/share/logstash.jar
+  file: src={{ logstash_app_dir }}/share/{{ logstash_file }} dest={{ logstash_app_dir }}/share/logstash.jar state=link
+
+- name: start logstash
+  action: service name=logstash state=started enabled=yes
+
+- name: Ensure we are running
+  wait_for: port={{ logstash_syslog_port }} host=localhost timeout=60
+
+- name: Copy logstash es index template
+  copy: src=template_logstash.json dest=/etc/elasticsearch/template_logstash.json
+
+- name: Enable logstash es index template
+  shell: chdir=/etc/elasticsearch executable=/bin/bash curl -XPUT 'http://localhost:9200/_template/template_logstash' -d @template_logstash.json
+
+
+- name: Install python requirements
+  pip: name={{ item }} state=present
+  with_items: logstash_python_requirements
+
+- name: Checkout logstash rotation scripts
+  git: repo={{ logstash_scripts_repo }} dest={{ logstash_app_dir }}/share/logstash-elasticsearch-scripts
+  when: LOGSTASH_ROTATE|bool
+
+- name: Setup cron to run rotation
+  cron: >
+    user=root
+    name="Elasticsearch logstash index rotation"
+    hour={{ logstash_rotate_cron.hour }}
+    minute={{ logstash_rotate_cron.minute }}
+    job="/usr/bin/python {{ logstash_app_dir }}/share/logstash-elasticsearch-scripts/logstash_index_cleaner.py -d {{ LOGSTASH_DAYS_TO_KEEP }} > {{ logstash_log_dir }}/rotation_cron"
+  when: LOGSTASH_ROTATE|bool
+
+- name: Setup cron to run rotation
+  cron: >
+    user=root
+    name="Elasticsearch logstash index optimization"
+    hour={{ logstash_optimize_cron.hour }}
+    minute={{ logstash_optimize_cron.minute }}
+    job="/usr/bin/python {{ logstash_app_dir }}/share/logstash-elasticsearch-scripts/logstash_index_optimize.py -d {{ LOGSTASH_DAYS_TO_KEEP }} > {{ logstash_log_dir }}/optimize_cron"
+  when: LOGSTASH_ROTATE|bool

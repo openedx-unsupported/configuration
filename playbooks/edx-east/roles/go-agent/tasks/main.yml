@@ -1,0 +1,60 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role go-agent
+# 
+# Overview:
+#
+# Deploys go-agent using aptitude!
+#
+# Dependencies:
+#    - openjdk7
+# 
+# Example play:
+#
+# - name: Configure instance(s)
+#   hosts: go-agent
+#   sudo: True
+#   vars_files:
+#     - "{{ secure_dir }}/admin/sandbox.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#
+
+- name: Install go-agent aptitude repository
+  apt_repository:
+    repo: "{{ GO_AGENT_APT_SOURCE }}"
+    state: present
+
+- name: Install aptitude key for go-agent/go-agent
+  apt_key:
+    url: "{{ GO_AGENT_APT_KEY_URL }}"
+    state: present
+
+- name: Install go-agent using apt-get
+  apt:
+    name: "{{ GO_AGENT_APT_NAME }}={{ GO_AGENT_VERSION }}"
+    update_cache: yes
+    state: present
+
+- name: Install go-agent configuration
+  template:
+    src: "edx/app/go-agent/go-agent.j2"
+    dest: "{{ GO_AGENT_CONF_HOME }}/go-agent"
+    mode: "0644"
+    owner: "{{ GO_AGENT_USER }}"
+    group: "{{ GO_AGENT_GROUP }}"
+
+- name: Restart go-agent
+  service:
+    name: "{{ GO_AGENT_SERVICE_NAME }}"
+    state: restarted

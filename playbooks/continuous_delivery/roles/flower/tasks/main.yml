@@ -1,0 +1,76 @@
+---
+- name: Create application user
+  user:
+    name: "{{ FLOWER_USER }}"
+    home: "{{ flower_app_dir }}"
+    createhome: no
+    shell: /bin/false
+  notify:
+    - restart flower
+
+- name: Create flower user dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ FLOWER_USER }}"
+    group: "{{ common_web_group }}"
+  notify:
+    - restart flower
+  with_items:
+    - "{{ flower_app_dir }}"
+    - "{{ flower_data_dir }}"
+    - "{{ flower_venv_dir }}"
+    - "{{ flower_log_dir }}"
+
+- name: Create flower environment script and configuration file
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ FLOWER_USER }}"
+    group: "{{ common_web_group }}"
+    mode: "0640"
+  notify:
+    - restart flower
+  with_items:
+    - { src: 'edx/app/flower/flower_env.j2', dest: '{{ flower_app_dir }}/flower_env' }
+    - { src: 'edx/app/flower/flowerconfig.py.j2', dest: '{{ flower_conf_dir }}/flowerconfig.py' }
+
+- name: Create virtualenv and install Python requirements
+  pip:
+    name: "{{ item }}"
+    virtualenv: "{{ flower_venv_dir }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  become_user: "{{ FLOWER_USER }}"
+  environment: "{{ flower_environment }}"
+  with_items: "{{ flower_python_reqs }}"
+  notify:
+    - restart flower
+
+- name: Create supervisor configuration
+  template:
+    src: "edx/app/supervisor/conf.d.available/flower.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ FLOWER_USER }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
+  notify:
+    - restart flower
+
+- name: Enable supervisor configuration
+  file:
+    src: "{{ supervisor_available_dir }}/{{ FLOWER_USER }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ FLOWER_USER }}.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  notify:
+    - restart flower
+
+- name: Update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  become_user: "{{ supervisor_service_user }}"
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+  notify:
+    - restart flower

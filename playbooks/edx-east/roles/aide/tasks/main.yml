@@ -1,0 +1,28 @@
+---
+# install and configure aide IDS
+#
+- name: Install aide
+  apt:
+    name: aide
+    state: present
+
+- name: Configure aide defaults
+  template:
+    src: etc/default/aide.j2
+    dest: /etc/default/aide
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Open read permissions on aide logs
+  file:
+    name: /var/log/aide
+    recurse: yes
+    state: directory
+    mode: "0755"
+
+- name: Aide initial scan (this can take a long time)
+  command: "aideinit -y -f"
+  args:
+    creates: "/var/lib/aide/aide.db"
+  become: yes

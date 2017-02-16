@@ -1,0 +1,59 @@
+---
+- name: Check if the role exists
+  stat:
+    path: "roles/{{ my_role_name }}"
+  register: role_exists
+
+- name: Prompt for overwrite
+  pause: prompt="Role {{ my_role_name }} exists. Overwrite? Touch any key to continue or <CTRL>-c, then a, to abort."
+  when: role_exists.stat.exists
+
+- name: Create docker directories
+  file:
+    path: "../docker/{{ item }}/{{ my_role_name }}"
+    state: directory
+  with_items:
+    - build
+
+- name: Create role directories
+  file:
+    path: "roles/{{ my_role_name }}/{{ item }}"
+    state: directory
+  with_items:
+    - tasks
+    - meta
+    - defaults
+    - templates/edx/app/supervisor/conf.d.available
+    - templates/edx/app/{{ my_role_name }}
+    - templates/edx/app/nginx/sites-available
+
+- name: Make an ansible role
+  template:
+    src: "{{ item }}/main.yml.j2"
+    dest: "roles/{{ my_role_name }}/{{ item }}/main.yml"
+  with_items:
+    - tasks
+    - meta
+    - defaults
+
+- name: Update docker templates
+  template:
+    src: "docker/{{ item.src }}"
+    dest: "../docker/{{ item.dest }}"
+  with_items:
+    - { src: 'build/ROLE_NAME/Dockerfile.j2', dest: 'build/{{ my_role_name|replace("_","-") }}/Dockerfile'}
+    - { src: 'build/ROLE_NAME/ansible_overrides.yml.j2', dest: 'build/{{ my_role_name|replace("_","-") }}/ansible_overrides.yml'}
+    - { src: 'build/ROLE_NAME/inventory', dest: 'build/{{ my_role_name|replace("_","-") }}/inventory'}
+    - { src: 'plays/ROLE_NAME.yml.j2', dest: 'plays/{{ my_role_name }}.yml'}
+
+- name: Update role templates
+  template:
+    src: "templates/{{ item.src }}"
+    dest: "roles/{{ my_role_name }}/templates/{{ item.dest }}"
+  with_items:
+    - { src: 'edx/app/supervisor/conf.d.available/ROLE_NAME.conf.j2', dest: 'edx/app/supervisor/conf.d.available/{{ my_role_name }}.conf.j2'}
+    - { src: 'edx/app/ROLE_NAME/ROLE_NAME.sh.j2', dest: 'edx/app/{{ my_role_name }}/{{ my_role_name }}.sh.j2'}
+    - { src: 'edx/app/ROLE_NAME/ROLE_NAME_env.j2', dest: 'edx/app/{{ my_role_name }}/{{ my_role_name }}_env.j2'}
+    - { src: 'edx/app/ROLE_NAME/ROLE_NAME_gunicorn.py.j2', dest: 'edx/app/{{ my_role_name }}/{{ my_role_name }}_gunicorn.py.j2'}
+    - { src: 'edx/app/ROLE_NAME/devstack.sh.j2', dest: 'edx/app/{{ my_role_name }}/devstack.sh.j2'}
+    - { src: 'edx/app/nginx/sites-available/ROLE_NAME.j2', dest: 'edx/app/nginx/sites-available/{{ my_role_name }}.j2'}

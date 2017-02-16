@@ -1,0 +1,36 @@
+{
+    "template": "logstash-*",
+    "settings" : {
+        "number_of_shards" : 1,
+        "number_of_replicas" : 0,
+        "index" : {
+            "query" : { "default_field" : "message" },
+            "store" : { "compress" : { "stored" : true, "tv": true } }
+        }
+    },
+    "mappings": {
+        "_default_": { 
+            "_all": { "enabled": false },
+            "_source": { "compress": true },
+            "dynamic_templates": [
+                {
+                    "string_template" : { 
+                        "match" : "*",
+                        "mapping": { "type": "string", "index": "not_analyzed" },
+                        "match_mapping_type" : "string"
+                     } 
+                 }
+             ],
+             "properties" : {
+                "@fields": { "type": "object", "dynamic": true, "path": "full" }, 
+                "@message" : { "type" : "string", "index" : "analyzed" },
+                "@source" : { "type" : "string", "index" : "not_analyzed" },
+                "@source_host" : { "type" : "string", "index" : "not_analyzed" },
+                "@source_path" : { "type" : "string", "index" : "not_analyzed" },
+                "@tags": { "type": "string", "index" : "not_analyzed" }, 
+                "@timestamp" : { "type" : "date", "index" : "not_analyzed" },
+                "@type" : { "type" : "string", "index" : "not_analyzed" }
+            }
+        }
+    }
+}

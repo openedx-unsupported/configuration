@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set ecommerce_venv_bin = ecommerce_home + "/venvs/" + ecommerce_service_name + "/bin" %}
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = ecommerce_venv_bin + '/newrelic-admin run-program ' + ecommerce_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = ecommerce_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ ECOMMERCE_NEWRELIC_APPNAME }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+source {{ ecommerce_home }}/ecommerce_env
+{{ executable }} -c {{ ecommerce_home }}/ecommerce_gunicorn.py {{ ECOMMERCE_GUNICORN_EXTRA }} ecommerce.wsgi:application

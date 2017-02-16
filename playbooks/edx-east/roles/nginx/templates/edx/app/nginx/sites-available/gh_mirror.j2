@@ -1,0 +1,17 @@
+server {
+    listen       {{ gh_mirror_nginx_port }};
+    server_name  {{ gh_mirror_server_name }};
+    location ~ (/.*) {
+        root {{ gh_mirror_data_dir }};
+        fastcgi_pass  unix:/var/run/fcgiwrap.socket;
+        fastcgi_param SCRIPT_FILENAME     /usr/lib/git-core/git-http-backend;
+        # This won't work if the include is put before
+        # SCRIPT_FILENAME
+        include       fastcgi_params;
+        # export all repositories under GIT_PROJECT_ROOT
+        fastcgi_param GIT_HTTP_EXPORT_ALL "";
+        fastcgi_param GIT_PROJECT_ROOT    {{ gh_mirror_data_dir }};
+        fastcgi_param PATH_INFO           $1;
+    }
+}
+

@@ -1,0 +1,51 @@
+WSGIPythonHome {{ edxapp_venv_dir }}
+WSGIRestrictEmbedded On
+
+<VirtualHost *:*>
+    ServerName https://{{ lms_env_config.SITE_NAME }}
+    ServerAlias *.{{ lms_env_config.SITE_NAME }}
+    UseCanonicalName On
+
+    Alias /static/ /opt/wwc/staticfiles/
+
+    <Directory /opt/wwc/staticfiles>
+        Order deny,allow
+        Allow from all
+    </Directory>
+
+    SetEnv SERVICE_VARIANT lms
+
+    WSGIScriptAlias / {{ edxapp_code_dir }}/lms/wsgi_apache_lms.py
+
+    <Directory {{ edxapp_code_dir }}/lms>
+    <Files wsgi_apache_lms.py>
+        Order deny,allow
+        Allow from all
+    </Files>
+    </Directory>
+
+    <Location /Shibboleth.sso>
+        SetHandler shib
+        Satisfy Any
+        Allow from all
+        AuthType None
+        Require all granted
+        ShibRequestSetting applicationId class
+    </Location>
+    <Location '/shib-login'>
+        ShibRequestSetting applicationId class
+        AuthType shibboleth
+        ShibRequestSetting requireSession 1
+        require valid-user
+    </Location>
+
+    WSGIDaemonProcess lms user=www-data group=adm processes=1 python-path={{ edxapp_code_dir }}:{{ edxapp_venv_dir }}/lib/python2.7/site-packages display-name=%{GROUP}
+    WSGIProcessGroup lms
+    WSGIApplicationGroup %{GLOBAL}
+
+    ErrorLog ${APACHE_LOG_DIR}/apache-edx-error.log
+
+    LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\" %D" apache-edx
+    CustomLog {{ APACHE_LOG_DIR }}/apache-edx-access.log apache-edx
+
+</VirtualHost>

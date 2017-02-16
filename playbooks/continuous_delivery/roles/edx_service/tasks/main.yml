@@ -1,0 +1,144 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_service
+#
+# Overview:
+#
+# This role performs the repetive tasks that most edX roles
+# require in our default configuration.
+#
+# Example play:
+#
+# Rather than being included in the play, this role
+# is included as a dependency by other roles in the meta/main.yml
+# file.  The including role should add the following
+# depency definition.
+#
+# dependencies:
+#   - role: edx_service
+#     edx_service_name: "hotg"
+#     edx_service_config: "{{ structure_to_be_written_to_config_file_in_/edx/etc }}"
+#     edx_service_repos:
+#       - PROTOCOL: [https/ssh]
+#         DOMAIN: github.com
+#         PATH: edx
+#         REPO: hotg
+#         VERSION: master
+#         DESTINATION: "/edx/app/hotg/hotg"
+#         SSH_KEY: <required if PROTOCOL==ssh>
+#       - PROTOCOL
+#         ...
+#     edx_service_user: hotg_system_user
+#     edx_service_home: "/edx/app/hotg"
+#     edx_service_packages:
+#       debian: [ pkg1, pkg2, pkg3 ]      
+#       redhat: [ pkg4, pkg5 ]
+#
+# Assumes that the home directory has been created above.
+# In some cases(vagrant boxes) the home directory gets created
+# but does not have the corrent owner and group. In vagrant for
+# example we were seeing it defaulting to `root` for both.
+# The item that is a blank string("") ensures the ownership
+# of the home directory is always correct before proceeding.
+- name: Create edx_service app, venv, data, and staticfiles dirs
+  file:
+    path: "{{ edx_service_home }}/{{ item }}"
+    state: directory
+    owner: "{{ edx_service_name }}"
+    group: "{{ common_web_group }}"
+  with_items:
+    - ""
+    - "venvs"
+    - "data"
+    - "staticfiles"
+  tags:
+    - install
+    - install:base
+
+- name: Create /edx/var and /edx/etc dirs
+  file:
+    path: "{{ item }}/{{ edx_service_name }}"
+    state: directory
+    owner: "{{ edx_service_user }}"
+    group: "{{ common_web_group }}"
+    mode: "0755"
+  with_items:
+    - "/edx/var"
+    - "/edx/etc"
+  tags:
+    - install
+    - install:base
+
+- name: Create edx_service log dir
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "syslog"
+    group: "syslog"
+  with_items:
+    - "{{ COMMON_LOG_DIR }}/{{ edx_service_name }}"
+  tags:
+    - install
+    - install:base
+
+- name: Write out app config file
+  template:
+    src: "config.yml.j2"
+    dest: "{{ COMMON_CFG_DIR  }}/{{ edx_service_name }}.yml"
+    mode: "0644"
+  when: edx_service_config is defined
+  tags:
+    - install
+    - install:configuration
+  
+- name: Install a bunch of system packages on which edx_service relies
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  with_items: "{{ edx_service_packages.debian }}"
+  when: ansible_distribution in common_debian_variants
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Install a bunch of system packages on which edx_service relies
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ edx_service_packages.redhat }}"
+  when: ansible_distribution in common_redhat_variants
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Get instance information
+  action: ec2_facts
+  tags:
+    - to-remove
+  #old syntax - should be fixed
+
+- name: Tag instance
+  ec2_tag_local: resource={{ ansible_ec2_instance_id }} region={{ ansible_ec2_placement_region }}
+  args:
+    tags:
+      - Name: version:{{ edx_service_name }}
+        Value: "{{ item.0.DOMAIN }}/{{ item.0.PATH }}/{{ item.0.REPO }} {{ item.1.after |truncate(7,True,'') }}"
+  when: item.1.after is defined and COMMON_TAG_EC2_INSTANCE and edx_service_repos is defined
+  with_together: 
+    - edx_service_repos
+    - code_checkout.results
+  tags:
+    - to-remove
+
+#TODO: restart supervisor- depends on supervisor being refactored into this role

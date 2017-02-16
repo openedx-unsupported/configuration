@@ -1,0 +1,161 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role jenkins_admin
+#
+
+#
+# vars are namespace with the module name.
+#
+
+JENKINS_ADMIN_NAME: 'default_jenkins_name'
+
+# A dictionary of AWS credentials to use to make
+# a boto file for jenkins.
+JENKINS_ADMIN_AWS_CREDENTIALS: !!null
+
+# jenkins_admin also requires other variables that are not defined by default.
+
+# JENKINS_ADMIN_S3_PROFILE: !!null
+# JENKINS_ADMIN_BACKUP_BUCKET: !!null
+# JENKINS_ADMIN_BACKUP_KEY: !!null
+
+jenkins_admin_role_name: jenkins_admin
+
+
+jenkins_admin_version: "1.630"
+# repo for nodejs
+jenkins_chrislea_ppa: "ppa:chris-lea/node.js"
+#
+# OS packages
+#
+
+jenkins_admin_debian_repos:
+  - "deb http://cosmos.cites.illinois.edu/pub/ubuntu/ precise-backports main universe"
+
+jenkins_admin_debian_pkgs:
+  # These are copied from the edxapp
+  # role so that we can create virtualenvs
+  # on the jenkins server for edxapp
+  # for compiling the virtualenv
+  # (only needed if wheel files aren't available)
+  - build-essential
+  - s3cmd
+  - pkg-config
+  - graphviz-dev
+  - graphviz
+  - libmysqlclient-dev
+  # for scipy, do not install
+  # libopenblas-base, it will cause
+  # problems for numpy
+  - gfortran
+  - libatlas3gf-base
+  - liblapack-dev
+  - g++
+  - libxml2-dev
+  - libxslt1-dev
+  # apparmor
+  - apparmor-utils
+  # misc
+  - curl
+  - ipython
+  - nodejs
+  - ntp
+  # for shapely
+  - libgeos-dev
+  # i18n
+  - gettext
+  # Pillow (PIL Fork) Dependencies
+  # Needed by the CMS to manipulate images.
+  - libjpeg8-dev
+  - libpng12-dev
+  # for status.edx.org
+  - ruby
+  - ruby1.9.1
+  # for check-migrations
+  - mysql-client
+  # for aws cli scripting
+  - jq
+  # pyOpenSSL prerequisite
+  # Need by python script that check SSL expiration
+  - libffi-dev
+
+jenkins_admin_gem_pkgs:
+  # for generating status.edx.org
+  - { name: sass, version: "3.2.4" }
+
+jenkins_admin_redhat_pkgs: []
+
+jenkins_admin_plugins:
+  - { name: "greenballs", version: "1.14" }
+  - { name: "rebuild", version: "1.21" }
+  - { name: "build-user-vars-plugin", version: "1.1" }
+  - { name: "matrix-auth", version: "1.2" }
+  - { name: "matrix-project", version: "1.3" }
+  - { name: "mailer", version: "1.9" }
+  - { name: "build-user-vars-plugin", version: "1.3" }
+  - { name: "credentials", version: "1.15" }
+  - { name: "ssh-credentials", version: "1.7.1" }
+  - { name: "ssh-agent", version: "1.4.1" }
+  - { name: "token-macro", version: "1.10" }
+  - { name: "parameterized-trigger", version: "2.25" }
+  - { name: "multiple-scms", version: "0.3" }
+  - { name: "maven-plugin", version: "2.5" }
+  - { name: "copy-project-link", version: "1.2" }
+  - { name: "scriptler", version: "2.6.1" }
+  - { name: "rebuild", version: "1.21" }
+  - { name: "ssh-slaves", version: "1.6" }
+  - { name: "translation", version: "1.11" }
+  - { name: "dynamicparameter", version: "0.2.0" }
+  - { name: "hipchat", version: "0.1.6" }
+  - { name: "throttle-concurrents", version: "1.8.3" }
+  - { name: "mask-passwords", version: "2.7.2" }
+  - { name: "jquery", version: "1.7.2-1" }
+  - { name: "dashboard-view", version: "2.9.4" }
+  - { name: "build-pipeline-plugin", version: "1.4.3" }
+  - { name: "s3", version: "0.6" }
+  - { name: "tmpcleaner", version: "1.1" }
+  - { name: "jobConfigHistory", version: "2.8" }
+  - { name: "build-timeout", version: "1.14" }
+  - { name: "next-build-number", version: "1.1" }
+  - { name: "nested-view", version: "1.14" }
+  - { name: "timestamper", version: "1.5.14" }
+  - { name: "github-api", version: "1.55" }
+  - { name: "postbuild-task", version: "1.8" }
+  - { name: "notification", version: "1.5" }
+  - { name: "copy-to-slave", version: "1.4.3" }
+  - { name: "github", version: "1.9.1" }
+  - { name: "copyartifact", version: "1.31" }
+  - { name: "shiningpanda", version: "0.21" }
+  - { name: "htmlpublisher", version: "1.3" }
+  - { name: "github-oauth", version: "0.20" }
+  - { name: "build-name-setter", version: "1.3" }
+  - { name: "jenkins-flowdock-plugin", version: "1.1.3" }
+  - { name: "simple-parameterized-builds-report", version: "1.3" }
+  - { name: "git-client", version: "1.19.0"}
+  - { name: "git", version: "2.4.0"}
+
+jenkins_admin_jobs:
+  - 'backup-jenkins'
+
+# Supervisor related settings
+jenkins_supervisor_user: "{{ jenkins_user }}"
+jenkins_supervisor_app_dir: "{{ jenkins_home }}/supervisor"
+jenkins_supervisor_cfg_dir: "{{ jenkins_supervisor_app_dir }}/conf.d"
+jenkins_supervisor_available_dir: "{{ jenkins_supervisor_app_dir }}/available.d"
+jenkins_supervisor_data_dir: "{{ jenkins_home }}/supervisor/data"
+jenkins_supervisor_cfg: "{{ jenkins_supervisor_app_dir }}/supervisord.conf"
+jenkins_supervisor_log_dir: "{{ COMMON_LOG_DIR }}/supervisor/jenkins"
+jenkins_supervisor_venv_dir: "{{ jenkins_home }}/venvs/supervisor"
+jenkins_supervisor_venv_bin: "{{ jenkins_supervisor_venv_dir }}/bin"
+jenkins_supervisor_ctl: "{{ jenkins_supervisor_venv_bin }}/supervisorctl"
+jenkins_supervisor_service_user: "{{ jenkins_user }}"
+
+jenkins_admin_scripts_dir: "{{ jenkins_home }}/scripts"

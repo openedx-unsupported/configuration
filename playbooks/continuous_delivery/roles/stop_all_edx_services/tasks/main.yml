@@ -1,0 +1,66 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role stop_all_edx_services
+#
+# Overview:
+#
+#   This stops all services on an edX server
+#   so that everything is shutdown prior to creating
+#   an AMI.
+#
+# Example play:
+#     roles:
+#       - stop_all_edx_services
+#
+#
+- name: Stop supervisor
+  stat:
+    path: /etc/init/supervisor.conf
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - stop supervisor
+
+- name: Stop nginx
+  stat:
+    path: /etc/init.d/nginx
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - stop nginx
+
+- name: Stop rabbitmq-server
+  stat:
+    path: /etc/init.d/rabbitmq-server
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - stop rabbitmq-server
+
+- name: Stop memcached
+  stat:
+    path: /etc/init.d/memcached
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - stop memcached
+
+- name: Stop mongodb
+  stat:
+    path: /etc/init.d/mongodb
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - stop mongodb
+
+- shell: "true"
+  notify: kill processes by user

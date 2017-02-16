@@ -1,0 +1,194 @@
+---
+{% include 'roles/ansible-role/templates/header.j2' %}
+
+#
+# Tasks for role {{ role_name }}
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: add gunicorn configuration file
+  template:
+    src: edx/app/{{ role_name }}/{{ role_name }}_gunicorn.py.j2
+    dest: "{{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_gunicorn.py"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: build virtualenv
+  command: "virtualenv {{ '{{' }} {{ role_name }}_venv_dir }}"
+  args:
+    creates: "{{ '{{' }} {{ role_name }}_venv_dir }}/bin/pip"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install application requirements
+  command: make requirements
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install development requirements
+  command: make local-requirements
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - devstack
+    - devstack:install
+
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_migration_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/{{ role_name }}/{{ role_name }}.sh.j2"
+    dest: "{{ '{{' }} {{ role_name }}_home }}/{{ '{{' }} {{ role_name }}_service_name }}.sh"
+    mode: 0650
+    owner: "{{ '{{' }} supervisor_user }}"
+    group: "{{ '{{' }} common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/{{ role_name }}.conf.j2"
+    dest: "{{ '{{' }} supervisor_available_dir }}/{{ '{{' }} {{ role_name }}_service_name }}.conf"
+    owner: "{{ '{{' }} supervisor_user }}"
+    group: "{{ '{{' }} common_web_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/{{ role_name }}/devstack.sh.j2"
+    dest: "{{ '{{' }} {{ role_name }}_home }}/devstack.sh"
+    owner: "{{ '{{' }} supervisor_user }}"
+    group: "{{ '{{' }} common_web_user }}"
+    mode: 0744
+  tags:
+    - devstack
+    - devstack:install
+
+- name: setup the {{ role_name }} env file
+  template:
+    src: "./{{ '{{' }} {{ role_name }}_home }}/{{ '{{' }} {{ role_name }}_service_name }}_env.j2"
+    dest: "{{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_env"
+    owner: "{{ '{{' }} {{ role_name }}_user }}"
+    group: "{{ '{{' }} {{ role_name }}_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: enable supervisor script
+  file:
+    src: "{{ '{{' }} supervisor_available_dir }}/{{ '{{' }} {{ role_name }}_service_name }}.conf"
+    dest: "{{ '{{' }} supervisor_cfg_dir }}/{{ '{{' }} {{ role_name }}_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  command: "{{ '{{' }} supervisor_ctl }} -c {{ '{{' }} supervisor_cfg }} update"
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: "{{ '{{' }} {{ role_name|lower }}_venv_dir }}/bin/{{ '{{' }} item }}"
+    dest: "{{ '{{' }} COMMON_BIN_DIR }}/{{ '{{' }} item.split('.')[0] }}.{{ role_name }}"
+    state: link
+  with_items:
+    - python
+    - pip
+    - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ '{{' }} {{ role_name }}_code_dir }}/{{ '{{' }} item }}"
+    dest: "{{ '{{' }} COMMON_BIN_DIR }}/{{ '{{' }} item.split('.')[0] }}.{{ role_name }}"
+    state: link
+  with_items:
+    - manage.py
+  tags:
+    - install
+    - install:app-requirements
+    
+- name: run collectstatic
+  command: make static
+  args:
+    chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
+  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  environment: "{{ '{{' }} {{ role_name }}_environment }}"
+  tags:
+    - assets
+    - assets:gather
+
+- name: restart the application
+  supervisorctl: 
+    state: restarted
+    supervisorctl_path: "{{ '{{' }} supervisor_ctl }}"
+    config: "{{ '{{' }} supervisor_cfg }}"
+    name: "{{ '{{' }} {{ role_name }}_service_name }}"
+  when: not disable_edx_services
+  sudo_user: "{{ '{{' }} supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
+
+- name: Copying nginx configs for {{ role_name }}
+  template: >
+    src=edx/app/nginx/sites-available/{{ role_name }}.j2
+    dest={{ '{{' }} nginx_sites_available_dir }}/{{ role_name }}
+    owner=root group={{ '{{' }} common_web_user }} mode=0640
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+
+- name: Creating nginx config links for {{ role_name }}
+  file: >
+    src={{ '{{' }} nginx_sites_available_dir }}/{{ role_name  }}
+    dest={{ '{{' }} nginx_sites_enabled_dir }}/{{ role_name }}
+    state=link owner=root group=root
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+

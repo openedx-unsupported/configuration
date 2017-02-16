@@ -1,0 +1,90 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role s3fs
+#
+# Overview:
+#
+# Installs s3fs, but doesn't mount any buckets.
+#
+# Dependencies:
+#
+# The role depending upon s3fs is responsible for mounting the
+# buckets.
+#
+# Assuming the following config
+#
+# my_role_s3fs_mounts:
+#   - { bucket: "my_bucket", mount_point: "{{ COMMON_DATA_DIR}}/s3/my_bucket", owner: "root", group: "adm", mode: "0755" }
+#
+# The role would need to include tasks like the following
+#
+# - name: create s3fs mount points
+#   file:
+#     path={{ item.mount_point }} owner={{ item.owner }}
+#     group={{ item.group }} mode={{ item.mode }} state="directory"
+#   with_items: my_role_s3fs_mounts
+#
+# - name: mount s3 buckets
+#   mount:
+#     name={{ item.mount_point }} src={{ item.bucket }} fstype=fuse.s3fs
+#     opts=use_cache=/tmp,iam_role={{ task_iam_role }},allow_other state=mounted
+#   with_items: myrole_s3fs_mounts
+#
+# Example play:
+#
+# Required sudo for the installation phase.
+#
+# - name: Configure instance(s)
+#   hosts: s3fs_hosts
+#   sudo: True
+#   vars_files:
+#     - "{{ secure_dir }}/vars/common/common.yml"
+#     - "{{ secure_dir }}/vars/users.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#     - s3fs
+#
+
+- name: install system packages
+  apt: pkg={{','.join(s3fs_debian_pkgs)}} state=present
+  tags:
+  - s3fs
+  - install
+  - update
+
+- name: fetch package
+  get_url:
+    url={{ s3fs_download_url }}
+    dest={{ s3fs_temp_dir }}
+
+- name: extract package
+  shell:
+    /bin/tar -xzf {{ s3fs_archive }}
+    chdir={{ s3fs_temp_dir }}
+    creates={{ s3fs_temp_dir }}/{{ s3fs_version }}/configure
+
+- name: configure
+  shell:
+    ./configure
+    chdir={{ s3fs_temp_dir }}/{{ s3fs_version }}
+    creates={{ s3fs_temp_dir }}/{{ s3fs_version }}/config.status
+
+- name: make
+  shell:
+    /usr/bin/make
+    chdir={{ s3fs_temp_dir }}/{{ s3fs_version }}
+    creates={{ s3fs_temp_dir }}/{{ s3fs_version }}/src/s3cmd
+
+- name: make install
+  shell:
+    /usr/bin/make install
+    chdir={{ s3fs_temp_dir }}/{{ s3fs_version }}
+

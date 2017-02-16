@@ -1,0 +1,27 @@
+---
+
+- name: Install unzip
+  apt: pkg=unzip state=present
+
+- name: create the nltk data directory and subdirectories
+  file: path={{ NLTK_DATA_DIR }}/{{ item.path|dirname }} state=directory
+  with_items: NLTK_DATA
+  tags:
+    - deploy
+
+- name: download nltk data
+  get_url: >
+    dest={{ NLTK_DATA_DIR }}/{{ item.url|basename }}
+    url={{ item.url }}
+  with_items: NLTK_DATA
+  register: nltk_download
+  tags:
+    - deploy
+
+- name: unarchive nltk data
+  shell: >
+    unzip {{ NLTK_DATA_DIR }}/{{ item.url|basename }} chdir="{{ NLTK_DATA_DIR }}/{{ item.path|dirname }}"
+  with_items: NLTK_DATA
+  when: nltk_download|changed
+  tags:
+    - deploy

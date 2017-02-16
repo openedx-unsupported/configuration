@@ -1,0 +1,13 @@
+[program:xserver]
+
+command={{ xserver_venv_bin }}/gunicorn -c {{ xserver_app_dir }}/xserver_gunicorn.py  {{ XSERVER_GUNICORN_EXTRA }} pyxserver_wsgi:application
+
+user={{ common_web_user }}
+directory={{ xserver_code_dir }}
+
+environment=PID=/var/tmp/xserver.pid,NEW_RELIC_CONFIG_FILE={{ xserver_app_dir }}/newrelic.ini,NEWRELIC={{ xserver_venv_dir }}/bin/newrelic-admin,PORT={{ xserver_gunicorn_port }},ADDRESS={{ xserver_gunicorn_host }},LANG={{ XSERVER_LANG }},DJANGO_SETTINGS_MODULE=xserver_aws_settings,SERVICE_VARIANT="xserver"
+
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+killasgroup=true
+stopasgroup=true

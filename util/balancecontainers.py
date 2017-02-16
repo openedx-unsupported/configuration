@@ -5,61 +5,63 @@ import itertools
 import sys
 import argparse
 import logging
-import docker_images
 
 TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
 CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
 LOGGER = logging.getLogger(__name__)
 
-def pack_shards(used_images, num_shards):
+def pack_containers(containers, num_shards):
     """
-    Determines an approximation of the optimal way to pack the images into a given number of shards so as to
+    Determines an approximation of the optimal way to pack the containers into a given number of shards so as to
     equalize the execution time amongst the shards.
 
     Input:
-    used_images: A set of Docker images and their ranks
-    num_shards: A number of shards amongst which to distribute the Docker images
+    containers: A set of Docker containers
+    num_shards: A number of shards amongst which to distribute the Docker containers
     """
 
+    # open config file containing container weights
+    config_file_path = pathlib2.Path(CONFIG_FILE_PATH)
+
+    with (config_file_path.open(mode='r')) as file:
+        try:
+            config = yaml.load(file)
+        except yaml.YAMLError, exc:
+            LOGGER.error("error in configuration file: %s" % str(exc))
+            sys.exit(1)
+
+    # get container weights
+    weights = config.get("weights")
+
+    # convert all containers in config file to a list of tuples (<container>, <weight>)
+    weights_list = [x.items() for x in weights]
+    weights_list = list(itertools.chain.from_iterable(weights_list))
+
+    # performs intersection between weighted containers and input containers
+    used_containers = [x for x in weights_list if x[0] in containers]
+
     # sorts used containers in descending order on the weight
-    sorted_images = sorted(used_images, key = lambda x: x[1], reverse=True) 
+    sorted_containers = sorted(used_containers, key = lambda x: x[1], reverse=True) 
 
     shards = []
 
     # for the number of shards
     for i in range(0, num_shards):
         # initialize initial dict
-        shards.append({"images": [], "sum": 0})
+        shards.append({"containers": [], "sum": 0})
 
     # for each container
-    for image in sorted_images:
+    for container in sorted_containers:
         # find the shard with the current minimum execution time
         shard = min(shards, key = lambda x: x["sum"])
 
         # add the current container to the shard
-        shard["images"].append(image)
+        shard["containers"].append(container)
 
         # add the current container's weight to the shard's total expected execution time
-        shard["sum"] += image[1]
+        shard["sum"] += container[1]
 
     return shards
-
-def read_input():
-    """
-    Reads input from standard input.
-    """
-
-    images = []
-
-    # get images from standard in
-    for line in sys.stdin:
-        line = line.strip()
-        line = line.strip("[]")
-
-        items = line.split()
-        images.extend(items)
-
-    return images
 
 def arg_parse():
 
@@ -77,20 +79,24 @@ if __name__ == '__main__':
     # configure logging
     logging.basicConfig()
 
-    # get input from standard in
-    images = read_input()
+    containers = []
 
-    # get images that are used and described in configuration file
-    used_images = docker_images.get_used_images(images)
+    # get containers from standard in
+    for line in sys.stdin:
+        line = line.strip()
+        line = line.strip("[]")
 
-    # find optimal packing of the images amongst shards
-    shards = pack_shards(used_images, args.num_shards)
+        items = line.split()
+        containers.extend(items)
+
+    # find optimal packing of the containers amongst shards
+    shards = pack_containers(containers, args.num_shards)
 
     # print space separated list of containers for each shard
     for shard in shards:
         middle = " "
 
-        conts = [x[0] for x in shard["images"]]
+        conts = [x[0] for x in shard["containers"]]
 
         line = middle.join(conts)
         print line

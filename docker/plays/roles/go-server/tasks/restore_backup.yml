@@ -1,0 +1,102 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Task to restore go-server backup
+#
+# Overview:
+#
+# Restores a TGZ file containing a go-server backup to a go-server instance.
+#
+# Example play:
+#
+# - name: Configure instance(s)
+#   hosts: go-server
+#   become: True
+#   vars_files:
+#     - "{{ secure_dir }}/admin/sandbox.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#
+
+- name: check if H2 db exists
+  stat:
+    path: "{{ GO_SERVER_H2DB_LOCATION }}"
+  register: h2db_stat
+
+- name: create the db backup directory
+  file:
+    path: "{{ GO_SERVER_H2DB_BACKUP_LOCATION }}"
+    state: directory
+    mode: 0775
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: back up existing H2 db if needed
+  command: "mv {{ GO_SERVER_H2DB_LOCATION }} {{ GO_SERVER_H2DB_BACKUP_LOCATION }}"
+  when: h2db_stat.stat.exists
+
+- name: delete the db directory to clear out
+  file:
+    path: "{{ GO_SERVER_HOME }}/{{ GO_SERVER_H2DB_PATH }}"
+    state: absent
+  when: h2db_stat.stat.exists
+
+- name: re-create the db backup directory
+  file:
+    path: "{{ GO_SERVER_HOME }}/{{ GO_SERVER_H2DB_PATH }}"
+    state: directory
+    mode: 0775
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: move the backup contents to the correct location
+  shell: "cp {{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/backup*/* {{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/"
+
+- name: unzip the db backup
+  unarchive:
+    copy: no
+    src: "{{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/db.zip"
+    dest: "{{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: copy backup db file into GO_SERVER db directory
+  command: "mv {{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/{{ GO_SERVER_H2DB_NAME }} {{ GO_SERVER_H2DB_LOCATION }}"
+
+- name: unzip config-dir.zip in backup directory
+  unarchive:
+    copy: no
+    src: "{{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/config-dir.zip"
+    dest: "{{ GO_SERVER_CONF_HOME }}/"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: create the config directory
+  file:
+    path: "{{ GO_SERVER_CONF_HOME }}/db/config.git/"
+    state: directory
+    mode: 0775
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: unzip config-repo.zip into backup directory
+  unarchive:
+    copy: no
+    src: "{{ GO_SERVER_TEMP_RESTORE_DIRECTORY }}/config-repo.zip"
+    dest: "{{ GO_SERVER_CONF_HOME }}/db/config.git/"
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+
+- name: fix the permissions in config directory
+  shell: find /etc/go -type d -exec chmod 775 {} \;

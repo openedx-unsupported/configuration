@@ -1,0 +1,124 @@
+---
+- name: Install useful system packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+    update_cache: yes
+  with_items: "{{ local_dev_pkgs }}"
+
+- name: Set login shell for app accounts
+  user:
+    name: "{{ item.user }}"
+    shell: "/bin/bash"
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+
+# The user that runs the app needs read/write permissions
+# to the directories under var to be able to import and create
+# new courses.
+- name: Update permissions for edxapp data dir
+  file:
+    path: "{{ edxapp_data_dir }}"
+    state: "directory"
+    recurse: yes
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+  when: edxapp_user is defined
+
+# Create scripts to configure environment
+- name: Create login scripts
+  template:
+    src: app_bashrc.j2
+    dest: "{{ item.home }}/.bashrc"
+    owner: "{{ item.user }}"
+    mode: "0755"
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+  ignore_errors: yes
+
+# Default to the correct git config
+# No more accidentally force pushing to master! :)
+- name: Configure git
+  copy:
+    src: gitconfig
+    dest: "{{ item.home }}/.gitconfig"
+    owner: "{{ item.user }}"
+    mode: "0700"
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+  ignore_errors: yes
+
+# Configure X11 for application users
+- name: Preserve DISPLAY for sudo
+  copy:
+    src: x11_display
+    dest: /etc/sudoers.d/x11_display
+    owner: root
+    group: root
+    mode: "0440"
+
+- name: Login share X11 auth to app users
+  template:
+    src: share_x11.j2
+    dest: "{{ localdev_home }}/share_x11"
+    owner: "{{ localdev_user }}"
+    mode: "0700"
+
+- name: Update bashrc with X11 share script
+  lineinfile:
+    dest: "{{ localdev_home }}/.bashrc"
+    regexp: ". {{ localdev_home }}/share_x11"
+    line: ". {{ localdev_home }}/share_x11"
+    state: present
+
+# Create scripts to add paver autocomplete
+- name: Add paver autocomplete
+  copy:
+    src: paver_autocomplete
+    dest: "{{ item.home }}/.paver_autocomplete"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    mode: "0755"
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+  ignore_errors: yes
+
+# Add useful vimrc files 
+- name: Create .vim/plugin directory
+  file:
+    path: "{{ item.home }}/.vim/ftplugin"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    state: directory
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+
+- name: Add .vimrc file
+  copy:
+    src: vimrc
+    dest: "{{ item.home }}/.vimrc"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    mode: "0644"
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+
+- name: Add python.vim ftplugin file
+  copy:
+    src: ftplugin-python.vim
+    dest: "{{ item.home }}/.vim/ftplugin/python.vim"
+    owner: "{{ item.user }}"
+    group: "{{ common_web_group }}"
+    mode: "0644"
+  with_items: "{{ localdev_accounts }}"
+  when: item.user != 'None'
+
+# Edit the /etc/hosts file so that the Preview button will work in Studio
+- name: Add preview.localhost to /etc/hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^127.0.0.1"
+    line: "127.0.0.1 localhost preview.localhost"
+    state: present
+  become: yes

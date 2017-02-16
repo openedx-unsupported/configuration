@@ -1,0 +1,184 @@
+#!/usr/bin/env python
+
+DOCUMENTATION = """
+---
+module: util_map
+short_description: Applies a function to input and returns the result with the key function_output
+description:
+  - Applies functions to data structures returning a new data structure.
+version_added: "1.8"
+author: Edward Zarecor
+options:
+  function:
+    description:
+      - The function to apply, currently ['zip_to_dict','flatten']
+    required: true
+  input:
+    description:
+      - The input
+    required: true
+  args:
+    description:
+      - Arguments to the function other than the input, varies by function.
+"""
+
+EXAMPLES = '''
+- name: Apply function to results from ec2_scaling_policies
+  util_map:
+    function: 'zip_to_dict'
+    input: "{{ created_policies.results }}"
+    args:
+      - "name"
+      - "arn"
+  register: policy_data
+
+- name: Apply function to policy data
+  util_map:
+    function: 'flatten'
+    input:
+      - 'a'
+      - 'b'
+      - 'c'
+      - ['d','e','f']
+  register: flat_list
+'''
+
+from ansible.module_utils.basic import *
+import ast
+import itertools
+
+class ArgumentError(Exception):
+    pass
+
+def flatten(module, input):
+    """
+    Takes an iterable and returns a flat list
+
+    With the input of
+
+    [['a','b','c'],'d',['e','f','g'],{'a','b'}]
+
+    this function will return
+
+    ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'a', 'b']
+
+    :param module: The ansible module
+    :param input: An iterable
+    :return: A flat list.
+    """
+
+    try:
+        flat = list(itertools.chain.from_iterable(input))
+    except TypeError as te:
+        raise ArgumentError("Flatten resulted in a type error, {0}.".format(te.message))
+
+    module.exit_json(function_output = flat)
+
+def zip_to_dict(module, input, key_key, value_key):
+    """
+    Takes an array of dicts and flattens it to a single dict by extracting the values
+    of a provided key as the keys in the new dict and the values of the second
+    provided key as the corresponding values.
+
+    For example, the input dict of
+
+    [{'name':'fred', 'id':'123'},{'name':'bill', 'id':'321'}]
+
+    with an args array of ['id','name']
+
+    would return
+
+    {'123':'fred','321':'bill'}
+
+    :param input: an array of dicts, typically the results of an ansible module
+    :param key_key: a key into the input dict returning a value to be used as a key in the flattened dict
+    :param value_key: a key into the input dict returning a value to be used as a value in the flattened dict
+    :return: the flattened dict
+    """
+
+    results = {}
+
+    for item in input:
+        results[item[key_key]]=item[value_key]
+
+    module.exit_json(function_output = results)
+
+def zip_to_list(module, input, key):
+    """
+    Takes an array of dicts and flattens it to a single list by extracting the value
+    of a provided key as an item in the new list.
+
+    For example, the input list of dicts like
+
+    [{'name':'fred', 'id':'123'},{'name':'bill', 'id':'321'}]
+
+    with an args array of ['name']
+
+    would return
+
+    ['fred','bill']
+
+    :param input: an array of dicts, typically the results of an ansible module
+    :param key: a key into the input dict returning a value to be used as an item in the flattend list
+    :return: the flattened list
+    """
+
+    results = []
+
+    for item in input:
+        results.append(item[key])
+
+    module.exit_json(function_output = results)
+
+def zip_to_listdict(module, input, key_name, value_name):
+    """
+    Take an array of dicts and build a list of dicts where the name of the key
+    is taken as a value of one of the keys in the input list and the vaule is
+    the value of a different key.
+
+    For example with an input like
+    [{'tag_name': 'Name', 'tag_value': 'stage-edx-edxapp'}, {'tag_name': 'cluster', 'tag_value': 'edxapp'}]
+
+    and an args array of ['tag_name', 'tag_value']
+
+    would return
+
+    [{'Name': 'stage-edx-edxapp'}, {'cluster': 'edxapp'}]
+
+    NB: This is used to work around the fact that we can template out the names
+    of keys in dictionaries in ansible.
+    """
+
+    results = []
+    for item in input:
+        results.append({ item[key_name]: item[value_name]})
+
+    module.exit_json(function_output=results)
+
+def main():
+
+    arg_spec = dict(
+        function=dict(required=True, type='str'),
+        input=dict(required=True, type='str'),
+        args=dict(required=False, type='list'),
+    )
+
+    module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=False)
+
+    target = module.params.get('function')
+    # reify input data
+    input = ast.literal_eval(module.params.get('input'))
+    args = module.params.get('args')
+
+    if target == 'zip_to_dict':
+        zip_to_dict(module, input, *args)
+    elif target == 'flatten':
+        flatten(module,input)
+    elif target == 'zip_to_list':
+        zip_to_list(module, input, *args)
+    elif target == 'zip_to_listdict':
+        zip_to_listdict(module, input, *args)
+    else:
+        raise NotImplemented("Function {0} is not implemented.".format(target))
+
+main()

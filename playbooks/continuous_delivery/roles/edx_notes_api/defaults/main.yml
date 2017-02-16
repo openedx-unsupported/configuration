@@ -1,0 +1,119 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role edx-notes-api
+# 
+
+EDX_NOTES_API_GUNICORN_WORKERS_EXTRA: ""
+EDX_NOTES_API_WORKERS_EXTRA_CONF: ""
+EDX_NOTES_API_LANG: en-us
+EDX_NOTES_API_WORKERS: !!null
+EDX_NOTES_API_DATASTORE_NAME: "{{ edx_notes_api_service_name }}"
+EDX_NOTES_API_MYSQL_DB_USER: notes001
+EDX_NOTES_API_MYSQL_DB_NAME: "{{ EDX_NOTES_API_DATASTORE_NAME }}"
+EDX_NOTES_API_MYSQL_DB_PASS: secret
+EDX_NOTES_API_MYSQL_HOST: localhost
+EDX_NOTES_API_ELASTICSEARCH_URL: http://127.0.0.1:9200
+EDX_NOTES_API_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-notes"
+# Change these values!!
+EDX_NOTES_API_SECRET_KEY: "CHANGEME"
+EDX_NOTES_API_CLIENT_ID: "CHANGEME"
+EDX_NOTES_API_CLIENT_SECRET: "CHANGEME"
+EDX_NOTES_API_GIT_SSH_KEY: !!null
+EDX_NOTES_API_VERSION: master
+EDX_NOTES_API_DJANGO_SETTINGS_MODULE: 'notesserver.settings.yaml_config'
+
+EDX_NOTES_API_DATABASES:
+  # rw user
+  default:
+    ENGINE: django.db.backends.mysql
+    NAME: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}"
+    USER: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
+    PASSWORD: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
+    HOST: "{{ EDX_NOTES_API_MYSQL_HOST }}"
+    PORT: 3306
+EDX_NOTES_API_ALLOWED_HOSTS:
+  - localhost
+EDX_NOTES_API_DISABLE_TOKEN_CHECK: False
+
+EDX_NOTES_API_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-notes-api.git
+    VERSION: "{{ EDX_NOTES_API_VERSION }}"
+    DESTINATION: "{{ edx_notes_api_code_dir }}"
+    SSH_KEY: "{{ EDX_NOTES_API_GIT_SSH_KEY }}"
+
+#
+# This data structure will be written out to yaml configuration file
+# in /edx/etc
+#
+edx_notes_api_service_config:
+  ALLOWED_HOSTS: "{{ EDX_NOTES_API_ALLOWED_HOSTS }}"
+  # replace with your secret key
+  SECRET_KEY: '{{ EDX_NOTES_API_SECRET_KEY }}'
+  # replace with your oauth id and secret
+  CLIENT_ID: "{{ EDX_NOTES_API_CLIENT_ID }}"
+  CLIENT_SECRET: "{{ EDX_NOTES_API_CLIENT_SECRET }}"
+  ELASTICSEARCH_URL: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
+  ELASTICSEARCH_INDEX: "edx_notes"
+  # Number of rows to return by default in result.
+  RESULTS_DEFAULT_SIZE: 25
+  # Max number of rows to return in result.
+  RESULTS_MAX_SIZE: 250
+  DATABASE_OPTIONS:
+    connect_timeout: 10
+  DATABASES: "{{ EDX_NOTES_API_DATABASES }}"
+  HAYSTACK_CONNECTIONS:
+    default:
+      ENGINE: 'notesserver.highlight.ElasticsearchSearchEngine'
+      URL: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
+      INDEX_NAME: '{{ EDX_NOTES_API_DATASTORE_NAME }}'
+  DISABLE_TOKEN_CHECK: "{{ EDX_NOTES_API_DISABLE_TOKEN_CHECK }}"
+
+#
+# vars are namespace with the module name.
+#
+
+
+edx_notes_api_environment:
+  EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
+  LANG: "{{ EDX_NOTES_API_LANG }}" 
+  DJANGO_SETTINGS_MODULE: "{{ EDX_NOTES_API_DJANGO_SETTINGS_MODULE }}"
+  SERVICE_VARIANT: "{{ edx_notes_api_service_name }}"
+  PATH: "{{ edx_notes_api_venv_dir }}/bin:{{ ansible_env.PATH }}"
+
+edx_notes_api_service_name: edx_notes_api
+edx_notes_api_user: "{{ edx_notes_api_service_name }}"
+edx_notes_api_home: "{{ COMMON_APP_DIR }}/{{ edx_notes_api_service_name }}"
+edx_notes_api_code_dir: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}"
+edx_notes_api_conf_dir: "{{ edx_notes_api_home }}"
+edx_notes_api_venv_dir:  "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
+
+edx_notes_api_gunicorn_host: "127.0.0.1"
+edx_notes_api_gunicorn_port: 8120
+edx_notes_api_gunicorn_timeout: 300
+edx_notes_api_wsgi: notesserver.wsgi:application
+edx_notes_api_nginx_port: 18120
+edx_notes_api_manage: "{{ edx_notes_api_code_dir }}/manage.py" 
+edx_notes_api_requirements_base: "{{ edx_notes_api_code_dir }}/requirements"
+# Application python requirements
+edx_notes_api_requirements:
+  - base.txt
+
+#
+# OS packages
+#
+edx_notes_api_debian_pkgs:
+  - libmysqlclient-dev
+  - python-mysqldb
+
+edx_notes_api_redhat_pkgs: []

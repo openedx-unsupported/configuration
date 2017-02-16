@@ -1,0 +1,228 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role ecommerce
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+- name: Add gunicorn configuration file
+  template:
+    src: "edx/app/ecommerce/ecommerce_gunicorn.py.j2"
+    dest: "{{ ecommerce_home }}/ecommerce_gunicorn.py"
+  become_user: "{{ ecommerce_user }}"
+  tags:
+      - install
+      - install:configuration
+
+- name: Install application requirements
+  pip:
+    requirements: "{{ ecommerce_requirements_base }}/{{ item }}"
+    virtualenv: "{{ ecommerce_venv_dir }}"
+    state: present
+  become_user: "{{ ecommerce_user }}"
+  with_items: "{{ ecommerce_requirements }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Create nodeenv
+  shell: "{{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt"
+  args:
+    creates: "{{ ecommerce_nodeenv_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Install node dependencies
+  npm:
+    executable: "{{ ecommerce_nodeenv_bin }}/npm"
+    path: "{{ ecommerce_code_dir }}"
+    production: yes
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Install bower dependencies
+  shell: ". {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/bower install --production --config.interactive=false"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Migrate
+  shell: >
+    DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
+    DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
+    {{ ecommerce_venv_dir }}/bin/python ./manage.py migrate --noinput
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
+- name: Populate countries
+  shell: >
+    chdir={{ ecommerce_code_dir }}
+    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
+    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
+    {{ ecommerce_venv_dir }}/bin/python ./manage.py oscar_populate_countries
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  # the `register` and `failed_when` directives below are here to emulate idempotency for this oscar command.
+  # if and when https://github.com/django-oscar/django-oscar/pull/1841 is merged, the directives can be removed
+  # in favor of the (proposed) --initial-only command option.
+  register: command_result
+  failed_when:
+    - "'You already have countries in your database' not in command_result.stderr"
+    - "command_result.rc != 0"
+  tags:
+    - migrate
+    - migrate:db
+
+- name: compile sass
+  shell: "{{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  with_items:
+    - "update_assets --skip-collect"
+  when: not devstack
+  tags:
+    - assets
+    - assets:gather
+
+- name: Run r.js optimizer
+  shell: ". {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  when: not devstack
+  tags:
+    - assets
+    - assets:gather
+
+- name: Run collectstatic
+  shell: "{{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  with_items:
+    - "collectstatic --noinput"
+    - "compress"
+  when: not devstack
+  tags:
+    - assets
+    - assets:gather
+
+- name: Write out the supervisor wrapper
+  template:
+    src: "edx/app/ecommerce/ecommerce.sh.j2"
+    dest: "{{ ecommerce_home }}/{{ ecommerce_service_name }}.sh"
+    mode: "0650"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/ecommerce.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ ecommerce_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
+  tags:
+    - install
+    - install:configuration
+
+- name: Setup the ecommence env file
+  template:
+    src: "./{{ ecommerce_home }}/{{ ecommerce_service_name }}_env.j2"
+    dest: "{{ ecommerce_home }}/ecommerce_env"
+    owner: "{{ ecommerce_user }}"
+    group: "{{ ecommerce_user }}"
+    mode: "0644"
+  tags:
+    - install
+    - install:configuration
+
+- name: Enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ ecommerce_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ ecommerce_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: Update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: Create symlinks from the-er venv bin dir
+  file:
+    src: "{{ ecommerce_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.', 1) | first }}.ecommerce"
+    state: link
+  with_items:
+    - python
+    - pip
+    - django-admin.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Create symlinks from the repo dir
+  file:
+    src: "{{ ecommerce_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.', 1) | first }}.ecommerce"
+    state: link
+  with_items:
+    - manage.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Restart the applicaton
+  supervisorctl:
+    name: "{{ ecommerce_service_name }}"
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+  when: not disable_edx_services
+  become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start

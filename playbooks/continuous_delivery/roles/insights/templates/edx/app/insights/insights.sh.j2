@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set insights_venv_bin = insights_home + '/venvs/' + insights_service_name + '/bin' %}
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = insights_venv_bin + '/newrelic-admin run-program ' + insights_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = insights_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ INSIGHTS_NEWRELIC_APPNAME }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+source {{ insights_app_dir }}/insights_env
+
+{{ executable }} --pythonpath={{ insights_python_path }} -b {{ insights_gunicorn_host }}:{{ insights_gunicorn_port }} -w {{ INSIGHTS_GUNICORN_WORKERS }} --timeout={{ insights_gunicorn_timeout }} {{ INSIGHTS_GUNICORN_EXTRA }} {{ insights_wsgi }}

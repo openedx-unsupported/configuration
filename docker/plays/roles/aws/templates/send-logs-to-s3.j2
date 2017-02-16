@@ -1,0 +1,130 @@
+{% set lb = '{' %}
+{% set rb = '}' %}
+#!/bin/bash
+#
+#  This script can be called from logrotate
+#  to sync logs to s3
+#
+
+if (( $EUID != 0 )); then
+    echo "Please run as the root user"
+    exit 1
+fi
+
+#
+# Ensure the log processors can read without
+# running as root
+if [ ! -f "{{ aws_s3_logfile }}" ]; then
+  sudo -u syslog touch "{{ aws_s3_logfile }}"
+else
+  chown syslog.syslog "{{ aws_s3_logfile }}"
+fi
+
+exec > >(tee -a "{{ aws_s3_logfile }}")
+exec 2>&1
+
+# s3cmd sync requires a valid home
+# directory
+export HOME=/
+
+shopt -s extglob
+
+usage() {
+
+  cat<<EO
+
+  A wrapper of s3cmd sync that will sync files to
+  an s3 bucket, will send mail to {{ AWS_S3_LOGS_NOTIFY_EMAIL }}
+  on failures.
+
+  Usage: $PROG
+            -v    add verbosity (set -x)
+            -n    echo what will be done
+            -h    this
+            -d    directory to sync
+            -b    bucket path to sync to
+            -p    name prefix
+EO
+}
+
+while getopts "vhnb:d:p:" opt; do
+  case $opt in
+    v)
+      set -x
+      shift
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    n)
+      noop="echo Would have run: "
+      shift
+      ;;
+    d)
+      directory=$OPTARG
+      ;;
+    b)
+      bucket=$OPTARG
+      ;;
+    p)
+      prefix=$OPTARG
+      ;;
+  esac
+done
+
+if [[ -z $bucket || -z $directory ]]; then
+  echo "ERROR: You must provide a directory and a bucket to sync!"
+  usage
+  exit 1
+fi
+
+# grab the first security group for the instance
+# which will be used as a directory name in the s3
+# bucket
+
+# If there are any errors from this point
+# send mail to {{ AWS_S3_LOGS_NOTIFY_EMAIL }}
+
+set -e
+
+sec_grp=unset
+instance_id=unset
+s3_path=unset
+
+onerror() {
+  if [[ -z $noop ]]; then
+    message_file=/var/tmp/message-$$.json
+    message_string="Error syncing $s3_path: inst_id=$instance_id ip=$ip region={{ aws_region }}"
+    if [[ -r "{{ aws_s3_logfile }}" ]]; then
+      python -c "import json; d={'Subject':{'Data':'$message_string'},'Body':{'Text':{'Data':open('"{{ aws_s3_logfile }}"').read()}}};print json.dumps(d)" > $message_file
+    else
+      cat << EOF > $message_file
+      {"Subject": { "Data": "$message_string" }, "Body": { "Text": { "Data": "!! ERROR !! no logfile" } } }
+EOF
+    fi
+    echo "Error syncing $s3_path on $instance_id"
+    {{ aws_cmd }} ses send-email --from {{ AWS_S3_LOGS_FROM_EMAIL }} --to {{ AWS_S3_LOGS_NOTIFY_EMAIL }} --message file://$message_file --region {{ aws_region }}
+  else
+    echo "Error syncing $s3_path on $instance_id"
+  fi
+}
+
+trap onerror ERR SIGHUP SIGINT SIGTERM
+
+# first security group is used as the directory name in the bucket
+sec_grp=$(ec2metadata --security-groups | head -1)
+instance_id=$(ec2metadata --instance-id)
+ip=$(ec2metadata --local-ipv4)
+availability_zone=$(ec2metadata --availability-zone)
+# region isn't available via the metadata service
+region=${availability_zone:0:${{ lb }}#availability_zone{{ rb }} - 1}
+
+{% if AWS_S3_LOGS_ACCESS_KEY_ID %}
+auth_opts="--access_key {{ AWS_S3_LOGS_ACCESS_KEY_ID }} --secret_key {{ AWS_S3_LOGS_SECRET_KEY }}"
+{% else %}
+auth_opts=""
+{% endif %}
+
+s3_path="${2}/$sec_grp/"
+$noop {{ aws_s3cmd }} $auth_opts --multipart-chunk-size-mb 5120 --disable-multipart sync $directory/* "s3://${bucket}/${prefix}${sec_grp}/${instance_id}-${ip}/"

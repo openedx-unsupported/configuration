@@ -1,0 +1,47 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role redis
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: Add the redis ppa
+  apt_repository:
+    repo: "{{ redis_ppa }}"
+    state: present
+
+- name: Install redis system packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: "{{ redis_debian_pkgs }}"
+  notify:
+    - reload redis
+
+- name: Update redis configuration
+  template:
+    src: "etc/redis/redis.conf.j2"
+    dest: "/etc/redis/redis.conf"
+    owner: root
+    group: "{{ redis_group }}"
+    mode: "0640"
+  notify:
+    - reload redis
+

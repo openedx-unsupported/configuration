@@ -1,0 +1,82 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role locust
+# 
+# Overview:
+#  - Expects a load-tests repo that declares locust.io as a requirement
+#  - Installs load-tests repo using standard edx service roles
+#  - configures locust with defaults in supervisor
+#
+# Dependencies:
+#  - edx-service role
+#  - load tests repo with locust tests in it.
+# 
+# Example play:
+#
+#   # To run: ansible-playbook locust.yml -i "locustmaster.sandbox.edx.org," -e "LOCUST_LOADTEST_DIR='locust/lms'" -e "LOCUST_TARGET_HOST='https://courses-loadtest.edx.org'" -e "@/Users/derf/workspace/sandbox-secure/ansible/vars/developer-sandbox.yml"
+#   - name: Deploy Locust
+#     hosts: all
+#     sudo: True
+#     gather_facts: True
+#     roles:
+#       - locust
+
+- name: Install system packages
+  apt:
+    pkg: "{{ item }}"
+    state: "present"
+    update_cache: true
+    cache_valid_time: 3600
+  with_items: locust_debian_pkgs
+
+- name: Install application requirements
+  pip:
+    requirements: "{{ locust_requirements_base }}/{{ item }}"
+    virtualenv: "{{ locust_home }}/venvs/{{ locust_service_name }}"
+    state: present
+  become_user: "{{ locust_user }}"
+  with_items: "{{ locust_requirements }}"
+
+- name: Write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/locust.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ locust_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0644"
+
+- name: Enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ locust_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ locust_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+
+- name: Update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+
+- name: Restart the applicaton
+  supervisorctl:
+    name: "{{ locust_service_name }}"
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+  when: not disable_edx_services
+  become_user: "{{ supervisor_service_user }}"
+
+- name: Increase file descriptor limit of the system (Session Logout and Login would be required)
+  lineinfile:
+    dest: "{{ ulimit_conf_file }}"
+    line: "{{ item.domain }}  {{ item.type }}  {{ item.item }}  {{ item.value }}"
+  with_items: "{{ ulimit_config }}"

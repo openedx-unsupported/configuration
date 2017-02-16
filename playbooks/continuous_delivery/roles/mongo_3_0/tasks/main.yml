@@ -1,0 +1,353 @@
+---
+- name: disable transparent huge pages on startup (http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/)
+  copy:
+    src: disable-transparent-hugepages.conf
+    dest: /etc/init/disable-transparent-hugepages.conf
+    owner: root
+    group: root
+    mode: 0755
+  tags:
+    - "hugepages"
+    - "install"
+    - "install:system-requirements"
+
+- name: disable transparent huge pages
+  service:
+    name: disable-transparent-hugepages
+    enabled: yes
+    state: started
+  tags:
+    - "hugepages"
+    - "install"
+    - "install:system-requirements"
+
+- name: install python pymongo for mongo_user ansible module
+  pip:
+    name: pymongo
+    state: present
+    version: "{{ pymongo_version }}"
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  tags:
+    - "install"
+    - "install:system-requirements"
+
+- name: add the mongodb signing key
+  apt_key:
+    id: "{{ MONGODB_APT_KEY }}"
+    keyserver: "{{ MONGODB_APT_KEYSERVER }}"
+    state: present
+  tags:
+    - "install"
+    - "install:system-requirements"
+
+- name: add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO }}"
+    state: present
+  tags:
+    - "install"
+    - "install:system-requirements"
+
+- name: install mongo server and recommends
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    install_recommends: yes
+    force: yes
+    update_cache: yes
+  with_items: mongodb_debian_pkgs
+  tags:
+    - install
+    - install:app-requirements
+    - mongo_packages
+
+- name: create mongo dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ mongo_user  }}"
+    group: "{{ mongo_user }}"
+  with_items:
+    - "{{ mongo_data_dir }}"
+    - "{{ mongo_dbpath }}"
+    - "{{ mongo_log_dir }}"
+    - "{{ mongo_journal_dir }}"
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: add serverStatus logging script
+  template:
+    src: "log-mongo-serverStatus.sh.j2"
+    dest: "{{ COMMON_BIN_DIR }}/log-mongo-serverStatus.sh"
+    owner: "{{ mongo_user }}"
+    group: "{{ mongo_user }}"
+    mode: 0700
+  when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: add serverStatus logging script to cron
+  cron:
+    name: mongostat logging job
+    job: /edx/bin/log-mongo-serverStatus.sh >> {{ mongo_log_dir }}/serverStatus.log 2>&1
+  become: yes
+  when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:configuration"
+
+# This will error when run on a new replica set, so we ignore_errors
+# and connect anonymously next.
+- name: determine if there is a replica set already
+  mongodb_rs_status:
+    host: "{{ ansible_default_ipv4['address'] }}"
+    username: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+  run_once: true
+  register: authed_replica_set_already_configured
+  when: MONGO_CLUSTERED
+  ignore_errors: true
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: Try checking the replica set with no user/pass in case this is a new box
+  mongodb_rs_status:
+    host: "{{ ansible_default_ipv4['address'] }}"
+  run_once: true
+  register: unauthed_replica_set_already_configured
+  when: MONGO_CLUSTERED and authed_replica_set_already_configured.failed is defined
+  ignore_errors: true
+  tags:
+    - "install"
+    - "install:configuration"
+
+# We use these in the templates but also to control a whole bunch of logic
+- name: set facts that default to not initializing a replica set
+  set_fact:
+    initialize_replica_set: false
+    skip_replica_set: false
+  tags:
+    - "install"
+    - "install:configuration"
+    - "update_mongod_conf"
+
+# If either auth or unauthed access comes back with a replica set, we
+# do not want to initialize one.  Since initialization requires a bunch
+# of extra templating and restarting, it's not something we want to do on
+# existing boxes.
+- name: track if you have a replica set
+  set_fact:
+    initialize_replica_set: true
+    skip_replica_set: true
+  when: MONGO_CLUSTERED
+        and authed_replica_set_already_configured.status is not defined
+        and unauthed_replica_set_already_configured.status is not defined
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: warn about unconfigured replica sets
+  debug: msg="You do not appear to have a Replica Set configured, deploying one for you"
+  when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: copy mongodb key file
+  copy:
+    content: "{{ MONGO_CLUSTER_KEY }}"
+    dest: "{{ mongo_key_file }}"
+    mode: 0600
+    owner: mongodb
+    group: mongodb
+  when: MONGO_CLUSTERED
+  notify: restart mongo
+  tags:
+    - "install"
+    - "install:configuration"
+    - "mongodb_key"
+
+# If skip_replica_set is true, this template will not contain a replica set stanza
+# because of the fact above.
+- name: copy configuration template
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    backup: yes
+  notify: restart mongo
+  register: update_mongod_conf
+  tags:
+    - "install"
+    - "install:configuration"
+    - "update_mongod_conf"
+
+- name: install logrotate configuration
+  template:
+    src: mongo_logrotate.j2
+    dest: /etc/logrotate.d/hourly/mongo
+  tags:
+    - "install"
+    - "install:configuration"
+    - "logrotate"
+
+- name: restart mongo service if we changed our configuration
+  service:
+    name: mongod
+    state: restarted
+  when: update_mongod_conf.changed
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: wait for mongo server to start
+  wait_for:
+    port: 27017
+    delay: 2
+  tags:
+    - "install"
+    - "install:configuration"
+
+# We only try passwordless superuser creation when
+# we're initializing the replica set and need to use
+# the localhost exemption to create a user who will be
+# able to initialize the replica set.
+# We can only create the users on one machine, the one
+# where we will initialize the replica set.  If we
+# create users on multiple hosts, then they will fail
+# to come into the replica set.
+- name: create super user
+  mongodb_user:
+    name: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+    database: admin
+    roles: root
+  when: initialize_replica_set
+  run_once: true
+  tags:
+    - "manage"
+    - "manage:db"
+
+- name: create super user
+  mongodb_user:
+    name: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    database: admin
+    roles: root
+  run_once: true
+  when: not initialize_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
+
+# Now that the localhost exemption has been used to create the superuser, we need
+# to add replica set to our configuration.  This will never happen if we detected
+# a replica set in the 'determine if there is a replica set already' task.
+- name: Unset our skip initializing replica set fact so that mongod.conf gets a replica set
+  set_fact:
+    skip_replica_set: false
+  when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: re-copy configuration template with replica set enabled
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    backup: yes
+  when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: restart mongo service
+  service:
+    name: mongod
+    state: restarted
+  when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: wait for mongo server to start
+  wait_for:
+    port: 27017
+    delay: 2
+  when: MONGO_CLUSTERED and initialize_replica_set
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: configure replica set
+  mongodb_replica_set:
+    username: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+    rs_config: "{{ MONGO_RS_CONFIG }}"
+  run_once: true
+  register: replset_status
+  when: MONGO_CLUSTERED
+  tags:
+    - configure_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
+    - "configure_replica_set"
+
+# During initial replica set configuration, it can take a few seconds to vote
+# a primary and for all members to reflect that status.  During that window,
+# use creation or other writes can fail.  The best wait/check seems to be repeatedly
+# checking the replica set status until we see a PRIMARY in the results.
+- name: Wait for the replica set to update and (if needed) elect a primary
+  mongodb_rs_status:
+      host: "{{ ansible_default_ipv4['address'] }}"
+      username: "{{ MONGO_ADMIN_USER }}"
+      password: "{{ MONGO_ADMIN_PASSWORD }}"
+  register: status
+  until: status.status is defined and 'PRIMARY' in status.status.members|map(attribute='stateStr')|list
+  retries: 5
+  delay: 2
+  run_once: true
+  when: MONGO_CLUSTERED
+  tags:
+    - configure_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
+
+- name: create mongodb users in a replica set
+  mongodb_user:
+    database: "{{ item.database }}"
+    login_database: 'admin'
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    roles: "{{ item.roles }}"
+    state: present
+    replica_set: "{{ MONGO_REPL_SET }}"
+  with_items: MONGO_USERS
+  run_once: true
+  when: MONGO_CLUSTERED
+  tags:
+    - "manage"
+    - "manage:db"
+
+- name: create mongodb users in a standalone configuration
+  mongodb_user:
+    database: "{{ item.database }}"
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    roles: "{{ item.roles }}"
+    state: present
+  with_items: MONGO_USERS
+  when: not MONGO_CLUSTERED
+  tags:
+    - "manage"
+    - "manage:db"

@@ -1,0 +1,51 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role aws
+#
+
+# Both of these vars are required to work-around
+# some ansible variable precedence issues with
+# circular dependencies introduced in the openstack PR.
+# More investigation is required to determine the optimal
+# solution.
+vhost_name: aws
+VHOST_NAME: "{{ vhost_name }}"
+
+# If there are any issues with the s3 sync an error
+# log will be sent to the following address.
+# This relies on your server being able to send mail
+AWS_S3_LOGS_NOTIFY_EMAIL: dummy@example.com
+AWS_S3_LOGS_FROM_EMAIL: dummy@example.com
+# Credentials for S3 access in case the instance role doesn't have write
+# permissions to S3
+AWS_S3_LOGS_ACCESS_KEY_ID: ""
+AWS_S3_LOGS_SECRET_KEY: ""
+
+aws_s3_sync_script: "{{ vhost_dirs.home.path }}/send-logs-to-s3"
+aws_s3_logfile: "{{ vhost_dirs.logs.path }}/s3-log-sync.log"
+aws_region: "us-east-1"
+# default path to the aws binary
+aws_s3cmd: "/usr/local/bin/s3cmd"
+aws_cmd: "/usr/local/bin/aws"
+#
+# OS packages
+#
+
+aws_debian_pkgs:
+  - python-setuptools
+
+aws_pip_pkgs:
+  - https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+  - awscli==1.4.2
+  - boto=="{{ common_boto_version }}"
+  - s3cmd==1.6.1
+
+aws_redhat_pkgs: []

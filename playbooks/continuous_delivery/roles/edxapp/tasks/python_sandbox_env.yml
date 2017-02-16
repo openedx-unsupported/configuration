@@ -1,0 +1,92 @@
+---
+# Set the alternatives this way for blas and lapack to work correctly for the
+# MITx 6.341x course.
+- name: code sandbox | Check which `libblas` to use
+  stat:
+    path: /usr/lib/libblas/libblas.so.3gf
+  register: libblas_file
+
+- name: code sandbox | Use libblas.so.3gf in Ubuntu
+  alternatives:
+    name: libblas.so.3gf
+    path: /usr/lib/libblas/libblas.so.3gf
+  when: libblas_file.stat.exists
+
+- name: code sandbox | Use libblas.so.3 in Ubuntu
+  alternatives:
+    name: libblas.so.3
+    path: /usr/lib/libblas/libblas.so.3
+  when: not libblas_file.stat.exists
+
+- name: code sandbox | Check which `liblapac` to use
+  stat:
+    path: /usr/lib/lapack/liblapack.so.3gf
+  register: liblapack_file
+
+- name: code sandbox | Use liblapack.so.3gf in Ubuntu
+  alternatives:
+    name: liblapack.so.3gf
+    path: /usr/lib/lapack/liblapack.so.3gf
+  when: liblapack_file.stat.exists
+
+- name: code sandbox | Use liblapack.so.3 in Ubuntu
+  alternatives:
+    name: liblapack.so.3
+    path: /usr/lib/lapack/liblapack.so.3
+  when: not liblapack_file.stat.exists
+
+
+- name: code sandbox | Create edxapp sandbox user
+  user:
+    name: "{{ edxapp_sandbox_user }}"
+    shell: /bin/false
+    home: "{{ edxapp_sandbox_venv_dir }}"
+  tags:
+    - edxapp-sandbox
+
+- name: code sandbox | Install apparmor utils system pkg
+  apt:
+    name: apparmor-utils
+    state: present
+  tags:
+    - edxapp-sandbox
+
+- name: code sandbox | write out apparmor code sandbox config
+  template:
+    src: code.sandbox.j2
+    dest: /etc/apparmor.d/code.sandbox
+    mode: 0644
+    owner: root
+    group: root
+  tags:
+    - edxapp-sandbox
+
+- name: code sandbox | write out sandbox user sudoers config
+  template:
+    src: 95-sandbox-sudoer.j2
+    dest: "/etc/sudoers.d/95-{{ edxapp_sandbox_user }}"
+    mode: 0440
+    owner: root
+    group: root
+    validate: 'visudo -c -f %s'
+  tags:
+    - edxapp-sandbox
+
+# we boostrap and enable the apparmor service here. In deploy.yml we disable, deploy, then re-enable
+# so we need to enable it in main.yml
+- name: code sandbox | start apparmor service
+  service:
+    name: apparmor
+    state: started
+  tags:
+    - edxapp-sandbox
+
+- name: code sandbox | (bootstrap) load code sandbox profile
+  command: apparmor_parser -r /etc/apparmor.d/code.sandbox
+  tags:
+    - edxapp-sandbox
+
+- name: code sandbox | (bootstrap) put code sandbox into aa-enforce or aa-complain mode depending on EDXAPP_SANDBOX_ENFORCE
+  command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
+  tags:
+    - edxapp-sandbox

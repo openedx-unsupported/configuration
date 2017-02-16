@@ -1,0 +1,26 @@
+# logstash-indexer.conf# logstash - indexer instance
+#
+
+description     "logstash indexer instance"
+
+start on virtual-filesystems
+stop on runlevel [06]
+
+respawn
+respawn limit 5 30
+limit nofile 65550 65550
+
+env HOME={{ logstash_app_dir }}
+env JAVA_OPTS='-Xms512m -Xmx512m'
+env PATH=$PATH:/usr/lib/jvm/{{ oraclejdk_base }}/bin
+
+chdir {{ logstash_app_dir }}
+setuid root
+console log
+
+# for versions 1.1.1 - 1.1.4 the internal web service crashes when touched
+# and the current workaround is to just not run it and run Kibana instead
+
+script
+        exec java -jar {{ logstash_app_dir }}/share/logstash.jar agent -f {{ logstash_app_dir }}/etc/logstash.conf --log {{ logstash_log_dir }}/logstash-indexer.out
+end script

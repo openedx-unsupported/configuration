@@ -1,0 +1,70 @@
+---
+#
+# datadog
+#
+# Overview:
+#
+# Installs datadog
+##
+# Dependencies:
+#
+# Example play:
+#   roles:
+#   - common
+#   - datadog
+#
+- name: Install debian needed pkgs
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ datadog_debian_pkgs }}"
+  tags:
+    - datadog
+
+- name: Add apt key for datadog
+  apt_key:
+    id: "C7A7DA52"
+    url: "{{ COMMON_UBUNTU_APT_KEYSERVER }}{{ datadog_apt_key }}"
+    state: present
+  tags:
+    - datadog
+
+- name: Install apt repository for datadog
+  apt_repository:
+    repo: 'deb http://apt.datadoghq.com/ stable main'
+    state: present
+    update_cache: yes
+  tags:
+    - datadog
+
+- name: Install datadog agent
+  apt:
+    name: "datadog-agent={{ datadog_agent_version }}"
+  tags:
+    - datadog
+
+- name: Bootstrap config
+  shell: cp datadog.conf.example datadog.conf
+  args:
+    chdir: /etc/dd-agent/
+    creates: /etc/dd-agent/datadog.conf
+  tags:
+    - datadog
+
+- name: Update api-key
+  lineinfile:
+    dest: "/etc/dd-agent/datadog.conf"
+    regexp: "^api_key:.*"
+    line: "api_key:{{ DATADOG_API_KEY }}"
+  notify:
+    - restart the datadog service
+  tags:
+    - datadog
+
+- name: Ensure started and enabled
+  service:
+    name: datadog-agent
+    state: started
+    enabled: yes
+  tags:
+    - datadog

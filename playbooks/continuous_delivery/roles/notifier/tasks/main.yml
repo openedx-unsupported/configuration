@@ -1,0 +1,160 @@
+---
+#
+# notifier
+#
+# Overview:
+#
+# Provides the edX notifier service, a service for sending
+# notifications over messaging protocols.
+#
+# Dependencies:
+#
+#   * common
+#
+# Example play:
+#   roles:
+#   - common
+#   - notifier
+#
+- name: Install notifier specific system packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ notifier_debian_pkgs }}"
+
+- name: Check if incommon ca is installed
+  command: "test -e /usr/share/ca-certificates/incommon/InCommonServerCA.crt"
+  register: incommon_present
+  ignore_errors: yes
+
+- name: Create incommon ca directory
+  file:
+    path: "/usr/share/ca-certificates/incommon"
+    state: directory
+    mode: "2775"
+  when: incommon_present|failed
+
+- name: Retrieve incommon server CA
+  get_url:
+    url: "https://www.incommon.org/cert/repository/InCommonServerCA.txt"
+    dest: "/usr/share/ca-certificates/incommon/InCommonServerCA.crt"
+  when: incommon_present|failed
+
+- name: Add InCommon ca cert
+  lineinfile:
+    dest: /etc/ca-certificates.conf
+    regexp: 'incommon/InCommonServerCA.crt'
+    line: 'incommon/InCommonServerCA.crt'
+
+- name: Update ca certs globally
+  shell: "update-ca-certificates"
+
+- name: Create notifier user {{ notifier_user }}
+  user:
+    name: "{{ notifier_user }}"
+    state: present
+    shell: /bin/false
+    home: "{{ notifier_app_dir }}"
+    createhome: no
+
+- name: Create notifier app dir
+  file:
+    path: "{{ notifier_app_dir }}"
+    state: directory
+    owner: "{{ notifier_user }}"
+    group: "{{ common_web_group }}"
+  notify:
+    - restart notifier-scheduler
+    - restart notifier-celery-workers
+
+- name: Setup the notifier env
+  template:
+    src: "notifier_env.j2"
+    dest: "{{ notifier_app_dir }}/notifier_env"
+    owner: "{{ notifier_user }}"
+    group: "{{ notifier_user }}"
+    mode: "0655"
+
+- name: Drop a bash_profile
+  copy:
+    src: "../../common/files/bash_profile"
+    dest: "{{ notifier_app_dir }}/.bash_profile"
+    owner: "{{ notifier_user }}"
+    group: "{{ notifier_user }}"
+
+- name: Ensure .bashrc exists
+  file:
+    path: "{{ notifier_app_dir }}/.bashrc"
+    state: touch
+  become: true
+  become_user: "{{ notifier_user }}"
+
+- name: Add source of notifier_env to .bashrc
+  lineinfile:
+    dest: "{{ notifier_app_dir }}/.bashrc"
+    regexp: '. {{ notifier_app_dir }}/notifier_env'
+    line: '. {{ notifier_app_dir }}/notifier_env'
+
+- name: Add source venv to .bashrc
+  lineinfile:
+    dest: "{{ notifier_app_dir }}/.bashrc"
+    regexp: '. {{ NOTIFIER_VENV_DIR }}/bin/activate'
+    line: '. {{ NOTIFIER_VENV_DIR }}/bin/activate'
+
+- name: Create desired directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { path: '{{ NOTIFIER_DB_DIR }}', owner: '{{ notifier_user }}', group: '{{ NOTIFIER_WEB_USER }}', mode: '2775' }
+    - { path: '{{ notifier_app_dir }}/bin', owner: '{{ notifier_user }}', group: '{{ notifier_user }}', mode: '2775' }
+    - { path: '{{ notifier_app_dir }}/.ssh', owner: '{{ notifier_user }}', group: '{{ notifier_user }}', mode: '2700' }
+    - { path: '{{ COMMON_LOG_DIR }}/notifier', owner: 'syslog', group: 'syslog', mode: '0664' }
+
+- name: Write supervisord wrapper for celery workers and scheduler
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0775"
+  become_user: "{{ notifier_user }}"
+  with_items:
+    - { src: 'notifier-celery-workers-supervisor.sh.j2', dest: '{{ notifier_app_dir }}/notifier-celery-workers-supervisor.sh' }
+    - { src: 'notifier-scheduler-supervisor.sh.j2', dest: '{{ notifier_app_dir }}/notifier-scheduler-supervisor.sh' }
+
+- name: Write supervisord config for celery workers and scheduler
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  become_user: "{{ supervisor_user }}"
+  with_items:
+    - { src: 'edx/app/supervisor/conf.d/notifier-celery-workers.conf.j2', dest: '{{ supervisor_available_dir }}/notifier-celery-workers.conf' }
+    - { src: 'edx/app/supervisor/conf.d/notifier-scheduler.conf.j2', dest: '{{ supervisor_available_dir }}/notifier-scheduler.conf' }
+
+- name: Enable supervisord config for celery workers
+  file:
+    src: "{{ supervisor_available_dir }}/notifier-celery-workers.conf"
+    dest: "{{ supervisor_cfg_dir }}/notifier-celery-workers.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  notify:
+    - restart notifier-celery-workers
+  when: not disable_edx_services
+
+- name: Enable supervisord config for scheduler
+  file:
+    src: "{{ supervisor_available_dir }}/notifier-scheduler.conf"
+    dest: "{{ supervisor_cfg_dir }}/notifier-scheduler.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  notify:
+    - restart notifier-scheduler
+  when: not disable_edx_services
+
+- include: deploy.yml
+  tags:
+    - deploy

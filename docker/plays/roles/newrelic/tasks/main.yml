@@ -1,0 +1,76 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for role newrelic
+#
+# Overview:
+#
+# Installs and configures the newrelic system monitoring agent.  The server
+# will be identified in Newrelic by hostname and this cannot be changed
+# in configuration.  Also configuratin does not allow hosts to be
+# associated with an application or tagged.
+#
+# Example play:
+#
+# - name: Install Newrelic system agent
+#   hosts: all
+#   sudo: True
+#   gather_facts: True
+#   roles:
+#     - newrelic
+
+- name: Add apt key for New Relic
+  apt_key:
+    id: "{{ NEWRELIC_DEBIAN_KEY_ID }}"
+    url: "{{ NEWRELIC_DEBIAN_KEY_URL }}"
+    state: present
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Install apt repository for New Relic
+  apt_repository:
+    repo: "{{ NEWRELIC_DEBIAN_REPO }}"
+    state: present
+    update_cache: yes
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Install newrelic related system packages for Ubuntu
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: "{{ newrelic_debian_pkgs }}"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Configure the New Relic Servers yum repository
+  yum:
+    name: "{{ NEWRELIC_AMAZON_REPO }}"
+    state: present
+  when: ansible_distribution == 'Amazon'
+
+- name: Install newrelic related system packages for Amazon
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ newrelic_redhat_pkgs }}"
+  when: ansible_distribution == 'Amazon'
+
+- name: Configure the agent
+  template:
+    src: "etc/newrelic/nrsysmond.cfg.j2"
+    dest: "/etc/newrelic/nrsysmond.cfg"
+    owner: "newrelic"
+    group: "newrelic"
+    mode: 0640
+
+- name: Ensure started and enabled
+  service:
+   name: newrelic-sysmond
+   state: restarted
+   enabled: yes

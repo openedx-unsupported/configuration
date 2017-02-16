@@ -1,0 +1,37 @@
+---
+- name: Write swapfile
+  command: |
+    {% if SWAPFILE_USE_DD %}
+    dd if=/dev/zero of={{ SWAPFILE_LOCATION }} bs=1M count={{ SWAPFILE_SIZE }} creates={{ SWAPFILE_LOCATION }}
+    {% else %}
+    fallocate -l {{ SWAPFILE_SIZE }} {{ SWAPFILE_LOCATION }} creates={{ SWAPFILE_LOCATION }}
+    {% endif %}
+  register: write_swapfile
+  when: SWAPFILE_SIZE != false
+
+- name: Set swapfile permissions
+  file: path={{ SWAPFILE_LOCATION }} mode=600
+  when: SWAPFILE_SIZE != false
+
+- name: Create swapfile
+  command: mkswap {{ SWAPFILE_LOCATION }}
+  register: create_swapfile
+  when: SWAPFILE_SIZE != false and write_swapfile.changed
+
+- name: Enable swapfile
+  command: swapon {{ SWAPFILE_LOCATION }}
+  when: SWAPFILE_SIZE != false and create_swapfile.changed
+
+- name: Add swapfile to /etc/fstab
+  mount: name=none src="{{ SWAPFILE_LOCATION }}" fstype=swap opts=sw passno=0 dump=0 state=present
+  when: SWAPFILE_SIZE != false
+
+- name: Configure vm.swappiness
+  lineinfile: dest=/etc/sysctl.conf line="vm.swappiness = {{ SWAPFILE_SWAPPINESS }}" regexp="^vm.swappiness[\s]?=" state=present
+  notify: reload sysctl
+  when: SWAPFILE_SWAPPINESS != false
+
+- name: Configure vm.vfs_cache_pressure
+  lineinfile: dest=/etc/sysctl.conf line="vm.vfs_cache_pressure = {{ SWAPFILE_VFS_CACHE_PRESSURE }}" regexp="^vm.vfs_cache_pressure[\s]?=" state=present
+  notify: reload sysctl
+  when: SWAPFILE_VFS_CACHE_PRESSURE != false

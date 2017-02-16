@@ -1,0 +1,31 @@
+- name: Install courses ssh key
+  copy:
+    content: "{{ XQWATCHER_GIT_IDENTITY }}"
+    dest: "{{ xqwatcher_app_dir }}/.ssh/{{ xqwatcher_service_name }}-courses"
+    owner: "{{ xqwatcher_user }}"
+    group: "{{ xqwatcher_user }}"
+    mode: "0600"
+  when: XQWATCHER_GIT_IDENTITY != 'none'
+  tags:
+    - install
+    - install:code
+    
+#TODO: remove once xqwatcher.json can be pulled out into /edx/etc/
+- name: Write out watcher config file
+  template:
+    src: "edx/app/xqwatcher/xqwatcher.json.j2"
+    dest: "{{ xqwatcher_conf_dir }}/xqwatcher.json"
+    owner: "{{ xqwatcher_user }}"
+    group: "{{ xqwatcher_user }}"
+    mode: "0644" 
+  tags:
+    - install
+    - install:configuration
+    
+- include: deploy_watcher.yml
+  tags:
+    - deploy-watcher
+
+- include: deploy_courses.yml
+  tags:
+    - deploy-courses

@@ -1,0 +1,83 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role cassandra
+#
+# Overview:
+#
+# This role sets up a cassandra node.
+
+- name: Unmount disks mounted to the wrong place
+  mount:
+    name: "{{ item[0].mount }}"
+    src: "{{ item[0].device }}"
+    fstype: "{{ item[0].fstype }}"
+    state: unmounted
+  when: item[1] == item[0].device and not item[0].mount.startswith(cassandra_data_dir_prefix)
+  with_nested:
+    - ansible_mounts
+    - cassandra_ephemeral_disks
+
+- name: Create data directories
+  file:
+    path: "{{ cassandra_data_dir_prefix }}/{{ item }}"
+    state: directory
+  with_items: cassandra_data_dirs
+
+- name: Mount ephemeral disks
+  mount:
+    name: "{{ cassandra_data_dir_prefix }}/{{ item.1 }}"
+    src: "{{ item.0 }}"
+    fstype: ext4
+    state: mounted
+  with_together: 
+    - cassandra_ephemeral_disks
+    - cassandra_data_dirs
+  when: cassandra_ephemeral_disks
+
+#Mounting a disk overlays its permissions
+- name: Set permissions on data dirs
+  file:
+    path: "{{ cassandra_data_dir_prefix }}/{{ item }}"
+    owner: "{{ cassandra_user }}"
+    group: "{{ cassandra_group }}"
+  with_items: cassandra_data_dirs
+
+- name: Add the datastax repository apt-key
+  apt_key:
+    url: "http://debian.datastax.com/debian/repo_key"
+    state: present
+
+- name: Add the datastax repository
+  apt_repository:
+    repo: "deb http://debian.datastax.com/community stable main"
+    state: present
+
+- name: Install the cassandra package
+  apt:
+    name: "cassandra={{ cassandra_version }}"
+    state: present
+    update_cache: yes
+
+- name: Update the cassandra configuration
+  template:
+    src: "{{item}}.j2"
+    dest: /etc/cassandra/{{item}}
+    owner: "{{cassandra_user}}"
+    group: "{{cassandra_group}}"
+    mode: 0644
+  with_items:
+    - "cassandra.yaml"
+
+- name: restart cassandra
+  service:
+    name: cassandra
+    state: restarted

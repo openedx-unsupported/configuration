@@ -1,0 +1,92 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role minos
+# 
+# Overview:
+#
+# Install the, currently private, minos application
+# which determines whether or not it is safe to retire
+# a server
+#
+# Dependencies:
+#
+# Relies on the common role.
+# 
+# Example play:
+#
+# - name: Deploy minos
+#   hosts: all
+#   sudo: True
+#   gather_facts: True
+#   vars:
+#     COMMON_ENABLE_MINOS: True
+#   roles:
+#     - common
+#     - minos 
+#
+
+#TODO: remove
+- name: Maintain backwards-compatable config location
+  file:
+    src: "{{ COMMON_CFG_DIR  }}/{{ minos_service_name }}.yml"
+    dest: "{{ COMMON_CFG_DIR  }}/{{ minos_service_name }}/{{ minos_service_name }}.yml"
+    state: link
+    owner: root
+    group: root
+
+- name: Create minos config directory
+  file:
+    path: "{{ minos_voter_cfg }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  
+- name: Create minos voters configs
+  template:
+    dest: "{{ minos_voter_cfg }}/{{ item }}.yml"
+    src: "edx/etc/minos/conf.d/{{ item }}.yml.j2"
+    mode: "0755"
+    owner: root
+    group: root
+  with_items:
+    - "BellwetherVoter"
+    - "ProccessQuiescenceVoterPython"
+    - "TrackingLogVoter"
+    - "ZippedTrackingLogVoter"
+    - "RolledTrackingLogVoter"
+
+# Optional auth for git
+- name: Create ssh script for git
+  template:
+    src: "tmp/git-identity.sh.j2"
+    dest: "{{ minos_git_ssh }}"
+    mode: "0750"
+
+- name: Install read-only ssh key
+  copy:
+    content: "{{ MINOS_GIT_IDENTITY }}"
+    dest: "{{ minos_git_identity }}"
+    force: yes
+    mode: "0600"
+
+- name: Install python custom-requirements
+  pip:
+    name: "{{ item }}"
+    virtualenv: "{{ minos_app_dir }}/venvs/"
+    state: present
+    extra_args: "--exists-action w"
+    version: "{{ minos_edx_server_tools_version }}"
+  environment:
+    GIT_SSH: "{{ minos_git_ssh }}"
+  with_items:
+    - "{{ minos_requirement }}"

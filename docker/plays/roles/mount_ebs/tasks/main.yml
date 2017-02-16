@@ -1,0 +1,75 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role mount_dbs
+#
+# Overview:
+#
+# This role ensures that the correct EBS volumes are mounted to the right locations.
+# If the volumes are already mounted to the correct place, this role does nothing.
+
+# This task will be skipped if UNMOUNT_DISKS is false, causing the next task
+# to error if the disk has the wrong fstype but is already mounted
+- name: Unmount disk if fstype is wrong
+  mount:
+    name: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'mount': None})).mount }}"
+    src: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'device': None})).device }}"
+    fstype: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype }}"
+    state: unmounted
+  when: "{{ UNMOUNT_DISKS and (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype != item.fstype }}"
+  with_items: volumes
+
+# Noop & reports "ok" if fstype is correct
+# Errors if fstype is wrong and disk is mounted (hence above task)
+- name: Create filesystem
+  filesystem:
+    dev: "{{ item.device }}"
+    fstype: "{{ item.fstype }}"
+    # Necessary because AWS gives some ephemeral disks the wrong fstype by default
+    force: true
+  with_items: volumes
+
+# This can fail if one volume is mounted on a child directory as another volume
+# and it attempts to unmount the parent first.  This is generally fixable by rerunning.
+# Order is super dependent here, but we're iterating ansible_mounts (in order to identify
+# all current mounts in the system) not volumes, which would be reversible.
+# Possibly fixable by saving this list of unmounts off and comparing it to volumes, but this
+# task rarely runs, since on server setup, the disks are unmounted, and in we won't
+# be unmounting disks unless you set UNMOUNT_DISKS to true.
+- name: Unmount disks mounted to the wrong place
+  mount:
+    name: "{{ item.mount }}"
+    src: "{{ item.device }}"
+    fstype: "{{ item.fstype }}"
+    state: unmounted
+  when: >
+    UNMOUNT_DISKS and
+    volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
+    (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
+  with_items: ansible_mounts
+
+# If there are disks we want to be unmounting, but we can't because UNMOUNT_DISKS is false
+# that is an errorable condition, since it can easily allow us to double mount a disk.
+- name: Check that we don't want to unmount disks when UNMOUNT_DISKS is false
+  fail: msg="Found disks mounted in the wrong place, but can't unmount them.  This role will need to be re-run with -e 'UNMOUNT_DISKS=True' if you believe that is safe."
+  when: >
+    not UNMOUNT_DISKS and
+    volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
+    (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
+  with_items: ansible_mounts
+
+- name: Mount disks
+  mount:
+    name: "{{ item.mount }}"
+    src: "{{ item.device }}"
+    state: mounted
+    fstype: "{{ item.fstype }}"
+    opts: "{{ item.options }}"
+  with_items: volumes

@@ -1,0 +1,77 @@
+#! /bin/bash
+
+DEBUG="false"
+BUCKETNAME="none"
+MAILTO=""
+MAILFROM=""
+ANTIVIRUS_S3_AWS_KEY="{{ ANTIVIRUS_S3_AWS_KEY }}"
+ANTIVIRUS_SES_AWS_KEY="{{ ANTIVIRUS_SES_AWS_KEY }}"
+ANTIVIRUS_S3_AWS_SECRET="{{ ANTIVIRUS_S3_AWS_SECRET}}"
+ANTIVIRUS_SES_AWS_SECRET="{{ ANTIVIRUS_SES_AWS_SECRET}}"
+AWS_DEFAULT_REGION="{{ aws_region }}"
+
+
+function usage {
+   echo "$0 - $VERSION";
+   echo "Run ClamAV against the contents of an S3 Bucket.";
+   echo "Usage: $0 [options]";
+   echo "options:";
+   echo "    -d   Debug mode";
+   echo "    -h   Usage (this screen)";
+   echo "    -b <bucket name>";
+   echo "    -m <notify mail address>";
+   echo "    -f <notify from address>";
+   echo "    -k <AWS Key ID>";
+   echo "    -s <AWS Secret Key>"
+   
+}
+
+while getopts "dhb:m:f:k:s:" optionName; do
+      case "$optionName" in
+         d)
+            DEBUG="true"
+            ;;
+         h)
+            usage;
+            exit;
+            ;;
+         [?])
+            usage;
+            exit;
+            ;;
+         b)
+            BUCKETNAME=$OPTARG;
+            ;;
+         m)
+            MAILTO=$OPTARG;
+            ;;
+         f)
+            MAILFROM=$OPTARG;
+            ;;
+         k)
+            AWS_ACCESS_KEY_ID=$OPTARG;
+            ANTIVIRUS_S3_AWS_KEY=$OPTARG;
+            ANTIVIRUS_SES_AWS_KEY=$OPTARG;
+            ;;
+         s)
+            AWS_SECRET_ACCESS_KEY=$OPTARG;
+            ANTIVIRUS_S3_AWS_SECRET=$OPTARG;
+            ANTIVIRUS_SES_AWS_SECRET=$OPTARG;
+            ;;
+      esac
+done
+
+cd {{ antivirus_app_dir }}
+
+export AWS_ACCESS_KEY_ID=$ANTIVIRUS_S3_AWS_KEY
+export AWS_SECRET_ACCESS_KEY=$ANTIVIRUS_S3_AWS_SECRET
+export AWS_DEFAULT_REGION
+
+mkdir -p data/$BUCKETNAME
+aws s3 sync s3://$BUCKETNAME/ data/$BUCKETNAME
+CLAMOUT=$(clamscan -ri data/$BUCKETNAME);
+if [[ $? -ne 0 ]]; then
+  export AWS_ACCESS_KEY_ID=$ANTIVIRUS_SES_AWS_KEY
+  export AWS_SECRET_ACCESS_KEY=$ANTIVIRUS_SES_AWS_SECRET
+  aws ses send-email --to $MAILTO --from $MAILFROM --subject "Virus Scanner malicious file on $BUCKETNAME" --text "$CLAMOUT"
+fi

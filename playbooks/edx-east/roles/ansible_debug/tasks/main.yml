@@ -1,0 +1,77 @@
+---
+- name: Dump all vars to json
+  template:
+    src: dumpall.json.j2 
+    dest: /tmp/ansible.all.json
+    mode: 0600
+  tags:
+    - dumpall
+    - debug
+
+- name: Dump lms auth|env file
+  template:
+    src: "../../edxapp/templates/lms.{{ item }}.json.j2"
+    dest: "/tmp/lms.{{ item }}.json"
+    mode: 0600
+  with_items:
+    - env
+    - auth
+  when: "'lms' in service_variants_enabled"
+  tags:
+    - dumpall
+    - debug
+
+- name: Dump lms-preview auth|env file
+  template:
+    src: "../../edxapp/templates/lms-preview.{{ item }}.json.j2"
+    dest: "/tmp/lms-preview.{{ item }}.json"
+    mode: 0600
+  with_items:
+    - env
+    - auth
+  when: "'lms-preview' in service_variants_enabled"
+  tags:
+    - dumpall
+    - debug
+
+- name: Dump cms auth|env file
+  template:
+    src: "../../edxapp/templates/cms.{{ item }}.json.j2"
+    dest: "/tmp/cms.{{ item }}.json"
+    mode: 0600
+  with_items:
+    - env
+    - auth
+  when: "'cms' in service_variants_enabled"
+  tags:
+    - dumpall
+    - debug
+
+- name: Dump all vars to yaml
+  template:
+    src: dumpall.yml.j2
+    dest: /tmp/ansible.all.yml
+    mode: 0600
+  tags:
+    - dumpall
+    - debug
+
+- name: fetch remote files
+  # fetch is fail-safe for remote files that don't exist
+  # setting mode is not an option
+  fetch:
+    src: "/tmp/{{ item }}"
+    dest: "/tmp/{{ ansible_hostname }}-{{item}}"
+    flat: True
+  with_items:
+    - ansible.all.json
+    - ansible.all.yml
+    - lms.env.json
+    - lms.auth.json
+    - lms-preview.env.json
+    - lms-preview.auth.json
+    - cms.env.json
+    - cms.auth.json
+  tags:
+    - dumpall
+    - debug

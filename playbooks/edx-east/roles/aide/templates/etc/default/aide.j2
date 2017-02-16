@@ -1,0 +1,82 @@
+# These settings are mainly for the wrapper scripts around aide,
+# such as aideinit and /etc/cron.daily/aide
+
+# send reports to syslog
+
+REPORT_URL=syslog:LOG_LOCAL1
+
+# This is used as the host name in the AIDE reports that are sent out
+# via e-mail. It defaults to the output of $(hostname --fqdn), but can
+# be set to arbitrary values.
+# FQDN=
+
+# This is used as the subject for the e-mail reports.
+# If your mail system only threads by subject, you might want to add
+# some variable content here (for example $(date +%Y-%m-%d)).
+MAILSUBJ="Daily AIDE report for $FQDN"
+
+
+# This is the email address reports get mailed to
+# default is root
+# This variable is expanded before it is used, so you can use variables
+# here. For example, MAILTO=$FQDN-aide@domain.example will send the
+# report to host.name.example-aide@domain.example is the local FQDN is
+# host.name.example.
+MAILTO={{ AIDE_REPORT_EMAIL }}
+
+# Set this to yes to suppress mailings when no changes have been
+# detected during the AIDE run and no error output was given.
+#QUIETREPORTS=no
+
+# This parameter defines which AIDE command to run from the cron script.
+# Sensible values are "update" and "check".
+# Default is "check", ensuring backwards compatibility.
+# Since "update" does not take any longer, it is recommended to use "update",
+# so that a new database is created every day. The new database needs to be
+# manually copied over the current one, though.
+COMMAND=update
+
+# This parameter defines what to do with a new database created by
+# COMMAND=update. It is ignored if COMMAND!=update.
+# no: Do not copy new database to old database. This is the default.
+# yes: Copy new database to old database. This means that changes to the
+#   file system are only reported once. Possibly dangerous.
+# ifnochange: Copy new database to old database if no changes have
+#   been reported. This is needed for ANF/ARF to work reliably.
+COPYNEWDB=no
+
+# Set this to yes to truncate the detailed changes part in the mail. The full
+# output will still be listed in the log file.
+TRUNCATEDETAILS=yes
+
+# Set this to yes to suppress file changes by package and security
+# updates from appearing in the e-mail report. Filtered file changes will
+# still be listed in the log file. This option parses the /var/log/dpkg.log
+# file and implies TRUNCATEDETAILS=yes
+FILTERUPDATES=yes
+
+# Set this to yes to suppress file changes by package installations
+# from appearing in the e-mail report. Filtered file changes will still
+# be listed in the log file. This option parses the /var/log/dpkg.log file and
+# implies TRUNCATEDETAILS=yes.
+FILTERINSTALLATIONS=yes
+
+# This parameter defines how many lines to return per e-mail. Output longer
+# than this value will be truncated in the e-mail sent out.
+# Set value to "0" to disable this option.
+LINES=1000
+
+# This parameter gives a grep regular expression. If given, all output lines
+# that _don't_ match the regexp are listed first in the script's output. This
+# allows to easily remove noise from the AIDE report.
+NOISE=""
+
+# This parameter defines which options are given to aide in the daily
+# cron job. The default is "-V4".
+AIDEARGS=""
+
+# These parameters control update-aide.conf and give the defaults for
+# the --confdir, --confd and --settingsd options
+# UPAC_CONFDIR="/etc/aide"
+# UPAC_CONFD="$UPAC_CONFDIR/aide.conf.d"
+# UPAC_SETTINGSD="$UPAC_CONFDIR/aide.settings.d"

@@ -1,0 +1,47 @@
+---
+# install and configure snort IDS
+#
+
+- name: install snort
+  apt: pkg={{ item }} state="present"
+  with_items:
+    - snort
+    - oinkmaster
+
+- name: configure snort
+  template: >
+    src=etc/snort/snort.conf.j2 dest=/etc/snort/snort.conf
+    owner=root group=root mode=0644
+
+- name: configure snort (debian)
+  template: >
+    src=etc/snort/snort.debian.conf.j2 dest=/etc/snort/snort.debian.conf
+    owner=root group=root mode=0644
+
+- name: configure oinkmaster
+  template: >
+    src=etc/oinkmaster.conf.j2 dest=/etc/oinkmaster.conf
+    owner=root group=root mode=0644
+
+- name: update snort
+  shell: oinkmaster -C /etc/oinkmaster.conf -o /etc/snort/rules/ 
+  become: yes
+
+- name: snort service 
+  service: >
+    name="snort" 
+    state="started"
+
+- name: open read permissions on snort logs
+  file: >
+    name="/var/log/snort"
+    state="directory"
+    mode="755"
+
+- name: install oinkmaster cronjob
+  template: >
+    src=etc/cron.daily/oinkmaster.j2 dest=/etc/cron.daily/oinkmaster
+    owner=root group=root mode=0755
+
+
+

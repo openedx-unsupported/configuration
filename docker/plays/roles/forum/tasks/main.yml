@@ -1,0 +1,73 @@
+---
+# forum
+#
+# Dependencies:
+#
+#   * common
+#   * elasticsearch
+#   * oraclejdk
+#   * rbenv
+#
+#
+# Example play:
+#   roles:
+#   - common
+#   - oraclejdk
+#   - elasticsearch
+#   - role: rbenv
+#     rbenv_user: "{{ forum_user }}"
+#     rbenv_dir: "{{ forum_rbenv_dir }}"
+#     rbenv_ruby_version: "{{ forum_ruby_version }}"
+#   - forum
+
+- name: create application user
+  user:
+    name: "{{ forum_user }}"
+    home: "{{ forum_app_dir }}"
+    createhome: yes
+    shell: /bin/false
+    generate_ssh_key: yes
+  notify: restart the forum service
+  tags:
+    - install
+    - install:base
+
+# Ensure the directory is accessible to the web service
+- name: set forum app dir permissions
+  file:
+    path: "{{ forum_app_dir }}"
+    state: directory
+    owner: "{{ forum_user }}"
+    group: "{{ common_web_group }}"
+  notify: restart the forum service
+  tags:
+    - install
+    - install:base
+
+- name: setup the forum env
+  template:
+    src: forum_env.j2
+    dest: "{{ forum_app_dir }}/forum_env"
+    owner: "{{ forum_user }}" 
+    group: "{{ common_web_user }}"
+    mode: 0644
+  notify:
+    - restart the forum service
+  tags:
+    - install
+    - install:base
+
+- name: create {{ forum_data_dir }}
+  file:
+    path: "{{ forum_data_dir }}"
+    state: directory
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0777
+  tags:
+    - install
+    - install:base
+    
+- include: deploy.yml
+  tags: 
+    - deploy

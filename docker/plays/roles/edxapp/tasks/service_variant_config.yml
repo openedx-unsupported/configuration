@@ -1,0 +1,153 @@
+---
+- name: create application and auth config
+  template:
+    src: "{{ item[0] }}.{{ item[1] }}.json.j2"
+    dest: "{{ edxapp_app_dir }}/{{ item[0] }}.{{ item[1] }}.json"
+  become_user: "{{ edxapp_user }}"
+  with_nested: 
+    - "{{ service_variants_enabled }}"
+    - [ 'env', 'auth' ]
+  tags:
+    - install
+    - install:configuration
+    - edxapp_cfg
+
+- name: create auth and application yaml config
+  template:
+    src: "{{ item[0] }}.{{ item[1] }}.yaml.j2"
+    dest: "{{ EDXAPP_CFG_DIR }}/{{ item[0] }}.{{ item[1] }}.yaml"
+  become_user: "{{ edxapp_user }}"
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    - [ 'env', 'auth' ]
+  tags:
+    - install
+    - install:configuration
+    - edxapp_cfg
+
+# write the supervisor scripts for the service variants
+- name: "writing {{ item }} supervisor script"
+  template:
+    src: "{{ item }}.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ item }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
+  with_items: "{{ service_variants_enabled }}"
+  tags:
+    - install
+    - install:configuration
+
+# write the supervisor script for edxapp and celery workers
+- name: writing edxapp and celery supervisor scripts
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ supervisor_available_dir }}/{{ item }}"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+  become_user: "{{ supervisor_user }}"
+  with_items:
+    - edxapp.conf
+    - workers.conf
+  tags:
+    - install
+    - install:configuration
+
+- name: add gunicorn configuration files
+  template:
+    src: "{{ item }}_gunicorn.py.j2"
+    dest: "{{ edxapp_app_dir }}/{{ item }}_gunicorn.py"
+  become_user: "{{ edxapp_user }}"
+  with_items: "{{ service_variants_enabled }}"
+  tags:
+    - install
+    - install:configuration
+
+# Enable the supervisor jobs
+- name: "enable {{ item }} supervisor script"
+  file:
+    src: "{{ supervisor_available_dir }}/{{ item }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ item }}.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  with_items: "{{ service_variants_enabled }}"
+  when: celery_worker is not defined and not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: enable edxapp supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/edxapp.conf"
+    dest: "{{ supervisor_cfg_dir }}/edxapp.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  when: celery_worker is not defined and not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: enable celery worker supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/workers.conf"
+    dest: "{{ supervisor_cfg_dir }}/workers.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  when: celery_worker is defined and not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: create helper scripts for managing edxapp
+  template:
+    src: "edx/bin/{{ item[0] }}-{{ item[1] }}.j2"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item[0] }}-{{ item[1] }}"
+    owner: "{{ edxapp_user }}"
+    mode: 0755
+  with_nested:
+    - "{{ edxapp_helper_scripts }}"
+    - "{{ service_variants_enabled }}"
+  tags:
+    - install
+    - install:configuration
+
+# migrate when the migrate user is overridden in extra vars
+- name: migrate
+  command: "{{ COMMON_BIN_DIR }}/edxapp-migrate-{{ item }}"
+  when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS and item != "lms-preview"
+  environment:
+    DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+  with_items: "{{ service_variants_enabled }}"
+  tags:
+    - migrate
+
+# There are problems with django collectstatic copying files.  It doesn't retain
+# last modified timestamps, but relies on those same timestamps to know if a new file
+# should be recopied.  While collectstatic --clear exists, it only clears some of the
+# files in edxapp_staticfile_dir, it leaves postprocessed or otherwise hashed files.
+# This ensures we have a totally clean directory.
+- name: Remove and recreate the staticfiles directory so nothing stale can exist
+  file:
+      path: "{{ edxapp_staticfile_dir }}"
+      state: "{{ item }}"
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+      mode:  "0755"
+  when: celery_worker is not defined and not devstack
+  with_items: ['absent', 'directory']
+  tags:
+    - gather_static_assets
+    - assets
+
+# Gather assets using paver if possible
+- name: "gather {{ item }} static assets with paver"
+  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
+  when: celery_worker is not defined and not devstack and item != "lms-preview"
+  with_items: "{{ service_variants_enabled }}"
+  tags:
+    - gather_static_assets
+    - assets

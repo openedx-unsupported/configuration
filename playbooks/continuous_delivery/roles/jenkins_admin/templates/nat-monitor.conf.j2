@@ -1,0 +1,19 @@
+{% for m in NAT_MONITORS %}
+[program:nat_monitor_{{ m.vpc_name|replace('-','_') }}]
+
+environment=VPC_NAME="{{ m.vpc_name }}",AWS_DEFAULT_REGION="{{ m.region }}",AWS_DEFAULT_PROFILE="{{ m.deployment }}",AWS_MAIL_PROFILE="{{ JENKINS_ADMIN_MAIL_PROFILE }}",NAT_MONITOR_FROM_EMAIL="{{ JENKINS_ADMIN_FROM_EMAIL }}",NAT_MONITOR_TO_EMAIL="{{ JENKINS_ADMIN_TO_EMAIL }}"
+
+user={{ jenkins_supervisor_service_user }}
+
+directory={{ jenkins_admin_scripts_dir }}
+stdout_logfile={{ jenkins_supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ jenkins_supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ jenkins_admin_scripts_dir }}/nat-monitor.sh
+killasgroup=true
+stopasgroup=true
+
+{% endfor %}
+
+[group:nat_monitor]
+programs={%- for m in NAT_MONITORS %}nat_monitor_{{ m.vpc_name|replace('-','_') }}{%- if not loop.last %},{%- endif %}{%- endfor %}

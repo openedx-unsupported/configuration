@@ -1,0 +1,182 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role jenkins_admin
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- fail: msg="JENKINS_ADMIN_S3_PROFILE is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE is not defined
+
+- fail: msg="JENKINS_ADMIN_S3_PROFILE.name is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE.name is not defined
+
+- fail: msg="JENKINS_ADMIN_S3_PROFILE.access_key is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE.access_key is not defined
+
+- fail: msg="JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
+  when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
+
+- name: add admin specific apt repositories
+  apt_repository: repo="{{ item }}" state=present update_cache=yes
+  with_items: jenkins_admin_debian_repos
+
+- name: create the scripts directory
+  file: path={{ jenkins_admin_scripts_dir }} state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=755
+
+- name: configure s3 plugin
+  template: >
+    src="./{{ jenkins_home }}/hudson.plugins.s3.S3BucketPublisher.xml.j2"
+    dest="{{ jenkins_home }}/hudson.plugins.s3.S3BucketPublisher.xml"
+    owner={{ jenkins_user }}
+    group={{ jenkins_group }}
+    mode=0644
+
+- name: configure the boto profiles for jenkins
+  template: >
+    src="./{{ jenkins_home }}/boto.j2"
+    dest="{{ jenkins_home }}/.boto"
+    owner="{{ jenkins_user }}"
+    group="{{ jenkins_group }}"
+    mode="0600"
+  tags:
+    - aws-config
+
+- name: create the .aws directory
+  file: path={{ jenkins_home }}/.aws state=directory
+        owner={{ jenkins_user }} group={{ jenkins_group }} mode=700
+  tags:
+    - aws-config
+
+- name: configure the awscli profiles for jenkins
+  template: >
+    src="./{{ jenkins_home }}/aws_config.j2"
+    dest="{{ jenkins_home }}/.aws/config"
+    owner="{{ jenkins_user }}"
+    group="{{ jenkins_group }}"
+    mode="0600"
+  tags:
+    - aws-config
+
+- name: create the ssh directory
+  file: >
+    path={{ jenkins_home }}/.ssh
+    owner={{ jenkins_user }}
+    group={{ jenkins_group }}
+    mode=0700
+    state=directory
+
+# Need to add Github to known_hosts to avoid
+# being prompted when using git through ssh
+- name: Add github.com to known_hosts if it does not exist
+  shell: >
+     ssh-keygen -f {{ jenkins_home }}/.ssh/known_hosts -H -F github.com | grep -q found || ssh-keyscan -H github.com > {{ jenkins_home }}/.ssh/known_hosts
+
+- name: create job directory
+  file: >
+    path="{{ jenkins_home }}/jobs"
+    owner="{{ jenkins_user }}"
+    group="{{ jenkins_group }}"
+    mode=0755
+    state=directory
+
+- name: create admin job directories
+  file: >
+    path="{{ jenkins_home }}/jobs/{{ item }}"
+    owner={{ jenkins_user }}
+    group={{ jenkins_group }}
+    mode=0755
+    state=directory
+  with_items: jenkins_admin_jobs
+
+- name: create admin job config files
+  template: >
+    src="./{{ jenkins_home }}/jobs/{{ item }}/config.xml.j2"
+    dest="{{ jenkins_home }}/jobs/{{ item }}/config.xml"
+    owner={{ jenkins_user }}
+    group={{ jenkins_group }}
+    mode=0644
+  with_items: jenkins_admin_jobs
+
+# adding chris-lea nodejs repo
+- name: add ppas for current versions of nodejs
+  apt_repository: repo="{{ jenkins_chrislea_ppa }}"
+
+- name: install system packages for edxapp virtualenvs
+  apt: pkg={{','.join(jenkins_admin_debian_pkgs)}} state=present update_cache=yes
+
+# This is necessary so that ansible can run with
+# sudo set to True (as the jenkins user) on jenkins
+- name: grant sudo access to the jenkins user
+  copy: >
+    content="{{ jenkins_user }} ALL=({{ jenkins_user }}) NOPASSWD:ALL"
+    dest=/etc/sudoers.d/99-jenkins owner=root group=root
+    mode=0440 validate='visudo -cf %s'
+
+- name: install global gem dependencies
+  gem: >
+    name={{ item.name }}
+    state=present
+    version={{ item.version }}
+    user_install=no
+  with_items: jenkins_admin_gem_pkgs
+
+- name: get s3 one time url
+  local_action:
+    module: "s3"
+    bucket: "{{ JENKINS_ADMIN_BACKUP_BUCKET }}"
+    object: "{{ JENKINS_ADMIN_BACKUP_S3_KEY }}"
+    mode: "geturl"
+    expiration: 30
+  register: s3_one_time_url
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+- name: download s3 backup
+  get_url:
+    url: "{{ s3_one_time_url.url }}"
+    dest: "/tmp/{{ JENKINS_ADMIN_BACKUP_S3_KEY | basename }}"
+    mode: "0644"
+    owner: "{{ jenkins_user }}"
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+- name: stop jenkins
+  service:
+    name: "jenkins"
+    state: "stopped"
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+- name: restore the backup
+  unarchive:
+    src: "/tmp/jenkins_backup.tar.gz"
+    dest: "{{ jenkins_home }}/.."
+    owner: "{{ jenkins_user }}"
+    copy: false
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
+
+# When testing consider commenting this out
+- name: start jenkins
+  service:
+    name: "jenkins"
+    state: "started"
+  when: JENKINS_ADMIN_BACKUP_BUCKET and JENKINS_BACKUP_S3_KEY
+
+- include: nat_monitor.yml
+  tags:
+    - nat-monitor

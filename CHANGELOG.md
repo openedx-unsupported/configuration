@@ -183,16 +183,3 @@
     should be used instead which is a list of directories. `EDXAPP_COMPREHENSIVE_THEME_DIR` if present will have priority over `EDXAPP_COMPREHENSIVE_THEME_DIRS`
   - `COMPREHENSIVE_THEME_DIR` is deprecated and is maintained for backward compatibility, `COMPREHENSIVE_THEME_DIRS` should be used
     instead which is a list of directories. `COMPREHENSIVE_THEME_DIR` if present will have priority over `COMPREHENSIVE_THEME_DIRS`
-
-- Role: edxapp
-  - Added COMPREHENSIVE_THEME_LOCALE_PATHS to support internationalization of strings originating from custom themes.
-
-- Role: edxapp
-  - Added `EXPIRING_SOON_WINDOW` to show message to learners if their verification is expiring soon.
-
-- Role: discovery
-  - Added `PUBLISHER_FROM_EMAIL` for sending emails to publisher app users.
-
-- Role: security
-  - Changed SECURITY_UPGRADE_ON_ANSIBLE to only apply security updates.  If you want to retain the behavior of running safe-upgrade,
-    you should switch to using SAFE_UPGRADE_ON_ANSIBLE.
