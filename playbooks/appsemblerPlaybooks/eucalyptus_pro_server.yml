@@ -31,6 +31,13 @@
   vars:
     migrate_db: "yes"
     openid_workaround: True
+  pre_tasks:
+    # This is dirty, but better than setting in every server vars file
+    - set_fact:
+        EDXAPP_MONGO_SSL_CLIENT_CERT_PATH: "/edx/etc/edxapp/mongodb.pem"
+        EDXAPP_MONGO_SSL_CA_CERT_PATH: "/edx/etc/edxapp/ca.pem"
+      when: EDXAPP_MONGO_USE_SSL is defined and EDXAPP_MONGO_USE_SSL
+      tags: always
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
     - sudo

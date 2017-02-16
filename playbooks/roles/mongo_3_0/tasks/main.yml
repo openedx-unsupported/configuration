@@ -193,6 +193,32 @@
     - "install:configuration"
     - "logrotate"
 
+- name: copy CA certificate
+  copy: >
+    content="{{ MONGO_SSL_CA_CERT }}"
+    dest="{{ mongo_data_dir }}/ca.pem"
+    mode=0600
+    owner=mongodb
+    group=mongodb
+  when: MONGO_SSL_CA_CERT != ""
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: copy server key and certificate
+  copy: >
+    content="{{ MONGO_SSL_SERVER_KEY ~ '\n' ~ MONGO_SSL_SERVER_CERT }}"
+    dest="{{ mongo_data_dir }}/server.pem"
+    mode=0600
+    owner=mongodb
+    group=mongodb
+  when:
+    - MONGO_SSL_SERVER_KEY != ""
+    - MONGO_SSL_SERVER_CERT != ""
+  tags:
+    - "install"
+    - "install:configuration"
+
 - name: restart mongo service if we changed our configuration
   service:
     name: mongod
