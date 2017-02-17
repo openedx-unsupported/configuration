@@ -21,20 +21,42 @@
     - install
     - install:system-requirements
 
-- name: download browser packages from S3
+- name: download trusty browser packages from S3
+  get_url:
+    dest: /tmp/{{ item.name }}
+    url: "{{ item.url }}"
+  register: download_deb
+  with_items: "{{ trusty_browser_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: download xenial browser packages from S3
   get_url:
     dest: /tmp/{{ item.name }}
     url: "{{ item.url }}"
   register: download_deb
   with_items: "{{ browser_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'xenial'
   tags:
     - install
     - install:system-requirements
 
-- name: install browser packages
+- name: install trusty browser packages
+  shell: gdebi -nq /tmp/{{ item.name }}
+  when: download_deb.changed
+  with_items: "{{ trusty_browser_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install xenial browser packages
   shell: gdebi -nq /tmp/{{ item.name }}
   when: download_deb.changed
   with_items: "{{ browser_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'xenial'
   tags:
     - install
     - install:system-requirements
@@ -127,12 +149,29 @@
     - install
     - install:system-requirements
 
+# Systemd doesn't exist in 14.04, use upstart instead
+- name: create xvfb upstart script
+  template:
+    src: xvfb.conf.j2
+    dest: /etc/init/xvfb.conf
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'trusty'
+
+- name: start xvfb
+  service:
+    name: xvfb
+    state: restarted
+  when: ansible_distribution_release == 'trusty'
+
+# Use systemd for xvfb in 16.04
 - name: create xvfb systemd service
   template:
     src: xvfb.service.j2
     dest: /etc/systemd/system/xvfb.service
     owner: root
     group: root
+  when: ansible_distribution_release == 'xenial'
   tags:
     - install
     - install:configuration
@@ -142,6 +181,7 @@
     name: xvfb
     enabled: yes
     state: started
+  when: ansible_distribution_release == 'xenial'
   tags:
     - install
     - install:configuration
