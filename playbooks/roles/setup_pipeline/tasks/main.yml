@@ -1,0 +1,137 @@
+---
+- name: create application user
+  user:
+    name: "{{ pipeline_user }}"
+    home: "{{ pipeline_app_dir }}"
+    createhome: no
+    shell: /bin/bash
+    generate_ssh_key: yes
+  tags:
+    - install
+    - install:base
+
+- name: create edxapp user dirs
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ pipeline_user }}"
+    group: "{{ common_web_group }}"
+    mode: "{{ item.mode | default(0755) }}"
+  with_items:
+    - { path: "{{ pipeline_app_dir }}" }
+    # needed for the ansible 1.5 git module
+    - { path: "{{ pipeline_app_dir }}/.ssh" }
+    - { path: "{{ pipeline_hadoop_tasks_dir }}" }
+    - { path: "{{ pipeline_venv_dir }}" }
+  tags:
+    - install
+    - install:base
+
+- name: own key authorized
+  file:
+    src: "{{ pipeline_app_dir }}/.ssh/id_rsa.pub"
+    dest: "{{ pipeline_app_dir }}/.ssh/authorized_keys"
+    owner: "{{ pipeline_user }}"
+    group: "{{ pipeline_group }}"
+    force: yes
+    state: link
+
+- name: ensure user is in sudoers
+  lineinfile: >
+    dest=/etc/sudoers state=present
+    regexp='^%pipeline ALL\=' line='%pipeline ALL=(ALL) NOPASSWD:ALL'
+    validate='visudo -cf %s'
+
+- name: create edxapp log dir
+  file:
+    path: "{{ edxapp_log_dir }}"
+    state: directory
+    owner: "{{ common_log_user }}"
+    group: "{{ common_log_user }}"
+  tags:
+    - install
+    - install:base
+
+# Do A Checkout
+- name: checkout edx-analytics-pipeline repo into {{ pipeline_code_dir }}
+  git_2_0_1:
+    dest: "{{ pipeline_code_dir }}"
+    repo: "{{ pipeline_repo }}"
+    version: "{{ pipeline_version }}"
+    accept_hostkey: yes
+  become_user: "{{ pipeline_user }}"
+  #environment:
+  #  GIT_SSH: "{{ edxapp_git_ssh }}"
+  register: pipeline_checkout
+  tags:
+    - install
+    - install:code
+
+- name: git clean after checking out edx-platform
+  shell: cd {{ pipeline_code_dir }} && git clean -xdf
+  become_user: "{{ pipeline_user }}"
+  tags:
+    - install
+    - install:code
+
+- name: Create the virtualenv to install the Python requirements
+  command: >
+    virtualenv {{ pipeline_venv_dir }}
+    chdir={{ pipeline_code_dir }}
+    creates={{ pipeline_venv_dir }}/bin/pip
+  become_user: "{{ pipeline_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install python requirements
+  command: >
+    {{ pipeline_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
+    chdir={{ pipeline_code_dir }}
+  become_user: "{{ pipeline_user }}"
+  #environment: "{{ pipeline_environment }}"
+  #when: item.stat.exists
+  with_items: "{{ edxapp_requirements_files }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install the pipeline
+  command: >
+    {{ pipeline_venv_dir }}/bin/python setup.py install --force
+    chdir={{ pipeline_code_dir }}
+  become_user: "{{ pipeline_user }}"
+  #environment: "{{ pipeline_environment }}"
+  #when: item.stat.exists
+  with_items: "{{ edxapp_requirements_files }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: download geodata info
+  get_url:
+    url: "{{ geo_data_file_url }}"
+    dest: "/tmp/geo.dat.gz"
+    mode: 0755
+  tags:
+    - install
+
+- name: extract geodata info
+  command: >
+    gunzip -f /tmp/geo.dat.gz
+  tags:
+    - install
+
+- name: copy geodata into HDFS
+  command: >
+    /edx/app/hadoop/hadoop/bin/hdfs dfs -put -f /tmp/geo.dat /edx-analytics-pipeline
+  become_user: "hadoop"
+  tags:
+    - install
+
+- name: setup the pipeline
+  command: >
+    {{ pipeline_venv_dir }}/bin/remote-task --host localhost --repo https://github.com/edx/edx-analytics-pipeline --user {{ pipeline_user }} --override-config $HOME/edx_analytics_pipeline/config/devstack.cfg --wheel-url http://edx-wheelhouse.s3-website-us-east-1.amazonaws.com/Ubuntu/precise --remote-name analyticstack --wait TotalEventsDailyTask --interval 2015 --output-root hdfs://localhost:9000/output/ --local-scheduler
+  become_user: "{{ pipeline_user }}"
+  tags:
+    - install

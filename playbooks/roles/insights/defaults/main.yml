@@ -54,6 +54,11 @@ INSIGHTS_THEME_SCSS: 'sass/themes/open-edx.scss'
 INSIGHTS_RESEARCH_URL: 'https://www.edx.org/research-pedagogy'
 INSIGHTS_OPEN_SOURCE_URL: 'http://set-me-please'
 
+# Comma-delimited list of field names to include in the Learner List CSV download
+# e.g., "username,segments,cohort,engagements.videos_viewed,last_updated"
+# Default (null) includes all available fields, in alphabetical order
+INSIGHTS_LEARNER_API_LIST_DOWNLOAD_FIELDS: !!null
+
 INSIGHTS_DATABASE_NAME: 'dashboard'
 
 INSIGHTS_DATABASE_USER: rosencrantz
@@ -126,6 +131,7 @@ INSIGHTS_CONFIG:
   DATABASES: "{{ INSIGHTS_DATABASES }}"
   LMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL }}"
   COURSE_API_URL: "{{ INSIGHTS_COURSE_API_URL }}"
+  GRADING_POLICY_API_URL: "{{ INSIGHTS_GRADING_POLICY_API_URL }}"
   MODULE_PREVIEW_URL: "{{ INSIGHTS_MODULE_PREVIEW_URL }}"
   # When insights is co-located with other django services, we need to ensure they don't all
   # use the same cookie names.
@@ -133,6 +139,7 @@ INSIGHTS_CONFIG:
   CSRF_COOKIE_NAME: "{{ INSIGHTS_CSRF_COOKIE_NAME | default('insights_csrftoken') }}"
   LANGUAGE_COOKIE_NAME: "{{ INSIGHTS_LANGUAGE_COOKIE_NAME | default('insights_language') }}"
   CMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL }}"
+  LEARNER_API_LIST_DOWNLOAD_FIELDS: "{{ INSIGHTS_LEARNER_API_LIST_DOWNLOAD_FIELDS }}"
 
 INSIGHTS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
 INSIGHTS_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
@@ -140,7 +147,8 @@ INSIGHTS_NGINX_PORT: "18110"
 INSIGHTS_NGINX_SSL_PORT: "18113"
 INSIGHTS_GUNICORN_WORKERS: "2"
 INSIGHTS_GUNICORN_EXTRA: ""
-INSIGHTS_COURSE_API_URL: "{{ INSIGHTS_LMS_BASE }}/api/course_structure/v0/"
+INSIGHTS_COURSE_API_URL: "{{ INSIGHTS_LMS_BASE }}/api/courses/v1/"
+INSIGHTS_GRADING_POLICY_API_URL: "{{ INSIGHTS_LMS_BASE }}/api/grades/v0/"
 INSIGHTS_MODULE_PREVIEW_URL: "{{ INSIGHTS_LMS_BASE }}/xblock"
 
 INSIGHTS_VERSION: "master"
@@ -179,6 +187,7 @@ insights_nodeenv_dir: "{{ insights_home }}/nodeenvs/{{ insights_service_name }}"
 insights_nodeenv_bin: "{{ insights_nodeenv_dir }}/bin"
 insights_node_modules_dir: "{{ insights_code_dir }}/node_modules"
 insights_node_bin: "{{ insights_node_modules_dir }}/.bin"
+insights_node_version: "{{ common_node_version }}"
 
 insights_gunicorn_host: "127.0.0.1"
 insights_gunicorn_port: "8110"
@@ -200,8 +209,9 @@ insights_debian_pkgs:
   - 'libmysqlclient-dev'
   - 'build-essential'
   - gettext
-  - openjdk-7-jdk
 
-insights_redhat_pkgs:
-  - 'community-mysql-devel'
-  - openjdk-7-jdk
+insights_release_specific_debian_pkgs:
+  precise:
+    - openjdk-7-jdk
+  xenial:
+    - openjdk-8-jdk
