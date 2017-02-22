@@ -200,10 +200,14 @@
   - Changed SECURITY_UPGRADE_ON_ANSIBLE to only apply security updates.  If you want to retain the behavior of running safe-upgrade,
     you should switch to using SAFE_UPGRADE_ON_ANSIBLE.
 
+- Role: mongo_2_6
+  - Added `MONGO_AUTH` to turn authentication on/off. Auth is now enabled by default, and was previously disabled by default.
+
 - Role: mongo_3_0
   - Changed MONGO_STORAGE_ENGINE to default to wiredTiger which is the default in 3.2 and 3.4 and what edX suggests be used even on 3.0.
     If you have a mmapv1 3.0 install, override MONGO_STORAGE_ENGINE to be mmapv1 which was the old default.
   - Support parsing the replset JSON in 3.2 and 3.0
+  - Added `MONGO_AUTH` to turn authentication on/off. Auth is now enabled by default, and was previously disabled by default.
 
 - Role: xqueue
   - Added `EDXAPP_CELERY_BROKER_USE_SSL` to allow configuring celery to use TLS.
