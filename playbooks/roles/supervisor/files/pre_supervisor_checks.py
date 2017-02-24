@@ -15,7 +15,6 @@ MIGRATION_COMMANDS = {
         'cms':     "/edx/bin/edxapp-migrate-cms --noinput --list",
         'xqueue':  "SERVICE_VARIANT=xqueue sudo -E -u xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
         'ecommerce':     ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
-        'programs':      ". {env_file}; sudo -E -u programs {python} {code_dir}/manage.py showmigrations",
         'insights':      ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
         'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
         'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
@@ -95,15 +94,6 @@ if __name__ == '__main__':
         help="Location of the ecommerce environment file.")
     ecom_migration_args.add_argument("--ecommerce-code-dir",
         help="Location of the ecommerce code.")
-
-    programs_migration_args = parser.add_argument_group("programs_migrations",
-            "Args for running programs migration checks.")
-    programs_migration_args.add_argument("--programs-python",
-        help="Path to python to use for executing migration check.")
-    programs_migration_args.add_argument("--programs-env",
-        help="Location of the programs environment file.")
-    programs_migration_args.add_argument("--programs-code-dir",
-        help="Location of the programs code.")
 
     credentials_migration_args = parser.add_argument_group("credentials_migrations",
             "Args for running credentials migration checks.")
@@ -210,7 +200,7 @@ if __name__ == '__main__':
     try:
         #get the list of the volumes, that are attached to the instance
         volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
-    
+
         for volume in volumes:
             volume.add_tags({"hostname": hostname,
                              "environment": environment,
@@ -242,7 +232,6 @@ if __name__ == '__main__':
                         "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
                         "cms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
                         "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
-                        "programs": {'python': args.programs_python, 'env_file': args.programs_env, 'code_dir': args.programs_code_dir},
                         "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
                         "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
                         "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},

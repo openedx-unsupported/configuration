@@ -1,6 +1,7 @@
+- Role: programs
+  - This role has been removed as this service is no longer supported. The role is still available on the [Ficus branch](https://github.com/edx/configuration/releases/tag/open-release%2Fficus.1).
 - Role: xqueue
   - Changed `XQUEUE_RABBITMQ_TLS` default from `true` to `false`.
-
 - Role: credentials
   - Added `CREDENTIALS_EXTRA_APPS` to enable the inclusion of additional Django apps in the Credentials Service.
 - Role: common
