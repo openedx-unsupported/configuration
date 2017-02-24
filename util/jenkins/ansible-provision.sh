@@ -193,10 +193,6 @@ ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
 ECOMMERCE_VERSION: $ecommerce_version
 
-PROGRAMS_NGINX_PORT: 80
-PROGRAMS_SSL_NGINX_PORT: 443
-PROGRAMS_VERSION: $programs_version
-
 CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
@@ -287,12 +283,6 @@ ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
-PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
-PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
-PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-PROGRAMS_CORS_ORIGIN_WHITELIST:
-  - studio-${deploy_host}
-
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
@@ -301,7 +291,6 @@ COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-DISCOVERY_PROGRAMS_API_URL: "{{ PROGRAMS_URL_ROOT }}/api/v1/"
 
 EOF
 fi
@@ -348,7 +337,7 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce programs credentials discovery notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses"
 
 for role in $roles; do
     deploy[$role]=${!role}
