@@ -1,0 +1,116 @@
+upstream lms-preview-backend {
+    {% for host in nginx_lms_preview_gunicorn_hosts %}
+        server {{ host }}:{{ edxapp_lms_preview_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
+server {
+  # LMS-preview configuration file for nginx, templated by ansible
+
+  listen {{ EDXAPP_LMS_PREVIEW_NGINX_PORT }};
+
+  {% if NGINX_ENABLE_SSL %}
+  listen {{ EDXAPP_LMS_PREVIEW_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  {% endif %}
+  
+  server_name preview.*;
+
+  access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
+  error_log {{ nginx_log_dir }}/error.log error;
+ 
+  # CS184 requires uploads of up to 4MB for submitting screenshots.
+  # CMS requires larger value for course assest, values provided
+  # via hiera.
+  client_max_body_size 4M;
+  
+  rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
+
+  location @proxy_to_lms-preview_app {
+    {% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {% else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {% endif %}
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://lms-preview-backend;
+  }
+
+  location / {
+    {% if EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
+    try_files $uri @proxy_to_lms-preview_app;
+  }
+
+  # No basic auth security on the github_service_hook url, so that github can use it for cms
+  location /github_service_hook {
+    try_files $uri @proxy_to_lms-preview_app;
+  }
+
+  # No basic auth security on the heartbeat url, so that ELB can use it
+  location /heartbeat {
+    try_files $uri @proxy_to_lms-preview_app;
+  }
+
+  {% include "robots.j2" %}
+
+  # Check security on this
+  location ~ ^/static/(?P<file>.*) {
+    root {{ edxapp_data_dir}};
+    try_files /staticfiles/$file /course_static/$file =404;
+
+    # return a 403 for static files that shouldn't be
+    # in the staticfiles directory
+    location ~ ^/static/(?:.*)(?:\.xml|\.json|README.TXT) {
+        return 403;
+    }
+    # Set django-pipelined files to maximum cache time
+    location ~ "/static/(?P<collected>.*\.[0-9a-f]{12}\..*)" {
+        expires max;
+        # Without this try_files, files that have been run through
+        # django-pipeline return 404s
+        try_files /staticfiles/$collected /course_static/$collected =404;
+    }
+
+    # Expire other static files immediately (there should be very few / none of these)
+    expires epoch;
+  }
+
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
+  # Redirect http to https over single instance
+  if ($scheme != "https") 
+  { 
+   set $do_redirect_to_https "true";
+  }
+
+     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
+
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
+  if ($http_x_forwarded_proto = "http") 
+  {
+   set $do_redirect_to_https "true";
+  }
+  {% endif %}
+
+  # Execute the actual redirect
+  if ($do_redirect_to_https = "true")
+  {
+  return 301 https://$host$request_uri;
+  }
+  {% endif %}
+
+}

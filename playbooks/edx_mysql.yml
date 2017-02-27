@@ -1,0 +1,27 @@
+---
+
+# MySQL and Memcached setup for OXA stamp deployment
+
+- name: Run MySQL setup for Open edX
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars_files:
+  - roles/edxlocal/defaults/main.yml
+  - roles/edxapp/defaults/main.yml
+  - roles/xqueue/defaults/main.yml
+  - roles/analytics_api/defaults/main.yml
+  roles:
+  - edxlocal
+
+- name: Update Memcached configuration to allow remote connections
+  hosts: all
+  sudo: True
+  tasks:
+  - name: Update Memcached bind address
+    lineinfile:
+      dest: /etc/memcached.conf
+      regexp: '^-l 127.0.0.1'
+      state: absent
+  - name: Restart Memcached
+    service: name=memcached state=restarted
