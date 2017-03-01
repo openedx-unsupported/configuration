@@ -1,0 +1,116 @@
+---
+GRAPHITE_CARBON_GIT_URL: "https://github.com/graphite-project/carbon.git"
+GRAPHITE_WHISPER_GIT_URL: "https://github.com/graphite-project/whisper.git"
+GRAPHITE_API_GIT_URL: "https://github.com/brutasse/graphite-api.git"
+
+GRAPHITE_CARBON_VERSION: "816ac631efae33c7b47ecbe79ca9e1f907e5efe8"
+GRAPHITE_WHISPER_VERSION: "0.9.15"
+GRAPHITE_API_VERSION: "1.1.3"
+
+graphite_root: "/opt/graphite"
+graphite_storage_root: "/var/opt/graphite"
+graphite_common_dirs:
+  root:
+    path: "{{ graphite_root }}"
+    owner: "{{ graphite_user }}"
+    group: "{{ graphite_group }}"
+    mode: "0755"
+  src:
+    path: "{{ graphite_root }}/src"
+    owner: "{{ graphite_user }}"
+    group: "{{ graphite_group }}"
+    mode: "0755"
+  conf:
+    path: "{{ graphite_root }}/conf"
+    owner: "{{ graphite_user }}"
+    group: "{{ graphite_group }}"
+    mode: "0755"
+  run:
+    path: "{{ graphite_root }}/run"
+    owner: "{{ graphite_user }}"
+    group: "{{ graphite_group }}"
+    mode: "0775"
+  storage:
+    path: "{{ graphite_storage_root }}"
+    owner: "{{ graphite_user }}"
+    group: "{{ graphite_group }}"
+    mode: "0775"
+  log:
+    path: "/var/log/carbon"
+    owner: "{{ carbon_user }}"
+    group: "{{ graphite_group }}"
+    mode: "0755"
+
+graphite_common_deb_deps:
+  - libcairo2-dev
+  - libffi-dev
+  - pkg-config
+  - fontconfig
+
+carbon_user: "carbon"
+graphite_user: "graphite"
+graphite_group: "graphite"
+
+GRAPHITE_NGINX_PORT: 6000
+GRAPHITE_GUNICORN_WORKERS: 3
+
+CARBON_LISTEN_ADDR: 0.0.0.0
+
+CARBON_CONF:
+  cache:
+    USER: "{{ carbon_user }}"
+    STORAGE_DIR: "{{ graphite_storage_root }}"
+    CACHE_WRITE_STRATEGY: max
+    MAX_CACHE_SIZE: inf
+    USE_FLOW_CONTROL:  True
+    WHISPER_FALLOCATE_CREATE: True
+    MAX_CREATES_PER_MINUTE: 100
+    MAX_UPDATES_PER_SECOND: 1000
+    LINE_RECEIVER_INTERFACE: "{{ CARBON_LISTEN_ADDR }}"
+    PICKLE_RECEIVER_INTERFACE: "{{ CARBON_LISTEN_ADDR }}"
+    USE_INSECURE_UNPICKLER: False
+    CACHE_QUERY_INTERFACE: "{{ CARBON_LISTEN_ADDR }}"
+    LOG_CACHE_HITS: False
+    LOG_CACHE_QUEUE_SORTS: True
+    LOG_LISTENER_CONNECTIONS: True
+    LOG_UPDATES: False
+    ENABLE_LOGROTATION: True
+    WHISPER_AUTOFLUSH: False
+
+  "cache:1":
+    LINE_RECEIVER_PORT: 2003
+    PICKLE_RECEIVER_PORT: 2004
+    CACHE_QUERY_PORT: 7002
+
+CARBON_STORAGE_SCHEMAS:
+  carbon:
+    description: "Catches all of Carbon's internal metrics"
+    pattern: "carbon.*"
+    retentions: "10s:1y"
+  default:
+    pattern: ".*"
+    retentions: "60s:1y"
+
+CARBON_STORAGE_AGGREGATIONS:
+  min:
+    pattern: "\\.min$"
+    xFilesFactor: "0.1"
+    aggregationMethod: "min"
+  max:
+    pattern: "\\.max$"
+    xFilesFactor: "0.1"
+    aggregationMethod: "max"
+  sum:
+    pattern: "\\.count$"
+    xFilesFactor: "0"
+    aggregationMethod: "sum"
+  default_average:
+    pattern: ".*"
+    xFilesFactor: "0.5"
+    aggregationMethod: "average"
+
+GRAPHITE_API_CONF:
+  search_index: "{{ graphite_root }}/api/index"
+  whisper:
+    directories:
+      - "{{ graphite_storage_root }}"
