@@ -52,10 +52,23 @@
     group: "{{ rabbitmq_group }}"
     mode: "0755"
 
-- name: Set up a cron job to run the script
+- name: Add RabbitMQ memory usage script
+  template:
+    src: "edx/app/rabbitmq/log-rabbitmq-memory.sh.j2"
+    dest: "{{ rabbitmq_app_dir }}/log-rabbitmq-memory.sh"
+    owner: "{{ rabbitmq_user }}"
+    group: "{{ rabbitmq_group }}"
+    mode: "0775"
+
+- name: Set up a cron job to run queue script
   cron:
     name: "log-queue-lenghts"
     job: "{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh >/dev/null 2>&1"
+
+- name: Set up a cron job to run the script
+  cron:
+    name: "log-rabbitmq-memory-usage"
+    job: "{{ rabbitmq_app_dir }}/log-rabbitmq-memory.sh >/dev/null 2>&1"
 
 - name: install logrotate configuration
   template:
