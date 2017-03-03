@@ -148,3 +148,18 @@
     login_port: "{{ mysql_login_port }}"
   with_items: mysql_user_hosts
   tags: ['mysql', 'mysql:users']
+
+- name: grant access to table storing test data in output database
+  mysql_user:
+    user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}"
+    password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
+    host: "{{ item }}"
+    priv: "acceptance%.*:ALL"
+    append_privs: yes
+    login_user: "{{ mysql_login_user }}"
+    login_password: "{{ mysql_login_password }}"
+    login_host: "{{ mysql_login_host }}"
+    login_port: "{{ mysql_login_port }}"
+  with_items: mysql_user_hosts
+  when: ANALYTICS_PIPELINE_OUTPUT_DATABASE is defined
+  tags: ['mysql', 'mysql:users']
