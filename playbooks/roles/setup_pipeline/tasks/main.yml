@@ -35,16 +35,22 @@
     group: "{{ pipeline_group }}"
     force: yes
     state: link
+  tags:
+    - install
+    - install:base
 
 - name: ensure user is in sudoers
   lineinfile: >
     dest=/etc/sudoers state=present
     regexp='^%pipeline ALL\=' line='%pipeline ALL=(ALL) NOPASSWD:ALL'
     validate='visudo -cf %s'
+  tags:
+    - install
+    - install:base
 
 - name: create edxapp log dir
   file:
-    path: "{{ edxapp_log_dir }}"
+    path: "{{ pipeline_log_dir }}"
     state: directory
     owner: "{{ common_log_user }}"
     group: "{{ common_log_user }}"
@@ -74,20 +80,10 @@
     - install
     - install:code
 
-- name: Create the virtualenv to install the Python requirements
-  command: >
-    virtualenv {{ pipeline_venv_dir }}
-    chdir={{ pipeline_code_dir }}
-    creates={{ pipeline_venv_dir }}/bin/pip
-  become_user: "{{ pipeline_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
 - name: install python requirements
-  command: >
-    {{ pipeline_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}
-    chdir={{ pipeline_code_dir }}
+  pip:
+    requirements: {{ item }}
+    virtualenv: {{ pipeline_venv_dir }}
   become_user: "{{ pipeline_user }}"
   #environment: "{{ pipeline_environment }}"
   #when: item.stat.exists

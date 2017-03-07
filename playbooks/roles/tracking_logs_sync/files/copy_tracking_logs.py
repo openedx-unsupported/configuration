@@ -49,7 +49,6 @@ def _parse_args():
 def _main():
     args = _parse_args()
 
-    program_name = os.path.basename(sys.argv[0])
     bucket = args.bucket or os.environ.get('TRACKING_LOGS_BUCKET')
     provider = args.provider or os.environ.get('TRACKING_LOGS_STORAGE_PROVIDER', 'gs')
     sentry_dsn = args.sentry_dsn or os.environ.get('TRACKING_LOGS_SENTRY_DSN', '')
