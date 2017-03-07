@@ -56,7 +56,7 @@ if __name__=='__main__':
     python shovel.py --src_host <src_host_IP> --src_user <src_rabbitmq_user> --src_user_pass <user_pass>  \
     --dest_host <dest_host_IP> --dest_user <dest_rabbitmq_user> --dest_user_pass <user_pass>
     """
-    output=[]    
+    output={}    
     for queue in list_queues():
         """ 
         Ignore queues celeryev and *.pidbox to shovel
@@ -64,7 +64,10 @@ if __name__=='__main__':
         q=queue.split('.')
         if (q[0]!='celeryev' and q[-1]!='pidbox'):
             args='{{"src-uri": "{}", "src-queue": "{}","dest-uri": "{}","dest-queue": "{}"}}'.format(src_uri,queue,dest_uri,queue)
+            print "Running shovel for queue:{}".format(queue)
             shovel_output=create_shovel(queue,args)
             if shovel_output is not None:
-               output.append(shovel_output)
-    print "\n".join(output)
+               content=unicode(shovel_output,"utf-8")
+               output[queue]=content
+    for k,v in output.items():
+          print k,v
