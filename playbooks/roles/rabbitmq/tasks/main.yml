@@ -51,6 +51,8 @@
     owner: "{{ rabbitmq_user }}"
     group: "{{ rabbitmq_group }}"
     mode: "0755"
+  tags:
+    - "monitoring"
 
 - name: Add RabbitMQ memory usage script
   template:
@@ -59,16 +61,22 @@
     owner: "{{ rabbitmq_user }}"
     group: "{{ rabbitmq_group }}"
     mode: "0775"
+  tags:
+    - "monitoring"
 
 - name: Set up a cron job to run queue script
   cron:
     name: "log-queue-lenghts"
     job: "{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh >/dev/null 2>&1"
+  tags:
+    - "monitoring"
 
 - name: Set up a cron job to run the script
   cron:
     name: "log-rabbitmq-memory-usage"
     job: "{{ rabbitmq_app_dir }}/log-rabbitmq-memory.sh >/dev/null 2>&1"
+  tags:
+    - "monitoring"
 
 - name: install logrotate configuration
   template:
