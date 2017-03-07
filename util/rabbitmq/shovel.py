@@ -1,6 +1,8 @@
 import argparse
 import subprocess
 import requests
+from requests.exceptions import HTTPError
+import sys
 
 parser=argparse.ArgumentParser(description='Shovels between RabbitMQ Clusters')
 parser.add_argument('--src_host',action='store',dest='src_host')
@@ -12,27 +14,40 @@ parser.add_argument('--dest_user_pass',action='store',dest='dest_user_pass')
 
 args=parser.parse_args()
 
-src_uri="\"amqp://%s:%s@%s\"" % (args.src_user,args.src_user_pass,args.src_host)
-dest_uri="\"amqp://%s:%s@%s\"" % (args.dest_user,args.dest_user_pass,args.dest_host)
+src_uri='amqp://{}:{}@{}'.format(args.src_user,args.src_user_pass,args.src_host)
+dest_uri='amqp://{}:{}@{}'.format(args.dest_user,args.dest_user_pass,args.dest_host)
 port=15672
 
 def list_vhosts():
-    url="http://%s:%d/api/vhosts" % (args.src_host,port)
-    response=requests.get(url,auth=(args.src_user,args.src_user_pass))
-    vhosts=[v['name'] for v in response.json() if v['name'].startswith('/')]
+    url='http://{}:{}/api/vhosts'.format(args.src_host,port)
+    try:
+        response=requests.get(url,auth=(args.src_user,args.src_user_pass))
+        response.raise_for_status()
+        vhosts=[v['name'] for v in response.json() if v['name'].startswith('/')]
+    except Exception as ex:
+        print "Failed to get vhosts: {}".format(ex)
+        sys.exit(1)
     return vhosts
 
 def list_queues():
     for vhost in list_vhosts():
-        url="http://%s:%d/api/queues/%s" % (args.src_host,port,vhost)
-        response=requests.get(url,auth=(args.src_user,args.src_user_pass))
-        queues=[q['name'] for q in response.json()]
+        url='http://{}:{}/api/queues/{}'.format(args.src_host,port,vhost)
+        try:
+            response=requests.get(url,auth=(args.src_user,args.src_user_pass))
+            response.raise_for_status()
+            queues=[q['name'] for q in response.json()]
+        except Exception as ex:
+            print "Failed to get queues: {}".format(ex)
+            sys.exit(1)
         return queues
 
 def create_shovel(shovel,arg):
-    cmd="/usr/sbin/rabbitmqctl set_parameter shovel %s '%s'" % (shovel,arg)
-    subprocess.call(
-                cmd,shell=True)
+    cmd="/usr/sbin/rabbitmqctl set_parameter shovel {} '{}'".format(shovel,arg)
+    try:
+        subprocess.check_output(
+                              cmd,stderr=subprocess.STDOUT,shell=True)
+    except subprocess.CalledProcessError as ex:
+        return ex.output
 
 if __name__=='__main__':
 
@@ -41,12 +56,15 @@ if __name__=='__main__':
     python shovel.py --src_host <src_host_IP> --src_user <src_rabbitmq_user> --src_user_pass <user_pass>  \
     --dest_host <dest_host_IP> --dest_user <dest_rabbitmq_user> --dest_user_pass <user_pass>
     """
-        
+    output=[]    
     for queue in list_queues():
         """ 
         Ignore queues celeryev and *.pidbox to shovel
         """
         q=queue.split('.')
         if (q[0]!='celeryev' and q[-1]!='pidbox'):
-            args="{\"src-uri\": %s, \"src-queue\": \"%s\",\"dest-uri\": %s,\"dest-queue\": \"%s\"}" % (src_uri,queue,dest_uri,queue)
-            create_shovel(queue,args)
+            args='{{"src-uri": "{}", "src-queue": "{}","dest-uri": "{}","dest-queue": "{}"}}'.format(src_uri,queue,dest_uri,queue)
+            shovel_output=create_shovel(queue,args)
+            if shovel_output is not None:
+               output.append(shovel_output)
+    print "\n".join(output)
