@@ -58,7 +58,7 @@ RUN \
 
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
-RUN pip install awscli
+RUN pip install awscli>=1.11.58
 
 # !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace go_github_key.pem with the REAL key material
 # that can checkout private github repositories used as pipeline materials. The key material here is faked and is only
