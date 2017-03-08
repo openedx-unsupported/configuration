@@ -76,8 +76,6 @@
   template:
     src:  "etc/systemd/system/mongod.service.j2"
     dest: "/etc/systemd/system/mongod.service"
-  notify:
-    - restart mongo
   when: ansible_distribution_release == 'xenial'
   tags:
     - install
@@ -265,7 +263,8 @@
     password: "{{ MONGO_ADMIN_PASSWORD }}"
     database: admin
     roles: root
-  when: initialize_replica_set and mongo_node.is_primary
+  run_once: true
+  when: initialize_replica_set
   tags:
     - "manage"
     - "manage:db"
