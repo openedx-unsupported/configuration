@@ -1,0 +1,19 @@
+[Unit]
+Description=carbon-cache
+After=network.target
+
+[Service]
+Type=forking
+StandardOutput=syslog
+StandardError=syslog
+User={{ carbon_user }}
+Group={{ graphite_group }}
+ExecStart={{ graphite_root }}/bin/carbon-cache.py --config={{ graphite_root }}/conf/carbon.conf --pidfile={{ graphite_root }}/run/carbon-cache.pid --logdir=/var/log/carbon/ start
+ExecReload=/bin/kill -USR1 $MAINPID
+ExecStop={{ graphite_root }}/bin/carbon-cache.py --pidfile={{ graphite_root }}/run/carbon-cache.pid stop
+PIDFile={{ graphite_root }}/run/carbon-cache.pid
+PrivateTmp=true
+LimitNOFILE=128000
+
+[Install]
+WantedBy=multi-user.target

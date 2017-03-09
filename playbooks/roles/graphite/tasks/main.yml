@@ -1,0 +1,90 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Tasks for role graphite
+#
+# Overview:
+#
+# This task is to install "Graphite", or more specifically,
+# its constituent parts: carbon and graphite-api.
+#
+# For our needs at edX, we do not need the full-fledged
+# graphite-web, instead opting to use the light graphite-api,
+# which can be pointed to by other tools such as Grafana.
+#
+# Dependencies:
+# - common
+# - config-encoders
+#
+
+- name: create Graphite user group
+  group:
+    name: "{{ graphite_group }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: create service account for Graphite
+  user:
+    name: "{{ graphite_user }}"
+    system: yes
+    home: "{{ graphite_root }}"
+    shell: /bin/false
+    group: "{{ graphite_group }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: create service account for Carbon
+  user:
+    name: "{{ carbon_user }}"
+    system: yes
+    home: "{{ graphite_root }}"
+    shell: /bin/false
+    group: "{{ graphite_group }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: create common Graphite directories
+  file:
+    path: "{{ item.value.path }}"
+    state: directory
+    owner: "{{ item.value.owner }}"
+    group: "{{ item.value.group }}"
+    mode: "{{ item.value.mode }}"
+  with_dict: "{{ graphite_common_dirs }}"
+  tags:
+    - install
+    - install:base
+
+- name: install Graphite dependencies
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  with_items: "{{ graphite_common_deb_deps }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: initialize virtualenv for Graphite
+  command: "virtualenv {{ graphite_root }}"
+  args:
+    creates: "{{ graphite_root }}/bin/activate"
+  tags:
+    - install
+    - install:base
+
+- include: whisper.yml
+- include: carbon.yml
+- include: graphite-api.yml
