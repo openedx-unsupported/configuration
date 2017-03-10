@@ -76,7 +76,7 @@
     name: "{{ item.user }}"
     password: "{{ item.pass }}"
     priv: "{{ item.db }}.*:ALL"
-    host: "{{ item.host }}"
+    host: "{{ MARIADB_HOST_PRIV }}"
     append_privs: yes
   when: item.db != None and item.db != ''
   with_items: "{{ MARIADB_USERS }}"
@@ -86,6 +86,7 @@
     name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
     priv: "{{ item }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
     append_privs: yes
   when: item != None and item != ''
   with_items: "{{ MARIADB_DATABASES }}"
@@ -95,6 +96,7 @@
     name: "api001"
     password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
     priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+    host: "{{ MARIADB_HOST_PRIV }}"
   when: ANALYTICS_API_SERVICE_CONFIG is defined
 
 - name: create read-only reports user for the analytics-api
@@ -102,6 +104,7 @@
     name: reports001
     password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
     priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+    host: "{{ MARIADB_HOST_PRIV }}" 
   when: ANALYTICS_API_SERVICE_CONFIG is defined
 
 - name: create a database for the hive metastore
@@ -116,6 +119,7 @@
     name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
     password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
     priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
+    host: "{{ MARIADB_HOST_PRIV }}"
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
 - name: setup the read-only db user
