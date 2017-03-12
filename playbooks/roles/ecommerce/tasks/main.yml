@@ -68,6 +68,17 @@
     - install
     - install:app-requirements
 
+- name: fake thumbnails
+  command: "{{ ecommerce_venv_dir }}/bin/python ./manage.py migrate thumbnail --fake"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
 - name: Migrate
   shell: >
     DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
