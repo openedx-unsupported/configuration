@@ -68,6 +68,24 @@
     - install
     - install:app-requirements
 
+# This is a hacked fix for the fact that the table `thumbnail_kvstore` exists in
+# some environments, which won't need the 3rd party newly introduced migration
+# to create this table, so we fake the migration.
+# This is required for the Ginkgo release.
+# TODO: Delete this task for the Hawthorn release.
+- name: fake thumbnails
+  shell: >
+    table_exists=`mysql -uroot -ss -e "SELECT EXISTS(SELECT * FROM information_schema.tables WHERE table_schema = '{{ ECOMMERCE_DEFAULT_DB_NAME }}' AND table_name = 'thumbnail_kvstore')"`;
+    if [ "$table_exists" -eq "1" ]; then {{ ecommerce_venv_dir }}/bin/python ./manage.py migrate thumbnail 0001 --fake; fi;
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
 - name: Migrate
   shell: >
     DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
