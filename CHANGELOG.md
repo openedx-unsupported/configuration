@@ -230,3 +230,6 @@
 
 - Role: ecommerce
   - Removed `SEGMENT_KEY` which is no longer used.  Segment key is now defined in DB configuration. (https://github.com/edx/ecommerce/pull/1121)
+
+- Role: edxapp
+  - Added `EDXAPP_BLOCK_STRUCTURES_SETTINGS` to configure S3-backed Course Block Structures.
