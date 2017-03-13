@@ -1,8 +1,11 @@
+- Role: credentials
+  - Added `CREDENTIALS_EXTRA_APPS` to enable the inclusion of additional Django apps in the Credentials Service.
 - Role: common
   - Renamed `COMMON_AWS_SYNC` to `COMMON_OBJECT_STORE_LOG_SYNC`
   - Renamed `COMMON_AWS_SYNC_BUCKET` to `COMMON_OBJECT_STORE_LOG_SYNC_BUCKET`
   - Renamed `COMMON_AWS_S3_SYNC_SCRIPT` to `COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT`
   - Added `COMMON_OBJECT_STORE_LOG_SYNC_PREFIX`. Default: `logs/tracking/`
+  - Added `COMMON_EDXAPP_SETTINGS`. Default: `aws`
 - Role: aws
   - Removed `AWS_S3_LOGS`
   - Added `vhost` role as dependency
@@ -183,3 +186,28 @@
     should be used instead which is a list of directories. `EDXAPP_COMPREHENSIVE_THEME_DIR` if present will have priority over `EDXAPP_COMPREHENSIVE_THEME_DIRS`
   - `COMPREHENSIVE_THEME_DIR` is deprecated and is maintained for backward compatibility, `COMPREHENSIVE_THEME_DIRS` should be used
     instead which is a list of directories. `COMPREHENSIVE_THEME_DIR` if present will have priority over `COMPREHENSIVE_THEME_DIRS`
+
+- Role: edxapp
+  - Added COMPREHENSIVE_THEME_LOCALE_PATHS to support internationalization of strings originating from custom themes.
+
+- Role: edxapp
+  - Added `EXPIRING_SOON_WINDOW` to show message to learners if their verification is expiring soon.
+
+- Role: discovery
+  - Added `PUBLISHER_FROM_EMAIL` for sending emails to publisher app users.
+
+- Role: security
+  - Changed SECURITY_UPGRADE_ON_ANSIBLE to only apply security updates.  If you want to retain the behavior of running safe-upgrade,
+    you should switch to using SAFE_UPGRADE_ON_ANSIBLE.
+
+- Role: mongo_3_0
+  - Changed MONGO_STORAGE_ENGINE to default to wiredTiger which is the default in 3.2 and 3.4 and what edX suggests be used even on 3.0.
+    If you have a mmapv1 3.0 install, override MONGO_STORAGE_ENGINE to be mmapv1 which was the old default.
+  - Support parsing the replset JSON in 3.2 and 3.0 
+
+- Role: xqueue
+  - Added `EDXAPP_CELERY_BROKER_USE_SSL` to allow configuring celery to use TLS.
+
+- Role: edxapp
+  - Added `XQUEUE_RABBITMQ_VHOST` to allow configuring the xqueue RabbitMQ host.
+  - Added `XQUEUE_RABBITMQ_PORT` and `XQUEUE_RABBITMQ_TLS` to allow configuring the RabbitMQ port, and enabling TLS respectively.

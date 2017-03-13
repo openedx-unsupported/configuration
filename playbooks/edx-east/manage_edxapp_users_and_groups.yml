@@ -50,6 +50,10 @@
 #     unusable_password: true
 #     groups: []
 #
+#   - username: zoe
+#     email: zoe@example.com
+#     initial_password_hash: 'pbkdf2_sha256$20000$levJ6jdVYCsu$gdBLGf2DNPqfaKdcETXtFocRU8Kk+sMsIvKkmw1dKbY='
+#
 # groups:
 #   - name: group3
 #     remove: true
@@ -73,22 +77,33 @@
   vars:
     python_path: /edx/bin/python.edxapp
     manage_path: /edx/bin/manage.edxapp
+    ignore_user_creation_errors: no
+    deployment_settings: "{{ EDXAPP_SETTINGS | default('aws') }}"
+  vars_files:
+    - roles/common_vars/defaults/main.yml
   tasks:
     - name: Manage groups
       shell: >
-        {{ python_path }} {{ manage_path }} lms --settings=aws
+        {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
         manage_group {{ item.name | quote }}
         {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
-      with_items: django_groups
+      with_items: "{{ django_groups }}"
+      become: true
+      become_user: "{{ common_web_user }}"
 
     - name: Manage users
       shell: >
-        {{ python_path }} {{ manage_path }} lms --settings=aws
+        {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
         manage_user {{ item.username | quote }} {{ item.email | quote }}
         {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
         {% if item.get('superuser') %}--superuser{% endif %}
         {% if item.get('staff') %}--staff{% endif %}
         {% if item.get('unusable_password') %}--unusable-password{% endif %}
-      with_items: django_users
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      register: manage_users_result
+      failed_when: (manage_users_result | failed) and not (ignore_user_creation_errors | bool)
+      become: true
+      become_user: "{{ common_web_user }}"

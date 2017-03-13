@@ -2,6 +2,7 @@
 - name: Get the list of hpi files
   shell: "ls {{ jenkins_home }}/plugins/*.hpi"
   register: hpi_files
+  ignore_errors: true
 
 - name: Set the permission on hpi files
   file: 
@@ -9,13 +10,15 @@
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
     mode: 0644
-  with_items: hpi_files.stdout_lines
+  with_items: "{{ hpi_files.stdout_lines }}"
+  when: hpi_files
   notify:
     - restart Jenkins
 
 - name: Get the list of jpi files
   shell: "ls {{ jenkins_home }}/plugins/*.jpi"
   register: jpi_files
+  ignore_errors: true
 
 - name: Set the permission on jpi files
   file: 
@@ -23,6 +26,28 @@
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
     mode: 0644
-  with_items: jpi_files.stdout_lines
+  with_items: "{{ jpi_files.stdout_lines }}"
+  when: jpi_files
   notify:
     - restart Jenkins
+
+# The deadsnakes PPA is required to install python3.5 on Precise and Trusty.
+# Xenial comes with python3.5 installed.
+- name: add deadsnakes repository
+  apt_repository:
+    repo: "ppa:fkrull/deadsnakes"
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install python3.5
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - python3.5
+    - python3.5-dev
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:system-requirements

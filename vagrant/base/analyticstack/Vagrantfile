@@ -13,6 +13,24 @@ if ENV["VAGRANT_GUEST_IP"]
   vm_guest_ip = ENV["VAGRANT_GUEST_IP"]
 end
 
+# These are versioning variables in the roles. Each can be overridden, first
+# with OPENEDX_RELEASE, and then with a specific environment variable of the
+# same name but upper-cased.
+VERSION_VARS = [
+  'edx_platform_version',
+  'configuration_version',
+  'certs_version',
+  'forum_version',
+  'xqueue_version',
+  'demo_version',
+  'NOTIFIER_VERSION',
+  'ECOMMERCE_VERSION',
+  'ECOMMERCE_WORKER_VERSION',
+  'PROGRAMS_VERSION',
+  'ANALYTICS_API_VERSION',
+  'INSIGHTS_VERSION',
+]
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Creates a devstack from a base Ubuntu 12.04 image for virtualbox
@@ -28,6 +46,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.network :forwarded_port, guest: 8001, host: 8001  # Studio
     config.vm.network :forwarded_port, guest: 8002, host: 8002  # Ecommerce
     config.vm.network :forwarded_port, guest: 8003, host: 8003  # LMS for Bok Choy
+    config.vm.network :forwarded_port, guest: 8004, host: 8004  # Programs
     config.vm.network :forwarded_port, guest: 8031, host: 8031  # Studio for Bok Choy
     config.vm.network :forwarded_port, guest: 8120, host: 8120  # edX Notes Service
     config.vm.network :forwarded_port, guest: 8765, host: 8765
@@ -69,26 +88,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ansible.verbose = "vvvv"
 
     ansible.extra_vars = {}
-    if ENV['OPENEDX_RELEASE']
-      ansible.extra_vars = {
-        edx_platform_version: ENV['OPENEDX_RELEASE'],
-        configuration_version: ENV['OPENEDX_RELEASE'],
-        certs_version: ENV['OPENEDX_RELEASE'],
-        forum_version: ENV['OPENEDX_RELEASE'],
-        xqueue_version: ENV['OPENEDX_RELEASE'],
-        demo_version: ENV['OPENEDX_RELEASE'],
-        ANALYTICS_API_VERSION: ENV['OPENEDX_RELEASE'],
-        INSIGHTS_VERSION: ENV['OPENEDX_RELEASE'],
-      }
+    VERSION_VARS.each do |var|
+      if ENV['OPENEDX_RELEASE']
+        ansible.extra_vars[var] = ENV['OPENEDX_RELEASE']
+      end
+      env_var = var.upcase
+      if ENV[env_var]
+        ansible.extra_vars[var] = ENV[env_var]
+      end
     end
-    if ENV['CONFIGURATION_VERSION']
-      ansible.extra_vars['configuration_version'] = ENV['CONFIGURATION_VERSION']
-    end
-    if ENV['EDX_PLATFORM_VERSION']
-      ansible.extra_vars['edx_platform_version'] = ENV['EDX_PLATFORM_VERSION']
-    end
-    if ENV['ECOMMERCE_VERSION']
-      ansible.extra_vars['ECOMMERCE_VERSION'] = ENV['ECOMMERCE_VERSION']
-    end
+
   end
 end

@@ -136,13 +136,18 @@ exec > >(tee $log_file) 2>&1
 echo "Capturing output to $log_file"
 echo "Installation started at $(date '+%Y-%m-%d %H:%M:%S')"
 
+function finish {
+    echo "Installation finished at $(date '+%Y-%m-%d %H:%M:%S')"
+}
+trap finish EXIT
+
 export OPENEDX_RELEASE=$release
 echo "Installing release '$OPENEDX_RELEASE'"
 
 # Check if mount location was changed
 if [[ $vagrant_mount_location != "" ]]; then
     echo "Changing Vagrant provision location to $vagrant_mount_location..."
-    export VAGRANT_MOUNT_BASE=vagrant_mount_location
+    export VAGRANT_MOUNT_BASE=$vagrant_mount_location
 fi
 
 if [[ -d .vagrant ]]; then
@@ -188,6 +193,5 @@ else
     sudo bash -c "echo '192.168.33.10  preview.localhost' >> /etc/hosts"
 fi
 
-echo "Installation finished at $(date '+%Y-%m-%d %H:%M:%S')"
 echo -e "${SUCCESS}Finished installing! You may now log in using 'vagrant ssh'"
 echo -e "Refer to the edX wiki ($wiki_link) for more information on using $stack.${NC}"

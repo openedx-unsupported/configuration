@@ -1,10 +1,10 @@
 - name: copy galera cluster config
-  template: >
-    src="etc/mysql/conf.d/galera.cnf.j2"
-    dest="/etc/mysql/conf.d/galera.cnf"
-    owner="root"
-    group="root"
-    mode=0600
+  template:
+    src: "etc/mysql/conf.d/galera.cnf.j2"
+    dest: "/etc/mysql/conf.d/galera.cnf"
+    owner: "root"
+    group: "root"
+    mode: 0600
 
 - name: check if we have already bootstrapped the cluster
   stat: path=/etc/mysql/ansible_cluster_started
@@ -15,18 +15,18 @@
   when: not mariadb_bootstrap.stat.exists
 
 - name: setup bootstrap on primary
-  lineinfile: >
-    dest="/etc/mysql/conf.d/galera.cnf"
-    regexp="^wsrep_cluster_address=gcomm://{{ hostvars.keys()|sort|join(',') }}$"
-    line="wsrep_cluster_address=gcomm://"
+  lineinfile:
+    dest: "/etc/mysql/conf.d/galera.cnf"
+    regexp: "^wsrep_cluster_address=gcomm://{{ hostvars.keys()|sort|join(',') }}$"
+    line: "wsrep_cluster_address=gcomm://"
   when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
 
 - name: fetch debian.cnf file so start-stop will work properly
-  fetch: >
-    src=/etc/mysql/debian.cnf
-    dest=/tmp/debian.cnf
-    fail_on_missing=yes
-    flat=yes
+  fetch:
+    src: /etc/mysql/debian.cnf
+    dest: /tmp/debian.cnf
+    fail_on_missing: yes
+    flat: yes
   when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
   register: mariadb_new_debian_cnf
 
@@ -39,12 +39,12 @@
   when: not mariadb_bootstrap.stat.exists
 
 - name: reset galera cluster config since we are bootstrapped
-  template: >
-    src="etc/mysql/conf.d/galera.cnf.j2"
-    dest="/etc/mysql/conf.d/galera.cnf"
-    owner="root"
-    group="root"
-    mode=0600
+  template:
+    src: "etc/mysql/conf.d/galera.cnf.j2"
+    dest: "/etc/mysql/conf.d/galera.cnf"
+    owner: "root"
+    group: "root"
+    mode: 0600
   when: not mariadb_bootstrap.stat.exists
 
 - name: touch bootstrap file to confirm we are fully up
@@ -53,6 +53,5 @@
 # This is needed for mysql-check in haproxy or other mysql monitor
 # scripts to prevent haproxy checks exceeding `max_connect_errors`.
 - name: create haproxy monitor user
-  command: >
-    mysql -e "INSERT INTO mysql.user (Host,User) values ('{{ item }}','{{ MARIADB_HAPROXY_USER }}'); FLUSH PRIVILEGES;"
-  with_items: MARIADB_HAPROXY_HOSTS
+  command: "mysql -e \"INSERT INTO mysql.user (Host,User) values ('{{ item }}','{{ MARIADB_HAPROXY_USER }}'); FLUSH PRIVILEGES;\""
+  with_items: "{{ MARIADB_HAPROXY_HOSTS }}"

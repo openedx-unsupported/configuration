@@ -28,9 +28,10 @@ except ImportError:
 else:
     import boto.sqs
     from boto.exception import NoAuthHandlerFound
+from ansible.plugins.callback import CallbackBase
 
 
-class CallbackModule(object):
+class CallbackModule(CallbackBase):
     """
     This Ansible callback plugin sends task events
     to SQS.
@@ -93,7 +94,7 @@ class CallbackModule(object):
     def runner_on_ok(self, host, res):
         if self.enable_sqs:
             # don't send the setup results
-            if res['invocation']['module_name'] != "setup":
+            if 'invocation' in res and 'module_name' in res['invocation'] and res['invocation']['module_name'] != "setup":
                 self._send_queue_message(res, 'OK')
 
     def playbook_on_task_start(self, name, is_conditional):

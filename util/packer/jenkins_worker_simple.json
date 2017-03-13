@@ -3,8 +3,11 @@
     "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
     "playbook_remote_dir": "/tmp/packer-edx-playbooks",
+    "venv_dir": "/edx/app/edx_ansible/venvs/edx_ansible",
     "ami": "{{env `JENKINS_WORKER_AMI`}}",
-    "test_platform_version": "{{env `TEST_PLATFORM_VERSION`}}"
+    "test_platform_version": "{{env `TEST_PLATFORM_VERSION`}}",
+    "delete_or_keep": "{{env `DELETE_OR_KEEP_AMI`}}",
+    "remote_branch": "{{env `REMOTE_BRANCH`}}"
   },
   "builders": [{
     "type": "amazon-ebs",
@@ -17,54 +20,32 @@
     "ssh_username": "ubuntu",
     "ami_description": "jenkins worker",
     "iam_instance_profile": "jenkins-worker",
-    "security_group_id": "sg-75af5e18"
+    "security_group_id": "sg-75af5e18",
+    "tags": {
+        "delete_or_keep": "{{user `delete_or_keep`}}"
+    }
   }],
   "provisioners": [{
     "type": "shell",
     "inline": ["rm -rf {{user `playbook_remote_dir`}}",
       "mkdir {{user `playbook_remote_dir`}}"]
   }, {
-        "type": "file",
-        "source": "../../playbooks/run_role.yml",
-        "destination": "{{user `playbook_remote_dir`}}/run_role.yml"
-  }, {
     "type": "file",
-    "source": "../../playbooks/roles",
-    "destination": "{{user `playbook_remote_dir`}}/roles"
-  }, {
-      "type": "file",
-      "source": "../../playbooks/edx-east",
-      "destination": "{{user `playbook_remote_dir`}}/edx-east"
-  }, {
-    "type": "file",
-    "source": "../../requirements.txt",
-    "destination": "{{user `playbook_remote_dir`}}/requirements.txt"
-  }, {
-    "type": "shell",
-    "inline": ["sudo add-apt-repository ppa:git-core/ppa -y"]
-  }, {
-    "type": "shell",
-    "inline": ["sudo apt-get update"]
-  }, {
-    "type": "shell",
-    "inline": ["sudo apt-get -y install git-core"]
-  }, {
-    "type": "shell",
-    "inline": ["sudo apt-get -y install libmysqlclient-dev"]
+    "source": "../../util/install/ansible-bootstrap.sh",
+    "destination": "{{user `playbook_remote_dir`}}/ansible-bootstrap.sh"
   }, {
     "type": "shell",
     "inline": ["cd {{user `playbook_remote_dir`}}",
-      "virtualenv packer-venv",
-      ". packer-venv/bin/activate",
-      "pip install -q -r requirements.txt"]
+      "export CONFIGURATION_VERSION='{{user `remote_branch`}}'",
+      "sudo bash ./ansible-bootstrap.sh" ]
   }, {
     "type": "ansible-local",
     "playbook_file": "../../playbooks/edx-east/jenkins_worker.yml",
     "playbook_dir": "../../playbooks",
-    "command": "source {{user `playbook_remote_dir`}}/packer-venv/bin/activate && ansible-playbook",
+    "command": ". {{user `venv_dir`}}/bin/activate && ansible-playbook",
     "inventory_groups": "jenkins_worker",
     "extra_arguments": [
       "-vvv"
-      ]
+    ]
   }]
 }

@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.8.7"
 
 VAGRANTFILE_API_VERSION = "2"
 
@@ -9,23 +9,15 @@ CPU_COUNT = 2
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "open-release/eucalyptus.master" => {
-    :name => "eucalyptus-fullstack-2016-09-01", :file => "eucalyptus-fullstack-2016-09-01.box",
-  },
-  "open-release/eucalyptus/1rc1" => {
-    :name => "eucalyptus-fullstack-1rc1", :file => "eucalyptus-fullstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.1rc2" => {
-    :name => "eucalyptus-fullstack-2016-08-19", :file => "eucalyptus-fullstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.1" => {
-    :name => "eucalyptus-fullstack-2016-08-25", :file => "eucalyptus-fullstack-2016-08-25.box",
-  },
-  "open-release/eucalyptus.2" => {
-    :name => "eucalyptus-fullstack-2016-09-01", :file => "eucalyptus-fullstack-2016-09-01.box",
-  },
-  # Note: the devstack and fullstack boxes differ, because devstack had an issue
-  # that needed fixing, but it didn't affect fullstack.
+  "open-release/ficus.1rc3" => "ficus-fullstack-2017-02-07",
+  "open-release/ficus.1rc4" => "ficus-fullstack-2017-02-15",
+  "open-release/ficus.1" => "ficus-fullstack-2017-02-15",
+
+  "open-release/eucalyptus/1rc1" => "eucalyptus-fullstack-1rc1",
+  "open-release/eucalyptus.1rc2" => "eucalyptus-fullstack-2016-08-19",
+  "open-release/eucalyptus.1" => "eucalyptus-fullstack-2016-08-25",
+  "open-release/eucalyptus.2" => "eucalyptus-fullstack-2016-09-01",
+
   "named-release/dogwood" => {
     :name => "dogwood-fullstack-rc2", :file => "20151221-dogwood-fullstack-rc2.box",
   },
@@ -42,29 +34,38 @@ openedx_releases = {
     :name => "dogwood-fullstack-rc2", :file => "20151221-dogwood-fullstack-rc2.box",
   },
   # Cypress is deprecated and unsupported
-  # "named-release/cypress" => {
-  #   :name => "cypress-fullstack", :file => "cypress-fullstack.box",
-  # },
   # Birch is deprecated and unsupported
-  # "named-release/birch.2" => {
-  #   :name => "birch-fullstack-2", :file => "birch-2-fullstack.box",
-  # },
 }
-openedx_releases.default = {
-  :name => "eucalyptus-fullstack-2016-09-01", :file => "eucalyptus-fullstack-2016-09-01.box",
-}
-rel = ENV['OPENEDX_RELEASE']
+openedx_releases.default = "ficus-fullstack-2017-02-15"
+
+openedx_release = ENV['OPENEDX_RELEASE']
+boxname = ENV['OPENEDX_BOXNAME']
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates an edX fullstack VM from an official release
-  config.vm.box     = openedx_releases[rel][:name]
-  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
+  boxfile = ""
+  if not boxname
+    reldata = openedx_releases[openedx_release]
+    if Hash == reldata.class
+      boxname = openedx_releases[openedx_release][:name]
+      boxfile = openedx_releases[openedx_release].fetch(:file, "")
+    else
+      boxname = reldata
+    end
+  end
+  if boxfile == ""
+    boxfile = "#{boxname}.box"
+  end
 
+  # Creates an edX fullstack VM from an official release
+  config.vm.box     = boxname
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
+  config.vm.box_check_update = false
+
+  config.vm.network :private_network, ip: "192.168.33.10"
   config.vm.synced_folder  ".", "/vagrant", disabled: true
   config.ssh.insert_key = true
 
-  config.vm.network :private_network, ip: "192.168.33.10"
   config.hostsupdater.aliases = ["preview.localhost"]
 
   config.vm.provider :virtualbox do |vb|
@@ -74,5 +75,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+
+    # Virtio is faster, but the box needs to have support for it.  We didn't
+    # have support in the boxes before Ficus.
+    if !(boxname.include?("dogwood") || boxname.include?("eucalyptus"))
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+    end
   end
 end

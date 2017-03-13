@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.5.3"
+Vagrant.require_version ">= 1.8.7"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
@@ -13,13 +13,28 @@ if ENV["VAGRANT_GUEST_IP"]
   vm_guest_ip = ENV["VAGRANT_GUEST_IP"]
 end
 
+# These are versioning variables in the roles. Each can be overridden, first
+# with OPENEDX_RELEASE, and then with a specific environment variable of the
+# same name but upper-cased.
+VERSION_VARS = [
+    'edx_platform_version',
+    'configuration_version',
+    'certs_version',
+    'forum_version',
+    'xqueue_version',
+    'demo_version',
+    'NOTIFIER_VERSION',
+    'ECOMMERCE_VERSION',
+    'ECOMMERCE_WORKER_VERSION',
+    'PROGRAMS_VERSION',
+]
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates a devstack from a base Ubuntu 12.04 image for virtualbox
-  config.vm.box     = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  # Creates a devstack from a base Ubuntu 16.04 image for virtualbox
+  config.vm.box = "boxcutter/ubuntu1604"
 
-  config.vm.network :private_network, ip: vm_guest_ip
+  config.vm.network :private_network, ip: vm_guest_ip, nic_type: "virtio"
 
   # If you want to run the box but don't need network ports, set VAGRANT_NO_PORTS=1.
   # This is useful if you want to run more than one box at once.
@@ -56,10 +71,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
-
   # Make LC_ALL default to en_US.UTF-8 instead of en_US.
   # See: https://github.com/mitchellh/vagrant/issues/1188
   config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
+
+  # Get ready for ansible on this box.
+  config.vm.provision "shell", path: '../../../util/install/ansible-bootstrap.sh'
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
   config.vbguest.auto_reboot = true
@@ -67,37 +84,18 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "../../../playbooks/vagrant-devstack.yml"
-    ansible.verbose = "vvvv"
+    ansible.verbose = "vv"
 
     ansible.extra_vars = {}
-    if ENV['OPENEDX_RELEASE']
-      ansible.extra_vars = {
-        edx_platform_version: ENV['OPENEDX_RELEASE'],
-        configuration_version: ENV['OPENEDX_RELEASE'],
-        certs_version: ENV['OPENEDX_RELEASE'],
-        forum_version: ENV['OPENEDX_RELEASE'],
-        xqueue_version: ENV['OPENEDX_RELEASE'],
-        demo_version: ENV['OPENEDX_RELEASE'],
-        NOTIFIER_VERSION: ENV['OPENEDX_RELEASE'],
-        ECOMMERCE_VERSION: ENV['OPENEDX_RELEASE'],
-        ECOMMERCE_WORKER_VERSION: ENV['OPENEDX_RELEASE'],
-        PROGRAMS_VERSION: ENV['OPENEDX_RELEASE'],
-      }
+    VERSION_VARS.each do |var|
+      if ENV['OPENEDX_RELEASE']
+        ansible.extra_vars[var] = ENV['OPENEDX_RELEASE']
+      end
+      env_var = var.upcase
+      if ENV[env_var]
+        ansible.extra_vars[var] = ENV[env_var]
+      end
     end
-    if ENV['CONFIGURATION_VERSION']
-      ansible.extra_vars['configuration_version'] = ENV['CONFIGURATION_VERSION']
-    end
-    if ENV['EDX_PLATFORM_VERSION']
-      ansible.extra_vars['edx_platform_version'] = ENV['EDX_PLATFORM_VERSION']
-    end
-    if ENV['ECOMMERCE_VERSION']
-      ansible.extra_vars['ECOMMERCE_VERSION'] = ENV['ECOMMERCE_VERSION']
-    end
-    if ENV['ECOMMERCE_WORKER_VERSION']
-      ansible.extra_vars['ECOMMERCE_WORKER_VERSION'] = ENV['ECOMMERCE_WORKER_VERSION']
-    end
-    if ENV['PROGRAMS_VERSION']
-      ansible.extra_vars['PROGRAMS_VERSION'] = ENV['PROGRAMS_VERSION']
-    end
+
   end
 end

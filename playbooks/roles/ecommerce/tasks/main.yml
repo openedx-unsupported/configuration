@@ -41,19 +41,18 @@
     - install:app-requirements
 
 - name: Create nodeenv
-  shell: "{{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --prebuilt"
-  args:
-    creates: "{{ ecommerce_nodeenv_dir }}"
+  shell: "{{ ecommerce_venv_dir }}/bin/nodeenv {{ ecommerce_nodeenv_dir }} --node={{ ecommerce_node_version }} --prebuilt --force"
   become_user: "{{ ecommerce_user }}"
   tags:
     - install
-    - install:app-requirements
+    - install:system-requirements
 
 - name: Install node dependencies
   npm:
     executable: "{{ ecommerce_nodeenv_bin }}/npm"
     path: "{{ ecommerce_code_dir }}"
     production: yes
+    state: latest
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   tags:
@@ -84,11 +83,9 @@
     - migrate:db
 
 - name: Populate countries
-  shell: >
-    chdir={{ ecommerce_code_dir }}
-    DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }}
-    DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }}
-    {{ ecommerce_venv_dir }}/bin/python ./manage.py oscar_populate_countries
+  shell: "DB_MIGRATION_USER={{ COMMON_MYSQL_MIGRATE_USER }} DB_MIGRATION_PASS={{ COMMON_MYSQL_MIGRATE_PASS }} {{ ecommerce_venv_dir }}/bin/python ./manage.py oscar_populate_countries"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"

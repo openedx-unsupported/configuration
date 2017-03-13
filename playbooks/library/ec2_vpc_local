@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of Ansible
 #
 # Ansible is free software: you can redistribute it and/or modify
@@ -74,6 +74,12 @@ options:
     default: "no"
     choices: [ "yes", "no" ]
     aliases: []
+  internet_gateway_tags:
+    description:
+      - 'A dictionary array of resource tags of the form: { tag1: value1, tag2: value2 }.'
+    required: false
+    default: null
+    aliases: []
   route_tables:
     description:
       - 'A dictionary array of route tables to add of the form: { subnets: [172.22.2.0/24, 172.22.3.0/24,], routes: [{ dest: 0.0.0.0/0, gw: igw},] }. Where the subnets list is those subnets the route table should be associated with, and the routes list is a list of routes to be in the table.  The special keyword for the gw of igw specifies that you should the route should go through the internet gateway attached to the VPC. gw also accepts instance-ids in addition igw. This module is currently unable to affect the "main" route table due to some limitations in boto, so you must explicitly define the associated subnets or they will be attached to the main table implicitly. As of 1.8, if the route_tables parameter is not specified, no existing routes will be modified.'
@@ -135,6 +141,8 @@ EXAMPLES = '''
             az: us-west-2a
             resource_tags: { "Environment":"Dev", "Tier" : "DB" }
         internet_gateway: True
+        internet_gateway_tags:
+            Environment: Dev
         route_tables:
           - subnets:
               - 172.22.2.0/24
@@ -355,6 +363,7 @@ def create_vpc(module, vpc_conn):
     dns_hostnames = module.params.get('dns_hostnames')
     subnets = module.params.get('subnets')
     internet_gateway = module.params.get('internet_gateway')
+    internet_gateway_tags = module.params.get('internet_gateway_tags')
     route_tables = module.params.get('route_tables')
     vpc_spec_tags = module.params.get('resource_tags')
     wait = module.params.get('wait')
@@ -473,6 +482,8 @@ def create_vpc(module, vpc_conn):
         if len(igws) != 1:
             try:
                 igw = vpc_conn.create_internet_gateway()
+                if internet_gateway_tags:
+                    vpc_conn.create_tags(igw.id, internet_gateway_tags)
                 vpc_conn.attach_internet_gateway(igw.id, vpc.id)
                 changed = True
             except EC2ResponseError, e:
@@ -680,6 +691,7 @@ def main():
             subnets = dict(type='list'),
             vpc_id = dict(),
             internet_gateway = dict(type='bool', default=False),
+            internet_gateway_tags = dict(type='dict'),
             resource_tags = dict(type='dict', required=True),
             route_tables = dict(type='list'),
             state = dict(choices=['present', 'absent'], default='present'),

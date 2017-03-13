@@ -8,6 +8,8 @@ server {
   listen {{ edx_notes_api_nginx_port }};
   server_name {{ NOTES_HOSTNAME }};
 
+  {% include "common-settings.j2" %}
+
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
 
@@ -47,6 +49,10 @@ location @proxy_to_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+
+    # newrelic-specific header records the time when nginx handles a request.
+    proxy_set_header X-Queue-Start "t=${msec}";
+
     proxy_set_header Host $http_host;
 
     proxy_redirect off;

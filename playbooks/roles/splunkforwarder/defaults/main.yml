@@ -20,10 +20,32 @@ SPLUNKFORWARDER_PACKAGE_URL: !!null
 SPLUNKFORWARDER_DEB: !!null
 SPLUNKFORWARDER_PASSWORD: !!null
 
+# A list of dicts with the following keys:
+#   target_group: the name of the group
+#   server: the hostname/IP address of the splunk server
+#   default: whether this group is the default logging group
+# The following keys are for SSL configuration with the server in question.
+# Either all must be defined, or none.
+#   ssl_cert: the text of the SSL cert to use
+#   ssl_cert_password: the password of the SSL cert
+#   ssl_root_ca: the root CA cert that signed the SSL cert
+#   ssl_common_name: the common name (CN) on the SSL cert
 SPLUNKFORWARDER_SERVERS:
   - target_group: "default_output_server"
     server: "localhost:9997"
     default: true
+
+# For more details about setting up splunk with SSL, see
+# https://openedx.atlassian.net/wiki/display/EdxOps/viewpage.action?pageId=40174184
+
+############################ DANGER WILL ROBINSON #############################
+# Splunk server only supports a single SSL cert for all connections!          #
+# If you ever need to rotate the cert, you will have to either take downtime  #
+# or let new logs buffer on the forwarders until you update them.             #
+# When you do update the forwarders, you can't simply roll out new AMIs since #
+# there will be un-forwarded logs. Instead, you must run ansible against your #
+# entire fleet.                                                               #
+###############################################################################
 
 SPLUNKFORWARDER_LOG_ITEMS:
   - source: '{{ COMMON_LOG_DIR }}/lms'
@@ -60,3 +82,4 @@ splunk_debian_pkgs:
 splunk_redhat_pkgs: []
 
 splunkforwarder_output_dir: '/opt/splunkforwarder/'
+splunkforwarder_ssl_cert_path: 'etc/auth/edxcerts'

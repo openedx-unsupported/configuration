@@ -52,7 +52,7 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
-  with_items: GO_SERVER_APT_PKGS
+  with_items: "{{ GO_SERVER_APT_PKGS }}"
 
 - name: create go-server plugin directory
   file:
@@ -76,16 +76,19 @@
     - { url: "{{ GO_SERVER_GITHUB_PR_PLUGIN_JAR_URL }}", md5: "{{ GO_SERVER_GITHUB_PR_PLUGIN_MD5 }}" }
 
 - name: generate line for go-server password file for admin user
-  command: >
-    /usr/bin/htpasswd -nbs "{{ GO_SERVER_ADMIN_USERNAME }}" "{{ GO_SERVER_ADMIN_PASSWORD }}"
+  command: "/usr/bin/htpasswd -nbs \"{{ GO_SERVER_ADMIN_USERNAME }}\" \"{{ GO_SERVER_ADMIN_PASSWORD }}\""
   register: admin_user_password_line
   when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
 
 - name: generate line for go-server password file for backup user
-  command: >
-    /usr/bin/htpasswd -nbs "{{ GO_SERVER_BACKUP_USERNAME }}" "{{ GO_SERVER_BACKUP_PASSWORD }}"
+  command: "/usr/bin/htpasswd -nbs \"{{ GO_SERVER_BACKUP_USERNAME }}\" \"{{ GO_SERVER_BACKUP_PASSWORD }}\""
   register: backup_user_password_line
   when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+
+- name: generate line for go-server password file for gomatic user
+  command: "/usr/bin/htpasswd -nbs \"{{ GO_SERVER_GOMATIC_USERNAME }}\" \"{{ GO_SERVER_GOMATIC_PASSWORD }}\""
+  register: gomatic_user_password_line
+  when: GO_SERVER_GOMATIC_USERNAME and GO_SERVER_GOMATIC_PASSWORD
 
 - name: setup password file
   template:
@@ -95,7 +98,7 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
     force: no
-  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD
+  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD AND GO_SERVER_GOMATIC_PASSWORD
 
 - name: install go-server configuration
   template:
@@ -109,19 +112,51 @@
 - include: download_backup.yml
   when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT and GO_SERVER_RESTORE_BACKUP
 
-- name: replace the admin line in the password file post-restore
+- name: replace the password lines in the password file post-restore
   lineinfile:
     dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
-    regexp: "^{{ GO_SERVER_ADMIN_USERNAME }}"
-    line: "{{ admin_user_password_line.stdout }}"
-  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
+    regexp: "^{{ item.username }}"
+    line: "{{ item.password_hash.stdout }}"
+  with_items:
+    - { username: GO_SERVER_ADMIN_USERNAME, password: GO_SERVER_ADMIN_PASSWORD, password_hash: admin_user_password_line }
+    - { username: GO_SERVER_BACKUP_USERNAME, password: GO_SERVER_BACKUP_PASSWORD, password_hash: backup_user_password_line }
+    - { username: GO_SERVER_GOMATIC_USERNAME, password: GO_SERVER_GOMATIC_PASSWORD, password_hash: gomatic_user_password_line }
+  when: item.username and item.password and item.password_hash
 
-- name: replace the backup line in the password file post-restore
-  lineinfile:
-    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
-    regexp: "^{{ GO_SERVER_BACKUP_USERNAME }}"
-    line: "{{ backup_user_password_line.stdout }}"
-  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
+- name: install ssh key for the secure repos
+  copy:
+    content: "{{ GO_GIT_KEY }}"
+    dest: ~/.ssh/id_rsa
+    mode: 0600
+  become_user: "{{ GO_SERVER_USER }}"
+  tags:
+    - git_identity
+
+- name: Check to see if the known hosts file exists
+  stat: path=~/.ssh/known_hosts
+  become_user: "{{ GO_SERVER_USER }}"
+  register: known_hosts_register
+  tags:
+    - git_identity
+
+- name: create known_hosts file
+  file:
+    path: ~/.ssh/known_hosts
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+    mode: 0600
+    state: "{{ 'file' if known_hosts_register.stat.exists else 'touch'}}"
+  become_user: "{{ GO_SERVER_USER }}"
+  tags:
+    - git_identity
+
+# Ensure there is no bloat in the known_hosts file and that any duplicates are sorted out. This way the play can be run
+# multiple times on the host without any side effects.
+- name: setup known_hosts for github.com
+  command: bash -c "ssh-keyscan -t rsa,dsa github.com 2>&1 | sort -u - ~/.ssh/known_hosts > ~/.ssh/tmp_hosts && mv ~/.ssh/tmp_hosts ~/.ssh/known_hosts"
+  become_user: "{{ GO_SERVER_USER }}"
+  tags:
+    - git_identity
 
 - name: restart go-server
   service:

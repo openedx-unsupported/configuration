@@ -21,6 +21,10 @@ ECOMMERCE_NGINX_PORT: "18130"
 ECOMMERCE_SSL_NGINX_PORT: 48130
 
 ECOMMERCE_DEFAULT_DB_NAME: 'ecommerce'
+ECOMMERCE_DATABASE_USER: "ecomm001"
+ECOMMERCE_DATABASE_PASSWORD: "password"
+ECOMMERCE_DATABASE_HOST: "localhost"
+ECOMMERCE_DATABASE_PORT: 3306
 ECOMMERCE_MYSQL_OPTIONS: {}
 
 ECOMMERCE_DATABASES:
@@ -28,10 +32,10 @@ ECOMMERCE_DATABASES:
   default:
     ENGINE: 'django.db.backends.mysql'
     NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
-    USER: 'ecomm001'
-    PASSWORD: '{{ ECOMMERCE_DATABASES_default_PASSWORD | default("password") }}'
-    HOST: 'localhost'
-    PORT: '3306'
+    USER: '{{ ECOMMERCE_DATABASE_USER }}'
+    PASSWORD: '{{ ECOMMERCE_DATABASES_default_PASSWORD | default(ECOMMERCE_DATABASE_PASSWORD) }}'
+    HOST: '{{ ECOMMERCE_DATABASE_HOST }}'
+    PORT: '{{ ECOMMERCE_DATABASE_PORT }}'
     ATOMIC_REQUESTS: true
     CONN_MAX_AGE: 60
     OPTIONS: "{{ ECOMMERCE_MYSQL_OPTIONS }}"
@@ -53,7 +57,7 @@ ECOMMERCE_JWT_DECODE_HANDLER: 'ecommerce.extensions.api.handlers.jwt_decode_hand
 ECOMMERCE_JWT_ISSUERS:
   - '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
   - 'ecommerce_worker'  # Must match the value of JWT_ISSUER configured for the ecommerce worker.
-
+ECOMMERCE_JWT_LEEWAY: 1
 # NOTE: We have an array of keys to allow for support of multiple when, for example,
 # we change keys. This will ensure we continue to operate with JWTs issued signed with the old key
 # while migrating to the new key.
@@ -132,7 +136,6 @@ ECOMMERCE_BROKER_PORT: 5672
 ECOMMERCE_BROKER_URL: 'amqp://{{ ECOMMERCE_BROKER_USERNAME }}:{{ ECOMMERCE_BROKER_PASSWORD }}@{{ ECOMMERCE_BROKER_HOST }}:{{ ECOMMERCE_BROKER_PORT }}'
 
 ECOMMERCE_COURSE_CATALOG_URL: 'http://localhost:8008'
-ECOMMERCE_SUPPORT_URL: 'SET_ME_PLEASE'
 
 ECOMMERCE_SERVICE_CONFIG:
   SECRET_KEY: '{{ ECOMMERCE_SECRET_KEY }}'
@@ -152,7 +155,7 @@ ECOMMERCE_SERVICE_CONFIG:
     JWT_SECRET_KEY: '{{ ECOMMERCE_JWT_SECRET_KEY }}'
     JWT_ALGORITHM: '{{ ECOMMERCE_JWT_ALGORITHM }}'
     JWT_VERIFY_EXPIRATION: '{{ ECOMMERCE_JWT_VERIFY_EXPIRATION }}'
-    JWT_LEEWAY: 1
+    JWT_LEEWAY: '{{ ECOMMERCE_JWT_LEEWAY }}'
     JWT_DECODE_HANDLER: '{{ ECOMMERCE_JWT_DECODE_HANDLER }}'
     JWT_ISSUERS: '{{ ECOMMERCE_JWT_ISSUERS }}'
     JWT_SECRET_KEYS: '{{ ECOMMERCE_JWT_SECRET_KEYS }}'
@@ -177,8 +180,6 @@ ECOMMERCE_SERVICE_CONFIG:
   PLATFORM_NAME: '{{ ECOMMERCE_PLATFORM_NAME }}'
   THEME_SCSS: '{{ ECOMMERCE_THEME_SCSS }}'
 
-  SUPPORT_URL: '{{ ECOMMERCE_SUPPORT_URL }}'
-
   BROKER_URL: '{{ ECOMMERCE_BROKER_URL }}'
 
   # Theming config
@@ -200,6 +201,7 @@ ECOMMERCE_GUNICORN_WORKERS: "2"
 ECOMMERCE_GUNICORN_EXTRA: ""
 ECOMMERCE_GUNICORN_EXTRA_CONF: ""
 ECOMMERCE_GUNICORN_WORKER_CLASS: "gevent"
+ECOMMERCE_GUNICORN_MAX_REQUESTS: !!null
 
 #
 # vars are namespace with the module name.
@@ -214,6 +216,7 @@ ecommerce_nodeenv_dir: "{{ ecommerce_home }}/nodeenvs/{{ ecommerce_service_name 
 ecommerce_nodeenv_bin: "{{ ecommerce_nodeenv_dir }}/bin"
 ecommerce_node_modules_dir: "{{ ecommerce_code_dir }}/node_modules"
 ecommerce_node_bin: "{{ ecommerce_node_modules_dir }}/.bin"
+ecommerce_node_version: "{{ common_node_version }}"
 
 ecommerce_gunicorn_host: "127.0.0.1"
 ecommerce_gunicorn_port: "8130"

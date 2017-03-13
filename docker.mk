@@ -4,7 +4,10 @@ SHARD=0
 SHARDS=1
 
 dockerfiles:=$(shell ls docker/build/*/Dockerfile)
-images:=$(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py)
+all_images:=$(patsubst docker/build/%/Dockerfile,%,$(dockerfiles))
+
+# Used in the test.mk file as well.
+images:=$(if $(TRAVIS_COMMIT_RANGE),$(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py),$(all_images))
 
 docker_build=docker.build.
 docker_test=docker.test.
@@ -23,7 +26,9 @@ test: docker.test
 
 pkg: docker.pkg
 
-clean:
+clean: docker.clean
+
+docker.clean:
 	rm -rf .build
 
 docker.test.shard: $(foreach image,$(shell echo $(images) | python util/balancecontainers.py $(SHARDS) | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
@@ -46,7 +51,7 @@ $(docker_pkg)%: .build/%/Dockerfile.pkg
 	docker build -t $*:latest -f $< .
 
 $(docker_push)%: $(docker_pkg)%
-	docker tag -f $*:latest edxops/$*:latest
+	docker tag $*:latest edxops/$*:latest
 	docker push edxops/$*:latest
 
 

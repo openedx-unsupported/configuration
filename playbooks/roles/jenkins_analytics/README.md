@@ -336,7 +336,7 @@ The full list of seed job configuration variables is:
   access to the secure repo.  Default is `{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}`.
   See [Jenkins Credentials](#jenkins-credentials) below for details.
 * `ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL`: Optional URL for the git repo that contains the analytics job DSLs.
-  Default is `git@github.com:edx-ops/edx-jenkins-job-dsl.git`.
+  Default is `git@github.com:edx/jenkins-job-dsl-internal.git`.
   This repo is cloned directly into the seed job workspace.
 * `ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION`: Optional branch/tagname to checkout for the job DSL repo.
   Default is `master`.
@@ -526,7 +526,7 @@ Example scm configuration:
       removed_view_action: "IGNORE"
       scm:
         type: git
-        url: "git@github.com:edx-ops/edx-jenkins-job-dsl.git"
+        url: "git@github.com:edx/jenkins-job-dsl-internal.git"
         credential_id: "github-deploy-key"
         target_jobs: "jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy"
         additional_classpath: "src/main/groovy"

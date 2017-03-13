@@ -7,6 +7,8 @@ upstream xqueue_app_server {
 server {
   listen {{ XQUEUE_NGINX_PORT }} default_server;
 
+  {% include "common-settings.j2" %}
+
   location / {
     {% if XQUEUE_ENABLE_BASIC_AUTH|bool %}
       {% include "basic-auth.j2" %}
@@ -25,6 +27,10 @@ location @proxy_to_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+
+    # newrelic-specific header records the time when nginx handles a request.
+    proxy_set_header X-Queue-Start "t=${msec}";
+
     proxy_set_header Host $http_host;
 
     proxy_redirect off;

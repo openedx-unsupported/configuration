@@ -10,50 +10,53 @@
 #
 #
 # Tasks for role insights
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
 
 - name: setup the insights env file
-  template: >
-    src="edx/app/insights/insights_env.j2"
-    dest="{{ insights_app_dir }}/insights_env"
-    owner={{ insights_user }}
-    group={{ insights_user }}
-    mode=0644
+  template:
+    src: "edx/app/insights/insights_env.j2"
+    dest: "{{ insights_app_dir }}/insights_env"
+    owner: "{{ insights_user }}"
+    group: "{{ insights_user }}"
+    mode: 0644
   tags:
     - install
     - install:configuration
 
 - name: install application requirements
-  pip: >
-    requirements="{{ insights_requirements_base }}/{{ item }}"
-    virtualenv="{{ insights_venv_dir }}" 
-    state=present extra_args="--exists-action w"
+  pip:
+    requirements: "{{ insights_requirements_base }}/{{ item }}"
+    virtualenv: "{{ insights_venv_dir }}"
+    state: present
+    extra_args: "--exists-action w"
   become_user: "{{ insights_user }}"
-  with_items: insights_requirements
+  with_items: "{{ insights_requirements }}"
   tags:
     - install
     - install:app-requirements
 
 - name: create nodeenv
-  shell: >
-    creates={{ insights_nodeenv_dir }}
-    {{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --prebuilt
+  shell: "{{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --node={{ insights_node_version }} --prebuilt --force"
   become_user: "{{ insights_user }}"
   tags:
     - install
-    - install:base
+    - install:system-requirements
 
 - name: install node dependencies
-  npm: executable={{ insights_nodeenv_bin }}/npm path={{ insights_code_dir }} production=yes
+  npm:
+    executable: "{{ insights_nodeenv_bin }}/npm"
+    path: "{{ insights_code_dir }}"
+    production: yes
+    state: latest
   become_user: "{{ insights_user }}"
   tags:
     - install
@@ -61,20 +64,19 @@
   environment: "{{ insights_environment }}"
 
 - name: install bower dependencies
-  shell: >
-    chdir={{ insights_code_dir }}
-    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false
+  shell: ". {{ insights_venv_dir }}/bin/activate && . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false"
+  args:
+    chdir: "{{ insights_code_dir }}"
+
   become_user: "{{ insights_user }}"
   tags:
     - install
     - install:app-requirements
 
 - name: migrate
-  shell: >
-    chdir={{ insights_code_dir }}
-    DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}'
-    DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}'
-    {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput
+  shell: "DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}' DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}' {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput"
+  args:
+    chdir: "{{ insights_code_dir }}"
   become_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
@@ -83,18 +85,18 @@
     - migrate:db
 
 - name: run r.js optimizer
-  shell: >
-    chdir={{ insights_code_dir }}
-    . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js
+  shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js"
+  args:
+    chdir: "{{ insights_code_dir }}"
   become_user: "{{ insights_user }}"
   tags:
     - assets
     - assets:gather
 
 - name: run collectstatic
-  shell: >
-    chdir={{ insights_code_dir }}
-    {{ insights_venv_dir }}/bin/python {{ insights_manage }} {{ item }}
+  shell: "{{ insights_venv_dir }}/bin/python {{ insights_manage }} {{ item }}"
+  args:
+    chdir: "{{ insights_code_dir }}"
   become_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   with_items:
@@ -105,38 +107,42 @@
     - assets:gather
 
 - name: compile translations
-  shell: >
-    chdir={{ insights_code_dir }}/analytics_dashboard
-    . {{ insights_venv_dir }}/bin/activate && i18n_tool generate -v
+  shell: ". {{ insights_venv_dir }}/bin/activate && i18n_tool generate -v"
+  args:
+    chdir: "{{ insights_code_dir }}/analytics_dashboard"
   become_user: "{{ insights_user }}"
   tags:
     - assets
     - assets:gather
 
 - name: write out the supervisior wrapper
-  template: >
-    src=edx/app/insights/insights.sh.j2
-    dest={{ insights_app_dir }}/{{ insights_service_name }}.sh
-    mode=0650 owner={{ supervisor_user }} group={{ common_web_user }}
+  template:
+    src: "edx/app/insights/insights.sh.j2"
+    dest: "{{ insights_app_dir }}/{{ insights_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
   tags:
     - install
     - install:configuration
 
 - name: write supervisord config
-  template: >
-    src=edx/app/supervisor/conf.d.available/insights.conf.j2
-    dest="{{ supervisor_available_dir }}/{{ insights_service_name }}.conf"
-    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  template:
+    src: edx/app/supervisor/conf.d.available/insights.conf.j2
+    dest: "{{ supervisor_available_dir }}/{{ insights_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
   tags:
     - install
     - install:configuration
 
 - name: enable supervisor script
-  file: >
-    src={{ supervisor_available_dir }}/{{ insights_service_name }}.conf
-    dest={{ supervisor_cfg_dir }}/{{ insights_service_name }}.conf
-    state=link
-    force=yes
+  file:
+    src: "{{ supervisor_available_dir }}/{{ insights_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ insights_service_name }}.conf"
+    state: link
+    force: yes
   when: not disable_edx_services
   tags:
     - install
@@ -150,10 +156,10 @@
     - manage:start
 
 - name: create symlinks from the venv bin dir
-  file: >
-    src="{{ insights_venv_dir }}/bin/{{ item }}"
-    dest="{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ insights_service_name }}"
-    state=link
+  file:
+    src: "{{ insights_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ insights_service_name }}"
+    state: link
   with_items:
   - python
   - pip
@@ -163,20 +169,20 @@
     - install:base
 
 - name: create manage.py symlink
-  file: >
-    src="{{ insights_manage }}"
-    dest="{{ COMMON_BIN_DIR }}/manage.{{ insights_service_name }}"
-    state=link
+  file:
+    src: "{{ insights_manage }}"
+    dest: "{{ COMMON_BIN_DIR }}/manage.{{ insights_service_name }}"
+    state: link
   tags:
     - install
     - install:base
 
 - name: restart insights
-  supervisorctl: >
-    state=restarted
-    supervisorctl_path={{ supervisor_ctl }}
-    config={{ supervisor_cfg }}
-    name={{ insights_service_name }}
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "{{ insights_service_name }}"
   when: not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
   tags:

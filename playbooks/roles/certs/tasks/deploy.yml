@@ -3,10 +3,12 @@
   template:
     src: "{{ item.src }}"
     dest: "{{ certs_app_dir }}/{{ item.dest }}"
+    owner: "{{ certs_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0640"
   with_items:
     - { src: 'certs.env.json.j2', dest: 'env.json' }
     - { src: 'certs.auth.json.j2', dest: 'auth.json' }
-  become_user: "{{ certs_user }}"
 
 - name: Writing supervisor script for certificates
   template:
@@ -44,7 +46,7 @@
   when: CERTS_GIT_IDENTITY != "none"
 
 - name: "Checkout certificates repo into {{ certs_code_dir }}"
-  git_2_0_1:
+  git:
     dest: "{{ certs_code_dir }}"
     repo: "{{ CERTS_REPO }}"
     version: "{{ certs_version }}"
@@ -56,7 +58,7 @@
   when: CERTS_GIT_IDENTITY != "none"
 
 - name: Checkout certificates repo into {{ certs_code_dir }}
-  git_2_0_1:
+  git:
     dest: "{{ certs_code_dir }}"
     repo: "{{ CERTS_REPO }}"
     version: "{{ certs_version }}"

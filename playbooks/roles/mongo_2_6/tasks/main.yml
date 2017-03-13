@@ -1,0 +1,272 @@
+---
+- name: Check to see that MongoDB 2.4 is not installed
+  stat:
+    path: /etc/init.d/mongodb
+  register: mongodb_needs_upgrade
+  tags:
+    - install
+    - install:base
+
+- name: Verify 2.4 not installed
+  fail:
+    msg: "MongoDB 2.4 is currently installed and cannot be safely upgraded in a clustered configuration.  Please read http://docs.mongodb.org/manual/release-notes/2.6-upgrade/#upgrade-considerations and upgrade to 2.6."
+  when: mongodb_needs_upgrade.stat.exists and MONGO_CLUSTERED
+  tags:
+    - install
+    - install:base
+  
+- name: Remove mongo 2.4 if present
+  apt:
+    pkg: mongodb-10gen
+    state: absent
+    purge: yes
+    force: yes
+  when: mongodb_needs_upgrade.stat.exists and not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:base
+  
+- name: Install python pymongo for mongo_user ansible module
+  pip:
+    name: pymongo
+    state: present
+    version: "{{ pymongo_version }}"
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  tags:
+    - install
+    - install:base
+
+- name: Add the mongodb signing key
+  apt_key:
+    id: "{{ MONGODB_APT_KEY }}"
+    keyserver: "{{ MONGODB_APT_KEYSERVER }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install mongo server and recommends
+  apt:
+    name: "mongodb-org={{ mongo_version }}"
+    state: present
+    install_recommends: yes
+    force: yes
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+
+- name: Create mongo dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ mongo_user  }}"
+    group: "{{ mongo_user }}"
+  with_items:
+    - "{{ mongo_data_dir }}"
+    - "{{ mongo_dbpath }}"
+    - "{{ mongo_log_dir }}"
+    - "{{ mongo_journal_dir }}"
+  tags:
+    - install
+    - install:base
+
+- name: Add mongod systemd configuration on 16.04
+  template:
+    src:  "etc/systemd/system/mongod.service.j2"
+    dest: "/etc/systemd/system/mongod.service"
+  notify:
+    - restart mongo
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - install
+    - install:configuration
+
+- name: enable mongod systemd unit on 16.04
+  systemd:
+    name: mongod
+    enabled: yes
+    daemon_reload: yes
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - install
+    - install:configuration
+
+- name: Stop mongod service
+  service:
+    name: mongod
+    state: stopped
+  tags:
+    - manage
+    - manage:stop
+
+- name: Move mongodb to {{ mongo_data_dir }}
+  command: "mv /var/lib/mongodb  {{ mongo_data_dir}}/."
+  args:
+    creates: "{{ mongo_data_dir }}/mongodb"
+  tags:
+    - install
+    - install:base
+
+- name: Copy mongodb key file
+  copy:
+    content: "{{ MONGO_CLUSTER_KEY }}"
+    dest: "{{ mongo_key_file }}"
+    mode: "0600"
+    owner: mongodb
+    group: mongodb
+  when: MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
+
+- name: Copy configuration template
+  template:
+    src: "mongodb.conf.j2"
+    dest: "/etc/mongod.conf"
+    backup: yes
+  notify:
+    - restart mongo
+  tags:
+    - install
+    - install:configuration
+
+- name: Start mongo service
+  service:
+    name: mongod
+    state: started
+  tags:
+    - manage
+    - manage:start
+
+- name: Wait for mongo server to start
+  wait_for:
+    port: 27017 
+    delay: 2
+  tags:
+    - manage
+    - manage:start
+
+- name: Drop super user script
+  template:
+    src: "create_root.js.j2"
+    dest: "/tmp/create_root.js"
+  when: not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
+
+- name: Create super user with js
+  shell: "/usr/bin/mongo admin /tmp/create_root.js"
+  when: not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
+
+- name: Delete super user script
+  file:
+    path: /tmp/create_root.js
+    state: absent
+  when: not MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
+
+- name: Create the file to initialize the mongod replica set
+  template:
+    src: "repset_init.js.j2"
+    dest: "/tmp/repset_init.js"
+  when: MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
+
+- name: Initialize the replication set
+  shell: "/usr/bin/mongo /tmp/repset_init.js"
+  when: MONGO_CLUSTERED
+  tags:
+    - install
+    - install:configuration
+
+#- name: delete repset script
+#  file: path=/tmp/repset_init.js state=absent
+#  when: MONGO_CLUSTERED
+
+- name: Create a mongodb user
+  mongodb_user:
+    database: "{{ item.database }}"
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    roles: "{{ item.roles }}"
+    state: present
+  with_items: "{{ MONGO_USERS }}"
+  when: not MONGO_CLUSTERED
+  tags:
+    - manage
+    - manage:app-users
+
+- name: Create a mongodb user
+  mongodb_user:
+    database: "{{ item.database }}"
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    roles: "{{ item.roles }}"
+    state: present
+    replica_set: "{{ mongo_repl_set }}"
+  with_items: "{{ MONGO_USERS }}"
+  when: MONGO_CLUSTERED
+  tags:
+    - manage
+    - manage:app-users
+
+- name: Install s3cmd
+  pip:
+    name: "s3cmd"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  when: MONGO_S3_BACKUP
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Configure s3cmd and install backup-mongo-to-s3 script
+  template:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  when: MONGO_S3_BACKUP
+  with_items:
+    - { src: 'mongo-s3-backup-s3cfg.j2', dest: '{{ MONGO_S3_S3CMD_CONFIG }}', mode: '0600' }
+    - { src: 'backup-mongo-to-s3.j2', dest: '/edx/bin/backup-mongo-to-s3.sh', mode: '0700' }
+  tags:
+    - install
+    - install:configuration
+
+- name: Schedule backup-mongo-to-3s crontab
+  cron: 
+    name: "backup-mongo-to-s3"
+    job: "/edx/bin/backup-mongo-to-s3.sh"
+    backup: yes
+    cron_file: backup-mongo-to-s3
+    user: root
+    hour: "{{ MONGO_S3_BACKUP_HOUR }}"
+    minute: "0"
+    day: "{{ MONGO_S3_BACKUP_DAY }}"
+  when: MONGO_S3_BACKUP
+  tags:
+    - install
+    - install:configuration

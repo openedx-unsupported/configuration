@@ -11,7 +11,7 @@
 - name: Update all system packages
   apt:
     upgrade: safe
-  when: SECURITY_UPGRADE_ON_ANSIBLE
+  when: SAFE_UPGRADE_ON_ANSIBLE
 
 - name: Configure periodic unattended-upgrades
   template:
@@ -21,6 +21,13 @@
     group: root
     mode: "0644"
   when: SECURITY_UNATTENDED_UPGRADES
+
+- name: Disable unattended-upgrades if Xenial (16.04)
+  command: "{{ item }}"
+  when: ansible_distribution_release == 'xenial' and not SECURITY_UNATTENDED_UPGRADES
+  with_items:
+    - "systemctl disable apt-daily.service"
+    - "systemctl disable apt-daily.timer"
 
 - name: Disable unattended-upgrades
   file:
@@ -43,46 +50,10 @@
     state: absent
   when: SECURITY_UPDATE_ALL_PACKAGES or not SECURITY_UNATTENDED_UPGRADES
 
-#### Bash security vulnerability
-
-- name: Check if we are vulnerable
-  shell: "executable=/bin/bash chdir=/tmp foo='() { echo vulnerable; }' bash -c foo"
-  register: test_vuln
-  ignore_errors: yes
-
-- name: Apply bash security update if we are vulnerable
-  apt:
-    name: bash
-    state: latest
-    update_cache: yes
-  when: "'vulnerable' in test_vuln.stdout"
-
-- name: Check again and fail if we are still vulnerable
-  shell: "executable=/bin/bash foo='() { echo vulnerable; }' bash -c foo"
-  when: "'vulnerable' in test_vuln.stdout"
-  register: test_vuln
-  failed_when: "'vulnerable' in test_vuln.stdout"
-
-#### GHOST security vulnerability
-
-- name: GHOST.c
-  copy:
-    src: "tmp/GHOST.c"
-    dest: "/tmp/GHOST.c"
-    owner: root
-    group: root
-
-- name: Compile GHOST
-  shell: "gcc -o /tmp/GHOST /tmp/GHOST.c"
-
-- name: Check if we are vulnerable
-  shell: "/tmp/GHOST"
-  register: test_ghost_vuln
-  ignore_errors: yes
-
-- name: Apply glibc security update if we are vulnerable
-  apt:
-    name: libc6
-    state: latest
-    update_cache: yes
-  when: "'vulnerable' in test_ghost_vuln.stdout"
+# We dry-run because unattended-upgrade is quiet, and only had -d (debug) not -v (verbose)
+- name: "Take security updates during ansible runs"
+  command: "{{ item }}"
+  when: SECURITY_UPGRADE_ON_ANSIBLE
+  with_items:
+    - unattended-upgrade --dry-run
+    - unattended-upgrade

@@ -10,13 +10,13 @@
 #
 #
 # Tasks for role discovery
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
@@ -38,7 +38,7 @@
     - install:system-requirements
 
 - name: install python3.5
-  apt: 
+  apt:
     name: "{{ item }}"
   with_items:
     - python3.5
@@ -51,6 +51,24 @@
   command: "virtualenv --python=python3.5 {{ discovery_venv_dir }}"
   args:
     creates: "{{ discovery_venv_dir }}/bin/pip"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install nodenv
+  pip:
+    name: "nodeenv"
+    version: "1.1.1"
+    # NOTE (CCB): Using the "virtualenv" option here doesn't seem to work.
+    executable: "{{ discovery_venv_dir }}/bin/pip"
+  become_user: "{{ discovery_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  shell: "{{ discovery_venv_dir }}/bin/nodeenv {{ discovery_nodeenv_dir }} --node={{ discovery_node_version }} --prebuilt --force"
   become_user: "{{ discovery_user }}"
   tags:
     - install
@@ -172,7 +190,7 @@
   tags:
     - install
     - install:app-requirements
-    
+
 - name: run collectstatic
   command: make static
   args:
@@ -184,7 +202,7 @@
     - assets:gather
 
 - name: restart the application
-  supervisorctl: 
+  supervisorctl:
     state: restarted
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
@@ -199,7 +217,7 @@
   template:
     src: "edx/app/nginx/sites-available/discovery.j2"
     dest: "{{ nginx_sites_available_dir }}/discovery"
-    owner: root 
+    owner: root
     group: "{{ common_web_user }}"
     mode: 0640
   notify: reload nginx
@@ -211,11 +229,10 @@
   file:
     src: "{{ nginx_sites_available_dir }}/discovery"
     dest: "{{ nginx_sites_enabled_dir }}/discovery"
-    state: link 
-    owner: root 
+    state: link
+    owner: root
     group: root
   notify: reload nginx
   tags:
     - install
     - install:vhosts
-

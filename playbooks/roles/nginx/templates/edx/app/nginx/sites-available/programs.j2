@@ -4,7 +4,7 @@
 
 
 {% if "programs" in nginx_default_sites %}
-  {% set default_site = "default" %}
+  {% set default_site = "default_server" %}
 {% else %}
   {% set default_site = "" %}
 {% endif %}
@@ -19,6 +19,8 @@ server {
   server_name {{ PROGRAMS_HOSTNAME }};
   
   listen {{ PROGRAMS_NGINX_PORT }} {{ default_site }};
+
+  {% include "common-settings.j2" %}
   
   {% if NGINX_ENABLE_SSL %}
 
@@ -102,6 +104,10 @@ location @proxy_to_app {
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
     proxy_set_header X-Forwarded-For $http_x_forwarded_for;
     {% endif %}
+
+    # newrelic-specific header records the time when nginx handles a request.
+    proxy_set_header X-Queue-Start "t=${msec}";
+
     proxy_set_header Host $http_host;
 
     proxy_redirect off;

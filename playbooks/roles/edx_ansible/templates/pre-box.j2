@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# Remove needless noise from file systems before packaging a Vagrant box file.
+# This can reduce the size of the box file by 25%.
+# Run this with sudo in the guest OS just before "vagrant package" in the host.
+
+set -x
+
+# Discard packages we don't need.
+apt-get clean -y
+apt-get autoclean -y 
+
+# Clean out pip caches.
+find / -type d -path '*/.cache/pip' -print -exec rm -rf '{}/*' \;
+
+# We used to remove all .pyc files. This caused problems in sandboxes,
+# where code couldn't write .pyc files, and everything took too long.
+#   find /edx/app -name '*.pyc' -delete
+
+# Last thing: fill the disk with zeros so they'll compress well.
+# The dd command fails because the disk fills, which is the point, so silence
+# the error.
+dd if=/dev/zero of=/empty bs=1M || true
+rm -f /empty

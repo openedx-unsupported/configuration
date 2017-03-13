@@ -4,6 +4,13 @@
 # for single server community
 # installs
 
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
 - name: Configure instance(s)
   hosts: all
   become: True
@@ -19,7 +26,8 @@
     SANDBOX_ENABLE_ECOMMERCE: False
     COMMON_ENABLE_SPLUNKFORWARDER: False
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: swapfile
+      SWAPFILE_SIZE: 4GB
     - role: scorm
       when: "{{ EDXAPP_XBLOCK_SETTINGS }}.get('ScormXBlock', False)"
     - role: nginx
@@ -42,14 +50,17 @@
       when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
     - role: mongo
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
-    - { role: 'edxapp', celery_worker: True }
+    - role: rabbitmq
+      rabbitmq_ip: 127.0.0.1
+    - role: edxapp
+      celery_worker: True
     - edxapp
     - role: ecommerce
       when: SANDBOX_ENABLE_ECOMMERCE
     - role: ecomworker
+      ECOMMERCE_WORKER_BROKER_HOST: 127.0.0.1
       when: SANDBOX_ENABLE_ECOMMERCE
-    - notifier
+    - programs
     - analytics_api
     - insights
     - edx_notes_api
@@ -60,14 +71,19 @@
     - role: elasticsearch
       when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
     - forum
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
-    - { role: "xqueue", update_users: True }
+    - role: notifier
+      NOTIFIER_DIGEST_TASK_INTERVAL: 5
+    - role: xqueue
+      update_users: True
     - certs
     - edx_ansible
-    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - role: swapfile
+      SWAPFILE_SIZE: 2GB
     - role: datadog
       when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder
       when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
       when: COMMON_ENABLE_NEWRELIC
+    - role: postfix_queue
+      when: POSTFIX_QUEUE_EXTERNAL_SMTP_HOST != ''

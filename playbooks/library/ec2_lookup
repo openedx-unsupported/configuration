@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # This file is part of Ansible
 #
 # Ansible is free software: you can redistribute it and/or modify
@@ -96,21 +96,9 @@ def main():
             aws_secret_key=dict(aliases=['ec2_secret_key', 'secret_key'],
                                 no_log=True),
             aws_access_key=dict(aliases=['ec2_access_key', 'access_key']),
-            tags=dict(default=None),
+            tags=dict(default=None, type='dict'),
         )
     )
-
-    tags_param = module.params.get('tags')
-    tags = {}
-    if isinstance(tags_param, list):
-      for item in module.params.get('tags'):
-          for k,v in item.iteritems():
-              tags[k] = v
-    elif isinstance(tags_param, dict):
-        tags = tags_param
-    else:
-        module.fail_json(msg="Invalid format for tags")
-
 
     aws_secret_key = module.params.get('aws_secret_key')
     aws_access_key = module.params.get('aws_access_key')
@@ -137,7 +125,7 @@ def main():
     instances = []
     instance_ids = []
     for res in ec2.get_all_instances(filters={'tag:' + tag: value
-                                     for tag, value in tags.iteritems()}):
+                                     for tag, value in module.params.get('tags').iteritems()}):
         for inst in res.instances:
             if inst.state == "running":
                 instances.append({k: v for k, v in inst.__dict__.iteritems()

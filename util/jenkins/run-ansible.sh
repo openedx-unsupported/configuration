@@ -56,6 +56,22 @@ else
     ansible_ssh_user="${ssh_user}"
 fi
 
+if [[ -f ${WORKSPACE}/configuration-internal/ansible/vars/${deployment_tag}.yml ]]; then
+    extra_var_args+=" -e@${WORKSPACE}/configuration-internal/ansible/vars/${deployment_tag}.yml"
+fi
+
+if [[ -f ${WORKSPACE}/configuration-internal/ansible/vars/${environment_tag}-${deployment_tag}.yml ]]; then
+    extra_var_args+=" -e@${WORKSPACE}/configuration-internal/ansible/vars/${environment_tag}-${deployment_tag}.yml"
+fi
+
+if [[ -f ${WORKSPACE}/configuration-secure/ansible/vars/${deployment_tag}.yml ]]; then
+    extra_var_args+=" -e@${WORKSPACE}/configuration-secure/ansible/vars/${deployment_tag}.yml"
+fi
+
+if [[ -f ${WORKSPACE}/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml ]]; then
+    extra_var_args+=" -e@${WORKSPACE}/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml"
+fi
+
 export PYTHONUNBUFFERED=1
 env
-ansible-playbook -v -D -u $ansible_ssh_user $ansible_play -i ./ec2.py $ansible_task_tags --limit $ansible_limit -e@"$WORKSPACE/configuration-secure/ansible/vars/${deployment_tag}.yml" -e@"$WORKSPACE/configuration-secure/ansible/vars/${environment_tag}-${deployment_tag}.yml" $ansible_extra_vars 
+ansible-playbook -v -D -u $ansible_ssh_user $ansible_play -i ./ec2.py $ansible_task_tags --limit $ansible_limit $extra_var_args $ansible_extra_vars

@@ -11,15 +11,15 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-lms --noinput --list",
-        'cms':     "NO_EDXAPP_SUDO=1 /edx/bin/edxapp-migrate-cms --noinput --list",
-        'xqueue':  "SERVICE_VARIANT=xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
-        'ecommerce':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'programs':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'insights':      ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'analytics_api': ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'credentials':   ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
-        'discovery':     ". {env_file}; {python} {code_dir}/manage.py migrate --noinput --list",
+        'lms':     "/edx/bin/edxapp-migrate-lms --noinput --list",
+        'cms':     "/edx/bin/edxapp-migrate-cms --noinput --list",
+        'xqueue':  "SERVICE_VARIANT=xqueue sudo -E -u xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
+        'ecommerce':     ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
+        'programs':      ". {env_file}; sudo -E -u programs {python} {code_dir}/manage.py showmigrations",
+        'insights':      ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
+        'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
+        'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
+        'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
     }
 HIPCHAT_USER = "PreSupervisor"
 
@@ -265,7 +265,7 @@ if __name__ == '__main__':
             available_file = os.path.join(args.available, "{}.conf".format(service))
             link_location = os.path.join(args.enabled, "{}.conf".format(service))
             if os.path.exists(available_file):
-                subprocess.call("ln -sf {} {}".format(available_file, link_location), shell=True)
+                subprocess.call("sudo -u supervisor ln -sf {} {}".format(available_file, link_location), shell=True)
                 report.append("Enabling service: {}".format(service))
             else:
                 raise Exception("No conf available for service: {}".format(link_location))

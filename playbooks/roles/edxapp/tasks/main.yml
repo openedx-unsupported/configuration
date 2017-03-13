@@ -61,6 +61,27 @@
     - install
     - install:base
 
+- name: Ensure the tracking folder exists
+  file:
+    path: "{{ COMMON_LOG_DIR }}/tracking"
+    state: directory
+    owner: root
+    group: root
+  tags:
+    - install
+    - install:base
+
+- name: Ensure the tracking.log file exists
+  file:
+    path: "{{ COMMON_LOG_DIR }}/tracking/tracking.log"
+    state: touch
+    owner: syslog
+    group: adm
+    mode: "0640"
+  tags:
+    - install
+    - install:base
+
 - name: create web-writable edxapp data dirs
   file:
     path: "{{ item }}"
@@ -77,13 +98,15 @@
     - install:base
 
 # adding chris-lea nodejs repo
+# TODO: 16.04
 - name: add ppas for current versions of nodejs
   apt_repository:
     repo: "{{ edxapp_chrislea_ppa }}"
+  when: ansible_distribution_release == 'precise'
   tags:
     - install
     - install:base
-
+    
 - name: install system packages on which LMS and CMS rely
   apt:
     name: "{{ item }}"

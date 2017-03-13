@@ -1,4 +1,4 @@
-Vagrant.require_version ">= 1.6.5"
+Vagrant.require_version ">= 1.8.7"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
@@ -8,42 +8,21 @@ VAGRANTFILE_API_VERSION = "2"
 MEMORY = 4096
 CPU_COUNT = 2
 
-$script = <<SCRIPT
-if [ ! -d /edx/app/edx_ansible ]; then
-    echo "Error: Base box is missing provisioning scripts." 1>&2
-    exit 1
-fi
-OPENEDX_RELEASE=$1
-export PYTHONUNBUFFERED=1
-source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
-cd /edx/app/edx_ansible/edx_ansible/playbooks
-
-# Did we specify an openedx release?
-if [ -n "$OPENEDX_RELEASE" ]; then
-  EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
-    -e certs_version=$OPENEDX_RELEASE \
-    -e forum_version=$OPENEDX_RELEASE \
-    -e xqueue_version=$OPENEDX_RELEASE \
-    -e demo_version=$OPENEDX_RELEASE \
-    -e NOTIFIER_VERSION=$OPENEDX_RELEASE \
-    -e ECOMMERCE_VERSION=$OPENEDX_RELEASE \
-    -e ECOMMERCE_WORKER_VERSION=$OPENEDX_RELEASE \
-    -e PROGRAMS_VERSION=$OPENEDX_RELEASE \
-  "
-  CONFIG_VER=$OPENEDX_RELEASE
-  # Need to ensure that the configuration repo is updated
-  # The vagrant-devstack.yml playbook will also do this, but only
-  # after loading the playbooks into memory.  If these are out of date,
-  # this can cause problems (e.g. looking for templates that no longer exist).
-  /edx/bin/update configuration $CONFIG_VER
-else
-  CONFIG_VER="master"
-fi
-
-ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
-ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
-
-SCRIPT
+# These are versioning variables in the roles. Each can be overridden, first
+# with OPENEDX_RELEASE, and then with a specific environment variable of the
+# same name but upper-cased.
+VERSION_VARS = [
+    'edx_platform_version',
+    'configuration_version',
+    'certs_version',
+    'forum_version',
+    'xqueue_version',
+    'demo_version',
+    'NOTIFIER_VERSION',
+    'ECOMMERCE_VERSION',
+    'ECOMMERCE_WORKER_VERSION',
+    'PROGRAMS_VERSION',
+]
 
 MOUNT_DIRS = {
   :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
@@ -65,54 +44,78 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "open-release/eucalyptus.master" => {
-    :name => "eucalyptus-devstack-2016-09-01", :file => "eucalyptus-devstack-2016-09-01.box",
-  },
-  "open-release/eucalyptus.1rc2" => {
-    :name => "eucalyptus-devstack-2016-08-19", :file => "eucalyptus-devstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.1" => {
-    :name => "eucalyptus-devstack-2016-08-19", :file => "eucalyptus-devstack-2016-08-19.box",
-  },
-  "open-release/eucalyptus.2" => {
-    :name => "eucalyptus-devstack-2016-09-01", :file => "eucalyptus-devstack-2016-09-01.box",
-  },
-  # Note: the devstack and fullstack boxes differ, because devstack had an issue
-  # that needed fixing, but it didn't affect fullstack.
-  "named-release/dogwood.rc" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
-  "named-release/dogwood.1" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
-  "named-release/dogwood.2" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
-  "named-release/dogwood.3" => {
-    :name => "dogwood-devstack-2016-03-09", :file => "dogwood-devstack-2016-03-09.box",
-  },
+  "open-release/ficus.master" => "ficus-devstack-2017-02-07",
+  "open-release/ficus.1rc1" => "ficus-devstack-2017-01-11",
+  "open-release/ficus.1rc3" => "ficus-devstack-2017-02-07",
+  "open-release/ficus.1rc4" => "ficus-devstack-2017-02-07",
+  "open-release/ficus.1" => "ficus-devstack-2017-02-07",
+
+  "open-release/eucalyptus.master" => "eucalyptus-devstack-2016-09-01",
+  "open-release/eucalyptus.1rc2" => "eucalyptus-devstack-2016-08-19",
+  "open-release/eucalyptus.1" => "eucalyptus-devstack-2016-08-19",
+  "open-release/eucalyptus.2" => "eucalyptus-devstack-2016-09-01",
+
+  "named-release/dogwood.rc" => "dogwood-devstack-2016-03-09",
+  "named-release/dogwood.1" => "dogwood-devstack-2016-03-09",
+  "named-release/dogwood.2" => "dogwood-devstack-2016-03-09",
+  "named-release/dogwood.3" => "dogwood-devstack-2016-03-09",
   "named-release/dogwood" => {
     :name => "dogwood-devstack-rc2", :file => "20151221-dogwood-devstack-rc2.box",
   },
   # Cypress is deprecated and unsupported
-  # "named-release/cypress" => {
-  #   :name => "cypress-devstack", :file => "cypress-devstack.box",
-  # },
   # Birch is deprecated and unsupported
-  # "named-release/birch.2" => {
-  #   :name => "birch-devstack-2", :file => "birch-2-devstack.box",
-  # },
 }
-openedx_releases.default = {
-  :name => "eucalyptus-devstack-2016-09-01", :file => "eucalyptus-devstack-2016-09-01.box",
-}
-rel = ENV['OPENEDX_RELEASE']
+openedx_releases.default = "ficus-devstack-2017-02-07"
+
+openedx_release = ENV['OPENEDX_RELEASE']
+boxname = ENV['OPENEDX_BOXNAME']
+
+# Build -e override lines for each overridable variable.
+extra_vars_lines = ""
+VERSION_VARS.each do |var|
+  rel = ENV[var.upcase] || openedx_release
+  if rel
+    extra_vars_lines += "-e #{var}=#{rel} \\\n"
+  end
+end
+
+$script = <<SCRIPT
+if [ ! -d /edx/app/edx_ansible ]; then
+    echo "Error: Base box is missing provisioning scripts." 1>&2
+    exit 1
+fi
+export PYTHONUNBUFFERED=1
+source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
+cd /edx/app/edx_ansible/edx_ansible/playbooks
+
+EXTRA_VARS="#{extra_vars_lines}"
+CONFIG_VER="#{ENV['CONFIGURATION_VERSION'] || openedx_release || 'master'}"
+
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
+ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
+
+SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  boxfile = ""
+  if not boxname
+    reldata = openedx_releases[openedx_release]
+    if Hash == reldata.class
+      boxname = openedx_releases[openedx_release][:name]
+      boxfile = openedx_releases[openedx_release].fetch(:file, "")
+    else
+      boxname = reldata
+    end
+  end
+  if boxfile == ""
+    boxfile = "#{boxname}.box"
+  end
+
   # Creates an edX devstack VM from an official release
-  config.vm.box     = openedx_releases[rel][:name]
-  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
+  config.vm.box     = boxname
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
+  config.vm.box_check_update = false
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
@@ -160,6 +163,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+
+    # Virtio is faster, but the box needs to have support for it.  We didn't
+    # have support in the boxes before Ficus.
+    if !(boxname.include?("dogwood") || boxname.include?("eucalyptus"))
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+    end
   end
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
@@ -168,5 +177,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script, args: rel
+  config.vm.provision "shell", inline: $script
 end

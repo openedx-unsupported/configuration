@@ -23,7 +23,7 @@
 
 - name: create OAuth2 Clients
   shell: >
-    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings=devstack_appsembler
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
     create_oauth2_client
     {{ item.url_root }}
     "{{ item.url_root }}/complete/edx-oidc/"
@@ -35,6 +35,6 @@
     --logout_uri {{ item.logout_uri | default("") }}
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
-  with_items: oauth_client_setup_oauth2_clients
+  with_items: "{{ oauth_client_setup_oauth2_clients }}"
   when: item.name != 'None'
   tags: ["oauth_client_setup"]

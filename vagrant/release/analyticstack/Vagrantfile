@@ -8,40 +8,23 @@ VAGRANTFILE_API_VERSION = "2"
 MEMORY = 4096
 CPU_COUNT = 2
 
-$script = <<SCRIPT
-if [ ! -d /edx/app/edx_ansible ]; then
-    echo "Error: Base box is missing provisioning scripts." 1>&2
-    exit 1
-fi
-OPENEDX_RELEASE=$1
-export PYTHONUNBUFFERED=1
-source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
-cd /edx/app/edx_ansible/edx_ansible/playbooks
-
-# Did we specify an openedx release?
-if [ -n "$OPENEDX_RELEASE" ]; then
-  EXTRA_VARS="-e edx_platform_version=$OPENEDX_RELEASE \
-    -e certs_version=$OPENEDX_RELEASE \
-    -e forum_version=$OPENEDX_RELEASE \
-    -e xqueue_version=$OPENEDX_RELEASE \
-    -e demo_version=$OPENEDX_RELEASE \
-    -e ANALYTICS_API_VERSION=$OPENEDX_RELEASE \
-    -e INSIGHTS_VERSION=$OPENEDX_RELEASE \
-  "
-  CONFIG_VER=$OPENEDX_RELEASE
-  # Need to ensure that the configuration repo is updated
-  # The vagrant-analyticstack.yml playbook will also do this, but only
-  # after loading the playbooks into memory.  If these are out of date,
-  # this can cause problems (e.g. looking for templates that no longer exist).
-  /edx/bin/update configuration $CONFIG_VER
-else
-  CONFIG_VER="master"
-fi
-
-ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
-ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS -e ELASTICSEARCH_CLUSTER_MEMBERS=[]
-
-SCRIPT
+# These are versioning variables in the roles. Each can be overridden, first
+# with OPENEDX_RELEASE, and then with a specific environment variable of the
+# same name but upper-cased.
+VERSION_VARS = [
+  'edx_platform_version',
+  'configuration_version',
+  'certs_version',
+  'forum_version',
+  'xqueue_version',
+  'demo_version',
+  'NOTIFIER_VERSION',
+  'ECOMMERCE_VERSION',
+  'ECOMMERCE_WORKER_VERSION',
+  'PROGRAMS_VERSION',
+  'ANALYTICS_API_VERSION',
+  'INSIGHTS_VERSION',
+]
 
 MOUNT_DIRS = {
   :edx_platform => {:repo => "edx-platform", :local => "/edx/app/edxapp/edx-platform", :owner => "edxapp"},
@@ -49,6 +32,7 @@ MOUNT_DIRS = {
   :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
   :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
   :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
+  :programs => {:repo => "programs", :local => "/edx/app/programs/programs", :owner => "programs"},
   :insights => {:repo => "insights", :local => "/edx/app/insights/edx_analytics_dashboard", :owner => "insights"},
   :analytics_api => {:repo => "analytics_api", :local => "/edx/app/analytics_api/analytics_api", :owner => "analytics_api"},
   :analytics_pipeline => {:repo => "edx-analytics-pipeline", :local => "/edx/app/analytics_pipeline/analytics_pipeline", :owner => "hadoop"},
@@ -65,15 +49,8 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
-  "named-release/dogwood.rc" => {
-    :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
-  },
-  "named-release/dogwood.1" => {
-    :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
-  },
-  "named-release/dogwood.2" => {
-    :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
-  },
+  "open-release/eucalyptus" => "eucalyptus-analyticstack-2016-09-04",
+  "open-release/eucalyptus.2" => "eucalyptus-analyticstack-2016-09-04",
   "named-release/dogwood.3" => {
     :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
   },
@@ -84,13 +61,49 @@ openedx_releases = {
 openedx_releases.default = {
   :name => "analyticstack", :file => "analyticstack-latest.box",
 }
-rel = ENV['OPENEDX_RELEASE']
+
+openedx_release = ENV['OPENEDX_RELEASE']
+
+# Build -e override lines for each overridable variable.
+extra_vars_lines = ""
+VERSION_VARS.each do |var|
+  rel = ENV[var.upcase] || openedx_release
+  if rel
+    extra_vars_lines += "-e #{var}=#{rel} \\\n"
+  end
+end
+
+$script = <<SCRIPT
+if [ ! -d /edx/app/edx_ansible ]; then
+    echo "Error: Base box is missing provisioning scripts." 1>&2
+    exit 1
+fi
+export PYTHONUNBUFFERED=1
+source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
+cd /edx/app/edx_ansible/edx_ansible/playbooks
+
+EXTRA_VARS="#{extra_vars_lines}"
+CONFIG_VER="#{ENV['CONFIGURATION_VERSION'] || openedx_release || 'master'}"
+
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
+ansible-playbook -i localhost, -c local vagrant-analytics.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS -e ELASTICSEARCH_CLUSTER_MEMBERS=[]
+
+SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates an edX analyticstack VM from an official release
-  config.vm.box     = openedx_releases[rel][:name]
-  config.vm.box_url = "http://files.edx.org/vagrant-images/#{openedx_releases[rel][:file]}"
+  reldata = openedx_releases[openedx_release]
+  if Hash == reldata.class
+    boxname = openedx_releases[openedx_release][:name]
+    boxfile = openedx_releases[openedx_release].fetch(:file, "#{boxname}.box")
+  else
+    boxname = reldata
+    boxfile = "#{boxname}.box"
+  end
+
+  # Creates an edX devstack VM from an official release
+  config.vm.box     = boxname
+  config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
@@ -146,5 +159,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Assume that the base box has the edx_ansible role installed
   # We can then tell the Vagrant instance to update itself.
-  config.vm.provision "shell", inline: $script, args: rel
+  config.vm.provision "shell", inline: $script
 end

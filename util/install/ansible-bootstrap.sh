@@ -33,19 +33,23 @@ if [[ -z "${UPGRADE_OS}" ]]; then
   UPGRADE_OS=false
 fi
 
+if [[ -z "${RUN_ANSIBLE}" ]]; then
+  RUN_ANSIBLE=true
+fi
+
 #
 # Bootstrapping constants
 #
-VIRTUAL_ENV_VERSION="13.1.2"
-PIP_VERSION="7.1.2"
-SETUPTOOLS_VERSION="18.3.2"
+VIRTUAL_ENV_VERSION="15.0.2"
+PIP_VERSION="8.1.2"
+SETUPTOOLS_VERSION="24.0.3"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
 EDX_PPA="deb http://ppa.edx.org precise main"
-EDX_PPA_KEY_SERVER="pgp.mit.edu"
-EDX_PPA_KEY_ID="69464050"
+EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
+EDX_PPA_KEY_ID="B41E5E3969464050"
 
 cat << EOF
 ******************************************************************************
@@ -72,10 +76,13 @@ then
 elif grep -q 'Trusty Tahr' /etc/os-release
 then
     SHORT_DIST="trusty"
-else    
+elif grep -q 'Xenial Xerus' /etc/os-release
+then
+    SHORT_DIST="xenial"
+else
     cat << EOF
-    
-    This script is only known to work on Ubuntu Precise and Trusty,
+
+    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 
@@ -100,7 +107,7 @@ apt-get install -y software-properties-common python-software-properties
 # Add git PPA
 add-apt-repository -y ppa:git-core/ppa
 
-# Add python PPA
+# For older software we need to install our own PPA.
 apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
 add-apt-repository -y "${EDX_PPA}"
 
@@ -108,43 +115,62 @@ add-apt-repository -y "${EDX_PPA}"
 # NOTE: This will install the latest version of python 2.7 and
 # which may differ from what is pinned in virtualenvironments
 apt-get update -y
-apt-get install -y build-essential sudo git-core python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 libmysqlclient-dev
 
-pip install --upgrade pip=="${PIP_VERSION}"
+apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
+
+
+# Workaround for a 16.04 bug, need to upgrade to latest and then
+# potentially downgrade to the preferred version.
+if [[ "xenial" = "${SHORT_DIST}" ]]; then
+    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2
+    pip install --upgrade pip
+    pip install --upgrade pip=="${PIP_VERSION}"
+    #apt-get install -y build-essential sudo git-core libmysqlclient-dev
+else
+    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
+    pip install --upgrade pip=="${PIP_VERSION}"
+fi
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
 pip install setuptools=="${SETUPTOOLS_VERSION}"
 pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
 
-# create a new virtual env
-/usr/local/bin/virtualenv "${VIRTUAL_ENV}"
 
-PATH="${PYTHON_BIN}":${PATH}
+if [[ "true" == "${RUN_ANSIBLE}" ]]; then
+    # create a new virtual env
+    /usr/local/bin/virtualenv "${VIRTUAL_ENV}"
 
-# Install the configuration repository to install 
-# edx_ansible role
-git clone ${CONFIGURATION_REPO} ${CONFIGURATION_DIR}
-cd ${CONFIGURATION_DIR}
-git checkout ${CONFIGURATION_VERSION}
-make requirements
+    PATH="${PYTHON_BIN}":${PATH}
 
-cd "${CONFIGURATION_DIR}"/playbooks/edx-east
-"${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
+    # Install the configuration repository to install
+    # edx_ansible role
+    git clone ${CONFIGURATION_REPO} ${CONFIGURATION_DIR}
+    cd ${CONFIGURATION_DIR}
+    git checkout ${CONFIGURATION_VERSION}
+    make requirements
 
-# cleanup
-rm -rf "${ANSIBLE_DIR}"
-rm -rf "${CONFIGURATION_DIR}"
-rm -rf "${VIRTUAL_ENV}"
+    cd "${CONFIGURATION_DIR}"/playbooks/edx-east
+    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
 
-cat << EOF
-******************************************************************************
+    # cleanup
+    rm -rf "${ANSIBLE_DIR}"
+    rm -rf "${CONFIGURATION_DIR}"
+    rm -rf "${VIRTUAL_ENV}"
+    rm -rf "${HOME}/.ansible"
 
-Done bootstrapping, edx_ansible is now installed in /edx/app/edx_ansible.
-Time to run some plays.  Activate the virtual env with 
+    cat << EOF
+    ******************************************************************************
 
-> . /edx/app/edx_ansible/venvs/edx_ansible/bin/activate 
+    Done bootstrapping, edx_ansible is now installed in /edx/app/edx_ansible.
+    Time to run some plays.  Activate the virtual env with
 
-******************************************************************************
+    > . /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
+
+    ******************************************************************************
 EOF
+else
+    mkdir -p /edx/ansible/facts.d
+    echo '{ "ansible_bootstrap_run": true }' > /edx/ansible/facts.d/ansible_bootstrap.json
+fi
 

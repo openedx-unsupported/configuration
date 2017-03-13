@@ -1,79 +1,147 @@
 # Install browsers required to run the JavaScript
 # and acceptance test suite locally without a display
 ---
+- name: lock Firefox version
+  copy:
+    dest: /etc/apt/preferences.d/firefox-pinned-version
+    content: |
+      Package: firefox
+      Pin: {{ firefox_version }}
+      Pin-Priority: 1001
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install system packages
-  apt: pkg={{','.join(browser_deb_pkgs)}}
-       state=present update_cache=yes
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items: "{{ browser_deb_pkgs }}"
+  tags:
+    - install
+    - install:system-requirements
 
-- name: download browser debian packages from S3
-  get_url: dest="/tmp/{{ item.name }}" url="{{ item.url }}"
+- name: download browser packages from S3
+  get_url:
+    dest: /tmp/{{ item.name }}
+    url: "{{ item.url }}"
   register: download_deb
-  with_items: browser_s3_deb_pkgs
+  with_items: "{{ browser_s3_deb_pkgs }}"
+  tags:
+    - install
+    - install:system-requirements
 
-- name: install browser debian packages
+- name: install browser packages
   shell: gdebi -nq /tmp/{{ item.name }}
   when: download_deb.changed
-  with_items: browser_s3_deb_pkgs
-
-# Because the source location has been deprecated, we need to
-# ensure it does not interfere with subsequent apt commands
-- name: remove google chrome debian source list
-  file:
-    path: /etc/apt/sources.list.d/google-chrome.list
-    state: absent
+  with_items: "{{ browser_s3_deb_pkgs }}"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: download ChromeDriver
   get_url:
-    url={{ chromedriver_url }}
-    dest=/var/tmp/chromedriver_{{ chromedriver_version }}.zip
+    url: "{{ chromedriver_url }}"
+    dest: /var/tmp/chromedriver_{{ chromedriver_version }}.zip
   register: download_chromedriver
+  tags:
+    - install
+    - install:system-requirements
 
 - name: unzip ChromeDriver tarfile
   shell: unzip /var/tmp/chromedriver_{{ chromedriver_version }}.zip
-         chdir=/var/tmp
+  args:
+    chdir: /var/tmp
   when: download_chromedriver.changed
+  tags:
+    - install
+    - install:system-requirements
 
 - name: move ChromeDriver binary to /usr/local
   shell: mv /var/tmp/chromedriver /usr/local/bin/chromedriver
   when: download_chromedriver.changed
+  tags:
+    - install
+    - install:system-requirements
 
 - name: make ChromeDriver binary executable
-  file: path=/usr/local/bin/chromedriver mode=0755
+  file:
+    path: /usr/local/bin/chromedriver
+    mode: 0755
   when: download_chromedriver.changed
+  tags:
+    - install
+    - install:system-requirements
 
 - name: verify ChromeDriver location and mode
-  stat: path=/usr/local/bin/chromedriver
+  stat:
+    path: /usr/local/bin/chromedriver
   register: chromedriver
+  tags:
+    - install
+    - install:system-requirements
+
 - assert:
     that:
       - "chromedriver.stat.exists"
       - "chromedriver.stat.mode == '0755'"
+  tags:
+    - install
+    - install:system-requirements
 
 - name: download PhantomJS
-  get_url: >
-    url={{ phantomjs_url }}
-    dest=/var/tmp/{{ phantomjs_tarfile }}
+  get_url:
+    url: "{{ phantomjs_url }}"
+    dest: "/var/tmp/{{ phantomjs_tarfile }}"
   register: download_phantom_js
+  tags:
+    - install
+    - install:system-requirements
 
 - name: unpack the PhantomJS tarfile
-  shell: >
-    tar -xjf /var/tmp/{{ phantomjs_tarfile }}
-    chdir=/var/tmp
+  shell: "tar -xjf /var/tmp/{{ phantomjs_tarfile }}"
+  args:
+    chdir: "/var/tmp"
   when: download_phantom_js.changed
+  tags:
+    - install
+    - install:system-requirements
 
 - name: move PhantomJS binary to /usr/local
   shell: mv /var/tmp/{{ phantomjs_version }}/bin/phantomjs /usr/local/bin/phantomjs
   when: download_phantom_js.changed
+  tags:
+    - install
+    - install:system-requirements
 
 - name: verify phantomjs location
   stat: path=/usr/local/bin/phantomjs
   register: phantomjs
+  tags:
+    - install
+    - install:system-requirements
+
 - assert:
     that: "phantomjs.stat.exists"
+  tags:
+    - install
+    - install:system-requirements
 
-- name: create xvfb upstart script
-  template: src=xvfb.conf.j2 dest=/etc/init/xvfb.conf owner=root group=root
+- name: create xvfb systemd service
+  template:
+    src: xvfb.service.j2
+    dest: /etc/systemd/system/xvfb.service
+    owner: root
+    group: root
+  tags:
+    - install
+    - install:configuration
 
-- name: start xvfb
-  shell: start xvfb
-  ignore_errors: yes
+- name: enable and start xvfb systemd service
+  systemd:
+    name: xvfb
+    enabled: yes
+    state: started
+  tags:
+    - install
+    - install:configuration

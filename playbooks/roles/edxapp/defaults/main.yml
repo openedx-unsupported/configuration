@@ -29,7 +29,7 @@ EDXAPP_DJFS:
   url_root : '/static/django-pyfs'
 
 EDXAPP_LMS_BASE: "{{ EDXAPP_LMS_SITE_NAME }}:{{ EDXAPP_LMS_NGINX_PORT }}"
-EDXAPP_PREVIEW_LMS_BASE: "preview.{{ EDXAPP_LMS_SITE_NAME }}:{{ EDXAPP_LMS_PREVIEW_NGINX_PORT }}"
+EDXAPP_PREVIEW_LMS_BASE: "preview.{{ EDXAPP_LMS_SITE_NAME }}:{{ EDXAPP_LMS_NGINX_PORT }}"
 EDXAPP_CMS_BASE: "{{ EDXAPP_CMS_SITE_NAME }}:{{ EDXAPP_CMS_NGINX_PORT }}"
 
 EDXAPP_LMS_GUNICORN_EXTRA: ""
@@ -49,6 +49,7 @@ EDXAPP_AWS_ACCESS_KEY_ID:  "None"
 EDXAPP_AWS_SECRET_ACCESS_KEY:  "None"
 EDXAPP_AWS_QUERYSTRING_AUTH: false
 EDXAPP_AWS_STORAGE_BUCKET_NAME: "SET-ME-PLEASE (ex. bucket-name)"
+EDXAPP_IMPORT_EXPORT_BUCKET: "SET-ME-PLEASE (ex. bucket-name)"
 EDXAPP_AWS_S3_CUSTOM_DOMAIN: "SET-ME-PLEASE (ex. bucket-name.s3.amazonaws.com)"
 EDXAPP_SWIFT_USERNAME: "None"
 EDXAPP_SWIFT_KEY: "None"
@@ -113,7 +114,7 @@ EDXAPP_ELASTIC_SEARCH_CONFIG:
     - host: "localhost"
       port: 9200
 
-EDXAPP_SETTINGS: 'aws'
+EDXAPP_SETTINGS: '{{ COMMON_EDXAPP_SETTINGS }}'
 
 EDXAPP_LMS_ENV: 'lms.envs.{{ EDXAPP_SETTINGS }}'
 EDXAPP_CMS_ENV: 'cms.envs.{{ EDXAPP_SETTINGS }}'
@@ -133,6 +134,7 @@ EDXAPP_LOG_LEVEL: 'INFO'
 EDXAPP_MEMCACHE: [ 'localhost:11211' ]
 EDXAPP_CACHE_COURSE_STRUCTURE_MEMCACHE: "{{ EDXAPP_MEMCACHE }}"
 EDXAPP_COMMENTS_SERVICE_URL:  'http://localhost:18080'
+# EDXAPP_COMMENTS_SERVICE_KEY must match FORUM_API_KEY
 EDXAPP_COMMENTS_SERVICE_KEY:  'password'
 
 EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
@@ -146,9 +148,11 @@ EDXAPP_YOUTUBE_API_KEY: "PUT_YOUR_API_KEY_HERE"
 EDXAPP_ZENDESK_USER: ""
 EDXAPP_ZENDESK_URL: ""
 EDXAPP_ZENDESK_API_KEY: ""
+EDXAPP_ZENDESK_CUSTOM_FIELDS: {}
 EDXAPP_CELERY_USER: 'celery'
 EDXAPP_CELERY_PASSWORD: 'celery'
 EDXAPP_CELERY_BROKER_VHOST: ""
+EDXAPP_CELERY_BROKER_USE_SSL: false
 
 EDXAPP_VIDEO_CDN_URLS:
   EXAMPLE_COUNTRY_CODE: "http://example.com/edx/video?s3_url="
@@ -280,7 +284,6 @@ EDXAPP_RABBIT_HOSTNAME: 'localhost'
 EDXAPP_LMS_NGINX_PORT: 18000
 EDXAPP_LMS_SSL_NGINX_PORT: 48000
 
-EDXAPP_LMS_PREVIEW_NGINX_PORT: 18020
 EDXAPP_CMS_NGINX_PORT: 18010
 EDXAPP_CMS_SSL_NGINX_PORT: 48010
 
@@ -288,10 +291,15 @@ EDXAPP_CMS_SSL_NGINX_PORT: 48010
 EDXAPP_ENABLE_RATE_LIMITING: false
 EDXAPP_COURSES_REQUEST_RATE: '5r/s'
 EDXAPP_COURSES_REQUEST_BURST_RATE: 10
+EDXAPP_COURSES_USER_AGENT_BURST_RATE: 5
+EDXAPP_RATE_LIMITED_USER_AGENTS: []
 
 EDXAPP_LANG: 'en_US.UTF-8'
 EDXAPP_LANGUAGE_CODE : 'en'
 EDXAPP_TIME_ZONE: 'America/New_York'
+
+EDXAPP_LMS_DOC_LINK_BASE_URL: 'https://edx.readthedocs.io/projects/open-edx-learner-guide'
+EDXAPP_CMS_DOC_LINK_BASE_URL: 'https://edx.readthedocs.io/projects/open-edx-building-and-running-a-course'
 
 EDXAPP_TECH_SUPPORT_EMAIL: 'technical@example.com'
 EDXAPP_CONTACT_EMAIL: 'info@example.com'
@@ -368,20 +376,18 @@ EDXAPP_PYTHON_SANDBOX: true
 # it puts the sandbox in 'complain' mode, for reporting but not enforcement
 EDXAPP_SANDBOX_ENFORCE: true
 
-# Supply authorized keys used for remote management via the user
-# role.
-EDXAPP_AUTOMATOR_NAME: automator
-EDXAPP_AUTOMATOR_AUTHORIZED_KEYS: []
-# These are the commands allowed by the automator role.
-# The --settings parameter must be set at the end so that
-# is caught by the glob.
-# Example: sudo -u www-data /edx/bin/python.edxapp /edx/bin/manage.edxapp lms migrate --settings=aws
-EDXAPP_AUTOMATOR_SUDO_CMDS:
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms migrate *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp cms migrate *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms seed_permissions_roles *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms set_staff *"
-- "ALL=({{ common_web_user }})  NOPASSWD:SETENV:{{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms transfer_students *"
+# Vars that are used when the automated role is "mixed-in" via the deploying play
+# This data structure specifies all the users with access to run command remotely
+# over SSH and the fully qualified command that they can run via sudo to the
+# application user
+
+EDXAPP_AUTOMATED_USERS:
+  automated_user:
+    sudo_commands:
+      - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms migrate --list --settings={{ edxapp_settings }}"
+        sudo_user: "edxapp"
+    authorized_keys:
+      - "SSH authorized key"
 
 EDXAPP_USE_GIT_IDENTITY: false
 # Paste the contents of the git identity
@@ -420,6 +426,7 @@ EDXAPP_EDX_API_KEY: "PUT_YOUR_API_KEY_HERE"
 # This is the default set in common.py
 EDXAPP_VERIFY_STUDENT:
   DAYS_GOOD_FOR: 365
+  EXPIRING_SOON_WINDOW: 28
 EDXAPP_GOOGLE_ANALYTICS_LINKEDIN: ""
 EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS: {}
 EDXAPP_BULK_EMAIL_EMAILS_PER_TASK: 500
@@ -508,6 +515,9 @@ EDXAPP_CELERY_WORKERS:
     concurrency: 1
     monitor: False
     max_tasks_per_child: 1
+EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
+EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\1')|list }}"
+EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\1')|list }}"
 
 EDXAPP_DEFAULT_CACHE_VERSION: "1"
 EDXAPP_OAUTH_ENFORCE_SECURE: True
@@ -611,6 +621,9 @@ EDXAPP_COMPREHENSIVE_THEME_DIR: ""
 EDXAPP_COMPREHENSIVE_THEME_DIRS:
   - "{{ EDXAPP_COMPREHENSIVE_THEME_DIR }}"
 
+# list of paths to the comprehensive theme locale directories
+EDXAPP_COMPREHENSIVE_THEME_LOCALE_PATHS: []
+
 # Name of the default site theme
 EDXAPP_DEFAULT_SITE_THEME: ""
 EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
@@ -643,9 +656,14 @@ edxapp_log_dir: "{{ COMMON_LOG_DIR }}/edxapp"
 edxapp_venvs_dir: "{{ edxapp_app_dir }}/venvs"
 edxapp_venv_dir: "{{ edxapp_venvs_dir }}/edxapp"
 edxapp_venv_bin: "{{ edxapp_venv_dir }}/bin"
+edxapp_nodeenv_dir: "{{ edxapp_app_dir }}/nodeenvs/edxapp"
+edxapp_nodeenv_bin: "{{ edxapp_nodeenv_dir }}/bin"
+edxapp_settings: '{{ EDXAPP_SETTINGS }}'
+edxapp_node_version: "{{ common_node_version }}"
+# This is where node installs modules, not node itself
 edxapp_node_bin: "{{ edxapp_code_dir }}/node_modules/.bin"
 edxapp_user: edxapp
-edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:{{ edxapp_nodeenv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_media_dir: "{{ edxapp_data_dir }}/media"
 edxapp_course_static_dir: "{{ edxapp_data_dir }}/course_static"
@@ -700,6 +718,11 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
   ssl_certfile: "{{ EDXAPP_MONGO_SSL_CLIENT_CERT_PATH }}"
   ssl_ca_certs: "{{ EDXAPP_MONGO_SSL_CA_CERT_PATH }}"
+  # https://api.mongodb.com/python/2.9.1/api/pymongo/mongo_client.html#module-pymongo.mongo_client
+  socketTimeoutMS: 3000 # default is never timeout while the connection is open, this means it needs to explicitly close raising pymongo.errors.NetworkTimeout
+  connectTimeoutMS: 2000 # default is 20000, I believe raises pymongo.errors.ConnectionFailure
+  # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
+
 
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
@@ -804,8 +827,6 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
 generic_cache_config: &default_generic_cache
   BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
   KEY_FUNCTION:  'util.memcache.safe_key'
-  KEY_PREFIX: 'default'
-  LOCATION: "{{ EDXAPP_MEMCACHE }}"
 
 generic_env_config:  &edxapp_generic_env
   ECOMMERCE_PUBLIC_URL_ROOT: "{{ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT }}"
@@ -826,8 +847,10 @@ generic_env_config:  &edxapp_generic_env
   ANALYTICS_DATA_URL: "{{ EDXAPP_ANALYTICS_DATA_URL }}"
   ANALYTICS_DASHBOARD_URL: '{{ EDXAPP_ANALYTICS_DASHBOARD_URL }}'
   CELERY_BROKER_VHOST: "{{ EDXAPP_CELERY_BROKER_VHOST }}"
+  CELERY_BROKER_USE_SSL: "{{ EDXAPP_CELERY_BROKER_USE_SSL }}"
   PAYMENT_SUPPORT_EMAIL: "{{ EDXAPP_PAYMENT_SUPPORT_EMAIL }}"
   ZENDESK_URL: "{{ EDXAPP_ZENDESK_URL }}"
+  ZENDESK_CUSTOM_FIELDS: "{{ EDXAPP_ZENDESK_CUSTOM_FIELDS }}"
   COURSES_WITH_UNSAFE_CODE: "{{ EDXAPP_COURSES_WITH_UNSAFE_CODE }}"
   BULK_EMAIL_EMAILS_PER_TASK: "{{ EDXAPP_BULK_EMAIL_EMAILS_PER_TASK }}"
   MICROSITE_ROOT_DIR: "{{ EDXAPP_MICROSITE_ROOT_DIR }}"
@@ -843,6 +866,7 @@ generic_env_config:  &edxapp_generic_env
   STATIC_ROOT_BASE: "{{ edxapp_staticfile_dir }}"
   LMS_BASE: "{{ EDXAPP_LMS_BASE }}"
   CMS_BASE: "{{ EDXAPP_CMS_BASE }}"
+  LMS_ROOT_URL: "{{ EDXAPP_LMS_ROOT_URL }}"
   BOOK_URL:  "{{ EDXAPP_BOOK_URL }}"
   PARTNER_SUPPORT_EMAIL: "{{ EDXAPP_PARTNER_SUPPORT_EMAIL }}"
   PLATFORM_NAME: "{{ EDXAPP_PLATFORM_NAME }}"
@@ -888,23 +912,29 @@ generic_env_config:  &edxapp_generic_env
     default:
       <<: *default_generic_cache
       KEY_PREFIX: 'default'
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
       VERSION: "{{ EDXAPP_DEFAULT_CACHE_VERSION }}"
     general:
       <<: *default_generic_cache
       KEY_PREFIX:  'general'
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     mongo_metadata_inheritance:
       <<: *default_generic_cache
       KEY_PREFIX:  'mongo_metadata_inheritance'
       TIMEOUT: 300
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     staticfiles:
       <<: *default_generic_cache
       KEY_PREFIX: "{{ ansible_hostname|default('staticfiles') }}_general"
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     configuration:
       <<: *default_generic_cache
       KEY_PREFIX: "{{ ansible_hostname|default('configuration') }}"
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
     celery:
       <<: *default_generic_cache
       KEY_PREFIX:  'celery'
+      LOCATION: "{{ EDXAPP_MEMCACHE }}"
       TIMEOUT: "7200"
     course_structure_cache:
       <<: *default_generic_cache
@@ -948,6 +978,7 @@ generic_env_config:  &edxapp_generic_env
   COMPREHENSIVE_THEME_DIR: "{{ EDXAPP_COMPREHENSIVE_THEME_DIR }}"
 
   COMPREHENSIVE_THEME_DIRS: "{{ EDXAPP_COMPREHENSIVE_THEME_DIRS }}"
+  COMPREHENSIVE_THEME_LOCALE_PATHS: "{{ EDXAPP_COMPREHENSIVE_THEME_LOCALE_PATHS }}"
   ENABLE_COMPREHENSIVE_THEMING: "{{ EDXAPP_ENABLE_COMPREHENSIVE_THEMING }}"
   DEFAULT_SITE_THEME: "{{ EDXAPP_DEFAULT_SITE_THEME }}"
   SESSION_SAVE_EVERY_REQUEST: "{{ EDXAPP_SESSION_SAVE_EVERY_REQUEST }}"
@@ -962,6 +993,9 @@ generic_env_config:  &edxapp_generic_env
     limits: "{{ EDXAPP_CODE_JAIL_LIMITS }}"
     user: '{{ edxapp_sandbox_user }}'
   AFFILIATE_COOKIE_NAME: "{{ EDXAPP_AFFILIATE_COOKIE_NAME }}"
+  ELASTIC_SEARCH_CONFIG: "{{ EDXAPP_ELASTIC_SEARCH_CONFIG }}"
+  PLATFORM_TWITTER_ACCOUNT: "{{ EDXAPP_PLATFORM_TWITTER_ACCOUNT }}"
+  PLATFORM_FACEBOOK_ACCOUNT: "{{ EDXAPP_PLATFORM_FACEBOOK_ACCOUNT }}"
 
 lms_auth_config:
   <<: *edxapp_generic_auth
@@ -1024,7 +1058,6 @@ lms_env_config:
   LTI_AGGREGATE_SCORE_PASSBACK_DELAY: "{{ EDXAPP_LTI_AGGREGATE_SCORE_PASSBACK_DELAY }}"
   PROCTORING_SETTINGS: "{{ EDXAPP_PROCTORING_SETTINGS }}"
   CREDIT_HELP_LINK_URL: "{{ EDXAPP_CREDIT_HELP_LINK_URL }}"
-  ELASTIC_SEARCH_CONFIG: "{{ EDXAPP_ELASTIC_SEARCH_CONFIG }}"
   MAILCHIMP_NEW_USER_LIST_ID: "{{ EDXAPP_MAILCHIMP_NEW_USER_LIST_ID }}"
   CONTACT_MAILING_ADDRESS: "{{ EDXAPP_CONTACT_MAILING_ADDRESS }}"
   AUDIT_CERT_CUTOFF_DATE: "{{ EDXAPP_AUDIT_CERT_CUTOFF_DATE }}"
@@ -1032,6 +1065,10 @@ lms_env_config:
   API_ACCESS_FROM_EMAIL: "{{ EDXAPP_API_ACCESS_FROM_EMAIL }}"
   API_DOCUMENTATION_URL: "{{ EDXAPP_API_DOCUMENTATION_URL }}"
   AUTH_DOCUMENTATION_URL: "{{ EDXAPP_AUTH_DOCUMENTATION_URL }}"
+  DOC_LINK_BASE_URL: "{{ EDXAPP_LMS_DOC_LINK_BASE_URL }}"
+  RECALCULATE_GRADES_ROUTING_KEY: "{{ EDXAPP_RECALCULATE_GRADES_ROUTING_KEY }}"
+  CELERY_QUEUES: "{{ EDXAPP_LMS_CELERY_QUEUES }}"
+  ALTERNATE_WORKER_QUEUES: "cms"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
@@ -1061,6 +1098,10 @@ cms_env_config:
   <<: *edxapp_generic_env
   SITE_NAME:  "{{ EDXAPP_CMS_SITE_NAME }}"
   GIT_REPO_EXPORT_DIR: "{{ EDXAPP_GIT_REPO_EXPORT_DIR }}"
+  DOC_LINK_BASE_URL: "{{ EDXAPP_CMS_DOC_LINK_BASE_URL }}"
+  CELERY_QUEUES: "{{ EDXAPP_CMS_CELERY_QUEUES }}"
+  ALTERNATE_WORKER_QUEUES: "lms"
+  COURSE_IMPORT_EXPORT_BUCKET: "{{ EDXAPP_IMPORT_EXPORT_BUCKET }}"
   ELASTIC_SEARCH_CONFIG: "{{ EDXAPP_ELASTIC_SEARCH_CONFIG }}"
 
 # install dir for the edx-platform repo
@@ -1168,6 +1209,8 @@ edxapp_debian_pkgs:
   - libfreetype6-dev
   # cffi needs libffi-dev
   - libffi-dev
+  - python-dev
+  - libsqlite3-dev
 
 # Deploy Specific Vars
 edxapp_lms_variant: lms

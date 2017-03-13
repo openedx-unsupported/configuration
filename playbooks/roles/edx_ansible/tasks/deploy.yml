@@ -1,6 +1,6 @@
 ---
 - name: Git checkout edx_ansible repo into edx_ansible_code_dir
-  git_2_0_1:
+  git:
     dest: "{{ edx_ansible_code_dir }}"
     repo: "{{ edx_ansible_source_repo }}"
     version: "{{ configuration_version }}"
@@ -22,7 +22,29 @@
     - install
     - install:app-requirements
 
-- name: Create update and show-repo-heads script
+- name: Create update script
+  template:
+    dest: "{{ edx_ansible_app_dir}}/update"
+    src: "update.j2"
+    owner: "{{ edx_ansible_user }}"
+    group: "{{ edx_ansible_user }}"
+    mode: "0755"
+  when: devstack is not defined or not devstack
+  tags:
+    - install
+    - install:configuration
+
+- name: Create symlinks for update script
+  file:
+    src: "{{ edx_ansible_app_dir }}/update"
+    dest: "{{ COMMON_BIN_DIR }}/update"
+    state: link
+  when: devstack is not defined or not devstack
+  tags:
+    - install
+    - install:configuration
+
+- name: Create utility scripts
   template:
     dest: "{{ edx_ansible_app_dir}}/{{ item.dest }}"
     src: "{{ item.src }}"
@@ -30,19 +52,18 @@
     group: "{{ edx_ansible_user }}"
     mode: "0755"
   with_items:
-    - { src: 'update.j2', dest: 'update' }
     - { src: 'show-repo-heads.j2', dest: 'show-repo-heads' }
+    - { src: 'pre-box.j2', dest: 'pre-box' }
   tags:
     - install
     - install:configuration
 
-- name: Create symlinks for update and show-repo-heads scripts
+- name: Create symlinks for utility scripts
   file:
     src: "{{ edx_ansible_app_dir }}/{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ item }}"
     state: link
   with_items:
-    - update
     - show-repo-heads
   tags:
     - install
