@@ -51,6 +51,23 @@
     state: present
   with_items: mysql_debian_pkgs
 
+- name: Set bind IP
+  ini_file:
+    dest: "/etc/mysql/my.cnf"
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    backup: yes
+  with_items:
+    - {section: "mysqld", option: "bind-address", value: "{{ MYSQL_BIND_IP }}"}
+  register: mysql_conf_updated
+
+- name: Restart mysql
+  service:
+    name: mysql
+    state: restarted
+  when: mysql_conf_updated.changed
+
 - name: Start mysql
   service: 
     name: mysql 
