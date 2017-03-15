@@ -1,6 +1,17 @@
 ---
 
-- name: Configure instance(s)
+- name: Configure shared services
+  hosts: services
+  sudo: True
+  gather_facts: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - role: sudo
+    - role: memcached
+    - role: elasticsearch
+    - stackdriver
+
+- name: Configure app server instance(s)
   hosts: edx
   sudo: True
   gather_facts: True
@@ -27,7 +38,8 @@
       - lms
     - role: mysql
       when: EDXAPP_MYSQL_HOST == 'localhost'
-    - { role: memcached, tags: memcached }
+    - role: memcached
+      when: "'localhost:11211' in EDXAPP_MEMCACHE"
     - edxlocal
     - role: mongo
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
