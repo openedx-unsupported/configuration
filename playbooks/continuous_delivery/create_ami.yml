@@ -27,6 +27,8 @@
 #   - hipchat_room                    - ID or name of the room to send the notification
 #   - hipchat_url                     - URL of the hipchat API  (defaults to v1 of the api)
 #   - extra_name_identifier           - Makes each AMI unique if desired - Default: 0
+#   - version_tags                    - A mapping of {app: [repo, version], ...}, used to generate
+#                                       a "version:app = repo version" tag on the AMI
 #
 # Example command line to run this playbook:
 #    ansible-playbook -vvvv -i "localhost," -c local \
@@ -51,6 +53,7 @@
     artifact_path: /tmp/ansible-runtime
     hipchat_url: https://api.hipchat.com/v2/
     extra_name_identifier: 0
+    version_tags: {}
   gather_facts: False
   connection: local
   tasks:
@@ -88,6 +91,16 @@
       region: "{{ ec2_region }}"
       resource: "{{ ami_register.image_id }}"
       tags: "{{ instance_tags.tags }}"
+
+  - name: Add any version tags that were passed on the commandline
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ ami_register.image_id }}"
+      tags: "{
+          {% for name, (repo, version) in version_tags.items() %}
+          'version:{{ name }}': '{{ repo }} {{ version }}',
+          {% endfor %}
+      }"
 
   - name: add optional edx-theme tag
     ec2_tag:
