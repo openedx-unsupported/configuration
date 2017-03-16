@@ -134,7 +134,7 @@
 # and connect anonymously next.
 - name: determine if there is a replica set already
   mongodb_rs_status:
-    host: "{{ ansible_default_ipv4['address'] }}"
+    host: "{{ MONGO_BIND_IP }}"
     username: "{{ MONGO_ADMIN_USER }}"
     password: "{{ MONGO_ADMIN_PASSWORD }}"
   run_once: true
@@ -147,7 +147,7 @@
 
 - name: Try checking the replica set with no user/pass in case this is a new box
   mongodb_rs_status:
-    host: "{{ ansible_default_ipv4['address'] }}"
+    host: "{{ MONGO_BIND_IP }}"
   run_once: true
   register: unauthed_replica_set_already_configured
   when: MONGO_CLUSTERED and authed_replica_set_already_configured.failed is defined
@@ -270,7 +270,7 @@
 
 - name: Check if the mongo node is primary
   mongodb_is_primary: 
-    host: "{{ ansible_default_ipv4['address'] }}"
+    host: "{{ MONGO_BIND_IP }}"
     username: "{{ MONGO_ADMIN_USER }}"
     password: "{{ MONGO_ADMIN_PASSWORD }}"
   register: mongo_node
@@ -366,7 +366,7 @@
 # checking the replica set status until we see a PRIMARY in the results.
 - name: Wait for the replica set to update and (if needed) elect a primary
   mongodb_rs_status:
-      host: "{{ ansible_default_ipv4['address'] }}"
+      host: "{{ MONGO_BIND_IP }}"
       username: "{{ MONGO_ADMIN_USER }}"
       password: "{{ MONGO_ADMIN_PASSWORD }}"
   register: status
