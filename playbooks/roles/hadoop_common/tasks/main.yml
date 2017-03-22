@@ -10,9 +10,9 @@
 #
 #
 # Tasks for role hadoop_common
-# 
+#
 # Overview:
-# 
+#
 # This role installs all hadoop services onto the machine. Note that this should
 # be used to configure all machines in a hadoop cluster. It does not perform
 # any role-specific actions such as formatting the namenode etc.
@@ -40,10 +40,13 @@
     state=present
 
 - name: own key authorized
-  file: >
-    src={{ HADOOP_COMMON_USER_HOME }}/.ssh/id_rsa.pub
-    dest={{ HADOOP_COMMON_USER_HOME }}/.ssh/authorized_keys
-    owner={{ hadoop_common_user }} group={{ hadoop_common_group }} state=link
+  file:
+    src: "{{ HADOOP_COMMON_USER_HOME }}/.ssh/id_rsa.pub"
+    dest: "{{ HADOOP_COMMON_USER_HOME }}/.ssh/authorized_keys"
+    owner: "{{ hadoop_common_user }}"
+    group: "{{ hadoop_common_group }}"
+    force: yes
+    state: link
 
 - name: ssh configured
   template: >
@@ -53,7 +56,7 @@
 
 - name: ensure user is in sudoers
   lineinfile: >
-    dest=/etc/sudoers state=present 
+    dest=/etc/sudoers state=present
     regexp='^%hadoop ALL\=' line='%hadoop ALL=(ALL) NOPASSWD:ALL'
     validate='visudo -cf %s'
 
