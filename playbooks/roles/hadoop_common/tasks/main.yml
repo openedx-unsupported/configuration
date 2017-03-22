@@ -28,6 +28,16 @@
     state: present
   with_items: "{{ hadoop_common_debian_pkgs }}"
 
+# Update procps to get fix to
+#  https://bugs.launchpad.net/ubuntu/+source/procps/+bug/1637026, which
+#  causes hadoop jobs to fail on Xenial.
+- name: update system packages
+  apt:
+    pkg: "{{ item }}"
+    state: latest
+  with_items:
+    - procps
+
 - name: ensure group exists
   group:
     name: "{{ hadoop_common_group }}"
@@ -108,16 +118,17 @@
     - hdfs-site.xml
     - yarn-site.xml
 
-- name: upstart scripts installed
+- name: service definitions installed
   template:
-    src: "{{ item }}.j2"
-    dest: "/etc/init/{{ item }}"
+    src: "etc/systemd/system/{{ item }}.service.j2"
+    dest: "/etc/systemd/system/{{ item }}.service"
     mode: 0640
     owner: root
     group: root
-  with_items:
-    - hdfs.conf
-    - yarn.conf
+  with_items: "{{ hadoop_common_services }}"
+  tags:
+    - install
+    - install:configuration
 
 - name: hadoop env file exists
   file:
@@ -196,7 +207,7 @@
 - name: new native libs installed
   shell: "chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ item }} && cp {{ item }} {{ HADOOP_COMMON_HOME }}/lib/native/{{ item }}"
   args:
-    chdir={{ hadoop_common_temporary_dir }}/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project/hadoop-common/target/native/target/usr/local/lib
+    chdir: "{{ hadoop_common_temporary_dir }}/hadoop-common-release-{{ HADOOP_COMMON_VERSION }}/hadoop-common-project/hadoop-common/target/native/target/usr/local/lib"
   with_items:
     - libhadoop.a
     - libhadoop.so
