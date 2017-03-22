@@ -12,6 +12,25 @@
     - install
     - install:system-requirements
 
+- name: Add multiverse repos
+  apt_repository:
+    repo: "{{item}}"
+    update_cache: false  # only update when adding new repos
+  register: multiverse_installed
+  when: ansible_distribution == 'Ubuntu'
+  with_items: "{{ multiverse_urls }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Update cache when adding multiverse repos
+  apt:
+    update_cache: true
+  when: multiverse_installed | changed
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install system packages
   apt:
     name: "{{ item }}"
