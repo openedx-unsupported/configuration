@@ -534,6 +534,12 @@ EDXAPP_ECOMMERCE_API_URL: "http://localhost:8002/api/v2"
 EDXAPP_ECOMMERCE_API_SIGNING_KEY: "{{ EDXAPP_JWT_SECRET_KEY }}"
 EDXAPP_COURSE_CATALOG_API_URL: "http://localhost:8008/api/v1"
 
+# which access.py permission name to check in order to determine if a course about page is
+# visible. We default this to the legacy permission 'see_exists'.
+
+EDXAPP_COURSE_CATALOG_VISIBILITY_PERMISSION: 'see_exists'
+EDXAPP_COURSE_ABOUT_VISIBILITY_PERMISSION: 'see_exists'
+
 # Mailchimp Settings
 EDXAPP_MAILCHIMP_NEW_USER_LIST_ID: null
 
@@ -628,6 +634,21 @@ EDXAPP_SOCIAL_AUTH_SAML_SP_PUBLIC_CERT: ''
 EDXAPP_SESSION_SAVE_EVERY_REQUEST: false
 
 EDXAPP_SESSION_COOKIE_SECURE: false
+
+# Course Block Structures
+EDXAPP_BLOCK_STRUCTURES_SETTINGS:
+  # Delay, in seconds, after a new edit of a course is published
+  # before updating the block structures cache.  This is needed
+  # for a better chance at getting the latest changes when there
+  # are secondary reads in sharded mongoDB clusters. See TNL-5041
+  # for more info.
+  COURSE_PUBLISH_TASK_DELAY: 30
+
+  # Delay, in seconds, between retry attempts if a task fails.
+  TASK_DEFAULT_RETRY_DELAY: 30
+
+  # Maximum number of retries per task.
+  TASK_MAX_RETRIES: 5
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -809,6 +830,8 @@ generic_env_config:  &edxapp_generic_env
   ECOMMERCE_PUBLIC_URL_ROOT: "{{ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT }}"
   ECOMMERCE_API_URL: "{{ EDXAPP_ECOMMERCE_API_URL }}"
   COURSE_CATALOG_API_URL: "{{ EDXAPP_COURSE_CATALOG_API_URL }}"
+  COURSE_CATALOG_VISIBILITY_PERMISSION: "{{ EDXAPP_COURSE_CATALOG_VISIBILITY_PERMISSION }}"
+  COURSE_ABOUT_VISIBILITY_PERMISSION: "{{ EDXAPP_COURSE_ABOUT_VISIBILITY_PERMISSION }}"
   FINANCIAL_REPORTS: "{{ EDXAPP_FINANCIAL_REPORTS }}"
   ONLOAD_BEACON_SAMPLE_RATE: "{{ EDXAPP_ONLOAD_BEACON_SAMPLE_RATE }}"
   CORS_ORIGIN_WHITELIST: "{{ EDXAPP_CORS_ORIGIN_WHITELIST }}"
@@ -951,6 +974,7 @@ generic_env_config:  &edxapp_generic_env
   REGISTRATION_EXTRA_FIELDS: "{{ EDXAPP_REGISTRATION_EXTRA_FIELDS }}"
   XBLOCK_SETTINGS: "{{ EDXAPP_XBLOCK_SETTINGS }}"
   EDXMKTG_USER_INFO_COOKIE_NAME: "{{ EDXAPP_EDXMKTG_USER_INFO_COOKIE_NAME }}"
+  BLOCK_STRUCTURES_SETTINGS: "{{ EDXAPP_BLOCK_STRUCTURES_SETTINGS }}"
 
   # Deprecated, maintained for backward compatibility
   COMPREHENSIVE_THEME_DIR: "{{ EDXAPP_COMPREHENSIVE_THEME_DIR }}"
