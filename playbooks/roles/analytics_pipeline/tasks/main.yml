@@ -173,11 +173,13 @@
     - install
     - install:configuration
 
-- name: Cron job syncs tracking log file to hdfs
-  cron:
-    user: "{{ hadoop_common_user }}"
-    name: "Sync tracking log to HDFS"
-    job: "{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+- name: cron job syncs tracking log file to hdfs
+  cron: >
+    user={{ hadoop_common_user }}
+    name="Sync tracking log to HDFS"
+    job="{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log* {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/"
+    minute=00
+    hour=01
   tags:
     - install
     - install:configuration
@@ -191,12 +193,13 @@
     - install
     - install:configuration
 
-- name: Grant access to table storing test data in output database
-  mysql_user:
-    user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}"
-    password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
-    priv: 'acceptance%.*:ALL'
-    append_privs: yes
-  tags:
-    - install
-    - install:configuration
+# This task belongs in edxlocal or a role that configures the database
+# - name: Grant access to table storing test data in output database
+#   mysql_user:
+#     user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}"
+#     password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
+#     priv: 'acceptance%.*:ALL'
+#     append_privs: yes
+#   tags:
+#     - install
+#     - install:configuration
