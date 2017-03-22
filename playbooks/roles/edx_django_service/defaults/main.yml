@@ -1,0 +1,177 @@
+---
+edx_django_service_name: ' NOT-SET '
+edx_django_service_repo: '{{ edx_django_service_name }}'
+edx_django_service_home: '{{ COMMON_APP_DIR }}/{{ edx_django_service_name }}'
+edx_django_service_user: '{{ edx_django_service_name }}'
+edx_django_service_use_python3: true
+
+# This can be overwritten by setting either the devstack or devstack:install tag.
+edx_django_service_is_devstack: false
+
+edx_django_service_has_static_assets: true
+
+edx_django_service_wsgi_name: '{{ edx_django_service_name }}'
+
+edx_django_service_name_devstack_logs:
+  - '{{ nginx_log_dir }}/access.log'
+  - '{{ nginx_log_dir }}/error.log'
+  - '{{ supervisor_log_dir }}/{{ edx_django_service_name }}-stdout.log'
+  - '{{ supervisor_log_dir }}/{{ edx_django_service_name }}-stderr.log'
+
+
+# TODO Override with global
+edx_django_service_version: 'master'
+edx_django_service_git_identity: !!null
+edx_django_service_django_settings_module: null
+
+edx_django_service_code_dir: '{{ edx_django_service_home }}/{{ edx_django_service_name }}'
+edx_django_service_venv_dir: '{{ edx_django_service_home }}/venvs/{{ edx_django_service_name }}'
+edx_django_service_venv_bin_dir: '{{ edx_django_service_venv_dir }}/bin'
+
+edx_django_service_nodeenv_dir: '{{ edx_django_service_home }}/nodeenvs/{{ edx_django_service_name }}'
+edx_django_service_nodeenv_bin: '{{ edx_django_service_nodeenv_dir }}/bin'
+edx_django_service_node_modules_dir: '{{ edx_django_service_code_dir }}/node_modules'
+edx_django_service_node_bin: '{{ edx_django_service_node_modules_dir }}/.bin'
+edx_django_service_node_version: '6.9.4'
+
+edx_django_service_environment_default:
+  DJANGO_SETTINGS_MODULE: '{{ edx_django_service_django_settings_module }}'
+  PATH: '{{ edx_django_service_nodeenv_bin }}:{{ edx_django_service_venv_dir }}/bin:{{ ansible_env.PATH }}'
+edx_django_service_environment_extra: {}
+edx_django_service_environment: '{{ edx_django_service_environment_default | combine(edx_django_service_environment_extra) }}'
+
+edx_django_service_migration_environment_default:
+  DB_MIGRATION_USER: '{{ COMMON_MYSQL_MIGRATE_USER }}'
+  DB_MIGRATION_PASS: '{{ COMMON_MYSQL_MIGRATE_PASS }}'
+edx_django_service_migration_environment: '{{ edx_django_service_environment|combine(edx_django_service_migration_environment_default) }}'
+
+edx_django_service_debian_pkgs_default:
+  - gettext
+  - libffi-dev  # Needed to install the Python cryptography library for asymmetric JWT signing
+  - libmemcached-dev
+  - libmysqlclient-dev
+  - libssl-dev
+edx_django_service_debian_pkgs_extra: []
+edx_django_service_debian_pkgs: '{{ edx_django_service_debian_pkgs_default + edx_django_service_debian_pkgs_extra }}'
+
+# TODO These should be overridden as globals.
+edx_django_service_gunicorn_extra: ''
+edx_django_service_gunicorn_extra_conf: ''
+edx_django_service_gunicorn_host: '127.0.0.1'
+edx_django_service_gunicorn_port: null
+edx_django_service_gunicorn_timeout: 300
+edx_django_service_gunicorn_workers: 2
+edx_django_service_gunicorn_worker_class: 'gevent'
+
+# TODO Sane default?
+edx_django_service_cors_whitelist: []
+
+nginx_edx_django_service_gunicorn_hosts:
+  - 127.0.0.1
+
+edx_django_service_hostname: '~^((stage|prod)-)?{{ edx_django_service_name }}.*'
+edx_django_service_nginx_port: '1{{ edx_django_service_gunicorn_port }}'
+edx_django_service_ssl_nginx_port: '4{{ edx_django_service_gunicorn_port }}'
+
+edx_django_service_newrelic_appname: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}'
+
+edx_django_service_repos:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: '{{ edx_django_service_repo }}.git'
+    VERSION: '{{ edx_django_service_version }}'
+    DESTINATION: '{{ edx_django_service_code_dir }}'
+    SSH_KEY: '{{ edx_django_service_git_identity }}'
+
+edx_django_service_secret_key: 'REPLACE-ME'
+edx_django_service_language_code: 'en-us'
+
+edx_django_service_data_dir: '{{ COMMON_DATA_DIR }}/{{ edx_django_service_name }}'
+edx_django_service_media_root: '{{ edx_django_service_data_dir }}/media'
+edx_django_service_media_url: '/media/'
+
+edx_django_service_static_root: '{{ COMMON_DATA_DIR }}/{{ edx_django_service_name }}/staticfiles'
+edx_django_service_staticfiles_storage: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+edx_django_service_media_storage_backend:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ edx_django_service_media_root }}'
+  MEDIA_URL: '{{ edx_django_service_media_url }}'
+
+edx_django_service_memcache: [ 'memcache' ]
+
+edx_django_service_caches:
+  default:
+    BACKEND: 'django.core.cache.backends.memcached.MemcachedCache'
+    KEY_PREFIX: '{{ edx_django_service_name }}'
+    LOCATION: '{{ edx_django_service_memcache }}'
+
+edx_django_service_default_db_host: 'localhost'
+edx_django_service_default_db_name: '{{ edx_django_service_name }}'
+edx_django_service_default_db_atomic_requests: false
+edx_django_service_db_user: 'REPLACE-ME'
+edx_django_service_db_password: 'password'
+
+edx_django_service_databases:
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ edx_django_service_default_db_name }}'
+    USER: '{{ edx_django_service_db_user }}'
+    PASSWORD: '{{ edx_django_service_db_password }}'
+    HOST: '{{ edx_django_service_default_db_host }}'
+    PORT: '3306'
+    ATOMIC_REQUESTS: '{{ edx_django_service_default_db_atomic_requests }}'
+    CONN_MAX_AGE: 60
+
+edx_django_service_social_auth_edx_oidc_key: '{{ edx_django_service_name }}-key'
+edx_django_service_social_auth_edx_oidc_secret: '{{ edx_django_service_name }}-secret'
+edx_django_service_social_auth_redirect_is_https: false
+
+edx_django_service_oauth_public_url_root: '{{ EDXAPP_LMS_PUBLIC_ROOT_URL | default("http://127.0.0.1:8000") }}/oauth2'
+edx_django_service_oauth_url_root: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}/oauth2'
+edx_django_service_oidc_logout_url: '{{ EDXAPP_LMS_PUBLIC_ROOT_URL | default("http://127.0.0.1:8000") }}/logout'
+
+edx_django_service_jwt_audience: '{{ EDXAPP_JWT_AUDIENCE | default("SET-ME-PLEASE") }}'
+edx_django_service_jwt_issuer: '{{ edx_django_service_oauth_url_root }}'
+edx_django_service_jwt_secret_key: '{{ EDXAPP_JWT_SECRET_KEY | default("lms-secret") }}'
+
+edx_django_service_jwt_auth:
+  JWT_ISSUERS:
+    - AUDIENCE: '{{ edx_django_service_jwt_audience }}'
+      ISSUER: '{{ edx_django_service_jwt_issuer }}'
+      SECRET_KEY: '{{ edx_django_service_jwt_secret_key }}'
+
+edx_django_service_extra_apps: []
+
+edx_django_service_config_default:
+  LANGUAGE_CODE: '{{ edx_django_service_language_code }}'
+  SECRET_KEY: '{{ edx_django_service_secret_key }}'
+  TIME_ZONE: 'UTC'
+
+  STATIC_ROOT: '{{ edx_django_service_static_root }}'
+  MEDIA_STORAGE_BACKEND: '{{ edx_django_service_media_storage_backend }}'
+  STATICFILES_STORAGE: '{{ edx_django_service_staticfiles_storage }}'
+
+  CACHES: '{{ edx_django_service_caches }}'
+  DATABASES: '{{ edx_django_service_databases }}'
+
+  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ edx_django_service_social_auth_edx_oidc_key }}'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ edx_django_service_social_auth_edx_oidc_secret }}'
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ edx_django_service_social_auth_edx_oidc_secret }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ edx_django_service_oauth_url_root }}'
+  SOCIAL_AUTH_EDX_OIDC_PUBLIC_URL_ROOT: '{{ edx_django_service_oauth_public_url_root }}'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ edx_django_service_social_auth_redirect_is_https }}'
+  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ edx_django_service_oidc_logout_url }}'
+
+  JWT_AUTH: '{{ edx_django_service_jwt_auth }}'
+
+  EXTRA_APPS: '{{ edx_django_service_extra_apps }}'
+
+  EDX_DRF_EXTENSIONS:
+    OAUTH2_USER_INFO_URL: '{{ edx_django_service_oauth_url_root }}/user_info'
+
+
+# NOTE: This should be overridden by inheriting service-specific role.
+edx_django_service_config_overrides: {}
+edx_django_service_config: '{{ edx_django_service_config_default|combine(edx_django_service_config_overrides) }}'

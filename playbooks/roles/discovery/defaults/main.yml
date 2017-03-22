@@ -10,32 +10,36 @@
 ##
 # Defaults for role discovery
 #
-DISCOVERY_GIT_IDENTITY: !!null
 
-# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
-# and a key being provided via NEWRELIC_LICENSE_KEY
-DISCOVERY_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ discovery_service_name }}"
-DISCOVERY_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
-DISCOVERY_NGINX_PORT: 18381
-DISCOVERY_SSL_NGINX_PORT: 48381
+
+#
+# vars are namespace with the module name.
+#
+discovery_service_name: "discovery"
+discovery_gunicorn_port: 8381
+
+discovery_environment:
+  DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
+
+
+#
+# OS packages
+#
+
+discovery_debian_pkgs:
+  - libxml2-dev
+  - libxslt-dev
+  - libjpeg-dev
+
+
+DISCOVERY_NGINX_PORT: "1{{ discovery_gunicorn_port }}"
+DISCOVERY_SSL_NGINX_PORT: "4{{ discovery_gunicorn_port }}"
 
 DISCOVERY_DEFAULT_DB_NAME: 'discovery'
 DISCOVERY_MYSQL: 'localhost'
 # MySQL usernames are limited to 16 characters
 DISCOVERY_MYSQL_USER: 'discov001'
 DISCOVERY_MYSQL_PASSWORD: 'password'
-
-DISCOVERY_DATABASES:
-  # rw user
-  default:
-    ENGINE: 'django.db.backends.mysql'
-    NAME: '{{ DISCOVERY_DEFAULT_DB_NAME }}'
-    USER: '{{ DISCOVERY_MYSQL_USER }}'
-    PASSWORD: '{{ DISCOVERY_MYSQL_PASSWORD }}'
-    HOST: '{{ DISCOVERY_MYSQL }}'
-    PORT: '3306'
-    ATOMIC_REQUESTS: false
-    CONN_MAX_AGE: 60
 
 # Using SSL? See https://www.elastic.co/guide/en/shield/current/ssl-tls.html.
 # Using AWS? Use the AWS-provided host (e.g. https://search-test-abc123.us-east-1.es.amazonaws.com/).
@@ -45,34 +49,12 @@ DISCOVERY_ELASTICSEARCH_INDEX_NAME: 'catalog'
 
 DISCOVERY_MEMCACHE: [ 'memcache' ]
 
-DISCOVERY_CACHES:
-  default:
-    BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
-    KEY_PREFIX: '{{ discovery_service_name }}'
-    LOCATION: '{{ DISCOVERY_MEMCACHE }}'
-
 DISCOVERY_VERSION: "master"
 DISCOVERY_DJANGO_SETTINGS_MODULE: "course_discovery.settings.production"
-DISCOVERY_URL_ROOT: 'http://discovery:18381'
+DISCOVERY_URL_ROOT: 'http://discovery:{{ DISCOVERY_NGINX_PORT }}'
 DISCOVERY_LOGOUT_URL: '{{ DISCOVERY_URL_ROOT }}/logout/'
-DISCOVERY_OAUTH_URL_ROOT: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}/oauth2'
-DISCOVERY_OIDC_LOGOUT_URL: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}/logout'
-
-DISCOVERY_EDX_DRF_EXTENSIONS:
-  OAUTH2_USER_INFO_URL: '{{ DISCOVERY_OAUTH_URL_ROOT }}/user_info'
-
-DISCOVERY_JWT_AUDIENCE: '{{ EDXAPP_JWT_AUDIENCE | default("SET-ME-PLEASE") }}'
-DISCOVERY_JWT_ISSUER: '{{ DISCOVERY_OAUTH_URL_ROOT }}'
-DISCOVERY_JWT_SECRET_KEY: '{{ EDXAPP_JWT_SECRET_KEY | default("lms-secret") }}'
-
-DISCOVERY_JWT_AUTH:
-  JWT_ISSUERS:
-    - AUDIENCE: '{{ DISCOVERY_JWT_AUDIENCE }}'
-      ISSUER: '{{ DISCOVERY_JWT_ISSUER }}'
-      SECRET_KEY: '{{ DISCOVERY_JWT_SECRET_KEY }}'
 
 DISCOVERY_SECRET_KEY: 'Your secret key here'
-DISCOVERY_TIME_ZONE: 'UTC'
 DISCOVERY_LANGUAGE_CODE: 'en-us'
 DISCOVERY_DEFAULT_PARTNER_ID: 1
 
@@ -82,13 +64,6 @@ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET : 'discovery-secret'
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 DISCOVERY_PLATFORM_NAME: 'Your Platform Name Here'
-
-DISCOVERY_LMS_ROOT_URL: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}'
-DISCOVERY_ECOMMERCE_API_URL: 'https://localhost:8002/api/v2/'
-DISCOVERY_COURSES_API_URL: '{{ DISCOVERY_LMS_ROOT_URL }}/api/courses/v1/'
-DISCOVERY_ORGANIZATIONS_API_URL: '{{ DISCOVERY_LMS_ROOT_URL }}/api/organizations/v0/'
-DISCOVERY_MARKETING_API_URL: 'https://example.org/api/catalog/v2/'
-DISCOVERY_MARKETING_URL_ROOT: 'https://example.org/'
 
 DISCOVERY_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ discovery_service_name }}'
 DISCOVERY_MEDIA_ROOT: '{{ DISCOVERY_DATA_DIR }}/media'
@@ -120,46 +95,13 @@ DISCOVERY_PUBLISHER_FROM_EMAIL: 'None'
 
 DISCOVERY_EXTRA_APPS: []
 
-DISCOVERY_SERVICE_CONFIG:
-  SECRET_KEY: '{{ DISCOVERY_SECRET_KEY }}'
-  TIME_ZONE: '{{ DISCOVERY_TIME_ZONE }}'
-  LANGUAGE_CODE: '{{ DISCOVERY_LANGUAGE_CODE }}'
-
-  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY }}'
-  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ DISCOVERY_OAUTH_URL_ROOT }}'
-  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
-  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ DISCOVERY_OIDC_LOGOUT_URL }}'
-
-  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ discovery_service_name }}/staticfiles"
-  # db config
-  DATABASE_OPTIONS:
-    connect_timeout: 10
-  DATABASES: '{{ DISCOVERY_DATABASES }}'
-  CACHES: '{{ DISCOVERY_CACHES }}'
-
+discovery_service_config_overrides:
   ELASTICSEARCH_URL: '{{ DISCOVERY_ELASTICSEARCH_URL }}'
   ELASTICSEARCH_INDEX_NAME: '{{ DISCOVERY_ELASTICSEARCH_INDEX_NAME }}'
 
   PLATFORM_NAME: '{{ DISCOVERY_PLATFORM_NAME }}'
 
-  ECOMMERCE_API_URL: '{{ DISCOVERY_ECOMMERCE_API_URL }}'
-  COURSES_API_URL: '{{ DISCOVERY_COURSES_API_URL }}'
-  ORGANIZATIONS_API_URL: '{{ DISCOVERY_ORGANIZATIONS_API_URL }}'
-  MARKETING_API_URL: '{{ DISCOVERY_MARKETING_API_URL }}'
-  MARKETING_URL_ROOT: '{{ DISCOVERY_MARKETING_URL_ROOT }}'
-
-  EDX_DRF_EXTENSIONS: '{{ DISCOVERY_EDX_DRF_EXTENSIONS }}'
-
-  JWT_AUTH: '{{ DISCOVERY_JWT_AUTH }}'
-
   DEFAULT_PARTNER_ID: '{{ DISCOVERY_DEFAULT_PARTNER_ID }}'
-
-  EXTRA_APPS: '{{ DISCOVERY_EXTRA_APPS }}'
-
-  MEDIA_STORAGE_BACKEND: '{{ DISCOVERY_MEDIA_STORAGE_BACKEND }}'
-  STATICFILES_STORAGE: '{{ DISCOVERY_STATICFILES_STORAGE }}'
 
   EMAIL_BACKEND: '{{ DISCOVERY_EMAIL_BACKEND }}'
 
@@ -176,26 +118,6 @@ DISCOVERY_SERVICE_CONFIG:
 
   PUBLISHER_FROM_EMAIL: '{{ DISCOVERY_PUBLISHER_FROM_EMAIL }}'
 
-DISCOVERY_REPOS:
-  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
-    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
-    PATH: "{{ COMMON_GIT_PATH }}"
-    REPO: course-discovery.git
-    VERSION: "{{ DISCOVERY_VERSION }}"
-    DESTINATION: "{{ discovery_code_dir }}"
-    SSH_KEY: "{{ DISCOVERY_GIT_IDENTITY }}"
-
-
-DISCOVERY_GUNICORN_WORKERS: "2"
-DISCOVERY_GUNICORN_EXTRA: ""
-DISCOVERY_GUNICORN_EXTRA_CONF: ""
-DISCOVERY_GUNICORN_WORKER_CLASS: "sync"
-
-DISCOVERY_HOSTNAME: '~^((stage|prod)-)?discovery.*'
-
-nginx_discovery_gunicorn_hosts:
-  - 127.0.0.1
-
 # Vars that are used when the automated role is "mixed-in" via the deploying play
 # This data structure specifies all the users with access to run command remotely
 # over SSH and the fully qualified command that they can run via sudo to the
@@ -205,59 +127,6 @@ DISCOVERY_AUTOMATED_USERS:
   automated_user:
     sudo_commands:
       - command: "{{ discovery_venv_dir }}/python {{ discovery_home }}/{{ discovery_service_name }}/manage.py migrate --list"
-        sudo_user: "discovery"
+        become_user: "discovery"
     authorized_keys:
       - "SSH authorized key"
-
-#
-# vars are namespace with the module name.
-#
-discovery_role_name: discovery
-discovery_venv_dir: "{{ discovery_home }}/venvs/{{ discovery_service_name }}"
-
-discovery_environment:
-  DJANGO_SETTINGS_MODULE: "{{ DISCOVERY_DJANGO_SETTINGS_MODULE }}"
-  # rename should synch with app
-  COURSE_DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
-  PATH: "{{ discovery_nodeenv_bin }}:{{ discovery_venv_dir }}/bin:{{ ansible_env.PATH }}"
-
-
-discovery_migration_environment:
-  DJANGO_SETTINGS_MODULE: "{{ DISCOVERY_DJANGO_SETTINGS_MODULE }}"
-  # rename should synch with app
-  COURSE_DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
-  PATH: "{{ discovery_venv_dir }}/bin:{{ ansible_env.PATH }}"
-  DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
-  DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
-
-discovery_service_name: "discovery"
-discovery_user: "{{ discovery_service_name }}"
-discovery_home: "{{ COMMON_APP_DIR }}/{{ discovery_service_name }}"
-discovery_code_dir: "{{ discovery_home }}/{{ discovery_service_name }}"
-
-discovery_nodeenv_dir: "{{ discovery_home }}/nodeenvs/{{ discovery_service_name }}"
-discovery_nodeenv_bin: "{{ discovery_nodeenv_dir }}/bin"
-discovery_node_modules_dir: "{{ discovery_code_dir }}/node_modules"
-discovery_node_bin: "{{ discovery_node_modules_dir }}/.bin"
-discovery_node_version: "{{ common_node_version }}"
-
-discovery_gunicorn_host: "127.0.0.1"
-discovery_gunicorn_port: 8381
-discovery_gunicorn_timeout: 300
-
-discovery_log_dir: "{{ COMMON_LOG_DIR }}/{{ discovery_service_name }}"
-
-#
-# OS packages
-#
-
-discovery_debian_pkgs:
-  - libmysqlclient-dev
-  - libssl-dev
-  - libffi-dev  # Needed to install the Python cryptography library for asymmetric JWT signing
-  - libmemcached-dev # Needed for memcache
-  - libxml2-dev
-  - libxslt-dev
-  - libjpeg-dev
-
-discovery_redhat_pkgs: []
