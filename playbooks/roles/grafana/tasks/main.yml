@@ -1,0 +1,86 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Tasks for role graphite
+#
+# Overview:
+#
+# This task is to install Grafana, which is a UI for creating visualizations on top of
+# common metrics data sources such as Graphite, InfluxDB, CloudWatch, and more.
+#
+# Dependencies:
+# - common
+# - config-encoders
+#
+
+- name: ensure correct OS
+  fail:
+    msg: "this playbook can only be run on an Ubuntu host"
+  when: ansible_distribution != "Ubuntu"
+
+- name: install PackageCloud GPG key
+  apt_key:
+    id: "418A7F2FB0E1E6E7EABF6FE8C2E73424D59097AB"
+    url: "https://packagecloud.io/gpg.key"
+    state: present
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install PackageCloud PPA
+  apt_repository:
+    # This is  Debian Jessie repository, when we use Ubuntu Xenial, yes.  It's the latest Debian repository they
+    # populate for their official packages.  It does work, so, *shrug*.
+    repo: "deb https://packagecloud.io/grafana/stable/debian/ jessie main"
+    update_cache: yes
+    state: present
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install grafana
+  apt:
+    name: "{{ grafana_apt_pkg }}"
+    state: present
+  tags:
+    - install
+    - install:system-requirements
+
+- name: configure grafana
+  template:
+    src: "conf/grafana.ini.j2"
+    dest: "/etc/grafana/grafana.ini"
+  tags:
+    - install
+    - install:app-configuration
+
+- name: enable grafana
+  service:
+    name: grafana-server
+    enabled: yes
+    state: started
+  tags:
+    - install
+    - install:configuration
+
+- name: stop grafana
+  service:
+    name: grafana-server
+    state: stopped
+  tags:
+    - manage:stop
+
+- name: restart grafana
+  service:
+    name: grafana-server
+    state: restarted
+  tags:
+    - manage:start
+    - manage:restart
