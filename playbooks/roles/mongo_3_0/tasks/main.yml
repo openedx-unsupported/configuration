@@ -201,6 +201,19 @@
     - "install:configuration"
     - "mongodb_key"
 
+# This is a temporary hack until we're on a version of Ansible with this fix:
+# https://github.com/ansible/ansible/pull/22792
+# Until then, we have to temporarily make sure auth is disabled while adding
+# the admin user the first time.
+# authhack
+- name: set fact to temporarily disable auth for standalone instances
+  set_fact:
+    _enable_standalone_auth: false
+  tags:
+    - "install"
+    - "install:configuration"
+    - "update_mongod_conf"
+
 # If skip_replica_set is true, this template will not contain a replica set stanza
 # because of the fact above.
 - name: copy configuration template
@@ -318,12 +331,23 @@
     - "install"
     - "install:configuration"
 
+# This is part of the temporary hack from above
+# authhack
+- name: set fact to re-enable auth for standalone instances
+  set_fact:
+    _enable_standalone_auth: true
+  when: MONGO_AUTH
+  tags:
+    - "install"
+    - "install:configuration"
+    - "update_mongod_conf"
+
 - name: re-copy configuration template with replica set enabled
   template:
     src: mongod.conf.j2
     dest: /etc/mongod.conf
     backup: yes
-  when: MONGO_CLUSTERED and initialize_replica_set
+  when: (MONGO_CLUSTERED and initialize_replica_set) or _enable_standalone_auth
   tags:
     - "install"
     - "install:configuration"
