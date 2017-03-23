@@ -49,7 +49,7 @@ from ansible.module_utils.basic import *
 
 try:
     from pymongo import MongoClient
-    from pymongo.errors import OperationFailure
+    from pymongo.errors import ConfigurationError, OperationFailure
     from bson import json_util
 except ImportError:
     pymongo_found = False
@@ -75,6 +75,7 @@ def main():
         module.fail_json(msg="The python pymongo module is not installed.")
 
     mongo_uri = 'mongodb://'
+    mongo_uri_no_auth = 'mongodb://'
     host = module.params.get('host')
     port = module.params.get('port')
     username = module.params.get('username')
@@ -88,11 +89,15 @@ def main():
         mongo_uri += "{}:{}@".format(*map(quote_plus, [username,password]))
 
     mongo_uri += "{}:{}".format(quote_plus(host),port)
+    mongo_uri_no_auth += "{}:{}".format(quote_plus(host),port)
 
     if auth_database:
         mongo_uri += '/{}'.format(quote_plus(auth_database))
 
-    client = MongoClient(mongo_uri)
+    try:
+        client = MongoClient(mongo_uri)
+    except ConfigurationError:
+        client = MongoClient(mongo_uri_no_auth)
 
     try:
         is_primary = client.is_primary
