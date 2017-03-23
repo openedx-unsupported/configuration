@@ -1,13 +1,23 @@
 # Build using: docker build -f Dockerfile.gocd-agent -t gocd-agent .
-FROM gocd/gocd-agent:17.1.0
+# https://hub.docker.com/r/gocd/gocd-agent-deprecated/
+FROM gocd/gocd-agent-deprecated:17.1.0
 
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
+
+# starting with 16.04 apt-get-repository is not installed in the base image, lets install it so we are ready
+# http://lifeonubuntu.com/ubuntu-missing-add-apt-repository-command/
+RUN apt-get update && apt-get install -y -q \
+    software-properties-common \
+    python-software-properties
 
 # Install a modern git client
 RUN add-apt-repository -y ppa:git-core/ppa && \
     apt-get update && \
     apt-get -y install git
+
+# Configure ca-certificates for java
+RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
 
 # Define working directory.
 WORKDIR /data
