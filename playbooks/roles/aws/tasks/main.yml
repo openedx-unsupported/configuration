@@ -21,37 +21,6 @@
 #
 #
 
-#
-# Start dealing with Jumbo frames issue in mixed MTU deployements in AWS
-#
-- name: Gather ec2 facts for use in other roles
-  action: ec2_facts
-  no_log: True
-  tags:
-    - deploy
-
-- name: Set the MTU to 1500 temporarily
-  shell: /sbin/ifconfig eth0 mtu 1500 up
-  when: ansible_distribution in common_debian_variants
-
-- name: Check for eth0.cfg
-  stat:
-    path: /etc/network/interfaces.d/eth0.cfg
-  register: eth0_cfg
-  when: ansible_distribution in common_debian_variants
-
-- name: Set the MTU to 1500 inside eth0.cfg file
-  lineinfile:
-    dest: /etc/network/interfaces.d/eth0.cfg
-    regexp: "^post-up /sbin/ifconfig eth0 mtu 1500"
-    line: "post-up /sbin/ifconfig eth0 mtu 1500"
-    insertafter: "^iface"
-  when: ansible_distribution in common_debian_variants and eth0_cfg.stat.exists
-
-#
-# End dealing with Jumbo frames issue in mixed MTU deployements in AWS
-#
-
 - name: Install system packages
   apt:
     name: "{{ item }}"
