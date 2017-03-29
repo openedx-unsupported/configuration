@@ -1,0 +1,52 @@
+---
+
+# Appsembler basic tier deployment
+
+- name: Configure basic tier instance
+  hosts: edxapp-server
+  become: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    SANDBOX_ENABLE_ECOMMERCE: False
+    COMMON_ENABLE_INSIGHTS: False
+    COMMON_ENABLE_OAUTH_CLIENT: False
+    COMMON_ENABLE_BACKUPS: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - sudo
+    - role: nginx
+      nginx_sites:
+      - certs
+      - cms
+      - lms
+      - forum
+      - xqueue
+      - edx_notes_api
+      nginx_default_sites:
+      - lms
+    - mysql
+    - mysql_init
+    - role: memcache
+      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
+    - role: mongo_3_0
+      when: "'localhost' in EDXAPP_MONGO_HOSTS"
+    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - notifier
+    - edx_notes_api
+    - role: demo
+      when: "INSTALL_DEMO_DATA"
+    - role: oauth_client_setup
+      when: COMMON_ENABLE_OAUTH_CLIENT
+    - oraclejdk
+    - role: elasticsearch
+      when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - certs
+    - role: stackdriver
+      when: "stackdriver_api_key != ''"
+    - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }

@@ -1,0 +1,100 @@
+---
+
+# Appsembler enterprise tier deployment
+# Docs: https://github.com/appsembler/openedx-docs/blob/master/openedx/pro_tier_deployment.md
+
+- name: Configure Mongo replica set
+  hosts: mongo-server
+  sudo: True
+  gather_facts: True
+  vars:
+    BACKUPS_MONGO: True
+    BACKUPS_MYSQL: False
+    COMMON_ENABLE_BACKUPS: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "2GB" }
+    - mongo_3_0
+    - backups
+    - role: stackdriver
+      when: "stackdriver_api_key != ''"
+
+- name: Configure instance for stateful services
+  hosts: services-server
+  sudo: True
+  gather_facts: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - sudo
+    - oraclejdk
+    - elasticsearch
+    - memcached
+    - role: stackdriver
+      when: "stackdriver_api_key != ''"
+
+- name: Configure stateless edxapp instances
+  hosts: edxapp-server
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    openid_workaround: True
+    SANDBOX_ENABLE_ECOMMERCE: False
+    COMMON_ENABLE_INSIGHTS: False
+    COMMON_ENABLE_OAUTH_CLIENT: False
+  pre_tasks:
+    # This is dirty, but better than setting in every server vars file
+    - set_fact:
+        EDXAPP_MONGO_SSL_CLIENT_CERT_PATH: "/edx/etc/edxapp/mongodb.pem"
+        EDXAPP_MONGO_SSL_CA_CERT_PATH: "/edx/etc/edxapp/ca.pem"
+      when: EDXAPP_MONGO_USE_SSL is defined and EDXAPP_MONGO_USE_SSL
+      tags: always
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - sudo
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      - forum
+      nginx_default_sites:
+      - lms
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - edx_notes_api
+    - role: demo
+      when: "INSTALL_DEMO_DATA"
+    - oauth_client_setup
+    - forum
+    - role: stackdriver
+      when: "stackdriver_api_key != ''"
+
+- name: Install xqueue, notifier and rabbitmq on services instance
+  hosts: services-server
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - edxapp_common
+    - mysql_init
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
+    - notifier
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+
+# must come after xqueue running
+- name: Install certs on edxapp instances
+  hosts: edxapp-server
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - certs
+    - role: nginx
+      nginx_sites:
+      - certs
