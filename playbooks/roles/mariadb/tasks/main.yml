@@ -65,9 +65,9 @@
 
 - name: create databases
   mysql_db:
-    db: "{{ item }}"
+    db: "{{ item.db }}"
     state: present
-    encoding: utf8
+    encoding: "{{ item.encoding }}"
   when: item != None and item != '' and MARIADB_CREATE_DBS|bool
   with_items: "{{ MARIADB_DATABASES }}"
 
@@ -85,7 +85,7 @@
   mysql_user:
     name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
-    priv: "{{ item }}.*:ALL"
+    priv: "{{ item.db }}.*:ALL"
     host: "{{ MARIADB_HOST_PRIV }}"
     append_privs: yes
   when: item != None and item != ''
@@ -106,13 +106,6 @@
     priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
     host: "{{ MARIADB_HOST_PRIV }}" 
   when: ANALYTICS_API_SERVICE_CONFIG is defined
-
-- name: create a database for the hive metastore
-  mysql_db:
-    db: "{{ HIVE_METASTORE_DATABASE.name }}"
-    state: "present"
-    encoding: "latin1"
-  when: HIVE_METASTORE_DATABASE is defined
 
 - name: setup the edx-notes-api db user
   mysql_user:
