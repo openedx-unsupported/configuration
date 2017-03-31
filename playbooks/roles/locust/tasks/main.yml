@@ -19,6 +19,7 @@
 #
 # Dependencies:
 #  - edx-service role
+#  - loadtest_driver role
 #  - load tests repo with locust tests in it.
 #
 # Example play:
@@ -37,14 +38,6 @@
     virtualenv: "{{ locust_home }}/venvs/{{ locust_service_name }}"
     state: present
   become_user: "{{ locust_user }}"
-
-# Specifically, we are concerned about allowing as many open connections as
-# possible, to simulate more locust clients.
-- name: Increase file descriptor limit of the system (Session Logout and Login would be required)
-  lineinfile:
-    dest: "{{ ulimit_conf_file }}"
-    line: "{{ item.domain }}  {{ item.type }}  {{ item.item }}  {{ item.value }}"
-  with_items: "{{ ulimit_config }}"
 
 - name: Configure locust user with an interactive shell
   user:
