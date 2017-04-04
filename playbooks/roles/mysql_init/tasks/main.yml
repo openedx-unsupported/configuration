@@ -1,5 +1,12 @@
 ---
 
+- name: Install packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: "{{ mysql_packages }}"
+
 - name: Copy TLS certificates
   copy: >
     content="{{ item.content }}" dest="{{ item.dest }}"
@@ -12,7 +19,8 @@
   tags: ['mysql', 'mysql:tls']
 
 - name: Copy mysql-connect-tls script
-  template: src=mysql-connect-tls dest=/usr/local/bin/mysql-connect-tls dest mode=0755
+  template: src=mysql-connect-tls dest=/usr/local/bin/mysql-connect-tls mode=0755
+  when: mysql_client_cert != '' and mysql_client_key != '' and mysql_ca_cert != ''
   tags: ['mysql', 'mysql:tls']
 
 - name: create databases
@@ -24,38 +32,51 @@
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
   when: item != None and item != ''
   with_items: "{{ mysql_databases }}"
   tags: ['mysql', 'mysql:databases']
 
 - name: create database users
   mysql_user:
-    name: "{{ item.user }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.db }}.*:ALL"
+    name: "{{ item[0].user }}"
+    password: "{{ item[0].pass }}"
+    priv: "{{ item[0].db }}.*:ALL"
     append_privs: yes
-    host: "{{ mysql_user_host }}"
+    host: "{{ item[1] }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
-  when: item.db != None and item.db != ''
-  with_items: "{{ mysql_database_users }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  when: item[0].db != None and item[0].db != ''
+  with_nested:
+    - "{{ mysql_database_users }}"
+    - "{{ mysql_user_hosts }}"
   tags: ['mysql', 'mysql:users']
 
 - name: setup the migration db user
   mysql_user:
     name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
-    priv: "{{ item }}.*:ALL"
+    priv: "{{ item[0] }}.*:ALL"
     append_privs: yes
-    host: "{{ mysql_user_host }}"
+    host: "{{ item[1] }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
-  when: item != None and item != ''
-  with_items: "{{ mysql_databases }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  when: item[0] != None and item[0] != ''
+  with_nested:
+    - "{{ mysql_databases }}"
+    - "{{ mysql_user_hosts }}"
   tags: ['mysql', 'mysql:users']
 
 - name: create api user for the analytics api
@@ -63,11 +84,15 @@
     name: "api001"
     password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
     priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
-    host: "{{ mysql_user_host }}"
+    host: "{{ item }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  with_items: "{{ mysql_user_hosts }}"
   when: ANALYTICS_API_SERVICE_CONFIG is defined
   tags: ['mysql', 'mysql:users']
 
@@ -76,11 +101,15 @@
     name: reports001
     password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
     priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
-    host: "{{ mysql_user_host }}"
+    host: "{{ item }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  with_items: "{{ mysql_user_hosts }}"
   when: ANALYTICS_API_SERVICE_CONFIG is defined
   tags: ['mysql', 'mysql:users']
 
@@ -93,6 +122,9 @@
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
   when: HIVE_METASTORE_DATABASE is defined
   tags: ['mysql', 'mysql:databases']
 
@@ -101,11 +133,15 @@
     name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
     password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
     priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
-    host: "{{ mysql_user_host }}"
+    host: "{{ item }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  with_items: "{{ mysql_user_hosts }}"
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
   tags: ['mysql', 'mysql:users']
 
@@ -114,11 +150,15 @@
     name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
     password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
     priv: "*.*:SELECT"
-    host: "{{ mysql_user_host }}"
+    host: "{{ item }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  with_items: "{{ mysql_user_hosts }}"
   tags: ['mysql', 'mysql:users']
 
 - name: setup the admin db user
@@ -126,9 +166,31 @@
     name: "{{ COMMON_MYSQL_ADMIN_USER }}"
     password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
     priv: "*.*:CREATE USER"
-    host: "{{ mysql_user_host }}"
+    host: "{{ item }}"
     login_user: "{{ mysql_login_user }}"
     login_password: "{{ mysql_login_password }}"
     login_host: "{{ mysql_login_host }}"
     login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  with_items: "{{ mysql_user_hosts }}"
+  tags: ['mysql', 'mysql:users']
+
+- name: grant access to table storing test data in output database
+  mysql_user:
+    user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}"
+    password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
+    host: "{{ item }}"
+    priv: "acceptance%.*:ALL"
+    append_privs: yes
+    login_user: "{{ mysql_login_user }}"
+    login_password: "{{ mysql_login_password }}"
+    login_host: "{{ mysql_login_host }}"
+    login_port: "{{ mysql_login_port }}"
+    ssl_cert: "{{ (mysql_client_cert != '') | ternary(mysql_client_cert_path, omit) }}"
+    ssl_key: "{{ (mysql_client_key != '') | ternary(mysql_client_key_path, omit) }}"
+    ssl_ca: "{{ (mysql_ca_cert != '') | ternary(mysql_ca_cert_path, omit) }}"
+  with_items: "{{ mysql_user_hosts }}"
+  when: ANALYTICS_PIPELINE_OUTPUT_DATABASE is defined
   tags: ['mysql', 'mysql:users']

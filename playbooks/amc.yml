@@ -1,6 +1,17 @@
 ---
+- name: Configure shared services (es and memcached)
+  hosts: services
+  sudo: True
+  gather_facts: True
+  roles:
+    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - role: sudo
+    - oraclejdk
+    - elasticsearch
+    - memcached
+    - stackdriver
 
-- name: Configure instance(s)
+- name: Configure app server instance(s)
   hosts: edx
   sudo: True
   gather_facts: True
@@ -18,38 +29,26 @@
     - role: sudo
     - role: nginx
       nginx_sites:
-      - certs
       - cms
       - lms
       - forum
-      - xqueue
       nginx_default_sites:
       - lms
     - role: mysql
       when: EDXAPP_MYSQL_HOST == 'localhost'
-    - { role: memcached, tags: memcached }
-    - edxlocal
     - role: mongo
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     # Do we need need edxapp 2 times here????
     - { role: 'edxapp', celery_worker: True }
     - edxapp
     - amc
-    - notifier
     #- analytics_api
     #- insights
     - edx_notes_api
     #- demo
     - oauth_client_setup
     - oraclejdk
-    - role: elasticsearch
-      when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
     - forum
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
-    - { role: "xqueue", update_users: True }
-    - certs
-    - edx_ansible
     - stackdriver
     - role: datadog
       when: COMMON_ENABLE_DATADOG
@@ -57,3 +56,32 @@
       when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
       when: COMMON_ENABLE_NEWRELIC
+
+- name: Install xqueue, notifier and rabbitmq on services node
+  hosts: "services"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - edxapp_common
+    - role: nginx
+      nginx_sites:
+      - xqueue
+    - { role: 'rabbitmq', rabbitmq_ip: '0.0.0.0' }
+    - notifier
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+
+# must come after xqueue running
+- name: Install certs
+  hosts: "edx"
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - certs
+    - role: nginx
+      nginx_sites:
+      - certs

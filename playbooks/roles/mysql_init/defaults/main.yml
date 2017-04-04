@@ -1,10 +1,13 @@
 ---
 
-mysql_login_user: "root"
-mysql_login_password: "password"
-mysql_login_host: "localhost"
-mysql_login_port: 3306
+mysql_packages:
+  - python-mysqldb
+mysql_login_user: "{{ omit }}"
+mysql_login_password: "{{ omit }}"
+mysql_login_host: "{{ omit }}"
+mysql_login_port: "{{ omit }}"
 mysql_user_host: "localhost"
+mysql_user_hosts: ["{{ mysql_user_host }}"]
 mysql_databases:
   - "{{ ECOMMERCE_DEFAULT_DB_NAME | default(None) }}"
   - "{{ INSIGHTS_DATABASE_NAME | default(None) }}"
@@ -16,22 +19,19 @@ mysql_databases:
   - "{{ PROGRAMS_DEFAULT_DB_NAME | default(None) }}"
   - "{{ ANALYTICS_API_DEFAULT_DB_NAME | default(None) }}"
   - "{{ ANALYTICS_API_REPORTS_DB_NAME | default(None) }}"
+  - "{{ CREDENTIALS_DEFAULT_DB_NAME | default(None) }}"
+  - "{{ DISCOVERY_DEFAULT_DB_NAME | default(None) }}"
 
 mysql_database_users:
   - {
       db: "{{ ECOMMERCE_DEFAULT_DB_NAME | default(None) }}",
-      user: "{{ ECOMMERCE_DATABASES.default.USER | default(None) }}",
-      pass: "{{ ECOMMERCE_DATABASES.default.PASSWORD | default(None) }}"
+      user: "{{ ECOMMERCE_DATABASE_USER | default(None) }}",
+      pass: "{{ ECOMMERCE_DATABASE_PASSWORD | default(None) }}"
     }
   - {
       db: "{{ INSIGHTS_DATABASE_NAME | default(None) }}",
-      user: "{{ INSIGHTS_DATABASES.default.USER | default(None) }}",
-      pass: "{{ INSIGHTS_DATABASES.default.PASSWORD | default(None) }}"
-    }
-  - {
-      db: "{{ ORA_MYSQL_DB_NAME | default(None) }}",
-      user: "{{ ORA_MYSQL_USER | default(None) }}",
-      pass: "{{ ORA_MYSQL_PASSWORD | default(None) }}"
+      user: "{{ INSIGHTS_MYSQL_USER | default(None) }}",
+      pass: "{{ INSIGHTS_MYSQL_USER | default(None) }}"
     }
   - {
       db: "{{ XQUEUE_MYSQL_DB_NAME | default(None) }}",
@@ -50,18 +50,28 @@ mysql_database_users:
     }
   - {
       db: "{{ PROGRAMS_DEFAULT_DB_NAME | default(None) }}",
-      user: "{{ PROGRAMS_DATABASES.default.USER | default(None) }}",
-      pass: "{{ PROGRAMS_DATABASES.default.PASSWORD | default(None) }}"
+      user: "{{ PROGRAMS_DATABASE_USER | default(None) }}",
+      pass: "{{ PROGRAMS_DATABASE_PASSWORD | default(None) }}"
     }
   - {
       db: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_NAME | default(None) }}",
-      user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.username }}",
-      pass: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
+      user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_USER | default(None) }}",
+      pass: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_PASSWORD | default(None) }}"
     }
   - {
       db: "{{ HIVE_METASTORE_DATABASE_NAME | default(None) }}",
-      user: "{{ HIVE_METASTORE_DATABASE.user | default(None) }}",
-      pass: "{{ HIVE_METASTORE_DATABASE.password | default(None) }}"
+      user: "{{ HIVE_METASTORE_DATABASE_USER | default(None) }}",
+      pass: "{{ HIVE_METASTORE_DATABASE_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ CREDENTIALS_DEFAULT_DB_NAME | default(None) }}",
+      user: "{{ CREDENTIALS_MYSQL_USER | default(None) }}",
+      pass: "{{ CREDENTIALS_MYSQL_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ DISCOVERY_DEFAULT_DB_NAME | default(None) }}",
+      user: "{{ DISCOVERY_MYSQL_USER | default(None) }}",
+      pass: "{{ DISCOVERY_MYSQL_PASSWORD | default(None) }}"
     }
 
 mysql_client_cert: ''

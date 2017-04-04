@@ -1,7 +1,7 @@
 ---
 
 - name: checkout comprehensive theme
-  git_2_0_1:
+  git:
     dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}"
     repo: "{{ edxapp_theme_source_repo }}"
     version: "{{ edxapp_theme_version }}"
@@ -10,13 +10,14 @@
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
+  notify: recompile SASS
   register: edxapp_theme_checkout
   tags:
     - install
     - install:code
 
 - name: checkout customer override theme
-  git_2_0_1:
+  git:
     dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}/customer_specific"
     repo: "{{ edxapp_customer_theme_source_repo }}"
     version: "{{ edxapp_customer_theme_version }}"
@@ -26,6 +27,8 @@
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
+  notify: recompile SASS
+  register: edxapp_theme_override_checkout
   tags:
     - install
     - install:code
