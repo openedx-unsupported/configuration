@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM krallin/ubuntu-tini:xenial
 MAINTAINER edxops
 
 # Set locale to UTF-8 which is not the default for docker.

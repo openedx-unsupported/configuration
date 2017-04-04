@@ -1,4 +1,4 @@
-FROM ubuntu:trusty
+FROM krallin/ubuntu-tini:trusty
 MAINTAINER edxops
 
 ENV ANSIBLE_REPO="https://github.com/edx/ansible"
