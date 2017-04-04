@@ -17,7 +17,6 @@
     - sudo
     - role: nginx
       nginx_sites:
-      - certs
       - cms
       - lms
       - forum
@@ -35,7 +34,8 @@
     - { role: 'edxapp', celery_worker: True }
     - edxapp
     - notifier
-    - edx_notes_api
+    - role: edx_notes_api
+      when: "INSTALL_EDX_NOTES is defined and INSTALL_EDX_NOTES"
     - role: demo
       when: "INSTALL_DEMO_DATA"
     - role: oauth_client_setup
@@ -46,7 +46,6 @@
     - forum
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
-    - certs
     - role: stackdriver
       when: "stackdriver_api_key != ''"
     - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }

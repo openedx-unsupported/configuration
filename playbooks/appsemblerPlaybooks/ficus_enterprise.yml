@@ -61,7 +61,8 @@
       - lms
     - { role: 'edxapp', celery_worker: True }
     - edxapp
-    - edx_notes_api
+    - role: edx_notes_api
+      when: "INSTALL_EDX_NOTES is defined and INSTALL_EDX_NOTES"
     - role: demo
       when: "INSTALL_DEMO_DATA"
     - oauth_client_setup
@@ -85,16 +86,3 @@
     - notifier
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
-
-# must come after xqueue running
-- name: Install certs on edxapp instances
-  hosts: edxapp-server
-  sudo: True
-  gather_facts: True
-  vars:
-    migrate_db: "yes"
-  roles:
-    - certs
-    - role: nginx
-      nginx_sites:
-      - certs
