@@ -1,3 +1,7 @@
+- Role: edxapp
+  - Added `EDXAPP_ENTERPRISE_ENROLLMENT_API_URL`, and `EDXAPP_ENTERPRISE_PUBLIC_ENROLLMENT_API_URL`,
+    which default to the EDXAPP_LMS_ROOT_URL/api/enrollment/v1.
+    The public URL is used on the client side, and the other (private) URL is used on the server side.
 - Role: analytics_api
   - Added `ANALYTICS_API_AGGREGATE_PAGE_SIZE`, default value 10.  Adjust this parameter to increase the number of
     aggregate search results returned by the Analytics API, i.e. in course_metadata: enrollment_modes, cohorts, and
