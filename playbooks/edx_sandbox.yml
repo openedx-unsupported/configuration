@@ -49,11 +49,13 @@
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
     - role: rabbitmq
       rabbitmq_ip: 127.0.0.1
+    # The AWS role needs to run before the edxapp role, otherwise the s3cmd command won't get
+    # installed to /usr/local/bin, which causes the tracking logs to not sync.
+    - role: aws
+      when: COMMON_ENABLE_AWS_INTEGRATION
     - role: edxapp
       celery_worker: True
     - edxapp
-    - role: aws
-      when: COMMON_ENABLE_AWS_INTEGRATION
     - role: openstack
       when: COMMON_ENABLE_OPENSTACK_INTEGRATION
     - role: ecommerce
