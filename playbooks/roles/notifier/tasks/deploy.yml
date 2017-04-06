@@ -7,9 +7,6 @@
     accept_hostkey: yes
   become: true
   become_user: "{{ notifier_user }}"
-  notify:
-    - restart notifier-scheduler
-    - restart notifier-celery-workers
   tags:
     - "install"
     - "install:code"
@@ -69,8 +66,6 @@
     dest: "{{ NOTIFIER_CODE_DIR }}/notifier/settings_local.py"
     mode: "0555"
   when: NOTIFIER_THEME_NAME != ''
-  notify:
-    - restart notifier-celery-workers
   tags:
     - "install"
     - "install:configuration"
@@ -82,9 +77,6 @@
     state: present
   become: true
   become_user: "{{ notifier_user }}"
-  notify:
-    - restart notifier-scheduler
-    - restart notifier-celery-workers
   tags:
     - "install"
     - "install:app-requirements"
@@ -100,9 +92,6 @@
     group: "{{ NOTIFIER_WEB_USER }}"
     mode: "0664"
   become: true
-  notify:
-    - restart notifier-scheduler
-    - restart notifier-celery-workers
   tags:
   - deploy
   - "install"
@@ -116,9 +105,28 @@
   become_user: "{{ notifier_user }}"
   environment: notifier_env_vars
   when: migrate_db is defined and migrate_db|lower == "yes"
-  notify:
-    - restart notifier-scheduler
-    - restart notifier-celery-workers
   tags:
     - "install"
     - "install:configuration"
+
+- name: restart notifier-scheduler
+  supervisorctl:
+    name: "notifier-scheduler"
+    state: restarted
+    config: "{{ supervisor_cfg }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+  when: not disable_edx_services
+  tags:
+    - "manage"
+    - "manage:start"
+
+- name: restart notifier-celery-workers
+  supervisorctl:
+    name: "notifier-celery-workers"
+    state: restarted
+    config: "{{ supervisor_cfg }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+  when: not disable_edx_services
+  tags:
+    - "manage"
+    - "manage:start"
