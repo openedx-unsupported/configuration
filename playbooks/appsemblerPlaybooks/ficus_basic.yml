@@ -2,11 +2,15 @@
 
 # Appsembler basic tier deployment
 
+- include: monitoring.yml
+
 - name: Configure basic tier instance
   hosts: edxapp-server
   become: True
+  become_method: sudo
   gather_facts: True
   vars:
+    appsembler_roles: "../../../appsembler-roles"
     migrate_db: "yes"
     SANDBOX_ENABLE_ECOMMERCE: False
     COMMON_ENABLE_INSIGHTS: False
@@ -15,6 +19,10 @@
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
     - sudo
+    - role: nginx
+      nginx_sites: []
+    - role: "{{ appsembler_roles }}/letsencrypt"
+      when: letsencrypt_certs | length
     - role: nginx
       nginx_sites:
       - cms
@@ -46,6 +54,4 @@
     - forum
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: "xqueue", update_users: True }
-    - role: stackdriver
-      when: "stackdriver_api_key != ''"
     - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }
