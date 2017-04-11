@@ -9,6 +9,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import time
 
 import boto
 import raven
@@ -385,7 +386,7 @@ def _main():
                 logging.warning(error_msg)
         except:
             logging.exception("The backup failed!")
-            sentry.captureException()
+            sentry.captureException(fingerprint=['{{ default }}', time.time()])
         finally:
             clean_up(backup_path.replace('.tar.gz', ''))
 
