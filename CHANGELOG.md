@@ -1,3 +1,9 @@
+- Role: rabbitmq
+  - Upgraded to 3.6.9
+  - Switched to a PPA rather than a .deb hosted in S3
+  - Note that you generally cannot upgrade RabbitMQ live in place https://www.rabbitmq.com/clustering.html
+    this is particularly true coming from 3.2 to 3.6.  We are using the shovel plugin to move tasks across clusters
+    but their documentation covers different scenarios.
 - Role: edxapp
   - Set preload_app to False in gunicorn config for LMS and Studio.
 - Role: analytics_api
