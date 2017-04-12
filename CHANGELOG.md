@@ -1,4 +1,6 @@
 - Role: edxapp
+  - Added a new EDXAPP_MYSQL_CONN_MAX_AGE, default to 0.  Adjust it to change how long a connection is kept open
+  for reuse before it is closed.
   - Set preload_app to False in gunicorn config for LMS and Studio.
 - Role: xqueue
   - Changed `XQUEUE_RABBITMQ_TLS` default from `true` to `false`.
