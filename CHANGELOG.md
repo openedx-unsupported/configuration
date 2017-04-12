@@ -1,4 +1,6 @@
 - Role: edxapp
+  - Added a new EDXAPP_MYSQL_CONN_MAX_AGE, default to 0.  Adjust it to change how long a connection is kept open
+  for reuse before it is closed.
   - Set preload_app to False in gunicorn config for LMS and Studio.
 - Role: analytics_api
   - Added `ANALYTICS_API_AGGREGATE_PAGE_SIZE`, default value 10.  Adjust this parameter to increase the number of
