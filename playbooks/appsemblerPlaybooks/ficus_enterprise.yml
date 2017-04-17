@@ -3,9 +3,12 @@
 # Appsembler enterprise tier deployment
 # Docs: https://github.com/appsembler/openedx-docs/blob/master/openedx/pro_tier_deployment.md
 
+- include: monitoring.yml
+
 - name: Configure Mongo replica set
   hosts: mongo-server
-  sudo: True
+  become: True
+  become_method: sudo
   gather_facts: True
   vars:
     BACKUPS_MONGO: True
@@ -15,8 +18,6 @@
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
     - mongo_3_0
     - backups
-    - role: stackdriver
-      when: "stackdriver_api_key != ''"
 
 - name: Configure instance for stateful services
   hosts: services-server
@@ -28,14 +29,13 @@
     - oraclejdk
     - elasticsearch
     - memcached
-    - role: stackdriver
-      when: "stackdriver_api_key != ''"
 
 - name: Configure stateless edxapp instances
   hosts: edxapp-server
   sudo: True
   gather_facts: True
   vars:
+    appsembler_roles: "../../../appsembler-roles"
     migrate_db: "yes"
     openid_workaround: True
     SANDBOX_ENABLE_ECOMMERCE: False
@@ -53,6 +53,12 @@
     - sudo
     - mysql_init
     - role: nginx
+      nginx_sites: []
+    - role: "{{ appsembler_roles }}/gcsfuse"
+      when: "cloud_provider == 'gcp'"
+    - role: "{{ appsembler_roles }}/letsencrypt"
+      when: letsencrypt_certs | length
+    - role: nginx
       nginx_sites:
       - cms
       - lms
@@ -67,8 +73,6 @@
       when: "INSTALL_DEMO_DATA"
     - oauth_client_setup
     - forum
-    - role: stackdriver
-      when: "stackdriver_api_key != ''"
 
 - name: Install xqueue, notifier and rabbitmq on services instance
   hosts: services-server

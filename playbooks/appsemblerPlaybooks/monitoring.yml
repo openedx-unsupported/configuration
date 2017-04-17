@@ -1,0 +1,17 @@
+---
+
+- name: Configure monitoring tools
+  hosts: all
+  become: True
+  become_method: sudo
+  gather_facts: True
+  vars:
+    appsembler_roles: "../../../appsembler-roles"
+  roles:
+    - sysdig
+    - oraclejdk
+    - "{{ appsembler_roles }}/filebeat"
+    - "{{ appsembler_roles }}/logstash"
+    - role: "{{ appsembler_roles }}/stackdriver"
+      when: "cloud_provider == 'gcp'"
+    - "{{ appsembler_roles }}/snort"
