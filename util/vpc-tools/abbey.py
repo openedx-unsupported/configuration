@@ -701,7 +701,7 @@ def create_ami(instance_id, name, description):
     params = {'instance_id': instance_id,
               'name': name,
               'description': description,
-              'no_reboot': True}
+              'no_reboot': False}
 
     AWS_API_WAIT_TIME = 1
     image_id = ec2.create_image(**params)
