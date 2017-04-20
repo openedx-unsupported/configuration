@@ -1,0 +1,35 @@
+---
+
+# Example sandbox configuration
+# for single server community
+# installs
+
+- name: Configure instance(s)
+  hosts: datastores
+  sudo: True
+  gather_facts: True
+  vars:
+    MYSQL_BIND_ADDRESS: "0.0.0.0"
+    EDXLOCAL_MYSQL_ALLOWED_HOST: "{{ groups['stateless'][0] }}"
+#    rabbitmq_ip: "{{ groups['datastores'][0] }}"
+  vars_files:
+    - "../roles/edxapp/defaults/main.yml"
+    - "../roles/forum/defaults/main.yml"
+    - "../roles/xqueue/defaults/main.yml"
+    - "../roles/ecommerce/defaults/main.yml"
+    - "../roles/ecomworker/defaults/main.yml"
+  roles:
+    # This install mysql and creates users.
+    - role: memcache
+    - role: mongo
+    - role: rabbitmq
+    - role: oraclejdk
+    - role: elasticsearch
+    - role: edxlocal
+    - role: edx_ansible
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
