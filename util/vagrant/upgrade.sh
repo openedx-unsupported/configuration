@@ -333,6 +333,7 @@ echo "demo_version: $TARGET" >> vars.yml
 echo "NOTIFIER_VERSION: $TARGET" >> vars.yml
 echo "ECOMMERCE_VERSION: $TARGET" >> vars.yml
 echo "ECOMMERCE_WORKER_VERSION: $TARGET" >> vars.yml
+echo "PROGRAMS_VERSION: $TARGET" >> vars.yml
 $ANSIBLE_PLAYBOOK \
     --extra-vars="@vars.yml" \
     $SERVER_VARS \
