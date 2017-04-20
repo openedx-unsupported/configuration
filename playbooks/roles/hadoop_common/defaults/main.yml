@@ -49,7 +49,7 @@ hadoop_common_env: "{{ HADOOP_COMMON_HOME }}/hadoop_env"
 #
 
 hadoop_common_debian_pkgs:
-  - llvm-gcc
+  - gcc
   - build-essential
   - make
   - cmake
@@ -79,8 +79,23 @@ hadoop_common_redhat_pkgs: []
 #   yarn.nodemanager.vmem-pmem-ratio: 2.1
 
 mapred_site_config: {}
+
 yarn_site_config:
   yarn.log-aggregation-enable: true
   # 24 hour log retention
   yarn.log-aggregation.retain-seconds: 86400
+  # Checking virtual memory usage causes too many spurious failures.
+  yarn.nodemanager.vmem-check-enabled: false
 
+HADOOP_CORE_SITE_EXTRA_CONFIG: {}
+HDFS_SITE_EXTRA_CONFIG: {}
+
+# Define all the services here, assuming we have a single-node Hadoop
+# cluster.
+hadoop_common_services:
+  - hdfs-namenode
+  - hdfs-datanode
+  - yarn-resourcemanager
+  - yarn-nodemanager
+  - yarn-proxyserver
+  - mapreduce-historyserver
