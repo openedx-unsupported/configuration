@@ -1,0 +1,113 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role appneta
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+
+- name: Write static config in case of static IPs
+  lineinfile:
+    dest: /etc/default/tracelyzer
+    regexp: ^STATIC_IP=
+    line: "STATIC_IP=YES"
+    state: present
+    create: yes
+  when: USE_STATIC_CONFIG
+
+- name: Change config in case of non-static IPs
+  lineinfile:
+    dest: /etc/default/tracelyzer
+    regexp: ^STATIC_IP=
+    line: "STATIC_IP=NO"
+    state: present
+    create: yes
+  when: not USE_STATIC_CONFIG
+
+- name: Install certificates
+  apt:
+    name: ca-certificates
+    state: latest
+    force: yes
+  when: not SKIP_CERTS
+
+- name: Create appneta sources.list
+  apt_repository:
+    repo: "deb http://{{ APT_SERVER }}/{{ ACCESS_KEY }} {{ ansible_distribution_release }} main"
+    state: present
+    filename: 'appneta'
+    update_cache: yes
+
+- name: Adding AppNeta package signature public key to system list
+  apt_key:
+    url: https://{{ APT_SERVER }}/appneta-apt-key.pub
+    state: present
+
+- name: Install common library and headers
+  apt: pkg={{ item }} state=present
+  with_items: appneta_lib_pkgs
+
+# Install tracelyzer
+# TODO: need to add the logic for disabling error reporting hook if necessary
+- name: Install tracelyzer
+  apt:
+    name: tracelyzer
+    state: present
+
+- name: Install appneta-sequencer
+  apt:
+    name: appneta-sequencer
+    state: present
+
+- name: Start appneta-sequencer
+  service:
+    name: appneta-sequencer
+    state: started
+
+- name: Install nginx agent
+  apt:
+    name: nginx
+    state: present
+
+- name: Install nginx light and nginx extras
+  apt: pkg={{ item }} state=present
+  notify: restart nginx
+  with_items: nginx_extra_pkgs
+
+- name: Install oboe
+  pip:
+    name: oboe
+    state: present
+
+- name: Add greenlet instrumentation
+  pip:
+    extra_args: '-i https://pypi.appneta.com'
+    name: greenlet
+    version: 0.4.5-oboe1
+    state: present
+
+- name: Add tornado instrumentation
+  pip:
+    extra_args: '-i https://pypi.appneta.com'
+    name: tornado
+    version: 2.3-oboe3
+    state: present
+
+- name: Add ruby instrumentaion
+  gem:
+    name: traceview
+    state: present
