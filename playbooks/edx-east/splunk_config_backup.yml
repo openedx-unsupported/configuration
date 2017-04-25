@@ -1,0 +1,19 @@
+- name: Backup splunk configurations
+  hosts: all
+  vars:
+    splunk_config_dir: "/opt/splunk/etc"
+    splunk_config_archive: "{{ date }}.tar.gz"
+    splunk_s3_backup_tempdir: "/var/tmp"
+    splunk_s3_bucket: "{{ SPLUNK_S3_BACKUPS_BUCKET }}"
+    date: "{{ lookup('pipe', 'date +%Y-%m-%d') }}"
+  tasks:
+    - name: archive splunk configuration dir
+      command: >
+        tar -cpzf  "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" {{ splunk_config_dir }}
+    - name: copy tarball to s3 bucket
+      command: >
+        aws s3 cp "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" s3://{{ splunk_s3_bucket }}
+    - name: cleanup backup file
+      file:
+        path: "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}"
+        state: absent
