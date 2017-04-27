@@ -1,0 +1,17 @@
+---
+# Builds gerrit (and associated plugins) and uploads the artifacts to S3
+#
+# Usage:
+#   ansible-playbook gerrit_build.yml -i gerrit_inventory.ini -e "secure_dir=/path/to/secure/dir"
+
+- name: Build gerrit
+  hosts: gerrit_build
+  sudo: True
+  gather_facts: True
+  vars_files:
+    - "{{ secure_dir }}/vars/gerrit.yml"
+  pre_tasks:
+    - name: playbook pre-requisites
+      apt: pkg=curl update_cache=yes
+  roles:
+    - gerrit_github_plugin_source

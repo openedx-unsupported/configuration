@@ -1,0 +1,33 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role buck
+# 
+# Overview: Builds buck from source and installs it.  Buck is a java build tool.
+# 
+#
+# Dependencies: JDK 1.7
+#
+
+- name: buck | system packages
+  apt: pkg={{ item }}
+  with_items: buck_debian_pkgs
+
+- name: buck | source checked out
+  git: repo={{ buck_repo }} dest={{ BUCK_HOME }} version={{ buck_version }}
+
+- name: buck | built
+  shell: ant chdir={{ BUCK_HOME }} creates={{ BUCK_HOME }}/build/buck.jar
+  environment:
+    JAVA_HOME: "{{ oraclejdk_link }}"
+
+- name: buck | linked on to path
+  file: src={{ BUCK_HOME }}/bin/buck dest=/usr/local/bin/buck state=link

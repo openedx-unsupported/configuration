@@ -1,0 +1,57 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gerrit_singleusergroup_source
+# 
+# Overview: Builds the singleusergroup plugin and uploads it to S3.
+# 
+#
+# Dependencies: gerrit_source
+#
+
+- name: gerrit_singleusergroup_source | source checked out
+  git: repo={{ gerrit_singleusergroup_source_repo }} dest={{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }} version={{ gerrit_singleusergroup_source_version }}
+
+- name: gerrit_singleusergroup_source | check if already registered
+  command: grep {{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME | basename }} {{ GERRIT_SOURCE_HOME }}/.git/config
+  ignore_errors: True
+  register: already_registered
+
+- name: gerrit_singleusergroup_source | submodule registered
+  command: git submodule add {{ gerrit_singleusergroup_source_repo }} plugins/{{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME | basename }} chdir={{ GERRIT_SOURCE_HOME }}
+  when: already_registered|failed
+
+- name: gerrit_singleusergroup_source | patch uploaded
+  template: src=singleusergroup.patch.j2 dest=/tmp/singleusergroup.patch
+
+- name: gerrit_singleusergroup_source | repository cleaned
+  command: git clean -xfd chdir={{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }}
+
+# We really should fork this repo and apply these changes to our fork.
+- name: gerrit_singleusergroup_source | patch applied
+  command: patch --batch -p1 --input=/tmp/singleusergroup.patch chdir={{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }} chdir={{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }}
+
+# We have to override JAVA_HOME because sudo does not run a login shell, so scripts in /etc/profile.d
+# are not sourced.
+- name: gerrit_singleusergroup_source | built
+  command: mvn install chdir={{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }}
+  environment:
+    JAVA_HOME: "{{ oraclejdk_link }}"
+
+- name: gerrit_singleusergroup_source | artifacts uploaded
+  s3: >
+    bucket={{ gerrit_artifact_s3_bucket.name }}
+    object=singleusergroup-{{ gerrit_release }}.jar
+    src="{{ GERRIT_SINGLEUSERGROUP_SOURCE_HOME }}/target/singleusergroup-1.0-SNAPSHOT.jar"
+    mode=put
+    overwrite=yes
+    aws_access_key="{{ gerrit_artifact_s3_bucket.aws_access_key_id }}"
+    aws_secret_key="{{ gerrit_artifact_s3_bucket.aws_secret_access_key }}"

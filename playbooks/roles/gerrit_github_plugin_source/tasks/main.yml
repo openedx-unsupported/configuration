@@ -1,0 +1,71 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gerrit_github_plugin_source
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: gerrit_github_plugin_source | system package
+  apt: pkg={{ item }}
+  with_items: gerrit_github_plugin_source_debian_pkgs
+
+- name: gerrit_github_plugin_source | repository cloned
+  git: repo={{ gerrit_github_plugin_source_repo }} dest={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}
+
+- name: gerrit_github_plugin_source | branch checked out
+  shell: git fetch origin {{ gerrit_github_plugin_source_version }} && git checkout FETCH_HEAD chdir={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}
+
+- name: gerrit_github_plugin_source | check if already registered
+  command: grep {{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME | basename }} {{ GERRIT_SOURCE_HOME }}/.git/config
+  ignore_errors: True
+  register: already_registered
+
+- name: gerrit_github_plugin_source | submodule registered
+  command: git submodule add {{ gerrit_github_plugin_source_repo }} plugins/{{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME | basename }} chdir={{ GERRIT_SOURCE_HOME }}
+  when: already_registered|failed
+
+- name: gerrit_github_plugin_source | patch uploaded
+  template: src=github.patch.j2 dest=/tmp/github.patch
+
+- name: gerrit_github_plugin_source | repository cleaned
+  command: git clean -xfd chdir={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}
+
+# We really should fork this repo and apply these changes to our fork.
+- name: gerrit_github_plugin_source | patch applied
+  command: patch --batch -p1 --input=/tmp/github.patch chdir={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }} chdir={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}
+
+# We have to override JAVA_HOME because sudo does not run a login shell, so scripts in /etc/profile.d
+# are not sourced.
+- name: gerrit_github_plugin_source | built
+  command: mvn install chdir={{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}
+  environment:
+    JAVA_HOME: "{{ oraclejdk_link }}"
+
+- name: gerrit_github_plugin_source | artifacts uploaded
+  s3: >
+    bucket={{ gerrit_artifact_s3_bucket.name }}
+    object=github-{{ item }}-{{ gerrit_release }}.jar
+    src="{{ GERRIT_GITHUB_PLUGIN_SOURCE_HOME }}/github-{{ item }}/target/github-{{ item }}-{{ gerrit_release }}.jar"
+    mode=put
+    overwrite=yes
+    aws_access_key="{{ gerrit_artifact_s3_bucket.aws_access_key_id }}"
+    aws_secret_key="{{ gerrit_artifact_s3_bucket.aws_secret_access_key }}"
+  with_items:
+    - oauth
+    - plugin

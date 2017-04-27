@@ -1,0 +1,69 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role gerrit_source
+# 
+# Overview: Downloads the gerrit source, builds it and uploads the resulting artifacts to S3.
+# 
+#
+# Dependencies: Buck and JDK 1.7
+#
+
+- name: gerrit_source | system packages
+  apt: pkg={{ item }}
+  with_items: gerrit_source_debian_pkgs
+
+# Can't checkout tags while cloning.  Instead we checkout seperately.
+- name: gerrit_source | repository cloned
+  command: git clone {{ gerrit_source_repo }} {{ GERRIT_SOURCE_HOME }} --no-checkout creates={{ GERRIT_SOURCE_HOME }}/.git
+
+- name: gerrit_source | source checked out
+  command: git checkout {{ gerrit_source_version }} chdir={{ GERRIT_SOURCE_HOME }}
+
+# Many of the plugins are submodules, ensure they have the correct version checked out.
+- name: gerrit_source | submodules checked out
+  command: git submodule update --recursive --init chdir={{ GERRIT_SOURCE_HOME }}
+
+# For some reason maven cannot reliably resolve this module, so we manually resolve the dependency
+- name: gerrit_source | gs maven wagon workaround
+  file: path=/root/.m2/repository/com/googlesource/gerrit/gs-maven-wagon/3.3 state=directory
+
+- name: gerrit_source | gs maven wagon workaround artifacts
+  get_url: >
+    url=https://gerrit-maven.storage.googleapis.com/com/googlesource/gerrit/gs-maven-wagon/3.3/gs-maven-wagon-3.3.{{ item }}
+    dest=/root/.m2/repository/com/googlesource/gerrit/gs-maven-wagon/3.3/gs-maven-wagon-3.3.{{ item }}
+  with_items:
+    - pom
+    - jar
+
+# For some reason the way that the release build generates the docs throws an error, so we have to pre-build them
+- name: gerrit_source | docs generated
+  shell: buck build :withdocs chdir={{ GERRIT_SOURCE_HOME }}
+  environment:
+    PATH: "{{oraclejdk_link}}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games"
+
+# Note that maven is required for the api_install target.  Since it makes the API jar available
+# to other builds using the local maven repository.  Also note that buck will use whatever JDK toolchain
+# appears first on the path, which forces us to override the path when running this task.
+- name: gerrit_source | built
+  shell: buck build release api api_install chdir={{ GERRIT_SOURCE_HOME }}
+  environment:
+    PATH: "{{oraclejdk_link}}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games"
+
+- name: gerrit_source | artifacts uploaded
+  s3: >
+    bucket={{ gerrit_artifact_s3_bucket.name }}
+    object=gerrit-{{ gerrit_release }}.war
+    src={{ GERRIT_SOURCE_HOME }}/buck-out/gen/release.war
+    mode=put
+    overwrite=yes
+    aws_access_key="{{ gerrit_artifact_s3_bucket.aws_access_key_id }}"
+    aws_secret_key="{{ gerrit_artifact_s3_bucket.aws_secret_access_key }}"
