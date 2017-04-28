@@ -8,7 +8,7 @@
 # with the currently checked-out configuration repo.
 
 
-FROM edxops/precise-common:latest
+FROM edxops/xenial-common:latest
 MAINTAINER edxops
 USER root
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
