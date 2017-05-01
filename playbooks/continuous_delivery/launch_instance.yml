@@ -11,6 +11,9 @@
 #   - ec2_region              - The region the server should be brought up in
 #   - ec2_instance_type       - The instance type to use
 #   - ebs_volume_size         - Size in GB for the root volume
+#   - delete_ebs_volumes_on_termination
+#                             - True to delete any EBS volumes attached to an EC2 instance upon its termination;
+#                               False to leave the EBS volumes un-deleted (default).
 #   - ec2_timeout             - Time in seconds to wait for an ec2 instance become available
 #   - ec2_assign_public_ip    - (yes/no) should the instance have a public IP address?
 #   - ami_id                  - overrides 'base_ami_id' (used when passing in the ami.yml file produced by
@@ -30,6 +33,7 @@
     ec2_region: us-east-1
     ec2_instance_type: t2.medium
     ebs_volume_size: 8
+    delete_ebs_volumes_on_termination: False
     ec2_timeout: 500
     ec2_assign_public_ip: no
     automation_prefix: "gocd automation run -- {{ ansible_date_time.iso8601 }} -- "
@@ -79,6 +83,7 @@
         - device_name: /dev/sdf
           volume_type: 'gp2'
           volume_size: "{{ ebs_volume_size }}"
+          delete_on_termination: "{{ delete_ebs_volumes_on_termination }}"
       wait: yes
       wait_timeout: "{{ ec2_timeout }}"
       instance_profile_name: "{{ ec2_instance_profile_name }}"
