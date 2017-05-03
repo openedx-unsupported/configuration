@@ -370,12 +370,6 @@ def encode_ini(
             vals = [val]
 
         for item in vals:
-            if (
-                    len(quote) == 0 and
-                    isinstance(item, basestring) and
-                    len(item) == 0):
-                item = '""'
-
             if item is not None:
                 rv += "%s%s%s%s%s\n" % (
                     prop, delimiter, quote, _escape(item, quote), quote)
