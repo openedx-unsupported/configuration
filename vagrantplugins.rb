@@ -1,5 +1,5 @@
 def install_plugins(plugins)
-  not_installed = get_not_installed plugins
+  not_installed = get_not_installed(plugins)
   if not_installed.any?
     puts "The following required plugins must be installed:"
     puts "'#{not_installed.join("', '")}'"
@@ -29,6 +29,6 @@ end
 
 # If plugins successfully installed, restart vagrant to detect changes.
 def continue
-  exec "vagrant #{ARGV[0]}"
+  exec "vagrant #{ARGV.join(' ')}"
 end
 
