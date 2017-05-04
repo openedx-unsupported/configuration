@@ -1,6 +1,6 @@
 - Role: ecommerce
   - Added ECOMMERCE_LANGUAGE_COOKIE_NAME which is the name of the cookie the ecommerce django app looks at for determining the language preference.
-  
+
 - Role: neo4j
   - Enabled splunk forwarding for neo4j logs.
   - Increased maximum amount of open files to 40000, as suggested by neo4j.
@@ -308,3 +308,6 @@
   - Added `INSIGHTS_DOMAIN` to configure the domain Insights is deployed on
   - Added `INSIGHTS_CLOUDFRONT_DOMAIN` to configure the domain static files can be served from
   - Added `INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA` to configure allowing CORS on domains other than the `INSIGHTS_DOMAIN`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
