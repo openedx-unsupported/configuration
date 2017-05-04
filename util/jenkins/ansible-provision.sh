@@ -127,7 +127,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-514cf447"
+    ami="ami-75789e63"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-9dcfdb8a"
   fi
@@ -192,6 +192,10 @@ EDXAPP_CMS_NGINX_PORT: 80
 ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
 ECOMMERCE_VERSION: $ecommerce_version
+
+PROGRAMS_NGINX_PORT: 80
+PROGRAMS_SSL_NGINX_PORT: 443
+PROGRAMS_VERSION: $programs_version
 
 CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
@@ -283,6 +287,12 @@ ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
+PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
+PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+PROGRAMS_CORS_ORIGIN_WHITELIST:
+  - studio-${deploy_host}
+
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
@@ -291,6 +301,7 @@ COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+DISCOVERY_PROGRAMS_API_URL: "{{ PROGRAMS_URL_ROOT }}/api/v1/"
 
 EOF
 fi
@@ -321,8 +332,8 @@ elb: $elb
 EOF
 
 
-    if [[ $server_type == "full_edx_installation" ]]; then
-        extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
+    if [[ $server_type != "full_edx_installation_from_scratch" ]]; then
+	extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
     fi
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
@@ -337,13 +348,13 @@ EOF
 fi
 
 declare -A deploy
-roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce programs credentials discovery notifier xqueue xserver certs demo testcourses"
 
 for role in $roles; do
     deploy[$role]=${!role}
 done
 
-# If reconfigure was selected or if starting from an ubuntu 16.04 AMI
+# If reconfigure was selected or if starting from an ubuntu 12.04 AMI
 # run non-deploy tasks for all roles
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
