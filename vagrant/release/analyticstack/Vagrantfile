@@ -1,11 +1,12 @@
-Vagrant.require_version ">= 1.6.5"
+Vagrant.require_version ">= 1.8.7"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
 
 VAGRANTFILE_API_VERSION = "2"
 
-MEMORY = 4096
+# Analyticstack requires more memory than Devstack.
+MEMORY = 6144
 CPU_COUNT = 2
 
 # These are versioning variables in the roles. Each can be overridden, first
@@ -49,8 +50,13 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
+  "open-release/ficus.master" => "ficus-analyticstack-2017-04-20",
+  "open-release/ficus.3" => "ficus-analyticstack-2017-04-20",
+
   "open-release/eucalyptus" => "eucalyptus-analyticstack-2016-09-04",
   "open-release/eucalyptus.2" => "eucalyptus-analyticstack-2016-09-04",
+  "open-release/eucalyptus.master" => "eucalyptus-analyticstack-2016-09-04",
+
   "named-release/dogwood.3" => {
     :name => "analyticstack", :file => "dogwood-analyticstack-2016-03-15.box",
   },
@@ -63,6 +69,7 @@ openedx_releases.default = {
 }
 
 openedx_release = ENV['OPENEDX_RELEASE']
+boxname = ENV['OPENEDX_BOXNAME']
 
 # Build -e override lines for each overridable variable.
 extra_vars_lines = ""
@@ -92,18 +99,24 @@ SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  reldata = openedx_releases[openedx_release]
-  if Hash == reldata.class
-    boxname = openedx_releases[openedx_release][:name]
-    boxfile = openedx_releases[openedx_release].fetch(:file, "#{boxname}.box")
-  else
-    boxname = reldata
+  boxfile = ""
+  if not boxname
+    reldata = openedx_releases[openedx_release]
+    if Hash == reldata.class
+      boxname = openedx_releases[openedx_release][:name]
+      boxfile = openedx_releases[openedx_release].fetch(:file, "")
+    else
+      boxname = reldata
+    end
+  end
+  if boxfile == ""
     boxfile = "#{boxname}.box"
   end
 
   # Creates an edX devstack VM from an official release
   config.vm.box     = boxname
   config.vm.box_url = "http://files.edx.org/vagrant-images/#{boxfile}"
+  config.vm.box_check_update = false
 
   config.vm.network :private_network, ip: "192.168.33.10"
 
@@ -151,6 +164,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # Allow DNS to work for Ubuntu 12.10 host
     # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+
+    # Virtio is faster, but the box needs to have support for it.  We didn't
+    # have support in the boxes before Ficus.
+    if !(boxname.include?("dogwood") || boxname.include?("eucalyptus"))
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+    end
   end
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync

@@ -1,11 +1,12 @@
-Vagrant.require_version ">= 1.6.5"
+Vagrant.require_version ">= 1.8.7"
 unless Vagrant.has_plugin?("vagrant-vbguest")
   raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
 end
 
 VAGRANTFILE_API_VERSION = "2"
 
-MEMORY = 4096
+# Analyticstack requires more memory than Devstack.
+MEMORY = 6144
 CPU_COUNT = 2
 
 vm_guest_ip = "192.168.33.10"
@@ -33,11 +34,10 @@ VERSION_VARS = [
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
-  # Creates a devstack from a base Ubuntu 12.04 image for virtualbox
-  config.vm.box     = "precise64"
-  config.vm.box_url = "http://files.vagrantup.com/precise64.box"
+  # Creates a devstack from a base Ubuntu 16.04 image for virtualbox
+  config.vm.box = "boxcutter/ubuntu1604"
 
-  config.vm.network :private_network, ip: vm_guest_ip
+  config.vm.network :private_network, ip: vm_guest_ip, nic_type: "virtio"
 
   # If you want to run the box but don't need network ports, set VAGRANT_NO_PORTS=1.
   # This is useful if you want to run more than one box at once.
@@ -78,6 +78,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Make LC_ALL default to en_US.UTF-8 instead of en_US.
   # See: https://github.com/mitchellh/vagrant/issues/1188
   config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
+
+  # Get ready for ansible on this box.
+  config.vm.provision "shell", path: '../../../util/install/ansible-bootstrap.sh'
 
   # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
   config.vbguest.auto_reboot = true
