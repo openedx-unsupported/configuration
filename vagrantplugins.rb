@@ -1,14 +1,5 @@
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
-
 def install_plugins(plugins)
-  not_installed = []
-  plugins.each do |plugin|
-    unless Vagrant.has_plugin?(plugin)
-      not_installed << plugin
-    end
-  end
-
+  not_installed = get_not_installed plugins
   if not_installed.any?
     puts "The following required plugins must be installed:"
     puts "'#{not_installed.join("', '")}'"
@@ -20,6 +11,16 @@ def install_plugins(plugins)
     end
     $? ? continue : raise('Plugin installation failed, see errors above.')
   end
+end
+
+def get_not_installed(plugins)
+  not_installed = []
+  plugins.each do |plugin|
+    unless Vagrant.has_plugin?(plugin)
+      not_installed << plugin
+    end
+  end
+  return not_installed
 end
 
 def install_plugin(plugin)
