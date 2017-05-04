@@ -30,13 +30,8 @@
   tags:
     - deploy
 
-- name: Get name of default network interface
-  shell: "ip route show 0/0 | grep -oP '(?<=dev )[[:alnum:]]+'"
-  register: get_interface_name
-  when: ansible_distribution in common_debian_variants
-
 - name: Set the MTU to 1500 temporarily
-  shell: "/sbin/ifconfig {{ get_interface_name.stdout }} mtu 1500 up"
+  shell: "/sbin/ifconfig {{ ansible_default_ipv4.interface }} mtu 1500 up"
   when: ansible_distribution in common_debian_variants
 
 - name: Set the MTU to 1500 permanently
