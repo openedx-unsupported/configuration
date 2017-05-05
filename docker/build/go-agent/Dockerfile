@@ -54,7 +54,12 @@ RUN usermod -aG docker go
 
 # Assign the go user root privlidges
 RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip, /usr/local/bin/pip\n" >> /etc/sudoers
-RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3, /usr/local/bin/pip3\n" >> /etc/sudoers
+RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/python3\n" >> /etc/sudoers
+
+# Create pip3 alias for go user
+RUN printf "\nalias pip3='/usr/bin/python3 -m pip'\n" >> /var/go/.bashrc
+RUN chown go:go /var/go/.bashrc
+RUN chmod 600 /var/go/.bashrc
 
 # Upgrade pip and setup tools. Needed for Ansible 2.x
 RUN \
