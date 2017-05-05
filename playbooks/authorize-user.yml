@@ -1,0 +1,20 @@
+---
+
+- hosts: kerberos_server
+  sudo: True
+  vars:
+    - username: ubuntu
+  tasks:
+    - name: principal created
+      kerberos_principal: name={{ username }}
+
+    - name: keytab created
+      command: /usr/sbin/kadmin.local -q 'xst -norandkey -k /home/{{ username }}/credentials.keytab {{ username }}'
+
+    - name: keytab permissions
+      file: path=/home/{{ username }}/credentials.keytab mode=0400 owner={{ username }} group={{ username }}
+
+    - name: credentials cached
+      command: /usr/bin/kinit -k -t /home/{{ username }}/credentials.keytab {{ username }}
+      sudo: True
+      sudo_user: "{{ username }}"

@@ -1,0 +1,41 @@
+---
+
+- name: kerberos-server | package
+  apt: pkg={{ item }}
+  with_items:
+    - krb5-kdc
+    - krb5-admin-server
+  tags:
+    - kerberos-server
+
+- name: kerberos-server | configuration files
+  template: src={{ item | basename }}.j2 dest={{ item }}
+  with_items:
+    - /etc/krb5kdc/kadm5.acl
+    - /etc/krb5kdc/kdc.conf
+  tags:
+    - kerberos-server
+
+- name: kerberos-server | destroy existing database
+  shell: kdb5_util destroy -f || true
+  when: kdc_format is defined
+  tags:
+    - kerberos-server
+    - unsafe
+
+- name: kerberos-server | database created
+  shell: kdb5_util -P {{ kerberos_master_password }} create -s
+  when: kdc_format is defined
+  tags:
+    - kerberos-server
+    - unsafe
+
+- name: kerberos-server | service started
+  service: name=krb5-kdc state=started enabled=yes
+  tags:
+    - kerberos-server
+
+- name: kerberos-server | admin service started
+  service: name=krb5-admin-server state=started enabled=yes
+  tags:
+    - kerberos-server

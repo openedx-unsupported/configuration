@@ -1,0 +1,42 @@
+---
+
+- name: cdh-jobtracker | packages
+  apt: pkg=hadoop-0.20-mapreduce-jobtracker
+  tags:
+    - cdh-jobtracker
+
+- name: cdh-jobtracker | log directory permissions
+  file: path=/var/log/hadoop-0.20-mapreduce owner=mapred group=mapred mode=0775 state=directory
+  tags:
+    - cdh-jobtracker
+
+- name: cdh-jobtracker | root credential cache
+  command: /usr/bin/kinit -k -t /etc/hadoop/conf/hdfs.keytab hdfs/{{ ansible_fqdn }}
+  sudo: True
+  tags:
+    - cdh-jobtracker
+    - cdh-secure
+    - unsafe
+
+- name: cdh-jobtracker | hdfs temporary directories
+  hdfs_directory: path={{ item }} owner=mapred group=hadoop mode=0777
+  with_items:
+    - /tmp/mapred
+    - /tmp/hadoop-mapred
+    - /tmp/hadoop-mapred/mapred
+    - /tmp/hadoop-mapred/mapred/staging
+  tags:
+    - cdh-jobtracker
+
+- name: cdh-jobtracker | hdfs system directories
+  hdfs_directory: path={{ item }} owner=mapred group=hadoop mode=0700
+  with_items:
+    - /tmp/mapred/system
+    - /tmp/hadoop-mapred/mapred/system
+  tags:
+    - cdh-jobtracker
+
+- name: cdh-jobtracker | start the job tracker
+  service: name=hadoop-0.20-mapreduce-jobtracker state=started enabled=yes
+  tags:
+    - cdh-jobtracker

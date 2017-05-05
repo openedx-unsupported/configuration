@@ -1,0 +1,48 @@
+---
+
+- name: cdh-zookeeper | package
+  apt: pkg=zookeeper-server
+  tags:
+    - cdh-zookeeper
+
+- name: cdh-zookeeper | configuration directory
+  file: path={{ cdh_zookeeper_conf_path }} state=directory owner=root group=root mode=755
+  tags:
+    - cdh-zookeeper
+
+- name: cdh-zookeeper | configured static files
+  copy: src={{ item }} dest={{ cdh_zookeeper_conf_path }} owner=root group=root mode=644
+  with_items:
+    - configuration.xsl
+    - log4j.properties
+  tags:
+    - cdh-zookeeper
+
+- name: cdh-zookeeper | configured zoo.cfg
+  template: src=zoo.cfg.j2 dest={{ cdh_zookeeper_conf_path }}/zoo.cfg owner=root group=root mode=644
+  tags:
+    - cdh-zookeeper
+
+- name: cdh-zookeeper | alternatives link
+  alternatives: name=zookeeper-conf link=/etc/zookeeper/conf path={{ cdh_zookeeper_conf_path }}
+  tags:
+    - cdh-zookeeper
+
+- name: cdh-zookeeper | service stopped
+  service: name=zookeeper-server state=stopped
+  when: zookeeper_format is defined
+  tags:
+    - cdh-zookeeper
+    - unsafe
+
+- name: cdh-zookeeper | service initialized
+  command: service zookeeper-server init --myid={{ zk_id }} --force
+  when: zookeeper_format is defined
+  tags:
+    - cdh-zookeeper
+    - unsafe
+
+- name: cdh-zookeeper | service started
+  service: name=zookeeper-server state=started enabled=yes
+  tags:
+    - cdh-zookeeper

@@ -1,0 +1,11 @@
+*.period=10
+
+{% if 'ganglia_monitored' in groups and inventory_hostname in groups.ganglia_monitored %}
+*.sink.ganglia.class=org.apache.hadoop.metrics2.sink.ganglia.GangliaSink31
+*.sink.ganglia.servers={{ groups.ganglia_collector[0] }}:8649
+*.sink.ganglia.supportsparse=true
+*.sink.ganglia.slope=jvm.metrics.gcCount=zero,jvm.metrics.memHeapUsedM=both
+*.sink.ganglia.dmax=jvm.metrics.threadsBlocked=70,jvm.metrics.memHeapUsedM=40
+{% else %}
+*.sink.file.class=org.apache.hadoop.metrics2.sink.FileSink
+{% endif %}

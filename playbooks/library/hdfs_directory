@@ -1,0 +1,75 @@
+#!/usr/bin/env groovy -cp `hadoop classpath`
+
+import java.io.FileNotFoundException
+
+import groovy.json.JsonBuilder
+
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.permission.FsPermission
+import org.apache.hadoop.fs.Path
+
+String argumentsFileContents = new File(args[0]).text
+
+String[] argKeyValues = argumentsFileContents.split(' ')
+def arguments = [:]
+argKeyValues.each { String keyValuePair ->
+    String[] keyValue = keyValuePair.split('=')
+    arguments[keyValue[0]] = keyValue[1]
+}
+
+def state = arguments.get('state', 'present')
+def mode = arguments.get('mode', null)
+def owner = arguments.get('owner', null)
+def group = arguments.get('group', null)
+
+Path filePath = new Path(arguments['path'])
+FileSystem fs = filePath.getFileSystem(new Configuration())
+
+boolean hasChanged = false
+FileStatus status = null
+try {
+    status = fs.getFileStatus(filePath)
+    if (state == 'absent') {
+        fs.delete(filePath, true)
+        hasChanged = true
+    }
+} catch(FileNotFoundException fnf) {
+    if (state == 'present') {
+        fs.mkdirs(filePath)
+        status = fs.getFileStatus(filePath)
+        hasChanged = true
+    }
+}
+
+if (state == 'present') {
+    if (mode != null) {
+        Short parsedPerms = Short.valueOf(mode, 8)
+        FsPermission requestedPermissions = new FsPermission(parsedPerms)
+        if (status.permission != requestedPermissions) {
+            fs.setPermission(filePath, requestedPermissions)
+            hasChanged = true
+        }
+    }
+
+    if (owner == null) {
+        owner = status.owner
+    }
+
+    if (group == null) {
+        group = status.group
+    }
+
+    if (owner != status.owner || group != status.group) {
+        fs.setOwner(filePath, owner, group)
+        hasChanged = true
+    }
+}
+
+
+def json = new groovy.json.JsonBuilder()
+json {
+    changed hasChanged
+}
+println(json.toString())

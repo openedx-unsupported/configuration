@@ -1,0 +1,54 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import xml.etree.ElementTree as et
+
+def main():
+
+    module = AnsibleModule(
+        argument_spec = dict(
+            property = dict(required=True),
+            value  = dict(required=True),
+            path = dict(required=True),
+        )
+    )
+
+    params = module.params
+    property_name = params['property']
+    value = params['value']
+    path = params['path']
+
+    try:
+        tree = et.parse(path)
+        root = tree.getroot()
+    except:
+        root = et.Element('configuration')
+        tree = et.ElementTree(root)
+
+    found_property = False
+    for property_element in root.findall('property'):
+        name_element = property_element.find('name')
+        value_element = property_element.find('value')
+        if name_element is not None and property_name == name_element.text:
+            found_property = True
+            if value_element is not None:
+                if value_element.text == value:
+                    module.exit_json(changed=False)
+                else:
+                    value_element.text = value
+                    break
+
+    if not found_property:
+        property_element = et.SubElement(root, 'property')
+        name_element = et.SubElement(property_element, 'name')
+        name_element.text = property_name
+        value_element = et.SubElement(property_element, 'value')
+        value_element.text = value
+
+    tree.write(path, xml_declaration=True, encoding='utf-8')
+    module.exit_json(changed=True)
+
+
+# this is magic, see lib/ansible/module_common.py
+#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+main()

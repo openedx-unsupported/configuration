@@ -1,0 +1,32 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import subprocess
+
+KADMIN = '/usr/sbin/kadmin.local'
+
+def kadmin(query):
+    return subprocess.check_output([KADMIN, '-q', query], stderr=subprocess.STDOUT)
+
+def main():
+
+    module = AnsibleModule(
+        argument_spec = dict(
+            name = dict(required=True),
+        )
+    )
+
+    name = module.params['name']
+
+    query_output = kadmin('get_principal {}'.format(name))
+    if 'get_principal: Principal does not exist' in query_output:
+        kadmin('add_principal -randkey {}'.format(name))
+        module.exit_json(changed=True)
+    else:
+        module.exit_json(changed=False)
+        
+
+# this is magic, see lib/ansible/module_common.py
+#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+main()
+

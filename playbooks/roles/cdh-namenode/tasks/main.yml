@@ -1,0 +1,78 @@
+---
+
+- name: cdh-namenode | package
+  apt: pkg=hadoop-hdfs-namenode
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | data directory configured
+  hadoop_configuration: path={{ cdh_hadoop_conf_path }}/hdfs-site.xml property=dfs.namenode.name.dir value={{ cdh_hdfs_namenode_dir }}
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | supergroup
+  group: name=supergroup
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | root in supergroup
+  user: name=root groups=supergroup append=true
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | data directory exists
+  file: path={{ item }} owner=hdfs group=hdfs mode=0700 state=directory
+  tags:
+    - cdh-namenode
+  with_items: cdh_hdfs_namenode_dir.split(',')
+
+- name: cdh-namenode | log directory permissions
+  file: path=/var/log/hadoop-hdfs owner=hdfs group=hdfs mode=0775 state=directory
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | stopped
+  service: name=hadoop-hdfs-namenode state=stopped
+  when: hdfs_format is defined
+  tags:
+    - cdh-namenode
+    - unsafe
+
+- name: cdh-namenode | formatted
+  command: hdfs namenode -format -force
+  sudo: True
+  sudo_user: hdfs
+  when: hdfs_format is defined
+  tags:
+    - cdh-namenode
+    - unsafe
+
+- name: cdh-namenode | started
+  service: name=hadoop-hdfs-namenode state=started enabled=yes
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | root credential cache
+  command: /usr/bin/kinit -k -t /etc/hadoop/conf/hdfs.keytab hdfs/{{ ansible_fqdn }}
+  sudo: True
+  tags:
+    - cdh-namenode
+    - cdh-secure
+    - unsafe
+
+- name: cdh-namenode | root hdfs directory
+  hdfs_directory: path=/ mode=0755 owner=hdfs group=hadoop
+  tags:
+    - cdh-namenode
+
+- name: cdh-namenode | hdfs directories
+  hdfs_directory: path={{ item }} mode=1777 owner=hdfs group=hadoop
+  with_items:
+    - /tmp
+    - /user
+    - /var
+    - /var/lib
+    - /var/lib/hadoop-hdfs
+    - /var/lib/hadoop-hdfs/cache
+  tags:
+    - cdh-namenode

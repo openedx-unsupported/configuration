@@ -1,0 +1,15 @@
+[libdefaults]
+	default_realm = {{ kerberos_realm }}
+
+[realms]
+	{{ kerberos_realm }} = {
+{% for host in groups.kerberos_server %}
+		kdc = {{ hostvars[host]['ansible_fqdn'] }}
+{% endfor %}
+		admin_server = {{ groups.kerberos_server[0] }}
+		default_domain = {{ kerberos_realm.lower() }}
+	}
+
+[domain_realm]
+	.{{ kerberos_realm.lower() }} = {{ kerberos_realm }}
+	{{ kerberos_realm.lower() }} = {{ kerberos_realm }}

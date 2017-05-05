@@ -1,0 +1,16 @@
+---
+
+- hosts: master
+  sudo: True
+  tasks:
+    - name: Key generated
+      command: /usr/bin/ssh-keygen -t rsa -P '' -f /home/root/.ssh/id_rsa creates=/home/root/.ssh/id_rsa
+
+    - name: Key downloaded
+      fetch: src=/home/root/.ssh/id_rsa.pub dest=/tmp/{{ ansible_fqdn }}.pub flat=yes
+
+- hosts: all
+  sudo: True
+  tasks:
+    - name: Key authorized
+      authorized_key: user=root key="{{ lookup('file', '/tmp/{}.pub'.format(groups.master[0])) }}"
