@@ -1,0 +1,10 @@
+- name: create LMS users
+  # It's important to use "command" here instead of "shell", since otherwise we would have to
+  # escape the special characters in the password (or other fields) for the shell.
+  command: >
+    {{ COMMON_APP_DIR }}/edxapp/venvs/edxapp/bin/python ./manage.py lms --settings=aws
+    create_user -e {{ item.email }} -n {{ item.name }} -u {{ item.username }} -p {{ item.password }}
+    {{ "-s" if item.is_staff else "" }} {{ "--password-hash" if item.password_hash else "" }}
+    chdir={{ COMMON_APP_DIR }}/edxapp/edx-platform
+  sudo_user: "{{ common_web_user }}"
+  with_items: CREATE_LMS_USERS
