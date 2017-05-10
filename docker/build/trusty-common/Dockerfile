@@ -1,8 +1,10 @@
-FROM ubuntu:trusty
-MAINTAINER edxops 
+FROM krallin/ubuntu-tini:trusty
+MAINTAINER edxops
+
 ENV ANSIBLE_REPO="https://github.com/edx/ansible"
 ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
 ENV CONFIGURATION_VERSION="master"
+ENV PYTHONUNBUFFERED=1
 
 ADD util/install/ansible-bootstrap.sh /tmp/ansible-bootstrap.sh
 RUN chmod +x /tmp/ansible-bootstrap.sh
