@@ -37,6 +37,35 @@ make docker.pkg.<service>    # Package <service> for publishing to Dockerhub. Th
 make docker.push.<service>   # Push <service> to Dockerhub as latest.
 ```
 
+
+## Image naming
+
+Images built from master branches are named `edxops/<service>`, for example,
+`edxops/edxapp`.  Images built from Open edX release branches include the
+short release name: `edxops/ficus/edxapp`.  Both images will have a `:latest`
+version.
+
+
+## Build arguments
+
+Dockerfiles make use of these build arguments:
+
+* `OPENEDX_RELEASE` is the release branch to use.  It defaults to "master".
+  To use an Open edX release, provide the full branch name:
+
+  ```
+  --build-arg OPENEDX_RELEASE=open-release/ficus.master
+  ```
+
+* `IMAGE_PREFIX` is the release branch component to add to images.  It defaults
+  to an empty string for master builds.  For Open edX release, use the short
+  name of the release, with a trailing slash:
+
+  ```
+  --build-arg IMAGE_PREFIX=ficus/
+  ```
+
+
 ## Conventions
 
 In order to facilitate development, Dockerfiles should be based on
