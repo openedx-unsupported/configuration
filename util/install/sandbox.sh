@@ -77,7 +77,7 @@ CONFIGURATION_VERSION=${CONFIGURATION_VERSION-${OPENEDX_RELEASE-master}}
 ## Clone the configuration repository and run Ansible
 ##
 cd /var/tmp
-git clone https://github.com/edx/configuration
+https://github.com/ndixit01/configuration
 cd configuration
 git checkout $CONFIGURATION_VERSION
 git pull
