@@ -21,8 +21,18 @@ upstream lms-backend {
 {% if NGINX_REDIRECT_OLD_DOMAIN %}
 server {
   listen 80;
+  server_name .{{ OLD_EDXAPP_SITE_NAME }};
+
+  rewrite ^(/.*) https://{{ EDXAPP_SITE_NAME }}$1 permanent;
+
+}
+
+server {
   listen 443 ssl;
   server_name .{{ OLD_EDXAPP_SITE_NAME }};
+
+  ssl_certificate {{ OLD_NGINX_SSL_CERTIFICATE_PATH }};
+  ssl_certificate_key {{ OLD_NGINX_SSL_KEY_PATH }};
 
   rewrite ^(/.*) https://{{ EDXAPP_SITE_NAME }}$1 permanent;
 

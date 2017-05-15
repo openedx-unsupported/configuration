@@ -292,6 +292,18 @@
     - install
     - install:configuration
 
+- name: copy OLD ssl cert
+  copy:
+    content: "{{ OLD_NGINX_SSL_CERTIFICATE_CONTENT }}"
+    dest: "{{ OLD_NGINX_SSL_CERTIFICATE_PATH }}"
+    owner: root
+    group: root
+    mode: 0644
+  when: NGINX_ENABLE_SSL and OLD_NGINX_SSL_CERTIFICATE_CONTENT != ''
+  tags:
+    - install
+    - install:configuration
+
 - name: copy ssl cert
   copy:
     src: "{{ NGINX_SSL_CERTIFICATE }}"
@@ -300,6 +312,19 @@
     group: root
     mode: 0644
   when: ssl_cert.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
+  tags:
+    - install
+    - install:configuration
+
+- name: copy OLD ssl key
+  copy:
+    content: "{{ OLD_NGINX_SSL_KEY_CONTENT }}"
+    dest: "{{ OLD_NGINX_SSL_KEY_PATH }}"
+    owner: root
+    group: root
+    mode: 0640
+  when: NGINX_ENABLE_SSL and OLD_NGINX_SSL_KEY != ''
+  no_log: True
   tags:
     - install
     - install:configuration
