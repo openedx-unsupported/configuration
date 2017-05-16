@@ -26,7 +26,7 @@ def check_coverage(images, used_images):
 
     # exit with error code if uncovered Dockerfiles exist
     if uncovered:
-        LOGGER.error("The following Dockerfiles are not described in the parsefiles_config.yml file: {}. Please see the following documentation on how to add Dockerfile ranks to the configuration file: {}".format(uncovered, "https://github.com/edx/configuration/blob/master/util/README.md"))
+        LOGGER.error("The following Dockerfiles are not described in the parsefiles_config.yml file: {}. Please see the following documentation on how to add Dockerfile ranks to the configuration file: {}".format(uncovered, "https://github.com/edx/configuration/blob/master/util/README.rst"))
         sys.exit(1)
 
 def arg_parse():
