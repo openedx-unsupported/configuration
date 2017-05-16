@@ -145,6 +145,20 @@
   shell: hostname -F /etc/hostname
   when: COMMON_HOSTNAME|length >0 and (etc_hosts.changed or etc_hostname.changed)
 
+- name: Add fallback DNS servers to resolvconf
+  lineinfile:
+    dest: /etc/resolvconf/resolv.conf.d/tail
+    line: "nameserver {{ item }}"
+    create: yes
+    state: present
+  with_items: "{{ COMMON_FALLBACK_DNS_SERVERS }}"
+  notify: restart networking
+
+- name: restart networking
+  service:
+    name: networking
+    state: restarted
+
 - name: Copy the templates to their respestive destination
   template:
     dest: "{{ item.dest }}"
