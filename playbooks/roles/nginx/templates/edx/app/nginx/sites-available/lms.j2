@@ -21,20 +21,20 @@ upstream lms-backend {
 {% if NGINX_REDIRECT_OLD_DOMAIN %}
 server {
   listen 80;
-  server_name .{{ OLD_EDXAPP_SITE_NAME }};
+  server_name ~^(\w+)\.{{ OLD_EDXAPP_SITE_NAME| regex_escape() }};
 
-  rewrite ^(/.*) https://{{ EDXAPP_SITE_NAME }}$1 permanent;
+  return 302 https://$1.{{ EDXAPP_SITE_NAME }}$request_uri permanent;
 
 }
 
 server {
   listen 443 ssl;
-  server_name .{{ OLD_EDXAPP_SITE_NAME }};
+  server_name ~^(\w+)\.{{ OLD_EDXAPP_SITE_NAME| regex_escape() }};
 
   ssl_certificate {{ OLD_NGINX_SSL_CERTIFICATE_PATH }};
   ssl_certificate_key {{ OLD_NGINX_SSL_KEY_PATH }};
 
-  rewrite ^(/.*) https://{{ EDXAPP_SITE_NAME }}$1 permanent;
+  return 302 https://$1.{{ EDXAPP_SITE_NAME }}$request_uri permanent;
 
 }
 {% endif %}
