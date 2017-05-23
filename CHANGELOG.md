@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added the EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES setting with default value ["audit"]
+
+- Role: edxapp
   - DOC_LINK_BASE settings have been removed, replaced by HELP_TOKENS_BOOKS
 
 - Role: edxapp
