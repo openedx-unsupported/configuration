@@ -1,0 +1,238 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "A simple VPC with a public subnet, a private subnet, a NAT and a Bastion host.",
+
+  "Parameters" : {
+
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type" : "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+    },
+
+    "SSHLocation" : {
+      "Description" : "Lockdown SSH access to the bastion host (default can be accessed from anywhere)",
+      "Type" : "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default" : "0.0.0.0/0",
+      "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription" : "must be a valid CIDR range of the form x.x.x.x/x."
+    }
+
+  },
+
+  "Mappings" : {
+    "SubnetConfig" : {
+      "VPC"     : { "CIDR" : "10.5.0.0/16" },
+      "Public"  : { "CIDR" : "10.5.0.0/24" },
+      "Private" : { "CIDR" : "10.5.1.0/24" }
+    }
+  },
+
+  "Resources" : {
+
+    "VPC" : {
+      "Type" : "AWS::EC2::VPC",
+      "Properties" : {
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "VPC", "CIDR" ]},
+        "EnableDnsSupport" : "true",
+        "EnableDnsHostnames" : "true",
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "PublicSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Public", "CIDR" ]},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "InternetGateway" : {
+      "Type" : "AWS::EC2::InternetGateway",
+      "Properties" : {
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "AttachGateway" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Properties" : {
+         "VpcId" : { "Ref" : "VPC" },
+         "InternetGatewayId" : { "Ref" : "InternetGateway" }
+       }
+    },
+
+    "PublicRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : {"Ref" : "VPC"},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Public" }
+        ]
+      }
+    },
+
+    "PublicRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "DependsOn" : "AttachGateway",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PublicRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "GatewayId" : { "Ref" : "InternetGateway" }
+      }
+    },
+
+    "PublicSubnetRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "RouteTableId" : { "Ref" : "PublicRouteTable" }
+      }
+    },
+
+    "PrivateSubnet" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]},
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Private" }
+        ]
+      }
+    },
+
+    "PrivateRouteTable" : {
+      "Type" : "AWS::EC2::RouteTable",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "Tags" : [
+          { "Key" : "Application", "Value" : { "Ref" : "AWS::StackId" } },
+          { "Key" : "Network", "Value" : "Private" }
+        ]
+      }
+    },
+
+    "PrivateSubnetRouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "PrivateSubnet" },
+        "RouteTableId" : { "Ref" : "PrivateRouteTable" }
+      }
+    },
+
+    "PrivateRoute" : {
+      "Type" : "AWS::EC2::Route",
+      "Properties" : {
+        "RouteTableId" : { "Ref" : "PrivateRouteTable" },
+        "DestinationCidrBlock" : "0.0.0.0/0",
+        "InstanceId" : { "Ref" : "NATDevice" }
+      }
+    },
+
+    "NATIPAddress" : {
+      "Type" : "AWS::EC2::EIP",
+      "DependsOn" : "AttachGateway",
+      "Properties" : {
+        "Domain" : "vpc",
+        "InstanceId" : { "Ref" : "NATDevice" }
+      }
+    },
+
+    "NATSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable internal access to the NAT device",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress" : [
+           { "IpProtocol" : "tcp", "FromPort" : "80",   "ToPort" : "80",   "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]}} ,
+           { "IpProtocol" : "tcp", "FromPort" : "443",  "ToPort" : "443",  "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]}} ,
+           { "IpProtocol" : "tcp", "FromPort" : "9418", "ToPort" : "9418", "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]}} ,
+           { "IpProtocol" : "tcp", "FromPort" : "22",   "ToPort" : "22",   "SourceSecurityGroupId" : { "Ref" : "BastionSecurityGroup" }} ],
+        "SecurityGroupEgress" : [
+           { "IpProtocol" : "tcp", "FromPort" : "80",  "ToPort" : "80",  "CidrIp" : "0.0.0.0/0"} ,
+           { "IpProtocol" : "tcp", "FromPort" : "443", "ToPort" : "443", "CidrIp" : "0.0.0.0/0"} ,
+           { "IpProtocol" : "tcp", "FromPort" : "9418", "ToPort" : "9418", "CidrIp" : "0.0.0.0/0"} ]
+      }
+    },
+
+    "NATDevice" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "InstanceType" : "m1.large",
+        "KeyName" : { "Ref" : "KeyName" },
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "SourceDestCheck" : "false",
+        "ImageId" : "ami-4f9fee26",
+        "SecurityGroupIds" : [{ "Ref" : "NATSecurityGroup" }]
+      }
+    },
+
+    "BastionIPAddress" : {
+      "Type" : "AWS::EC2::EIP",
+      "DependsOn" : "AttachGateway",
+      "Properties" : {
+        "Domain" : "vpc",
+        "InstanceId" : { "Ref" : "BastionHost" }
+      }
+    },
+
+    "BastionSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable access to the Bastion host",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress" : [ { "IpProtocol" : "tcp", "FromPort" : "22",  "ToPort" : "22",  "CidrIp" : { "Ref" : "SSHLocation" }} ],
+        "SecurityGroupEgress"  : [ { "IpProtocol" : "tcp", "FromPort" : "0",  "ToPort" : "65535",  "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "VPC", "CIDR" ]}}]
+      }
+    },
+
+    "BastionHost" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        "InstanceType" : "t1.micro",
+        "KeyName"  : { "Ref" : "KeyName" },
+        "SubnetId" : { "Ref" : "PublicSubnet" },
+        "ImageId"  : "ami-d0f89fb9",
+        "SecurityGroupIds" : [{ "Ref" : "BastionSecurityGroup" }]
+      }
+    },
+
+    "PrivateSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable secure access from the bastion host and free communication between nodes.",
+        "VpcId" : { "Ref" : "VPC" },
+        "SecurityGroupIngress" : [
+          { "IpProtocol" : "-1", "FromPort" : "0",  "ToPort" : "65535",  "CidrIp" : { "Fn::FindInMap" : [ "SubnetConfig", "Private", "CIDR" ]}},
+          { "IpProtocol" : "-1", "FromPort" : "0",  "ToPort" : "65535",  "SourceSecurityGroupId" : { "Ref" : "BastionSecurityGroup" }} ],
+        "SecurityGroupEgress"  : [ { "IpProtocol" : "-1", "FromPort" : "0",  "ToPort" : "65535",  "CidrIp" : "0.0.0.0/0" }]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "Bastion" : {
+      "Description" : "IP Address of the Bastion host",
+      "Value" :  { "Ref" : "BastionIPAddress" }
+    }
+  }
+}
