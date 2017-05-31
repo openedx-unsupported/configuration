@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Install development.txt in Vagrant and Docker devstacks
+
+- Role: edxapp
   - Set the EDXAPP_IMPORT_EXPORT_BUCKET setting to an empty string
 
 - Role: edxapp
