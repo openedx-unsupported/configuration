@@ -1,5 +1,6 @@
 - Role: edxapp
   - Added the EDXAPP_ACTIVATION_EMAIL_SUPPORT_LINK URL with default value `''`.
+  - Added the EDXAPP_PASSWORD_RESET_SUPPORT_LINK URL with default value `''`.
 
 - Role: edxapp
   - Added the EDXAPP_SHOW_HEADER_LANGUAGE_SELECTOR feature flag with default value [false]
