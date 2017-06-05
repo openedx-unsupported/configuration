@@ -69,7 +69,12 @@ openedx_releases = {
 }
 openedx_releases.default = "ficus-devstack-2017-02-07"
 
-openedx_release = ENV['OPENEDX_RELEASE']
+if ENV['OPENEDX_RELEASE']
+    openedx_release = ENV['OPENEDX_RELEASE']
+else
+    openedx_release = 'open-release/ficus.master'
+end
+
 boxname = ENV['OPENEDX_BOXNAME']
 
 # Build -e override lines for each overridable variable.
@@ -93,8 +98,17 @@ cd /edx/app/edx_ansible/edx_ansible/playbooks
 EXTRA_VARS="#{extra_vars_lines}"
 CONFIG_VER="#{ENV['CONFIGURATION_VERSION'] || openedx_release || 'master'}"
 
-ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS
-ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS
+# Appsembler specific configuration
+
+
+APPSEMBLER_VARS="-e edx_platform_repo="https://github.com/appsembler/edx-platform.git" \
+  -e edx_platform_version="appsembler/ficus/develop" \
+  -e edx_ansible_source_repo="https://github.com/appsembler/configuration.git" \
+  -e configuration_version="appsembler/ficus/master" \
+"
+
+ansible-playbook -i localhost, -c local run_role.yml -e role=edx_ansible -e configuration_version=$CONFIG_VER $EXTRA_VARS $APPSEMBLER_VARS
+ansible-playbook -i localhost, -c local vagrant-devstack.yml -e configuration_version=$CONFIG_VER $EXTRA_VARS $APPSEMBLER_VARS
 
 SCRIPT
 
