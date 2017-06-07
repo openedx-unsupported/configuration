@@ -1,3 +1,8 @@
+- Role: edx_notes_api
+  - Removed EDX_NOTES_API_ELASTICSEARCH_HOST.
+  - Removed EDX_NOTES_API_ELASTICSEARCH_PORT.
+  - EDX_NOTES_API_ELASTICSEARCH_URL.
+
 - Role: edxapp
   - Added the EDXAPP_ACTIVATION_EMAIL_SUPPORT_LINK URL with default value `''`.
   - Added the EDXAPP_PASSWORD_RESET_SUPPORT_LINK URL with default value `''`.
