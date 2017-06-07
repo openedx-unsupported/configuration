@@ -60,6 +60,12 @@ case "$1" in
         paver run_quality
         ;;
 
+    "a11y")
+        # Run some of the accessiblity tests
+        paver test_a11y -t lms/test_problem_types.py:CheckboxTextProblemTypeTest.test_problem_type_a11y
+        paver test_a11y -t lms/test_problem_types.py:RadioTextProblemTypeTest.test_problem_type_a11y
+        ;;
+
     *)
         echo "args required"
         exit 1
