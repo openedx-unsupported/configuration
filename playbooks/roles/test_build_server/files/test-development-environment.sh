@@ -62,6 +62,7 @@ case "$1" in
 
     "a11y")
         # Run some of the accessiblity tests
+        export SELENIUM_BROWSER=phantomjs
         paver test_a11y -t lms/test_problem_types.py:CheckboxTextProblemTypeTest.test_problem_type_a11y
         paver test_a11y -t lms/test_problem_types.py:RadioTextProblemTypeTest.test_problem_type_a11y
         ;;
