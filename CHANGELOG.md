@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Updated default value of the EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES setting to ["audit", "honor"]
+
 - Role: edx_notes_api
   - Removed EDX_NOTES_API_ELASTICSEARCH_HOST.
   - Removed EDX_NOTES_API_ELASTICSEARCH_PORT.
