@@ -1,3 +1,7 @@
+- Role: elasticsearch
+  - Replaced `elasticsearch_apt_key` and `elastic_search_apt_keyserver` with `elasticsearch_apt_key_url`
+  - Updated elasticsearch version to 1.5.0
+
 - Role: edxapp
   - Install development.txt in Vagrant and Docker devstacks
 
