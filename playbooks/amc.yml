@@ -2,14 +2,16 @@
 
 - name: Configure Mongo
   hosts: mongo
-  sudo: True
+  become: True
+  become_method: sudo
   gather_facts: True
   roles:
     - mongo_3_0
 
 - name: Configure shared services (es and memcached)
   hosts: services
-  sudo: True
+  become: True
+  become_method: sudo
   gather_facts: True
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
@@ -20,7 +22,8 @@
 
 - name: Configure app server instance(s)
   hosts: edx
-  sudo: True
+  become: True
+  become_method: sudo
   gather_facts: True
   vars:
     migrate_db: "yes"
@@ -34,6 +37,7 @@
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
     - role: sudo
+    - mysql_init
     - role: nginx
       nginx_sites:
       - cms
@@ -65,11 +69,13 @@
 
 - name: Install xqueue, notifier and rabbitmq on services node
   hosts: "services"
-  sudo: True
+  become: True
+  become_method: sudo
   gather_facts: True
   vars:
     migrate_db: "yes"
   roles:
+    - mysql_init
     - edxapp_common
     - role: nginx
       nginx_sites:
@@ -82,7 +88,8 @@
 # must come after xqueue running
 - name: Install certs
   hosts: "edx"
-  sudo: True
+  become: True
+  become_method: sudo
   gather_facts: True
   vars:
     migrate_db: "yes"
