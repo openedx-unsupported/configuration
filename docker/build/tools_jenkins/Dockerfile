@@ -10,6 +10,10 @@ RUN add-apt-repository \
    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
    $(lsb_release -cs) \
    stable"
+RUN add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   edge"
 RUN apt-get update
 RUN apt-get install -y docker-ce
 RUN echo "jenkins ALL=NOPASSWD: ALL" >> /etc/sudoers
