@@ -130,13 +130,15 @@
   with_items: "{{ user_info }}"
   register: github_users_return
 
-- debug:
+- name: Print warning if github user(s) missing ssh key
+  debug:
     msg: "User {{ item.item.name }} doesn't have an SSH key associated with their github account"
   with_items: "{{ github_users_return.results | default([]) }}"
   # We skip users in the previous task, and they end up with no content_length
   when: ('content' in item and item.content == "")
 
-- fail:
+- name: Halt if USER_FAIL_MISSING_KEYS is true and github user(s) missing ssh key
+  fail:
     msg: "User {{ item.item.name }} doesn't have an SSH key associated with their github account"
   with_items: "{{ github_users_return.results | default([]) }}"
   # We skip users in the previous task, and they end up with no content_length
