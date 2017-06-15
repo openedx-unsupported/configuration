@@ -76,7 +76,7 @@
     line: "LogLevel VERBOSE"
   register: sshd_config_line1
 
-- name: Update sshd logging to VERBOSE
+- name: Update sshd password authentication
   lineinfile:
     dest: /etc/ssh/sshd_config
     state: present
@@ -84,13 +84,74 @@
     line: "PasswordAuthentication {{ COMMON_SSH_PASSWORD_AUTH }}"
   register: sshd_config_line2
 
+- name: secure ssh algorithms
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: '^KexAlgorithms'
+    insertafter: '^ServerKeyBits'
+    line: 'KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256'
+  tags:
+    - install
+    - install:base
+
+- name: secure ssh Ciphers
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: '^Ciphers'
+    insertafter: '^KexAlgorithms'
+    line: 'Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr'
+  tags:
+    - install
+    - install:base
+
+- name: secure ssh MACs
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: '^MACs'
+    insertafter: '^Ciphers'
+    line: 'MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-ripemd160-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,hmac-ripemd160,umac-128@openssh.com'
+  tags:
+    - install
+    - install:base
+
+- name: enable public key authentication
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: '^PubkeyAuthentication'
+    insertafter: '^#PubkeyAuthentication'
+    line: 'PubkeyAuthentication yes'
+  tags:
+    - install
+    - install:base
+
+- name: disable dsa keys
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: '^HostKey .*dsa_key$'
+    state: absent
+  tags:
+    - install
+    - install:base
+
+- name: disable Challenge Response
+  lineinfile:
+    name: /etc/ssh/sshd_config
+    regexp: '^ChallengeResponseAuthentication'
+    insertafter: '^#ChallengeResponseAuthentication'
+    line: 'ChallengeResponseAuthentication no'
+  tags:
+    - install
+    - install:base
+
 - name: Restart ssh
   service:
     name: ssh
     state: restarted
   become: True
+  tags:
+    - install
+    - install:base
   when: >
-    (sshd_config_line1.changed or sshd_config_line2.changed) and
     ansible_distribution in common_debian_variants
 
 - name: Restart ssh
@@ -99,5 +160,4 @@
     state: restarted
   become: True
   when: >
-    (sshd_config_line1.changed or sshd_config_line2.changed) and
     ansible_distribution in common_redhat_variants
