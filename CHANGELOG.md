@@ -1,3 +1,6 @@
+- Role: neo4j
+  - Updated neo4j to 3.2.2
+
 - Role: edxapp
   - Let `confirm_email` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
   - Let `terms_of_service` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
