@@ -72,9 +72,29 @@
     - install
     - install:configuration
 
+- name: set log dir for neo4j
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_wrapper_config_file }}"
+    regexp: "dbms.directories.logs="
+    line: "dbms.directories.logs={{ neo4j_log_dir }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Create neo4j logging dir
+  file:
+    path: "{{ neo4j_log_dir }}"
+    state: directory
+    owner: neo4j
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
 - name: restart neo4j
-  service: 
-    name: neo4j 
+  service:
+    name: neo4j
     state: restarted
   tags:
     - manage
