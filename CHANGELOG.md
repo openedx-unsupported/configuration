@@ -1,3 +1,6 @@
+- Role: neo4j
+  - Updated neo4j to 3.2.2
+
 - Role: forum
   - Added `FORUM_REBUILD_INDEX` to rebuild the ElasticSearch index from the database, when enabled.  Default: `False`.
 
