@@ -19,6 +19,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/edxapp/ansible_overrides.yml /
 COPY docker/build/edxapp/devstack.yml /
+COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
@@ -27,6 +28,7 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook edxapp.yml 
     -t 'install,assets,devstack' \
     --extra-vars=edx_platform_version=${OPENEDX_RELEASE} \
     --extra-vars="@/ansible_overrides.yml" \
-    --extra-vars="@/devstack.yml"
+    --extra-vars="@/devstack.yml" \
+    --extra-vars="@/devstack/ansible_overrides.yml"
 
 EXPOSE 18000 18010
