@@ -11,6 +11,10 @@
   - Updated the java build that neo4j uses to run.
 
 - Role: edxapp
+  - Set the default value for EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY to
+ 'edx.lms.core.default'.
+
+- Role: edxapp
   - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
  'edx.lms.core.low'.
 
