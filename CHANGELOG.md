@@ -1,3 +1,7 @@
+- Role: edxapp
+  - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
+ 'edx.lms.core.low'.
+
 - Role: jenkins_master
   - Update pinned use of JDK7 in Jenkins installs to default JDK version from role `oraclejdk`.
 
