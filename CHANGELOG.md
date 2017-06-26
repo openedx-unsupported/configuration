@@ -1,3 +1,8 @@
+- Role: neo4j
+  - Enabled splunk forwarding for neo4j logs.
+  - Increased maximum amount of open files to 40000, as suggested by neo4j.
+  - Updated the java build that neo4j uses to run.
+
 - Role: edxapp
   - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
  'edx.lms.core.low'.
