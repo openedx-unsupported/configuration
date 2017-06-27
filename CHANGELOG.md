@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Added ECOMMERCE_LANGUAGE_COOKIE_NAME which is the name of the cookie the ecommerce django app looks at for determining the language preference.
+  
 - Role: neo4j
   - Enabled splunk forwarding for neo4j logs.
   - Increased maximum amount of open files to 40000, as suggested by neo4j.
