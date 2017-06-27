@@ -72,9 +72,36 @@
     - install
     - install:configuration
 
+- name: set to run neo4j with the newrelic javaagent
+  # see https://docs.newrelic.com/docs/agents/java-agent/installation/java-agent-manual-installation
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "wrapper.java.additional.2="
+    line: "wrapper.java.additional.2=/etc/neo4j/newrelic.jar"
+  tags:
+    - install
+    - install:configuration
+
+- name: store jar file for javaagent
+  copy:
+    src: newrelic.jar
+    dest: /etc/neo4j
+    # just guessing? No idea what mode we'd need
+    mode: 0644
+    owner: neo4j
+  tags:
+    - install
+    - install:configuration
+
+- template:
+    src: ../templates/etc/neo4j/newrelic.yml.j2
+    dest: /etc/neo4j/newrelic.yml
+    owner: neo4j
+    mode: 0644
+
 - name: restart neo4j
-  service: 
-    name: neo4j 
+  service:
+    name: neo4j
     state: restarted
   tags:
     - manage
