@@ -1,0 +1,33 @@
+- name: install httplib2
+  pip: name=httplib2
+  tags: ['githubsshkeys']
+
+- name: get SSH keys from GitHub
+  uri: >
+    url="https://github.com/{{ item }}.keys"
+    return_content=true
+  register: ssh_keys
+  with_items: githubsshkeys_usernames
+  tags: ['githubsshkeys']
+
+- name: add SSH key labels to ~/.ssh/authorized_keys
+  become: true
+  become_user: "{{ githubsshkeys_user }}"
+  lineinfile: >
+    dest=~/.ssh/authorized_keys
+    line="# {{ item }}"
+  with_items: githubsshkeys_usernames
+  tags: ['githubsshkeys']
+
+- name: add SSH keys to ~/.ssh/authorized_keys
+  become: true
+  become_user: "{{ githubsshkeys_user }}"
+  lineinfile: >
+    dest=~/.ssh/authorized_keys
+    line="{{ item.0.content }}"
+    insertafter="{{ item.1 }}"
+  with_together:
+    - ssh_keys.results
+    - githubsshkeys_usernames
+  when: "githubsshkeys_usernames | count > 0"
+  tags: ['githubsshkeys']
