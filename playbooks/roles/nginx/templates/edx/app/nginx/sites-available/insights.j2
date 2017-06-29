@@ -8,14 +8,14 @@ upstream insights_app_server {
 # but only the server name (e.g. https://www.example.com).
 # See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
 #
-# Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
-# of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
-map $http_origin $cors_origin {
-  default "null";
+# Here we enable/disable the Access-Control-Allow-Origin response header. If the origin is one of our known
+# hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we do not include the header.
+set $cors '';
 {% for host in INSIGHTS_CORS_ORIGIN_WHITELIST %}
-  "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
-{% endfor %}
+if ($http_origin ~ '^https?://{{host|replace('.', '\.') }}$') {
+    set $cors 'true';
 }
+{% endfor %}
 
 server {
   listen {{ INSIGHTS_NGINX_PORT }} default_server;
@@ -34,9 +34,11 @@ server {
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ insights_service_name }};
 	add_header Cache-Control "max-age=31536000";
-    # $cors_origin isn't working, trying just $http_origin
-    add_header 'Access-Control-Allow-Origin' $http_origin;
-    add_header 'Access-Control-Allow-Methods' 'HEAD, GET, OPTIONS';
+
+    if ($cors = 'true') {
+        add_header 'Access-Control-Allow-Origin' $http_origin;
+        add_header 'Access-Control-Allow-Methods' 'HEAD, GET, OPTIONS';
+    }
 
     # Inform downstream caches to take certain headers into account when reading/writing to cache.
     add_header 'Vary' 'Accept-Encoding,Origin';
