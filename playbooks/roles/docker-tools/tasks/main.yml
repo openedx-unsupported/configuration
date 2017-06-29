@@ -29,24 +29,23 @@
 
 - name: add docker apt key
   apt_key:
-    keyserver: "{{ docker_apt_keyserver }}"
-    id: "{{ docker_apt_key_id }}"
+    url: "{{ docker_apt_key_url }}"
   tags:
     - install
     - install:configuration
 
 - name: add docker repo
   apt_repository:
-    repo: "{{ docker_repo }}"
+    repo: "{{ item }}"
+  with_items: "{{ docker_repos }}"
   tags:
     - install
     - install:configuration
 
 - name: install docker-engine
   apt:
-    name: "docker-engine"
+    name: "docker-ce"
     update_cache: yes
-    cache_valid_time: "{{ cache_valid_time }}"
   tags:
     - install
     - install:system-requirements
