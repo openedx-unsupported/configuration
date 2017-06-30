@@ -295,3 +295,8 @@
 
 - Role: insights
   - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: insights
+  - Added `INSIGHTS_DOMAIN` to configure the domain Insights is deployed on
+  - Added `INSIGHTS_CLOUDFRONT_DOMAIN` to configure the domain static files can be served from
+  - Added `INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA` to configure allowing CORS on domains other than the `INSIGHTS_DOMAIN`
