@@ -10,12 +10,16 @@ IFS=","
 
     Usage: $PROG <repo> <version>
             -v        add verbosity to edx_ansible run
+            -e        add extra_vars to ansible plays
             -h        this
 
     <repo> - must be one of edx-platform, edx-workers, xqueue, cs_comments_service, credentials, xserver, configuration,
     read-only-certificate-code, edx-analytics-data-api, edx-ora2, insights, ecommerce, course_discovery,
     notifier
     <version> - can be a commit or tag
+    <extra_vars> - specify extra_vars to any of the ansible plays with the -e switch and then ecaptulating your vars in "duoble quotes"
+                   example: update <repo> <version> -e "-e 'hallo=bye' -e 'bye=hallo'"
+                   you can also specify a file as -e "-e '@/path/to/file.yml'"
 
 EO
 IFS=$SAVE_IFS
@@ -45,7 +49,9 @@ extra_args="$extra_args -e 'disable_edx_services=true' -e devstack=true"
 {% endif %}
 
 if [[ "$3" == "-e" ]]; then
-        extra_args="$extra_args -e ${@:3}"
+        opt=$4
+        sed -e 's/^"//' -e 's/"$//' <<<"$opt"
+        extra_args="$extra_args $opt"
 fi
 
 declare -A repos_to_cmd
