@@ -288,3 +288,8 @@
 
 - Role: insights
   - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: insights
+  - Removed `bower install` task
+  - Replaced r.js build task with webpack build task
+  - Removed `./maange.py compress` task
