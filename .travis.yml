@@ -6,6 +6,9 @@ python:
 branches:
   only:
   - master
+  - oxa/master.fic
+  - oxa/dev.fic
+  - oxa/devfic
 
 services:
   - docker
@@ -18,15 +21,15 @@ addons:
 
 before_install:
   - sudo apt-get -y update
-  - sudo apt-get -y install -o Dpkg::Options::="--force-confold" docker-engine
+  - sudo apt-get -y install -o Dpkg::Options::="--force-confold" docker-ce
 
 install:
   - "pip install --allow-all-external -r requirements.txt"
   - "pip install --allow-all-external demjson"
 
 env:
-  - MAKE_TARGET=test.syntax
-  - MAKE_TARGET=test.edx_east_roles
+  - MAKE_TARGET=test.syntax SHARD=0 SHARDS=1
+  - MAKE_TARGET=test.edx_east_roles SHARD=0 SHARDS=1
   - MAKE_TARGET=docker.test.shard SHARD=0 SHARDS=3
   - MAKE_TARGET=docker.test.shard SHARD=1 SHARDS=3
   - MAKE_TARGET=docker.test.shard SHARD=2 SHARDS=3
