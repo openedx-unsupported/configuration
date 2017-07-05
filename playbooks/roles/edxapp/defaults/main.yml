@@ -245,7 +245,6 @@ EDXAPP_FEATURES:
   ENABLE_INSTRUCTOR_ANALYTICS: false
   PREVIEW_LMS_BASE: "{{ EDXAPP_PREVIEW_LMS_BASE }}"
   ENABLE_GRADE_DOWNLOADS: true
-  USE_CUSTOM_THEME: "{{ edxapp_use_custom_theme }}"
   ENABLE_MKTG_SITE: "{{ EDXAPP_ENABLE_MKTG_SITE }}"
   AUTOMATIC_AUTH_FOR_TESTING: "{{ EDXAPP_ENABLE_AUTO_AUTH }}"
   ENABLE_THIRD_PARTY_AUTH: "{{ EDXAPP_ENABLE_THIRD_PARTY_AUTH }}"
@@ -487,12 +486,14 @@ EDXAPP_ANALYTICS_DATA_URL: ""
 EDXAPP_ANALYTICS_DASHBOARD_URL: "http://localhost:18110/courses"
 
 EDXAPP_REGISTRATION_EXTRA_FIELDS:
+  confirm_email: "hidden"
   level_of_education: "optional"
   gender: "optional"
   year_of_birth: "optional"
   mailing_address: "hidden"
   goals: "optional"
   honor_code: "required"
+  terms_of_service: "hidden"
   city: "hidden"
   country: "required"
 
@@ -527,6 +528,7 @@ EDXAPP_CELERY_WORKERS:
     monitor: False
     max_tasks_per_child: 1
 EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
+EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: 'edx.lms.core.low'
 EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\1')|list }}"
 EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\1')|list }}"
 
@@ -663,6 +665,14 @@ EDXAPP_SOCIAL_AUTH_SAML_SP_PUBLIC_CERT: ''
 EDXAPP_SESSION_SAVE_EVERY_REQUEST: false
 
 EDXAPP_SESSION_COOKIE_SECURE: false
+
+EDXAPP_VIDEO_IMAGE_MAX_AGE: 31536000
+
+# This is django storage configuration for Video Image settings.
+# You can configure S3 or Swift in lms/envs/common.py
+EDXAPP_VIDEO_IMAGE_SETTINGS:
+  VIDEO_IMAGE_MAX_BYTES : 2097152
+  VIDEO_IMAGE_MIN_BYTES : 2048
 
 # Course Block Structures
 EDXAPP_BLOCK_STRUCTURES_SETTINGS:
@@ -1019,7 +1029,6 @@ generic_env_config:  &edxapp_generic_env
   SESSION_COOKIE_DOMAIN:  "{{ EDXAPP_SESSION_COOKIE_DOMAIN }}"
   SESSION_COOKIE_NAME:  "{{ EDXAPP_SESSION_COOKIE_NAME }}"
   COMMENTS_SERVICE_KEY: "{{ EDXAPP_COMMENTS_SERVICE_KEY }}"
-  THEME_NAME: "{{ edxapp_theme_name }}"
   TECH_SUPPORT_EMAIL: "{{ EDXAPP_TECH_SUPPORT_EMAIL }}"
   CONTACT_EMAIL: "{{ EDXAPP_CONTACT_EMAIL }}"
   BUGS_EMAIL: "{{ EDXAPP_BUGS_EMAIL }}"
@@ -1043,6 +1052,8 @@ generic_env_config:  &edxapp_generic_env
   REGISTRATION_EXTRA_FIELDS: "{{ EDXAPP_REGISTRATION_EXTRA_FIELDS }}"
   XBLOCK_SETTINGS: "{{ EDXAPP_XBLOCK_SETTINGS }}"
   EDXMKTG_USER_INFO_COOKIE_NAME: "{{ EDXAPP_EDXMKTG_USER_INFO_COOKIE_NAME }}"
+  VIDEO_IMAGE_MAX_AGE: "{{ EDXAPP_VIDEO_IMAGE_MAX_AGE }}"
+  VIDEO_IMAGE_SETTINGS: "{{ EDXAPP_VIDEO_IMAGE_SETTINGS }}"
   BLOCK_STRUCTURES_SETTINGS: "{{ EDXAPP_BLOCK_STRUCTURES_SETTINGS }}"
 
   # Deprecated, maintained for backward compatibility
@@ -1137,6 +1148,7 @@ lms_env_config:
   API_DOCUMENTATION_URL: "{{ EDXAPP_API_DOCUMENTATION_URL }}"
   AUTH_DOCUMENTATION_URL: "{{ EDXAPP_AUTH_DOCUMENTATION_URL }}"
   RECALCULATE_GRADES_ROUTING_KEY: "{{ EDXAPP_RECALCULATE_GRADES_ROUTING_KEY }}"
+  BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: "{{ EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS }}"
   CELERY_QUEUES: "{{ EDXAPP_LMS_CELERY_QUEUES }}"
   ALTERNATE_WORKER_QUEUES: "cms"
   ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES: "{{ EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES }}"
@@ -1200,12 +1212,10 @@ worker_core_mult:
   cms: 2
 
 # Stanford-style Theming
-# Turn theming on and off with edxapp_use_custom_theme
 # Set theme name with edxapp_theme_name
 # Stanford, for example, uses edxapp_theme_name: 'stanford'
 #
 # TODO: change variables to ALL-CAPS, since they are meant to be externally overridden
-edxapp_use_custom_theme: false
 edxapp_theme_name: ""
 edxapp_theme_source_repo: 'https://{{ COMMON_GIT_MIRROR }}/Stanford-Online/edx-theme.git'
 edxapp_theme_version: 'master'

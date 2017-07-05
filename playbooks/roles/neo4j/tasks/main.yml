@@ -72,9 +72,48 @@
     - install
     - install:configuration
 
+- name: set log dir for neo4j
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.directories.logs="
+    line: "dbms.directories.logs={{ neo4j_log_dir }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Create neo4j logging dir
+  file:
+    path: "{{ neo4j_log_dir }}"
+    state: directory
+    owner: neo4j
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: Create neo4j default file
+  file:
+    path: "{{ neo4j_defaults_file }}"
+    state: touch
+    owner: neo4j
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: set max open files to 40000
+  lineinfile:
+    dest: "{{ neo4j_defaults_file }}"
+    regexp: "#NEO4J_ULIMIT_NOFILE=40000"
+    line: "NEO4J_ULIMIT_NOFILE=40000"
+  tags:
+    - install
+    - install:base
+
 - name: restart neo4j
-  service: 
-    name: neo4j 
+  service:
+    name: neo4j
     state: restarted
   tags:
     - manage

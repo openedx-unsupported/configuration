@@ -1,3 +1,22 @@
+- Role: edxapp
+  - Let `confirm_email` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
+  - Let `terms_of_service` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
+
+- Role: ecommerce
+  - Added ECOMMERCE_LANGUAGE_COOKIE_NAME which is the name of the cookie the ecommerce django app looks at for determining the language preference.
+
+- Role: neo4j
+  - Enabled splunk forwarding for neo4j logs.
+  - Increased maximum amount of open files to 40000, as suggested by neo4j.
+  - Updated the java build that neo4j uses to run.
+
+- Role: edxapp
+  - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
+ 'edx.lms.core.low'.
+
+- Role: jenkins_master
+  - Update pinned use of JDK7 in Jenkins installs to default JDK version from role `oraclejdk`.
+
 - Role: notifier
   - Added `NOTIFIER_DATABASE_ENGINE`, `NOTIFIER_DATABASE_NAME`, `NOTIFIER_DATABASE_USER`, `NOTIFIER_DATABASE_PASSWORD`, `NOTIFIER_DATABASE_HOST`, and `NOTIFIER_DATABASE_PORT` to be able to configure the `notifier` service to use a database engine other than sqlite. Defaults to local sqlite.
   - Deprecated: `NOTIFIER_DB_DIR`: Please use `NOTIFIER_DATABASE_NAME` instead.
@@ -288,6 +307,14 @@
 
 - Role: insights
   - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: insights
+  - Added `INSIGHTS_DOMAIN` to configure the domain Insights is deployed on
+  - Added `INSIGHTS_CLOUDFRONT_DOMAIN` to configure the domain static files can be served from
+  - Added `INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA` to configure allowing CORS on domains other than the `INSIGHTS_DOMAIN`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
 
 - Role: insights
   - Removed `bower install` task
