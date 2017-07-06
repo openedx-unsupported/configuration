@@ -1,5 +1,6 @@
 - Role: neo4j
   - Updated neo4j to 3.2.2
+  - Removed authentication requirement for neo4j
 
 - Role: edxapp
   - Let `confirm_email` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
