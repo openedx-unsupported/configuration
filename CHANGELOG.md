@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Enable New Relic for celery workers on loadtest.
+
 - Role: ecommerce
   - Added ECOMMERCE_LANGUAGE_COOKIE_NAME which is the name of the cookie the ecommerce django app looks at for determining the language preference.
   
