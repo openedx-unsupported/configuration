@@ -1,0 +1,174 @@
+---
+# for single server community
+# This file based on `edx_sandbox.yml`
+
+- name: Update theme
+  hosts: edxapp-server
+  become: True
+  gather_facts: True
+  vars_files:
+  - roles/common_vars/defaults/main.yml
+  - roles/supervisor/defaults/main.yml
+  - roles/edxapp/defaults/main.yml
+  vars:
+    tmp: none
+  tasks:
+    - name: Allow user running the playbook to sudo as other users
+      lineinfile: >
+        dest=/etc/sudoers state=present
+        regexp='^{{ ansible_env.SUDO_USER }} ALL\='
+        line='{{ ansible_env.SUDO_USER }} ALL=(ALL) NOPASSWD: ALL'
+        validate='visudo -cf %s'
+
+    - name: install read-only ssh key
+      copy:
+        content: "{{ EDXAPP_GIT_IDENTITY }}"
+        dest: "{{ edxapp_git_identity }}"
+        force: yes
+        owner: "{{ edxapp_user }}"
+        mode: "0600"
+      when: EDXAPP_USE_GIT_IDENTITY
+      tags:
+        - install
+        - install:base
+        - deploy:platform
+        - update_lms_theme
+
+    - name: copy the template to the desired location
+      template:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      with_items:
+        - { src: 'roles/edxapp/templates/git_ssh.sh.j2', dest: '{{ edxapp_git_ssh }}', owner: '{{ edxapp_user }}', group: '{{ edxapp_user }}', mode: '0750' }
+      tags:
+        - install
+        - install:base
+        - update_lms_theme
+
+    - name: checkout Stanford-style theme
+      git:
+        dest: "{{ edxapp_app_dir }}/themes/{{ edxapp_theme_name }}"
+        repo: "{{ edxapp_theme_source_repo }}"
+        version: "{{ edxapp_theme_version }}"
+        accept_hostkey: yes
+      when: edxapp_theme_name != ''
+      become_user: "{{ edxapp_user }}"
+      environment:
+        GIT_SSH: "{{ edxapp_git_ssh }}"
+      register: edxapp_theme_checkout
+      tags:
+        - install
+        - install:code
+        - update_lms_theme
+
+    - name: checkout comprehensive theme
+      git:
+        dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}"
+        repo: "{{ edxapp_theme_source_repo }}"
+        version: "{{ edxapp_theme_version }}"
+        accept_hostkey: yes
+      when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and EDXAPP_DEFAULT_SITE_THEME != ''
+      become_user: "{{ edxapp_user }}"
+      environment:
+        GIT_SSH: "{{ edxapp_git_ssh }}"
+      register: edxapp_theme_checkout
+      tags:
+        - install
+        - install:code
+        - update_lms_theme
+
+    - name: checkout customer override theme
+      git:
+        dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}/customer_specific"
+        repo: "{{ edxapp_customer_theme_source_repo }}"
+        version: "{{ edxapp_customer_theme_version }}"
+        accept_hostkey: yes
+        key_file: "/edx/app/edxapp/.ssh/id_rsa"
+      when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and edxapp_customer_theme_source_repo != ''
+      become_user: "{{ edxapp_user }}"
+      environment:
+        GIT_SSH: "{{ edxapp_git_ssh }}"
+      tags:
+        - install
+        - install:code
+        - update_lms_theme
+
+    - name: remove read-only ssh key
+      file:
+        path: "{{ edxapp_git_identity }}"
+        state: absent
+      when: EDXAPP_USE_GIT_IDENTITY
+      tags:
+        - install
+        - install:configuration
+        - install:code
+        - deploy:platform
+        - update_lms_theme
+
+    - name: Remove and recreate the staticfiles directory so nothing stale can exist
+      file:
+          path: "{{ edxapp_staticfile_dir }}"
+          state: "{{ item }}"
+          owner: "{{ edxapp_user }}"
+          group: "{{ common_web_group }}"
+          mode:  "0755"
+      when: celery_worker is not defined and not devstack
+      with_items: ['absent', 'directory']
+      tags:
+        - gather_static_assets
+        - assets
+        - update_lms_theme:compile_css
+
+    # Gather assets using paver if possible
+    - name: "gather lms static assets with paver"
+      command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-lms"
+      when: celery_worker is not defined and not devstack
+      tags:
+        - gather_static_assets
+        - assets
+        - update_lms_theme:compile_css
+
+    - name: "gather cms static assets with paver"
+      command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-cms"
+      when: celery_worker is not defined and not devstack
+      tags:
+        - gather_static_assets
+        - assets
+
+    - name: restart LMS
+      supervisorctl:
+        name: "edxapp:lms"
+        supervisorctl_path: "{{ supervisor_ctl }}"
+        config: "{{ supervisor_cfg }}"
+        state: restarted
+      become_user: "{{ supervisor_service_user }}"
+      when: celery_worker is not defined and not disable_edx_services
+      tags:
+        - manage
+        - update_lms_theme
+
+    - name: restart CMS
+      supervisorctl:
+        name: "edxapp:cms"
+        supervisorctl_path: "{{ supervisor_ctl }}"
+        config: "{{ supervisor_cfg }}"
+        state: restarted
+      become_user: "{{ supervisor_service_user }}"
+      when: celery_worker is not defined and not disable_edx_services
+      tags:
+        - manage
+
+    - name: ensure edxapp has started
+      supervisorctl:
+        name: "edxapp:"
+        supervisorctl_path: "{{ supervisor_ctl }}"
+        config: "{{ supervisor_cfg }}"
+        state: started
+      become_user: "{{ supervisor_service_user }}"
+      when: celery_worker is not defined and not disable_edx_services
+      tags:
+        - manage
+        - update_lms_theme
