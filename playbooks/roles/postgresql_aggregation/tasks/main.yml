@@ -1,0 +1,71 @@
+---
+
+- name: Install packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    state: present
+  with_items: postgresql_aggregation_packages
+
+- name: install requirements for role
+  pip:
+    name: "{{ item }}"
+    state: present
+  with_items: postgresql_aggregation_requirements
+
+- name: check if user already exists
+  command: "psql -h {{ postgresql_aggregation_login_host }} -U {{ postgresql_aggregation_login_user }} -d postgres -c \"SELECT 1 FROM pg_roles WHERE rolname='{{ POSTGRESQL_AGGREGATION_USER }}'\""
+  register: user_exists
+  environment:
+    PGPASSWORD: "{{ postgresql_aggregation_login_password }}"
+
+- name: Create aggregation users
+  postgresql_user:
+    db: "{{ POSTGRESQL_AGGREGATION_DATABASE }}"
+    name: "{{ POSTGRESQL_AGGREGATION_USER }}"
+    password: "{{ POSTGRESQL_AGGREGATION_PASSWORD }}"
+    login_host: "{{ postgresql_aggregation_login_host }}"
+    login_user: "{{ postgresql_aggregation_login_user }}"
+    login_password: "{{ postgresql_aggregation_login_password }}"
+    port: "{{ postgresql_aggregation_login_port }}"
+  when: POSTGRESQL_AGGREGATION_DATABASE != None and POSTGRESQL_AGGREGATION_DATABASE != '' and user_exists.stdout_lines[2] == '(0 rows)'
+
+# This isn't pretty, here is why: https://github.com/ansible/ansible-modules-core/issues/297
+
+- name: Declare psql change pwd command
+  set_fact:
+    psql_change_pwd: ALTER USER \""{{ POSTGRESQL_AGGREGATION_USER }}"\" WITH PASSWORD '{{ POSTGRESQL_AGGREGATION_PASSWORD }}';
+
+- debug:
+    msg: "{{ psql_change_pwd }}"
+
+- name: Ensure password matches what we have
+  command: "psql -h {{ postgresql_aggregation_login_host }} -U {{ postgresql_aggregation_login_user }} -d postgres -c \"{{ psql_change_pwd }}\""
+  environment:
+     PGPASSWORD: "{{ postgresql_aggregation_login_password }}"
+  when: POSTGRESQL_AGGREGATION_DATABASE != None and POSTGRESQL_AGGREGATION_DATABASE != '' and user_exists.stdout_lines[2] != '(0 rows)'
+
+- name: Set roles to users
+  postgresql_privs:
+    database: "postgres"
+    roles: "{{ POSTGRESQL_AGGREGATION_USER }}"
+    objs: "{{ POSTGRESQL_AGGREGATION_USER_ROLE }}"
+    type: "group"
+    login_host: "{{ postgresql_aggregation_login_host }}"
+    login_user: "{{ postgresql_aggregation_login_user }}"
+    login_password: "{{ postgresql_aggregation_login_password }}"
+    port: "{{ postgresql_aggregation_login_port }}"
+  when: POSTGRESQL_AGGREGATION_DATABASE != None and POSTGRESQL_AGGREGATION_DATABASE != ''
+
+- name: Copy aggregation script for cron job
+  template: src=aggregate_usage.j2 dest=/usr/local/bin/aggregate_usage owner=root group=root mode=0700
+  when: POSTGRESQL_AGGREGATION_INSTALL_CRON
+
+- name: Create cron job aggregation usage
+  cron:
+    name="Aggregation Usage"
+    cron_file=run_aggregate_usage
+    user=root
+    job="/usr/local/bin/aggregate_usage"
+    hour=*/6
+  when: POSTGRESQL_AGGREGATION_INSTALL_CRON

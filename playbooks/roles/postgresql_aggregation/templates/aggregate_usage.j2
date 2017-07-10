@@ -1,0 +1,13 @@
+#!/bin/bash
+cd /edx/app/edxapp/edx-platform
+source /edx/app/edxapp/edxapp_env
+
+if [[ -z "$NO_EDXAPP_SUDO" ]]; then
+    SUDO='sudo -E -u edxapp env "PATH=$PATH"'
+fi
+
+$SUDO /edx/app/edxapp/venvs/edxapp/bin/python manage.py lms --settings=aws_appsembler aggregate_usage \
+  --customer-id={{ POSTGRESQL_AGGREGATION_USER }}__{{ POSTGRESQL_AGGREGATION_USER }} \
+  --customer-name="{{ POSTGRESQL_AGGREGATION_CUSTOMER_NAME }}" \
+  --subscription-start={{ POSTGRESQL_AGGREGATION_SUBSCRIPTION }} \
+  --quota={{ POSTGRESQL_AGGREGATION_QUOTA }}
