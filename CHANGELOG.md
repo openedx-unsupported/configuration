@@ -319,3 +319,6 @@
 
 - Role: edxapp
   - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
+
+- Role: edxapp
+  - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.
