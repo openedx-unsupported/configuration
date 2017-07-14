@@ -157,6 +157,10 @@ if [[ -z $edx_demo_course ]]; then
   edx_demo_course="false"
 fi
 
+if [[ -z $enable_automatic_auth_for_testing ]]; then
+  enable_automatic_auth_for_testing="false"
+fi
+
 if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
 fi
@@ -269,6 +273,7 @@ FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 ENABLE_PERFORMANCE_COURSE: $performance_course
 ENABLE_DEMO_TEST_COURSE: $demo_test_course
 ENABLE_EDX_DEMO_COURSE: $edx_demo_course
+EDXAPP_ENABLE_AUTO_AUTH: $enable_automatic_auth_for_testing
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
