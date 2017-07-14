@@ -1,3 +1,7 @@
+- Role: nginx
+  - Added `NGINX_EDXAPP_CMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for Studio.
+  - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for the LMS.
+
 - Role: edxapp
   - Let `confirm_email` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
   - Let `terms_of_service` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
@@ -9,6 +13,10 @@
   - Enabled splunk forwarding for neo4j logs.
   - Increased maximum amount of open files to 40000, as suggested by neo4j.
   - Updated the java build that neo4j uses to run.
+
+- Role: edxapp
+  - Set the default value for EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY to
+ 'edx.lms.core.default'.
 
 - Role: edxapp
   - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
@@ -315,6 +323,9 @@
 
 - Role: edxapp
   - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
+
+- Role: edxapp
+  - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.
 
 - Role: insights
   - Removed `bower install` task

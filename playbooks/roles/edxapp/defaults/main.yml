@@ -528,6 +528,7 @@ EDXAPP_CELERY_WORKERS:
     monitor: False
     max_tasks_per_child: 1
 EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
+EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: 'edx.lms.core.low'
 EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\1')|list }}"
 EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\1')|list }}"
@@ -673,6 +674,10 @@ EDXAPP_VIDEO_IMAGE_MAX_AGE: 31536000
 EDXAPP_VIDEO_IMAGE_SETTINGS:
   VIDEO_IMAGE_MAX_BYTES : 2097152
   VIDEO_IMAGE_MIN_BYTES : 2048
+  STORAGE_KWARGS:
+    location: "{{ edxapp_media_dir }}/"
+    base_url: "{{ EDXAPP_MEDIA_URL }}/"
+  DIRECTORY_PREFIX: 'video-images/'
 
 # Course Block Structures
 EDXAPP_BLOCK_STRUCTURES_SETTINGS:
@@ -700,6 +705,9 @@ EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES:
 
 # The assigned ICP license number for display in the platform footer
 EDXAPP_ICP_LICENSE: !!null
+
+# Base Cookie Domain to share cookie across edx domains
+EDXAPP_BASE_COOKIE_DOMAIN: "{{ EDXAPP_LMS_SITE_NAME }}"
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -1078,6 +1086,10 @@ generic_env_config:  &edxapp_generic_env
   HELP_TOKENS_BOOKS: "{{ EDXAPP_HELP_TOKENS_BOOKS }}"
   # License for serving content in China
   ICP_LICENSE: "{{ EDXAPP_ICP_LICENSE }}"
+  # Base Cookie Domain to share cookie across edx domains
+  BASE_COOKIE_DOMAIN: "{{ EDXAPP_BASE_COOKIE_DOMAIN }}"
+
+  POLICY_CHANGE_GRADES_ROUTING_KEY: "{{ EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY }}"
 
 lms_auth_config:
   <<: *edxapp_generic_auth
