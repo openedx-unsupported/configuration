@@ -211,3 +211,12 @@
 - Role: edxapp
   - Added `XQUEUE_RABBITMQ_VHOST` to allow configuring the xqueue RabbitMQ host.
   - Added `XQUEUE_RABBITMQ_PORT` and `XQUEUE_RABBITMQ_TLS` to allow configuring the RabbitMQ port, and enabling TLS respectively.
+  - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
+
+- Role: edxapp
+  - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.
+
+- Role: insights
+  - Removed `bower install` task
+  - Replaced r.js build task with webpack build task
+  - Removed `./maange.py compress` task
