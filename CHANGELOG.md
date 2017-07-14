@@ -326,3 +326,8 @@
 
 - Role: edxapp
   - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.
+
+- Role: insights
+  - Removed `bower install` task
+  - Replaced r.js build task with webpack build task
+  - Removed `./maange.py compress` task
