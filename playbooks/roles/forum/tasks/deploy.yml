@@ -71,6 +71,17 @@
     - migrate
     - migrate:db
 
+- name: rebuild elasticsearch indexes
+  command: "{{ forum_code_dir }}/bin/rake search:rebuild_index"
+  args:
+    chdir: "{{ forum_code_dir }}"
+  become_user: "{{ forum_user }}"
+  environment: "{{ forum_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes" and FORUM_REBUILD_INDEX|bool
+  tags:
+    - migrate
+    - migrate:db
+
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
   # the services if any of the configurations
