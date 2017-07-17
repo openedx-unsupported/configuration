@@ -16,7 +16,7 @@ ansible-playbook -i localhost, --syntax-check travis-test.yml
 
 # Grab missing ansible variables from oxa-tools
 wget -q https://raw.githubusercontent.com/Microsoft/oxa-tools/oxa/devfic/config/countries.yml -O countries.yml
-wget -q https://raw.githubusercontent.com/Microsoft/oxa-tools/oxa/devfic/config/countries.yml -O languages.yml
+wget -q https://raw.githubusercontent.com/Microsoft/oxa-tools/oxa/devfic/config/languages.yml -O languages.yml
 wget -q https://raw.githubusercontent.com/Microsoft/oxa-tools/oxa/devfic/config/server-vars.yml -O server-vars.yml
 sed -i -e "s/%%\([^%]*\)%%//g" server-vars.yml
 
