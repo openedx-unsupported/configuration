@@ -21,10 +21,6 @@
     edx_platform_version: 'master'
     # Set to false if deployed behind another proxy/load balancer.
     NGINX_SET_X_FORWARDED_HEADERS: True
-    # These should stay false for the public AMI
-    COMMON_ENABLE_DATADOG: False
-    SANDBOX_ENABLE_ECOMMERCE: False
-    COMMON_ENABLE_SPLUNKFORWARDER: False
     DISCOVERY_URL_ROOT: 'http://localhost:{{ DISCOVERY_NGINX_PORT }}'
   roles:
     - role: swapfile
@@ -36,12 +32,9 @@
       - lms
       - forum
       - xqueue
+      - ecommerce
       nginx_default_sites:
       - lms
-    - role: nginx
-      nginx_sites:
-      - ecommerce
-      when: SANDBOX_ENABLE_ECOMMERCE
     - role: edxlocal
       when: EDXAPP_MYSQL_HOST == 'localhost'
     - role: memcache
@@ -53,11 +46,9 @@
     - role: edxapp
       celery_worker: True
     - edxapp
-    - role: ecommerce
-      when: SANDBOX_ENABLE_ECOMMERCE
+    - ecommerce
     - role: ecomworker
       ECOMMERCE_WORKER_BROKER_HOST: 127.0.0.1
-      when: SANDBOX_ENABLE_ECOMMERCE
     - analytics_api
     - insights
     # not ready yet: - edx_notes_api
