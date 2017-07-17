@@ -40,14 +40,14 @@ server {
   {% if NGINX_REDIRECT_TO_HTTPS %}
      {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
   # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
+  if ($scheme != "https")
+  {
    set $do_redirect_to_https "true";
   }
 
      {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
+  if ($http_x_forwarded_proto = "http")
   {
    set $do_redirect_to_https "true";
   }
@@ -78,6 +78,11 @@ server {
 
   # Allow access to this API for POST back from payment processors.
   location /payment {
+    try_files $uri @proxy_to_app;
+  }
+
+  # Allow access for Apple Pay domain validation
+  location /.well-known/apple-developer-merchantid-domain-association {
     try_files $uri @proxy_to_app;
   }
 
