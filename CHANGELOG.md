@@ -331,3 +331,6 @@
   - Removed `bower install` task
   - Replaced r.js build task with webpack build task
   - Removed `./maange.py compress` task
+
+- Role: insights
+  - Moved `THEME_SCSS` from `INSIGHTS_CONFIG` to `insights_environment`
