@@ -22,11 +22,29 @@ sed -i -e "s/%%\([^%]*\)%%//g" server-vars.yml
 
 output_dir="$PWD/test_output/env-dep"
 mkdir -p $output_dir
+
+helpful_message()
+{
+    echo -e "\033[1;36m"
+    echo -e "\n These plays have a dependency on values in (oxa-tools)/config/ \n Please ensure \n\t a) relevant changes have been merged in oxa-tools AND \n\t b) (edx-configuration)/tests/test_edx_east_roles.sh has the correct references."
+    echo -e " This failure case can be identified if an error $1 ends with 'is undefined'\n"
+    echo -e '\033[0m'
+}
+
+echo "`helpful_message below`"
+set +e
 ansible-playbook -i localhost, -c local --tags edxapp_cfg edxapp.yml -e edxapp_user=`whoami` -e edxapp_app_dir=$output_dir -e edxapp_code_dir=$output_dir -e EDXAPP_CFG_DIR=$output_dir \
-  -e@server-vars.yml \
-  -e@countries.yml \
-  -e@languages.yml \
-  -e EDXAPP_PREVIEW_SITE_NAME=""
+    -e@server-vars.yml \
+    -e@countries.yml \
+    -e@languages.yml \
+    -e EDXAPP_PREVIEW_SITE_NAME=""
+
+returnCode=$?
+if [[ $returnCode != 0 ]] ; then
+    echo "`helpful_message above`"
+    exit $returnCode
+fi
+set -e
 
 root_dir=$output_dir
 environment_deployments="."
