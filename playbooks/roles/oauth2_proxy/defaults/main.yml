@@ -1,0 +1,60 @@
+---
+oauth2_proxy_app_dir: "{{ COMMON_APP_DIR }}/oauth2_proxy"
+oauth2_proxy_conf_dir: "{{ COMMON_CFG_DIR }}/oauth2_proxy"
+
+oauth2_proxy_user: "oauth2_proxy"
+
+# We define this tuple here separately because we need to know it for downloading the right tarball.  Given that they
+# bake in both the version number -- which doesn't always match the actual Git tag they release off -- and the Go version,
+# it's nearly impossible to use only `oauth2_proxy_version` to build a valid URL.
+oauth2_proxy_version: "2.2.0"
+oauth2_proxy_version_tuple: "2.2.0.linux-amd64.go1.8.1"
+oauth2_proxy_pkg_name: "oauth2_proxy-{{ oauth2_proxy_version_tuple }}"
+oauth2_proxy_release_url: "https://github.com/bitly/oauth2_proxy/releases/download/v2.2/{{ oauth2_proxy_pkg_name }}.tar.gz"
+oauth2_proxy_release_sha256: "1c16698ed0c85aa47aeb80e608f723835d9d1a8b98bd9ae36a514826b3acce56"
+
+oauth2_proxy_listen_port: 4180
+oauth2_proxy_listen_addr: "0.0.0.0"
+oauth2_proxy_upstreams: ["localhost:80"] # List of address:port values acting as upstreams/backends.
+oauth2_proxy_request_logging: true
+oauth2_proxy_pass_basic_auth: true # Pass Basic Authorization header to upstream(s).
+oauth2_proxy_pass_user_headers: true # Passes X-Forwarded-User and X-Forwarded-Email to upstream(s).
+oauth2_proxy_pass_host_header: true # Pass original Host header to upstream(s).  If false, Host header will come from upstream address.
+oauth2_proxy_pass_access_token: true # Pass OAuth access token via X-Forwarded-Access-Token header to upstream(s).
+oauth2_proxy_email_domains: ["example.com"] # Which e-mail domains, if any, to validate for.  Needed for things like validating a specific G Suite apps domain, etc.
+oauth2_proxy_provider: "google" # OAuth provider type.
+oauth2_proxy_client_id: "CHANGEME-OAUTH2-CLIENT-ID" # OAuth client ID.
+oauth2_proxy_client_secret: "CHANGEME-OAUTH2-CLIENT-SECRET" # OAuth client secret.
+oauth2_proxy_custom_templates_dir: "" # Directory having template overrides for the login/error pages.
+oauth2_proxy_cookie_name: "_oauth2_proxy" # Client-side browser cookie name.
+oauth2_proxy_cookie_secret: "CHANGEME-COOKIE-SECRET" # Cookie encryption secret.
+oauth2_proxy_cookie_domain: "example.com" # Domain pattern for this cookie.
+oauth2_proxy_cookie_expire: "168h" # How long before the cookie expires. (168h = 7 days)
+oauth2_proxy_cookie_refresh: "4h" # How long since cookie issuance (and since last refresh) to validate existing OAuth token.
+oauth2_proxy_cookie_secure: true # Whether or not cookie is HTTPS only.
+oauth2_proxy_cookie_httponly: true # Whether or not cookie is browser-only (i.e. Javascript can't access it)
+
+oauth2_proxy_services:
+  - { service: "oauth2_proxy", host: "localhost", port: "{{ oauth2_proxy_listen_port }}" }
+
+oauth2_proxy_config:
+  http_address: "{{ oauth2_proxy_listen_addr }}:{{ oauth2_proxy_listen_port }}"
+  upstreams: "{{ oauth2_proxy_upstreams }}"
+  request_logging: "{{ oauth2_proxy_request_logging }}"
+  pass_basic_auth: "{{ oauth2_proxy_pass_basic_auth }}"
+  pass_user_headers: "{{ oauth2_proxy_pass_user_headers }}"
+  pass_host_header: "{{ oauth2_proxy_pass_host_header }}"
+  pass_access_token: "{{ oauth2_proxy_pass_access_token }}"
+  email_domains: "{{ oauth2_proxy_email_domains }}"
+  provider: "{{ oauth2_proxy_provider }}"
+  client_id: "{{ oauth2_proxy_client_id }}"
+  client_secret: "{{ oauth2_proxy_client_secret }}"
+  custom_templates_dir: "{{ oauth2_proxy_custom_templates_dir }}"
+  cookie_name: "{{ oauth2_proxy_cookie_name }}"
+  cookie_secret: "{{ oauth2_proxy_cookie_secret }}"
+  cookie_domain: "{{ oauth2_proxy_cookie_domain }}"
+  cookie_expire: "{{ oauth2_proxy_cookie_expire }}"
+  cookie_refresh: "{{ oauth2_proxy_cookie_refresh }}"
+  cookie_secure: "{{ oauth2_proxy_cookie_secure }}"
+  cookie_httponly: "{{ oauth2_proxy_cookie_httponly }}"
+
