@@ -29,6 +29,7 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook edxapp.yml 
     --extra-vars=edx_platform_version=${OPENEDX_RELEASE} \
     --extra-vars="@/ansible_overrides.yml" \
     --extra-vars="@/devstack.yml" \
-    --extra-vars="@/devstack/ansible_overrides.yml"
+    --extra-vars="@/devstack/ansible_overrides.yml" \
+    && rm -rf /edx/app/edxapp/edx-platform
 
 EXPOSE 18000 18010
