@@ -1,0 +1,1 @@
+GitHub issues are not the best place to get support with OpenEDX. The mailing list and Slack channels are explained here: http://open.edx.org/getting-help. If it turns out there's a bug in the configuration scripts, we can open an issue or PR here.
