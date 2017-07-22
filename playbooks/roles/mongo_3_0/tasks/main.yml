@@ -6,6 +6,17 @@
     owner: root
     group: root
     mode: 0755
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
+  tags:
+    - "hugepages"
+    - "install"
+    - "install:system-requirements"
+
+- name: disable transparent huge pages on startup (http://docs.mongodb.org/manual/tutorial/transparent-huge-page/) on 16.04
+  template:
+    src:  "etc/systemd/system/disable-transparent-hugepages.service.j2"
+    dest: "/etc/systemd/system/disable-transparent-hugepages.service"
+  when: ansible_distribution_release == 'xenial'
   tags:
     - "hugepages"
     - "install"
@@ -61,6 +72,27 @@
     - install:app-requirements
     - mongo_packages
 
+- name: Add mongod systemd configuration on 16.04
+  template:
+    src:  "etc/systemd/system/mongod.service.j2"
+    dest: "/etc/systemd/system/mongod.service"
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - install
+    - install:app-requirements
+    - mongo_packages
+
+- name: enable mongod systemd unit on 16.04
+  systemd:
+    name: mongod
+    enabled: yes
+    daemon_reload: yes
+  when: ansible_distribution_release == 'xenial'
+  tags:
+    - install
+    - install:app-requirements
+    - mongo_packages
+
 - name: create mongo dirs
   file:
     path: "{{ item }}"
@@ -103,7 +135,7 @@
 # and connect anonymously next.
 - name: determine if there is a replica set already
   mongodb_rs_status:
-    host: "{{ ansible_default_ipv4['address'] }}"
+    host: "{{ MONGO_BIND_IP }}"
     username: "{{ MONGO_ADMIN_USER }}"
     password: "{{ MONGO_ADMIN_PASSWORD }}"
   run_once: true
@@ -116,7 +148,7 @@
 
 - name: Try checking the replica set with no user/pass in case this is a new box
   mongodb_rs_status:
-    host: "{{ ansible_default_ipv4['address'] }}"
+    host: "{{ MONGO_BIND_IP }}"
   run_once: true
   register: unauthed_replica_set_already_configured
   when: MONGO_CLUSTERED and authed_replica_set_already_configured.failed is defined
@@ -143,8 +175,7 @@
   set_fact:
     initialize_replica_set: true
     skip_replica_set: true
-  when: MONGO_CLUSTERED
-        and authed_replica_set_already_configured.status is not defined
+  when: authed_replica_set_already_configured.status is not defined
         and unauthed_replica_set_already_configured.status is not defined
   tags:
     - "install"
@@ -211,6 +242,13 @@
     - "install"
     - "install:configuration"
 
+- name: Check if the mongo node is primary
+  mongodb_is_primary: 
+    host: "{{ MONGO_BIND_IP }}"
+    username: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+  register: mongo_node
+
 # We only try passwordless superuser creation when
 # we're initializing the replica set and need to use
 # the localhost exemption to create a user who will be
@@ -225,8 +263,8 @@
     password: "{{ MONGO_ADMIN_PASSWORD }}"
     database: admin
     roles: root
-  when: initialize_replica_set
   run_once: true
+  when: initialize_replica_set
   tags:
     - "manage"
     - "manage:db"
@@ -239,8 +277,7 @@
     login_password: "{{ MONGO_ADMIN_PASSWORD }}"
     database: admin
     roles: root
-  run_once: true
-  when: not initialize_replica_set
+  when: not initialize_replica_set and mongo_node.is_primary
   tags:
     - "manage"
     - "manage:db"
@@ -303,7 +340,7 @@
 # checking the replica set status until we see a PRIMARY in the results.
 - name: Wait for the replica set to update and (if needed) elect a primary
   mongodb_rs_status:
-      host: "{{ ansible_default_ipv4['address'] }}"
+      host: "{{ MONGO_BIND_IP }}"
       username: "{{ MONGO_ADMIN_USER }}"
       password: "{{ MONGO_ADMIN_PASSWORD }}"
   register: status
