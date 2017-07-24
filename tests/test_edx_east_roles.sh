@@ -34,9 +34,9 @@ helpful_message()
 echo "`helpful_message below`"
 set +e
 ansible-playbook -i localhost, -c local --tags edxapp_cfg edxapp.yml -e edxapp_user=`whoami` -e edxapp_app_dir=$output_dir -e edxapp_code_dir=$output_dir -e EDXAPP_CFG_DIR=$output_dir \
-    -e@server-vars.yml \
     -e@countries.yml \
     -e@languages.yml \
+    -e@server-vars.yml \
     -e EDXAPP_PREVIEW_SITE_NAME=""
 
 returnCode=$?
