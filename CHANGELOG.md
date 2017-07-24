@@ -333,7 +333,11 @@
 - Role: insights
   - Removed `bower install` task
   - Replaced r.js build task with webpack build task
-  - Removed `./maange.py compress` task
+  - Removed `./manage.py compress` task
 
 - Role: insights
   - Moved `THEME_SCSS` from `INSIGHTS_CONFIG` to `insights_environment`
+
+- Role: analytics_api
+  - Added a number of `ANALYTICS_API_DEFAULT_*` and `ANALYTICS_API_REPORTS_*` variables to allow more selective specification of database parameters (rather than
+      overriding the whole structure).
