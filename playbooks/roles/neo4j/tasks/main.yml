@@ -37,6 +37,14 @@
     - install
     - install:system-requirements
 
+- name: remove deprecated config file
+  file:
+    state: absent
+    path: "{{ deprecated_neo4j_wrapper_config_file }}"
+  tags:
+    - install
+    - install:base
+
 - name: install neo4j
   apt:
     name: "neo4j={{neo4j_version}}"
@@ -45,17 +53,48 @@
     - install
     - install:base
 
+- name: enable or disable authentication
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.security.auth_enabled="
+    line: "dbms.security.auth_enabled={{ NEO4J_AUTH_ENABLED }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: set neo4j page cache size
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.memory.pagecache.size="
+    line: "dbms.memory.pagecache.size={{ neo4j_page_cache_size }}"
+  tags:
+    - install
+    - install:configuration
+
 - name: set neo4j heap size
   lineinfile:
-    dest: "{{ neo4j_wrapper_config_file }}"
-    regexp: "dbms.memory.heap.max_size="
-    line: "dbms.memory.heap.max_size={{ neo4j_heap_max_size }}"
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ item }}="
+    line: "{{ item }}={{ neo4j_heap_max_size }}"
+  with_items:
+    - "dbms.memory.heap.max_size"
+    - "dbms.memory.heap.initial_size"
+  tags:
+    - install
+    - install:configuration
+
+- name: allow format migration (when updating neo4j versions)
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.allow_format_migration="
+    line: "dbms.allow_format_migration=true"
   tags:
     - install
     - install:configuration
 
 - name: set to listen on specific port for https
   lineinfile:
+    create: yes
     dest: "{{ neo4j_server_config_file }}"
     regexp: "{{ neo4j_https_settings_key }}="
     line: "{{ neo4j_https_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_https_port }}"
@@ -65,6 +104,7 @@
 
 - name: set to listen on specific port for http
   lineinfile:
+    create: yes
     dest: "{{ neo4j_server_config_file }}"
     regexp: "{{ neo4j_http_settings_key }}="
     line: "{{ neo4j_http_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_http_port }}"
@@ -72,12 +112,14 @@
     - install
     - install:configuration
 
-- name: set log dir for neo4j
+- name: remove deprecated listen address lines
   lineinfile:
-    create: yes
+    state: absent
     dest: "{{ neo4j_server_config_file }}"
-    regexp: "dbms.directories.logs="
-    line: "dbms.directories.logs={{ neo4j_log_dir }}"
+    regexp: "{{ item }}"
+  with_items:
+    - "{{ deprecated_neo4j_https_settings_key }}"
+    - "{{ deprecated_neo4j_http_settings_key }}"
   tags:
     - install
     - install:configuration
