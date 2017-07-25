@@ -1,4 +1,7 @@
 - Role: neo4j
+  - Increase heap and page caches sizes for neo4j
+
+- Role: neo4j
   - Updated neo4j to 3.2.2
   - Removed authentication requirement for neo4j
 
