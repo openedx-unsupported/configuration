@@ -178,6 +178,30 @@
     - install
     - install:app-requirements
 
+# Copy the sqlite upgrade script to { edx_app_dir }
+- name: copy the sqlite script to the desired location
+  copy:
+    src: 'edx/app/edxapp/upgrade_sqlite.sh'
+    dest: '{{ edxapp_app_dir }}/upgrade_sqlite.sh'
+    owner: '{{ edxapp_user }}'
+    group: '{{ edxapp_user }}'
+    mode: '0750'
+  when: devstack is defined and devstack
+  tags:
+    - install
+    - install:app-requirements
+
+# Fix up sqlite3 on devstacks to prevent segfaults when running tests
+- name: install upgraded sqlite
+  shell: "{{ edxapp_app_dir }}/upgrade_sqlite.sh"
+  args:
+    chdir: "{{ edxapp_app_dir }}"
+  become_user: "{{ edxapp_user }}"
+  when: devstack is defined and devstack
+  tags:
+    - install
+    - install:app-requirements
+
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
 - name: install CAS attribute module
