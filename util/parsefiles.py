@@ -182,7 +182,7 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
     return items
 
 def get_plays(files, git_dir, playbooks_dirs):
-    """ 
+    """
     Determines which files in the change set are aws playbooks
 
     files: A list of files modified by a commit range.
@@ -210,7 +210,7 @@ def get_plays(files, git_dir, playbooks_dirs):
                 plays.add(_get_playbook_name_from_file(file_path))
 
     return plays
-                
+
 def _get_playbook_name_from_file(path):
     """
     Gets name of playbook from the filepath, which is the last part of the filepath.
@@ -220,7 +220,7 @@ def _get_playbook_name_from_file(path):
     """
     # get last part of filepath
     return path.stem
-   
+
 
 def _get_role_name_from_file(path):
     """
@@ -330,6 +330,29 @@ def _get_role_name(role):
         LOGGER.warning("role %s could not be resolved to a role name." % role)
         return None
 
+
+def _get_modified_dockerfiles(files, git_dir):
+    """
+    Return Playbooks whose dockerfile has been changed/modified
+    :param files:
+    :param git_dir:
+    :return:
+    """
+    items = set()
+
+    for play in plays:
+        dockerfile = pathlib2.Path(DOCKER_PATH_ROOT, play, "Dockerfile")
+
+        for f in files:
+            file_path = pathlib2.Path(git_dir, f)
+
+            if file_path in dockerfile:
+                items.add(_get_playbook_name_from_file(file_path))
+
+    return items
+
+
+
 def arg_parse():
 
     parser = argparse.ArgumentParser(description = 'Given a commit range, analyze Ansible dependencies between roles and playbooks '
@@ -386,6 +409,9 @@ if __name__ == '__main__':
 
     # filter out docker plays without a Dockerfile
     docker_plays = filter_docker_plays(docker_plays, TRAVIS_BUILD_DIR)
+
+    # Add playbooks to the list whose docker file has been modified
+    modified_docer_files = _get_modified_dockerfiles(docker_plays, TRAVIS_BUILD_DIR)
 
     # prints Docker plays
     print " ".join(str(play) for play in docker_plays)
