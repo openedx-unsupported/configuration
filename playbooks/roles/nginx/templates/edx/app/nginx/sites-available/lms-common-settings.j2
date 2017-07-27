@@ -1,0 +1,229 @@
+  # LMS configuration file for nginx, templated by ansible
+
+  {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
+
+  # Do not include a 502 error in NGINX_ERROR_PAGES when
+  # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
+
+  error_page 502 @maintenance;
+
+    {% include "s3_maintenance.j2" %}
+
+  {% endif %}
+
+  # error pages
+  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
+error_page {{ k }} {{ v }};
+  {% endfor %}
+
+  # Prevent invalid display courseware in IE 10+ with high privacy settings
+  add_header P3P '{{ NGINX_P3P_MESSAGE }}';
+
+  {% if NGINX_HEALTH_CHECK_ENABLED %}
+  if ($healthcheck) {
+  return 200;
+  }
+  {% endif %}
+
+
+  # Nginx does not support nested condition or or conditions so
+  # there is an unfortunate mix of conditonals here.
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
+  # Redirect http to https over single instance
+  if ($scheme != "https")
+  {
+   set $do_redirect_to_https "true";
+  }
+
+     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
+
+  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB
+  if ($http_x_forwarded_proto = "http")
+  {
+   set $do_redirect_to_https "true";
+  }
+     {% endif %}
+
+  # Execute the actual redirect
+  if ($do_redirect_to_https = "true")
+  {
+  return 301 https://$host$request_uri;
+  }
+  {% endif %}
+
+  access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
+  error_log {{ nginx_log_dir }}/error.log error;
+
+  # CS184 requires uploads of up to 4MB for submitting screenshots.
+  # CMS requires larger value for course assest, values provided
+  # via hiera.
+  client_max_body_size {{ nginx_lms_client_max_body_size }};
+  proxy_read_timeout {{ nginx_lms_proxy_read_timeout }};
+
+  rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
+
+  {% include "python_lib.zip.j2" %}
+  {% include "common-settings.j2" %}
+
+  {% if NGINX_EDXAPP_EMBARGO_CIDRS -%}
+  #only redirect to embargo when $embargo == true and $uri != $embargo_url
+  #this is a hack to do multiple conditionals
+  set $embargo_url "/embargo/blocked-message/courseware/embargo/";
+  if ( $embargo ) {
+    set $do_embargo "A";
+  }
+  if ( $uri != $embargo_url ) {
+    set $do_embargo "${do_embargo}B";
+  }
+  if ( $do_embargo = "AB" ) {
+    return 302 $embargo_url;
+  }
+  {% endif -%}
+
+  location @proxy_to_lms_app {
+    {% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    {% else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    {% endif %}
+
+    # newrelic-specific header records the time when nginx handles a request.
+    proxy_set_header X-Queue-Start "t=${msec}";
+
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://lms-backend;
+  }
+
+  location / {
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
+
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # /login?next=<any image> can be used by 3rd party sites in <img> tags to
+  # determine whether a user on their site is logged into edX.
+  # The most common image to use is favicon.ico.
+  location /login {
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {% include "basic-auth.j2" %}
+    {% endif %}
+
+    if ( $arg_next ~* "favicon.ico" ) {
+      return 403;
+    }
+
+    try_files $uri @proxy_to_lms_app;
+  }
+
+{% if NGINX_EDXAPP_EMBARGO_CIDRS %}
+  location $embargo_url {
+    try_files $uri @proxy_to_lms_app;
+  }
+{% endif %}
+
+  # No basic auth for /segmentio/event
+  location /segmentio/event {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # The api is accessed using OAUTH2 which
+  # uses the authorization header so we can't have
+  # basic auth on it as well.
+  location /api {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # Need a separate location for the image uploads endpoint to limit upload sizes
+  location ~ ^/api/profile_images/[^/]*/[^/]*/upload$ {
+    try_files $uri @proxy_to_lms_app;
+    client_max_body_size {{ EDXAPP_PROFILE_IMAGE_MAX_BYTES + 1000 }};
+  }
+
+  location /notifier_api {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /user_api {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth security on the github_service_hook url, so that github can use it for cms
+  location /github_service_hook {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth security on oauth2 endpoint
+  location /oauth2 {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth security on third party auth endpoints
+  location /auth {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth security on assets
+  location /c4x {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /asset {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth security on the heartbeat url, so that ELB can use it
+  location /heartbeat {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth on the LTI provider endpoint, it does OAuth1
+  location /lti_provider {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth on LTI component grade.
+  location ~ /handler_noauth {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /courses {
+    {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
+    # Set Limit
+    limit_req zone=cookies burst={{ EDXAPP_COURSES_REQUEST_BURST_RATE }};
+
+    {%- if EDXAPP_RATE_LIMITED_USER_AGENTS|length > 0 %}
+    limit_req zone=agents burst={{ EDXAPP_COURSES_USER_AGENT_BURST_RATE }};
+    {%- endif %}
+    error_page  503 = /server/rate-limit.html;
+    {%- endif -%}
+
+    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
+      {%- include "basic-auth.j2" %}
+    {% endif %}
+    try_files $uri @proxy_to_lms_app;
+  }
+
+location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
+    root {{ edxapp_media_dir }};
+    try_files /$file =404;
+    expires {{ EDXAPP_PROFILE_IMAGE_MAX_AGE }}s;
+}
+
+  {% include "robots.j2" %}
+  {% include "static-files.j2" %}
+
+  {% include "extra_locations_lms.j2" ignore missing %}
+
+  {% if EDXAPP_XBLOCK_SETTINGS.get('ScormXBlock', False) %}
+    # asterisk needed so it doesn't break if the file doesn't exist
+    include {{nginx_app_dir}}/includes/scorm_extra_locations_lms*;
+  {% endif %}
