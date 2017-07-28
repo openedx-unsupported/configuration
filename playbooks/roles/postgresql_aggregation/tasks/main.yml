@@ -13,6 +13,16 @@
     state: present
   with_items: postgresql_aggregation_requirements
 
+name: Copy TLS certificates
+  copy: >
+    content="{{ item.content }}" dest="{{ item.dest }}"
+    owner="{{ postgresql_aggregation_cert_owner }}" group="{{ postgresql_aggregation_cert_group }}" mode=0400
+  with_items:
+    - { content: "{{ postgresql_aggregation_client_cert }}", dest: "{{ postgresql_aggregation_client_cert_path }}" }
+    - { content: "{{ postgresql_aggregation_client_key  }}", dest: "{{ postgresql_aggregation_client_key_path }}" }
+    - { content: "{{ postgresql_aggregation_ca_cert }}", dest: "{{ postgresql_aggregation_ca_cert_path }}" }
+  when: postgresql_aggregation_client_cert != '' and postgresql_aggregation_client_key != '' and postgresql_aggregation_ca_cert != ''
+
 - name: check if user already exists
   command: "psql -h {{ postgresql_aggregation_login_host }} -U {{ postgresql_aggregation_login_user }} -d postgres -c \"SELECT 1 FROM pg_roles WHERE rolname='{{ POSTGRESQL_AGGREGATION_USER }}'\""
   register: user_exists
