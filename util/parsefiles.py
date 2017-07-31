@@ -339,18 +339,29 @@ def _get_modified_dockerfiles(files, git_dir):
     :return:
     """
     items = set()
-
-    for play in plays:
-        dockerfile = pathlib2.Path(DOCKER_PATH_ROOT, play, "Dockerfile")
-
-        for f in files:
-            file_path = pathlib2.Path(git_dir, f)
-
-            if file_path in dockerfile:
-                items.add(_get_playbook_name_from_file(file_path))
-
+    print files
+    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("*/Dockerfile")}
+    for f in files:
+        file_path = pathlib2.Path(git_dir, f)
+        if file_path in candidate_files:
+            items.add(_get_play_name_from_dockerfile(file_path))
     return items
 
+
+def _get_play_name_from_dockerfile(path):
+
+    """
+    Gets name of play from the filepath, which is
+    the directory preceeding occurence of the word "Dockerfile".
+
+    Input:
+    path: A path to the role
+    """
+    # get individual parts of a file path
+    dirs = path.parts
+
+    # name of play is the preceeding part of the file path before "Dockerfile"
+    return dirs[dirs.index("Dockerfile") - 1]
 
 
 def arg_parse():
@@ -411,7 +422,7 @@ if __name__ == '__main__':
     docker_plays = filter_docker_plays(docker_plays, TRAVIS_BUILD_DIR)
 
     # Add playbooks to the list whose docker file has been modified
-    modified_docer_files = _get_modified_dockerfiles(docker_plays, TRAVIS_BUILD_DIR)
+    modified_docer_files = _get_modified_dockerfiles(change_set, TRAVIS_BUILD_DIR)
 
     # prints Docker plays
     print " ".join(str(play) for play in docker_plays)
