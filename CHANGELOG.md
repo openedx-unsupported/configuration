@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added creation of enterprise_worker user to provisioning. This user is used by the edx-enterprise package when making API requests to Open edX IDAs.
+
 - Role: neo4j
   - Increase heap and page caches sizes for neo4j
 
