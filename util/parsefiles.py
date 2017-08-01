@@ -424,6 +424,6 @@ if __name__ == '__main__':
 
 
     # prints Docker plays
-    print " ".join(str(play) for play in docker_plays)
+    print " ".join(str(play) for play in docker_plays),
 
     print " ".join(str(dock) for dock in modified_docker_files)
