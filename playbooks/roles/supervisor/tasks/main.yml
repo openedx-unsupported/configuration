@@ -127,24 +127,6 @@
     - install
     - install:base
 
-# This script is aws specific and looks up instances
-# tags and enables services based on the 'services' tag
-# on instance startup.
-# TODO: 16.04 this cannot simply be dropped, enabling needs to be moved somewhere
-# also should not be here, should be in the aws role if it's aws specific
-- name: create pre_supervisor upstart job
-  template:
-    src: "etc/init/pre_supervisor.conf.j2"
-    dest: "/etc/init/pre_supervisor.conf"
-    owner: root
-    group: root
-  when: >
-    supervisor_service == "supervisor" and disable_edx_services and not devstack
-    and (ansible_distribution_release == 'trusty')
-  tags:
-    - to-remove
-    - aws-specfic
-
 # NB: with systemd, pre_supervisor is a pre-task for supervisor, not a separate service
 - name: Create supervisor systemd job
   template:
