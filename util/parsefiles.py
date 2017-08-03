@@ -358,7 +358,7 @@ def _get_play_name_from_dockerfile(path):
     """
     # get individual parts of a file path
     dirs = path.parts
-    # name of play is the preceeding part of the file path before "Dockerfile"
+    # name of play
     return dirs[-2]
 
 
