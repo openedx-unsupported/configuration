@@ -373,3 +373,6 @@
   - Replaced `ECOMMERCE_OIDC_LOGOUT_URL` with `COMMON_OAUTH_LOGOUT_URL` from `common_vars`
   - Replaced `ECOMMERCE_JWT_SECRET_KEY` with `COMMON_JWT_SECRET_KEY` from `common_vars`
   - Replaced `ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
