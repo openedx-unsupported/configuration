@@ -354,7 +354,7 @@ def _get_play_name_from_dockerfile(path):
     the directory preceeding occurence of the word "Dockerfile".
 
     Input:
-    path: A path to the role
+    path: A path to the changed file under docker/build dir
     """
     # get individual parts of a file path
     dirs = path.parts
