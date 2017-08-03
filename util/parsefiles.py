@@ -339,7 +339,7 @@ def _get_modified_dockerfiles(files, git_dir):
     :return:
     """
     items = set()
-    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("*/Dockerfile")}
+    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("*/*")}
     for f in files:
         file_path = pathlib2.Path(git_dir, f)
         if file_path in candidate_files:
@@ -359,7 +359,7 @@ def _get_play_name_from_dockerfile(path):
     # get individual parts of a file path
     dirs = path.parts
     # name of play is the preceeding part of the file path before "Dockerfile"
-    return dirs[dirs.index("Dockerfile") - 1]
+    return dirs[-2]
 
 
 def arg_parse():
