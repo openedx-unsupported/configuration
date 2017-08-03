@@ -424,7 +424,6 @@ pip install virtualenv=="$VIRTUAL_ENV_VERSION"
 # python3 is required for certain other things
 # (currently xqwatcher so it can run python2 and 3 grader code,
 # but potentially more in the future).
-/usr/bin/apt-get update
 /usr/bin/apt-get install -y python3-pip python3-dev
 
 # this is missing on 14.04 (base package on 12.04)
