@@ -1,0 +1,78 @@
+mongo_logappend: true
+
+#This way, when mongod receives a SIGUSR1, it'll close and reopen its log file handle
+mongo_logrotate: reopen
+
+mongo_version: 3.0.14
+mongo_port: "27017"
+mongo_extra_conf: ''
+mongo_key_file: '/etc/mongodb_key'
+pymongo_version: 2.8.1
+
+mongo_data_dir: "{{ COMMON_DATA_DIR }}/mongo"
+mongo_log_dir: "{{ COMMON_LOG_DIR }}/mongo"
+mongo_journal_dir: "{{ COMMON_DATA_DIR }}/mongo/mongodb/journal"
+mongo_user: mongodb
+
+# The MONGODB_REPO variable should use {{ ansible_distribution_release }}
+# instead of hard coding a release name. Since we are already accidentally
+# running precise binaries on trusty, we are going to leave this alone for
+# mongo 3.0 and remedy it when we upgrade to mongo 3.2
+MONGODB_REPO: "deb http://repo.mongodb.org/apt/ubuntu precise/mongodb-org/3.0 multiverse"
+MONGODB_APT_KEY: "7F0CEB10"
+MONGODB_APT_KEYSERVER: "keyserver.ubuntu.com"
+
+mongodb_debian_pkgs:
+  - "mongodb-org={{ mongo_version }}"
+  - "mongodb-org-server={{ mongo_version }}" 
+  - "mongodb-org-shell={{ mongo_version }}"
+  - "mongodb-org-mongos={{ mongo_version }}" 
+  - "mongodb-org-tools={{ mongo_version }}"
+
+
+# Vars Meant to be overridden
+MONGO_ADMIN_USER: 'admin'
+MONGO_ADMIN_PASSWORD: 'password'
+MONGO_USERS:
+  - user: cs_comments_service
+    password: password
+    database: cs_comments_service
+    roles: readWrite
+  - user: edxapp
+    password: password
+    database: edxapp
+    roles: readWrite
+
+MONGO_CLUSTERED: false
+MONGO_BIND_IP: 127.0.0.1
+MONGO_REPL_SET: "rs0"
+MONGO_AUTH: true
+
+# Cluster member configuration
+# Fed directly into mongodb_replica_set module
+MONGO_RS_CONFIG:
+  members: []
+
+# Storage engine options in 3.0: "mmapv1" or "wiredTiger" 
+# As 3.2 and 3.4 default to wiredTiger, our 3.0 play will help future-proof
+MONGO_STORAGE_ENGINE: "wiredTiger"
+
+# List of dictionaries as described in the mount_ebs role's default
+# for the volumes.
+# Useful if you want to store your mongo data and/or journal on separate
+# disks from the root volume.  By default, they will end up mongo_data_dir
+# on the root disk.
+MONGO_VOLUMES: []
+
+# WiredTiger takes a number of optional configuration settings
+# which can be defined as a yaml structure in your secure configuration.
+MONGO_STORAGE_ENGINE_OPTIONS: !!null
+
+mongo_logpath: "{{ mongo_log_dir }}/mongodb.log"
+mongo_dbpath: "{{ mongo_data_dir }}/mongodb"
+
+# In environments that do not require durability (devstack / Jenkins)
+# you can disable the journal to reduce disk usage
+mongo_enable_journal: true
+
+MONGO_LOG_SERVERSTATUS: true
