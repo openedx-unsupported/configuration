@@ -9,11 +9,7 @@ from itertools import product
 import sys
 
 
-# # def parse_args():
-# parser = ArgumentParser(description='Create course permutations')
-# parser.add_argument('--fields', action='', nargs=3)
-#
-def generate_permutations():
+def parse_field_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--fields', nargs=3, action="append", default=None,
                         help="Specify which fields to generate permutations on")
@@ -22,6 +18,9 @@ def generate_permutations():
 
     file = open(args.filename)
     permutation_data = json.load(file)
+    first_field = permutation_data
+    second_field = permutation_data
+    third_field = permutation_data
 
     # if no field arguments are given, just print out default data
     if not args.fields:
@@ -29,15 +28,22 @@ def generate_permutations():
         print default_permutation
     else:
         for permutation_choices in args.fields:
-            first_field = permutation_data["permutation_data"][permutation_choices[0]]
-            # print first_field
-            second_field = permutation_data["permutation_data"][permutation_choices[1]]
-            permutation_generation = [first_field, second_field]
-            print list(product(*permutation_generation))
+            first_field = first_field["permutation_data"][permutation_choices[0]]
+            second_field = second_field["permutation_data"][permutation_choices[1]]
+            third_field = third_field["permutation_data"][permutation_choices[2]]
+            
+    return first_field, second_field, third_field
 
 
+
+
+def generate_permutations(fields):
+    #permutation_generation = [first_field, second_field, third_field]
+    print list(product(*fields))
+    # print fields
 
 
 
 if __name__ == "__main__":
-    generate_permutations()
+    parse_field_arguments()
+    generate_permutations(parse_field_arguments())
