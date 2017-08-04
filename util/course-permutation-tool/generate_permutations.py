@@ -38,8 +38,6 @@ def parse_field_arguments():
     return first_field, second_field, third_field
 
 
-
-
 def generate_permutations(fields):
     #permutation_generation = [first_field, second_field, third_field]
     # print list(product(*fields))
