@@ -356,3 +356,6 @@
   - Remove EDXAPP_ANALYTICS_API_KEY, EDXAPP_ANALYTICS_SERVER_URL, EDXAPP_ANALYTICS_DATA_TOKEN, EDXAPP_ANALYTICS_DATA_URL since they are old and
   no longer consumed.
 
+- Role: edxapp
+  - Added `PASSWORD_MIN_LENGTH` for password minimum length validation on reset page.
+  - Added `PASSWORD_MAX_LENGTH` for password maximum length validation on reset page.
