@@ -333,7 +333,7 @@ def _get_role_name(role):
 
 def _get_modified_dockerfiles(files, git_dir):
     """
-    Return Playbooks whose dockerfile has been changed/modified
+    Return changed files under docker/build directory
     :param files:
     :param git_dir:
     :return:
