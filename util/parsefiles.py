@@ -182,7 +182,7 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
     return items
 
 def get_plays(files, git_dir, playbooks_dirs):
-    """ 
+    """
     Determines which files in the change set are aws playbooks
 
     files: A list of files modified by a commit range.
@@ -210,7 +210,7 @@ def get_plays(files, git_dir, playbooks_dirs):
                 plays.add(_get_playbook_name_from_file(file_path))
 
     return plays
-                
+
 def _get_playbook_name_from_file(path):
     """
     Gets name of playbook from the filepath, which is the last part of the filepath.
@@ -220,7 +220,7 @@ def _get_playbook_name_from_file(path):
     """
     # get last part of filepath
     return path.stem
-   
+
 
 def _get_role_name_from_file(path):
     """
@@ -330,6 +330,38 @@ def _get_role_name(role):
         LOGGER.warning("role %s could not be resolved to a role name." % role)
         return None
 
+
+def _get_modified_dockerfiles(files, git_dir):
+    """
+    Return changed files under docker/build directory
+    :param files:
+    :param git_dir:
+    :return:
+    """
+    items = set()
+    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("**/*")}
+    for f in files:
+        file_path = pathlib2.Path(git_dir, f)
+        if file_path in candidate_files:
+            items.add(_get_play_name(file_path))
+    return items
+
+
+def _get_play_name(path):
+
+    """
+    Gets name of play from the filepath, which is
+    the directory following occurence of the word "build".
+
+    Input:
+    path: A path to the changed file under docker/build dir
+    """
+    # get individual parts of a file path
+    dirs = path.parts
+    # name of play
+    return dirs[dirs.index("build")+1]
+
+
 def arg_parse():
 
     parser = argparse.ArgumentParser(description = 'Given a commit range, analyze Ansible dependencies between roles and playbooks '
@@ -387,5 +419,11 @@ if __name__ == '__main__':
     # filter out docker plays without a Dockerfile
     docker_plays = filter_docker_plays(docker_plays, TRAVIS_BUILD_DIR)
 
+    # Add playbooks to the list whose docker file has been modified
+    modified_docker_files = _get_modified_dockerfiles(change_set, TRAVIS_BUILD_DIR)
+
+
     # prints Docker plays
-    print " ".join(str(play) for play in docker_plays)
+    print " ".join(str(play) for play in docker_plays),
+
+    print " ".join(str(dock) for dock in modified_docker_files)
