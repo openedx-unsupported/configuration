@@ -339,19 +339,19 @@ def _get_modified_dockerfiles(files, git_dir):
     :return:
     """
     items = set()
-    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("*/*")}
+    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("**/*")}
     for f in files:
         file_path = pathlib2.Path(git_dir, f)
         if file_path in candidate_files:
-            items.add(_get_play_name_from_dockerfile(file_path))
+            items.add(_get_play_name(file_path))
     return items
 
 
-def _get_play_name_from_dockerfile(path):
+def _get_play_name(path):
 
     """
     Gets name of play from the filepath, which is
-    the directory preceeding occurence of the word "Dockerfile".
+    the directory following occurence of the word "build".
 
     Input:
     path: A path to the changed file under docker/build dir
@@ -359,7 +359,7 @@ def _get_play_name_from_dockerfile(path):
     # get individual parts of a file path
     dirs = path.parts
     # name of play
-    return dirs[-2]
+    return dirs[dirs.index("build")+1]
 
 
 def arg_parse():
