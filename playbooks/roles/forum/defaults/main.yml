@@ -48,7 +48,7 @@ FORUM_RESTART_DELAY: 60
 # Set to rebuild the forum ElasticSearch index from the database.
 FORUM_REBUILD_INDEX: false
 
-forum_environment:
+forum_base_env: &forum_base_env
   RBENV_ROOT: "{{ forum_rbenv_root }}"
   GEM_HOME: "{{ forum_gem_root }}"
   GEM_PATH: "{{ forum_gem_root }}"
@@ -67,6 +67,16 @@ forum_environment:
   DATA_DIR: "{{ forum_data_dir }}"
   LISTEN_HOST: "{{ FORUM_LISTEN_HOST }}"
   LISTEN_PORT: "{{ FORUM_LISTEN_PORT }}"
+
+
+forum_env:
+  <<: *forum_base_env
+devstack_forum_env:
+  <<: *forum_base_env
+  RACK_ENV: "development"
+  SINATRA_ENV: "development"
+  SEARCH_SERVER: "http://edx.devstack.elasticsearch:9200/"
+  MONGOHQ_URL: "mongodb://cs_comments_service:password@edx.devstack.mongo:27017/cs_comments_service"
 
 forum_user: "forum"
 forum_ruby_version: "2.4.1"

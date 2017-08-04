@@ -52,9 +52,9 @@
     - install:code
 
 - name: install comments service bundle
-  shell: "bundle install --deployment --path {{ forum_gem_root }} chdir={{ forum_code_dir }}"
+  shell: ". /edx/app/forum/ruby_env && bundle install --deployment --path {{ forum_gem_root }} chdir={{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   notify: restart the forum service
   tags:
     - install
@@ -65,7 +65,7 @@
   args:
     chdir: "{{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   tags:
     - migrate
@@ -76,7 +76,7 @@
   args:
     chdir: "{{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   when: migrate_db is defined and migrate_db|lower == "yes" and FORUM_REBUILD_INDEX|bool
   tags:
     - migrate
