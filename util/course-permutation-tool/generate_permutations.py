@@ -8,6 +8,7 @@ from pprint import pprint
 from itertools import product
 from itertools import permutations
 import sys
+import json
 
 
 def parse_field_arguments():
@@ -43,23 +44,48 @@ def parse_field_arguments():
         for permutation_choices in num_args.fields:
             for i in range(0, field_length):
                 fields[permutation_choices[i]] = permutation_data[permutation_choices[i]]
-            # for j in range(field_length, total_num_fields):
-            #     fields[permutation_choices[j]] =
-            # print permutation_data.keys() not in permutation_choices
+                # for j in range(field_length, total_num_fields):
+                #     fields[permutation_choices[j]] =
+                # print permutation_data.keys() not in permutation_choices
 
     return fields
 
 
-def generate_permutations(fields):
+# def generate_permutations(fields):
+# field_permutations = list(product(*fields.values()))
+# #print field_permutations
+#
+# print fields
+#
+# # make JSON output file
+# with open("test_courses.json", "w") as outfile:
+#     json.dump(fields, outfile)
 
-    field_permutations = list(product(*fields.values()))
+def generate_permutations(fields, index, results, current):
+    allKeys = fields.keys()
+    optionKey = allKeys[index]
 
-    # make JSON output file
+
+    values = fields[optionKey]
+
+    # print values
+
+    for i in range(len(values)):
+        current[optionKey] = values[i]
+
+        if index+1 < len(allKeys):
+            generate_permutations(fields, index+1, results, current)
+        print current
+        results.append(current.copy())
+        # print results
+
+
+    # print current
+
     with open("test_courses.json", "w") as outfile:
-        json.dump(field_permutations, outfile)
-
+        json.dump(results, outfile)
 
 
 if __name__ == "__main__":
     parse_field_arguments()
-    generate_permutations(parse_field_arguments())
+    generate_permutations(parse_field_arguments(), 0, [], {})
