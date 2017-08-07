@@ -64,6 +64,10 @@ cd $WORKSPACE/configuration-secure
 configuration_secure=`git rev-parse --short HEAD`
 cd $WORKSPACE
 
+cd $WORKSPACE/configuration-internal
+configuration_internal=`git rev-parse --short HEAD`
+cd $WORKSPACE
+
 base_params=""
 if [[ -n "$base_ami" ]]; then
   base_params="-b $base_ami"
