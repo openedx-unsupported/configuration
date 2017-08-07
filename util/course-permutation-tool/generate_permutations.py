@@ -9,6 +9,8 @@ from itertools import product
 from itertools import permutations
 import sys
 import json
+import datetime
+import pytz
 
 
 def parse_field_arguments():
@@ -62,25 +64,35 @@ def parse_field_arguments():
 #     json.dump(fields, outfile)
 
 def generate_permutations(fields, index, results, current):
-    allKeys = fields.keys()
-    optionKey = allKeys[index]
+    all_permutations_keys = fields.keys()
+    permutation_option = all_permutations_keys[index]
 
 
-    values = fields[optionKey]
-
-    # print values
+    values = fields[permutation_option]
 
     for i in range(len(values)):
-        current[optionKey] = values[i]
+        # add other required default fields to dict
+        current["organization"] = "RITX"
+        # generate different organization number for each course
+        organization_number = "PM9003"+str(i)+"x"
+        current["number"] = organization_number
+        current["run"] = "3T2017"
+        current["user"] = "edx@example.com"
 
-        if index+1 < len(allKeys):
+        # add permutation fields to dict
+        current[permutation_option] = values[i]
+        now = datetime.datetime.now(pytz.UTC)
+        if values[i] == "future":
+            future = str(now + datetime.timedelta(days=365))
+            current[permutation_option] = future
+        if values[i] == "past":
+            past = str(now - datetime.timedelta(days=60))
+            current[permutation_option] = past
+
+        if index+1 < len(all_permutations_keys):
             generate_permutations(fields, index+1, results, current)
-        print current
+
         results.append(current.copy())
-        # print results
-
-
-    # print current
 
     with open("test_courses.json", "w") as outfile:
         json.dump(results, outfile)
