@@ -1,7 +1,7 @@
 FROM selenium/standalone-firefox-debug:3.4.0-einsteinium
 MAINTAINER edxops
 
-USER roost
+USER root
 
 # Install a password generator and the codecs needed to support mp4 video in Firefox
 RUN apt-get update -qqy \
