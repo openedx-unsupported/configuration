@@ -29,8 +29,6 @@ def parse_field_arguments():
 
     default_data_keys = permutation_data.keys()
 
-    # print default_data_keys
-
     fields = {}
 
     # if no field arguments are given, just print out default data
@@ -53,46 +51,42 @@ def parse_field_arguments():
     return fields
 
 
-# def generate_permutations(fields):
-# field_permutations = list(product(*fields.values()))
-# #print field_permutations
-#
-# print fields
-#
-# # make JSON output file
-# with open("test_courses.json", "w") as outfile:
-#     json.dump(fields, outfile)
-
-def generate_permutations(fields, index, results, current):
+def generate_permutations(fields, index, results, current, fields_dict):
     all_permutations_keys = fields.keys()
     permutation_option = all_permutations_keys[index]
 
+    permutations_values = fields[permutation_option]
 
-    values = fields[permutation_option]
-
-    for i in range(len(values)):
+    for i in range(len(permutations_values)):
         # add other required default fields to dict
         current["organization"] = "RITX"
         # generate different organization number for each course
-        organization_number = "PM9003"+str(i)+"x"
+        organization_number = "PM9003" + str(i) + "x"
         current["number"] = organization_number
         current["run"] = "3T2017"
         current["user"] = "edx@example.com"
 
+        # fields_dict = {}
+
         # add permutation fields to dict
-        current[permutation_option] = values[i]
+        fields_dict[permutation_option] = permutations_values[i]
         now = datetime.datetime.now(pytz.UTC)
-        if values[i] == "future":
+        if permutations_values[i] == "future":
             future = str(now + datetime.timedelta(days=365))
-            current[permutation_option] = future
-        if values[i] == "past":
+            fields_dict[permutation_option] = future
+        if permutations_values[i] == "past":
             past = str(now - datetime.timedelta(days=60))
-            current[permutation_option] = past
+            fields_dict[permutation_option] = past
+        if permutations_values[i] == None:
+            fields_dict[permutation_option] = None
 
-        if index+1 < len(all_permutations_keys):
-            generate_permutations(fields, index+1, results, current)
 
+        if index + 1 < len(all_permutations_keys):
+            generate_permutations(fields, index + 1, results, current, fields_dict)
+
+        current["fields"] = fields_dict.copy()
         results.append(current.copy())
+        # results.append(fields_dict.copy())
 
     with open("test_courses.json", "w") as outfile:
         json.dump(results, outfile)
@@ -100,4 +94,4 @@ def generate_permutations(fields, index, results, current):
 
 if __name__ == "__main__":
     parse_field_arguments()
-    generate_permutations(parse_field_arguments(), 0, [], {})
+    generate_permutations(parse_field_arguments(), 0, [], {}, {})
