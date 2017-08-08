@@ -95,8 +95,8 @@ fi
 configurationinternal_params=""
 if [[ ! -z "$configurationinternalrepo" ]]; then
   configurationinternal_params="--configuration-internal-repo $configurationinternalrepo"
-  if [[ ! -z "$configurationinternalversion" ]]; then
-    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configurationinternalversion"
+  if [[ ! -z "$configuration_internal" ]]; then
+    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configuration_internal"
   fi
 fi
 
