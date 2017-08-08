@@ -66,7 +66,6 @@ def generate_permutations(fields, index, results, current, fields_dict):
         current["run"] = "3T2017"
         current["user"] = "edx@example.com"
 
-        # fields_dict = {}
 
         # add permutation fields to dict
         fields_dict[permutation_option] = permutations_values[i]
@@ -86,10 +85,14 @@ def generate_permutations(fields, index, results, current, fields_dict):
 
         current["fields"] = fields_dict.copy()
         results.append(current.copy())
-        # results.append(fields_dict.copy())
+        # results["courses"] = current.copy()
 
+        print results
+    wrapper_courses_dict = {}
+
+    wrapper_courses_dict["courses"] = results
     with open("test_courses.json", "w") as outfile:
-        json.dump(results, outfile)
+        json.dump(wrapper_courses_dict, outfile)
 
 
 if __name__ == "__main__":
