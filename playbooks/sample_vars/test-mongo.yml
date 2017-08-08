@@ -1,0 +1,90 @@
+# Example ansible commands
+# Three node replica set
+# ansible-playbook -i '203.0.113.12,203.0.113.20,203.0.113.68' -u ubuntu edx-east/mongo_3_2.yml -e@sample_vars/test-mongo.yml
+# Single node
+# ansible-playbook -i '203.0.113.12' -u ubuntu edx-east/mongo_3_2.yml -e@sample_vars/test-mongo.yml
+
+# Passwords and relication keys in this file are examples and must be changed.
+# You must change any variable with the string "CHANGEME" in it
+
+MONGO_HEARTBEAT_TIMEOUT_SECS: 3
+EDXAPP_MONGO_HOSTS: "{{ MONGO_RS_CONFIG.members|map(attribute='host')|list }}"
+
+MONGO_VOLUMES:
+  - device: /dev/xvdb
+    mount: /edx/var/mongo
+    options: "defaults,noatime"
+    fstype: ext4
+  - device: /dev/xvdc
+    mount: /edx/var/mongo/mongodb/journal
+    options: "defaults,noatime"
+    fstype: ext4
+
+##### edx-secure/ansible/vars/stage-edx.yml #####
+MONGO_ADMIN_USER: 'admin'
+MONGO_ADMIN_PASSWORD: 'CHANGEME_794jtB7zLIvDjHGu2gD6wKUU'
+MONGO_MONITOR_USER: 'cloud-manager'
+MONGO_MONITOR_PASSWORD: 'CHANGEME_7DJ9FTWHJx4TCSPxSmx1k3DD'
+MONGO_BACKUP_USER: 'backup'
+MONGO_BACKUP_PASSWORD: 'CHANGEME_XbJA3LouKV5QDv2NQixnOrQj'
+MONGO_REPL_SET: 'test-repl-set'
+MONGO_RS_CONFIG:
+  _id: '{{ MONGO_REPL_SET }}'
+  members:
+# Must use private IPs here, mongo role assumes internal ips when checking if node is in this list
+    - host: '203.0.113.12'
+    - host: '203.0.113.20'
+    - host: '203.0.113.68'
+
+MONGO_CLUSTER_KEY: |
+  CHANGEME/CHANGE/ME/CHANGE/ME9YeSrVDYxont1rDh2nBAEGB30PhwG9ghtPY
+  c1QUc2etVfMnE9vbUhLimU/Xb4j4yLRDurOTi8eYoE8eAvAquLalcz7URMuw8Qt3
+  fIyFa3wSXyE04rpsoBrpG53HwwFrN3pra3x4YPs8g77v50V56gfwaStNJ3KPpa5w
+  RukdFXnCUPRyONSJEYwjPzI2WucnAZqlDYre6qjxL+6hCjZ4vS/RPgfoHGTUQ62W
+  9k2TiWar/c1nL6rZvGhGJHFmZalyL9pJ4SAaYoFPhCmcHusyzjlM8p27AsyJwDyr
+  kSI/JPBLMLDoiLUAPHGz1jrGM+iOgTilmfPVy+0UVc9Bf2H4Vs1zKJpUM2RNAPJ7
+  S9DzB6q8WtRothbEtwnppWojceid202uLEYCpqhCcH6LR0lTcyJiXCRyHAtue813
+  5Djv1m3Z8p2z6B+3ab7CDq+WV9OrBI7+eynnwYGgp4eIHQNNSb1/x/8TeiVMQYyJ
+  ONj4PbgVwsdhL+RUuVqCzjK0F4B4FOSSKXbu07L4F/PALqVugH/YebAUAJVo027r
+  ca669FSrQ8q6Jgx3M1mCoZkp23CVt3B28+EwpyABh6cwxIrTIvxU6cvxX8M2piz+
+  63nKUKoStNhmRA0EGfbY9WRmk1RNlC2jVJAvvJUnNXnouNF2DGV4pRNGlb7yfS+n
+  S+3ZZpUDpTLx36CWGPJ1ZpwuZ0p5JPbCSW6gpFZqGFZsQERg6L8Q9FkwESnbfw+V
+  oDiVJlClJA2AFXMnAt9q1dhM7OVBj12x9YI5yf1Lw0vVLb7JDmWI7IGaibyxtjFi
+  jO4bAEl4RZu3364nFH/nVf6kV2S29pAREMqxbcR5O75OuHFN9cqG7BhYClg+5mWg
+  mGKLLgpXsJxd6bMGjxH1uc30E2qbU1mkrW29Ocl5DFuXevK2dxVj71ZiYESIUg87
+  KRdC8S3Mljym9ruu4nDC3Sk4xLLuUGp/yD2O0B0dZTfYOJdt
+
+COMMON_MONGO_READ_ONLY_USER: 'read_only'
+COMMON_MONGO_READ_ONLY_PASS: "CHANGEME correct horse battery staple"
+
+EDXAPP_MONGO_PASSWORD: 'CHANGEME_H8uoZEZJun9BeR5u8mMyA4yh'
+EDXAPP_MONGO_USER: 'edxapp003'
+
+FORUM_MONGO_USER: "comments001"
+FORUM_MONGO_PASSWORD: "CHANGEME_j5fhX0pOwEL1S5WUFZkbZAyZ"
+
+login_host: "{{ EDXAPP_MONGO_HOSTS[1] }}"
+repl_set: "{{ EDXAPP_MONGO_REPLICA_SET }}"
+MONGO_USERS:
+  - user: "{{ EDXAPP_MONGO_USER }}"
+    password: "{{ EDXAPP_MONGO_PASSWORD }}"
+    database: "{{ EDXAPP_MONGO_DB_NAME }}"
+    roles: readWrite
+  - user: "{{ COMMON_MONGO_READ_ONLY_USER }}"
+    password: "{{ COMMON_MONGO_READ_ONLY_PASS }}"
+    database: "{{ EDXAPP_MONGO_DB_NAME }}"
+    roles:
+      - { db: "{{ EDXAPP_MONGO_DB_NAME }}", role: "read" }
+      - { db: "admin",                      role: "clusterMonitor" }
+  - user: "{{ MONGO_MONITOR_USER }}"
+    password: "{{ MONGO_MONITOR_PASSWORD }}"
+    database: "admin"
+    roles: clusterMonitor
+  - user: "{{ MONGO_BACKUP_USER }}"
+    password: "{{ MONGO_BACKUP_PASSWORD }}"
+    database: "admin"
+    roles: backup
+
+EDXAPP_MONGO_DB_NAME: 'test-mongo-db'
+EDXAPP_MONGO_PORT: 27017
+EDXAPP_MONGO_REPLICA_SET: '{{ MONGO_REPL_SET }}'
