@@ -44,9 +44,13 @@ def parse_field_arguments():
         for permutation_choices in num_args.fields:
             for i in range(0, field_length):
                 fields[permutation_choices[i]] = permutation_data[permutation_choices[i]]
-                # for j in range(field_length, total_num_fields):
-                #     fields[permutation_choices[j]] =
-                # print permutation_data.keys() not in permutation_choices
+
+        # the difference btwn all possible fields and the permutation ones
+        default_fields = list(set(default_data_keys) - set(num_args.fields[0]))
+
+        # add non permutation fields
+        for j in range(0, len(default_fields)):
+            fields[default_fields[j]] = default_data[default_fields[j]]
 
     return fields
 
@@ -59,12 +63,14 @@ def generate_permutations(fields, index, results, current, fields_dict):
 
     for i in range(len(permutations_values)):
         # add other required default fields to dict
-        current["organization"] = "RITX"
+
         # generate different organization number for each course
-        organization_number = "PM9003" + str(i) + "x"
-        current["number"] = organization_number
+        # organization_number = "PM9003" + str(i) + "x"
+        current["number"] = None # will be generated automatically by course creation script
+        current["organization"] = "RITX"
         current["run"] = "3T2017"
         current["user"] = "edx@example.com"
+        current["partner"] = "edx"
 
 
         # add permutation fields to dict
@@ -83,11 +89,18 @@ def generate_permutations(fields, index, results, current, fields_dict):
         if index + 1 < len(all_permutations_keys):
             generate_permutations(fields, index + 1, results, current, fields_dict)
 
+        # configure enrollment seat settings
+        enrollment_dict = {}
+        enrollment_dict["credit"] = False
+        enrollment_dict["credit_provider"] = "test-credit-provider"
+
+        current["enrollment"] = enrollment_dict
+
         current["fields"] = fields_dict.copy()
         results.append(current.copy())
         # results["courses"] = current.copy()
 
-        print results
+        # print results
     wrapper_courses_dict = {}
 
     wrapper_courses_dict["courses"] = results
