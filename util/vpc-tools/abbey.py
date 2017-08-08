@@ -717,6 +717,9 @@ def create_ami(instance_id, name, description):
                 conf_secure_tag = "{} {}".format(args.configuration_secure_repo, args.configuration_secure_version)
                 img.add_tag("version:configuration_secure", conf_secure_tag)
                 time.sleep(AWS_API_WAIT_TIME)
+                conf_internal_tag = "{} {}".format(args.configuration_internal_repo, args.configuration_internal_version)
+                img.add_tag("version:configuration_internal", conf_internal_tag)
+                time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("cache_id", args.cache_id)
                 time.sleep(AWS_API_WAIT_TIME)
 
