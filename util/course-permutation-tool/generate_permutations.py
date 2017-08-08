@@ -63,15 +63,17 @@ def generate_permutations(fields, index, results, current, fields_dict):
 
     for i in range(len(permutations_values)):
         # add other required default fields to dict
-
-        # generate different organization number for each course
-        # organization_number = "PM9003" + str(i) + "x"
-        current["number"] = None # will be generated automatically by course creation script
+        current["number"] = "123" # will be generated automatically by course creation script
         current["organization"] = "RITX"
         current["run"] = "3T2017"
         current["user"] = "edx@example.com"
         current["partner"] = "edx"
 
+        # configure enrollment seat settings
+        enrollment_dict = {}
+        enrollment_dict["credit"] = False
+        enrollment_dict["credit_provider"] = "test-credit-provider"
+        # enrollment_dict["audit"] = True
 
         # add permutation fields to dict
         fields_dict[permutation_option] = permutations_values[i]
@@ -85,14 +87,20 @@ def generate_permutations(fields, index, results, current, fields_dict):
         if permutations_values[i] == None:
             fields_dict[permutation_option] = None
 
+        if all_permutations_keys[i] == "audit" and permutations_values[i] == True:
+            enrollment_dict["audit"] = permutations_values[i]
+        if all_permutations_keys[i] == "verify" and permutations_values[i] == True:
+            enrollment_dict["verify"] = True
+
+
+
+
+
 
         if index + 1 < len(all_permutations_keys):
             generate_permutations(fields, index + 1, results, current, fields_dict)
 
-        # configure enrollment seat settings
-        enrollment_dict = {}
-        enrollment_dict["credit"] = False
-        enrollment_dict["credit_provider"] = "test-credit-provider"
+
 
         current["enrollment"] = enrollment_dict
 
@@ -100,7 +108,6 @@ def generate_permutations(fields, index, results, current, fields_dict):
         results.append(current.copy())
         # results["courses"] = current.copy()
 
-        # print results
     wrapper_courses_dict = {}
 
     wrapper_courses_dict["courses"] = results
