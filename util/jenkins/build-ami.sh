@@ -64,6 +64,10 @@ cd $WORKSPACE/configuration-secure
 configuration_secure=`git rev-parse --short HEAD`
 cd $WORKSPACE
 
+cd $WORKSPACE/configuration-internal
+configuration_internal=`git rev-parse --short HEAD`
+cd $WORKSPACE
+
 base_params=""
 if [[ -n "$base_ami" ]]; then
   base_params="-b $base_ami"
@@ -91,8 +95,8 @@ fi
 configurationinternal_params=""
 if [[ ! -z "$configurationinternalrepo" ]]; then
   configurationinternal_params="--configuration-internal-repo $configurationinternalrepo"
-  if [[ ! -z "$configurationinternalversion" ]]; then
-    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configurationinternalversion"
+  if [[ ! -z "$configuration_internal" ]]; then
+    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configuration_internal"
   fi
 fi
 
