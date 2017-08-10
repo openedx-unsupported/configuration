@@ -6,29 +6,23 @@
 #
 # ./generate_permutations.py --seed_data_file permutations.json --fields field1 field2 field3
 
-import json
 import argparse
-from argparse import ArgumentParser
-from pprint import pprint
-from itertools import product
-from itertools import permutations
-import sys
 import json
 import datetime
 import pytz
 
-
-def parse_field_arguments():
+def arg_parse():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--seed_data_file', help="Input a permutation configuration file")
     parser.add_argument('--fields', nargs="*", action="append", default=None,
                         help="Specify which fields to generate permutations on")
-    parser.add_argument('--seed_data_file', help="Input a permutation configuration file")
 
-    num_args = parser.parse_args()
+    return parser.parse_args()
 
+
+def parse_field_arguments():
     file = open(num_args.seed_data_file)
     file_data = json.load(file)
-
 
     default_data = file_data["default_data"]
     permutation_data = file_data["permutation_data"]
@@ -112,5 +106,6 @@ def generate_permutations(fields, index, results, current, fields_dict):
 
 
 if __name__ == "__main__":
+    num_args = arg_parse()
     parse_field_arguments()
     generate_permutations(parse_field_arguments(), 0, [], {}, {})
