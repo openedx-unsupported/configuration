@@ -25,6 +25,9 @@ def parse_field_arguments():
     file_data = json.load(file)
 
     default_data = file_data["default_data"]
+
+    if not default_data:
+        raise argparse.ArgumentTypeError("Default_data object needed")
     permutation_data = file_data["permutation_data"]
 
     default_data_keys = permutation_data.keys()
@@ -55,18 +58,18 @@ def parse_field_arguments():
     return fields
 
 
-def generate_permutations(fields, index, results, current, fields_dict):
+def generate_permutations(fields, index, results, courses_dict, fields_dict):
     all_permutations_keys = fields.keys()
     permutation_option = all_permutations_keys[index]
     permutations_values = fields[permutation_option]
 
     for i in range(len(permutations_values)):
         # add other required default fields to dict
-        current["number"] = None  # will be generated automatically by course creation script
-        current["organization"] = "RITX"
-        current["run"] = "3T2017"
-        current["user"] = "edx@example.com"
-        current["partner"] = "edx"
+        courses_dict["number"] = None  # will be generated automatically by course creation script
+        courses_dict["organization"] = "RITX"
+        courses_dict["run"] = "3T2017"
+        courses_dict["user"] = "edx@example.com"
+        courses_dict["partner"] = "edx"
 
         # configure enrollment seat settings
         enrollment_dict = {}
@@ -92,11 +95,11 @@ def generate_permutations(fields, index, results, current, fields_dict):
             enrollment_dict["verify"] = True
 
         if index + 1 < len(all_permutations_keys):
-            generate_permutations(fields, index + 1, results, current, fields_dict)
+            generate_permutations(fields, index + 1, results, courses_dict, fields_dict)
 
-        current["enrollment"] = enrollment_dict
-        current["fields"] = fields_dict.copy()
-        results.append(current.copy())
+        courses_dict["enrollment"] = enrollment_dict
+        courses_dict["fields"] = fields_dict.copy()
+        results.append(courses_dict.copy())
 
     wrapper_courses_dict = {} # needed to match course input file creation
     wrapper_courses_dict["courses"] = results
