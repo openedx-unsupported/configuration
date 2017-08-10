@@ -11,6 +11,7 @@ import json
 import datetime
 import pytz
 
+
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed_data_file', help="Input a permutation configuration file")
@@ -101,7 +102,7 @@ def generate_permutations(fields, index, results, courses_dict, fields_dict):
         courses_dict["fields"] = fields_dict.copy()
         results.append(courses_dict.copy())
 
-    wrapper_courses_dict = {} # needed to match course input file creation
+    wrapper_courses_dict = {}  # needed to match course input file creation
     wrapper_courses_dict["courses"] = results
 
     with open("test_courses.json", "w") as outfile:
