@@ -343,24 +343,34 @@ def _get_modified_dockerfiles(files, git_dir):
     for f in files:
         file_path = pathlib2.Path(git_dir, f)
         if file_path in candidate_files:
-            items.add(_get_play_name(file_path))
+            play = items.add(_get_play_name(file_path))
+
+            if play is not None:
+                items.add(play)
     return items
 
 
 def _get_play_name(path):
 
     """
-    Gets name of play from the filepath, which is
-    the directory following occurence of the word "build".
+    Gets name of play from the filepath, which is the token
+    after either "docker/build" in the file path.
 
     Input:
     path: A path to the changed file under docker/build dir
     """
-    # get individual parts of a file path
-    dirs = path.parts
-    # name of play
-    return dirs[dirs.index("build")+1]
 
+    # attempt to extract Docker image name from file path; splits the path of a file over
+    # "docker/build/", because the first token after "docker/build/" is the image name
+    suffix = (str(path)).split(str(os.path.join('docker', 'build', '')))
+
+    # if file path contains "docker/build/"
+    if len(suffix) > 1:
+        # split suffix over separators to file path components separately
+        suffix_parts = suffix[1].split(os.sep)
+        # first token will be image name; <repo>/docker/build/<image>/...
+        return suffix_parts[0]
+    return None
 
 def arg_parse():
 
@@ -422,8 +432,5 @@ if __name__ == '__main__':
     # Add playbooks to the list whose docker file has been modified
     modified_docker_files = _get_modified_dockerfiles(change_set, TRAVIS_BUILD_DIR)
 
-
-    # prints Docker plays
-    print " ".join(str(play) for play in docker_plays),
-
-    print " ".join(str(dock) for dock in modified_docker_files)
+    all_plays = set(set(docker_plays) | set( modified_docker_files))
+    print " ".join(all_plays)
