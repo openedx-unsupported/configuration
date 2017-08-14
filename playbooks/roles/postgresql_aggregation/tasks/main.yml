@@ -5,19 +5,33 @@
     name: "{{ item }}"
     install_recommends: yes
     state: present
-  with_items: postgresql_aggregation_packages
+  with_items: "{{ postgresql_aggregation_packages }}"
+  tags: ['postgresql_aggregation']
 
 - name: install requirements for role
   pip:
     name: "{{ item }}"
     state: present
-  with_items: postgresql_aggregation_requirements
+  with_items: "{{ postgresql_aggregation_requirements }}"
+  tags: ['postgresql_aggregation']
+
+- name: Copy TLS certificates
+  copy: >
+    content="{{ item.content }}" dest="{{ item.dest }}"
+    owner="{{ postgresql_aggregation_cert_owner }}" group="{{ postgresql_aggregation_cert_group }}" mode=0400
+  with_items:
+    - { content: "{{ postgresql_aggregation_client_cert }}", dest: "{{ postgresql_aggregation_client_cert_path }}" }
+    - { content: "{{ postgresql_aggregation_client_key  }}", dest: "{{ postgresql_aggregation_client_key_path }}" }
+    - { content: "{{ postgresql_aggregation_ca_cert }}", dest: "{{ postgresql_aggregation_ca_cert_path }}" }
+  when: postgresql_aggregation_client_cert != '' and postgresql_aggregation_client_key != '' and postgresql_aggregation_ca_cert != ''
+  tags: ['postgresql_aggregation', 'postgresql_aggregation:tls']
 
 - name: check if user already exists
   command: "psql -h {{ postgresql_aggregation_login_host }} -U {{ postgresql_aggregation_login_user }} -d postgres -c \"SELECT 1 FROM pg_roles WHERE rolname='{{ POSTGRESQL_AGGREGATION_USER }}'\""
   register: user_exists
   environment:
     PGPASSWORD: "{{ postgresql_aggregation_login_password }}"
+  tags: ['postgresql_aggregation']
 
 - name: Create aggregation users
   postgresql_user:
@@ -29,21 +43,25 @@
     login_password: "{{ postgresql_aggregation_login_password }}"
     port: "{{ postgresql_aggregation_login_port }}"
   when: POSTGRESQL_AGGREGATION_DATABASE != None and POSTGRESQL_AGGREGATION_DATABASE != '' and user_exists.stdout_lines[2] == '(0 rows)'
+  tags: ['postgresql_aggregation']
 
 # This isn't pretty, here is why: https://github.com/ansible/ansible-modules-core/issues/297
 
 - name: Declare psql change pwd command
   set_fact:
     psql_change_pwd: ALTER USER \""{{ POSTGRESQL_AGGREGATION_USER }}"\" WITH PASSWORD '{{ POSTGRESQL_AGGREGATION_PASSWORD }}';
+  tags: ['postgresql_aggregation']
 
 - debug:
     msg: "{{ psql_change_pwd }}"
+  tags: ['postgresql_aggregation']
 
 - name: Ensure password matches what we have
   command: "psql -h {{ postgresql_aggregation_login_host }} -U {{ postgresql_aggregation_login_user }} -d postgres -c \"{{ psql_change_pwd }}\""
   environment:
      PGPASSWORD: "{{ postgresql_aggregation_login_password }}"
   when: POSTGRESQL_AGGREGATION_DATABASE != None and POSTGRESQL_AGGREGATION_DATABASE != '' and user_exists.stdout_lines[2] != '(0 rows)'
+  tags: ['postgresql_aggregation']
 
 - name: Set roles to users
   postgresql_privs:
@@ -56,10 +74,12 @@
     login_password: "{{ postgresql_aggregation_login_password }}"
     port: "{{ postgresql_aggregation_login_port }}"
   when: POSTGRESQL_AGGREGATION_DATABASE != None and POSTGRESQL_AGGREGATION_DATABASE != ''
+  tags: ['postgresql_aggregation']
 
 - name: Copy aggregation script for cron job
   template: src=aggregate_usage.j2 dest=/usr/local/bin/aggregate_usage owner=root group=root mode=0700
   when: POSTGRESQL_AGGREGATION_INSTALL_CRON
+  tags: ['postgresql_aggregation']
 
 - name: Create cron job aggregation usage
   cron:
@@ -70,3 +90,4 @@
     minute=0
     hour=*/6
   when: POSTGRESQL_AGGREGATION_INSTALL_CRON
+  tags: ['postgresql_aggregation']
