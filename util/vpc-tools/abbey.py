@@ -493,8 +493,6 @@ if [[ ! -z $git_repo_internal ]]; then
     $git_cmd clone $git_repo_internal $git_repo_internal_name
     cd $git_repo_internal_name
     $git_cmd checkout $configuration_internal_version
-    CONFIGURATION_INTERNAL_COMMIT_HASH=$($git_cmd rev-parse --short HEAD)
-    export CONFIGURATION_INTERNAL_COMMIT_HASH
     cd $base_dir
 fi
 
@@ -719,7 +717,7 @@ def create_ami(instance_id, name, description):
                 conf_secure_tag = "{} {}".format(args.configuration_secure_repo, args.configuration_secure_version)
                 img.add_tag("version:configuration_secure", conf_secure_tag)
                 time.sleep(AWS_API_WAIT_TIME)
-                conf_internal_tag = "{} {}".format(args.configuration_internal_repo,os.environ['CONFIGURATION_INTERNAL_COMMIT_HASH'])
+                conf_internal_tag = "{} {}".format(args.configuration_internal_repo, args.configuration_internal_version)
                 img.add_tag("version:configuration_internal", conf_internal_tag)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("cache_id", args.cache_id)
