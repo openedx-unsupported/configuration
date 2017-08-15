@@ -95,11 +95,13 @@ def generate_permutations(field_args, index, results, courses_dict, field_values
         enrollment_dict["credit"] = False
         enrollment_dict["credit_provider"] = "test-credit-provider"
 
-
         # add permutation fields to dict
         field_values_dict[permutation_option] = permutation_value
+
         # generate start and end dates
-        generate_date_translation(field_values_dict, permutation_option, permutation_value)
+        if permutation_option in ["start", "end"]:
+            permutation_value = calculate_date_value(permutation_value)
+        field_values_dict[permutation_option] = permutation_value
 
         for permutation_key in all_permutations_keys:
             # add audit and verify fields to dict
@@ -115,7 +117,8 @@ def generate_permutations(field_args, index, results, courses_dict, field_values
         courses_dict["fields"] = field_values_dict.copy()
         results.append(courses_dict.copy())
 
-    wrapper_courses_dict = {}  # needed to match course input file creation
+    # needed to match course input file creation
+    wrapper_courses_dict = {}
     wrapper_courses_dict["courses"] = results
 
     create_courses_json_file(wrapper_courses_dict)
@@ -126,16 +129,19 @@ def create_courses_json_file(wrapper_courses_dict):
         json.dump(wrapper_courses_dict, outfile)
 
 
-def generate_date_translation(field_values_dict, permutation_option, permutation_value):
+def calculate_date_value(date_const):
     now = datetime.datetime.now(pytz.UTC)
-    if permutation_value == FUTURE_DATE:
-        future = str(now + datetime.timedelta(days=365))
-        field_values_dict[permutation_option] = future
-    if permutation_value == PAST_DATE:
-        past = str(now - datetime.timedelta(days=60))
-        field_values_dict[permutation_option] = past
-    if permutation_value == None:
-        field_values_dict[permutation_option] = None
+    try:
+        if date_const == FUTURE_DATE:
+            future = str(now + datetime.timedelta(days=365))
+            return future
+        if date_const == PAST_DATE:
+            past = str(now - datetime.timedelta(days=60))
+            return past
+        if date_const == None:
+            return None
+    except ValueError:
+        print "Dates can only be future or past"
 
 
 def start_field_recursion(process_field_args):
