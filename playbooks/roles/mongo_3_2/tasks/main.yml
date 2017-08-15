@@ -108,7 +108,6 @@
     password: "{{ MONGO_ADMIN_PASSWORD }}"
   run_once: true
   register: authed_replica_set_already_configured
-  when: MONGO_CLUSTERED
   ignore_errors: true
   tags:
     - "install"
@@ -119,7 +118,7 @@
     host: "{{ ansible_default_ipv4['address'] }}"
   run_once: true
   register: unauthed_replica_set_already_configured
-  when: MONGO_CLUSTERED and authed_replica_set_already_configured.failed is defined
+  when: authed_replica_set_already_configured.failed is defined
   ignore_errors: true
   tags:
     - "install"
@@ -143,8 +142,7 @@
   set_fact:
     initialize_replica_set: true
     skip_replica_set: true
-  when: MONGO_CLUSTERED
-        and authed_replica_set_already_configured.status is not defined
+  when: authed_replica_set_already_configured.status is not defined
         and unauthed_replica_set_already_configured.status is not defined
   tags:
     - "install"
@@ -152,7 +150,7 @@
 
 - name: warn about unconfigured replica sets
   debug: msg="You do not appear to have a Replica Set configured, deploying one for you"
-  when: MONGO_CLUSTERED and initialize_replica_set
+  when: initialize_replica_set
   tags:
     - "install"
     - "install:configuration"
@@ -164,7 +162,6 @@
     mode: 0600
     owner: mongodb
     group: mongodb
-  when: MONGO_CLUSTERED
   notify: restart mongo
   tags:
     - "install"
@@ -251,7 +248,7 @@
 - name: Unset our skip initializing replica set fact so that mongod.conf gets a replica set
   set_fact:
     skip_replica_set: false
-  when: MONGO_CLUSTERED and initialize_replica_set
+  when: initialize_replica_set
   tags:
     - "install"
     - "install:configuration"
@@ -261,7 +258,7 @@
     src: mongod.conf.j2
     dest: /etc/mongod.conf
     backup: yes
-  when: MONGO_CLUSTERED and initialize_replica_set
+  when: initialize_replica_set
   tags:
     - "install"
     - "install:configuration"
@@ -270,7 +267,7 @@
   service:
     name: mongod
     state: restarted
-  when: MONGO_CLUSTERED and initialize_replica_set
+  when: initialize_replica_set
   tags:
     - "install"
     - "install:configuration"
@@ -279,7 +276,7 @@
   wait_for:
     port: 27017
     delay: 2
-  when: MONGO_CLUSTERED and initialize_replica_set
+  when: initialize_replica_set
   tags:
     - "install"
     - "install:configuration"
@@ -291,7 +288,6 @@
     rs_config: "{{ MONGO_RS_CONFIG }}"
   run_once: true
   register: replset_status
-  when: MONGO_CLUSTERED
   tags:
     - "manage"
     - "manage:db"
@@ -311,7 +307,6 @@
   retries: 5
   delay: 2
   run_once: true
-  when: MONGO_CLUSTERED
   tags:
     - "manage"
     - "manage:db"
@@ -329,22 +324,6 @@
     replica_set: "{{ MONGO_REPL_SET }}"
   with_items: "{{ MONGO_USERS }}"
   run_once: true
-  when: MONGO_CLUSTERED
-  tags:
-    - "manage"
-    - "manage:db"
-
-- name: create mongodb users in a standalone configuration
-  mongodb_user:
-    database: "{{ item.database }}"
-    login_user: "{{ MONGO_ADMIN_USER }}"
-    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
-    name: "{{ item.user }}"
-    password: "{{ item.password }}"
-    roles: "{{ item.roles }}"
-    state: present
-  with_items: "{{ MONGO_USERS }}"
-  when: not MONGO_CLUSTERED
   tags:
     - "manage"
     - "manage:db"
