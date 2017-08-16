@@ -50,17 +50,17 @@ def process_field_arguments(parser_args):
         sys.exit()
 
     field_args = {}
-    parsed_field_args = parser_args.fields
+    parsed_field_args = parser_args.fields[0] if isinstance(parser_args.fields, list) else None
 
     # if no field arguments are given, just return default data
     if not parsed_field_args:
         field_args = file_data["default_data"]
     else:
-        num_field_args = len(parsed_field_args[0])
+        num_field_args = len(parsed_field_args)
         if (num_field_args > 3):
             raise argparse.ArgumentTypeError("Only a max of 3 fields allowed")
         # add each command line field to fields dict
-        for field in parsed_field_args[0]:
+        for field in parsed_field_args:
             try:
                 field_args[field] = permutation_data[field]
             except KeyError:
@@ -68,7 +68,7 @@ def process_field_arguments(parser_args):
                 sys.exit()
 
         # calculate the difference between all possible fields and the chosen permutation ones
-        default_fields = list(set(default_data_keys) - set(parsed_field_args[0]))
+        default_fields = list(set(default_data_keys) - set(parsed_field_args))
 
         # add non permutation fields to dict
         for field in default_fields:
@@ -91,9 +91,10 @@ def generate_permutations(field_args, index, results, courses_dict, field_values
         courses_dict["user"] = COURSE_USER
         courses_dict["partner"] = COURSE_PARTNER
         # configure enrollment seat settings
-        enrollment_dict = {}
-        enrollment_dict["credit"] = False
-        enrollment_dict["credit_provider"] = "test-credit-provider"
+        enrollment_dict = {
+            "credit": False,
+            "credit-provider": "test-credit-provider"
+        }
 
         # add permutation fields to dict
         field_values_dict[permutation_option] = permutation_value
@@ -121,12 +122,13 @@ def generate_permutations(field_args, index, results, courses_dict, field_values
     wrapper_courses_dict = {}
     wrapper_courses_dict["courses"] = results
 
-    create_courses_json_file(wrapper_courses_dict)
+    return wrapper_courses_dict
 
 
 def create_courses_json_file(wrapper_courses_dict):
     with open(TEST_COURSES_FILE, "w") as outfile:
         json.dump(wrapper_courses_dict, outfile)
+        return TEST_COURSES_FILE
 
 
 def calculate_date_value(date_const):
@@ -142,13 +144,15 @@ def calculate_date_value(date_const):
             return None
     except ValueError:
         print "Dates can only be future or past"
+        sys.exit()
 
 
 def start_field_recursion(process_field_args):
-    generate_permutations(process_field_args, 0, [], {}, {})
+    return generate_permutations(process_field_args, 0, [], {}, {})
 
 
 if __name__ == "__main__":
     args = arg_parse()
     process_field_args = process_field_arguments(args)
-    start_field_recursion(process_field_args)
+    json_file = start_field_recursion(process_field_args)
+    create_courses_json_file(json_file)
