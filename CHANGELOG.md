@@ -376,3 +376,4 @@
 
 - Role: edxapp
   - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
+  - Removed unused `EDXAPP_BOOK_URL` setting
