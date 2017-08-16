@@ -99,10 +99,12 @@ def generate_permutations(field_args, index, results, courses_dict, field_values
         # add permutation fields to dict
         field_values_dict[permutation_option] = permutation_value
 
-        # generate start and end dates
-        if permutation_option in ["start", "end"]:
-            permutation_value = calculate_date_value(permutation_value)
-        field_values_dict[permutation_option] = permutation_value
+        date_values = ["future", "past"]
+
+        for dates in date_values:
+            if dates in permutations_values:
+                permutation_value = calculate_date_value(dates)
+                field_values_dict[permutation_option] = permutation_value
 
         for permutation_key in all_permutations_keys:
             # add audit and verify fields to dict
@@ -140,8 +142,6 @@ def calculate_date_value(date_const):
         if date_const == PAST_DATE:
             past = str(now - datetime.timedelta(days=60))
             return past
-        if date_const == None:
-            return None
     except ValueError:
         print "Dates can only be future or past"
         sys.exit()
