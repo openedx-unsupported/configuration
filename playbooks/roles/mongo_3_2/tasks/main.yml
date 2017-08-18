@@ -9,7 +9,7 @@
   tags:
     - "hugepages"
     - "install"
-    - "install:system-requirements"
+    - "install:configuration"
 
 - name: Enable/start disable transparent huge pages service (http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/)
   service:
@@ -18,8 +18,8 @@
     state: started
   tags:
     - "hugepages"
-    - "install"
-    - "install:system-requirements"
+    - "manage"
+    - "manage:start"
 
 - name: install python pymongo for mongo_user ansible module
   pip:
@@ -29,7 +29,7 @@
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   tags:
     - "install"
-    - "install:system-requirements"
+    - "install:app-requirements"
 
 - name: add the mongodb signing key
   apt_key:
@@ -38,7 +38,7 @@
     state: present
   tags:
     - "install"
-    - "install:system-requirements"
+    - "install:app-requirements"
 
 - name: add the mongodb repo to the sources list
   apt_repository:
@@ -46,7 +46,8 @@
     state: present
   tags:
     - "install"
-    - "install:system-requirements"
+    - "install:app-requirements"
+    - "mongo_packages"
 
 - name: install mongo server and recommends
   apt:
@@ -57,9 +58,9 @@
     update_cache: yes
   with_items: "{{ mongodb_debian_pkgs }}"
   tags:
-    - install
-    - install:app-requirements
-    - mongo_packages
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
 
 - name: create mongo dirs
   file:
@@ -74,7 +75,7 @@
     - "{{ mongo_journal_dir }}"
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
 
 - name: add serverStatus logging script
   template:
@@ -86,7 +87,7 @@
   when: MONGO_LOG_SERVERSTATUS
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
 
 - name: add serverStatus logging script to cron
   cron:
@@ -97,7 +98,7 @@
   when: MONGO_LOG_SERVERSTATUS
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
 
 # This will error when run on a new replica set, so we ignore_errors
 # and connect anonymously next.
@@ -110,8 +111,8 @@
   register: authed_replica_set_already_configured
   ignore_errors: true
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
 
 - name: Try checking the replica set with no user/pass in case this is a new box
   mongodb_rs_status:
@@ -121,8 +122,8 @@
   when: authed_replica_set_already_configured.failed is defined
   ignore_errors: true
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
 
 # We use these in the templates but also to control a whole bunch of logic
 - name: set facts that default to not initializing a replica set
@@ -131,7 +132,7 @@
     skip_replica_set: false
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
     - "update_mongod_conf"
 
 # If either auth or unauthed access comes back with a replica set, we
@@ -145,15 +146,15 @@
   when: authed_replica_set_already_configured.status is not defined
         and unauthed_replica_set_already_configured.status is not defined
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
 
 - name: warn about unconfigured replica sets
   debug: msg="You do not appear to have a Replica Set configured, deploying one for you"
   when: initialize_replica_set
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
 
 - name: copy mongodb key file
   copy:
@@ -164,8 +165,8 @@
     group: mongodb
   register: update_mongod_key
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
     - "mongodb_key"
 
 # If skip_replica_set is true, this template will not contain a replica set stanza
@@ -177,8 +178,8 @@
     backup: yes
   register: update_mongod_conf
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
     - "update_mongod_conf"
 
 - name: install logrotate configuration
@@ -187,7 +188,7 @@
     dest: /etc/logrotate.d/hourly/mongo
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
     - "logrotate"
 
 - name: restart mongo service if we changed our configuration
@@ -196,16 +197,16 @@
     state: restarted
   when: update_mongod_conf.changed or update_mongod_key.changed
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:start"
 
 - name: wait for mongo server to start
   wait_for:
     port: 27017
     delay: 2
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:start"
 
 # We only try passwordless superuser creation when
 # we're initializing the replica set and need to use
@@ -250,7 +251,9 @@
   when: initialize_replica_set
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
+    - "manage"
+    - "manage:db-replication"
 
 - name: re-copy configuration template with replica set enabled
   template:
@@ -259,8 +262,8 @@
     backup: yes
   when: initialize_replica_set
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:db-replication"
 
 - name: restart mongo service
   service:
@@ -268,8 +271,9 @@
     state: restarted
   when: initialize_replica_set
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:start"
+    - "manage:db-replication"
 
 - name: wait for mongo server to start
   wait_for:
@@ -277,8 +281,9 @@
     delay: 2
   when: initialize_replica_set
   tags:
-    - "install"
-    - "install:configuration"
+    - "manage"
+    - "manage:start"
+    - "manage:db-replication"
 
 - name: configure replica set
   mongodb_replica_set:
@@ -290,7 +295,7 @@
   tags:
     - "manage"
     - "manage:db"
-    - "configure_replica_set"
+    - "manage:db-replication"
 
 # During initial replica set configuration, it can take a few seconds to vote
 # a primary and for all members to reflect that status.  During that window,
@@ -309,6 +314,7 @@
   tags:
     - "manage"
     - "manage:db"
+    - "manage:db-replication"
 
 - name: create mongodb users in a replica set
   mongodb_user:
@@ -326,3 +332,4 @@
   tags:
     - "manage"
     - "manage:db"
+    - "manage:db-replication"
