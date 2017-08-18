@@ -36,6 +36,13 @@ def arg_parse():
 
 
 def process_field_arguments(parser_args):
+    """
+      Processes field arguments and prepares them for the permutation generator. Prepares
+      non-field arguments for the generator, as well
+
+      Input:
+      parser_args: the set of command line arguments typed in by the user
+    """
     try:
         file = open(parser_args.seed_data_file)
         file_data = json.load(file)
@@ -78,6 +85,17 @@ def process_field_arguments(parser_args):
 
 
 def generate_permutations(field_args, index, results, courses_dict, field_values_dict):
+    """
+       Returns a dictionary of course permutation objects. Adds default values to the dict,
+       and recurses over the array attached to each field to create combinations
+
+       Input:
+       field_args: a dictionary of all the default & permutation fields that will be included in each course
+       index: iterator for each element in the list of field_args keys
+       results: the list of all permutation objects
+       courses_dict: dictionary used to separate "fields" and "enrollment" into different objects
+       field_values_dict: dictionary to hold each field value iteration result
+     """
     all_permutations_keys = field_args.keys()
     permutation_option = all_permutations_keys[index]
     permutations_values = field_args[permutation_option]
@@ -150,9 +168,11 @@ def calculate_date_value(date_const):
 def start_field_recursion(process_field_args):
     return generate_permutations(process_field_args, 0, [], {}, {})
 
-
-if __name__ == "__main__":
+def main():
     args = arg_parse()
     process_field_args = process_field_arguments(args)
     json_file = start_field_recursion(process_field_args)
     create_courses_json_file(json_file)
+
+if __name__ == "__main__":
+   main()
