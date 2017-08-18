@@ -1,0 +1,43 @@
+---
+OAUTH_SETTINGS:
+  GITHUB_WEB_URI: 'https://github.com'
+  GITHUB_API_URI: 'https://api.github.com'
+  CLIENT_ID: '{{ JENKINS_SECURITY_CLIENT_ID }}'
+  CLIENT_SECRET: '{{ JENKINS_SECURITY_CLIENT_SECRET }}'
+  SCOPES: 'read:org,user:email'
+SECURITY_GROUPS:
+  - NAME: 'anonymous'
+    PERMISSIONS:
+      - 'hudson.model.Hudson.Read'
+      - 'hudson.model.Item.Discover'
+      - 'hudson.model.Item.Read'
+    USERS:
+      - 'anonymous'
+  - NAME: 'edx'
+    PERMISSIONS:
+      - 'hudson.model.Hudson.Read'
+      - 'hudson.model.Item.Build'
+      - 'hudson.model.Item.Cancel'
+      - 'hudson.model.Item.Read'
+      - 'hudson.model.Run.Delete'
+      - 'hudson.model.Run.Update'
+    USERS:
+{% for user in JENKINS_SECURITY_EDX_USERS_LIST %}
+      - '{{ user }}'
+{% endfor %}
+  - NAME: 'admin'
+    PERMISSIONS:
+      - 'hudson.model.Hudson.Administer'
+    USERS:
+{% for user in JENKINS_SECURITY_ADMIN_LIST %}
+      - '{{ user }}'
+{% endfor %}
+  - NAME: 'bots'
+    PERMISSIONS:
+      - 'hudson.model.Item.Cancel'
+      - 'hudson.model.Item.Read'
+      - 'hudson.model.Run.Update'
+    USERS:
+{% for user in JENKINS_SECURITY_BOT_LIST %}
+      - '{{ user }}'
+{% endfor %}

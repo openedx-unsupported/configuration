@@ -1,0 +1,99 @@
+---
+- name: Install jenkins specific system packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    update_cache: yes
+  with_items: '{{ jenkins_common_debian_pkgs }}'
+  tags:
+    - jenkins
+    - install
+    - install:system-requirements
+
+- name: Create jenkins group
+  group:
+    name: '{{ jenkins_common_group }}'
+    state: present
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add the jenkins user to the group
+  user:
+    name: '{{ jenkins_common_user }}'
+    append: yes
+    groups: '{{ jenkins_common_group }}'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Create necessary folders
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ jenkins_common_user }}'
+  with_items:
+    - /usr/share/jenkins
+    - '{{ jenkins_common_home }}/init.groovy.d'
+    - '{{ jenkins_common_config_path }}'
+    - '{{ jenkins_common_home }}/utils'
+    - '{{ jenkins_common_home }}/plugins'
+    - '{{ jenkins_common_git_home }}'
+  tags:
+    - install
+    - install:base
+
+- name: Download Jenkins war file
+  get_url:
+    url: '{{ jenkins_common_war_source }}/{{ jenkins_common_version }}.war'
+    dest: /usr/share/jenkins/jenkins.war
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Add Jenkins systemd configuration
+  template:
+    src:  "etc/systemd/system/jenkins.service.j2"
+    dest: "/etc/systemd/system/jenkins.service"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add env vars
+  template:
+    src: "jenkins-env.sh.j2"
+    dest: "/etc/profile.d/jenkins-env.sh"
+    owner: root
+    group: root
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: Download jenkins-configuration repo
+  git:
+      repo: '{{ jenkins_common_configuration_git_url }}'
+      dest: '{{ jenkins_common_git_home }}/jenkins-configuration'
+  tags:
+    - install
+    - install:base
+    - install:plugins
+
+- name: Run gradle libs
+  shell: './gradlew libs'
+  args:
+    chdir: '{{ jenkins_common_git_home }}/jenkins-configuration'
+  environment:
+    UTILS_PATH: '{{ jenkins_common_home }}/utils'
+    JENKINS_VERSION: '{{ jenkins_common_version }}'
+  tags:
+    - install
+    - install:base
+
+- name: Copy init scripts into init.groovy.d
+  command: 'cp {{ jenkins_common_git_home }}/jenkins-configuration/{{ jenkins_common_configuration_src_path }}/{{ item }} {{ jenkins_common_home }}/init.groovy.d/'
+  with_items: '{{ jenkins_common_configuration_scripts }}'
+  tags:
+    - install
+    - install:base
+    - install:plugins
