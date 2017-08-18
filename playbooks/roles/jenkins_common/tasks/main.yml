@@ -1,0 +1,197 @@
+---
+- name: Install jenkins specific system packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    update_cache: yes
+  with_items: '{{ jenkins_common_debian_pkgs }}'
+  tags:
+    - jenkins
+    - install
+    - install:system-requirements
+
+- name: Create jenkins group
+  group:
+    name: '{{ jenkins_common_group }}'
+    state: present
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add the jenkins user to the group
+  user:
+    name: '{{ jenkins_common_user }}'
+    append: yes
+    groups: '{{ jenkins_common_group }}'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Create necessary folders
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ jenkins_common_user }}'
+  with_items:
+    - /usr/share/jenkins
+    - '{{ jenkins_common_home }}/init.groovy.d'
+    - '{{ jenkins_common_config_path }}'
+    - '{{ jenkins_common_home }}/utils'
+    - '{{ jenkins_common_home }}/plugins'
+    - '{{ jenkins_common_git_home }}'
+  tags:
+    - install
+    - install:base
+
+- name: Download Jenkins war file
+  get_url:
+    url: '{{ jenkins_common_war_source }}/{{ jenkins_common_version }}.war'
+    dest: /usr/share/jenkins/jenkins.war
+    force: yes
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Add Jenkins systemd configuration
+  template:
+    src:  "etc/systemd/system/jenkins.service.j2"
+    dest: "/etc/systemd/system/jenkins.service"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add env vars
+  template:
+    src: "jenkins-env.sh.j2"
+    dest: "/etc/profile.d/jenkins-env.sh"
+    owner: root
+    group: root
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: Download jenkins-configuration repo
+  git:
+      repo: '{{ jenkins_common_configuration_git_url }}'
+      dest: '{{ jenkins_common_git_home }}/jenkins-configuration'
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Run gradle libs
+  shell: './gradlew libs'
+  args:
+    chdir: '{{ jenkins_common_git_home }}/jenkins-configuration'
+  environment:
+    UTILS_PATH: '{{ jenkins_common_home }}/utils'
+    JENKINS_VERSION: '{{ jenkins_common_version }}'
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Copy init scripts into init.groovy.d
+  command: 'cp {{ jenkins_common_git_home }}/jenkins-configuration/{{ jenkins_common_configuration_src_path }}/{{ item }} {{ jenkins_common_home }}/init.groovy.d/'
+  with_items: '{{ jenkins_common_configuration_scripts }}'
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Create jenkins config sub folders
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ jenkins_common_user }}'
+  with_items:
+    - '{{ jenkins_common_config_path }}/credentials'
+    - '{{ jenkins_common_config_path }}/ec2'
+    - '{{ jenkins_common_config_path }}/xml'
+  tags:
+     - install
+     - install:base
+
+- name: Copy non plugins template files
+  template:
+    src: '{{ role_path }}/templates/config/{{ item }}.yml.j2'
+    dest: '{{ jenkins_common_config_path }}/{{ item }}.yml'
+  with_items: '{{ jenkins_common_non_plugin_template_files }}'
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Copy plugins.yml config file
+  template:
+    src: '{{ role_path }}/templates/config/plugins.yml.j2'
+    dest: '{{jenkins_common_config_path }}/plugins.yml'
+  tags:
+    - install
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
+
+- name: Copy ec2 config files
+  template: src={{ item }} dest='{{ jenkins_common_config_path }}/ec2/'
+  with_fileglob:
+    - '{{ role_path }}/files/ec2/*'
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Copy xml config files
+  template: src={{ item }} dest='{{ jenkins_common_config_path }}/xml/'
+  with_fileglob:
+    - '{{ role_path }}/files/xml/*'
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Run plugins.gradle
+  shell: './gradlew -b plugins.gradle plugins'
+  args:
+    chdir: '{{ jenkins_common_git_home }}/jenkins-configuration'
+  environment:
+    PLUGIN_OUTPUT_DIR: '{{ jenkins_common_home }}/plugins'
+    PLUGIN_CONFIG: '{{ jenkins_common_config_path }}/plugins.yml'
+  tags:
+    - install
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
+
+- name: Copy credentials into files
+  copy:
+    content: "{{ item.content }}"
+    dest: '{{ jenkins_common_config_path }}/credentials/{{ item.name }}'
+  with_items: '{{ JENKINS_SECRET_FILES_LIST }}'
+  no_log: yes
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Copy ec2 key
+  copy:
+    content: '{{ JENKINS_EC2_PRIVATE_KEY }}'
+    dest: '{{ jenkins_common_config_path }}/ec2/id_rsa'
+  no_log: yes
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Start Jenkins Service
+  systemd:
+    name: jenkins
+    daemon_reload: yes
+    state: restarted
+  tags:
+    - manage
+    - manage:start
+    - install:plugins
+    - install:jenkins-configuration
