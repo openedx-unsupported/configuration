@@ -1,0 +1,119 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Simple theme
+#
+# See documentation in README.rst
+
+# Require comprehensive theming
+# EDXAPP_COMPREHENSIVE_THEME_DIRS.0 is usually "/edx/app/edxapp/themes"
+- assert:
+    that:
+      - "EDXAPP_COMPREHENSIVE_THEME_DIRS | length > 0"
+      - "EDXAPP_ENABLE_COMPREHENSIVE_THEMING"
+    msg: "Simple-theme deployment requires comprehensive theming to be enabled"
+
+- assert:
+    that:
+      - "EDXAPP_DEFAULT_SITE_THEME != ''"
+    msg: "Simple-theme needs to know the name of the deployed theme. Pass it in EDXAPP_DEFAULT_SITE_THEME"
+
+
+- name: Check whether theme directory already exists
+  stat: path="{{ simpletheme_folder }}"
+  register: simpletheme_folder_stat
+
+# Note that if a theme already exists in the destination directory, it won't be
+# deleted or redownloaded. It would be better to redownload, but for that we
+# need https://github.com/ansible/ansible-modules-core/issues/5292 to be fixed,
+# or to implement a workaround.
+- block:
+  - name: Download skeleton theme
+    git:
+      repo: "{{ EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO }}"
+      dest: "{{ simpletheme_folder }}"
+      version: "{{ EDXAPP_COMPREHENSIVE_THEME_VERSION | default('master') }}"
+      # force: yes  # Disabled due to ansible bug, see above
+  # Done in a separate step because "git:" doesn't have owner/group parameters
+  - name: Adjust owner/group of downloaded skeleton theme
+    file:
+      dest: "{{ simpletheme_folder }}"
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+      recurse: yes
+  when: EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO != "" and not simpletheme_folder_stat.stat.exists
+
+# If no skeleton theme, we still need some SASS files to include our SASS partials
+- block:
+  - name: Create default skeleton (dirs)
+    file:
+      path: "{{ simpletheme_folder }}/{{ item.path }}"
+      state: directory
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_filetree: "../files/default_skeleton"
+    when: item.state == 'directory'
+  - name: Create default skeleton (files)
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ simpletheme_folder }}/{{ item.path }}"
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_filetree: "../files/default_skeleton"
+    when: item.state != 'directory'
+  when: EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO == "" and not simpletheme_folder_stat.stat.exists
+
+# These are directories to hold the compiled templates included in this role
+- name: Create directory to hold the theme and styles
+  file:
+    path: "{{ simpletheme_folder }}/{{ item }}"
+    state: directory
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+  with_items:
+    - "."
+    - "lms/static/sass/partials/base"
+
+- name: Compile the templates
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ simpletheme_folder }}/{{ item }}"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+  with_items:
+    # List of files from ./templates to be processed
+    - "lms/static/sass/partials/base/_variables.scss"
+    - "lms/static/sass/_lms-overrides.scss"
+
+
+# Copying static files is done in two steps: create directories + copy files
+# (while renaming their path to add "static/"). There could be a 1-step solution,
+# e.g requesting with_filetree with depth 1 (if this is possible in ansible).
+# Note: with_fileglob doesn't take directories, but with_filetree does.
+
+- block:
+  - name: Create directories for static files
+    file:
+      path: "{{ simpletheme_folder }}/{{ item.path | regex_replace('^([^/]+)/(.+)$','\\1/static/\\2') }}"
+      state: directory
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_filetree: "{{ SIMPLETHEME_STATIC_FILES_DIR }}"
+    when: item.state == 'directory'
+  - name: Copy static files (adding "static/")
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ simpletheme_folder }}/{{ item.path | regex_replace('^([^/]+)/(.+)$','\\1/static/\\2') }}"
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_filetree: "{{ SIMPLETHEME_STATIC_FILES_DIR }}"
+    when: item.state != 'directory'
+  when: SIMPLETHEME_STATIC_FILES_DIR != ""
