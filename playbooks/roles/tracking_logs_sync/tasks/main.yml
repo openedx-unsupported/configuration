@@ -26,21 +26,21 @@
   tags: ['tracking_logs_sync']
 
 - name: Copy boto configuration
-  template: src=boto.j2 dest="{{ TRACKING_LOGS_GS_BOTO_FILE }}" owner=root group=root mode=0600
+  template: src=insights-boto.j2 dest="{{ TRACKING_LOGS_GS_BOTO_FILE }}" owner=root group=root mode=0600
   when: TRACKING_LOGS_STORAGE_PROVIDER == 'gs'
   tags: ['tracking_logs_sync']
 
-- name: Copy base64-encoded credentials for backup service account
+- name: Copy base64-encoded credentials for insights service account
   copy: content="{{ TRACKING_LOGS_GS_SERVICE_KEY_CONTENTS }}" dest="{{ TRACKING_LOGS_GS_SERVICE_KEY_FILE }}.b64" owner=root group=root mode=0600
   when: TRACKING_LOGS_STORAGE_PROVIDER == 'gs'
   tags: ['tracking_logs_sync']
 
-- name: Decode credentials file for backup service account
+- name: Decode credentials file for insights service account
   shell: base64 -d "{{ TRACKING_LOGS_GS_SERVICE_KEY_FILE }}.b64" > "{{ TRACKING_LOGS_GS_SERVICE_KEY_FILE }}"
   when: TRACKING_LOGS_STORAGE_PROVIDER == 'gs'
   tags: ['tracking_logs_sync']
 
-- name: Copy sync tracking logs  script
+- name: Copy sync tracking logs script
   copy: src=copy_tracking_logs.py dest=/usr/local/bin/copy_tracking_logs owner=root group=root mode=0700
   tags: ['tracking_logs_sync']
 
@@ -67,5 +67,6 @@
     TRACKING_LOGS_STORAGE_PROVIDER: '{{ TRACKING_LOGS_STORAGE_PROVIDER }}'
     TRACKING_LOGS_SENTRY_DSN: '{{ TRACKING_LOGS_SENTRY_DSN }}'
     TRACKING_LOGS_MULTIPLE_EDXAPP_VM: '{{ TRACKING_LOGS_MULTIPLE_EDXAPP_VM }}'
+    BOTO_CONFIG: '{{ TRACKING_LOGS_GS_BOTO_FILE }}'
   when: TRACKING_LOGS_STORAGE_PROVIDER and "{{ item.value }}" != ""
   tags: ['tracking_logs_sync']
