@@ -1,22 +1,39 @@
+"""
+CloudFlare API
+https://api.cloudflare.com/#zone-analytics-dashboard
+
+"""
 import requests
 import argparse
+import sys
 
 CLOUDFLARE_API_ENDPOINT = "https://api.cloudflare.com/client/v4/"
 
 
-def calcualte_cache_hit_rate(zone_id, auth_key, email):
+def calcualte_cache_hit_rate(zone_id, auth_key, email, threshold):
     HEADERS = {"Accept": "application/json",
                "X-Auth-Key": auth_key,
                "X-Auth-Email": email}
+    # for last 7 hours, -419 indicates minutes, we can go
+    # beyond that as well, for example for last 15
+    # hours it will be -899
+    PARAMS = {"since": "-419", "continuous": "true"}
     res = requests.get(CLOUDFLARE_API_ENDPOINT + "zones/" + zone_id
-                       + "/analytics/dashboard?since=-419&continuous=true",
-                       headers=HEADERS)
-    data = res.json()
-    all_req = float(data["result"]["timeseries"][0]["requests"]["all"])
-    cached_req = float(data["result"]["timeseries"][0]["requests"]["cached"])
-    threshold_limit = cached_req * 100.0 / all_req
+                       + "/analytics/dashboard", headers=HEADERS,
+                       params=PARAMS)
+    try:
+        data = res.json()
+        all_req = float(data["result"]["timeseries"][0]["requests"]["all"])
+        cached_req = float(data["result"]["timeseries"][0]["requests"]["cached"])
+        current_cache_hit_rate = cached_req / all_req * 100
+        if current_cache_hit_rate < threshold:
+            sys.exit(1)
 
-    # Add threshold for alerts/alarms
+    except Exception as error:
+        print "JSON Error: {}".format(error)
+
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -26,6 +43,8 @@ if __name__ == "__main__":
                         help="Authentication Key")
     parser.add_argument('-e', '--email', required=True,
                         help="email to use for authentication for CloudFlare API")
+    parser.add_argument('-t', '--threshold', required=True,
+                        help="Threshold limit to be passed to check against it")
     args = parser.parse_args()
 
-    calcualte_cache_hit_rate(args.zone, args.auth_key, args.email)
+    calcualte_cache_hit_rate(args.zone, args.auth_key, args.email, args.threshold)
