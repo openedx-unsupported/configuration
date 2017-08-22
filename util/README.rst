@@ -49,9 +49,11 @@ To modify configuration file:
 6.  Wait for Travis CI to run the builds.
 
 7.  Upon completion, examine the Travis CI logs to find where your Dockerfile
-    was built (search for "docker build -t"). Find the amount of time the build
-    took by comparing the output of the date command before the build command
-    starts and the date command after the build command completes.
+    was built (search for "docker build -t"). Your Dockerfile should be built
+    by one of the build jobs with "MAKE_TARGET=docker.test.shard". Find the
+    amount of time the build took by comparing the output of the date command
+    before the build command starts and the date command after the build
+    command completes.
 
 8.  Round build time to a whole number, and add it to the
     configuration/util/parsefiles\_config.yml file.
