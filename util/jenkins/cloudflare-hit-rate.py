@@ -14,10 +14,10 @@ def calcualte_cache_hit_rate(zone_id, auth_key, email, threshold):
     HEADERS = {"Accept": "application/json",
                "X-Auth-Key": auth_key,
                "X-Auth-Email": email}
-    # for last 7 hours, -419 indicates minutes, we can go
+    # for the past one hour, -59 indicates minutes, we can go
     # beyond that as well, for example for last 15
     # hours it will be -899
-    PARAMS = {"since": "-419", "continuous": "true"}
+    PARAMS = {"since": "-59", "continuous": "true"}
     res = requests.get(CLOUDFLARE_API_ENDPOINT + "zones/" + zone_id
                        + "/analytics/dashboard", headers=HEADERS,
                        params=PARAMS)
@@ -30,7 +30,7 @@ def calcualte_cache_hit_rate(zone_id, auth_key, email, threshold):
             sys.exit(1)
 
     except Exception as error:
-        print "JSON Error: {}".format(error)
+        print "JSON Error: {} \n Content returned from API call: {}".format(error, res.text)
 
 
 
