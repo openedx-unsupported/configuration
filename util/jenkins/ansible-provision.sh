@@ -295,6 +295,7 @@ CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
 discovery_create_demo_data: true
+DISCOVERY_HOSTNAME: "discovery-${deploy_host}"
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 DISCOVERY_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
