@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added OAUTH_DELETE_EXPIRED to enable automatic deletion of edx-django-oauth2-provider grants, access tokens, and refresh tokens as they are consumed. This will not do a bulk delete of existing rows.
+
 - Role: mongo_3_2
   - Added role for mongo 3.2, not yet in use.
   - Removed MONGO_CLUSTERED variable. In this role mongo replication is always configured, even if there is only one node.
