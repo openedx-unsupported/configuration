@@ -22,14 +22,25 @@
   tags:
     - install
     - install:base
+    - install:jenkins-configuration
 
-- name: Copy config files
+- name: Copy non plugins.yml config files
   template: src={{ item }} dest='{{ build_jenkins_config_path }}/'
   with_fileglob:
     - '{{ role_path }}/files/*'
+  when: "'plugins.yml' not in item"
   tags:
     - install
     - install:base
+    - install:jenkins-configuration
+
+- name: Copy plugins.yml config file
+  template: src='{{ role_path }}/files/plugins.yml' dest='{{ build_jenkins_config_path }}/'
+  tags:
+    - install
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
 
 - name: Copy ec2 config files
   template: src={{ item }} dest='{{ build_jenkins_config_path }}/ec2/'
@@ -38,6 +49,7 @@
   tags:
     - install
     - install:base
+    - install:jenkins-configuration
 
 - name: Copy xml config files
   template: src={{ item }} dest='{{ build_jenkins_config_path }}/xml/'
@@ -46,6 +58,7 @@
   tags:
     - install
     - install:base
+    - install:jenkins-configuration
 
 - name: Run plugins.gradle
   shell: './gradlew -b plugins.gradle plugins'
@@ -56,8 +69,9 @@
     PLUGIN_CONFIG: '{{ build_jenkins_config_path }}/plugins.yml'
   tags:
     - install
-    - install:app-requirements
     - install:base
+    - install:plugins
+    - install:jenkins-configuration
 
 - name: Copy credentials into files
   copy:
@@ -68,6 +82,7 @@
   tags:
     - install
     - install:base
+    - install:jenkins-configuration
 
 - name: Copy ec2 key
   copy:
@@ -77,6 +92,7 @@
   tags:
     - install
     - install:base
+    - install:jenkins-configuration
 
 - name: Start Jenkins Service
   systemd:
@@ -86,3 +102,5 @@
   tags:
     - manage
     - manage:start
+    - install:plugins
+    - install:jenkins-configuration
