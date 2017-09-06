@@ -66,6 +66,10 @@
     ttl: 300
     record: "{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item.public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
   with_items: "{{ ec2.instances }}"
 
 - name: Add DNS names for services
@@ -78,6 +82,10 @@
     ttl: 300
     record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
   with_nested:
     - "{{ ec2.instances }}"
     - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
