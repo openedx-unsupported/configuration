@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `EDXAPP_REINDEX_ALL_COURSES` to rebuild the course index on deploy. Disabled by default.
+
+- Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
 
 - Role: edxapp
