@@ -1,43 +1,36 @@
 ---
-OAUTH_SETTINGS:
-  GITHUB_WEB_URI: 'https://github.com'
-  GITHUB_API_URI: 'https://api.github.com'
-  CLIENT_ID: '{{ JENKINS_SECURITY_CLIENT_ID }}'
-  CLIENT_SECRET: '{{ JENKINS_SECURITY_CLIENT_SECRET }}'
-  SCOPES: 'read:org,user:email'
-SECURITY_GROUPS:
-  - NAME: 'anonymous'
-    PERMISSIONS:
-      - 'hudson.model.Hudson.Read'
-      - 'hudson.model.Item.Discover'
-      - 'hudson.model.Item.Read'
-    USERS:
-      - 'anonymous'
-  - NAME: 'edx'
-    PERMISSIONS:
-      - 'hudson.model.Hudson.Read'
-      - 'hudson.model.Item.Build'
-      - 'hudson.model.Item.Cancel'
-      - 'hudson.model.Item.Read'
-      - 'hudson.model.Run.Delete'
-      - 'hudson.model.Run.Update'
-    USERS:
-{% for user in JENKINS_SECURITY_EDX_USERS_LIST %}
-      - '{{ user }}'
+SERVER_API_URL: 'https://api.github.com'
+ACCESS_TOKEN: '{{ JENKINS_GHPRB_TOKEN }}'
+ADMIN_LIST:
+{% for admin in JENKINS_GHPRB_ADMIN_LIST %}
+    - '{{ admin }}'
 {% endfor %}
-  - NAME: 'admin'
-    PERMISSIONS:
-      - 'hudson.model.Hudson.Administer'
-    USERS:
-{% for user in JENKINS_SECURITY_ADMIN_LIST %}
-      - '{{ user }}'
+REQUEST_TESTING_PHRASE: ''
+WHITE_LIST_PHRASE: '.*[Aa]dd\W+to\W+whitelist.*'
+OK_PHRASE: '.*ok\W+to\W+test.*'
+RETEST_PHRASE: '.*jenkins\W+run\W+all.*'
+SKIP_PHRASE: '.*\[[Ss]kip\W+ci\].*'
+CRON_SCHEDULE: 'H/5 * * * *'
+USE_COMMENTS: false
+USE_DETAILED_COMMENTS: false
+MANAGE_WEBHOOKS: false
+UNSTABLE_AS: 'pending'
+AUTO_CLOSE_FAILED_PRS: false
+DISPLAY_ERRORS_DOWNSTREAM: true
+BLACK_LIST_LABELS:
+{% for blacklist in JENKINS_GHPRB_BLACK_LIST %}
+    - '{{ blacklist }}'
 {% endfor %}
-  - NAME: 'bots'
-    PERMISSIONS:
-      - 'hudson.model.Item.Cancel'
-      - 'hudson.model.Item.Read'
-      - 'hudson.model.Run.Update'
-    USERS:
-{% for user in JENKINS_SECURITY_BOT_LIST %}
-      - '{{ user }}'
+WHITE_LIST_LABELS:
+{% for whitelist in JENKINS_GHPRB_WHITE_LIST %}
+    - '{{ whitelist }}'
 {% endfor %}
+GITHUB_AUTH: ''
+SIMPLE_STATUS: ''
+PUBLISH_JENKINS_URL: ''
+BUILD_LOG_LINES_TO_DISPLAY: ''
+RESULT_MESSAGES:
+    - STATUS: 'FAILURE'
+      MESSAGE: 'Test FAILed.'
+    - STATUS: 'SUCCESS'
+      MESSAGE: 'Test PASSed.'
