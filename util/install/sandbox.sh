@@ -66,6 +66,11 @@ for var in ${VERSION_VARS[@]}; do
   fi
 done
 
+# my-passwords.yml is the file made by generate-passwords.sh.
+if [[ -f my-passwords.yml ]]; then
+    EXTRA_VARS="-e@$(pwd)/my-passwords.yml $EXTRA_VARS"
+fi
+
 CONFIGURATION_VERSION=${CONFIGURATION_VERSION-${OPENEDX_RELEASE-master}}
 
 ##

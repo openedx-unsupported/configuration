@@ -1,11 +1,20 @@
-import yaml
-import os
-import pathlib2
-import itertools
-import sys
 import argparse
 import logging
+import os
+import sys
+
+try:
+    # This script is used by docker.mk at parse-time, which means when you run
+    # "make requirements" to install the required Python packages, this script
+    # runs before its requirements are installed. That means this import will
+    # fail.  To prevent a successful installation from having irrelevant error
+    # messages, we catch the failure and exit silently.
+    import pathlib2
+except ImportError:
+    sys.exit(1)
+
 import docker_images
+
 
 TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR", "")
 CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
@@ -22,7 +31,7 @@ def pack_shards(used_images, num_shards):
     """
 
     # sorts used containers in descending order on the weight
-    sorted_images = sorted(used_images, key = lambda x: x[1], reverse=True) 
+    sorted_images = sorted(used_images, key = lambda x: x[1], reverse=True)
 
     shards = []
 
