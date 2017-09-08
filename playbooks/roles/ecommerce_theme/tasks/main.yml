@@ -1,0 +1,82 @@
+####### git update didn't work properly till i update my ansible to 2.2.1
+
+# create themes directory in /edx/var/ecommerce if it doesn't exist
+- name: Create themes directory
+  file:
+    path: "/edx/var/ecommerce/themes"
+    owner: ecommerce
+    group: www-data
+    recurse: yes
+    mode: 0755
+    state: directory
+
+  tags:
+    - ecommerce_theme
+
+# pull the theme to the /edx/var/ecommerce and name it as ECOMMERCE_DEFAULT_SITE_THEME
+- name: Clone and update ecommerce theme
+  git:
+    repo: "git@github.com:appsembler/ecommerce-themes.git"
+    dest: "/edx/var/ecommerce/themes/{{ ECOMMERCE_DEFAULT_SITE_THEME }}"
+    update: yes
+    force: yes
+    version: "{{ ECOMMERCE_THEME_BRANCH }}"
+    accept_hostkey: yes
+  tags:
+    - ecommerce_theme
+
+# set right permissions on the site theme
+- name: Create themes directory
+  file:
+    path: "/edx/var/ecommerce/themes/{{ ECOMMERCE_DEFAULT_SITE_THEME }}"
+    owner: ecommerce
+    group: www-data
+    recurse: yes
+    mode: 0755
+    state: directory
+
+  tags:
+    - ecommerce_theme
+
+# compile assets and collect statics
+- name: compile sass
+  shell: "{{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  with_items:
+    - "update_assets --skip-collect"
+  tags:
+    - ecommerce_theme
+
+- name: Run r.js optimizer
+  shell: ". {{ ecommerce_nodeenv_bin }}/activate && {{ ecommerce_node_bin }}/r.js -o build.js"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  tags:
+    - ecommerce_theme
+
+- name: Run collectstatic
+  shell: "{{ ecommerce_venv_dir }}/bin/python manage.py {{ item }}"
+  args:
+    chdir: "{{ ecommerce_code_dir }}"
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"
+  with_items:
+    - "collectstatic --noinput"
+    - "compress"
+  when: not devstack
+  tags:
+    - ecommerce_theme
+
+# restart ecommerce
+- name: Restart the applicaton
+  supervisorctl:
+    name: "{{ ecommerce_service_name }}"
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    tags:
+      - ecommerce_theme
