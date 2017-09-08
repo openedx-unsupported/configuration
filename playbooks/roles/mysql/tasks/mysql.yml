@@ -61,11 +61,34 @@
     name: mysql
     state: started
 
+- name: Update mysql root password
+  sudo: yes
+  mysql_user:
+    # try default auth (root and no password)
+    check_implicit_admin: yes
+    # try intended auth
+    login_user: "root"
+    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    # sets password and access
+    name: "root"
+    password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    priv: "*.*:ALL,GRANT"
+
+- name: Add/Update EDXAPP_MYSQL_USER_ADMIN user "{{ EDXAPP_MYSQL_USER_ADMIN | default('root') }}"
+  sudo: yes
+  mysql_user:
+    # try root auth
+    login_user: "root"
+    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    # sets password and access
+    name: "{{ EDXAPP_MYSQL_USER_ADMIN | default('root') }}"
+    password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    priv: "*.*:ALL,GRANT"
+
 - name: Ensure Anonymous user(s) does not exist
   mysql_user:
     name: ''
-    host: "{{ item }}"
+    host_all: yes
+    login_user: "{{ EDXAPP_MYSQL_USER_ADMIN | default('root') }}"
+    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
     state: absent
-  with_items:
-    - localhost
-    - "{{ ansible_hostname }}"
