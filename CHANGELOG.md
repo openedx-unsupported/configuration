@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
+
+- Role: edxapp
   - Added OAUTH_DELETE_EXPIRED to enable automatic deletion of edx-django-oauth2-provider grants, access tokens, and refresh tokens as they are consumed. This will not do a bulk delete of existing rows.
 
 - Role: mongo_3_2
