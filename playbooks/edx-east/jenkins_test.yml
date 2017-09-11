@@ -1,0 +1,31 @@
+---
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  roles:
+    - aws
+    - role: jenkins_build
+      build_jenkins_server_name: test-jenkins.testeng.edx.org
+      build_jenkins_configuration_scripts:
+        - 1addJarsToClasspath.groovy
+        - 2checkInstalledPlugins.groovy
+        - 3mainConfiguration.groovy
+        - 3shutdownCLI.groovy
+        - 4configureEc2Plugin.groovy
+        - 4configureGHOAuth.groovy
+        - 4configureGHPRB.groovy
+        - 4configureGit.groovy
+        - 4configureHipChat.groovy
+        - 4configureJobConfigHistory.groovy
+        - 5addSeedJob.groovy
+        - 5createLoggers.groovy
+        - 6importCredentials.groovy
+      build_jenkins_version: jenkins_1.651.3
