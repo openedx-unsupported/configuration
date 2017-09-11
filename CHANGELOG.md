@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `EDXAPP_ENTERPRISE_TAGLINE` for customized header taglines for different enterprises.
+
+- Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
 
 - Role: edxapp
