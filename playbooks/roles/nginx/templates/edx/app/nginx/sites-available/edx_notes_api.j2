@@ -8,6 +8,16 @@ server {
   listen {{ edx_notes_api_nginx_port }};
   server_name {{ NOTES_HOSTNAME }};
 
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ edx_notes_api_ssl_nginx_port }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  {% endif %}
+
   {% include "common-settings.j2" %}
 
   # Prevent invalid display courseware in IE 10+ with high privacy settings
