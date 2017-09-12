@@ -235,3 +235,118 @@
 
 - Role: edxapp
   - Added `EDXAPP_BLOCK_STRUCTURES_SETTINGS` to configure S3-backed Course Block Structures.
+
+- Role: insights
+  - Removed `INSIGHTS_FEEDBACK_EMAIL` which is no longer used, as it was deemed redundant with `INSIGHTS_SUPPORT_EMAIL`.
+
+- Role: insights
+  - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: insights
+  - Added `INSIGHTS_DOMAIN` to configure the domain Insights is deployed on
+  - Added `INSIGHTS_CLOUDFRONT_DOMAIN` to configure the domain static files can be served from
+  - Added `INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA` to configure allowing CORS on domains other than the `INSIGHTS_DOMAIN`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
+
+- Role: edxapp
+  - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.
+
+- Role: insights
+  - Removed `bower install` task
+  - Replaced r.js build task with webpack build task
+  - Removed `./manage.py compress` task
+
+- Role: insights
+  - Moved `THEME_SCSS` from `INSIGHTS_CONFIG` to `insights_environment`
+
+- Role: analytics_api
+  - Added a number of `ANALYTICS_API_DEFAULT_*` and `ANALYTICS_API_REPORTS_*` variables to allow more selective specification of database parameters (rather than
+      overriding the whole structure).
+
+- Role: edxapp
+  - Remove EDXAPP_ANALYTICS_API_KEY, EDXAPP_ANALYTICS_SERVER_URL, EDXAPP_ANALYTICS_DATA_TOKEN, EDXAPP_ANALYTICS_DATA_URL since they are old and
+  no longer consumed.
+
+- Role: edxapp
+  - Added `PASSWORD_MIN_LENGTH` for password minimum length validation on reset page.
+  - Added `PASSWORD_MAX_LENGTH` for password maximum length validation on reset page.
+
+- Role: credentials
+  - Replaced `CREDENTIALS_OAUTH_URL_ROOT` with `COMMON_OAUTH_URL_ROOT` from `common_vars`
+  - Replaced `CREDENTIALS_OIDC_LOGOUT_URL` with `COMMON_OAUTH_LOGOUT_URL` from `common_vars`
+  - Replaced `CREDENTIALS_JWT_AUDIENCE` with `COMMON_JWT_AUDIENCE` from `common_vars`
+  - Replaced `CREDENTIALS_JWT_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+  - Replaced `CREDENTIALS_JWT_SECRET_KEY` with `COMMON_JWT_SECRET_KEY` from `common_vars`
+  - Replaced `CREDENTIALS_SOCIAL_AUTH_EDX_OIDC_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+
+- Role: ecommerce
+  - Replaced `ECOMMERCE_OAUTH_URL_ROOT` with `COMMON_OAUTH_URL_ROOT` from `common_vars`
+  - Replaced `ECOMMERCE_OIDC_LOGOUT_URL` with `COMMON_OAUTH_LOGOUT_URL` from `common_vars`
+  - Replaced `ECOMMERCE_JWT_SECRET_KEY` with `COMMON_JWT_SECRET_KEY` from `common_vars`
+  - Replaced `ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
+  - Removed unused `EDXAPP_BOOK_URL` setting
+
+- Role: insights
+  - Removed `INSIGHTS_FEEDBACK_EMAIL` which is no longer used, as it was deemed redundant with `INSIGHTS_SUPPORT_EMAIL`.
+
+- Role: insights
+  - Removed `SUPPORT_EMAIL` setting from `INSIGHTS_CONFIG`, as it is was replaced by `SUPPORT_URL`.
+
+- Role: insights
+  - Added `INSIGHTS_DOMAIN` to configure the domain Insights is deployed on
+  - Added `INSIGHTS_CLOUDFRONT_DOMAIN` to configure the domain static files can be served from
+  - Added `INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA` to configure allowing CORS on domains other than the `INSIGHTS_DOMAIN`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_IMAGE_SETTINGS` to configure S3-backed video images.
+
+- Role: edxapp
+  - Added `EDXAPP_BASE_COOKIE_DOMAIN` for sharing cookies across edx domains.
+
+- Role: insights
+  - Removed `bower install` task
+  - Replaced r.js build task with webpack build task
+  - Removed `./manage.py compress` task
+
+- Role: insights
+  - Moved `THEME_SCSS` from `INSIGHTS_CONFIG` to `insights_environment`
+
+- Role: analytics_api
+  - Added a number of `ANALYTICS_API_DEFAULT_*` and `ANALYTICS_API_REPORTS_*` variables to allow more selective specification of database parameters (rather than
+      overriding the whole structure).
+
+- Role: edxapp
+  - Remove EDXAPP_ANALYTICS_API_KEY, EDXAPP_ANALYTICS_SERVER_URL, EDXAPP_ANALYTICS_DATA_TOKEN, EDXAPP_ANALYTICS_DATA_URL since they are old and
+  no longer consumed.
+
+- Role: edxapp
+  - Added `PASSWORD_MIN_LENGTH` for password minimum length validation on reset page.
+  - Added `PASSWORD_MAX_LENGTH` for password maximum length validation on reset page.
+
+- Role: credentials
+  - Replaced `CREDENTIALS_OAUTH_URL_ROOT` with `COMMON_OAUTH_URL_ROOT` from `common_vars`
+  - Replaced `CREDENTIALS_OIDC_LOGOUT_URL` with `COMMON_OAUTH_LOGOUT_URL` from `common_vars`
+  - Replaced `CREDENTIALS_JWT_AUDIENCE` with `COMMON_JWT_AUDIENCE` from `common_vars`
+  - Replaced `CREDENTIALS_JWT_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+  - Replaced `CREDENTIALS_JWT_SECRET_KEY` with `COMMON_JWT_SECRET_KEY` from `common_vars`
+  - Replaced `CREDENTIALS_SOCIAL_AUTH_EDX_OIDC_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+
+- Role: ecommerce
+  - Replaced `ECOMMERCE_OAUTH_URL_ROOT` with `COMMON_OAUTH_URL_ROOT` from `common_vars`
+  - Replaced `ECOMMERCE_OIDC_LOGOUT_URL` with `COMMON_OAUTH_LOGOUT_URL` from `common_vars`
+  - Replaced `ECOMMERCE_JWT_SECRET_KEY` with `COMMON_JWT_SECRET_KEY` from `common_vars`
+  - Replaced `ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_ISSUER` with `COMMON_JWT_ISSUER` from `common_vars`
+
+- Role: edxapp
+  - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
+  - Removed unused `EDXAPP_BOOK_URL` setting
+
+- Role: nginx
+  - Added `EDXAPP_ENV_EXTRA`, with default value as it was in the server template.
+  - Added `SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
+  - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, with default value as it was in the server template.
