@@ -1,5 +1,6 @@
 - Role: edxapp
   - Added `EDXAPP_ENTERPRISE_TAGLINE` for customized header taglines for different enterprises.
+  - Added `EDXAPP_PLATFORM_DESCRIPTION` used to describe the specific Open edX platform.
 
 - Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
