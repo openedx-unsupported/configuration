@@ -397,3 +397,8 @@
 - Role: edxapp
   - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
   - Removed unused `EDXAPP_BOOK_URL` setting
+
+- Role: nginx
+  - Added `EDXAPP_ENV_EXTRA`, with default value as it was in the server template.
+  - Added `SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
+  - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, with default value as it was in the server template.
