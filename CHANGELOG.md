@@ -291,6 +291,7 @@
   - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
   - Removed unused `EDXAPP_BOOK_URL` setting
 
+<<<<<<< HEAD
 - Role: insights
   - Removed `INSIGHTS_FEEDBACK_EMAIL` which is no longer used, as it was deemed redundant with `INSIGHTS_SUPPORT_EMAIL`.
 
@@ -350,3 +351,7 @@
   - Added `EDXAPP_ENV_EXTRA`, with default value as it was in the server template.
   - Added `SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
   - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, with default value as it was in the server template.
+
+- Role: edxapp
+  - Added `EDXAPP_SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
+  - Added `EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT`, with default value as it was in the server template.
