@@ -30,7 +30,7 @@ def calcualte_cache_hit_rate(zone_id, auth_key, email, threshold):
             sys.exit(1)
 
     except Exception as error:
-        print "JSON Error: {} \n Content returned from API call: {}".format(error, res.text)
+        print("JSON Error: {} \n Content returned from API call: {}".format(error, res.text))
 
 
 
