@@ -164,11 +164,22 @@
     - install:plugins
     - install:jenkins-configuration
 
-- name: Copy credentials into files
+- name: Copy secret file credentials
   copy:
     content: "{{ item.content }}"
     dest: '{{ jenkins_common_config_path }}/credentials/{{ item.name }}'
   with_items: '{{ JENKINS_SECRET_FILES_LIST }}'
+  no_log: yes
+  tags:
+    - install
+    - install:base
+    - install:jenkins-configuration
+
+- name: Copy ssh key credentials
+  copy:
+    content: "{{ item.content }}"
+    dest: '{{ jenkins_common_config_path }}/credentials/{{ item.name }}'
+  with_items: '{{ JENKINS_CUSTOM_SSH_LIST }}'
   no_log: yes
   tags:
     - install
