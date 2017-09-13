@@ -1,3 +1,6 @@
+- Role: discovery
+  - Added `OPENEXCHANGERATES_API_KEY` for retrieving currency exchange rates.
+
 - Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
 
