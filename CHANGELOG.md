@@ -1,4 +1,11 @@
 - Role: edxapp
+  - Added `EDXAPP_SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
+  - Added `EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT`, with default value as it was in the server template.
+
+- Role: edxapp
+  - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
+
+- Role: edxapp
   - Added OAUTH_DELETE_EXPIRED to enable automatic deletion of edx-django-oauth2-provider grants, access tokens, and refresh tokens as they are consumed. This will not do a bulk delete of existing rows.
 
 - Role: mongo_3_2
@@ -397,7 +404,3 @@
 - Role: edxapp
   - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
   - Removed unused `EDXAPP_BOOK_URL` setting
-
-- Role: edxapp
-  - Added `EDXAPP_SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
-  - Added `EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT`, with default value as it was in the server template.
