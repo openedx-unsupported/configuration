@@ -1,4 +1,228 @@
 - Role: edxapp
+<<<<<<< HEAD
+||||||| parent of 8e6ada011... reduced cache expiry and update changelog
+  - Added OAUTH_DELETE_EXPIRED to enable automatic deletion of edx-django-oauth2-provider grants, access tokens, and refresh tokens as they are consumed. This will not do a bulk delete of existing rows.
+
+- Role: mongo_3_2
+  - Added role for mongo 3.2, not yet in use.
+  - Removed MONGO_CLUSTERED variable. In this role mongo replication is always configured, even if there is only one node.
+
+- Role: edxapp
+  - Added creation of enterprise_worker user to provisioning. This user is used by the edx-enterprise package when making API requests to Open edX IDAs.
+
+- Role: neo4j
+  - Increase heap and page caches sizes for neo4j
+
+- Role: neo4j
+  - Updated neo4j to 3.2.2
+  - Removed authentication requirement for neo4j
+
+- Role: forum
+  - Added `FORUM_REBUILD_INDEX` to rebuild the ElasticSearch index from the database, when enabled.  Default: `False`.
+
+- Role: nginx
+  - Added `NGINX_EDXAPP_CMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for Studio.
+  - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for the LMS.
+
+- Role: edxapp
+  - Let `confirm_email` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
+  - Let `terms_of_service` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
+
+- Role: ecommerce
+  - Added ECOMMERCE_LANGUAGE_COOKIE_NAME which is the name of the cookie the ecommerce django app looks at for determining the language preference.
+
+- Role: neo4j
+  - Enabled splunk forwarding for neo4j logs.
+  - Increased maximum amount of open files to 40000, as suggested by neo4j.
+  - Updated the java build that neo4j uses to run.
+
+- Role: edxapp
+  - Set the default value for EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY to
+ 'edx.lms.core.default'.
+
+- Role: edxapp
+  - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
+ 'edx.lms.core.low'.
+
+- Role: jenkins_master
+  - Update pinned use of JDK7 in Jenkins installs to default JDK version from role `oraclejdk`.
+
+- Role: notifier
+  - Added `NOTIFIER_DATABASE_ENGINE`, `NOTIFIER_DATABASE_NAME`, `NOTIFIER_DATABASE_USER`, `NOTIFIER_DATABASE_PASSWORD`, `NOTIFIER_DATABASE_HOST`, and `NOTIFIER_DATABASE_PORT` to be able to configure the `notifier` service to use a database engine other than sqlite. Defaults to local sqlite.
+  - Deprecated: `NOTIFIER_DB_DIR`: Please use `NOTIFIER_DATABASE_NAME` instead.
+
+- Role: elasticsearch
+  - Replaced `elasticsearch_apt_key` and `elastic_search_apt_keyserver` with `elasticsearch_apt_key_url`
+  - Updated elasticsearch version to 1.5.0
+
+- Role: edxapp
+  - Install development.txt in Vagrant and Docker devstacks
+
+- Role: edxapp
+  - Set the EDXAPP_IMPORT_EXPORT_BUCKET setting to an empty string
+
+- Role: edxapp
+  - Updated default value of the EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES setting to ["audit", "honor"]
+
+- Role: edx_notes_api
+  - Removed EDX_NOTES_API_ELASTICSEARCH_HOST.
+  - Removed EDX_NOTES_API_ELASTICSEARCH_PORT.
+  - EDX_NOTES_API_ELASTICSEARCH_URL.
+
+- Role: edxapp
+  - Added the EDXAPP_ACTIVATION_EMAIL_SUPPORT_LINK URL with default value `''`.
+  - Added the EDXAPP_PASSWORD_RESET_SUPPORT_LINK URL with default value `''`.
+
+- Role: nginx
+  - Modified `server-template.j2` to be more accessible and configurable.
+  - The template should contain the `lang` attribute in the HTML tag.
+  - If the image loaded has some meaning, as a logo, it should have the `alt` attribute.
+  - After the header 1 (h1) there is no relevant text content, so next it can not be
+    another header (h2). It was changed to be a paragraph with the header 2 CSS style.
+  - Added `NGINX_SERVER_ERROR_IMG_ALT` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_LANG` with default value `en`
+  - Added `NGINX_SERVER_ERROR_STYLE_H1` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_STYLE_P_H2` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_STYLE_P` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_STYLE_DIV` with default value as it was in the server template
+
+- Role: edxapp
+  - Added the EDXAPP_SHOW_HEADER_LANGUAGE_SELECTOR feature flag with default value [false]
+  - Added the EDXAPP_SHOW_FOOTER_LANGUAGE_SELECTOR feature flag with default value [false]
+
+- Role: edxapp
+  - Added the EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES setting with default value ["audit"]
+
+- Role: edxapp
+  - DOC_LINK_BASE settings have been removed, replaced by HELP_TOKENS_BOOKS
+
+- Role: edxapp
+  - Add the EDXAPP_LANGUAGE_COOKIE setting
+
+- Role: rabbitmq
+  - Upgraded to 3.6.9
+  - Switched to a PPA rather than a .deb hosted in S3
+  - Note that you generally cannot upgrade RabbitMQ live in place https://www.rabbitmq.com/clustering.html
+    this is particularly true coming from 3.2 to 3.6.  We are using the shovel plugin to move tasks across clusters
+    but their documentation covers different scenarios.
+- Role: edxapp
+  - Added a new EDXAPP_MYSQL_CONN_MAX_AGE, default to 0.  Adjust it to change how long a connection is kept open
+  for reuse before it is closed.
+=======
+  - Added `EDXAPP_SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
+  - Added `EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT`, with default value as it was in the server template.
+
+- Role: edxapp
+  - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
+
+- Role: edxapp
+  - Added OAUTH_DELETE_EXPIRED to enable automatic deletion of edx-django-oauth2-provider grants, access tokens, and refresh tokens as they are consumed. This will not do a bulk delete of existing rows.
+
+- Role: mongo_3_2
+  - Added role for mongo 3.2, not yet in use.
+  - Removed MONGO_CLUSTERED variable. In this role mongo replication is always configured, even if there is only one node.
+
+- Role: edxapp
+  - Added creation of enterprise_worker user to provisioning. This user is used by the edx-enterprise package when making API requests to Open edX IDAs.
+
+- Role: neo4j
+  - Increase heap and page caches sizes for neo4j
+
+- Role: neo4j
+  - Updated neo4j to 3.2.2
+  - Removed authentication requirement for neo4j
+
+- Role: forum
+  - Added `FORUM_REBUILD_INDEX` to rebuild the ElasticSearch index from the database, when enabled.  Default: `False`.
+
+- Role: nginx
+  - Added `NGINX_EDXAPP_CMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for Studio.
+  - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for the LMS.
+
+- Role: edxapp
+  - Let `confirm_email` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
+  - Let `terms_of_service` in `EDXAPP_REGISTRATION_EXTRA_FIELDS` default to `"hidden"`.
+
+- Role: ecommerce
+  - Added ECOMMERCE_LANGUAGE_COOKIE_NAME which is the name of the cookie the ecommerce django app looks at for determining the language preference.
+
+- Role: neo4j
+  - Enabled splunk forwarding for neo4j logs.
+  - Increased maximum amount of open files to 40000, as suggested by neo4j.
+  - Updated the java build that neo4j uses to run.
+
+- Role: edxapp
+  - Set the default value for EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY to
+ 'edx.lms.core.default'.
+
+- Role: edxapp
+  - Set the default value for EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS to
+ 'edx.lms.core.low'.
+
+- Role: jenkins_master
+  - Update pinned use of JDK7 in Jenkins installs to default JDK version from role `oraclejdk`.
+
+- Role: notifier
+  - Added `NOTIFIER_DATABASE_ENGINE`, `NOTIFIER_DATABASE_NAME`, `NOTIFIER_DATABASE_USER`, `NOTIFIER_DATABASE_PASSWORD`, `NOTIFIER_DATABASE_HOST`, and `NOTIFIER_DATABASE_PORT` to be able to configure the `notifier` service to use a database engine other than sqlite. Defaults to local sqlite.
+  - Deprecated: `NOTIFIER_DB_DIR`: Please use `NOTIFIER_DATABASE_NAME` instead.
+
+- Role: elasticsearch
+  - Replaced `elasticsearch_apt_key` and `elastic_search_apt_keyserver` with `elasticsearch_apt_key_url`
+  - Updated elasticsearch version to 1.5.0
+
+- Role: edxapp
+  - Install development.txt in Vagrant and Docker devstacks
+
+- Role: edxapp
+  - Set the EDXAPP_IMPORT_EXPORT_BUCKET setting to an empty string
+
+- Role: edxapp
+  - Updated default value of the EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES setting to ["audit", "honor"]
+
+- Role: edx_notes_api
+  - Removed EDX_NOTES_API_ELASTICSEARCH_HOST.
+  - Removed EDX_NOTES_API_ELASTICSEARCH_PORT.
+  - EDX_NOTES_API_ELASTICSEARCH_URL.
+
+- Role: edxapp
+  - Added the EDXAPP_ACTIVATION_EMAIL_SUPPORT_LINK URL with default value `''`.
+  - Added the EDXAPP_PASSWORD_RESET_SUPPORT_LINK URL with default value `''`.
+
+- Role: nginx
+  - Modified `server-template.j2` to be more accessible and configurable.
+  - The template should contain the `lang` attribute in the HTML tag.
+  - If the image loaded has some meaning, as a logo, it should have the `alt` attribute.
+  - After the header 1 (h1) there is no relevant text content, so next it can not be
+    another header (h2). It was changed to be a paragraph with the header 2 CSS style.
+  - Added `NGINX_SERVER_ERROR_IMG_ALT` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_LANG` with default value `en`
+  - Added `NGINX_SERVER_ERROR_STYLE_H1` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_STYLE_P_H2` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_STYLE_P` with default value as it was in the server template
+  - Added `NGINX_SERVER_ERROR_STYLE_DIV` with default value as it was in the server template
+
+- Role: edxapp
+  - Added the EDXAPP_SHOW_HEADER_LANGUAGE_SELECTOR feature flag with default value [false]
+  - Added the EDXAPP_SHOW_FOOTER_LANGUAGE_SELECTOR feature flag with default value [false]
+
+- Role: edxapp
+  - Added the EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES setting with default value ["audit"]
+
+- Role: edxapp
+  - DOC_LINK_BASE settings have been removed, replaced by HELP_TOKENS_BOOKS
+
+- Role: edxapp
+  - Add the EDXAPP_LANGUAGE_COOKIE setting
+
+- Role: rabbitmq
+  - Upgraded to 3.6.9
+  - Switched to a PPA rather than a .deb hosted in S3
+  - Note that you generally cannot upgrade RabbitMQ live in place https://www.rabbitmq.com/clustering.html
+    this is particularly true coming from 3.2 to 3.6.  We are using the shovel plugin to move tasks across clusters
+    but their documentation covers different scenarios.
+- Role: edxapp
+  - Added a new EDXAPP_MYSQL_CONN_MAX_AGE, default to 0.  Adjust it to change how long a connection is kept open
+  for reuse before it is closed.
   - Set preload_app to False in gunicorn config for LMS and Studio.
 - Role: analytics_api
   - Added `ANALYTICS_API_AGGREGATE_PAGE_SIZE`, default value 10.  Adjust this parameter to increase the number of
@@ -290,6 +514,7 @@
 - Role: edxapp
   - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
   - Removed unused `EDXAPP_BOOK_URL` setting
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 - Role: insights
