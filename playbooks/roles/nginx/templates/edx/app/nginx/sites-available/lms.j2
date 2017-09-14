@@ -43,6 +43,23 @@ geo $http_x_forwarded_for $embargo {
 }
 {%- endif %}
 
+
+{% if EDXAPP_CORS_ORIGIN_WHITELIST|length > 0 %}
+  # The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+  # but only the server name (e.g. https://www.example.com).
+  # See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+  #
+  # Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+  # of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+  map $http_origin $cors_origin {
+  default "null";
+  {% for host in EDXAPP_CORS_ORIGIN_WHITELIST %}
+    "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+  {% endfor %}
+  }
+{% endif %}
+
+
 server {
   # LMS configuration file for nginx, templated by ansible
 
@@ -282,5 +299,6 @@ location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
 
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
+  {% include "extra_locations_lms.j2" ignore missing %}
 
 }
