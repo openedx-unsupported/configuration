@@ -177,6 +177,19 @@
     - install
     - install:base
 
+- name: Manage Insight Django switches
+  become_user: "{{ insights_user }}"
+  django_manage:
+      command="waffle_switch {{ item.name }} {{ item.value }} --create"
+      app_path="{{ insights_code_dir }}"
+      pythonpath="{{ insights_code_dir }}"
+      virtualenv="{{ insights_venv_dir }}"
+  environment: "{{ insights_environment }}"
+  with_items: "{{ INSIGHTS_SWITCHES }}"
+  tags:
+    - install
+    - install:switches
+
 - name: restart insights
   supervisorctl:
     state: restarted
