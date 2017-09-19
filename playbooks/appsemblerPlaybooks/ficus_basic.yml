@@ -2,7 +2,7 @@
 
 # Appsembler basic tier deployment
 
-- include: monitoring.yml
+# - include: monitoring.yml
 
 - name: Configure basic tier instance
   hosts: edxapp-server
@@ -17,6 +17,7 @@
     COMMON_ENABLE_OAUTH_CLIENT: False
     COMMON_ENABLE_BACKUPS: True
     POSTGRESQL_AGGREGATION_INSTALL_CRON: true
+    ENABLE_ECOMMERCE: false
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
     - sudo
@@ -60,3 +61,9 @@
     - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }
     - role: "githubsshkeys"
       when: "cloud_provider == 'azure'"
+    - role: ecommerce
+      when: ENABLE_ECOMMERCE
+    - role: ecomworker
+      when: ENABLE_ECOMMERCE
+    - role: ecommerce_theme
+      when: ENABLE_ECOMMERCE
