@@ -3,7 +3,7 @@
   user:
     name: "{{ pipeline_user }}"
     home: "{{ pipeline_app_dir }}"
-    createhome: no
+    createhome: yes
     shell: /bin/bash
     generate_ssh_key: yes
   tags:
@@ -60,7 +60,7 @@
 
 # Do A Checkout
 - name: checkout edx-analytics-pipeline repo into {{ pipeline_code_dir }}
-  git_2_0_1:
+  git:
     dest: "{{ pipeline_code_dir }}"
     repo: "{{ pipeline_repo }}"
     version: "{{ pipeline_version }}"
@@ -80,10 +80,11 @@
     - install
     - install:code
 
+# TODO `pip install google-compute-engine` before boto
 - name: install python requirements
   pip:
-    requirements: {{ item }}
-    virtualenv: {{ pipeline_venv_dir }}
+    requirements: "{{ item }}"
+    virtualenv: "{{ pipeline_venv_dir }}"
   become_user: "{{ pipeline_user }}"
   #environment: "{{ pipeline_environment }}"
   #when: item.stat.exists
@@ -127,7 +128,12 @@
 
 - name: setup the pipeline
   command: >
-    {{ pipeline_venv_dir }}/bin/remote-task --host localhost --repo https://github.com/edx/edx-analytics-pipeline --user {{ pipeline_user }} --override-config $HOME/edx_analytics_pipeline/config/devstack.cfg --wheel-url http://edx-wheelhouse.s3-website-us-east-1.amazonaws.com/Ubuntu/precise --remote-name analyticstack --wait TotalEventsDailyTask --interval 2015 --output-root hdfs://localhost:9000/output/ --local-scheduler
+    {{ pipeline_venv_dir }}/bin/remote-task --host localhost --repo https://github.com/edx/edx-analytics-pipeline --branch {{ pipeline_version }} --user {{ pipeline_user }} --override-config $HOME/edx_analytics_pipeline/config/devstack.cfg --wheel-url http://edx-wheelhouse.s3-website-us-east-1.amazonaws.com/Ubuntu/precise --remote-name analyticstack --wait TotalEventsDailyTask --interval 2015 --output-root hdfs://localhost:9000/output/ --local-scheduler
   become_user: "{{ pipeline_user }}"
   tags:
     - install
+
+- name: Adding hadoop user to pipeline group
+  user: name={{ hadoop_common_user }}
+        group={{ pipeline_group }}
+        append=yes
