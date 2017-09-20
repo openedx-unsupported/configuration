@@ -137,6 +137,10 @@ if [[ -z $instance_type ]]; then
   instance_type="t2.large"
 fi
 
+if [[ -z $instance_initiated_shutdown_behavior ]]; then
+  instance_initiated_shutdown_behavior="terminate"
+fi
+
 if [[ -z $enable_newrelic ]]; then
   enable_newrelic="false"
 fi
@@ -311,6 +315,7 @@ security_group: $security_group
 ami: $ami
 region: $region
 zone: $zone
+instance_initiated_shutdown_behavior: $instance_initiated_shutdown_behavior
 instance_tags:
     environment: $environment
     github_username: $github_username
