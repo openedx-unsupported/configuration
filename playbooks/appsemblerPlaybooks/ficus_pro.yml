@@ -33,6 +33,7 @@
     migrate_db: "yes"
     openid_workaround: True
     POSTGRESQL_AGGREGATION_INSTALL_CRON: true
+    ENABLE_ECOMMERCE: false
   pre_tasks:
     # This is dirty, but better than setting in every server vars file
     - set_fact:
@@ -68,6 +69,12 @@
       when: "cloud_provider == 'azure'"
     - role: postgresql_aggregation
       when: COMMON_ENVIRONMENT == "prod"
+    - role: ecommerce
+      when: ENABLE_ECOMMERCE
+    - role: ecomworker
+      when: ENABLE_ECOMMERCE
+    - role: ecommerce_theme
+      when: ENABLE_ECOMMERCE
 
 - name: Install xqueue, notifier and rabbitmq
   hosts: mongo-server
