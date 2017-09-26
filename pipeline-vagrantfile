@@ -1,0 +1,57 @@
+Vagrant.require_version ">= 1.8.7"
+unless Vagrant.has_plugin?("vagrant-vbguest")
+  raise "Please install the vagrant-vbguest plugin by running `vagrant plugin install vagrant-vbguest`"
+end
+
+VAGRANTFILE_API_VERSION = "2"
+
+MEMORY = 1024
+CPU_COUNT = 2
+
+vm_guest_ip = "192.168.33.10"
+
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # Creates a devstack from a base Ubuntu 16.04 image for virtualbox
+  config.vm.box = "ubuntu_xenial"
+
+  config.vm.network :private_network, ip: vm_guest_ip, nic_type: "virtio"
+
+  config.vm.network "private_network", ip: "192.168.33.10"
+  config.vm.network :forwarded_port, guest: 18381, host: 18381    # Course discovery
+
+  config.ssh.insert_key = true
+
+ # Enable X11 forwarding so we can interact with GUI applications
+  config.ssh.forward_x11 = true
+
+  config.vm.provider :virtualbox do |vb|
+    vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
+    vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
+    vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+  end
+
+  # Make LC_ALL default to en_US.UTF-8 instead of en_US.
+  # See: https://github.com/mitchellh/vagrant/issues/1188
+  config.vm.provision "shell", inline: 'echo \'LC_ALL="en_US.UTF-8"\' > /etc/default/locale'
+
+#   # Get ready for ansible on this box.
+#   config.vm.provision "shell", path: '../../../util/install/ansible-bootstrap.sh'
+
+  # Use vagrant-vbguest plugin to make sure Guest Additions are in sync
+  config.vbguest.auto_reboot = true
+  config.vbguest.auto_update = true
+
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "/Users/mammar/Documents/edx/devstack/src/configuration/playbooks/edx-east/video_pipeline.yml"
+    # ansible.verbose = "vvv"
+    ansible.extra_vars = {
+        migrate_db: 'yes',
+        disable_edx_services: 'false',
+        edx_django_service_has_static_assets: 'yes',
+        edx_django_service_version: 'ammar/changes-for-config',
+        edx_django_service_use_python3: 'false'
+    }
+  end
+end
