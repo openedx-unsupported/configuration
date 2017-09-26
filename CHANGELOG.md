@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `EDXAPP_EXTRA_MIDDLEWARE_CLASSES` for configuring additional middleware logic.
+
 - Role: discovery
   - Added `OPENEXCHANGERATES_API_KEY` for retrieving currency exchange rates.
 
