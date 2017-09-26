@@ -6,6 +6,10 @@
   - Added `EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT`, with default value as it was in the server template.
 
 - Role: edxapp
+  - Added `EDXAPP_ENTERPRISE_TAGLINE` for customized header taglines for different enterprises.
+  - Added `EDXAPP_PLATFORM_DESCRIPTION` used to describe the specific Open edX platform.
+
+- Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
 
 - Role: edxapp
