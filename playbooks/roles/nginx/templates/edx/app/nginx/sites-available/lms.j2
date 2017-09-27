@@ -73,9 +73,11 @@ error_page {{ k }} {{ v }};
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
   {% endif %}
 
+  # prevent the browser from doing MIME-type sniffing
+  add_header X-Content-Type-Options nosniff;
+
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
-
 
   # Nginx does not support nested condition or or conditions so
   # there is an unfortunate mix of conditonals here.
@@ -264,6 +266,7 @@ error_page {{ k }} {{ v }};
 
 location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
     root {{ edxapp_media_dir }};
+
     try_files /$file =404;
     expires {{ EDXAPP_PROFILE_IMAGE_MAX_AGE }}s;
 }
