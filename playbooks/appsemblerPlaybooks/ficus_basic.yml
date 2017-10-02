@@ -19,10 +19,11 @@
     POSTGRESQL_AGGREGATION_INSTALL_CRON: true
     ENABLE_ECOMMERCE: false
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "4GB" }
+    - { role: swapfile, SWAPFILE_SIZE: "4GB", tags: ['swapfile'] }
     - sudo
     - role: nginx
       nginx_sites: []
+      tags: ['nginx']
     - role: "{{ appsembler_roles }}/letsencrypt"
       when: letsencrypt_certs | length
     - role: nginx
@@ -34,36 +35,48 @@
       - edx_notes_api
       nginx_default_sites:
       - lms
-    - mysql
-    - mysql_init
+      tags: ['nginx']
+    - { role: mysql, tags: ['mysql'] }
+    - { role: mysql_init, tags: ['mysql_init'] }
     - role: memcache
       when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
+      tags: ['memcache']
     - role: mongo_3_0
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
-    - { role: 'edxapp', celery_worker: True }
-    - edxapp
-    - notifier
+      tags: ['mongo_3_0']
+    - { role: rabbitmq, rabbitmq_ip: '127.0.0.1', tags: ['rabbitmq'] }
+    - { role: edxapp, celery_worker: True, tags: ['edxapp'] }
+    - { role: edxapp, tags: ['edxapp'] }
+    - { role: notifier, tags: ['notifier'] }
     - role: edx_notes_api
       when: "INSTALL_EDX_NOTES is defined and INSTALL_EDX_NOTES"
+      tags: ['edx_notes_api']
     - role: demo
       when: "INSTALL_DEMO_DATA"
+      tags: ['demo']
     - role: oauth_client_setup
       when: COMMON_ENABLE_OAUTH_CLIENT
-    - oraclejdk
+      tags: ['oauth_client_setup']
+    - { role: oraclejdk, tags: ['oraclejdk'] }
     - role: elasticsearch
       when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
-    - forum
+      tags: ['elasticsearch']
+    - { role: forum, tags: ['forum'] }
     - role: postgresql_aggregation
       when: COMMON_ENVIRONMENT == "prod"
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
-    - { role: "xqueue", update_users: True }
+      tags: ['postgresql_aggregation']
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5", tags: ['notifier'] }
+    - { role: xqueue, update_users: True, tags: ['xqueue'] }
     - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }
-    - role: "githubsshkeys"
+    - role: githubsshkeys
       when: "cloud_provider == 'azure'"
+      tags: ['githubsshkeys']
     - role: ecommerce
       when: ENABLE_ECOMMERCE
+      tags: ['ecommerce']
     - role: ecomworker
       when: ENABLE_ECOMMERCE
+      tags: ['ecomworker']
     - role: ecommerce_theme
       when: ENABLE_ECOMMERCE
+      tags: ['ecommerce_theme']
