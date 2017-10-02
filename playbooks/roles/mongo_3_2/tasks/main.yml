@@ -134,6 +134,8 @@
     - "install"
     - "install:app-configuration"
     - "update_mongod_conf"
+    - "manage"
+    - "manage:db-replication"
 
 # If either auth or unauthed access comes back with a replica set, we
 # do not want to initialize one.  Since initialization requires a bunch
@@ -178,6 +180,8 @@
     backup: yes
   register: update_mongod_conf
   tags:
+    - "install"
+    - "install:app-configuration"
     - "manage"
     - "manage:db-replication"
     - "update_mongod_conf"
@@ -199,6 +203,7 @@
   tags:
     - "manage"
     - "manage:start"
+    - "manage:db-replication"
 
 - name: wait for mongo server to start
   wait_for:
@@ -207,6 +212,7 @@
   tags:
     - "manage"
     - "manage:start"
+    - "manage:db-replication"
 
 # We only try passwordless superuser creation when
 # we're initializing the replica set and need to use
@@ -226,7 +232,7 @@
   run_once: true
   tags:
     - "manage"
-    - "manage:db"
+    - "manage:db-replication"
 
 # Now that the localhost exemption has been used to create the superuser, we need
 # to add replica set to our configuration.  This will never happen if we detected
@@ -282,6 +288,7 @@
     - "manage"
     - "manage:db"
     - "manage:db-replication"
+    - "manage:db-replication-configuration"
 
 # During initial replica set configuration, it can take a few seconds to vote
 # a primary and for all members to reflect that status.  During that window,
@@ -318,6 +325,7 @@
   tags:
     - "manage"
     - "manage:db"
+    - "manage:db-users"
     - "manage:db-replication"
 
 - name: ensure mongo starts at boot time
@@ -327,4 +335,3 @@
   tags:
     - "manage"
     - "manage:start"
-
