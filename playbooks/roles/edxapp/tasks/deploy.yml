@@ -418,20 +418,12 @@
   tags:
     - manage
 
-- name: build service worker users list
-  set_fact:
-    service_worker_users: "{{ [SERVICE_WORKER_USERS] }}"
-  when: CREATE_SERVICE_WORKER_USERS
-  tags:
-    - manage
-    - manage:db
-
 - name: create service worker users
   shell: "{{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
-  with_items: "{{ service_worker_users }}"
+  with_items: "{{ SERVICE_WORKER_USERS }}"
   when: CREATE_SERVICE_WORKER_USERS
   tags:
     - manage
