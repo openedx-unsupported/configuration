@@ -18,8 +18,6 @@
     dest={{ scorm_player_dir.path }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
     accept_hostkey=yes key_file=/tmp/scormplayer_{{ item.key }}_identity
     ssh_opts="-o StrictHostKeyChecking=no"
-  environment:
-    GIT_SSH: "{{ edxapp_git_ssh }}"
   become_user: "{{ scorm_player_dir.owner }}"
   register: "{{item.key}}_scormplayer_checkout"
   when: 
@@ -29,4 +27,3 @@
 - name: remove read-only ssh key for the scormplayer repo
   file: path=/tmp/scormplayer_{{ item.key }}_identity state=absent
   with_dict: "{{ scorm_config.SCORM_PLAYER_BACKENDS|default({}) }}"
-
