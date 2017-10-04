@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `EDXAPP_CELERY_HIGH_MEM_QUEUE_MONITOR` to configure whether monitoring is enabled for the high-mem queue.
+
+- Role: edxapp
   - Added `EDXAPP_EXTRA_MIDDLEWARE_CLASSES` for configuring additional middleware logic.
 
 - Role: discovery
