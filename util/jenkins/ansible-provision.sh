@@ -204,6 +204,10 @@ CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
 
+VIDEO_PIPELINE_NGINX_PORT: 80
+VIDEO_PIPELINE_SSL_NGINX_PORT: 443
+VIDEO_PIPELINE_VERSION: ammar/changes-for-config
+
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
@@ -346,10 +350,14 @@ EOF
     fi
 fi
 
-declare -A deploy
-roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses"
+video_pipeline="true"
 
+declare -A deploy
+roles="edxapp forum ecommerce credentials discovery video_pipeline notifier xqueue xserver certs demo testcourses"
+echo "Roles ====>"
+echo $roles
 for role in $roles; do
+    echo $role
     deploy[$role]=${!role}
 done
 
