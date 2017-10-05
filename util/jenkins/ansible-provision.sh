@@ -169,6 +169,10 @@ if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
 fi
 
+if [[ -z $set_whitelabel ]]; then
+  set_whitelabel="true"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -404,6 +408,11 @@ fi
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+
+if [[ $set_whitelabel == "true" ]]; then
+    # Setup Whitelabel themes
+    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean

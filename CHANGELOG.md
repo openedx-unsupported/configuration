@@ -506,3 +506,9 @@
 
 - Role: edxapp
   - Added `EDXAPP_ZENDESK_OAUTH_ACCESS_TOKEN` for making requests to Zendesk through front-end.
+
+- Role: whitelabel
+  - Added `WHITELABEL_THEME_DIR` to point to the location of whitelabel themes.
+  - Added `WHITELABEL_ADMIN_USER` to specify an admin user.
+  - Added `WHITELABEL_DNS` for DNS settings of themes.
+  - Added `WHITELABEL_ORG` for whitelabel organization settings.

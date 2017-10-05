@@ -91,6 +91,24 @@
     - "{{ ec2.instances }}"
     - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials', 'veda']
 
+- name: Add DNS name for whitelabel sites
+  local_action:
+    module: route53
+    overwrite: yes
+    command: create
+    zone: "{{ dns_zone }}"
+    type: CNAME
+    ttl: 300
+    record: "{{ item[1] }}"
+    value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
+  with_nested:
+    - "{{ ec2.instances }}"
+    - "{{ WHITELABEL_DNS }}"
+
 - name: Add new instance to host group
   local_action:
     module: add_host
