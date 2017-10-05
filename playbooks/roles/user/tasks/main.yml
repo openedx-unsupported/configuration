@@ -151,10 +151,17 @@
     user: "{{ item.name }}"
     exclusive: yes
     key: "https://github.com/{{ item.name }}.keys"
-  when: item.github is defined and item.get('state', 'present') == 'present'
+  when: item.github is defined and item.get('state', 'present') == 'present' and item.authorized_keys is not defined
   register: task_result
   until: task_result|succeeded
   retries: 5
+  with_items: "{{ user_info }}"
+
+- name: set authorized_keys for users that have them defined in ansible
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.authorized_keys | join('\n') }}"
+  when: item.authorized_keys is defined and item.get('state', 'present') == 'present'
   with_items: "{{ user_info }}"
 
 - name: Create bashrc file for normal users
