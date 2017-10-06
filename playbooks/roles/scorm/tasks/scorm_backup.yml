@@ -1,0 +1,31 @@
+
+- name: install uuencode for emailing errors
+  apt: >
+    pkg=sharutils
+    state=present
+    update_cache=yes
+
+- name: create s3 config for SCORM backup
+  template: >
+    dest={{ scorm_dirs.home.path }}/.s3cfg
+    src=.s3cfg.j2 mode=0644 owner=root group=root
+
+- name: create s3 scorm sync script
+  template: >
+    dest={{ scorm_s3_sync_script }}
+    src=sync-scorm-content-to-s3.j2 mode=0755 owner=root group=root
+
+- name: create symlink for s3 log sync script
+  file: >
+    state=link
+    src={{ scorm_s3_sync_script }}
+    dest={{ COMMON_BIN_DIR }}/{{ scorm_s3_sync_script|basename }}
+
+  # cron job runs the s3 sync script
+  # this job will log its output to /var/log/scorm
+- name: cronjob for s3 scorm sync
+  cron:
+    name: "cronjob for s3 scorm sync"
+    user: root
+    minute: 0
+    job: "{{ scorm_s3_sync_script }}"

@@ -1,0 +1,29 @@
+
+- name: create missing scormplayers dir
+  file: >
+    path="{{ scorm_player_dir.path }}"
+    state="directory"
+    owner="{{ scorm_player_dir.owner }}"
+    group="{{ scorm_player_dir.group }}"
+    mode="{{ scorm_player_dir.mode }}"
+
+- name: install read-only ssh key for the scormplayer repo(s)
+  copy: >
+    content="{{ EDXAPP_AUTH_EXTRA.SCORMPLAYER_GIT_IDENTITIES[item.key] }}" dest=/tmp/scormplayer_{{ item.key }}_identity
+    force=yes owner={{ scorm_player_dir.owner }} mode=0600
+  with_dict: "{{scorm_config.SCORM_PLAYER_BACKENDS|default({})}}"
+
+- name: checkout player repo
+  git: >
+    dest={{ scorm_player_dir.path }}/{{item.key}} repo={{ item.value.repo }} version="{{ item.value.version }}"
+    accept_hostkey=yes key_file=/tmp/scormplayer_{{ item.key }}_identity
+    ssh_opts="-o StrictHostKeyChecking=no"
+  become_user: "{{ scorm_player_dir.owner }}"
+  register: "{{item.key}}_scormplayer_checkout"
+  when: 
+    - (item.value.repo|default(False))
+  with_dict: "{{ scorm_config.SCORM_PLAYER_BACKENDS|default({}) }}"
+
+- name: remove read-only ssh key for the scormplayer repo
+  file: path=/tmp/scormplayer_{{ item.key }}_identity state=absent
+  with_dict: "{{ scorm_config.SCORM_PLAYER_BACKENDS|default({}) }}"
