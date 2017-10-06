@@ -10,20 +10,42 @@
     - install
     - install:system-requirements
 
-- name: Create jenkins group
+- name: Create jenkins group with specified gid
   group:
     name: '{{ jenkins_common_group }}'
     gid: '{{ jenkins_common_group_gid }}'
     state: present
+  when: jenkins_common_group_gid is defined
   tags:
     - install
     - install:system-requirements
 
-- name: Add the jenkins user to the group
+- name: Create jenkins group
+  group:
+    name: '{{ jenkins_common_group }}'
+    state: present
+  when: jenkins_common_group_gid is not defined or not jenkins_common_group_gid
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Create the jenkins user with specified uid and add to the group
   user:
     name: '{{ jenkins_common_user }}'
+    append: yes
     uid: '{{ jenkins_common_user_uid }}'
     groups: '{{ jenkins_common_group }}'
+  when: jenkins_common_user_uid is defined
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Create the jenkins user and add to the group
+  user:
+    name: '{{ jenkins_common_user }}'
+    append: yes
+    groups: '{{ jenkins_common_group }}'
+  when: jenkins_common_user_uid is not defined or not jenkins_common_user_uid
   tags:
     - install
     - install:system-requirements
