@@ -3,7 +3,7 @@
 #
 # - downloaded the mysql-apt-repo from the mysql official site(named: mysql-apt-config_0.6.0-1_all.deb)
 # - Find the `debconf` setting information after installing this `deb` package
-# 
+#
 # # debconf-show mysql-apt-config
 # * mysql-apt-config/select-server: mysql-5.6
 #   mysql-apt-config/unsupported-platform: abort
@@ -11,9 +11,9 @@
 # * mysql-apt-config/select-product: Apply
 #   mysql-apt-config/select-tools:
 #   mysql-apt-config/repo-distro: ubuntu
-# 
+#
 # - Even to get more information about the `debconf` options of the package:
-# 
+#
 # # debconf-get-selections|grep mysql-apt-config
 # mysql-apt-config  mysql-apt-config/select-server  select  mysql-5.6
 # mysql-apt-config  mysql-apt-config/unsupported-platform select  abort
@@ -21,17 +21,17 @@
 # mysql-apt-config  mysql-apt-config/select-product select  Apply
 # mysql-apt-config  mysql-apt-config/select-tools select
 # mysql-apt-config  mysql-apt-config/repo-distro  select  ubuntu
-# 
-# - After the installation, I have checked the `/etc/apt/sources.list.d` directory and found one file `mysql.list` 
+#
+# - After the installation, I have checked the `/etc/apt/sources.list.d` directory and found one file `mysql.list`
 # with following contents:
-# 
+#
 # deb http://repo.mysql.com/apt/ubuntu/ precise mysql-apt-config
 # deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6
 # deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6
-# 
 #
-# Thought that instead of performing all those steps and get the repo, why not directly use this repo 
-# `deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6`, I just picked this line and directly used it and it worked for us. 
+#
+# Thought that instead of performing all those steps and get the repo, why not directly use this repo
+# `deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6`, I just picked this line and directly used it and it worked for us.
 
 - name: Add MySQL community apt key
   apt_key:
@@ -49,33 +49,46 @@
     update_cache: yes
   when: ansible_distribution_release == 'precise'
 
-# repo.mysql.com does not have 5.6 packages for xenial
-- name: Install MySQL from ondrej PPA
-  apt_repository:
-    repo: "ppa:ondrej/mysql-5.6"
-    update_cache: yes
-  when: ansible_distribution_release == 'xenial'
-
 - name: Install mysql-5.6 and dependencies
-  apt: 
-    name: "{{ item }}" 
+  apt:
+    name: "{{ item }}"
     install_recommends: yes
     state: present
   with_items: "{{ mysql_debian_pkgs }}"
 
 - name: Start mysql
-  service: 
-    name: mysql 
+  service:
+    name: mysql
     state: started
 
+- name: Update mysql root password
+  sudo: yes
+  mysql_user:
+    # try default auth (root and no password)
+    check_implicit_admin: yes
+    # try intended auth
+    login_user: "root"
+    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    # sets password and access
+    name: "root"
+    password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    priv: "*.*:ALL,GRANT"
+
+- name: Add/Update EDXAPP_MYSQL_USER_ADMIN user "{{ EDXAPP_MYSQL_USER_ADMIN | default('root') }}"
+  sudo: yes
+  mysql_user:
+    # try root auth
+    login_user: "root"
+    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    # sets password and access
+    name: "{{ EDXAPP_MYSQL_USER_ADMIN | default('root') }}"
+    password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
+    priv: "*.*:ALL,GRANT"
+
 - name: Ensure Anonymous user(s) does not exist
-  mysql_user: 
-    name: '' 
-    host: "{{ item }}"
-    login_host: "{{ EDXAPP_MYSQL_HOST }}"
-    login_user: "{{ EDXAPP_MYSQL_USER_ADMIN }}"
-    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN }}"
+  mysql_user:
+    name: ''
+    host_all: yes
+    login_user: "{{ EDXAPP_MYSQL_USER_ADMIN | default('root') }}"
+    login_password: "{{ EDXAPP_MYSQL_PASSWORD_ADMIN | default('') }}"
     state: absent
-  with_items:
-    - localhost
-    - "{{ ansible_hostname }}"
