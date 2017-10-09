@@ -73,6 +73,25 @@
   delay: 30
   with_items: "{{ ec2.instances }}"
 
+- name: Add DNS name for themes
+  local_action:
+    module: route53
+    overwrite: yes
+    command: create
+    zone: "{{ dns_zone }}"
+    type: CNAME
+    ttl: 300
+    record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
+    value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
+  with_nested:
+    - "{{ ec2.instances }}"
+    - ['mitxpro', 'hms', 'harvardx', 'wharton', 'juilliard', 'campus']
+
+
 - name: Add DNS names for services
   local_action:
     module: route53
