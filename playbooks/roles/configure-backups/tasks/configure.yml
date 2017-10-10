@@ -1,0 +1,145 @@
+---
+
+- name: ensure for backup user is exists
+  user:
+    name: "{{ backup_user }}"
+
+- name: ensure for backup directories is exits
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ backup_user }}"
+    group: "{{ backup_group }}"
+  with_items:
+  - "{{ backup_home }}"
+  - "{{ backup_work }}"
+  - "{{ backup_logdir }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  install duply
+  template:
+    src: duply.sh.j2
+    dest: /usr/bin/duply
+    owner: "{{ backup_user }}"
+    group: "{{ backup_group }}"
+    mode: 0755
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  create profile directories
+  file:
+    path: "{{ backup_home }}/{{ item.name }}"
+    state: directory
+    mode: 0700
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}" 
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  configure profiles
+  template:
+    src: conf.j2
+    dest: "{{ backup_home }}/{{ item.name }}/conf"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}" 
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  Configure exclude lists
+  template:
+    src: exclude.j2
+    dest: "{{ backup_home }}/{{ item.name }}/exclude"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}" 
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  configure pre scripts
+  template:
+    src: pre.j2
+    dest: "{{ backup_home }}/{{ item.name }}/pre"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}"
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  configure post scripts
+  template:
+    src: post.j2
+    dest: "{{ backup_home }}/{{ item.name }}/post"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}" 
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name:  Configure restore scripts
+  template:
+    src: restore.j2
+    dest: "{{ backup_home }}/{{ item.name }}/restore"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}" 
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name: create work directories
+  file: 
+    state: directory
+    path: "{{ backup_work }}/{{ item.name }}"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}"  
+  with_items: "{{ backup_profiles }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name: setup cron
+  template:
+    src: cron.j2
+    dest: /etc/cron.d/backup
+    owner: root
+    group: root
+    mode: 0644
+  when: backup_cron
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name: create log files
+  file:
+    state: touch
+    path: "{{ backup_logdir }}/{{ item.name }}.log"
+    owner: "{{ item.user|default(backup_user) }}"
+    group: "{{ item.group|default(backup_group) }}"
+  with_items: "{{ backup_profiles }}"
+  changed_when: False
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name: configure logrotate
+  template: 
+    src: logrotate.j2
+    dest: /etc/logrotate.d/backup
+    owner: root
+    group: root
+    mode: 0644
+  when: backup_logrotate
+  become_method: sudo
+  become: yes
+  become_user: root
+

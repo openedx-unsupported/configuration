@@ -5,6 +5,8 @@
   vars:
     serial_count: 1
     CLUSTER_NAME: 'edxapp'
+    CREATE_GRADES_AZURE_CONTAINER: "{{ azure_grades_blobstorage_create|default (false) }}"
+    GRADE_STORAGE_TYPE: "{{ EDXAPP_GRADE_STORAGE_TYPE | default('local') }}"
   serial: "{{ serial_count }}"
   roles:
    - aws
@@ -19,6 +21,10 @@
      nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
      nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
      nginx_redirects: "{{ NGINX_EDXAPP_CUSTOM_REDIRECTS }}"
+   - { role: azure-blob-create,
+       when: (GRADE_STORAGE_TYPE == 'azure' and CREATE_GRADES_AZURE_CONTAINER)
+     }
+   - configure-backups 
    - edxapp
    - role: datadog
      when: COMMON_ENABLE_DATADOG

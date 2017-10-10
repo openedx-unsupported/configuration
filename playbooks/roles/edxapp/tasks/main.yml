@@ -109,6 +109,24 @@
     - install
     - install:base
 
+- name: Remove "{{EDXAPP_GRADE_STORAGE_KWARGS.location}}" symlink
+  file:
+   path: "{{EDXAPP_GRADE_STORAGE_KWARGS.location}}"
+   state: absent
+  when: (EDXAPP_GRADE_STORAGE_TYPE_LOCAL is defined) and (EDXAPP_GRADE_STORAGE_TYPE_LOCAL == true)
+
+- name: Creates {{EDXAPP_GRADE_STORAGE_KWARGS.location}} directory
+  file: path="{{EDXAPP_GRADE_STORAGE_KWARGS.location}}" state=directory owner=www-data group=www-data mode=0775 recurse=yes
+  when: (EDXAPP_GRADE_STORAGE_TYPE_LOCAL is defined) and (EDXAPP_GRADE_STORAGE_TYPE_LOCAL == true)  
+
+- name: Create symlink to {{EDXAPP_GRADE_STORAGE_KWARGS.location}}
+  file: >
+    src="{{EDXAPP_GRADE_STORAGE_KWARGS.location}}"
+    dest="{{ edxapp_media_dir }}/grades"
+    state=link
+    force=true
+  when: (EDXAPP_GRADE_STORAGE_TYPE_LOCAL is defined) and (EDXAPP_GRADE_STORAGE_TYPE_LOCAL == true) and ("{{ edxapp_media_dir }}/grades" != "{{EDXAPP_GRADE_STORAGE_KWARGS.location}}")
+
 # adding chris-lea nodejs repo
 # TODO: 16.04
 - name: add ppas for current versions of nodejs

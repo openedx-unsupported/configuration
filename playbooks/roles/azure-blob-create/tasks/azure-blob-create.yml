@@ -1,0 +1,18 @@
+---
+- name: set_fact azure_containers
+  set_fact:
+    azure_containers: "{{ azure_backup_containers|default([]) }}"
+  when: azure_backup_blobstorage_create
+
+- name: set_fact azure_containers
+  set_fact:
+    azure_containers: "{{ azure_containers|default([]) + [EDXAPP_GRADE_STORAGE_KWARGS.container|default([])] }}"
+  when: azure_grades_blobstorage_create
+
+- name: Create Azure storage
+  azure_storage_container:
+    name: "{{ item }}"
+    account_name: "{{ account_name }}"
+    account_key: "{{ account_key }}"
+  with_items: "{{ azure_containers }}"
+  when: azure_backup_blobstorage_create or azure_grades_blobstorage_create

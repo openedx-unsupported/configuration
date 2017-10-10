@@ -1,0 +1,31 @@
+---
+- include_vars: "{{ ansible_distribution }}.yml"
+
+- name: install dependencies
+  apt:
+    name: "{{ item }}"
+  with_items:
+  - cron
+  - gzip
+  - python-boto
+  - s3cmd
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- set_fact:
+    backup_duplicity_pkg: "{{ backup_duplicity_pkg }}={{ backup_duplicity_version }}"
+  when: not(
+          (backup_duplicity_version is undefined)
+          or
+          (backup_duplicity_version is none)
+          or
+          (backup_duplicity_version | trim == '')
+        )
+
+- name: install duplicity
+  apt:
+    pkg: "{{ backup_duplicity_pkg }}"
+  become_method: sudo
+  become: yes
+  become_user: root
