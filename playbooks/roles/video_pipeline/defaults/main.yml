@@ -25,8 +25,6 @@ video_pipeline_home: "{{ COMMON_APP_DIR }}/{{ video_pipeline_service_name }}"
 video_pipeline_service_home: "{{ COMMON_APP_DIR }}/{{ video_pipeline_service_name }}"
 video_pipeline_code_dir: "{{ video_pipeline_service_home }}/{{ video_pipeline_service_name }}"
 
-video_pipeline_environment: {}
-
 video_pipeline_ingest_worker: "{{ video_pipeline_service_name }}_ingest"
 video_pipeline_deliver_worker: "{{ video_pipeline_service_name }}_deliver"
 
@@ -72,6 +70,9 @@ VIDEO_PIPELINE_MEDIA_STORAGE_BACKEND:
   MEDIA_ROOT: "{{ VIDEO_PIPELINE_MEDIA_ROOT }}"
   MEDIA_URL: "{{ VIDEO_PIPELINE_MEDIA_URL }}"
 
+VIDEO_PIPELINE_ENVIRONMENT:
+  VIDEO_PIPELINE_CFG: "{{ COMMON_CFG_DIR }}/{{ video_pipeline_service_name }}.yml"
+
 VIDEO_PIPELINE_SERVICE_USER: 'pipeline_service_user'
 
 VIDEO_PIPELINE_STATICFILES_STORAGE: "django.contrib.staticfiles.storage.StaticFilesStorage"
@@ -92,7 +93,7 @@ VIDEO_PIPELINE_AUTOMATED_USERS: {}
 VIDEO_PIPELINE_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ video_pipeline_service_name }}'
 VIDEO_PIPELINE_STATIC_ROOT: '{{ VIDEO_PIPELINE_DATA_DIR }}/staticfiles'
 
-# instance_config.yaml variable overrides
+# video pipeline config overrides
 
 VIDEO_PIPELINE_EDX_CLOUDFRONT_PREFIX: "SET-ME-PLEASE"
 VIDEO_PIPELINE_EDX_S3_INGEST_PREFIX: "ingest/"
@@ -145,3 +146,190 @@ VIDEO_PIPELINE_THREEPLAY_FTPHOST: "SET-ME-PLEASE"
 
 VIDEO_PIPELINE_XUETANG_API_URL: "SET-ME-PLEASE"
 VIDEO_PIPELINE_XUETANG_API_SHARED_SECRET: "SET-ME-PLEASE"
+
+# video pipeline config
+
+VIDEO_PIPELINE_CONFIG:
+  DATABASES:
+      default:
+          ENGINE: 'django.db.backends.mysql'
+          NAME: '{{ VIDEO_PIPELINE_DEFAULT_DB_NAME }}'
+          USER: '{{ VIDEO_PIPELINE_MYSQL_USER }}'
+          PASSWORD: '{{ VIDEO_PIPELINE_MYSQL_PASSWORD }}'
+          HOST: '{{ VIDEO_PIPELINE_MYSQL }}'
+          PORT: 3306
+
+  django_secret_key: '{{ VIDEO_PIPELINE_SECRET_KEY }}'
+
+  # Django DEBUG global
+  debug: false
+
+  # django staticfile settings
+  STATIC_ROOT_PATH: '{{ VIDEO_PIPELINE_STATIC_ROOT }}'
+
+  # ---
+  # AWS Buckets, Prefixes
+  # ---
+  # Studio/Platform
+  edx_s3_ingest_prefix: '{{ VIDEO_PIPELINE_EDX_S3_INGEST_PREFIX }}'
+  edx_s3_ingest_bucket: '{{ VIDEO_PIPELINE_EDX_S3_INGEST_BUCKET }}'
+  edx_s3_endpoint_bucket: '{{ VIDEO_PIPELINE_EDX_S3_ENDPOINT_BUCKET }}'
+
+  # CF
+  edx_cloudfront_prefix: '{{ VIDEO_PIPELINE_EDX_CLOUDFRONT_PREFIX }}'
+
+  # Images
+  aws_video_images_bucket: '{{ VIDEO_PIPELINE_AWS_VIDEO_IMAGES_BUCKET }}'
+  aws_video_images_prefix: "video-images/"
+
+
+  # VEDA Internal
+  veda_s3_upload_bucket: '{{ VIDEO_PIPELINE_VEDA_S3_UPLOAD_BUCKET }}'
+  veda_s3_hotstore_bucket: '{{ VIDEO_PIPELINE_VEDA_S3_HOTSTORE_BUCKET }}'
+  veda_deliverable_bucket: '{{ VIDEO_PIPELINE_VEDA_DELIVERABLE_BUCKET }}'
+  veda_upload_bucket: '{{ VIDEO_PIPELINE_VEDA_UPLOAD_BUCKET }}'
+  # Settings
+  multi_upload_barrier: 2000000000
+  veda_base_url: '{{ VIDEO_PIPELINE_VEDA_BASE_URL }}'
+  s3_base_url: https://s3.amazonaws.com
+
+
+  # Transcripts
+  aws_video_transcripts_bucket: '{{ VIDEO_PIPELINE_AWS_VIDEO_TRANSCRIPTS_BUCKET }}'
+  aws_video_transcripts_prefix: video-transcripts/
+
+  # cielo24 api urls
+  cielo24_api_base_url: 'https://{{ VIDEO_PIPELINE_CIELO24_API_ENVIRONMENT }}.cielo24.com/api'
+
+  # 3playmedia api urls
+  three_play_api_base_url: https://api.3playmedia.com/
+  three_play_api_transcript_url: https://static.3playmedia.com/
+
+  # a token identifying a valid request from transcript provider
+  transcript_provider_request_token: '{{ VIDEO_PIPELINE_TRANSCRIPT_PROVIDER_REQUEST_TOKEN }}'
+
+  # Ingest Secret
+  veda_secret_access_key: '{{ VIDEO_PIPELINE_VEDA_SECRET_ACCESS_KEY }}'
+  veda_access_key_id: '{{ VIDEO_PIPELINE_VEDA_ACCESS_KEY_ID }}'
+
+  # ---
+  # email vars
+  # ---
+  veda_noreply_email: '{{ VIDEO_PIPELINE_VEDA_NOREPLY_EMAIL }}'
+  admin_email: '{{ VIDEO_PIPELINE_ADMIN_EMAIL }}'
+
+  # ---
+  # VEDA API
+  # ---
+  ## VEDA API Auth
+  veda_api_url: '{{ VIDEO_PIPELINE_VEDA_API_URL }}'
+  veda_auth_url: '{{ VIDEO_PIPELINE_VEDA_AUTH_URL }}'
+  veda_client_id: '{{ VIDEO_PIPELINE_VEDA_CLIENT_ID }}'
+  veda_secret_key: '{{ VIDEO_PIPELINE_VEDA_SECRET_KEY }}'
+  veda_token_url: '{{ VIDEO_PIPELINE_VEDA_TOKEN_URL }}'
+
+  # ---
+  # VAL
+  # ---
+  val_api_url: '{{ VIDEO_PIPELINE_VAL_API_URL }}'
+  val_token_url: '{{ VIDEO_PIPELINE_VAL_TOKEN_URL }}'
+  val_video_images_url: '{{ VIDEO_PIPELINE_VAL_VIDEO_IMAGES_URL }}'
+  # Credentials
+  val_client_id: '{{ VIDEO_PIPELINE_VAL_CLIENT_ID }}'
+  val_secret_key: '{{ VIDEO_PIPELINE_VAL_SECRET_KEY }}'
+  val_password: '{{ VIDEO_PIPELINE_VAL_PASSWORD }}'
+  val_username: '{{ VIDEO_PIPELINE_VAL_USERNAME }}'
+  val_transcript_create_url: '{{ VIDEO_PIPELINE_VAL_TRANSCRIPT_CREATE_URL }}'
+  val_video_transcript_status_url: '{{ VIDEO_PIPELINE_VAL_VIDEO_TRANSCRIPT_STATUS_URL }}'
+
+  # ---
+  # Celery Info
+  # ---
+  celery_app_name: veda_production
+  # can do multiple queues like so: foo,bar,baz
+  main_celery_queue: encode_worker
+  celery_receiver_queue: encode_worker
+  largefile_celery_queue: large_encode_worker
+  celery_stat_queue: transcode_stat
+  largefile_queue_barrier: 1000000000
+  celery_threads: 1
+
+  rabbitmq_broker: '{{ VIDEO_PIPELINE_RABBITMQ_BROKER }}'
+  rabbitmq_pass: '{{ VIDEO_PIPELINE_RABBITMQ_PASS }}'
+  rabbitmq_user: '{{ VIDEO_PIPELINE_RABBITMQ_USER }}'
+
+  # ---
+  # Shotgun Variables (internal mediateam)
+  # ---
+  sg_server_path: '{{ VIDEO_PIPELINE_SG_SERVER_PATH }}'
+  sg_script_name: '{{ VIDEO_PIPELINE_SG_SCRIPT_NAME }}'
+  sg_script_key: '{{ VIDEO_PIPELINE_SG_SCRIPT_KEY }}'
+
+  # ---
+  # Endpoints
+  # ---
+  threeplay_ftphost: '{{ VIDEO_PIPELINE_THREEPLAY_FTPHOST }}'
+  xuetang_api_url: '{{ VIDEO_PIPELINE_XUETANG_API_URL }}'
+  xuetang_api_shared_secret: '{{ VIDEO_PIPELINE_XUETANG_API_SHARED_SECRET }}'
+
+  ## Encoding Config
+  ffmpeg_compiled: "ffmpeg"
+  ffprobe_compiled: "ffprobe"
+  target_aspect_ratio: 1.7777778
+
+  # ----------
+  ##---
+  # This is a list of encodes and their respective course
+  # boolean matches
+  encode_dict:
+      review_proc:
+          - review
+      mobile_override:
+          - override
+      s3_proc:
+          - mobile_high
+          - mobile_low
+          - audio_mp3
+          - desktop_webm
+          - desktop_mp4
+          - hls
+
+      yt_proc:
+          - youtube
+
+  ##---
+  # This is a list of encode profiles and their val profile matches
+  # boolean matches
+  val_profile_dict:
+      mobile_low:
+          - mobile_low
+
+      desktop_mp4:
+          - desktop_mp4
+
+      override:
+          - desktop_mp4
+          - mobile_low
+          - mobile_high
+
+      mobile_high:
+          - mobile_high
+
+      audio_mp3:
+          - audio_mp3
+
+      desktop_webm:
+          - desktop_webm
+
+      youtube:
+          - youtube
+      review:
+      hls:
+          - hls
+
+  #--
+  # Heal settings
+  heal_start: 1
+  heal_end: 144
+
+#####################################
