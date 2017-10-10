@@ -351,6 +351,12 @@ def validate_args():
     if (username and not password) or (password and not username):
         module.fail_json(msg="Must provide both username and password or neither.")
 
+    # Check that if votes is 0 priority is also 0
+    for member in module.params.get('rs_config').get('members'):
+        if member.get('votes') == 0 and member.get('priority') != 0:
+            module.fail_json(msg="Non-voting member {} must have priority 0".
+                             format(member['host']))
+
     return module
 
 
