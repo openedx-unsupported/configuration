@@ -1,4 +1,10 @@
 - Role: discovery
+  - Added `DISCOVERY_REPOS` to allow configuring discovery repository details.
+
+- Role: edx_django_service
+  - Made the keys `edx_django_service_git_protocol`, `edx_django_service_git_domain`, and `edx_django_service_git_path` of `edx_django_service_repos` all individually configurable.
+
+- Role: discovery
   - Updated LANGUAGE_CODE to generic english. Added configuration for multilingual language package django-parler.
 
 - Role: edxapp
