@@ -359,10 +359,7 @@ video_pipeline="true"
 
 declare -A deploy
 roles="edxapp forum ecommerce credentials discovery video_pipeline notifier xqueue xserver certs demo testcourses"
-echo "Roles ====>"
-echo $roles
 for role in $roles; do
-    echo $role
     deploy[$role]=${!role}
 done
 
