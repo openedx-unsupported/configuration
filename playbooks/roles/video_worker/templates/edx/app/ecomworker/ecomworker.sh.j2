@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set ecommerce_worker_venv_bin = ecommerce_worker_home + '/venvs/' + ecommerce_worker_service_name + '/bin' %}
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = ecommerce_worker_venv_bin + '/newrelic-admin run-program ' + ecommerce_worker_venv_bin + '/celery' %}
+{% else %}
+{% set executable = ecommerce_worker_venv_bin + '/celery' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME='{{ ECOMMERCE_WORKER_NEWRELIC_APPNAME }}'
+export NEW_RELIC_LICENSE_KEY='{{ NEWRELIC_LICENSE_KEY }}'
+{% endif -%}
+
+source {{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}_env
+{{ executable }} -A ecommerce_worker worker --app ecommerce_worker.celery_app:app --concurrency={{ ECOMMERCE_WORKER_CONCURRENCY }} --loglevel=info --queue=fulfillment,email_marketing
