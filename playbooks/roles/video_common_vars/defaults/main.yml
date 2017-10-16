@@ -1,0 +1,259 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for common variables for video_pipeline and video_worker roles
+#
+
+# Used to automatically configure OAuth2 Client
+SOCIAL_AUTH_EDX_OIDC_KEY: "pipeline-key"
+SOCIAL_AUTH_EDX_OIDC_SECRET: "pipeline-secret"
+
+# video pipeline config overrides
+
+EDX_CLOUDFRONT_PREFIX: "SET-ME-PLEASE"
+EDX_S3_INGEST_PREFIX: "ingest/"
+EDX_S3_INGEST_BUCKET: "SET-ME-PLEASE"
+EDX_S3_ENDPOINT_BUCKET: "SET-ME-PLEASE"
+VEDA_S3_UPLOAD_BUCKET: "SET-ME-PLEASE"
+VEDA_UPLOAD_BUCKET: "SET-ME-PLEASE"
+VEDA_S3_HOTSTORE_BUCKET: "SET-ME-PLEASE"
+VEDA_DELIVERABLE_BUCKET: "SET-ME-PLEASE"
+
+VEDA_URL_ROOT: "SET-ME-PLEASE"
+VEDA_BASE_URL: "{{ VEDA_URL_ROOT }}"
+VEDA_ACCESS_KEY_ID: "SET-ME-PLEASE"
+VEDA_SECRET_ACCESS_KEY: "SET-ME-PLEASE"
+
+AWS_VIDEO_IMAGES_BUCKET: "SET-ME-PLEASE"
+AWS_VIDEO_TRANSCRIPTS_BUCKET: "SET-ME-PLEASE"
+
+ADMIN_EMAIL: "veda@example.com"
+VEDA_NOREPLY_EMAIL: "veda-noreply@example.com"
+
+CIELO24_API_ENVIRONMENT: "sandbox"
+TRANSCRIPT_PROVIDER_REQUEST_TOKEN: "SET-ME-TO-A-UNIQUE-LONG-RANDOM-STRING"
+
+VEDA_API_URL: "{{ VEDA_BASE_URL }}/api"
+VEDA_OAUTH_URL: "{{ VEDA_BASE_URL }}/veda_auth"
+VEDA_OAUTH_TOKEN_URL: "{{ VEDA_BASE_URL }}/o/token"
+VEDA_OAUTH_CLIENT_ID: "veda-client-id"
+VEDA_OAUTH_CLIENT_SECRET: "veda-client-secret"
+VEDA_OAUTH_CLIENT_NAME: "video-pipeline"
+
+VAL_BASE_URL: "http://127.0.0.1:8010"
+VAL_API_URL: "{{ VAL_BASE_URL }}/api/val/v0/videos"
+VAL_TOKEN_URL: "{{ VAL_BASE_URL }}/oauth2/access_token"
+VAL_VIDEO_IMAGES_URL: "{{ VAL_BASE_URL }}/api/val/v0/videos/video-images/update/"
+VAL_CLIENT_ID: "{{ SOCIAL_AUTH_EDX_OIDC_KEY }}"
+VAL_SECRET_KEY: "{{ SOCIAL_AUTH_EDX_OIDC_SECRET }}"
+VAL_USERNAME: "staff"
+VAL_PASSWORD: "edx"
+VAL_TRANSCRIPT_CREATE_URL: "{{ VAL_BASE_URL }}/api/val/v0/videos/video-transcripts/create/"
+VAL_VIDEO_TRANSCRIPT_STATUS_URL: "{{ VAL_BASE_URL }}/api/val/v0/videos/status/"
+
+RABBITMQ_BROKER: "localhost"
+RABBITMQ_PASS: "pipeline"
+RABBITMQ_USER: "pipeline"
+
+SG_SERVER_PATH: "SET-ME-PLEASE"
+SG_SCRIPT_NAME: "SET-ME-PLEASE"
+SG_SCRIPT_KEY: "SET-ME-PLEASE"
+
+THREEPLAY_FTPHOST: "SET-ME-PLEASE"
+
+XUETANG_API_URL: "SET-ME-PLEASE"
+XUETANG_API_SHARED_SECRET: "SET-ME-PLEASE"
+
+HOST_ENVIRONMENT: "sandbox"
+
+# video pipeline config
+
+VEDA_COMMON_CONFIG:
+  DATABASES:
+      default:
+          ENGINE: 'django.db.backends.mysql'
+          NAME: '{{ VEDA_MYSQL_DB_NAME }}'
+          USER: '{{ VEDA_MYSQL_USER }}'
+          PASSWORD: '{{ VEDA_MYSQL_PASSWORD }}'
+          HOST: '{{ VEDA_MYSQL_HOST }}'
+          PORT: 3306
+
+  django_secret_key: '{{ VEDA_DJANGO_SECRET_KEY }}'
+
+  # Django DEBUG global
+  debug: false
+
+  # django staticfile settings
+  STATIC_ROOT_PATH: '{{ VEDA_STATIC_ROOT }}'
+
+  # ---
+  # AWS Buckets, Prefixes
+  # ---
+  # Studio/Platform
+  edx_s3_ingest_prefix: '{{ EDX_S3_INGEST_PREFIX }}'
+  edx_s3_ingest_bucket: '{{ EDX_S3_INGEST_BUCKET }}'
+  edx_s3_endpoint_bucket: '{{ EDX_S3_ENDPOINT_BUCKET }}'
+
+  # CF
+  edx_cloudfront_prefix: '{{ EDX_CLOUDFRONT_PREFIX }}'
+
+  # Images
+  aws_video_images_bucket: '{{ AWS_VIDEO_IMAGES_BUCKET }}'
+  aws_video_images_prefix: "video-images/"
+
+
+  # VEDA Internal
+  veda_s3_upload_bucket: '{{ VEDA_S3_UPLOAD_BUCKET }}'
+  veda_s3_hotstore_bucket: '{{ VEDA_S3_HOTSTORE_BUCKET }}'
+  veda_deliverable_bucket: '{{ VEDA_DELIVERABLE_BUCKET }}'
+  veda_upload_bucket: '{{ VEDA_UPLOAD_BUCKET }}'
+  # Settings
+  multi_upload_barrier: 2000000000
+  veda_base_url: '{{ VEDA_BASE_URL }}'
+  s3_base_url: https://s3.amazonaws.com
+
+
+  # Transcripts
+  aws_video_transcripts_bucket: '{{ AWS_VIDEO_TRANSCRIPTS_BUCKET }}'
+  aws_video_transcripts_prefix: video-transcripts/
+
+  # cielo24 api urls
+  cielo24_api_base_url: 'https://{{ CIELO24_API_ENVIRONMENT }}.cielo24.com/api'
+
+  # 3playmedia api urls
+  three_play_api_base_url: https://api.3playmedia.com/
+  three_play_api_transcript_url: https://static.3playmedia.com/
+
+  # a token identifying a valid request from transcript provider
+  transcript_provider_request_token: '{{ TRANSCRIPT_PROVIDER_REQUEST_TOKEN }}'
+
+  # Ingest Secret
+  veda_secret_access_key: '{{ VEDA_SECRET_ACCESS_KEY }}'
+  veda_access_key_id: '{{ VEDA_ACCESS_KEY_ID }}'
+
+  # ---
+  # email vars
+  # ---
+  veda_noreply_email: '{{ VEDA_NOREPLY_EMAIL }}'
+  admin_email: '{{ ADMIN_EMAIL }}'
+
+  # ---
+  # VEDA API
+  # ---
+  ## VEDA API Auth
+  veda_api_url: '{{ VEDA_API_URL }}'
+  veda_auth_url: '{{ VEDA_OAUTH_URL }}'
+  veda_client_id: '{{ VEDA_OAUTH_CLIENT_ID }}'
+  veda_secret_key: '{{ VEDA_OAUTH_CLIENT_SECRET }}'
+  veda_token_url: '{{ VEDA_OAUTH_TOKEN_URL }}'
+
+  # ---
+  # VAL
+  # ---
+  val_api_url: '{{ VAL_API_URL }}'
+  val_token_url: '{{ VAL_TOKEN_URL }}'
+  val_video_images_url: '{{ VAL_VIDEO_IMAGES_URL }}'
+  # Credentials
+  val_client_id: '{{ VAL_CLIENT_ID }}'
+  val_secret_key: '{{ VAL_SECRET_KEY }}'
+  val_password: '{{ VAL_PASSWORD }}'
+  val_username: '{{ VAL_USERNAME }}'
+  val_transcript_create_url: '{{ VAL_TRANSCRIPT_CREATE_URL }}'
+  val_video_transcript_status_url: '{{ VAL_VIDEO_TRANSCRIPT_STATUS_URL }}'
+
+  # ---
+  # Celery Info
+  # ---
+  celery_app_name: 'veda_{{ HOST_ENVIRONMENT }}'
+  # can do multiple queues like so: foo,bar,baz
+  main_celery_queue: encode_worker
+  celery_receiver_queue: encode_worker
+  largefile_celery_queue: large_encode_worker
+  celery_stat_queue: transcode_stat
+  largefile_queue_barrier: 1000000000
+  celery_threads: 1
+
+  rabbitmq_broker: '{{ RABBITMQ_BROKER }}'
+  rabbitmq_pass: '{{ RABBITMQ_PASS }}'
+  rabbitmq_user: '{{ RABBITMQ_USER }}'
+
+  # ---
+  # Shotgun Variables (internal mediateam)
+  # ---
+  sg_server_path: '{{ SG_SERVER_PATH }}'
+  sg_script_name: '{{ SG_SCRIPT_NAME }}'
+  sg_script_key: '{{ SG_SCRIPT_KEY }}'
+
+  # ---
+  # Endpoints
+  # ---
+  threeplay_ftphost: '{{ THREEPLAY_FTPHOST }}'
+  xuetang_api_url: '{{ XUETANG_API_URL }}'
+  xuetang_api_shared_secret: '{{ XUETANG_API_SHARED_SECRET }}'
+
+  ## Encoding Config
+  ffmpeg_compiled: "ffmpeg"
+  ffprobe_compiled: "ffprobe"
+  target_aspect_ratio: 1.7777778
+
+  # ----------
+  ##---
+  # This is a list of encodes and their respective course
+  # boolean matches
+  encode_dict:
+      review_proc:
+          - review
+      mobile_override:
+          - override
+      s3_proc:
+          - mobile_high
+          - mobile_low
+          - audio_mp3
+          - desktop_webm
+          - desktop_mp4
+          - hls
+
+      yt_proc:
+          - youtube
+
+  ##---
+  # This is a list of encode profiles and their val profile matches
+  # boolean matches
+  val_profile_dict:
+      mobile_low:
+          - mobile_low
+
+      desktop_mp4:
+          - desktop_mp4
+
+      override:
+          - desktop_mp4
+          - mobile_low
+          - mobile_high
+
+      mobile_high:
+          - mobile_high
+
+      audio_mp3:
+          - audio_mp3
+
+      desktop_webm:
+          - desktop_webm
+
+      youtube:
+          - youtube
+      review:
+      hls:
+          - hls
+
+  #--
+  # Heal settings
+  heal_start: 1
+  heal_end: 144
