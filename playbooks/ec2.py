@@ -118,6 +118,7 @@ from boto import ec2
 from boto import rds
 from boto import route53
 import ConfigParser
+import traceback
 
 try:
     import json
@@ -612,5 +613,11 @@ class Ec2Inventory(object):
 
 
 # Run the script
-Ec2Inventory()
+RETRIES = 3
 
+for _ in xrange(RETRIES):
+    try:
+        Ec2Inventory()
+        break
+    except Exception:
+        traceback.print_exc()
