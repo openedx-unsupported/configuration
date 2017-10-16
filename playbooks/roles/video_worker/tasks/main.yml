@@ -7,24 +7,23 @@
 # code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
-# Tasks for role ecommerce_worker.
-# 
+# Tasks for role video_worker.
+#
 
 - name: install application requirements
   pip:
-    requirements: '{{ ecommerce_worker_requirements_base }}/{{ item }}'
-    virtualenv: '{{ ecommerce_worker_home }}/venvs/{{ ecommerce_worker_service_name }}'
+    requirements: '{{ video_worker_code_dir }}/requirements.txt'
+    virtualenv: '{{ video_worker_venv }}'
     state: present
-  become_user: '{{ ecommerce_worker_user }}'
-  with_items: "{{ ecommerce_worker_requirements }}"
+  become_user: '{{ video_worker_user }}'
   tags:
     - install
     - install:app-requirements
 
 - name: write out the supervisor wrapper
   template:
-    src: edx/app/ecomworker/ecomworker.sh.j2
-    dest: '{{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}.sh'
+    src: edx/app/video_worker/video_worker.sh.j2
+    dest: '{{ video_worker_home }}/{{ video_worker_service_name }}.sh'
     mode: 0650
     owner: '{{ supervisor_user }}'
     group: '{{ common_web_user }}'
@@ -32,10 +31,10 @@
     - install
     - install:configuration
 
-- name: write supervisord config
+- name: write video worker supervisord config
   template:
-    src: edx/app/supervisor/conf.d.available/ecomworker.conf.j2
-    dest: '{{ supervisor_available_dir }}/{{ ecommerce_worker_service_name }}.conf'
+    src: edx/app/supervisor/conf.d.available/video_worker.conf.j2
+    dest: '{{ supervisor_available_dir }}/{{ video_worker_service_name }}.conf'
     owner: '{{ supervisor_user }}'
     group: '{{ common_web_user }}'
     mode: 0644
@@ -43,12 +42,12 @@
     - install
     - install:configuration
 
-- name: setup the ecommerce_worker env file
+- name: setup the video_worker env file
   template:
-    src: './{{ ecommerce_worker_home }}/ecomworker_env.j2'
-    dest: '{{ ecommerce_worker_home }}/ecomworker_env'
-    owner: '{{ ecommerce_worker_user }}'
-    group: '{{ ecommerce_worker_user }}'
+    src: "edx/app/video_worker/video_worker_env.j2"
+    dest: "{{ edx_django_service_home }}/{{ edx_django_service_name }}_env"
+    owner: "{{ edx_django_service_user }}"
+    group: "{{ edx_django_service_user }}"
     mode: 0644
   tags:
     - install
@@ -56,8 +55,8 @@
 
 - name: enable supervisor script
   file:
-    src: '{{ supervisor_available_dir }}/{{ ecommerce_worker_service_name }}.conf'
-    dest: '{{ supervisor_cfg_dir }}/{{ ecommerce_worker_service_name }}.conf'
+    src: '{{ supervisor_available_dir }}/{{ video_worker_service_name }}.conf'
+    dest: '{{ supervisor_cfg_dir }}/{{ video_worker_service_name }}.conf'
     state: link
     force: yes
   when: not disable_edx_services
@@ -72,11 +71,10 @@
     - manage
     - manage:start
 
-
 - name: create symlinks from the venv bin dir
   file:
-    src: '{{ ecommerce_worker_home }}/venvs/{{ ecommerce_worker_service_name }}/bin/{{ item }}'
-    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.ecommerce_worker'
+    src: '{{ video_worker_venv_bin }}/{{ item }}'
+    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.video_worker'
     state: link
   with_items:
   - python
@@ -90,7 +88,7 @@
     state: restarted
     supervisorctl_path: '{{ supervisor_ctl }}'
     config: '{{ supervisor_cfg }}'
-    name: '{{ ecommerce_worker_service_name }}'
+    name: '{{ video_worker_service_name }}'
   when: not disable_edx_services
   become_user: '{{ supervisor_service_user }}'
   tags:

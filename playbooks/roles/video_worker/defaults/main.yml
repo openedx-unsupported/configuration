@@ -10,6 +10,20 @@
 # Defaults for role video_worker.
 #
 
+
+video_worker_service_name: 'video_worker'
+video_worker_user: '{{ video_worker_service_name }}'
+video_worker_home: '{{ COMMON_APP_DIR }}/{{ video_worker_service_name }}'
+video_worker_code_dir: '{{ video_worker_home }}/{{ video_worker_service_name }}'
+video_worker_venv: '{{ video_worker_home }}/venvs/{{ video_worker_service_name }}'
+video_worker_venv_bin: '{{ video_worker_home }}/venvs/{{ video_worker_service_name }}/bin'
+video_worker_log_dir: '{{ COMMON_LOG_DIR }}/{{ video_worker_service_name }}'
+
+video_worker_environment:
+  PATH: '{{ video_worker_venv_bin }}:{{ ansible_env.PATH }}'
+  VIDEO_WORKER_CFG: "{{ COMMON_CFG_DIR }}/{{ video_worker_service_name }}.yml"
+  PYTHONPATH: "{{ video_worker_code_dir }}"
+
 VIDEO_WORKER_GIT_IDENTITY: !!null
 VIDEO_WORKER_VERSION: 'master'
 
@@ -26,31 +40,12 @@ VIDEO_WORKER_REPOS:
 # a key be provided via NEWRELIC_LICENSE_KEY.
 VIDEO_WORKER_NEWRELIC_APPNAME: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ video_worker_service_name }}'
 
-VIDEO_WORKER_BROKER_USERNAME: 'celery'
-VIDEO_WORKER_BROKER_PASSWORD: 'celery'
-# Used as the default RabbitMQ IP.
-VIDEO_WORKER_BROKER_HOST: '{{ ansible_default_ipv4.address }}'
-# Used as the default RabbitMQ port.
-VIDEO_WORKER_BROKER_PORT: 5672
-VIDEO_WORKER_BROKER_URL: 'amqp://{{ VIDEO_WORKER_BROKER_USERNAME }}:{{ VIDEO_WORKER_BROKER_PASSWORD }}@{{ VIDEO_WORKER_BROKER_HOST }}:{{ VIDEO_WORKER_BROKER_PORT }}'
-VIDEO_WORKER_CONCURRENCY: 4
+VIDEO_WORKER_BROKER_USERNAME: 'video-worker'
+VIDEO_WORKER_BROKER_PASSWORD: 'video-worker'
+VIDEO_WORKER_BROKER_HOST: 'localhost'
 
-video_worker_environment:
-  WORKER_CONFIGURATION_MODULE: 'video_worker.configuration.production'
-  video_worker_cfg: '{{ COMMON_CFG_DIR }}/{{ video_worker_service_name }}.yml'
-
-video_worker_service_name: 'video_worker'
-video_worker_user: '{{ video_worker_service_name }}'
-video_worker_home: '{{ COMMON_APP_DIR }}/{{ video_worker_service_name }}'
-video_worker_code_dir: '{{ video_worker_home }}/{{ video_worker_service_name }}'
-
-video_worker_log_dir: '{{ COMMON_LOG_DIR }}/{{ video_worker_service_name }}'
-
-video_worker_requirements_base: '{{ video_worker_code_dir }}/requirements'
-video_worker_requirements:
-  - production.txt
-  - optional.txt
+VIDEO_WORKER_CONCURRENCY: 'SET-ME-PLEASE'
+VIDEO_WORKER_QUEUES: 'SET-ME-PLEASE'
 
 # OS packages
-video_worker_debian_pkgs: []oe
-video_worker_redhat_pkgs: []
+VIDEO_WORKER_DEBIAN_PKGS: ['ffmpeg']

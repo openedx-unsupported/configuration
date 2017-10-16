@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = {{ video_worker_venv_bin }} + '/newrelic-admin run-program ' + {{ video_worker_venv_bin }} + '/celery' %}
+{% else %}
+{% set executable = {{ video_worker_venv_bin }} + '/celery' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME='{{ VIDEO_WORKER_NEWRELIC_APPNAME }}'
+export NEW_RELIC_LICENSE_KEY='{{ NEWRELIC_LICENSE_KEY }}'
+{% endif -%}
+
+source {{ video_worker_home }}/{{ video_worker_service_name }}_env
+{{ executable }} --app video_worker.celeryapp:app --concurrency={{ VIDEO_WORKER_CONCURRENCY }} -Q {{ VIDEO_WORKER_QUEUES }} -n worker.%h
