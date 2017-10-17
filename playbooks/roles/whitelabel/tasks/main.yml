@@ -1,0 +1,49 @@
+
+- name: Add DNS name for themes
+  local_action:
+    module: route53
+    overwrite: yes
+    command: create
+    zone: "{{ dns_zone }}"
+    type: CNAME
+    ttl: 300
+    record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
+    value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
+  with_nested:
+    - "{{ ec2.instances }}"
+    - ['mitxpro', 'hms', 'harvardx', 'wharton', 'juilliard', 'campus']
+
+- name: Add DNS names for themes services
+  local_action:
+    module: route53
+    overwrite: yes
+    command: create
+    zone: "{{ dns_zone }}"
+    type: CNAME
+    ttl: 300
+    record: "{{ item[1] }}-{{ item[2] }}-{{ dns_name }}.{{ dns_zone }}"
+    value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
+  with_nested:
+    - "{{ ec2.instances }}"
+    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
+    - ['mitxpro', 'hms', 'harvardx', 'wharton', 'juilliard']
+
+- name: Create Sites and Themes
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
+    create_sites_and_configurations --dns-name {{ dns_name }}
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+
+- name: "display compile assets command"
+  debug:
+    msg: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
+  with_items: "{{ service_variants_enabled }}"
