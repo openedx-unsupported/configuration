@@ -1,7 +1,13 @@
-{%- if "lms" in nginx_default_sites -%}
+{%- if "lms" in nginx_default_sites and "letsencrypt" not in nginx_default_sites -%}
   {%- set default_site = "default_server" -%}
 {%- else -%}
   {%- set default_site = "" -%}
+{%- endif -%}
+
+{%- if "lms" in nginx_default_sites -%}
+  {%- set default_ssl_site = "default_server" -%}
+{%- else -%}
+  {%- set default_ssl_site = "" -%}
 {%- endif -%}
 
 {% if NGINX_HEALTH_CHECK_ENABLED %}
@@ -109,7 +115,7 @@ error_page {{ k }} {{ v }};
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
   {% if NGINX_ENABLE_SSL %}
-  listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_ssl_site }} ssl;
 
   ssl_certificate {{ NGINX_SSL_CERTIFICATE_PATH }};
   ssl_certificate_key {{ NGINX_SSL_KEY_PATH }};
