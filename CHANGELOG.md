@@ -8,6 +8,9 @@
   - Updated LANGUAGE_CODE to generic english. Added configuration for multilingual language package django-parler.
 
 - Role: edxapp
+  - Added `EDXAPP_ENABLE_ENTERPRISE_INTEGRATION` for enabling/disabling Enterprise service integration.
+
+- Role: edxapp
   - Added `EDXAPP_EXTRA_MIDDLEWARE_CLASSES` for configuring additional middleware logic.
 
 - Role: discovery
