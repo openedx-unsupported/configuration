@@ -13,12 +13,20 @@
   become: True
   become_method: sudo
   gather_facts: True
+  vars:
+    appsembler_roles: "../../appsembler-roles"
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "4GB" }
     - role: sudo
+    - custom_domains # This gets the list of domains
+    - edx_ansible
+    - role: "{{ appsembler_roles }}/gcsfuse"
     - oraclejdk
     - elasticsearch
     - memcached
+    - { role: "{{ appsembler_roles }}/letsencrypt", letsencrypt_webserver: "" }
+    - role: "{{ appsembler_roles }}/cert_agent"
+
 
 - name: Configure app server instance(s)
   hosts: edx
@@ -26,6 +34,7 @@
   become_method: sudo
   gather_facts: True
   vars:
+    appsembler_roles: "../../appsembler-roles"
     migrate_db: "yes"
     openid_workaround: True
     EDXAPP_LMS_NGINX_PORT: '80'
@@ -37,6 +46,8 @@
   roles:
     - { role: swapfile, SWAPFILE_SIZE: "2GB" }
     - role: sudo
+    - custom_domains # This gets a lits of custom domains
+    - role: "{{ appsembler_roles }}/gcsfuse"
     - mysql_init
     - role: nginx
       nginx_sites:
@@ -66,6 +77,7 @@
       when: COMMON_ENABLE_SPLUNKFORWARDER
     - role: newrelic
       when: COMMON_ENABLE_NEWRELIC
+    - { role: "{{ appsembler_roles }}/letsencrypt", letsencrypt_run: false }
 
 - name: Install xqueue, notifier and rabbitmq on services node
   hosts: "services"

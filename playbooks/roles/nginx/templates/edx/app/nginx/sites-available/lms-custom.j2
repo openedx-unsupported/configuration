@@ -1,0 +1,18 @@
+server {
+  server_name {{ item }};
+
+  listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/letsencrypt/live/{{ item }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ item }}/privkey.pem;
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  location '/.well-known/acme-challenge' {
+    default_type "text/plain";
+    root {{ letsencrypt_webroot }};
+  }
+
+
+  {% include "lms-common-settings.j2" %}
+}

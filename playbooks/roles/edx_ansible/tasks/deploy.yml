@@ -10,6 +10,17 @@
     - install
     - install:code
 
+- name: Git checkout appsembler_roles_source_repo repo into appsembler_roles_code_dir
+  git:
+    dest: "{{ appsembler_roles_code_dir }}"
+    repo: "{{ appsembler_roles_source_repo }}"
+    version: "{{ appsembler_roles_version }}"
+    accept_hostkey: yes
+  become_user: "{{ edx_ansible_user }}"
+  tags:
+    - install
+    - install:code
+
 - name: Install edx_ansible venv requirements
   pip:
     requirements: "{{ edx_ansible_requirements_file }}"
@@ -26,6 +37,30 @@
   template:
     dest: "{{ edx_ansible_app_dir}}/update"
     src: "update.j2"
+    owner: "{{ edx_ansible_user }}"
+    group: "{{ edx_ansible_user }}"
+    mode: "0755"
+  when: devstack is not defined or not devstack
+  tags:
+    - install
+    - install:configuration
+
+- name: Copy over inventory
+  template:
+    dest: "{{ edx_ansible_app_dir}}/app_nodes_inventory"
+    src: "app_nodes_inventory.j2"
+    owner: "{{ edx_ansible_user }}"
+    group: "{{ edx_ansible_user }}"
+    mode: "0755"
+  when: devstack is not defined or not devstack
+  tags:
+    - install
+    - install:configuration
+
+- name: Copy over redacted server-vars.yml
+  template:
+    dest: "{{ edx_ansible_app_dir}}/server-vars.yml"
+    src: "server_vars.j2"
     owner: "{{ edx_ansible_user }}"
     group: "{{ edx_ansible_user }}"
     mode: "0755"

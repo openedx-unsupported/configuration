@@ -233,6 +233,65 @@
     - install
     - install:configuration
 
+# Custom domains
+# - name: Copy common settings for the LMS and CMS
+#   template:
+#     src: "edx/app/nginx/lms-common-settings.j2"
+#     dest: "{{ nginx_sites_available_dir }}/lms-common-settings"
+#     owner: root
+#     group: "{{ common_web_user }}"
+#     mode: 0640
+#   notify: reload nginx
+#   when: inventory_hostname in groups['edx']
+#   tags:
+#     - install
+#     - install:configuration
+#     - nginx:custom_domains
+
+# I thin this will be useful in the beginning so I'm leaving it here.
+# Remove when not necessary anymore.
+- name: Debug custom domains structure
+  debug: var=item
+  with_items: "{{ letsencrypt_certs|json_query('[*].domains') }}"
+  when: inventory_hostname in groups['edx']
+  tags:
+    - nginx:custom_domains
+    - nginx:custom_domains:debug
+
+- name: Copy configs for LMS custom domains
+  template:
+    src: "edx/app/nginx/sites-available/lms-custom.j2"
+    dest: "{{ nginx_sites_available_dir }}/{{ item }}"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  with_items: "{{ letsencrypt_certs|json_query('[*].domains') }}"
+  when: inventory_hostname in groups['edx']
+  notify: reload nginx
+  tags:
+    - install
+    - install:configuration
+    - nginx:custom_domains
+
+- name: Create nginx config links for custom domains
+  file:
+    src: "{{ nginx_sites_available_dir }}/{{ item }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ item }}"
+    state: link
+    owner: root
+    group: root
+  with_items: "{{ letsencrypt_certs|json_query('[*].domains') }}"
+  when: inventory_hostname in groups['edx']
+  notify: reload nginx
+  tags:
+    - install
+    - install:configuration
+    - nginx:custom_domains
+
+- name: Reload nginx for custom domains to take effect
+  service: name=nginx state=reloaded
+  tags: ['nginx:custom_domains']
+
   # These are static pages that can be used
   # for nginx rate limiting, 500 errors, etc.
 
