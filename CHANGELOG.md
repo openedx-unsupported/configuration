@@ -257,6 +257,7 @@
   - Added `EDXAPP_SETTINGS` to allow using a settings file other than `aws.py`. Default: `aws`
   - Renamed `ENABLE_S3_GRADE_DOWNLOADS` to `ENABLE_GRADE_DOWNLOADS`
   - Replaced `EDXAPP_GRADE_STORAGE_TYPE`, `EDXAPP_GRADE_BUCKET` and `EDXAPP_GRADE_ROOT_PATH` with `EDXAPP_GRADE_STORAGE_CLASS` and `EDXAPP_GRADE_STORAGE_KWARGS`
+  - Added `EDXAPP_AGGREGATION_EXCLUDE_ROLES`
 - Role: openstack
   - Added role
 - Role: vhost
