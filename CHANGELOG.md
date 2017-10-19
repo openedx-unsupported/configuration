@@ -1,3 +1,6 @@
+- Role: notifier
+  - Updated notifier Syncdb to do `migrate --fake-initial` instead of `syncdb`.
+
 - Role: discovery
   - Added `DISCOVERY_REPOS` to allow configuring discovery repository details.
 
