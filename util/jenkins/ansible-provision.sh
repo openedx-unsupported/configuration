@@ -204,6 +204,9 @@ CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
 
+VIDEO_PIPELINE_BASE_NGINX_PORT: 80
+VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
+
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
@@ -304,6 +307,10 @@ COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
+VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
+VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+
 EOF
 fi
 
@@ -349,8 +356,9 @@ EOF
     fi
 fi
 
+veda_web_frontend="true"
 declare -A deploy
-roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce credentials discovery veda_web_frontend notifier xqueue xserver certs demo testcourses"
 
 for role in $roles; do
     deploy[$role]=${!role}
