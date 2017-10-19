@@ -1,3 +1,6 @@
+- Role: veda_web_frontend
+  - New role added for [edx-video-pipeline](https://github.com/edx/edx-video-pipeline)
+
 - Role: edxapp
   - Added `EDXAPP_LMS_INTERNAL_ROOT_URL` setting (defaults to `EDXAPP_LMS_ROOT_URL`).
 
