@@ -1,0 +1,107 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role edx-video-pipeline
+#
+
+
+#
+# vars are namespace with the module name.
+#
+video_pipeline_service_name: "pipeline"
+video_pipeline_gunicorn_port: 8555
+
+video_pipeline_user: "{{ video_pipeline_service_name }}"
+video_pipeline_home: "{{ COMMON_APP_DIR }}/{{ video_pipeline_service_name }}"
+
+# TODO! Find some better way to do the below
+video_pipeline_service_home: "{{ COMMON_APP_DIR }}/{{ video_pipeline_service_name }}"
+video_pipeline_code_dir: "{{ video_pipeline_service_home }}/{{ video_pipeline_service_name }}"
+video_pipeline_venv_dir: "{{ video_pipeline_service_home }}/venvs/{{ video_pipeline_service_name }}"
+
+video_pipeline_ingest_worker: "{{ video_pipeline_service_name }}_ingest"
+video_pipeline_deliver_worker: "{{ video_pipeline_service_name }}_deliver"
+
+#
+# OS packages
+#
+
+video_pipeline_debian_pkgs:
+  - libffi6
+  - libffi-dev
+  - ffmpeg
+
+VIDEO_PIPELINE_HOST_ENVIRONMENT: 'sandbox'
+
+VIDEO_PIPELINE_NGINX_PORT: "1{{ video_pipeline_gunicorn_port }}"
+VIDEO_PIPELINE_SSL_NGINX_PORT: "4{{ video_pipeline_gunicorn_port }}"
+
+VIDEO_PIPELINE_DEFAULT_DB_NAME: "pipeline"
+VIDEO_PIPELINE_MYSQL_HOST: "localhost"
+VIDEO_PIPELINE_MYSQL_USER: "pipeline001"
+VIDEO_PIPELINE_MYSQL_PASSWORD: "password"
+
+VIDEO_PIPELINE_MEMCACHE: []
+
+VIDEO_PIPELINE_VERSION: "master"
+VIDEO_PIPELINE_DJANGO_SETTINGS_MODULE: "VEDA.settings"
+VIDEO_PIPELINE_DOMAIN: 'pipeline'
+VIDEO_PIPELINE_URL_ROOT: "http://{{ VIDEO_PIPELINE_DOMAIN }}:{{ VIDEO_PIPELINE_NGINX_PORT }}"
+
+VIDEO_PIPELINE_SOCIAL_AUTH_EDX_OIDC_KEY: "pipeline-key"
+VIDEO_PIPELINE_SOCIAL_AUTH_EDX_OIDC_SECRET: "pipeline-secret"
+VIDEO_PIPELINE_LOGOUT_URL: "{{ VIDEO_PIPELINE_URL_ROOT }}/logout/"
+VIDEO_PIPELINE_OAUTH2_URL: "{{ VIDEO_PIPELINE_URL_ROOT }}/api/val/v0"
+
+VIDEO_PIPELINE_API_URL: "{{ VIDEO_PIPELINE_URL_ROOT }}/api"
+VIDEO_PIPELINE_OAUTH_URL: "{{ VIDEO_PIPELINE_URL_ROOT }}/veda_auth"
+VIDEO_PIPELINE_OAUTH_TOKEN_URL: "{{ VIDEO_PIPELINE_URL_ROOT }}/o/token"
+VIDEO_PIPELINE_OAUTH_CLIENT_ID: "video-pipeline-client-id"
+VIDEO_PIPELINE_OAUTH_CLIENT_NAME: "video-pipeline"
+VIDEO_PIPELINE_OAUTH_CLIENT_SECRET: "video-pipeline-client-secret"
+
+VIDEO_PIPELINE_SECRET_KEY: "Your secret key here"
+VIDEO_PIPELINE_LANGUAGE_CODE: "en-us"
+
+VIDEO_PIPELINE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+VIDEO_PIPELINE_DATA_DIR: "{{ COMMON_DATA_DIR }}/{{ video_pipeline_service_name }}"
+VIDEO_PIPELINE_MEDIA_ROOT: "{{ VIDEO_PIPELINE_DATA_DIR }}/media"
+VIDEO_PIPELINE_MEDIA_URL: "/media/"
+
+VIDEO_PIPELINE_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: "django.core.files.storage.FileSystemStorage"
+  MEDIA_ROOT: "{{ VIDEO_PIPELINE_MEDIA_ROOT }}"
+  MEDIA_URL: "{{ VIDEO_PIPELINE_MEDIA_URL }}"
+
+VIDEO_PIPELINE_ENVIRONMENT:
+  VIDEO_PIPELINE_CFG: "{{ COMMON_CFG_DIR }}/{{ video_pipeline_service_name }}.yml"
+  PYTHONPATH: "{{ video_pipeline_code_dir }}"
+
+VIDEO_PIPELINE_SERVICE_USER: 'pipeline_service_user'
+
+VIDEO_PIPELINE_STATICFILES_STORAGE: "django.contrib.staticfiles.storage.StaticFilesStorage"
+
+VIDEO_PIPELINE_HOSTNAME: '~^((stage|prod)-)?pipeline.*'
+
+VIDEO_PIPELINE_GUNICORN_EXTRA: ""
+
+VIDEO_PIPELINE_EXTRA_APPS: []
+
+# See edx_django_service_automated_users for an example of what this should be
+VIDEO_PIPELINE_AUTOMATED_USERS: {}
+
+# static files settings
+VIDEO_PIPELINE_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ video_pipeline_service_name }}'
+VIDEO_PIPELINE_STATIC_ROOT: '{{ VIDEO_PIPELINE_DATA_DIR }}/staticfiles'
+
+VIDEO_PIPELINE_RABBITMQ_BROKER: "localhost"
+VIDEO_PIPELINE_RABBITMQ_USER: "pipeline"
+VIDEO_PIPELINE_RABBITMQ_PASS: "pipeline"

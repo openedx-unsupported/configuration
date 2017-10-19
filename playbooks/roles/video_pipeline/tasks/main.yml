@@ -1,0 +1,73 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx-video-pipeline
+#
+# Overview: This role's tasks come from edx_django_service.
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: write out the supervisor wrapper for celery workers
+  template:
+    src: "templates/celery_worker.sh.j2"
+    dest: "{{ video_pipeline_service_home }}/{{ item.worker_script_wrapper_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  vars:
+    worker_script: "{{ item.worker_script_src_path }}"
+  with_items:
+    - { worker_script_src_path: 'bin/ingest', worker_script_wrapper_name:  "{{ video_pipeline_ingest_worker }}" }
+    - { worker_script_src_path: 'bin/deliver', worker_script_wrapper_name:  "{{ video_pipeline_deliver_worker }}" }
+
+- name: write supervisord config for celery workers
+  template:
+    src: "templates/supervisor.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ item }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+  vars:
+    worker_script: "{{ item }}"
+  with_items:
+    - "{{ video_pipeline_ingest_worker }}"
+    - "{{ video_pipeline_deliver_worker }}"
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ item }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ item }}.conf"
+    state: link
+    force: yes
+  with_items:
+    - "{{ video_pipeline_ingest_worker }}"
+    - "{{ video_pipeline_deliver_worker }}"
+
+- name: update supervisor configuration
+  command: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+
+- name: create OAuth application clients
+  shell: >
+    {{ video_pipeline_venv_dir }}/bin/python {{ COMMON_BIN_DIR }}/manage.pipeline create_oauth_app_client --settings={{ VIDEO_PIPELINE_DJANGO_SETTINGS_MODULE }}
+    {{ VIDEO_PIPELINE_OAUTH_CLIENT_ID }}
+    confidential
+    client-credentials
+    --name {{ VIDEO_PIPELINE_OAUTH_CLIENT_NAME }}
+    --client_secret {{ VIDEO_PIPELINE_OAUTH_CLIENT_SECRET }}
+    --redirect_uris {{ VIDEO_PIPELINE_OAUTH_TOKEN_URL }}
+    --skip_authorization
+  become_user: "{{ video_pipeline_user }}"
