@@ -17,6 +17,8 @@
   - Added `EDXAPP_MONGO_REPLICA_SET`, which is required to use
     pymongo.MongoReplicaSetClient in PyMongo 2.9.1, whis is required to use the
     read_preference setting. This should be set to the name of your replica set.
+    Note that setting `EDXAPP_MONGO_REPLICA_SET` requires `EDXAPP_MONGO_HOSTS` to be a comma-delimited string listing
+    the host names, not an array.
 
 - Role: nginx
   - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security

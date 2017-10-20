@@ -67,7 +67,7 @@ EDXAPP_XQUEUE_URL: 'http://localhost:18040'
 
 # EDXAPP_MONGO_HOSTS must be a comma seperated list of hosts/ips for
 # compatibility with pymongo.MongoReplicaSetClient in PyMongo 2.9.1
-EDXAPP_MONGO_HOSTS: 'localhost'
+EDXAPP_MONGO_HOSTS: ['localhost']
 EDXAPP_MONGO_PASSWORD: 'password'
 EDXAPP_MONGO_PORT: 27017
 EDXAPP_MONGO_USER: 'edxapp'
@@ -75,6 +75,12 @@ EDXAPP_MONGO_DB_NAME: 'edxapp'
 EDXAPP_MONGO_USE_SSL: False
 EDXAPP_MONGO_REPLICA_SET: ''
 EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: 'SECONDARY_PREFERRED'
+EDXAPP_MONGO_ADDITIONAL_OPTIONS: &edxapp_mongo_additional_options
+  replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
+  read_preference: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE }}"
+EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS:
+  default: *edxapp_mongo_additional_options
+  split: *edxapp_mongo_additional_options
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
 EDXAPP_MYSQL_USER: 'edxapp001'
@@ -462,7 +468,6 @@ EDXAPP_VERIFY_STUDENT:
   EXPIRING_SOON_WINDOW: 28
 EDXAPP_GOOGLE_ANALYTICS_LINKEDIN: ""
 EDXAPP_GOOGLE_ANALYTICS_TRACKING_ID: ""
-EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS: {}
 EDXAPP_BULK_EMAIL_EMAILS_PER_TASK: 500
 # If using microsites this should point to the microsite repo
 EDXAPP_MICROSITE_ROOT_DIR: "{{ edxapp_app_dir }}/edx-microsite"
@@ -863,6 +868,7 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   socketTimeoutMS: 3000 # default is never timeout while the connection is open, this means it needs to explicitly close raising pymongo.errors.NetworkTimeout
   connectTimeoutMS: 2000 # default is 20000, I believe raises pymongo.errors.ConnectionFailure
   # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
+  <<: *edxapp_mongo_additional_options
 
 
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
@@ -870,8 +876,6 @@ EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
 
 EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
-  replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
-  read_preference: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE }}"
 
 EDXAPP_CMS_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
