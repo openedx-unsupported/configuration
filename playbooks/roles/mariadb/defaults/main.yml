@@ -10,9 +10,11 @@
 ##
 # Defaults for role mariadb
 # 
+MARIADB_APT_KEY_XENIAL_ID: '0xF1656F24C74CD1D8'
 MARIADB_APT_KEY_ID: '0xcbcb082a1bb943db'
+
 # Note: version is determined by repo
-MARIADB_REPO: "deb http://mirrors.syringanetworks.net/mariadb/repo/10.0/ubuntu precise main"
+MARIADB_REPO: "deb http://mirrors.syringanetworks.net/mariadb/repo/10.0/ubuntu {{ ansible_distribution_release }} main"
 
 MARIADB_CREATE_DBS: yes
 MARIADB_CLUSTERED: no
@@ -29,69 +31,107 @@ MARIADB_HAPROXY_HOSTS:
 MARIADB_LISTEN_ALL: false
 
 MARIADB_DATABASES:
-  - "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}"
-  - "{{ XQUEUE_MYSQL_DB_NAME|default('xqueue') }}"
-
-MARIADB_ANALYTICS_DATABASES:
-  - "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME']|default('analytics-api') }}"
-  - "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME']|default('reports') }}"
+  - {
+      db: "{{ ECOMMERCE_DEFAULT_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ INSIGHTS_DATABASE_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ XQUEUE_MYSQL_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ EDXAPP_MYSQL_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ EDXAPP_MYSQL_CSMH_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ EDX_NOTES_API_MYSQL_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ PROGRAMS_DEFAULT_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ ANALYTICS_API_DEFAULT_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ ANALYTICS_API_REPORTS_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ CREDENTIALS_DEFAULT_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ DISCOVERY_DEFAULT_DB_NAME | default(None) }}",
+      encoding: "utf8" 
+    }
+  - {
+      db: "{{ HIVE_METASTORE_DATABASE_NAME | default(None) }}",
+      encoding: "latin1" 
+    }
 
 MARIADB_USERS:
-  - name: "{{ EDXAPP_MYSQL_USER|default('edxapp001') }}"
-    pass: "{{ EDXAPP_MYSQL_PASSWORD|default('password') }}"
-    priv: "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
+  - {
+      db: "{{ ECOMMERCE_DEFAULT_DB_NAME | default(None) }}",
+      user: "{{ ECOMMERCE_DATABASE_USER | default(None) }}",
+      pass: "{{ ECOMMERCE_DATABASE_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ INSIGHTS_DATABASE_NAME | default(None) }}",
+      user: "{{ INSIGHTS_MYSQL_USER | default(None) }}",
+      pass: "{{ INSIGHTS_MYSQL_USER | default(None) }}"
+    }
+  - {
+      db: "{{ XQUEUE_MYSQL_DB_NAME | default(None) }}",
+      user: "{{ XQUEUE_MYSQL_USER | default(None) }}",
+      pass: "{{ XQUEUE_MYSQL_PASSWORD | default(None) }}"
 
-  - name: "{{ XQUEUE_MYSQL_USER|default('xqueue001') }}"
-    pass: "{{ XQUEUE_MYSQL_PASSWORD|default('password') }}"
-    priv: "{{ XQUEUE_MYSQL_DB_NAME|default('xqueue') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
-    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
-    priv: "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
-    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
-    priv: "{{ XQUEUE_MYSQL_DB_NAME|default('xqueue') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ COMMON_MYSQL_READ_ONLY_USER|default('read_only') }}"
-    pass: "{{ COMMON_MYSQL_READ_ONLY_PASS|default('password') }}"
-    priv: "*.*:SELECT"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ COMMON_MYSQL_ADMIN_USER|default('admin') }}"
-    pass: "{{ COMMON_MYSQL_ADMIN_PASS|default('password') }}"
-    priv: "*.*:CREATE USER"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ EDX_NOTES_API_MYSQL_DB_USER|default('notes001') }}"
-    pass: "{{ EDX_NOTES_API_MYSQL_DB_PASS|default('secret') }}"
-    priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME|default('edx-notes-api') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-MARIADB_ANALYTICS_USERS:
-  - name: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['USER']|default('api001') }}"
-    pass: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['PASSWORD']|default('password') }}"
-    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME'] }}.*:ALL/reports.*:SELECT"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['USER']|default('reports001') }}"
-    pass: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['PASSWORD']|default('password') }}"
-    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME'] }}.*:SELECT"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
-    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
-    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['default']['NAME']|default('analytics-api') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
-
-  - name: "{{ COMMON_MYSQL_MIGRATE_USER|default('migrate') }}"
-    pass: "{{ COMMON_MYSQL_MIGRATE_PASSWORD|default('password') }}"
-    priv: "{{ ANALYTICS_API_CONFIG['DATABASES']['reports']['NAME']|default('reports') }}.*:ALL"
-    host: "{{ MARIADB_HOST_PRIV }}"
+    }
+  - {
+      db: "{{ EDXAPP_MYSQL_DB_NAME | default(None) }}",
+      user: "{{ EDXAPP_MYSQL_USER | default(None) }}",
+      pass: "{{ EDXAPP_MYSQL_PASSWORD | default(None) }}"
+   }
+  - {
+      db: "{{ EDXAPP_MYSQL_CSMH_DB_NAME | default(None) }}",
+      user: "{{ EDXAPP_MYSQL_CSMH_USER | default(None) }}",
+      pass: "{{ EDXAPP_MYSQL_CSMH_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ PROGRAMS_DEFAULT_DB_NAME | default(None) }}",
+      user: "{{ PROGRAMS_DATABASE_USER | default(None) }}",
+      pass: "{{ PROGRAMS_DATABASE_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_NAME | default(None) }}",
+      user: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_USER | default(None) }}",
+      pass: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ HIVE_METASTORE_DATABASE_NAME | default(None) }}",
+      user: "{{ HIVE_METASTORE_DATABASE_USER | default(None) }}",
+      pass: "{{ HIVE_METASTORE_DATABASE_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ CREDENTIALS_DEFAULT_DB_NAME | default(None) }}",
+      user: "{{ CREDENTIALS_MYSQL_USER | default(None) }}",
+      pass: "{{ CREDENTIALS_MYSQL_PASSWORD | default(None) }}"
+    }
+  - {
+      db: "{{ DISCOVERY_DEFAULT_DB_NAME | default(None) }}",
+      user: "{{ DISCOVERY_MYSQL_USER | default(None) }}",
+      pass: "{{ DISCOVERY_MYSQL_PASSWORD | default(None) }}"
+    }
 
 #
 # OS packages

@@ -1,6 +1,6 @@
 # Build using: docker build -f Dockerfile.gocd-agent -t gocd-agent .
 # https://hub.docker.com/r/gocd/gocd-agent-deprecated/
-FROM gocd/gocd-agent-deprecated:17.1.0
+FROM gocd/gocd-agent-deprecated:17.7.0
 
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"

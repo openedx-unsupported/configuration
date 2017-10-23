@@ -54,7 +54,7 @@
 - name: install comments service bundle
   shell: "bundle install --deployment --path {{ forum_gem_root }} chdir={{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   notify: restart the forum service
   tags:
     - install
@@ -65,8 +65,19 @@
   args:
     chdir: "{{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  tags:
+    - migrate
+    - migrate:db
+
+- name: rebuild elasticsearch indexes
+  command: "{{ forum_code_dir }}/bin/rake search:rebuild_index"
+  args:
+    chdir: "{{ forum_code_dir }}"
+  become_user: "{{ forum_user }}"
+  environment: "{{ forum_base_env }}"
+  when: migrate_db is defined and migrate_db|lower == "yes" and FORUM_REBUILD_INDEX|bool
   tags:
     - migrate
     - migrate:db

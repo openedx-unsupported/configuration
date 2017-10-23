@@ -37,6 +37,8 @@
     dest: "/tmp/{{ SPLUNKFORWARDER_DEB }}"
     url: "{{ SPLUNKFORWARDER_PACKAGE_URL }}"
   register: download_deb
+  until: download_deb|succeeded
+  retries: 5
 
 - name: Install splunk forwarder
   shell: "gdebi -nq /tmp/{{ SPLUNKFORWARDER_DEB }}"
@@ -115,7 +117,7 @@
     owner: splunk
     group: splunk
     mode: "0400"
-  when: "{{ item.ssl_cert is defined }}"
+  when: item.ssl_cert is defined
   with_items: "{{ SPLUNKFORWARDER_SERVERS }}"
 
 - name: Write root CA to disk
@@ -125,7 +127,7 @@
     owner: splunk
     group: splunk
     mode: "0400"
-  when: "{{ item.ssl_cert is defined }}"
+  when: item.ssl_cert is defined
   with_items: "{{ SPLUNKFORWARDER_SERVERS }}"
 
 - name: Create inputs and outputs configuration

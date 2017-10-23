@@ -1,13 +1,17 @@
 # Configure an instance with the admin jenkins.
+- name: install python2
+  hosts: all
+  become: True
+  gather_facts: False
+  roles:
+    - python
 - name: Configure instance(s)
   hosts: all
   become: True
   gather_facts: True
   vars:
-    serial_count: 1
     COMMON_SECURITY_UPDATES: yes
     SECURITY_UPGRADE_ON_ANSIBLE: true
-  serial: "{{ serial_count }}"
   roles:
     - aws
     - jenkins_admin
@@ -20,3 +24,5 @@
     #     crcSalt: <SOURCE>
     - role: splunkforwarder
       when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC

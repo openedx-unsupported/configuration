@@ -20,6 +20,8 @@ ECOMMERCE_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
 ECOMMERCE_NGINX_PORT: "18130"
 ECOMMERCE_SSL_NGINX_PORT: 48130
 
+ECOMMERCE_MEMCACHE: [ 'localhost:11211' ]
+
 ECOMMERCE_DEFAULT_DB_NAME: 'ecommerce'
 ECOMMERCE_DATABASE_USER: "ecomm001"
 ECOMMERCE_DATABASE_PASSWORD: "password"
@@ -44,65 +46,81 @@ ECOMMERCE_DATABASES:
 ECOMMERCE_VERSION: "master"
 ECOMMERCE_DJANGO_SETTINGS_MODULE: "ecommerce.settings.production"
 
-ECOMMERCE_OAUTH_URL_ROOT: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}/oauth2'
-ECOMMERCE_OIDC_LOGOUT_URL: '{{ EDXAPP_LMS_ROOT_URL | default("http://127.0.0.1:8000") }}/logout'
-
 ECOMMERCE_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
 ECOMMERCE_SECRET_KEY: 'Your secret key here'
 ECOMMERCE_TIME_ZONE: 'UTC'
-ECOMMERCE_LANGUAGE_CODE: 'en-us'
+ECOMMERCE_LANGUAGE_CODE: 'en'
+ECOMMERCE_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
 ECOMMERCE_EDX_API_KEY: 'PUT_YOUR_API_KEY_HERE'  # This should match the value set for edxapp
 ECOMMERCE_ECOMMERCE_URL_ROOT: 'http://localhost:8002'
 ECOMMERCE_LOGOUT_URL: '{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}/logout/'
 ECOMMERCE_LMS_URL_ROOT: 'http://127.0.0.1:8000'
-ECOMMERCE_JWT_SECRET_KEY: '{{ EDXAPP_JWT_SECRET_KEY | default("lms-secret") }}'
 ECOMMERCE_JWT_ALGORITHM: 'HS256'
 ECOMMERCE_JWT_VERIFY_EXPIRATION: true
 ECOMMERCE_JWT_DECODE_HANDLER: 'ecommerce.extensions.api.handlers.jwt_decode_handler'
 ECOMMERCE_JWT_ISSUERS:
-  - '{{ ECOMMERCE_OAUTH_URL_ROOT }}'
+  - '{{ COMMON_JWT_ISSUER }}'
   - 'ecommerce_worker'  # Must match the value of JWT_ISSUER configured for the ecommerce worker.
 ECOMMERCE_JWT_LEEWAY: 1
 # NOTE: We have an array of keys to allow for support of multiple when, for example,
 # we change keys. This will ensure we continue to operate with JWTs issued signed with the old key
 # while migrating to the new key.
 ECOMMERCE_JWT_SECRET_KEYS:
-  - '{{ ECOMMERCE_JWT_SECRET_KEY }}'
+  - '{{ COMMON_JWT_SECRET_KEY }}'
 
 # Used to automatically configure OAuth2 Client
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET : 'ecommerce-secret'
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ ECOMMERCE_OAUTH_URL_ROOT }}'
 
 # Settings for affiliate cookie tracking
 ECOMMERCE_AFFILIATE_COOKIE_NAME: '{{ EDXAPP_AFFILIATE_COOKIE_NAME | default("dev_affiliate_id") }}'
+
+ECOMMERCE_OSCAR_FROM_EMAIL: 'oscar@example.com'
+
+# NOTE: The contents of the certificates should be set in private configuration
+ecommerce_apple_pay_merchant_certificate_directory: '/edx/etc/ssl'
+ecommerce_apple_pay_merchant_certificate_filename: 'apple_pay_merchant.pem'
+ecommerce_apple_pay_merchant_certificate_path: '{{ ecommerce_apple_pay_merchant_certificate_directory }}/{{ ecommerce_apple_pay_merchant_certificate_filename }}'
+ECOMMERCE_APPLE_PAY_MERCHANT_CERTIFICATE: |
+  Your PEM file, containing a public and private key,
+  should be set in private configuration. This is how you
+  implement a multi-line string in YAML.
+ECOMMERCE_APPLE_PAY_MERCHANT_ID_DOMAIN_ASSOCIATION: |
+  This value should also be in private configuration. It, too,
+  will span multiple lines.
+ECOMMERCE_APPLE_PAY_MERCHANT_IDENTIFIER: 'merchant.com.example'
+ECOMMERCE_APPLE_PAY_COUNTRY_CODE: 'US'
 
 # CyberSource related
 ECOMMERCE_CYBERSOURCE_PROFILE_ID: 'SET-ME-PLEASE'
 ECOMMERCE_CYBERSOURCE_MERCHANT_ID: 'SET-ME-PLEASE'
 ECOMMERCE_CYBERSOURCE_ACCESS_KEY: 'SET-ME-PLEASE'
 ECOMMERCE_CYBERSOURCE_SECRET_KEY: 'SET-ME-PLEASE'
+ECOMMERCE_CYBERSOURCE_SOP_ACCESS_KEY: 'SET-ME-PLEASE'
+ECOMMERCE_CYBERSOURCE_SOP_PROFILE_ID: 'SET-ME-PLEASE'
+ECOMMERCE_CYBERSOURCE_SOP_SECRET_KEY: 'SET-ME-PLEASE'
+ECOMMERCE_CYBERSOURCE_SOP_PAYMENT_PAGE_URL: 'https://testsecureacceptance.cybersource.com/silent/pay'
 ECOMMERCE_CYBERSOURCE_TRANSACTION_KEY: 'SET-ME-PLEASE'
-ECOMMERCE_CYBERSOURCE_PAYMENT_PAGE_URL: 'https://set-me-please'
-ECOMMERCE_CYBERSOURCE_RECEIPT_PAGE_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/receipt/'
-ECOMMERCE_CYBERSOURCE_CANCEL_PAGE_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/cancel/'
-ECOMMERCE_CYBERSOURCE_SOAP_API_URL: 'https://set-me-please'
-ECOMMERCE_OSCAR_FROM_EMAIL: 'oscar@example.com'
+ECOMMERCE_CYBERSOURCE_PAYMENT_PAGE_URL: 'https://testsecureacceptance.cybersource.com/pay'
+ECOMMERCE_CYBERSOURCE_RECEIPT_PAGE_URL: '/checkout/receipt/'
+ECOMMERCE_CYBERSOURCE_CANCEL_PAGE_URL: '/checkout/cancel-checkout/'
+ECOMMERCE_CYBERSOURCE_SEND_LEVEL_2_3_DETAILS: true
+ECOMMERCE_CYBERSOURCE_SOAP_API_URL: 'https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.140.wsdl'
 
-# PayPal related
-ECOMMERCE_PAYPAL_MODE: 'SET-ME-PLEASE'
+# PayPal
+ECOMMERCE_PAYPAL_MODE: 'sandbox'
 ECOMMERCE_PAYPAL_CLIENT_ID: 'SET-ME-PLEASE'
 ECOMMERCE_PAYPAL_CLIENT_SECRET: 'SET-ME-PLEASE'
-ECOMMERCE_PAYPAL_RECEIPT_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/receipt/'
-ECOMMERCE_PAYPAL_CANCEL_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/cancel/'
-ECOMMERCE_PAYPAL_ERROR_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/commerce/checkout/error/'
+ECOMMERCE_PAYPAL_RECEIPT_URL: '/checkout/receipt/'
+ECOMMERCE_PAYPAL_CANCEL_URL: '/checkout/cancel-checkout/'
+ECOMMERCE_PAYPAL_ERROR_URL: '/checkout/error/'
 
 ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
   edx:
     cybersource:
-      profile_id: '{{ ECOMMERCE_CYBERSOURCE_PROFILE_ID }}'
       merchant_id: '{{ ECOMMERCE_CYBERSOURCE_MERCHANT_ID }}'
+      profile_id: '{{ ECOMMERCE_CYBERSOURCE_PROFILE_ID }}'
       access_key: '{{ ECOMMERCE_CYBERSOURCE_ACCESS_KEY }}'
       secret_key: '{{ ECOMMERCE_CYBERSOURCE_SECRET_KEY }}'
       transaction_key: '{{ ECOMMERCE_CYBERSOURCE_TRANSACTION_KEY }}'
@@ -110,6 +128,17 @@ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
       receipt_page_url: '{{ ECOMMERCE_CYBERSOURCE_RECEIPT_PAGE_URL }}'
       cancel_page_url: '{{ ECOMMERCE_CYBERSOURCE_CANCEL_PAGE_URL }}'
       soap_api_url: '{{ ECOMMERCE_CYBERSOURCE_SOAP_API_URL }}'
+      send_level_2_3_details: '{{ ECOMMERCE_CYBERSOURCE_SEND_LEVEL_2_3_DETAILS }}'
+      sop_profile_id: '{{ ECOMMERCE_CYBERSOURCE_SOP_PROFILE_ID }}'
+      sop_access_key: '{{ ECOMMERCE_CYBERSOURCE_SOP_ACCESS_KEY }}'
+      sop_secret_key: '{{ ECOMMERCE_CYBERSOURCE_SOP_SECRET_KEY }}'
+      sop_payment_page_url: '{{ ECOMMERCE_CYBERSOURCE_SOP_PAYMENT_PAGE_URL }}'
+      # NOTE: These are simple placeholders meant to show what keys are needed for Apple Pay. These values
+      # should be overwritten in private configuration.
+      apple_pay_merchant_identifier: '{{ ECOMMERCE_APPLE_PAY_MERCHANT_IDENTIFIER }}'
+      apple_pay_merchant_id_domain_association: '{{ ECOMMERCE_APPLE_PAY_MERCHANT_ID_DOMAIN_ASSOCIATION }}'
+      apple_pay_merchant_id_certificate_path: '{{ ecommerce_apple_pay_merchant_certificate_path }}'
+      apple_pay_country_code: '{{ ECOMMERCE_APPLE_PAY_COUNTRY_CODE }}'
     paypal:
       mode: '{{ ECOMMERCE_PAYPAL_MODE }}'
       client_id: '{{ ECOMMERCE_PAYPAL_CLIENT_ID }}'
@@ -146,6 +175,7 @@ ECOMMERCE_SERVICE_CONFIG:
 
   SECRET_KEY: '{{ ECOMMERCE_SECRET_KEY }}'
   TIME_ZONE: '{{ ECOMMERCE_TIME_ZONE }}'
+  LANGUAGE_COOKIE_NAME: '{{ ECOMMERCE_LANGUAGE_COOKIE_NAME }}'
   LANGUAGE_CODE: '{{ ECOMMERCE_LANGUAGE_CODE }}'
   EDX_API_KEY: '{{ ECOMMERCE_EDX_API_KEY }}'
   OSCAR_FROM_EMAIL: '{{ ECOMMERCE_OSCAR_FROM_EMAIL }}'
@@ -159,7 +189,7 @@ ECOMMERCE_SERVICE_CONFIG:
   COMMERCE_API_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/api/commerce/v1/'
   LMS_DASHBOARD_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}/dashboard'
   JWT_AUTH:
-    JWT_SECRET_KEY: '{{ ECOMMERCE_JWT_SECRET_KEY }}'
+    JWT_SECRET_KEY: '{{ COMMON_JWT_SECRET_KEY }}'
     JWT_ALGORITHM: '{{ ECOMMERCE_JWT_ALGORITHM }}'
     JWT_VERIFY_EXPIRATION: '{{ ECOMMERCE_JWT_VERIFY_EXPIRATION }}'
     JWT_LEEWAY: '{{ ECOMMERCE_JWT_LEEWAY }}'
@@ -169,10 +199,10 @@ ECOMMERCE_SERVICE_CONFIG:
   SOCIAL_AUTH_EDX_OIDC_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }}'
   SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ ECOMMERCE_OAUTH_URL_ROOT }}'
-  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ ECOMMERCE_OIDC_LOGOUT_URL }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ COMMON_OAUTH_URL_ROOT }}'
+  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ COMMON_OAUTH_LOGOUT_URL }}'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
-  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_ISSUER }}'
+  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ COMMON_JWT_ISSUER }}'
   AFFILIATE_COOKIE_KEY: '{{ ECOMMERCE_AFFILIATE_COOKIE_NAME }}'
 
   STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ ecommerce_service_name }}/staticfiles"
@@ -192,6 +222,11 @@ ECOMMERCE_SERVICE_CONFIG:
   ENABLE_COMPREHENSIVE_THEMING: "{{ ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING }}"
   DEFAULT_SITE_THEME: "{{ ECOMMERCE_DEFAULT_SITE_THEME }}"
 
+  CACHES:
+    default:
+      BACKEND: 'django.core.cache.backends.memcached.MemcachedCache'
+      KEY_PREFIX: 'ecommerce'
+      LOCATION: '{{ ECOMMERCE_MEMCACHE }}'
 
 ECOMMERCE_REPOS:
   - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"

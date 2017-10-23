@@ -300,7 +300,7 @@
     - install:app-requirements
 
 - name: compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x .git/.* {{ edxapp_code_dir }}"
+  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x '.git/.*|node_modules/.*' {{ edxapp_code_dir }}"
   become_user: "{{ edxapp_user }}"
   tags:
     - install
@@ -417,3 +417,14 @@
   become_user: "{{ common_web_user }}"
   tags:
     - manage
+
+- name: create service worker users
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  with_items: "{{ SERVICE_WORKER_USERS }}"
+  when: CREATE_SERVICE_WORKER_USERS
+  tags:
+    - manage
+    - manage:db

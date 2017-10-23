@@ -11,6 +11,7 @@
 # Defaults for role discovery
 #
 
+DISCOVERY_GIT_IDENTITY: !!null
 
 #
 # vars are namespace with the module name.
@@ -21,6 +22,9 @@ discovery_gunicorn_port: 8381
 discovery_environment:
   DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
 
+discovery_user: "{{ discovery_service_name }}"
+discovery_home: "{{ COMMON_APP_DIR }}/{{ discovery_service_name }}"
+discovery_code_dir: "{{ discovery_home }}/{{ discovery_service_name }}"
 
 #
 # OS packages
@@ -55,7 +59,20 @@ DISCOVERY_URL_ROOT: 'http://discovery:{{ DISCOVERY_NGINX_PORT }}'
 DISCOVERY_LOGOUT_URL: '{{ DISCOVERY_URL_ROOT }}/logout/'
 
 DISCOVERY_SECRET_KEY: 'Your secret key here'
-DISCOVERY_LANGUAGE_CODE: 'en-us'
+
+DISCOVERY_LANGUAGE_CODE: 'en'
+
+## Configuration for django-parler package. For more information visit
+## https://django-parler.readthedocs.io/en/latest/configuration.html#parler-languages
+DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE: '{{DISCOVERY_LANGUAGE_CODE}}'
+DISCOVERY_PARLER_LANGUAGES :
+  1:
+    - code: 'en'
+  default:
+    fallbacks:
+      - '{{DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE}}'
+    hide_untranslated: 'False'
+
 DISCOVERY_DEFAULT_PARTNER_ID: 1
 DISCOVERY_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
 
@@ -94,9 +111,20 @@ DISCOVERY_EMAIL_HOST_PASSWORD: ''
 
 DISCOVERY_PUBLISHER_FROM_EMAIL: !!null
 
+DISCOVERY_OPENEXCHANGERATES_API_KEY: ''
+
 DISCOVERY_GUNICORN_EXTRA: ''
 
 DISCOVERY_EXTRA_APPS: []
+
+DISCOVERY_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: 'course-discovery.git'
+    VERSION: "{{ DISCOVERY_VERSION }}"
+    DESTINATION: "{{ discovery_code_dir }}"
+    SSH_KEY: "{{ DISCOVERY_GIT_IDENTITY }}"
 
 discovery_service_config_overrides:
   ELASTICSEARCH_URL: '{{ DISCOVERY_ELASTICSEARCH_URL }}'
@@ -120,6 +148,12 @@ discovery_service_config_overrides:
   EMAIL_HOST_PASSWORD: '{{ DISCOVERY_EMAIL_HOST_PASSWORD }}'
 
   PUBLISHER_FROM_EMAIL: '{{ DISCOVERY_PUBLISHER_FROM_EMAIL }}'
+
+  OPENEXCHANGERATES_API_KEY: '{{ DISCOVERY_OPENEXCHANGERATES_API_KEY }}'
+
+  LANGUAGE_CODE: '{{DISCOVERY_LANGUAGE_CODE}}'
+  PARLER_DEFAULT_LANGUAGE_CODE: '{{DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE}}'
+  PARLER_LANGUAGES : '{{DISCOVERY_PARLER_LANGUAGES}}'
 
 # See edx_django_service_automated_users for an example of what this should be
 DISCOVERY_AUTOMATED_USERS: {}

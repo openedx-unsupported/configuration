@@ -1,0 +1,46 @@
+# {{ ansible_managed }}
+# mongodb.conf
+
+
+storage:
+  # Where to store the data.
+  dbPath: {{ mongo_dbpath }}
+  # Storage Engine
+  engine: {{ MONGO_STORAGE_ENGINE }}
+  # Enable journaling, http://www.mongodb.org/display/DOCS/Journaling
+  journal:
+{% if mongo_enable_journal %}
+    enabled: true
+{% else %}
+    enabled: false
+{% endif %}
+{% if MONGO_STORAGE_ENGINE_OPTIONS %}
+  {{ MONGO_STORAGE_ENGINE_OPTIONS | to_nice_yaml }}
+{% endif %}
+
+systemLog:
+  #where to log
+  destination: file
+  path: "{{ mongo_logpath }}"
+{% if mongo_logappend  %}
+  logAppend: true
+{% else %}
+  logAppend: false
+{% endif %}
+  logRotate: {{ mongo_logrotate }}
+
+{% if not skip_replica_set %}
+replication:
+  replSetName: {{ MONGO_REPL_SET }}
+
+security:
+  authorization: {{ MONGO_AUTH | ternary("enabled", "disabled") }}
+  keyFile: {{ mongo_key_file }}
+
+{% endif %}
+net:
+  bindIp: {{ MONGO_BIND_IP }}
+  port: {{ mongo_port }}
+
+
+{{ mongo_extra_conf }}

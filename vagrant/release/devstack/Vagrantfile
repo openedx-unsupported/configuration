@@ -21,6 +21,7 @@ VERSION_VARS = [
     'NOTIFIER_VERSION',
     'ECOMMERCE_VERSION',
     'ECOMMERCE_WORKER_VERSION',
+    'DISCOVERY_VERSION',
 ]
 
 MOUNT_DIRS = {
@@ -28,7 +29,7 @@ MOUNT_DIRS = {
   :themes => {:repo => "themes", :local => "/edx/app/edxapp/themes", :owner => "edxapp"},
   :forum => {:repo => "cs_comments_service", :local => "/edx/app/forum/cs_comments_service", :owner => "forum"},
   :ecommerce => {:repo => "ecommerce", :local => "/edx/app/ecommerce/ecommerce", :owner => "ecommerce"},
-  :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecommerce_worker"},
+  :ecommerce_worker => {:repo => "ecommerce-worker", :local => "/edx/app/ecommerce_worker/ecommerce_worker", :owner => "ecomworker"},
   # This src directory won't have useful permissions. You can set them from the
   # vagrant user in the guest OS. "sudo chmod 0777 /edx/src" is useful.
   :src => {:repo => "src", :local => "/edx/src", :owner => "root"},
@@ -42,11 +43,17 @@ end
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
+  "open-release/ginkgo.master" => "ginkgo-devstack-2017-07-14",
+  "open-release/ginkgo.1rc1" => "ginkgo-devstack-2017-07-14",
+  "open-release/ginkgo.1" => "ginkgo-devstack-2017-07-14",
+
   "open-release/ficus.master" => "ficus-devstack-2017-02-07",
   "open-release/ficus.1rc1" => "ficus-devstack-2017-01-11",
   "open-release/ficus.1rc3" => "ficus-devstack-2017-02-07",
   "open-release/ficus.1rc4" => "ficus-devstack-2017-02-07",
   "open-release/ficus.1" => "ficus-devstack-2017-02-07",
+  "open-release/ficus.2" => "ficus-devstack-2017-02-07",
+  "open-release/ficus.3" => "ficus-devstack-2017-02-07",
 
   "open-release/eucalyptus.master" => "eucalyptus-devstack-2016-09-01",
   "open-release/eucalyptus.1rc2" => "eucalyptus-devstack-2016-08-19",
@@ -63,7 +70,7 @@ openedx_releases = {
   # Cypress is deprecated and unsupported
   # Birch is deprecated and unsupported
 }
-openedx_releases.default = "devstack-periodic-2017-06-12"
+openedx_releases.default = "master-devstack-2017-09-14"
 
 openedx_release = ENV['OPENEDX_RELEASE']
 boxname = ENV['OPENEDX_BOXNAME']
@@ -134,6 +141,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.network :forwarded_port, guest: 9876, host: 9876  # ORA2 Karma tests
     config.vm.network :forwarded_port, guest: 50070, host: 50070  # HDFS Admin UI
     config.vm.network :forwarded_port, guest: 8088, host: 8088  # Hadoop Resource Manager
+    config.vm.network :forwarded_port, guest: 18381, host: 18381    # Course discovery
   end
   config.ssh.insert_key = true
 
@@ -157,10 +165,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
     vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
-
-    # Allow DNS to work for Ubuntu 12.10 host
-    # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
-    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
 
     # Virtio is faster, but the box needs to have support for it.  We didn't
     # have support in the boxes before Ficus.

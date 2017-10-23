@@ -126,9 +126,11 @@
     url: "https://github.com/{{ item.name }}.keys"
     return_content: true
   # We don't care if absent users lack ssh keys
-  when: item.get('state', 'present') == 'present'
+  when: item.get('state', 'present') == 'present' and item.github is defined
   with_items: "{{ user_info }}"
   register: github_users_return
+  until: github_users_return|succeeded
+  retries: 5
 
 - name: Print warning if github user(s) missing ssh key
   debug:
@@ -150,6 +152,9 @@
     exclusive: yes
     key: "https://github.com/{{ item.name }}.keys"
   when: item.github is defined and item.get('state', 'present') == 'present'
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
   with_items: "{{ user_info }}"
 
 - name: Create bashrc file for normal users

@@ -47,7 +47,6 @@ VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
-EDX_PPA="deb http://ppa.edx.org precise main"
 EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
 EDX_PPA_KEY_ID="B41E5E3969464050"
 
@@ -70,10 +69,7 @@ if [[ $(id -u) -ne 0 ]] ;then
     exit 1;
 fi
 
-if grep -q 'Precise Pangolin' /etc/os-release
-then
-    SHORT_DIST="precise"
-elif grep -q 'Trusty Tahr' /etc/os-release
+if grep -q 'Trusty Tahr' /etc/os-release
 then
     SHORT_DIST="trusty"
 elif grep -q 'Xenial Xerus' /etc/os-release
@@ -82,7 +78,7 @@ then
 else
     cat << EOF
 
-    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
+    This script is only known to work on Ubuntu Trusty and Xenial,
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 

@@ -16,14 +16,14 @@
 
     # http://www.red-team-design.com/firefox-doesnt-allow-cross-domain-fonts-by-default
     location ~ "/static/(?P<collected>.*\.[0-9a-f]{12}\.(eot|otf|ttf|woff|woff2)$)" {
-        expires max;
+        add_header "Cache-Control" $cache_header_long_lived always;
         add_header Access-Control-Allow-Origin *;
         try_files /staticfiles/$collected /course_static/$collected =404;
     }
 
     # Set django-pipelined files to maximum cache time
     location ~ "/static/(?P<collected>.*\.[0-9a-f]{12}\..*)" {
-        expires max;
+        add_header "Cache-Control" $cache_header_long_lived always;
         # Without this try_files, files that have been run through
         # django-pipeline return 404s
         try_files /staticfiles/$collected /course_static/$collected =404;
@@ -31,15 +31,17 @@
 
     # Set django-pipelined files for studio to maximum cache time
     location ~ "/static/(?P<collected>[0-9a-f]{7}/.*)" {
-        expires max;
+        add_header "Cache-Control" $cache_header_long_lived always;
 
         # Without this try_files, files that have been run through
         # django-pipeline return 404s
         try_files /staticfiles/$collected /course_static/$collected =404;
     }
 
-    # Expire other static files immediately (there should be very few / none of these)
-    expires epoch;
+    {% include "static-files-extra.j2" ignore missing %}
+
+    # Non-hashed files (there should be very few / none of these)
+    add_header "Cache-Control" $cache_header_short_lived always;
   }
 
 
