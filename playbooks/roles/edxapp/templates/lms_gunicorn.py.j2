@@ -10,7 +10,14 @@ timeout = 300
 bind = "{{ edxapp_lms_gunicorn_host }}:{{ edxapp_lms_gunicorn_port }}"
 pythonpath = "{{ edxapp_code_dir }}"
 
-limit_request_field_size = 16384
+"""
+Setting limit_request_field_size to 0 will allow unlimited
+header field sizes.  This is necessary to fix a bug where the
+header size is greater than 8190, the hard limit for headers
+in Gunicorn versions less than 19.7.0.  This shouldn't pose a 
+security risk since Nginx restricts the header size to 16K.
+"""
+limit_request_field_size = 0
 
 {% if EDXAPP_LMS_MAX_REQ -%}
 max_requests = {{ EDXAPP_LMS_MAX_REQ }}
