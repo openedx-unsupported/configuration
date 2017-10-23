@@ -2,10 +2,15 @@ Simple theme
 ############
 
 This role allows you to deploy a basic theme on deploy time. The theme can be
-customized via ansible variables. You can also change the contents of some pages.
+customized via ansible variables in the following ways:
+- to redefine SASS variables (like colors)
+- to include some static files provided in a local directory (e.g. logo)
+- to download some static files from URLs (e.g. logo, favicon)
+- in addition the theme can be based on an existing theme from a repository
 
 This role will be included by edxapp. The main use case involves deploying a
-theme as part of deploying an instance.
+theme as part of deploying an instance. The new theme will be enabled when
+the instance starts.
 
 Configuration
 *************
@@ -21,7 +26,15 @@ Example: if you have a theme in https://github.com/open-craft/edx-theme/tree/har
 - and EDXAPP_COMPREHENSIVE_THEME_VERSION: "harvard-dcex"
 
 If you don't use a skeleton theme, the deployed theme will just contain the SASS
-variables definitions you provide through the other variables.
+variables definitions you provide through the other variables, and the static files
+you provide. For simple changes like colors+logo+image this will be enough.
+
+Static files (like logo and favicon) will be added from the following sources and in
+the following order:
+- If no skeleton theme nor static files are provided, the theme will have no static files
+- If a skeleton theme was provided, its static files will be used
+- Local files from SIMPLETHEME_STATIC_FILES_DIR will be copied, replacing previous ones
+- Files from SIMPLETHEME_STATIC_FILES_URLS will be downloaded, replacing previous ones
 
 Testing
 *******
@@ -43,7 +56,7 @@ Example script to test this role, to be run from devstack, from "vagrant" user:
 - export PYTHONUNBUFFERED=1
 - source /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 - cd /edx/app/edx_ansible/edx_ansible/playbooks
-- ansible-playbook -i localhost, -c local run_role.yml -e role=simple_theme  -e configuration_version=master -e edx_platform_version=master -e EDXAPP_DEFAULT_SITE_THEME=mytheme2 -e '{"SIMPLETHEME_SASS_OVERRIDES": [{"variable": "main-color", "value":"#823456"}, {"variable": "action-primary-bg", "value":"$main-color"}]}' -e EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO="https://github.com/open-craft/edx-theme/" -e EDXAPP_COMPREHENSIVE_THEME_VERSION="harvard-dcex" -e edxapp_user=vagrant -e common_web_group=www-data -e SIMPLETHEME_ENABLE_DEPLOY=true -e '{"EDXAPP_COMPREHENSIVE_THEME_DIRS":["/edx/var/edxapp/themes"], "EDXAPP_ENABLE_COMPREHENSIVE_THEMING": true}'
+- ansible-playbook -i localhost, -c local run_role.yml -e role=simple_theme  -e configuration_version=master -e edx_platform_version=master -e EDXAPP_DEFAULT_SITE_THEME=mytheme2 -e '{"SIMPLETHEME_SASS_OVERRIDES": [{"variable": "main-color", "value":"#823456"}, {"variable": "action-primary-bg", "value":"$main-color"}]}' -e EDXAPP_COMPREHENSIVE_THEME_SOURCE_REPO="https://github.com/open-craft/edx-theme/" -e EDXAPP_COMPREHENSIVE_THEME_VERSION="harvard-dcex" -e edxapp_user=vagrant -e common_web_group=www-data -e SIMPLETHEME_ENABLE_DEPLOY=true -e '{"SIMPLETHEME_STATIC_FILES_URLS": [{"url": "http://docs.ansible.com/ansible/latest/_static/images/logo_invert.png", "dest":"lms/static/images/logo.png"}, {"url": "http://docs.ansible.com/favicon.ico", "dest":"lms/static/images/favicon.ico"}]}' -e '{"EDXAPP_COMPREHENSIVE_THEME_DIRS":["/edx/var/edxapp/themes"], "EDXAPP_ENABLE_COMPREHENSIVE_THEMING": true}'
 
 
 Or, if you want to test the task as part of the deployment, change to role=edxapp,

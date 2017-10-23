@@ -100,7 +100,7 @@
 # Note: with_fileglob doesn't take directories, but with_filetree does.
 
 - block:
-  - name: Create directories for static files
+  - name: Create directories for static files to be copied
     file:
       path: "{{ simpletheme_folder }}/{{ item.path | regex_replace('^([^/]+)/(.+)$','\\1/static/\\2') }}"
       state: directory
@@ -117,3 +117,24 @@
     with_filetree: "{{ SIMPLETHEME_STATIC_FILES_DIR }}"
     when: item.state != 'directory'
   when: SIMPLETHEME_STATIC_FILES_DIR != ""
+
+
+# Downloading remote files is done in two steps: create directorie + download each file.
+# This step is done after the static files from SIMPLETHEME_STATIC_FILES_DIR have been
+# copied, therefore remote files may overwrite the previously installed static files.
+- block:
+  - name: Create directories for static files to be downloaded
+    file:
+      path: "{{ simpletheme_folder }}/{{ item.dest | regex_replace('/[^/]*$','') }}"
+      state: directory
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_items: "{{ SIMPLETHEME_STATIC_FILES_URLS }}"
+  - name: Download static files to be included in theme
+    get_url:
+      url: "{{ item.url }}"
+      dest: "{{ simpletheme_folder }}/{{ item.dest }}"
+      force: yes
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_items: "{{ SIMPLETHEME_STATIC_FILES_URLS }}"
