@@ -1,3 +1,6 @@
+- Role: notifier
+  - Added notifier back to continuous integration.
+
 - Role: discovery
   - Added `DISCOVERY_REPOS` to allow configuring discovery repository details.
 
