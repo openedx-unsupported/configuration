@@ -110,3 +110,28 @@
     BACKUP_SENTRY_DSN: '{{ BACKUPS_SENTRY_DSN }}'
   when: BACKUPS_MYSQL and "{{ item.value }}" != ""
   tags: ['backups']
+
+- name: Run a backup for mysql/mongodb to make sure it works
+  become: yes
+  become_user: root
+  shell: /usr/local/bin/edx_backup {{ item.service }}
+  environment:
+    BACKUP_DIR: '{{ BACKUPS_DIR }}'
+    BACKUP_BUCKET: '{{ BACKUPS_BUCKET }}'
+    BACKUP_PROVIDER: '{{ BACKUPS_PROVIDER }}'
+    BACKUP_AWS_ACCESS_KEY_ID: '{{ BACKUPS_AWS_ACCESS_KEY_ID }}'
+    BACKUP_AWS_SECRET_ACCESS_KEY: '{{ BACKUPS_AWS_SECRET_ACCESS_KEY }}'
+    BACKUP_AZURE_STORAGE_ACCOUNT: '{{ BACKUPS_AZURE_STORAGE_ACCOUNT }}'
+    BACKUP_AZURE_STORAGE_KEY: '{{ BACKUPS_AZURE_STORAGE_KEY }}'
+    BACKUP_SENTRY_DSN: '{{ BACKUPS_SENTRY_DSN }}'
+    BACKUP_USER: '{{ BACKUPS_MONGO_USER }}'
+    BACKUP_PASSWORD: '{{ BACKUPS_MONGO_PASSWORD }}'
+  when:
+    - BACKUPS_RUN_DURING_DEPLOYMENT
+    - item.enabled
+  with_items:
+    - service: mongodb
+      enabled: "{{ BACKUPS_MONGO }}"
+    - service: mysql
+      enabled: "{{ BACKUPS_MYSQL }}"
+  tags: ['backups']
