@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 
-import boto
 import raven
 
 
@@ -37,6 +36,7 @@ def upload_to_s3(file_path, bucket, aws_access_key_id, aws_secret_access_key):
     """
 
     from filechunkio import FileChunkIO
+    import boto
 
     logging.info('Uploading backup at "{}" to Amazon S3 bucket "{}"'
                  .format(file_path, bucket))
@@ -73,7 +73,7 @@ def upload_to_gcloud_storage(file_path, bucket):
         bucket: The name of a Google Cloud Storage bucket.
     """
 
-    import gcs_oauth2_boto_plugin
+    import boto
 
     logging.info('Uploading backup at "{}" to Google Cloud Storage bucket '
                  '"{}"'.format(file_path, bucket))
