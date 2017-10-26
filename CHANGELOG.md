@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
+
 - Role: discovery
   - Added `DISCOVERY_REPOS` to allow configuring discovery repository details.
 
