@@ -137,7 +137,7 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     make requirements
 
     cd "${CONFIGURATION_DIR}"/playbooks
-    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
+    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION} edx_ansible_source_repo=${CONFIGURATION_REPO}"
 
     # cleanup
     rm -rf "${ANSIBLE_DIR}"
@@ -159,4 +159,3 @@ else
     mkdir -p /edx/ansible/facts.d
     echo '{ "ansible_bootstrap_run": true }' > /edx/ansible/facts.d/ansible_bootstrap.json
 fi
-
