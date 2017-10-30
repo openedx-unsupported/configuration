@@ -25,6 +25,9 @@
   - Added `EDXAPP_PLATFORM_DESCRIPTION` used to describe the specific Open edX platform.
 
 - Role: edxapp
+  - Added `EDXAPP_REINDEX_ALL_COURSES` to rebuild the course index on deploy. Disabled by default.
+
+- Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
 
 - Role: edxapp
