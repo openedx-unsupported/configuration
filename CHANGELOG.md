@@ -1,3 +1,6 @@
+- Role: notifier
+  - Updated notifier Syncdb to do `migrate --fake-initial` instead of `syncdb`.
+
 - Role: ecommerce
   - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
 
