@@ -280,6 +280,7 @@
     rs_config: "{{ MONGO_RS_CONFIG }}"
   run_once: true
   register: replset_status
+  when: mongo_configure_replica_set
   tags:
     - "manage"
     - "manage:db"
@@ -297,6 +298,7 @@
       password: "{{ MONGO_ADMIN_PASSWORD }}"
   register: status
   until: status.status is defined and 'PRIMARY' in status.status.members|map(attribute='stateStr')|list
+  when: mongo_configure_replica_set
   retries: 5
   delay: 2
   run_once: true
@@ -318,6 +320,7 @@
     replica_set: "{{ MONGO_REPL_SET }}"
   with_items: "{{ MONGO_USERS }}"
   run_once: true
+  when: mongo_configure_replica_set
   tags:
     - "manage"
     - "manage:db"
