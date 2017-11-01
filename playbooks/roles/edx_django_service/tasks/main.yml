@@ -115,6 +115,30 @@
     - migrate
     - migrate:db
 
+- name: run post-migrate commands
+  command: "{{ item.command }}"
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  with_items: '{{ edx_django_service_post_migrate_commands }}'
+  when: migrate_db is defined and migrate_db|lower == "yes" and item.when | bool
+  tags:
+    - migrate
+    - migrate:db
+    - migrate:post
+
+- name: ensure log files exist for tailing
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_user }}"
+  with_items: '{{ edx_django_service_name_devstack_logs }}'
+  tags:
+    - install
+    - install:configuration
+
 - name: write out the supervisor wrapper
   template:
     src: "edx/app/app/app.sh.j2"

@@ -127,9 +127,9 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-dd9d81a6"
+    ami="ami-8609a6fc"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-1d4e7a66"
+    ami="ami-da05a4a0"
   fi
 fi
 
@@ -288,9 +288,12 @@ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
 
+# NOTE: This is the same as DISCOVERY_URL_ROOT below
+ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+ecommerce_create_demo_data: true
 
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"

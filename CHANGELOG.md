@@ -1,6 +1,9 @@
 - Role: notifier
   - Added notifier back to continuous integration.
 
+- Role: ecommerce
+  - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
+
 - Role: discovery
   - Added `DISCOVERY_REPOS` to allow configuring discovery repository details.
 
@@ -23,6 +26,9 @@
 - Role: edxapp
   - Added `EDXAPP_ENTERPRISE_TAGLINE` for customized header taglines for different enterprises.
   - Added `EDXAPP_PLATFORM_DESCRIPTION` used to describe the specific Open edX platform.
+
+- Role: edxapp
+  - Added `EDXAPP_REINDEX_ALL_COURSES` to rebuild the course index on deploy. Disabled by default.
 
 - Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
