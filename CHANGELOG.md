@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Updated the ECOMMERCE_JWT_ISSUERS to follow the expected format.
+
 - Role: edxapp
   - Added GOOGLE_ANALYTICS_TRACKING_ID setting for inserting GA tracking into emails generated via ACE.
 
