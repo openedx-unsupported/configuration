@@ -15,13 +15,13 @@
     BACKUPS_MYSQL: no
     COMMON_ENABLE_BACKUPS: True
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "2GB", tags: ['swapfile'] }
+    - { role: swapfile, SWAPFILE_SIZE: "2GB", tags: ['swapfile_role'] }
     - sudo
-    - { role: edxapp_common, tags: ['edxapp_common'] }
-    - { role: mongo_3_0, tags: ['mongo_3_0'] }
-    - { role: oraclejdk, tags: ['oraclejdk'] }
-    - { role: elasticsearch, tags: ['elasticsearch'] }
-    - { role: memcached, tags: ['memcached'] }
+    - { role: edxapp_common, tags: ['edxapp_common_role'] }
+    - { role: mongo_3_0, tags: ['mongo_3_0_role'] }
+    - { role: oraclejdk, tags: ['oraclejdk_role'] }
+    - { role: elasticsearch, tags: ['elasticsearch_role'] }
+    - { role: memcached, tags: ['memcached_role'] }
     - backups
 
 - name: Configure stateless edxapp instance
@@ -42,13 +42,13 @@
       when: EDXAPP_MONGO_USE_SSL is defined and EDXAPP_MONGO_USE_SSL
       tags: always
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "4GB", tags: ['swapfile'] }
+    - { role: swapfile, SWAPFILE_SIZE: "4GB", tags: ['swapfile_role'] }
     - sudo
-    - { role: edxapp_common, tags: ['edxapp_common'] }
-    - { role: mysql_init, tags: ['mysql_init'] }
+    - { role: edxapp_common, tags: ['edxapp_common_role'] }
+    - { role: mysql_init, tags: ['mysql_init_role'] }
     - role: nginx
       nginx_sites: []
-      tags: ['nginx']
+      tags: ['nginx_role']
     - role: "{{ appsembler_roles }}/letsencrypt"
       when: letsencrypt_certs | length
     - role: nginx
@@ -58,32 +58,32 @@
       - forum
       nginx_default_sites:
       - lms
-      tags: ['nginx']
-    - { role: edxapp, celery_worker: True, tags: ['edxapp'] }
-    - { role: edxapp, tags: ['edxapp'] }
+      tags: ['nginx_role']
+    - { role: edxapp, celery_worker: True, tags: ['edxapp_role'] }
+    - { role: edxapp, tags: ['edxapp_role'] }
     - role: edx_notes_api
       when: "INSTALL_EDX_NOTES is defined and INSTALL_EDX_NOTES"
-      tags: ['edx_notes_api']
+      tags: ['edx_notes_api_role']
     - role: demo
       when: "INSTALL_DEMO_DATA"
-      tags: ['demo']
-    - { role: oauth_client_setup, tags: ['oauth_client_setup'] }
-    - { role: forum, tags: ['forum'] }
+      tags: ['demo_role']
+    - { role: oauth_client_setup, tags: ['oauth_client_setup_role'] }
+    - { role: forum, tags: ['forum_role'] }
     - role: githubsshkeys
       when: "cloud_provider == 'azure'"
-      tags: ['githubsshkeys']
+      tags: ['githubsshkeys_role']
     - role: postgresql_aggregation
       when: COMMON_ENVIRONMENT == "prod"
-      tags: ['postgresql_aggregation']
+      tags: ['postgresql_aggregation_role']
     - role: ecommerce
       when: ENABLE_ECOMMERCE
-      tags: ['ecommerce']
+      tags: ['ecommerce_role']
     - role: ecomworker
       when: ENABLE_ECOMMERCE
-      tags: ['ecomworker']
+      tags: ['ecomworker_role']
     - role: ecommerce_theme
       when: ENABLE_ECOMMERCE
-      tags: ['ecommerce_theme']
+      tags: ['ecommerce_theme_role']
 
 - name: Install xqueue, notifier and rabbitmq
   hosts: mongo-server
@@ -92,15 +92,15 @@
   vars:
     migrate_db: "yes"
   roles:
-    - { role: mysql_init, tags: ['mysql_init'] }
+    - { role: mysql_init, tags: ['mysql_init_role'] }
     - role: nginx
       nginx_sites:
       - xqueue
-      tags: ['nginx']
-    - { role: rabbitmq, rabbitmq_ip: '0.0.0.0', tags: ['rabbitmq'] }
-    - { role: notifier, tags: ['notifier'] }
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5", tags: ['notifier'] }
-    - { role: xqueue, update_users: True, tags: ['xqueue'] }
+      tags: ['nginx_role']
+    - { role: rabbitmq, rabbitmq_ip: '0.0.0.0', tags: ['rabbitmq_role'] }
+    - { role: notifier, tags: ['notifier_role'] }
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5", tags: ['notifier_role'] }
+    - { role: xqueue, update_users: True, tags: ['xqueue_role'] }
     - role: githubsshkeys
       when: "cloud_provider == 'azure'"
-      tags: ['githubsshkeys']
+      tags: ['githubsshkeys_role']
