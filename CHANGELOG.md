@@ -1,3 +1,6 @@
+- Role: server_utils
+  - Install "vim", not "vim-tiny".
+
 - Role: edxapp
   - Added GOOGLE_ANALYTICS_TRACKING_ID setting for inserting GA tracking into emails generated via ACE.
 
