@@ -1,0 +1,43 @@
+---
+
+- name: find snapshots
+  ec2_snapshot_facts:
+    aws_access_key: "{{ EDXAPP_AWS_ACCESS_KEY_ID }}"
+    aws_secret_key: "{{ EDXAPP_AWS_SECRET_ACCESS_KEY }}"
+    region: "{{ ec2_snapshot_profiles_item.aws_backup_region|default(aws_backup_region) }}"
+    filters:
+      "tag:identifier": "awsbackup"
+      "tag:incremental": "{{ INCREMENTAL }}"
+  register: ec2_snapshot_facts_data
+
+- name: set_fact profile_filter
+  set_fact:
+    profile_filter: "{{ ec2_snapshot_profiles_item.ec2_snapshot_tag_filter|default(ec2_snapshot_tag_filter) }}"
+
+- name: Get ordered list of snapshots for each instance
+  set_fact:
+    snaps_fact_list:  "{{ ec2_snapshot_facts_data.snapshots|selectattr('tags.identifier', 'match', '^awsbackup$')|selectattr('tags.ec2_snapshot_tag_filter', 'match', profile_filter)|selectattr('tags.incremental', 'match', INCREMENTAL)|sort(attribute='start_time')|reverse|map(attribute='snapshot_id')|list }}"
+  with_items: "{{ ec2_facts.instances }}"
+  register: snaps_fact_list_register
+
+- name: Cut the list by our COUNT variable
+  set_fact:
+    snaps_cut: "{{ item['ansible_facts']['snaps_fact_list'][COUNT|int:] }}"
+  with_items: "{{ snaps_fact_list_register.results }}"
+  register: snaps_cut_register
+
+- name: Join the nested list of snapshots that will be deleted
+  set_fact:
+    snaps_joined: "{{ snaps_joined | default([])}} + {{ item.ansible_facts.snaps_cut }}"
+  with_items: "{{ snaps_cut_register.results }}"
+
+- name: Delete snapshots in the nested list of snapshots
+  ec2_snapshot:
+    aws_access_key: "{{ EDXAPP_AWS_ACCESS_KEY_ID }}"
+    aws_secret_key: "{{ EDXAPP_AWS_SECRET_ACCESS_KEY }}"
+    region: "{{ ec2_snapshot_profiles_item.aws_backup_region|default(aws_backup_region) }}"
+    state: absent
+    snapshot_id: "{{ item }}"
+  with_items: "{{ snaps_joined }}"
+  register: deleted_snapshots
+

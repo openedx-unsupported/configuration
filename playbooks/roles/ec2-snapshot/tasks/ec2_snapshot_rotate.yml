@@ -1,0 +1,41 @@
+---
+
+- name: Gather EC2 facts
+  ec2_remote_facts:
+    aws_access_key: "{{ EDXAPP_AWS_ACCESS_KEY_ID }}"
+    aws_secret_key: "{{ EDXAPP_AWS_SECRET_ACCESS_KEY }}"
+    region: "{{ ec2_snapshot_profiles_item.aws_backup_region|default(aws_backup_region) }}"
+    filters:
+      "tag:ec2_snapshot": "yes"
+      "tag:ec2_snapshot_tag_filter": "{{ ec2_snapshot_profiles_item.ec2_snapshot_tag_filter|default(ec2_snapshot_tag_filter) }}"
+  register: ec2_facts
+
+- name: clean ec2_block_device_mapping_count value
+  set_fact:
+    ec2_block_device_mapping_count: 1
+
+- name: set_fact ec2_block_device_mapping_count
+  set_fact:
+    ec2_block_device_mapping_count: "{{ item.block_device_mapping | map(attribute='device_name') | list | length }}"
+  with_items: "{{ ec2_facts.instances }}"
+
+- name: clean ec2_count_to_snapshot value
+  set_fact:
+    ec2_count_to_snapshot: 1
+
+- name: set_fact ec2_count_to_snapshot
+  set_fact:
+    ec2_count_to_snapshot: "{{ ec2_count_to_snapshot | int * ec2_block_device_mapping_count | default(1) | int }}"
+
+- name: Default to ec2_snapshot_count daily snapshots
+  set_fact:
+    COUNT: "{{ ec2_snapshot_profiles_item.ec2_snapshot_count|default(ec2_snapshot_count) | int * ec2_count_to_snapshot | int }}"
+    INCREMENTAL: "{{ ec2_snapshot_profiles_item.ec2_snapshot_incremental|default(ec2_snapshot_incremental) }}"
+
+- include: ec2_snapshot.yml
+  with_items: "{{ ec2_facts.instances }}"
+  loop_control:
+    loop_var: rotate_item
+
+- include: ec2_snapshot_cleanup.yml
+

@@ -1,0 +1,19 @@
+---
+- name: install python requirements into venv
+  pip:
+    name: "{{ item }}"
+    virtualenv: "{{ ec2_snapshot_venv }}"
+  with_items: "{{ ec2_snapshot_venv_packages }}"
+  when: not running_as_cronjob
+
+- include: cron.yml
+  when: ec2_snapshot_cron and ec2_snapshot_enabled
+
+- include: logrotate.yml
+  when: ec2_snapshot_logrotate and ec2_snapshot_enabled
+
+- include: ec2_snapshot_rotate.yml
+  with_items: "{{ ec2_snapshot_profiles }}"
+  loop_control:
+    loop_var: ec2_snapshot_profiles_item
+  when: running_as_cronjob
