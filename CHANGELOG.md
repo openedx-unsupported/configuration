@@ -1,12 +1,3 @@
-- Role: edxapp
-  - Added `EDXAPP_MONGO_READ_PREFERENCE`,
-    `EDXAPP_MONGO_MODULESTORE_READ_PREFERENCE` and
-    `EDXAPP_MONGO_CONTENTSTORE_READ_PREFERENCE` to control MongoDB read
-    preference. If unset `EDXAPP_MONGO_MODULESTORE_READ_PREFERENCE` and
-    `EDXAPP_MONGO_CONTENTSTORE_READ_PREFERENCE` take the value of
-    `EDXAPP_MONGO_READ_PREFERENCE`, which is SECONDARY_PREFERED by
-    default.
-
 - Role: server_utils
   - Install "vim", not "vim-tiny".
 
