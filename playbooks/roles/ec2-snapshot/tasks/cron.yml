@@ -1,0 +1,35 @@
+---
+- name: setup cron
+  template:
+    src: cron.j2
+    dest: /etc/cron.d/ec2_snapshot
+    owner: root
+    group: root
+    mode: 0644
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name: ensure for backup directories is exits
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ec2_snapshot_user }}"
+    group: "{{ ec2_snapshot_group }}"
+  with_items:
+  - "{{ ec2_snapshot_logdir }}"
+  become_method: sudo
+  become: yes
+  become_user: root
+
+- name: create log files
+  file:
+    state: touch
+    path: "{{ ec2_snapshot_logdir }}/ec2_snapshot.log"
+    owner: "{{ ec2_snapshot_user }}"
+    group: "{{ ec2_snapshot_group }}"
+  changed_when: False
+  become_method: sudo
+  become: yes
+  become_user: root
+

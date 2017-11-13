@@ -1,0 +1,26 @@
+---
+- name: set_fact ec2_facts_instances_item
+  set_fact:
+    ec2_facts_instances_item: "{{ rotate_item }}"
+
+- name: set_fact ansible_ec2_instance_id
+  set_fact:
+    ansible_ec2_instance_id: "{{ ec2_facts_instances_item.id }}" 
+
+- name: Snapshot the instance
+  ec2_snapshot:
+    aws_access_key: "{{ EDXAPP_AWS_ACCESS_KEY_ID }}"
+    aws_secret_key: "{{ EDXAPP_AWS_SECRET_ACCESS_KEY }}"
+    region: "{{ ec2_snapshot_profiles_item.aws_backup_region|default(aws_backup_region) }}"
+    instance_id: "{{ ec2_facts_instances_item.id }}"
+    device_name: "{{ item.device_name }}"
+    description: "awsbackup snapshot taken on {{ ansible_date_time.date }} at {{ ansible_date_time.time }}"
+    wait: yes
+    snapshot_tags:
+      Name: "{{ ec2_facts_instances_item.tags.Name }}_{{ INCREMENTAL }}_{{ ansible_date_time.date }}"
+      identifier: "awsbackup"
+      instance: "{{ ec2_facts_instances_item.tags.Name }}"
+      incremental: "{{ INCREMENTAL }}"
+      device_name: "{{ item.device_name }}"
+      ec2_snapshot_tag_filter: "{{ ec2_snapshot_profiles_item.ec2_snapshot_tag_filter|default(ec2_snapshot_tag_filter) }}"
+  with_items: "{{ ec2_facts_instances_item.block_device_mapping }}"
