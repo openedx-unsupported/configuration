@@ -1,7 +1,17 @@
+- Role: edxapp
+  - Added `EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE` with a default value of
+    SECONDARY_PREFERED to distribute read workload across the replica set.
+  - Changed `EDXAPP_MONGO_HOSTS` to be a comma seperated string, which is
+    required by pymongo.MongoReplicaSetClient for multiple hosts instead of an
+    array.
+  - Added `EDXAPP_MONGO_REPLICA_SET`, which is required to use
+    pymongo.MongoReplicaSetClient in PyMongo 2.9.1, whis is required to use the
+    read_preference setting. This should be set to the name of your replica set.
+
 - Role: nginx
   - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security
   - Added `NGINX_HSTS_MAX_AGE` to make HSTS header `max_age` value configurable and used in templates
- 
+
 - Role: server_utils
   - Install "vim", not "vim-tiny".
 
