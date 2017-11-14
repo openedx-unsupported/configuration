@@ -1,4 +1,7 @@
 - Role: veda_web_frontend
+  - Added `JWT` configuration
+
+- Role: veda_web_frontend
   - New role added for [edx-video-pipeline](https://github.com/edx/edx-video-pipeline)
 
 - Role: edxapp
