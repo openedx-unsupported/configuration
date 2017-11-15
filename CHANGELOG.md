@@ -1,3 +1,7 @@
+- Role: nginx
+  - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security
+  - Added `NGINX_HSTS_MAX_AGE` to make HSTS header `max_age` value configurable and used in templates
+ 
 - Role: server_utils
   - Install "vim", not "vim-tiny".
 
