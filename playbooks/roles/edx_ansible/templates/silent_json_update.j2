@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+
+if [[ -f {{ edx_ansible_var_file }} ]]; then
+    extra_args="-e@{{ edx_ansible_var_file }}"
+fi
+
+{% if devstack %}
+extra_args="$extra_args -e 'disable_edx_services=true' -e devstack=true"
+{% endif %}
+
+cd {{ edx_ansible_code_dir }}/playbooks/
+eval "ANSIBLE_LIBRARY={{ edx_ansible_code_dir }}/playbooks/library ANSIBLE_ROLES_PATH={{ edx_ansible_code_dir }}/playbooks/roles sudo -E {{ edx_ansible_venv_bin }}/ansible-playbook -i localhost, -c local {{ edx_ansible_code_dir }}/playbooks/run_role.yml -e 'role=edxapp' --tags 'install:app-configuration' $extra_args"
+
