@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `EDXAPP_LMS_INTERNAL_ROOT_URL` setting (defaults to `EDXAPP_LMS_ROOT_URL`).
+
+- Role: edxapp
   - Added `EDXAPP_CELERY_BROKER_TRANSPORT` and renamed `EDXAPP_RABBIT_HOSTNAME`
     to `EDXAPP_CELERY_BROKER_HOSTNAME`. This is to support non-amqp brokers,
     specifically redis. If `EDXAPP_CELERY_BROKER_HOSTNAME` is unset it will use
