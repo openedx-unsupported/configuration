@@ -1,3 +1,14 @@
+- Role: nginx
+  - Added `NGINX_SERVER_MAINTENANCE_FILE_OFF` and `NGINX_SERVER_MAINTENANCE_FILE_ON` to be used to add a server maintenance template on demand.
+  - The maintenance template can be activated with:
+    ```
+    sudo mv /edx/var/nginx/server-static/server-maintenance_off.html /edx/var/nginx/server-static/server-maintenance_on.html
+    ```
+  - The maintenance template can be deactivated with:
+    ```
+    sudo mv /edx/var/nginx/server-static/server-maintenance_on.html /edx/var/nginx/server-static/server-maintenance_off.html
+    ```
+
 - Role: edxapp
   - Added `EDXAPP_LMS_INTERNAL_ROOT_URL` setting (defaults to `EDXAPP_LMS_ROOT_URL`).
 
