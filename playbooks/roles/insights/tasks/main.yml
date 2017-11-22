@@ -63,16 +63,6 @@
     - install:app-requirements
   environment: "{{ insights_environment }}"
 
-- name: install bower dependencies
-  shell: ". {{ insights_venv_dir }}/bin/activate && . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false"
-  args:
-    chdir: "{{ insights_code_dir }}"
-
-  become_user: "{{ insights_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
 - name: migrate
   shell: "DB_MIGRATION_USER='{{ COMMON_MYSQL_MIGRATE_USER }}' DB_MIGRATION_PASS='{{ COMMON_MYSQL_MIGRATE_PASS }}' {{ insights_venv_dir }}/bin/python {{ insights_manage }} migrate --noinput"
   args:
@@ -84,8 +74,8 @@
     - migrate
     - migrate:db
 
-- name: run r.js optimizer
-  shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js"
+- name: run webpack
+  shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/webpack --config webpack.prod.config.js"
   args:
     chdir: "{{ insights_code_dir }}"
   become_user: "{{ insights_user }}"
@@ -101,7 +91,6 @@
   environment: "{{ insights_environment }}"
   with_items:
     - "collectstatic --noinput"
-    - "compress"
   tags:
     - assets
     - assets:gather
