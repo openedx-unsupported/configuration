@@ -1,4 +1,10 @@
 - Role: edxapp
+  - Added `EDXAPP_DEFAULT_COURSE_VISIBILITY_IN_CATALOG` setting (defaults to `both`).
+
+- Role: edxapp
+  - Added `EDXAPP_DEFAULT_MOBILE_AVAILABLE` setting (defaults to `false`).
+
+- Role: edxapp
   - Added `EDXAPP_LMS_INTERNAL_ROOT_URL` setting (defaults to `EDXAPP_LMS_ROOT_URL`).
 
 - Role: edxapp
