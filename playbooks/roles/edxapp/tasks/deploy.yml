@@ -20,6 +20,7 @@
     - { src: 'edxapp_env.j2', dest: '{{ edxapp_app_dir }}/edxapp_env', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'newrelic.ini.j2', dest: '{{ edxapp_app_dir }}/newrelic.ini', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'git_ssh.sh.j2', dest: '{{ edxapp_git_ssh }}', owner: '{{ edxapp_user }}', group: '{{ edxapp_user }}', mode: '0750' }
+    - { src: 'boto.j2', dest: '{{ edxapp_app_dir }}/.boto', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
   tags:
     - install
     - install:base
@@ -428,3 +429,13 @@
   tags:
     - manage
     - manage:db
+
+- name: reindex all courses
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: EDXAPP_REINDEX_ALL_COURSES
+  tags:
+    - install
+    - install:base

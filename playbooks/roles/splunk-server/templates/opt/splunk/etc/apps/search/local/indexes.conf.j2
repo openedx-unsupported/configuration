@@ -1,8 +1,38 @@
-{% for name in SPLUNK_INDEXES %}
-[{{ name }}]
-coldPath = {{ splunk_cold_dir }}/{{ name }}/colddb
-homePath = {{ splunk_hot_dir }}/{{ name }}/db
-thawedPath = {{ splunk_thawed_dir }}/{{ name }}/thaweddb
-coldToFrozenDir = {{ splunk_frozen_dir }}/{{ name }}/frozendb
+{% for index in SPLUNK_INDEXES %}
+[{{ index.name }}]
+{% if index.coldPath is defined %}
+coldPath = {{ index.coldPath }}
+{% else %}
+coldPath = {{ splunk_cold_dir }}/{{ index.name }}/colddb
+{% endif %}
+{% if index.homePath is defined %}
+homePath = {{ index.homePath }}
+{% else %}
+homePath = {{ splunk_hot_dir }}/{{ index.name }}/db
+{% endif %}
+{% if index.maxTotalDataSizeMB is defined %}
+maxTotalDataSizeMB = {{ index.maxTotalDataSizeMB }}
+{% endif %}
+{% if index.thawedPath is defined %}
+thawedPath = {{ index.thawedPath }}
+{% else %}
+thawedPath = {{ splunk_thawed_dir }}/{{ index.name }}/thaweddb
+{% endif %}
+{% if index.coldToFrozenDir is not defined %}
+coldToFrozenDir = {{ splunk_frozen_dir }}/{{ index.name }}/frozendb
+{% endif %}
+{% if index.disabled is defined %}
+disabled = {{ index.disabled }}
+{% endif %}
+{% if index.home is defined %}
+home = {{ index.home }}
+{% endif %}
+{% if index.enableDataIntegrityControl is defined %}
+enableDataIntegrityControl = {{ index.enableDataIntegrityControl }}
+{% endif %}
+{% if index.enableTsidxReduction is defined %}
+enableTsidxReduction = {{ index.enableTsidxReduction }}
+{% endif %}
 
 {% endfor %}
+

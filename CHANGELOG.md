@@ -1,3 +1,36 @@
+- Role: edxapp
+  - Added `EDXAPP_LMS_INTERNAL_ROOT_URL` setting (defaults to `EDXAPP_LMS_ROOT_URL`).
+
+- Role: edxapp
+  - Added `EDXAPP_CELERY_BROKER_TRANSPORT` and renamed `EDXAPP_RABBIT_HOSTNAME`
+    to `EDXAPP_CELERY_BROKER_HOSTNAME`. This is to support non-amqp brokers,
+    specifically redis. If `EDXAPP_CELERY_BROKER_HOSTNAME` is unset it will use
+    the value of `EDXAPP_RABBIT_HOSTNAME`, however it is recommended to update
+    your configuration to set `EDXAPP_CELERY_BROKER_TRANSPORT` explicitly.
+
+- Role: edxapp
+  - Added `EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE` with a default value of
+    SECONDARY_PREFERED to distribute read workload across the replica set.
+  - Changed `EDXAPP_MONGO_HOSTS` to be a comma seperated string, which is
+    required by pymongo.MongoReplicaSetClient for multiple hosts instead of an
+    array.
+  - Added `EDXAPP_MONGO_REPLICA_SET`, which is required to use
+    pymongo.MongoReplicaSetClient in PyMongo 2.9.1, whis is required to use the
+    read_preference setting. This should be set to the name of your replica set.
+
+- Role: nginx
+  - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security
+  - Added `NGINX_HSTS_MAX_AGE` to make HSTS header `max_age` value configurable and used in templates
+
+- Role: server_utils
+  - Install "vim", not "vim-tiny".
+
+- Role: edxapp
+  - Added GOOGLE_ANALYTICS_TRACKING_ID setting for inserting GA tracking into emails generated via ACE.
+
+- Role: notifier
+  - Added notifier back to continuous integration.
+
 - Role: ecommerce
   - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
 
@@ -23,6 +56,9 @@
 - Role: edxapp
   - Added `EDXAPP_ENTERPRISE_TAGLINE` for customized header taglines for different enterprises.
   - Added `EDXAPP_PLATFORM_DESCRIPTION` used to describe the specific Open edX platform.
+
+- Role: edxapp
+  - Added `EDXAPP_REINDEX_ALL_COURSES` to rebuild the course index on deploy. Disabled by default.
 
 - Role: edxapp
   - Added `ENTERPRISE_SUPPORT_URL` variable used by the LMS.
@@ -426,3 +462,6 @@
 - Role: edxapp
   - Added `EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS` to configure S3-backed video transcripts.
   - Removed unused `EDXAPP_BOOK_URL` setting
+
+- Role: edxapp
+  - Added `EDXAPP_ZENDESK_OAUTH_ACCESS_TOKEN` for making requests to Zendesk through front-end.
