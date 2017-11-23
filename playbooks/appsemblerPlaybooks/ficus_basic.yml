@@ -19,11 +19,11 @@
     POSTGRESQL_AGGREGATION_INSTALL_CRON: true
     ENABLE_ECOMMERCE: false
   roles:
-    - { role: swapfile, SWAPFILE_SIZE: "4GB", tags: ['swapfile'] }
+    - { role: swapfile, SWAPFILE_SIZE: "4GB", tags: ['swapfile_role'] }
     - sudo
     - role: nginx
       nginx_sites: []
-      tags: ['nginx']
+      tags: ['nginx_role']
     - role: "{{ appsembler_roles }}/letsencrypt"
       when: letsencrypt_certs | length
     - role: nginx
@@ -35,48 +35,48 @@
       - edx_notes_api
       nginx_default_sites:
       - lms
-      tags: ['nginx']
-    - { role: mysql, tags: ['mysql'] }
-    - { role: mysql_init, tags: ['mysql_init'] }
+      tags: ['nginx_role']
+    - { role: mysql, tags: ['mysql_role'] }
+    - { role: mysql_init, tags: ['mysql_init_role'] }
     - role: memcache
       when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
-      tags: ['memcache']
+      tags: ['memcache_role']
     - role: mongo_3_0
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
-      tags: ['mongo_3_0']
-    - { role: rabbitmq, rabbitmq_ip: '127.0.0.1', tags: ['rabbitmq'] }
-    - { role: edxapp, celery_worker: True, tags: ['edxapp'] }
-    - { role: edxapp, tags: ['edxapp'] }
-    - { role: notifier, tags: ['notifier'] }
+      tags: ['mongo_3_0_role']
+    - { role: rabbitmq, rabbitmq_ip: '127.0.0.1', tags: ['rabbitmq_role'] }
+    - { role: edxapp, celery_worker: True, tags: ['edxapp_role'] }
+    - { role: edxapp, tags: ['edxapp_role'] }
+    - { role: notifier, tags: ['notifier_role'] }
     - role: edx_notes_api
       when: "INSTALL_EDX_NOTES is defined and INSTALL_EDX_NOTES"
-      tags: ['edx_notes_api']
+      tags: ['edx_notes_api_role']
     - role: demo
       when: "INSTALL_DEMO_DATA"
-      tags: ['demo']
+      tags: ['demo_role']
     - role: oauth_client_setup
       when: COMMON_ENABLE_OAUTH_CLIENT
-      tags: ['oauth_client_setup']
-    - { role: oraclejdk, tags: ['oraclejdk'] }
+      tags: ['oauth_client_setup_role']
+    - { role: oraclejdk, tags: ['oraclejdk_role'] }
     - role: elasticsearch
       when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
-      tags: ['elasticsearch']
-    - { role: forum, tags: ['forum'] }
+      tags: ['elasticsearch_role']
+    - { role: forum, tags: ['forum_role'] }
     - role: postgresql_aggregation
       when: COMMON_ENVIRONMENT == "prod"
-      tags: ['postgresql_aggregation']
-    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5", tags: ['notifier'] }
-    - { role: xqueue, update_users: True, tags: ['xqueue'] }
+      tags: ['postgresql_aggregation_role']
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5", tags: ['notifier_role'] }
+    - { role: xqueue, update_users: True, tags: ['xqueue_role'] }
     - { role: backups, BACKUPS_MONGO: True, BACKUPS_MYSQL: True, when: COMMON_ENABLE_BACKUPS }
     - role: githubsshkeys
       when: "cloud_provider == 'azure'"
-      tags: ['githubsshkeys']
+      tags: ['githubsshkeys_role']
     - role: ecommerce
       when: ENABLE_ECOMMERCE
-      tags: ['ecommerce']
+      tags: ['ecommerce_role']
     - role: ecomworker
       when: ENABLE_ECOMMERCE
-      tags: ['ecomworker']
+      tags: ['ecomworker_role']
     - role: ecommerce_theme
       when: ENABLE_ECOMMERCE
-      tags: ['ecommerce_theme']
+      tags: ['ecommerce_theme_role']
