@@ -26,9 +26,9 @@
 # EDXAPP_AUTOMATED_USERS:
 #   ecom:
 #     sudo_commands:
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms showmigrations --settings=aws"
+#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --list --settings=aws"
 #         sudo_user: "edxapp"
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms showmigrations --settings=aws"
+#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --list --settings=aws"
 #         sudo_user: "edxapp"
 #     authorized_keys:
 #       - 'ssh-rsa <REDACTED> ecom+admin@example.com'
@@ -62,7 +62,7 @@
     mode: "0440"
     validate: 'visudo -cf %s'
   with_dict: "{{ AUTOMATED_USERS }}"
-
+  
 - name: Create .ssh directory
   file:
     path: "/home/{{ item.key }}/.ssh"
@@ -71,7 +71,7 @@
     owner: "{{ item.key }}"
     group: "{{ item.key }}"
   with_dict: "{{ AUTOMATED_USERS }}"
-
+    
 - name: Build authorized_keys file
   template:
     src: "home/automator/.ssh/authorized_keys.j2"
@@ -80,7 +80,7 @@
     owner: "{{ item.key }}"
     group: "{{ item.key }}"
   with_dict: "{{ AUTOMATED_USERS }}"
-
+    
 - name: Build known_hosts file
   file:
     path: "/home/{{ item.key }}/.ssh/known_hosts"
