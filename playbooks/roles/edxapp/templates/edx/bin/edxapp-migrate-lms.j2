@@ -6,6 +6,10 @@ fi
 
 {% for db in lms_auth_config.DATABASES.keys() %}
   {%- if db != 'read_replica' %}
-${SUDO:-} {{ edxapp_venv_bin }}/python manage.py lms migrate --database {{ db }} --noinput --settings $EDX_PLATFORM_SETTINGS $@
+if [[ $@ =~ .*--list.* ]]; then
+  ${SUDO:-} {{ edxapp_venv_bin }}/python manage.py lms showmigrations --database {{ db }} --noinput --settings $EDX_PLATFORM_SETTINGS $@
+else
+  ${SUDO:-} {{ edxapp_venv_bin }}/python manage.py lms migrate --database {{ db }} --noinput --settings $EDX_PLATFORM_SETTINGS $@
+fi
   {% endif %}
 {% endfor %}
