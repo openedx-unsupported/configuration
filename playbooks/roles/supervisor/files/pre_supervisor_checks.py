@@ -13,7 +13,7 @@ import time
 MIGRATION_COMMANDS = {
         'lms':     "/edx/bin/edxapp-migrate-lms --noinput --list",
         'cms':     "/edx/bin/edxapp-migrate-cms --noinput --list",
-        'xqueue':  "SERVICE_VARIANT=xqueue sudo -E -u xqueue {python} {code_dir}/manage.py showmigrations --noinput --settings=xqueue.aws_settings",
+        'xqueue':  "SERVICE_VARIANT=xqueue sudo -E -u xqueue {python} {code_dir}/manage.py migrate --noinput --list --settings=xqueue.aws_settings",
         'ecommerce':     ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
         'insights':      ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
         'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
