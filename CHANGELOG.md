@@ -1,3 +1,6 @@
+- Role: veda_delivery_worker
+  - New role added to run [video delivery worker](https://github.com/edx/edx-video-pipeline/blob/master/bin/deliver)
+
 - Role: veda_web_frontend
   - New role added for [edx-video-pipeline](https://github.com/edx/edx-video-pipeline)
 
