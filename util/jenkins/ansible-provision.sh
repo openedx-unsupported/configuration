@@ -298,14 +298,15 @@ ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
+DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-
-DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
-DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 
 VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
 VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
