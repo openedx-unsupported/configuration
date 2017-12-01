@@ -1,3 +1,6 @@
+- Role: credentials
+  - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
+
 - Role: veda_delivery_worker
   - New role added to run [video delivery worker](https://github.com/edx/edx-video-pipeline/blob/master/bin/deliver)
 
