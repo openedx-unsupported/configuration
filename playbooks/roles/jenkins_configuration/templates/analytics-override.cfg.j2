@@ -1,0 +1,58 @@
+# {{ ansible_managed }}
+
+[hive]
+warehouse_path = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/warehouse/hive/
+
+[database-export]
+database = {{ JENKINS_ANALYTICS_ANALYTICS_OUTPUT_DATABASE_NAME }}
+credentials = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/output.json
+
+[database-import]
+database = {{ JENKINS_ANALYTICS_ANALYTICS_INPUT_DATABASE_NAME }}
+destination = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/warehouse/hive/
+credentials = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/input.json
+
+[map-reduce]
+engine = hadoop
+marker = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/map-reduce/marker/
+
+[event-logs]
+expand_interval = {{ JENKINS_ANALYTICS_EVENT_LOGS_EXPAND_INTERVAL }}
+pattern = {{ JENKINS_ANALYTICS_EVENT_LOGS_PATTERN }}
+source = s3://{{ JENKINS_ANALYTICS_TRACKING_LOGS_S3_BUCKET_NAME }}/logs/tracking/
+
+[manifest]
+path = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/map-reduce/manifests/
+lib_jar = s3://{{ JENKINS_ANALYTICS_TASK_CONFIGURATION_S3_BUCKET_NAME }}/edx-analytics-hadoop-util.jar
+input_format = org.edx.hadoop.input.ManifestTextInputFormat
+
+[enrollments]
+interval_start = {{ JENKINS_ANALYTICS_ENROLLMENT_INTERVAL_START }}
+blacklist_date = {{ JENKINS_ANALYTICS_ENROLLMENT_BLACK_LIST_DATE }}
+blacklist_path = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/enrollments-blacklist/  # this file is empty
+overwrite_n_days = {{ JENKINS_ANALYTICS_ENROLLMENT_OVERRITE_N_DAYS }}
+
+[location-per-course]
+interval_start = {{ JENKINS_ANALYTICS_LOCATION_PER_COURSE_INTERVAL_START }}
+overwrite_n_days = {{ JENKINS_ANALYTICS_LOCATION_PER_COURSE_OVERRITE_N_DAYS }}
+
+[answer-distribution]
+valid_response_types = customresponse,choiceresponse,optionresponse,multiplechoiceresponse,numericalresponse,stringresponse,formularesponse
+
+[geolocation]
+geolocation_data = s3://{{ JENKINS_ANALYTICS_HADOOP_S3_BUCKET_NAME }}/GeoIP.dat
+
+[calendar]
+interval = 2014-01-01-2020-01-01
+
+[videos]
+dropoff_threshold = 0.05
+
+[elasticsearch]
+host = {{ JENKINS_ANALYTICS_INSIGHTS_ELASTIC_SEARCH_SCHEME }}://{{ JENKINS_ANALYTICS_INSIGHTS_ELASTIC_SEARCH_HOST }}:{{ JENKINS_ANALYTICS_INSIGHTS_ELASTIC_SEARCH_PORT }}/
+
+[module-engagement]
+alias = roster_1_2
+number_of_shards = 5
+allow_empty_insert = true
+hive_overwrite = true
