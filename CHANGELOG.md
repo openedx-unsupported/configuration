@@ -1,3 +1,10 @@
+- Role: ecommerce
+  - Added `ECOMMERCE_CELERY_BROKER_TRANSPORT` and renamed `ECOMMERCE_BROKER_HOST`
+    to `ECOMMERCE_CELERY_BROKER_HOSTNAME`. This is to support non-amqp brokers,
+    specifically redis. If `ECOMMERCE_CELERY_BROKER_HOSTNAME` is unset it will use
+    the value of `ECOMMERCE_BROKER_HOST`, however it is recommended to update
+    your configuration to set `ECOMMERCE_CELERY_BROKER_HOSTNAME` explicitly.
+
 - Role: credentials
   - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
 
