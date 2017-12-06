@@ -1,3 +1,6 @@
+- Role: veda_pipeline_worker
+  - New role to run all (`deliver, ingest, youtubecallback`) [video pipeline workers](https://github.com/edx/edx-video-pipeline/blob/master/bin/)
+
 - Role: veda_ffmpeg
   - New role added to compile ffmpeg for video pipeline. It will be used as a dependency for video pipeline roles.
 
