@@ -57,7 +57,7 @@ case "$1" in
 
     "quality")
         # Generate quality reports
-        paver run_quality
+        REPORT_DIR='$WORKSPACE/reports' paver run_quality
         ;;
 
     *)
