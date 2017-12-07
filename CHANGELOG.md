@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `EDXAPP_BRANCH_IO_KEY` to configure branch.io journey app banners.
+
 - Role: ecomworker
   - Added `ECOMMERCE_WORKER_BROKER_TRANSPORT` with a default value of 'ampq' to be backwards compatible with rabbit.  Set to 'redis' if you wish to use redis instead of rabbit as a queue for ecommerce worker.
 
