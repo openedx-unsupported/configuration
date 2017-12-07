@@ -74,8 +74,11 @@ EDXAPP_MONGO_USER: 'edxapp'
 EDXAPP_MONGO_DB_NAME: 'edxapp'
 EDXAPP_MONGO_USE_SSL: False
 EDXAPP_MONGO_REPLICA_SET: ''
+# Used iff EDXAPP_MONGO_REPLICA_SET is provided.
 EDXAPP_MONGO_READ_PREFERENCE: 'SECONDARY_PREFERRED'
-EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: 'PRIMARY'
+EDXAPP_CMS_DOC_STORE_READ_PREFERENCE: 'PRIMARY'
+EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_READ_PREFERENCE }}'
+EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_CMS_DOC_STORE_READ_PREFERENCE }}'
 EDXAPP_MONGO_ADDITIONAL_OPTIONS: &edxapp_mongo_additional_options
   replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
   read_preference: "{{ EDXAPP_MONGO_READ_PREFERENCE }}"
@@ -871,16 +874,20 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
   <<: *edxapp_mongo_additional_options
 
-
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
+  # We use the CMS read_preference here because the draft docstore's view of
+  # the modulestore should mirror Studio's, so that instructors can check their
+  # changes in Preview mode.
   read_preference: "{{ EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE }}"
 
 EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
+  read_preference: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE }}"
 
 EDXAPP_CMS_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
+  read_preference: "{{ EDXAPP_CMS_DOC_STORE_READ_PREFERENCE }}"
 
 edxapp_databases:
 # edxapp's edxapp-migrate scripts and the edxapp_migrate play
