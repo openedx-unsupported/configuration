@@ -37,17 +37,17 @@
     - "{{ splunk_home }}/{{ splunk_cert_path }}"
     - "{{ splunk_home }}/etc/system/local"
 
-- name: Write SSL certs to disk
-  copy:
-    dest: "{{ splunk_home }}/{{ splunk_cert_path }}/{{ item.0 }}"
-    content: "{{ item.1 }}"
-    owner: splunk
-    group: splunk
-    mode: "0400"
-  when: SPLUNK_SSL_CERT is defined and SPLUNK_SSL_CERT | length > 0
-  with_together:
-    - [forwarder.pem, cacert.pem]
-    - ["{{ SPLUNK_SSL_CERT }}", "{{ SPLUNK_SSL_ROOT_CA }}"]
+# - name: Write SSL certs to disk
+#   copy:
+#     dest: "{{ splunk_home }}/{{ splunk_cert_path }}/{{ item.0 }}"
+#     content: "{{ item.1 }}"
+#     owner: splunk
+#     group: splunk
+#     mode: "0400"
+#   when: SPLUNK_SSL_CERT is defined and SPLUNK_SSL_CERT | length > 0
+#   with_together:
+#     - [forwarder.pem, cacert.pem]
+#     - ["{{ SPLUNK_SSL_CERT }}", "{{ SPLUNK_SSL_ROOT_CA }}"]
 
 - name: Create inputs configuration
   template:
@@ -159,6 +159,44 @@
   tags:
     - "install"
     - "install:configuration"
+
+- name: create app download directory
+  file:
+    path: "{{ SPLUNK_APP_DOWNLOAD_PATH }}"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0755
+    state: directory
+  tags:
+    - install
+    - install:configuration
+
+- name: download app tars
+  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: verify app checksums
+  shell: "echo \"{{ item.md5sum }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}\" | md5sum -c --status"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: install apps
+  unarchive:
+    copy: no
+    src: "{{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+    dest: "{{ splunk_home }}/etc/apps"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
 
 - name: restart splunk
   service:
