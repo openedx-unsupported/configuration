@@ -1,3 +1,6 @@
+- Role: veda_ffmpeg
+  - New role added to compile ffmpeg for video pipeline. It will be used as a dependency for video pipeline roles.
+
 - Role: edxapp
   - Added `EDXAPP_BRANCH_IO_KEY` to configure branch.io journey app banners.
 
