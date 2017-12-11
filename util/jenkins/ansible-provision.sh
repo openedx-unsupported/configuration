@@ -127,7 +127,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-0d600177"
+    ami="ami-d17c14ab"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-aa2ea6d0"
   fi
@@ -353,6 +353,7 @@ EOF
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
         run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
