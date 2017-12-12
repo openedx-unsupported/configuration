@@ -179,15 +179,17 @@
     - install:configuration
   with_items:
   - "{{ SPLUNK_APP_TARS }}"
+  ignore_errors: True
 
 - name: download missing tars
-  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.1.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.1.file_name }}"
   tags:
     - install
     - install:configuration
-  when: item.rc != 0
-  with_items:
+  when: item.0.rc != 0
+  with_together:
   - "{{ app_present.results }}"
+  - "{{ SPLUNK_APP_TARS }}"
 
 - name: verify app checksums
   shell: "echo \"{{ item.md5sum }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}\" | md5sum -c --status"
