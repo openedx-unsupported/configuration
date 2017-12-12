@@ -74,17 +74,11 @@ EDXAPP_MONGO_USER: 'edxapp'
 EDXAPP_MONGO_DB_NAME: 'edxapp'
 EDXAPP_MONGO_USE_SSL: False
 EDXAPP_MONGO_REPLICA_SET: ''
-# Used iff EDXAPP_MONGO_REPLICA_SET is provided.
-EDXAPP_MONGO_READ_PREFERENCE: 'SECONDARY_PREFERRED'
-EDXAPP_CMS_DOC_STORE_READ_PREFERENCE: 'PRIMARY'
-EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_READ_PREFERENCE }}'
-EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_CMS_DOC_STORE_READ_PREFERENCE }}'
-EDXAPP_MONGO_ADDITIONAL_OPTIONS: &edxapp_mongo_additional_options
-  replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
-  read_preference: "{{ EDXAPP_MONGO_READ_PREFERENCE }}"
-EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS:
-  default: *edxapp_mongo_additional_options
-  trashcan: *edxapp_mongo_additional_options
+# Used only if EDXAPP_MONGO_REPLICA_SET is provided.
+EDXAPP_MONGO_CMS_READ_PREFERENCE: 'PRIMARY'
+EDXAPP_MONGO_LMS_READ_PREFERENCE: 'SECONDARY_PREFERRED'
+EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}'
+EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}'
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
 EDXAPP_MYSQL_USER: 'edxapp001'
@@ -860,6 +854,20 @@ edxapp_environment_extra: {}
 
 edxapp_environment: "{{ edxapp_environment_default | combine(edxapp_environment_extra) }}"
 
+edxapp_generic_contentstore_config: &edxapp_generic_default_contentstore
+  ENGINE:  'xmodule.contentstore.mongo.MongoContentStore'
+  #
+  # connection strings are duplicated temporarily for
+  # backward compatibility
+  #
+  OPTIONS:
+    db: "{{ EDXAPP_MONGO_DB_NAME }}"
+    host: "{{ EDXAPP_MONGO_HOSTS }}"
+    password: "{{ EDXAPP_MONGO_PASSWORD }}"
+    port: "{{ EDXAPP_MONGO_PORT }}"
+    user: "{{ EDXAPP_MONGO_USER }}"
+    ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
+
 edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   db: "{{ EDXAPP_MONGO_DB_NAME }}"
   host: "{{ EDXAPP_MONGO_HOSTS }}"
@@ -872,7 +880,6 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   socketTimeoutMS: 3000 # default is never timeout while the connection is open, this means it needs to explicitly close raising pymongo.errors.NetworkTimeout
   connectTimeoutMS: 2000 # default is 20000, I believe raises pymongo.errors.ConnectionFailure
   # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
-  <<: *edxapp_mongo_additional_options
 
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
@@ -887,7 +894,7 @@ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG:
 
 EDXAPP_CMS_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
-  read_preference: "{{ EDXAPP_CMS_DOC_STORE_READ_PREFERENCE }}"
+  read_preference: "{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}"
 
 edxapp_databases:
 # edxapp's edxapp-migrate scripts and the edxapp_migrate play
@@ -942,26 +949,10 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   SWIFT_TEMP_URL_KEY: "{{ EDXAPP_SWIFT_TEMP_URL_KEY }}"
   SWIFT_TEMP_URL_DURATION: "{{ EDXAPP_SWIFT_TEMP_URL_DURATION }}"
   SECRET_KEY:  "{{ EDXAPP_EDXAPP_SECRET_KEY }}"
-  DOC_STORE_CONFIG: "{{ edxapp_generic_doc_store_config }}"
   XQUEUE_INTERFACE:
     basic_auth: "{{ EDXAPP_XQUEUE_BASIC_AUTH }}"
     django_auth: "{{ EDXAPP_XQUEUE_DJANGO_AUTH }}"
     url: "{{ EDXAPP_XQUEUE_URL }}"
-  CONTENTSTORE:
-    ENGINE:  'xmodule.contentstore.mongo.MongoContentStore'
-    #
-    # connection strings are duplicated temporarily for
-    # backward compatibility
-    #
-    OPTIONS:
-      db: "{{ EDXAPP_MONGO_DB_NAME }}"
-      host: "{{ EDXAPP_MONGO_HOSTS }}"
-      password: "{{ EDXAPP_MONGO_PASSWORD }}"
-      port: "{{ EDXAPP_MONGO_PORT }}"
-      user: "{{ EDXAPP_MONGO_USER }}"
-      ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
-    ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
-    DOC_STORE_CONFIG: *edxapp_generic_default_docstore
   DATABASES: "{{ edxapp_databases }}"
   EMAIL_HOST_USER: "{{ EDXAPP_EMAIL_HOST_USER }}"
   EMAIL_HOST_PASSWORD: "{{ EDXAPP_EMAIL_HOST_PASSWORD }}"
@@ -1179,6 +1170,17 @@ generic_env_config:  &edxapp_generic_env
 
 lms_auth_config:
   <<: *edxapp_generic_auth
+  CONTENTSTORE:
+    <<: *edxapp_generic_default_contentstore
+    ADDITIONAL_OPTIONS:
+      default:
+        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
+        read_preference: "{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}"
+      trashcan:
+        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
+        read_preference: "{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}"
+    DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
+  DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
   SEGMENT_KEY: "{{ EDXAPP_LMS_SEGMENT_KEY }}"
   OPTIMIZELY_PROJECT_ID: "{{ EDXAPP_OPTIMIZELY_PROJECT_ID }}"
   EDX_API_KEY: "{{ EDXAPP_EDX_API_KEY }}"
@@ -1269,7 +1271,17 @@ lms_env_config:
 
 cms_auth_config:
   <<: *edxapp_generic_auth
-  SEGMENT_KEY: "{{ EDXAPP_CMS_SEGMENT_KEY }}"
+  CONTENTSTORE:
+    <<: *edxapp_generic_default_contentstore
+    ADDITIONAL_OPTIONS:
+      default:
+        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
+        read_preference: "{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}"
+      trashcan:
+        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
+        read_preference: "{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}"
+        DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
+  DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
   MODULESTORE:
     default:
         ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
@@ -1290,6 +1302,7 @@ cms_auth_config:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
                 render_template: 'edxmako.shortcuts.render_to_string'
+  SEGMENT_KEY: "{{ EDXAPP_CMS_SEGMENT_KEY }}"
   PARSE_KEYS: "{{ EDXAPP_PARSE_KEYS }}"
 
 cms_env_config:

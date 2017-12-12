@@ -15,15 +15,17 @@
     Note that setting `EDXAPP_MONGO_REPLICA_SET` requires `EDXAPP_MONGO_HOSTS`
     to be a comma-delimited string listing the host names, not an array.
     This setting causes the `EDXAPP_*_READ_PREFERENCE` settings below to be used.
-  - Added `EDXAPP_MONGO_READ_PREFERENCE` with a default value of
+  - Added `EDXAPP_MONGO_CMS_READ_PREFERENCE` with a default value of `PRIMARY`.
+  - Added `EDXAPP_MONGO_LMS_READ_PREFERENCE` with a default value of
     `SECONDARY_PREFERED` to distribute the read workload across the replica set
     for replicated docstores and contentstores.
   - Added `EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE` with a default value of
-    `EDXAPP_MONGO_READ_PREFERENCE`.
-  - Added `EDXAPP_CMS_DOC_STORE_READ_PREFERENCE` with a default value of `PRIMARY`.
+    `EDXAPP_MONGO_LMS_READ_PREFERENCE`.
   - Added `EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG` with a default value of
-    `EDXAPP_CMS_DOC_STORE_READ_PREFERENCE`, to enforce consistency between
+    `EDXAPP_MONGO_CMS_READ_PREFERENCE`, to enforce consistency between
     Studio and the LMS Preview modes.
+  - Removed `EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS`, since there is no notion of
+    common options to the content store anymore.
 
 - Role: nginx
   - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security
