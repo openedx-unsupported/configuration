@@ -171,13 +171,23 @@
     - install
     - install:configuration
 
-- name: download app tars
-  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+- name: discover existing app tars
+  shell: "test -f {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+  register: app_present
   tags:
     - install
     - install:configuration
   with_items:
   - "{{ SPLUNK_APP_TARS }}"
+
+- name: download missing tars
+  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+  tags:
+    - install
+    - install:configuration
+  when: item.rc != 0
+  with_items:
+  - "{{ app_present.results }}"
 
 - name: verify app checksums
   shell: "echo \"{{ item.md5sum }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}\" | md5sum -c --status"
