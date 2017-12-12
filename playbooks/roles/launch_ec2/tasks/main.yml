@@ -91,13 +91,6 @@
     - "{{ ec2.instances }}"
     - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials', 'veda']
 
-- name: Display cnames
-  debug:
-    msg: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }} {{ item[0].public_dns_name }}"
-  with_nested:
-    - "{{ ec2.instances }}"
-    - "{{ WHITELABEL_DNS }}"
-
 - name: Display whitelabel dns entries
   debug:
     msg: "{{ item }}"
@@ -131,7 +124,7 @@
     zone: "{{ dns_zone }}"
     type: CNAME
     ttl: 300
-    record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
+    record: "{{ item[1] }}"
     value: "{{ item[0].public_dns_name }}"
   register: task_result
   until: task_result|succeeded
@@ -142,22 +135,22 @@
     - "{{ WHITELABEL_DNS }}"
 
 
-- name: Add DNS names for themes services
-  local_action:
-    module: route53
-    overwrite: yes
-    command: create
-    zone: "{{ dns_zone }}"
-    type: CNAME
-    ttl: 300
-    record: "{{ item[1] }}-{{ item[2] }}-{{ dns_name }}.{{ dns_zone }}"
-    value: "{{ item[0].public_dns_name }}"
-  register: task_result
-  until: task_result|succeeded
-  retries: 5
-  delay: 30
-  with_nested:
-    - "{{ ec2.instances }}"
-    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
-    - "{{ WHITELABEL_DNS }}"
+#- name: Add DNS names for themes services
+#  local_action:
+#    module: route53
+#    overwrite: yes
+#    command: create
+#    zone: "{{ dns_zone }}"
+#    type: CNAME
+#    ttl: 300
+#    record: "{{ item[1] }}-{{ item[2] }}-{{ dns_name }}.{{ dns_zone }}"
+#    value: "{{ item[0].public_dns_name }}"
+#  register: task_result
+#  until: task_result|succeeded
+#  retries: 5
+#  delay: 30
+#  with_nested:
+#    - "{{ ec2.instances }}"
+#    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
+#    - "{{ WHITELABEL_DNS }}"
 
