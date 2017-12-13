@@ -91,11 +91,6 @@
     - "{{ ec2.instances }}"
     - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials', 'veda']
 
-- name: Display whitelabel dns entries
-  debug:
-    msg: "{{ item }}"
-  with_items: "{{ WHITELABEL_DNS }}"
-
 - name: Add new instance to host group
   local_action:
     module: add_host
@@ -116,7 +111,7 @@
   pause:
     minutes: "{{ launch_ec2_wait_time }}"
 
-- name: Add DNS name for themes
+- name: Add DNS name for whitelabel sites
   local_action:
     module: route53
     overwrite: yes
@@ -133,24 +128,3 @@
   with_nested:
     - "{{ ec2.instances }}"
     - "{{ WHITELABEL_DNS }}"
-
-
-#- name: Add DNS names for themes services
-#  local_action:
-#    module: route53
-#    overwrite: yes
-#    command: create
-#    zone: "{{ dns_zone }}"
-#    type: CNAME
-#    ttl: 300
-#    record: "{{ item[1] }}-{{ item[2] }}-{{ dns_name }}.{{ dns_zone }}"
-#    value: "{{ item[0].public_dns_name }}"
-#  register: task_result
-#  until: task_result|succeeded
-#  retries: 5
-#  delay: 30
-#  with_nested:
-#    - "{{ ec2.instances }}"
-#    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
-#    - "{{ WHITELABEL_DNS }}"
-
