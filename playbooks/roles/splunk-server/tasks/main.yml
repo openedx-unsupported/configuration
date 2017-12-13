@@ -160,6 +160,55 @@
     - "install"
     - "install:configuration"
 
+- name: create app download directory
+  file:
+    path: "{{ SPLUNK_APP_DOWNLOAD_PATH }}"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0755
+    state: directory
+  tags:
+    - install
+    - install:configuration
+
+- name: discover existing app tars
+  stat: path={{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}
+  register: app_present
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: download missing tars
+  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.1.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.1.file_name }}"
+  tags:
+    - install
+    - install:configuration
+  when: not item.0.stat.exists
+  with_together:
+  - "{{ app_present.results }}"
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: verify app checksums
+  shell: "echo \"{{ item.md5sum }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}\" | md5sum -c --status"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: install apps
+  unarchive:
+    copy: no
+    src: "{{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+    dest: "{{ splunk_home }}/etc/apps"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
 - name: restart splunk
   service:
     name: splunk
