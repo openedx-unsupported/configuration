@@ -15,12 +15,20 @@ To modify configuration file:
 2.  Modify docker\_test to include date commands.
 
     Replace
-
-    ``$(docker_test)%: .build/%/Dockerfile.test     docker build -t $*:test -f $< .``
+    
+    ::
+    
+        $(docker_test)%: .build/%/Dockerfile.test
+            docker build -t $*:test -f $< .
 
     with
-
-    ``$(docker_test)%: .build/%/Dockerfile.test     date     docker build -t $*:test -f $< .     date``
+    
+    ::
+    
+        $(docker_test)%: .build/%/Dockerfile.test    
+            date   
+            docker build -t $*:test -f $< .
+            date
 
 3.  Replace the command that runs the dependency analyzer with a line to build
     your Dockerfiles.
@@ -58,7 +66,7 @@ To modify configuration file:
 8.  Round build time to a whole number, and add it to the
     configuration/util/parsefiles\_config.yml file.
 
-9.  Undo steps 1a, 1b, 1c to revert back to the original state of the docker.mk
+9.  Undo steps 2, 3, 4 to revert back to the original state of the docker.mk
     file.
 
 10. Commit and push to your branch. Your Dockerfile should now be built as a
