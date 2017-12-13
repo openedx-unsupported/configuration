@@ -470,6 +470,7 @@ EDXAPP_VERIFY_STUDENT:
   EXPIRING_SOON_WINDOW: 28
 EDXAPP_GOOGLE_ANALYTICS_LINKEDIN: ""
 EDXAPP_GOOGLE_ANALYTICS_TRACKING_ID: ""
+EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS: {}
 EDXAPP_BULK_EMAIL_EMAILS_PER_TASK: 500
 # If using microsites this should point to the microsite repo
 EDXAPP_MICROSITE_ROOT_DIR: "{{ edxapp_app_dir }}/edx-microsite"
@@ -875,6 +876,7 @@ edxapp_generic_contentstore_config: &edxapp_generic_default_contentstore
 edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   db: "{{ EDXAPP_MONGO_DB_NAME }}"
   host: "{{ EDXAPP_MONGO_HOSTS }}"
+  replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
   password: "{{ EDXAPP_MONGO_PASSWORD }}"
   port: "{{ EDXAPP_MONGO_PORT }}"
   user: "{{ EDXAPP_MONGO_USER }}"
@@ -1177,13 +1179,7 @@ lms_auth_config:
   <<: *edxapp_generic_auth
   CONTENTSTORE:
     <<: *edxapp_generic_default_contentstore
-    ADDITIONAL_OPTIONS:
-      default:
-        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
-        read_preference: "{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}"
-      trashcan:
-        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
-        read_preference: "{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}"
+    ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
     DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
   DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
   SEGMENT_KEY: "{{ EDXAPP_LMS_SEGMENT_KEY }}"
@@ -1280,14 +1276,7 @@ cms_auth_config:
   <<: *edxapp_generic_auth
   CONTENTSTORE:
     <<: *edxapp_generic_default_contentstore
-    ADDITIONAL_OPTIONS:
-      default:
-        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
-        read_preference: "{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}"
-      trashcan:
-        replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
-        read_preference: "{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}"
-        DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
+    ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
     DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
   DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
   MODULESTORE:
