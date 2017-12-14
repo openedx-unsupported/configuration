@@ -36,8 +36,8 @@ VIDEO_PIPELINE_BASE_MYSQL_USER: "veda001"
 VIDEO_PIPELINE_BASE_MYSQL_PASSWORD: "password"
 
 VIDEO_PIPELINE_BASE_RABBITMQ_BROKER: "localhost"
-VIDEO_PIPELINE_BASE_RABBITMQ_USER: "pipeline"
-VIDEO_PIPELINE_BASE_RABBITMQ_PASS: "pipeline"
+VIDEO_PIPELINE_BASE_RABBITMQ_USER: "celery"
+VIDEO_PIPELINE_BASE_RABBITMQ_PASS: "celery"
 
 # video pipeline config overrides
 
@@ -84,7 +84,7 @@ VIDEO_PIPELINE_BASE_HOST_ENVIRONMENT: "sandbox"
 
 # video pipeline config
 
-VIDEO_PIPELINE_BASE_CONFIG:
+video_pipeline_base_config_default:
   DATABASES:
       default:
           ENGINE: 'django.db.backends.mysql'
@@ -98,6 +98,8 @@ VIDEO_PIPELINE_BASE_CONFIG:
 
   # django staticfile settings
   STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ video_pipeline_base_service_name }}/staticfiles"
+
+  SERVICE_VARIANT_NAME: "{{ video_pipeline_base_service_name }}"
 
   # ---
   # AWS Buckets, Prefixes
@@ -182,3 +184,6 @@ VIDEO_PIPELINE_BASE_CONFIG:
   sg_server_path: "{{ VIDEO_PIPELINE_BASE_SG_SERVER_PATH }}"
   sg_script_name: "{{ VIDEO_PIPELINE_BASE_SG_SCRIPT_NAME }}"
   sg_script_key: "{{ VIDEO_PIPELINE_BASE_SG_SCRIPT_KEY }}"
+
+video_pipeline_base_config_extra: {}
+VIDEO_PIPELINE_BASE_CONFIG: '{{ video_pipeline_base_config_default | combine(video_pipeline_base_config_extra) }}'
