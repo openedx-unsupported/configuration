@@ -12,8 +12,6 @@
   - Added `EDXAPP_MONGO_REPLICA_SET`, which is required to use
     pymongo.MongoReplicaSetClient in PyMongo 2.9.1.  This should be set to the
     name of your replica set.
-    Note that setting `EDXAPP_MONGO_REPLICA_SET` requires `EDXAPP_MONGO_HOSTS`
-    to be a comma-delimited string listing the host names, not an array.
     This setting causes the `EDXAPP_*_READ_PREFERENCE` settings below to be used.
   - Added `EDXAPP_MONGO_CMS_READ_PREFERENCE` with a default value of `PRIMARY`.
   - Added `EDXAPP_MONGO_LMS_READ_PREFERENCE` with a default value of
