@@ -15,18 +15,18 @@ To modify configuration file:
 2.  Modify docker\_test to include date commands.
 
     Replace
-    
+
     ::
-    
+
         $(docker_test)%: .build/%/Dockerfile.test
             docker build -t $*:test -f $< .
 
     with
-    
+
     ::
-    
-        $(docker_test)%: .build/%/Dockerfile.test    
-            date   
+
+        $(docker_test)%: .build/%/Dockerfile.test
+            date
             docker build -t $*:test -f $< .
             date
 
