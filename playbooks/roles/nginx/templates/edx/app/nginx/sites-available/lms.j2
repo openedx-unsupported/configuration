@@ -15,6 +15,8 @@ upstream lms-backend {
 # Make Zone
 limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
 
+limit_req_zone $binary_remote_addr zone=iplimit:10m rate=20r/s
+
 {% for agent in EDXAPP_RATE_LIMITED_USER_AGENTS %}
 
 # Map of http user agent with name limit_bot_agent_alias having binary IP of the agent
@@ -245,6 +247,9 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on oauth2 endpoint
   location /oauth2 {
+    {%- if EDXAPP_ENABLE_RATE_LIMITING -%}
+    limit_req zone=iplimit burst=10;
+    {%- endif %}
     try_files $uri @proxy_to_lms_app;
   }
 
