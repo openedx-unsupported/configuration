@@ -1,3 +1,7 @@
+- Role: edxapp
+  - Added `EDX_PLATFORM_REVISION` (set from `edx_platform_version`). This is for
+  edx-platform debugging purposes, and replaces calling dealer.git at startup.
+
 - Role: veda_pipeline_worker
   - New role to run all (`deliver, ingest, youtubecallback`) [video pipeline workers](https://github.com/edx/edx-video-pipeline/blob/master/bin/)
 
