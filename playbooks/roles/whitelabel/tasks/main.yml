@@ -12,7 +12,8 @@
 - name: Run discovery playbook
   become: True
   shell: >
-    /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook -i localhost, -c local -e@/edx/app/edx_ansible/server-vars.yml /edx/app/edx_ansible/edx_ansible/playbooks/edx-east/discovery.yml
+    /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook -i localhost, -c local
+    -e@/edx/app/edx_ansible/server-vars.yml /edx/app/edx_ansible/edx_ansible/playbooks/edx-east/discovery.yml
 
 - name: Setup MySql Database
   shell: 'mysql -u root -e "{{ item }}"'
@@ -21,7 +22,7 @@
 - name: Run Discovery migrations
   shell: ". {{ discovery_home }}/discovery_env && make migrate"
   args:
-    chdir: "{{ discovery_code_dir }}"
+    chdir: "{{ discovery_home }}/{{ discovery_service_name }}"
   become_user: "{{ discovery_user }}"
 
 - name: Create Sites and Partners
