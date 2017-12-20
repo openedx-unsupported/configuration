@@ -493,3 +493,6 @@
 
 - Role: edxapp
   - Added `EDXAPP_ZENDESK_OAUTH_ACCESS_TOKEN` for making requests to Zendesk through front-end.
+
+- Role: edxapp
+  - Added `ORGANIZATION_LOGO_IMAGE_BACKEND`
