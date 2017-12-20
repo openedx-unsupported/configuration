@@ -21,6 +21,14 @@
 #
 #
 
+- name: Check for expired edx key
+  command: "apt-key list | grep {{ SERVER_UTILS_EDX_PPA_KEY_ID }}"
+  register: ppa_key_status
+
+- name: remove expired edx key
+  command: "sudo apt-key adv --keyserver {{ SERVER_UTILS_EDX_PPA_KEY_SERVER }} --recv-keys {{ SERVER_UTILS_EDX_PPA_KEY_ID }}"
+  when: "'expired' in  ppa_key_status.stdout"
+
 - name: Install ubuntu system packages
   apt:
     name: "{{ item }}"
