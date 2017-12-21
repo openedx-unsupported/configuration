@@ -3,12 +3,12 @@ Usage
 
 Start the container with this:
 
-``docker run -ti -e GO_SERVER=your.go.server.ip_or_host gocd/gocd-agent``
+``docker run -ti -e GO_SERVER=your.go.server.ip_or_host edx/go-agent-marketing``
 
 If you need to start a few GoCD agents together, you can of course use the
 shell to do that. Start a few agents in the background, like this:
 
-``for each in 1 2 3; do docker run -d --link angry_feynman:go-server gocd/gocd-agent; done``
+``for each in 1 2 3; do docker run -d --link angry_feynman:go-server edx/go-agent-marketing; done``
 
 Getting into the container
 ##########################
