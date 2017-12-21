@@ -1,4 +1,4 @@
-FROM edxops/go-agent
+FROM edxops/go-agent:latest
 
 # Install necessary modules for running make requirements in edx-mktg
 # Using rvm so we can control the ruby version installed. This also installs gem 2.6.12
