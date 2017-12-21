@@ -1,5 +1,4 @@
-# !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace the following URL with the REAL URL
-FROM ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent:latest
+FROM edxops/go-agent
 
 # Install necessary modules for running make requirements in edx-mktg
 # Using rvm so we can control the ruby version installed. This also installs gem 2.6.12

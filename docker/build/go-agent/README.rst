@@ -53,6 +53,11 @@ Building and Uploading the container to ECS
    -  or
    -  ``make docker.test.go-agent``
 
+-  Tag image for the go-agent-marketing Dockerfile
+
+   - *REQUIRED for go-agent-marketing Dockerfile*
+   - ``docker tag <image_id> edxops/go-agent``
+
 -  Log docker in to AWS
 
    -  Assume the role of the account you wish to log in to

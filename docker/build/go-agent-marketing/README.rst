@@ -38,21 +38,9 @@ files necessary.
 Building and Uploading the container to ECS
 ###########################################
 
--  Copy the go-agent GitHub private key to this path:
+-  Build and tag the go-agent docker image
 
-   -  ``docker/build/go-agent-marketing/files/go_github_key.pem``
-   -  A dummy key is in the repo file.
-   -  The actual private key is kept in LastPass - see DevOps for access.
-   -  WARNING: Do *NOT* commit/push the real private key to the public
-      configuration repo!
-
--  Insert the correct URL in the FROM statement in the Dockerfile:
-
-   -  ``docker/build/go-agent-marketing/Dockerfile``
-   -  Replace the #'s in:
-   -  ``############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent:latest``
-   -  WARNING: Do *NOT* commit/push the real URL to the public
-      configuration repo!
+   -  Follow the README in the go-agent directory to build and tag for go-agent-marketing.
 
 -  Create image
 
@@ -74,12 +62,12 @@ Building and Uploading the container to ECS
 
 -  Tag image
 
-   -  ``docker tag <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent:latest``
-   -  ``docker tag <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent:<version_number>``
+   -  ``docker tag <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent-marketing:latest``
+   -  ``docker tag <image_id> ############.dkr.ecr.us-east-1.amazonaws.com/prod-tools-goagent-marketing:<version_number>``
 
 -  upload:
 
-   -  ``docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent:latest``
-   -  ``docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent:<version_number>``
+   -  ``docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent-marketing:latest``
+   -  ``docker push ############.dkr.ecr.us-east-1.amazonaws.com/edx/release-pipeline/prod-tools-goagent-marketing:<version_number>``
 
 .. _How to setup auto registration for remote agents: https://docs.go.cd/current/advanced_usage/agent_auto_register.html
