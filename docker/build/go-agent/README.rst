@@ -46,6 +46,14 @@ Building and Uploading the container to ECS
    -  WARNING: Do *NOT* commit/push the real private key to the public
       configuration repo!
 
+-  Copy the Acquia GitHub private key to this path:
+
+   -  ``docker/build/go-agent/files/acquia_github_key.pem``
+   -  A dummy key is in the repo file.
+   -  The actual private key is kept in LastPass - see DevOps for access.
+   -  WARNING: Do *NOT* commit/push the real private key to the public
+      configuration repo!
+
 -  Create image
 
    -  This must be run from the root of the configuration repository
