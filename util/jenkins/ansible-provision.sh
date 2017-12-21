@@ -170,7 +170,7 @@ if [[ -z $enable_client_profiling ]]; then
 fi
 
 if [[ -z $set_whitelabel ]]; then
-  set_whitelabel="false"
+  set_whitelabel="true"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
