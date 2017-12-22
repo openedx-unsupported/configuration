@@ -44,9 +44,17 @@ Building and Uploading the container to ECS
 
 -  Copy the Acquia GitHub private key to this path:
 
-   -  ``docker/build/go-agent/files/acquia_github_key.pem``
+   -  ``docker/build/go-agent-marketing/files/acquia_github_key.pem``
    -  A dummy key is in the repo file.
    -  The actual private key is kept in LastPass - see DevOps for access.
+   -  WARNING: Do *NOT* commit/push the real private key to the public
+      configuration repo!
+
+-  Copy the Agent Auto Register Key to this path:
+
+   -  ``docker/build/go-agent-marketing/config/autoregister.properties``
+   -  A dummy key is in the repo file.
+   -  NOTE: this key *must* match the agentAutoRegisterKey in the server configuration
    -  WARNING: Do *NOT* commit/push the real private key to the public
       configuration repo!
 
