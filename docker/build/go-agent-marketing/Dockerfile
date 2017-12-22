@@ -27,3 +27,8 @@ RUN php -r "readfile('http://files.drush.org/drush.phar');" > drush && \
 ADD docker/build/go-agent-marketing/files/acquia_github_key.pem /var/go/.ssh/acquia_github_key
 RUN chmod 600 /var/go/.ssh/acquia_github_key && \
     chown go:go /var/go/.ssh/acquia_github_key
+
+# !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace agent.auto.register.key with the REAL key
+# The key material here is faked and is only used to pass CI!
+# setup the agent autoregister key
+ADD docker/build/go-agent-marketing/config/autoregister.properties /var/lib/go-agent/config/autoregister.properties
