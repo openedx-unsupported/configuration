@@ -19,3 +19,11 @@ RUN apt-get update && apt-get install -y \
 RUN php -r "readfile('http://files.drush.org/drush.phar');" > drush && \
     chmod +x drush && \
     sudo mv drush /usr/local/bin
+
+# !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace acquia_github_key.pem with the REAL key
+# material that can checkout private github repositories used as pipeline materials. The key material here is faked and
+# is only used to pass CI!
+# setup the acquia github identity
+ADD docker/build/go-agent-marketing/files/acquia_github_key.pem /var/go/.ssh/acquia_github_key
+RUN chmod 600 /var/go/.ssh/acquia_github_key && \
+    chown go:go /var/go/.ssh/acquia_github_key
