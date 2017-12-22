@@ -581,3 +581,6 @@
 - Role: edxapp
   - Added `EDXAPP_SCORM_PKG_STORAGE_DIR`, with default value as it was in the server template.
   - Added `EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT`, with default value as it was in the server template.
+
+- Role: edxapp
+  - Added `ORGANIZATION_LOGO_IMAGE_BACKEND`
