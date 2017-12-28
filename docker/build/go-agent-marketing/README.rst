@@ -50,14 +50,6 @@ Building and Uploading the container to ECS
    -  WARNING: Do *NOT* commit/push the real private key to the public
       configuration repo!
 
--  Copy the Agent Auto Register Key to this path:
-
-   -  ``docker/build/go-agent-marketing/config/autoregister.properties``
-   -  A dummy key is in the repo file.
-   -  NOTE: this key *must* match the agentAutoRegisterKey in the server configuration
-   -  WARNING: Do *NOT* commit/push the real private key to the public
-      configuration repo!
-
 -  Create image
 
    -  This must be run from the root of the configuration repository
