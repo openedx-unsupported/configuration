@@ -94,6 +94,18 @@
         - install:code
         - update_lms_theme
 
+    # TODO: Probably should figure out why it was broken in the first place? But it's not really a big deal.
+    - name: Fix the theme file owner after git checkout
+      file:
+        dest: "{{ item }}"
+        owner: "{{ edxapp_user }}"
+        group: "{{ edxapp_user }}"
+        state: directory  # to make recurse work
+        recurse: yes
+      with_items:
+        - "{{ edxapp_theme_dir }}"  # Comprehensive theme
+        - "{{ edxapp_app_dir }}/themes/"  # Stanford style-theme
+
     - name: remove read-only ssh key
       file:
         path: "{{ edxapp_git_identity }}"
