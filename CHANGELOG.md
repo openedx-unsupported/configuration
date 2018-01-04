@@ -18,6 +18,10 @@
 - Role: edxapp
   - `EDXAPP_X_FRAME_OPTIONS` added in studio to prevent clickjacking.
 
+- Role: nginx
+  - Added `NGINX_EDXAPP_DEFAULT_SITE_THEME` to allow to completely
+  override `favicon.ico` file when Comprehensive Theme is enabled.
+
 - Role: edxapp
   - Added `EDXAPP_X_FRAME_OPTIONS` to prevent click jacking in LMS.
 
