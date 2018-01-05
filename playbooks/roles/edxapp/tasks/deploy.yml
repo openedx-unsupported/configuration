@@ -151,6 +151,23 @@
     - install
     - install:app-requirements
 
+# Creates the Python private requirements file from the
+# 'EDXAPP_PRIVATE_REQUIREMENTS' variable. This variable has the same structure
+# as 'EDXAPP_EXTRA_REQUIREMENTS'
+- name: Create private requirements file
+  template:
+    src: private_requirements.txt.j2
+    dest: "{{ private_requirements_file }}"
+    owner: "{{ edxapp_user }}"
+    group: "{{ edxapp_user }}"
+  become_user: "{{ edxapp_user }}"
+  when:
+    - EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is defined and EDXAPP_INSTALL_PRIVATE_REQUIREMENTS
+    - EDXAPP_PRIVATE_REQUIREMENTS is defined and EDXAPP_PRIVATE_REQUIREMENTS
+  tags:
+    - install
+    - install:app-requirements
+
 # Private requriements require a ssh key to install, use the same key as the private key for edx-platform
 # If EDXAPP_INSTALL_PRIVATE_REQUIREMENTS is set to true EDXAPP_USE_GIT_IDENTITY must also be true
 - name: install python private requirements
