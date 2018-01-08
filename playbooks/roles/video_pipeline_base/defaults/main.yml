@@ -41,9 +41,19 @@ VIDEO_PIPELINE_BASE_RABBITMQ_PASS: "celery"
 
 # video pipeline config overrides
 
-VIDEO_PIPELINE_BASE_EDX_S3_INGEST_PREFIX: "ingest/"
+VIDEO_PIPELINE_BASE_EDX_S3_INGEST:
+  BUCKET: "SET-ME-PLEASE"
+  ROOT_PATH: "ingest/"
+
+VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES:
+  BUCKET: "SET-ME-PLEASE"
+  ROOT_PATH: "video-images/"
+
+VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS:
+  BUCKET: "SET-ME-PLEASE"
+  ROOT_PATH: "video-transcripts/"
+
 VIDEO_PIPELINE_BASE_EDX_CLOUDFRONT_PREFIX: "SET-ME-PLEASE"
-VIDEO_PIPELINE_BASE_EDX_S3_INGEST_BUCKET: "SET-ME-PLEASE"
 VIDEO_PIPELINE_BASE_EDX_S3_ENDPOINT_BUCKET: "SET-ME-PLEASE"
 VIDEO_PIPELINE_BASE_VEDA_S3_UPLOAD_BUCKET: "SET-ME-PLEASE"
 VIDEO_PIPELINE_BASE_VEDA_S3_HOTSTORE_BUCKET: "SET-ME-PLEASE"
@@ -52,9 +62,6 @@ VIDEO_PIPELINE_BASE_VEDA_DELIVERABLE_BUCKET: "SET-ME-PLEASE"
 VIDEO_PIPELINE_BASE_VEDA_BASE_URL: "{{ VIDEO_PIPELINE_BASE_URL_ROOT }}"
 VIDEO_PIPELINE_BASE_VEDA_ACCESS_KEY_ID: "SET-ME-PLEASE"
 VIDEO_PIPELINE_BASE_VEDA_SECRET_ACCESS_KEY: "SET-ME-PLEASE"
-
-VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES_BUCKET: "SET-ME-PLEASE"
-VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS_BUCKET: "SET-ME-PLEASE"
 
 VIDEO_PIPELINE_BASE_ADMIN_EMAIL: "veda@example.com"
 VIDEO_PIPELINE_BASE_VEDA_NOREPLY_EMAIL: "veda-noreply@example.com"
@@ -104,17 +111,20 @@ video_pipeline_base_config_default:
   # AWS Buckets, Prefixes
   # ---
   # Studio/Platform
-  edx_s3_ingest_prefix: "{{ VIDEO_PIPELINE_BASE_EDX_S3_INGEST_PREFIX }}"
-  edx_s3_ingest_bucket: "{{ VIDEO_PIPELINE_BASE_EDX_S3_INGEST_BUCKET }}"
+  edx_s3_ingest_prefix: "{{ VIDEO_PIPELINE_BASE_EDX_S3_INGEST.ROOT_PATH }}"
+  edx_s3_ingest_bucket: "{{ VIDEO_PIPELINE_BASE_EDX_S3_INGEST.BUCKET }}"
   edx_s3_endpoint_bucket: "{{ VIDEO_PIPELINE_BASE_EDX_S3_ENDPOINT_BUCKET }}"
 
   # CF
   edx_cloudfront_prefix: "{{ VIDEO_PIPELINE_BASE_EDX_CLOUDFRONT_PREFIX }}"
 
   # Images
-  aws_video_images_bucket: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES_BUCKET }}"
-  aws_video_images_prefix: "video-images/"
+  aws_video_images_bucket: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES.BUCKET }}"
+  aws_video_images_prefix: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES.ROOT_PATH }}"
 
+  # Transcripts
+  aws_video_transcripts_bucket: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS.BUCKET }}"
+  aws_video_transcripts_prefix: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS.ROOT_PATH }}"
 
   # VEDA Internal
   veda_s3_upload_bucket: "{{ VIDEO_PIPELINE_BASE_VEDA_S3_UPLOAD_BUCKET }}"
@@ -123,11 +133,6 @@ video_pipeline_base_config_default:
   veda_deliverable_bucket: "{{ VIDEO_PIPELINE_BASE_VEDA_DELIVERABLE_BUCKET }}"
   veda_base_url: "{{ VIDEO_PIPELINE_BASE_VEDA_BASE_URL }}"
   s3_base_url: https://s3.amazonaws.com
-
-
-  # Transcripts
-  aws_video_transcripts_bucket: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS_BUCKET }}"
-  aws_video_transcripts_prefix: video-transcripts/
 
   # cielo24 api urls
   cielo24_api_base_url: 'https://{{ VIDEO_PIPELINE_BASE_CIELO24_API_ENVIRONMENT }}.cielo24.com/api'
@@ -183,6 +188,9 @@ video_pipeline_base_config_default:
   sg_server_path: "{{ VIDEO_PIPELINE_BASE_SG_SERVER_PATH }}"
   sg_script_name: "{{ VIDEO_PIPELINE_BASE_SG_SCRIPT_NAME }}"
   sg_script_key: "{{ VIDEO_PIPELINE_BASE_SG_SCRIPT_KEY }}"
+
+  lms_base_url: "{{ video_pipeline_base_val_base_url }}"
+  instance_prefix: "{{ ansible_ec2_public_ipv4 }}"
 
 video_pipeline_base_config_extra: {}
 VIDEO_PIPELINE_BASE_CONFIG: '{{ video_pipeline_base_config_default | combine(video_pipeline_base_config_extra) }}'
