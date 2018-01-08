@@ -54,7 +54,8 @@ class CwBotoWrapper(object):
 def check_queues(host, port, environment, deploy, max_metrics):
     timeout = 1
     namespace = "celery/{}-{}".format(environment, deploy)
-    r = RedisWrapper(host=host, port=port, socket_timeout=timeout, socket_connect_timeout=timeout)
+    r = RedisWrapper(host=host, port=port, socket_timeout=timeout,
+                     socket_connect_timeout=timeout)
     cw = CwBotoWrapper()
     metric_name = 'queue_length'
     dimension = 'queue'
