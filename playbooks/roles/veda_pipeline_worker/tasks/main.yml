@@ -21,30 +21,29 @@
     - install
     - install:app-requirements
 
-# TODO! Update VEDA_WORKING directory path with a better path
-# https://openedx.atlassian.net/browse/EDUCATOR-1851
-- name: create worker VEDA_WORKING directory
-  file:
-    path: "{{ veda_pipeline_worker_home }}/{{ item }}"
-    state: directory
-    owner: "{{ veda_pipeline_worker_service_name }}"
-    group: "{{ common_web_group }}"
-  with_items:
-    - "VEDA_WORKING"
-  tags:
-    - install
-    - install:base
-
 - name: create worker work directories
   file:
     path: "{{ item.value }}"
     state: directory
     owner: "{{ veda_pipeline_worker_service_name }}"
     group: "{{ common_web_group }}"
+    mode: 0775
   with_dict: "{{ veda_pipeline_worker_directories }}"
   tags:
     - install
     - install:base
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: '{{ veda_pipeline_worker_home }}/venvs/{{ veda_pipeline_worker_service_name }}/bin/{{ item }}'
+    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.veda_pipeline_worker'
+    state: link
+  with_items:
+  - python
+  - pip
+  tags:
+    - install
+    - install:configuration
 
 - name: write out the supervisor wrapper
   template:
@@ -99,18 +98,6 @@
   tags:
     - manage
     - manage:start
-
-- name: create symlinks from the venv bin dir
-  file:
-    src: '{{ veda_pipeline_worker_home }}/venvs/{{ veda_pipeline_worker_service_name }}/bin/{{ item }}'
-    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.veda_pipeline_worker'
-    state: link
-  with_items:
-  - python
-  - pip
-  tags:
-    - install
-    - install:configuration
 
 - name: restart the applicaton
   supervisorctl:
