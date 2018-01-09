@@ -6,21 +6,25 @@ import backoff
 
 max_tries = 5
 
+
 class RedisWrapper(object):
     def __init__(self, *args, **kwargs):
         self.redis = redis.StrictRedis(*args, **kwargs)
+
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
                           max_tries=max_tries)
     def keys(self):
         return self.redis.keys()
+
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
                           max_tries=max_tries)
     def type(self, key):
         return self.redis.type(key)
+
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
@@ -28,14 +32,17 @@ class RedisWrapper(object):
     def llen(self, key):
         return self.redis.llen(key)
 
+
 class CwBotoWrapper(object):
     def __init__(self):
         self.cw = boto3.client('cloudwatch')
+
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
                           max_tries=max_tries)
     def list_metrics(self, *args, **kwargs):
         return self.cw.list_metrics(*args, **kwargs)
+
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
                           max_tries=max_tries)
