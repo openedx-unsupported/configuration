@@ -9,33 +9,3 @@
         expires 604800s;
     }
 {% endif %}
-
-  location /mcka-api/ {
-    try_files $uri @proxy_to_appros;
-  }
-
-	location @proxy_to_appros {
-    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
-    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
-    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
-    proxy_set_header Host $http_host;
-
-    proxy_redirect off;
-    proxy_pass http://apros_app_server;
-
-  if ($host ~* beta\.(.*)) {
-    set $www_host www.$1;
-    rewrite ^(.*)$ https://$www_host$1 permanent;
-  }
-
- # Forward to HTTPS if we're an HTTP request...
-  if ($http_x_forwarded_proto = "http") {
-    set $do_redirect "true";
-  }
-
-  # Run our actual redirect...
-  if ($do_redirect = "true") {
-    rewrite ^ https://$host$request_uri? permanent;
-  } 
- }
-
