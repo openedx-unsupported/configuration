@@ -117,7 +117,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
             'Value': redis_client.llen(queue)
         })
 
-    cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+    if len(metric_data) > 0:
+        cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
 
     for queue in queues:
         dimensions = [{'Name': dimension, 'Value': queue}]
