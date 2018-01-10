@@ -73,7 +73,7 @@ class CwBotoWrapper(object):
               help='Maximum number of CloudWatch metrics to publish')
 @click.option('--threshold', default=50,
               help='Maximum queue length before alarm notification is sent')
-@click.option('--sns-arn', '-s', help='ARN for SNS alert topic')
+@click.option('--sns-arn', '-s', help='ARN for SNS alert topic', required=True)
 def check_queues(host, port, environment, deploy, max_metrics, threshold,
                  sns_arn):
     timeout = 1
