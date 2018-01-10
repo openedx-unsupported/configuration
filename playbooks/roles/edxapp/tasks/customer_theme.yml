@@ -1,34 +1,32 @@
 ---
 
-- name: checkout comprehensive theme
+- debug: msg="Checking out site theme {{item}}"
+  with_dict: "{{EDXAPP_SITE_THEMES}}"
+  tags: debug
+
+- name: checkout comprehensive themes
   git:
-    dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}"
-    repo: "{{ edxapp_theme_source_repo }}"
-    version: "{{ edxapp_theme_version }}"
+    dest: "{{ edxapp_theme_dir }}/{{ item.value.theme_name }}"
+    repo: "{{ item.value.theme_source_repo }}"
+    version: "{{ item.value.theme_version }}"
     accept_hostkey: yes
-  when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and EDXAPP_DEFAULT_SITE_THEME != ''
+  with_dict: "{{EDXAPP_SITE_THEMES}}"
+  when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
-  notify: recompile SASS
   register: edxapp_theme_checkout
-  tags:
-    - install
-    - install:code
 
-- name: checkout customer override theme
+- name: checkout customer override themes
   git:
-    dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}/customer_specific"
-    repo: "{{ edxapp_customer_theme_source_repo }}"
-    version: "{{ edxapp_customer_theme_version }}"
+    dest: "{{ edxapp_theme_dir }}/{{ item.value.theme_name }}/customer_specific"
+    repo: "{{ item.value.customer_theme_source_repo }}"
+    version: "{{ item.value.customer_theme_version }}"
     accept_hostkey: yes
     key_file: "/edx/app/edxapp/.ssh/id_rsa"
-  when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and edxapp_customer_theme_source_repo != ''
+  with_dict: "{{EDXAPP_SITE_THEMES}}"
+  when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and item.value.customer_theme_version and item.value.customer_theme_source_repo
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
-  notify: recompile SASS
   register: edxapp_theme_override_checkout
-  tags:
-    - install
-    - install:code

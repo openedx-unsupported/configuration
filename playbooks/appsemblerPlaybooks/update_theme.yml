@@ -64,33 +64,7 @@
         - install:code
         - update_lms_theme
 
-    - name: checkout comprehensive theme
-      git:
-        dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}"
-        repo: "{{ edxapp_theme_source_repo }}"
-        version: "{{ edxapp_theme_version }}"
-        accept_hostkey: yes
-      when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and EDXAPP_DEFAULT_SITE_THEME != ''
-      become_user: "{{ edxapp_user }}"
-      environment:
-        GIT_SSH: "{{ edxapp_git_ssh }}"
-      register: edxapp_theme_checkout
-      tags:
-        - install
-        - install:code
-        - update_lms_theme
-
-    - name: checkout customer override theme
-      git:
-        dest: "{{ edxapp_theme_dir }}/{{ EDXAPP_DEFAULT_SITE_THEME }}/customer_specific"
-        repo: "{{ edxapp_customer_theme_source_repo }}"
-        version: "{{ edxapp_customer_theme_version }}"
-        accept_hostkey: yes
-        key_file: "/edx/app/edxapp/.ssh/id_rsa"
-      when: EDXAPP_ENABLE_COMPREHENSIVE_THEMING == true and edxapp_customer_theme_source_repo != ''
-      become_user: "{{ edxapp_user }}"
-      environment:
-        GIT_SSH: "{{ edxapp_git_ssh }}"
+    - include: ../roles/edxapp/tasks/customer_theme.yml
       tags:
         - install
         - install:code
