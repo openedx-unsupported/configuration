@@ -173,6 +173,21 @@
     - install
     - install:app-requirements
 
+# Conditinally install openstack requirements.
+- name: install python private requirements
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  with_items:
+  - "{{ openstack_requirements_file }}"
+  become_user: "{{ edxapp_user }}"
+  environment:
+    GIT_SSH: "{{ edxapp_git_ssh }}"
+  when: COMMON_ENABLE_OPENSTACK_INTEGRATION
+  tags:
+    - install
+    - install:app-requirements
+
 # Install any custom extra requirements if defined in EDXAPP_EXTRA_REQUIREMENTS.
 - name: install python extra requirements
   pip:
