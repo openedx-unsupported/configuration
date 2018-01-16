@@ -36,6 +36,13 @@
     dest: "{{ test_build_server_repo_path }}"
     mode: 0755
 
+- name: Configure the boto profile to pull the db cache for paver testing
+  template:
+    src: "boto.j2"
+    dest: "{{ test_build_server_repo_path }}/.boto"
+    owner: "{{ test_build_server_user }}"
+    mode: 0600
+
 - name: Validate build environment
   shell: "bash test-development-environment.sh {{ item }}"
   args:
@@ -46,3 +53,8 @@
     - "js"
     - "bokchoy"
     - "lettuce"
+
+- name: Remove boto profile from ami
+  file:
+    state: absent
+    path: "{{ test_build_server_repo_path }}/.boto"
