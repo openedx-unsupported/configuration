@@ -1,0 +1,54 @@
+---
+# {{ ansible_managed }}
+
+# Load the cluster name from the environment so that it matches the variable used to lookup the provisioned cluster.
+name: "{{ '{{' }} lookup('env', 'CLUSTER_NAME') {{ '}}' }}"
+region: '{{ JENKINS_ANALYTICS_AWS_REGION }}'
+instance_groups:
+  master:
+    num_instances: {{ JENKINS_ANALYTICS_NUM_MASTER_INSTANCES }}
+    type: {{ JENKINS_ANALYTICS_TYPE_MASTER_INSTANCES }}
+    market: {{ JENKINS_ANALYTICS_MARKET_MASTER_INSTANCES }}
+  core:
+    num_instances: {{ JENKINS_ANALYTICS_NUM_CORE_INSTANCES }}
+    type: {{ JENKINS_ANALYTICS_TYPE_CORE_INSTANCES }}
+    market: {{ JENKINS_ANALYTICS_MARKET_CORE_INSTANCES }}
+  task:
+    num_instances: "{{ '{{' }} lookup('env', 'NUM_REDUCE_TASKS') {{ '}}' }}"
+    type: {{ JENKINS_ANALYTICS_TYPE_TASK_INSTANCES }}
+    market: {{ JENKINS_ANALYTICS_MARKET_TASK_INSTANCES }}
+role: EMR_EC2_DefaultRole
+keypair_name: 'jenkins-key'  # your analytics instance key pair name
+vpc_subnet_id: 'subnet-5d6b5b3a'  # public subnet of the VPC
+log_uri: "{{ '{{' }} lookup('env', 'TASK_CONFIGURATION_S3_BUCKET') {{ '}}' }}/logs"
+release_label: 'emr-4.7.2'
+additional_master_security_groups: [sg-489bee33,]
+
+applications:
+  - name: Hadoop
+  - name: Hive
+  - name: Sqoop-Sandbox
+  - name: Ganglia
+
+configurations:
+  - classification: mapred-site
+    properties:
+      mapreduce.framework.name: 'yarn'
+      mapreduce.jobtracker.retiredjobs.cache.size: '50'
+      mapreduce.reduce.shuffle.input.buffer.percent: '0.20'
+  - classification: yarn-site
+    properties:
+      yarn.resourcemanager.max-completed-applications: '5'
+  {% if JENKINS_ANALYTICS_EMR_AWS_EMR_CROSS_REGION_S3_ACCESS %}
+  - classification: core-site
+    properties:
+      fs.s3n.endpoint: "s3.amazonaws.com"
+  {% endif %}
+
+steps:
+  - type: script
+    name: "Install Sqoop"
+    step_args:
+      - "{{ '{{' }} lookup('env', 'TASK_CONFIGURATION_S3_BUCKET') {{ '}}' }}/install-sqoop"
+      - "{{ '{{' }} lookup('env', 'TASK_CONFIGURATION_S3_BUCKET') {{ '}}' }}"
+    action_on_failure: TERMINATE_JOB_FLOW  # Set to CANCEL_AND_WAIT when debugging step failures.
