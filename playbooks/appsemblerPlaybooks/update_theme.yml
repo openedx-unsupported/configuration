@@ -10,8 +10,6 @@
   - roles/common_vars/defaults/main.yml
   - roles/supervisor/defaults/main.yml
   - roles/edxapp/defaults/main.yml
-  vars:
-    tmp: none
   tasks:
     - name: Allow user running the playbook to sudo as other users
       lineinfile: >
@@ -69,6 +67,18 @@
         - install
         - install:code
         - update_lms_theme
+
+    # TODO: Probably should figure out why it was broken in the first place? But it's not really a big deal.
+    - name: Fix the theme file owner after git checkout
+      file:
+        dest: "{{ item }}"
+        owner: "{{ edxapp_user }}"
+        group: "{{ edxapp_user }}"
+        state: directory  # to make recurse work
+        recurse: yes
+      with_items:
+        - "{{ edxapp_theme_dir }}"  # Comprehensive theme
+        - "{{ edxapp_app_dir }}/themes/"  # Stanford style-theme
 
     - name: remove read-only ssh key
       file:
