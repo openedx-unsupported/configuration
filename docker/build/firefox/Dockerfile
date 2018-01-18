@@ -1,4 +1,4 @@
-FROM selenium/standalone-firefox-debug:3.4.0-einsteinium
+FROM selenium/standalone-firefox-debug:3.8.1-dubnium
 MAINTAINER edxops
 
 USER root
