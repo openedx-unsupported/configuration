@@ -48,7 +48,7 @@ PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
 EDX_PPA="deb http://ppa.edx.org precise main"
-EDX_PPA_KEY_SERVER="hkp://pgp.mit.edu:80"
+EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
 EDX_PPA_KEY_ID="B41E5E3969464050"
 
 cat << EOF
