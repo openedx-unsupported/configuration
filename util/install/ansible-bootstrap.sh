@@ -128,7 +128,7 @@ if [[ "xenial" = "${SHORT_DIST}" ]]; then
     #apt-get install -y build-essential sudo git-core libmysqlclient-dev
 else
     #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
-    pip install --upgrade pip=="${PIP_VERSION}"
+    pip install --upgrade pip=="${PIP_VERSION}" --index-url=https://pypi.python.org/simple/
 fi
 
 # pip moves to /usr/local/bin when upgraded
