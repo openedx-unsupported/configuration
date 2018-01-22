@@ -48,7 +48,7 @@ PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
 EDX_PPA="deb http://ppa.edx.org precise main"
-EDX_PPA_KEY_SERVER="hkp://pgp.mit.edu:80"
+EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
 EDX_PPA_KEY_ID="B41E5E3969464050"
 
 cat << EOF
@@ -128,7 +128,7 @@ if [[ "xenial" = "${SHORT_DIST}" ]]; then
     #apt-get install -y build-essential sudo git-core libmysqlclient-dev
 else
     #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
-    pip install --upgrade pip=="${PIP_VERSION}"
+    pip install --upgrade pip=="${PIP_VERSION}" --index-url=https://pypi.python.org/simple/
 fi
 
 # pip moves to /usr/local/bin when upgraded
