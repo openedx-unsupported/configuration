@@ -65,8 +65,7 @@ EDXAPP_XQUEUE_DJANGO_AUTH:
   password: 'password'
 EDXAPP_XQUEUE_URL: 'http://localhost:18040'
 
-# EDXAPP_MONGO_HOSTS must be a comma seperated list of hosts/ips for
-# compatibility with pymongo.MongoReplicaSetClient in PyMongo 2.9.1
+# Comma-separated list of hosts/ips
 EDXAPP_MONGO_HOSTS: 'localhost'
 EDXAPP_MONGO_PASSWORD: 'password'
 EDXAPP_MONGO_PORT: 27017
@@ -74,7 +73,14 @@ EDXAPP_MONGO_USER: 'edxapp'
 EDXAPP_MONGO_DB_NAME: 'edxapp'
 EDXAPP_MONGO_USE_SSL: False
 EDXAPP_MONGO_REPLICA_SET: ''
-EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: 'SECONDARY_PREFERRED'
+# Used only if EDXAPP_MONGO_REPLICA_SET is provided.
+EDXAPP_MONGO_CMS_READ_PREFERENCE: 'PRIMARY'
+EDXAPP_MONGO_LMS_READ_PREFERENCE: 'SECONDARY_PREFERRED'
+# We use the CMS read_preference here because the draft docstore's view of
+# the modulestore should mirror Studio's, so that instructors can check their
+# changes in Preview mode.
+EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}'
+EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}'
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
 EDXAPP_MYSQL_USER: 'edxapp001'
@@ -157,6 +163,7 @@ EDXAPP_CELERY_BROKER_TRANSPORT: 'amqp'
 EDXAPP_CELERY_BROKER_VHOST: ""
 EDXAPP_CELERY_BROKER_USE_SSL: false
 EDXAPP_CELERY_EVENT_QUEUE_TTL: "None"
+EDXAPP_BRANCH_IO_KEY: ""
 
 EDXAPP_VIDEO_CDN_URLS:
   EXAMPLE_COUNTRY_CODE: "http://example.com/edx/video?s3_url="
@@ -173,6 +180,9 @@ EDXAPP_PLATFORM_DESCRIPTION: 'Your Platform Description Here'
 EDXAPP_STUDIO_NAME: 'Studio'
 EDXAPP_STUDIO_SHORT_NAME: 'Studio'
 EDXAPP_ANALYTICS_DASHBOARD_NAME: "{{ EDXAPP_PLATFORM_NAME }} Insights"
+
+EDXAPP_LMS_ANALYTICS_API_KEY: ''
+EDXAPP_LMS_ANALYTICS_API_URL: 'http://localhost:18100'
 
 EDXAPP_CAS_SERVER_URL: ""
 EDXAPP_CAS_EXTRA_LOGIN_PARAMS: ""
@@ -412,7 +422,7 @@ EDXAPP_SANDBOX_ENFORCE: true
 EDXAPP_AUTOMATED_USERS:
   automated_user:
     sudo_commands:
-      - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms migrate --list --settings={{ edxapp_settings }}"
+      - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms showmigrations --settings={{ edxapp_settings }}"
         sudo_user: "edxapp"
     authorized_keys:
       - "SSH authorized key"
@@ -441,6 +451,43 @@ EDXAPP_INSTALL_PRIVATE_REQUIREMENTS: false
 #     version: 1.0.1
 #   - name: git+https://git.myproject.org/MyProject#egg=MyProject
 EDXAPP_EXTRA_REQUIREMENTS: []
+
+# List of private requirements that should be installed into the
+# edxapp virtual environment.
+# `name` (required), 'extra_args' (optional)
+# Example:
+# EDXAPP_PRIVATE_REQUIREMENTS:
+#   - name: git+https://git.myproject.org/MyProject#egg=MyProject
+EDXAPP_PRIVATE_REQUIREMENTS: 
+    # For Harvard courses:
+    - name: git+https://github.com/open-craft/problem-builder.git@v2.7.7#egg=xblock-problem-builder==2.7.7
+    # Oppia XBlock
+    - name: git+https://github.com/oppia/xblock.git@9f6b95b7eb7dbabb96b77198a3202604f96adf65#egg=oppia-xblock
+      extra_args: -e
+    # Microsoft's Office Mix XBlock
+    - name: git+https://github.com/OfficeDev/xblock-officemix.git@3f876b5f0267b017812620239533a29c7d562d24#egg=officemix
+      extra_args: -e
+    # This repository contains schoolyourself-xblock, which is used in
+    # edX's "AlgebraX" and "GeometryX" courses.
+    - name: git+https://github.com/schoolyourself/schoolyourself-xblock.git@5e4d37716e3e72640e832e961f7cc0d38d4ec47b#egg=schoolyourself-xblock
+      extra_args: -e
+    # Prototype XBlocks from edX learning sciences limited roll-outs and user testing.
+    # Concept XBlock, in particular, is nowhere near finished and an early prototype.
+    # Profile XBlock is there so we can play with XBlock arguments in the platform, but isn't ready for use outside of
+    # edX.
+    - name: git+https://github.com/edx/ConceptXBlock.git@2376fde9ebdd83684b78dde77ef96361c3bd1aa0#egg=concept-xblock
+      extra_args: -e
+    - name: git+https://github.com/edx/AudioXBlock.git@1fbf19cc21613aead62799469e1593adb037fdd9#egg=audio-xblock
+      extra_args: -e
+    - name: git+https://github.com/edx/AnimationXBlock.git@d2b551bb8f49a138088e10298576102164145b87#egg=animation-xblock
+      extra_args: -e
+    # Peer instruction XBlock
+    - name: ubcpi-xblock==0.6.4
+    # Vector Drawing and ActiveTable XBlocks (Davidson)
+    - name: git+https://github.com/open-craft/xblock-vectordraw.git@c57df9d98119fd2ca4cb31b9d16c27333cdc65ca#egg=xblock-vectordraw==0.2.1
+      extra_args: -e
+    - name: git+https://github.com/open-craft/xblock-activetable.git@e933d41bb86a8d50fb878787ca680165a092a6d5#egg=xblock-activetable
+      extra_args: -e
 
 # List of custom middlewares that should be used in edxapp to process
 # incoming HTTP resquests. Should be a list of plain strings that fully
@@ -852,9 +899,24 @@ edxapp_environment_extra: {}
 
 edxapp_environment: "{{ edxapp_environment_default | combine(edxapp_environment_extra) }}"
 
+edxapp_generic_contentstore_config: &edxapp_generic_default_contentstore
+  ENGINE:  'xmodule.contentstore.mongo.MongoContentStore'
+  #
+  # connection strings are duplicated temporarily for
+  # backward compatibility
+  #
+  OPTIONS:
+    db: "{{ EDXAPP_MONGO_DB_NAME }}"
+    host: "{{ EDXAPP_MONGO_HOSTS }}"
+    password: "{{ EDXAPP_MONGO_PASSWORD }}"
+    port: "{{ EDXAPP_MONGO_PORT }}"
+    user: "{{ EDXAPP_MONGO_USER }}"
+    ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
+
 edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   db: "{{ EDXAPP_MONGO_DB_NAME }}"
   host: "{{ EDXAPP_MONGO_HOSTS }}"
+  replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
   password: "{{ EDXAPP_MONGO_PASSWORD }}"
   port: "{{ EDXAPP_MONGO_PORT }}"
   user: "{{ EDXAPP_MONGO_USER }}"
@@ -865,17 +927,17 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   connectTimeoutMS: 2000 # default is 20000, I believe raises pymongo.errors.ConnectionFailure
   # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
 
-
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
+  read_preference: "{{ EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE }}"
 
 EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
-  replicaSet: "{{ EDXAPP_MONGO_REPLICA_SET }}"
   read_preference: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE }}"
 
 EDXAPP_CMS_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
+  read_preference: "{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}"
 
 edxapp_databases:
 # edxapp's edxapp-migrate scripts and the edxapp_migrate play
@@ -930,26 +992,10 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   SWIFT_TEMP_URL_KEY: "{{ EDXAPP_SWIFT_TEMP_URL_KEY }}"
   SWIFT_TEMP_URL_DURATION: "{{ EDXAPP_SWIFT_TEMP_URL_DURATION }}"
   SECRET_KEY:  "{{ EDXAPP_EDXAPP_SECRET_KEY }}"
-  DOC_STORE_CONFIG: "{{ edxapp_generic_doc_store_config }}"
   XQUEUE_INTERFACE:
     basic_auth: "{{ EDXAPP_XQUEUE_BASIC_AUTH }}"
     django_auth: "{{ EDXAPP_XQUEUE_DJANGO_AUTH }}"
     url: "{{ EDXAPP_XQUEUE_URL }}"
-  CONTENTSTORE:
-    ENGINE:  'xmodule.contentstore.mongo.MongoContentStore'
-    #
-    # connection strings are duplicated temporarily for
-    # backward compatibility
-    #
-    OPTIONS:
-      db: "{{ EDXAPP_MONGO_DB_NAME }}"
-      host: "{{ EDXAPP_MONGO_HOSTS }}"
-      password: "{{ EDXAPP_MONGO_PASSWORD }}"
-      port: "{{ EDXAPP_MONGO_PORT }}"
-      user: "{{ EDXAPP_MONGO_USER }}"
-      ssl: "{{ EDXAPP_MONGO_USE_SSL }}"
-    ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
-    DOC_STORE_CONFIG: *edxapp_generic_default_docstore
   DATABASES: "{{ edxapp_databases }}"
   EMAIL_HOST_USER: "{{ EDXAPP_EMAIL_HOST_USER }}"
   EMAIL_HOST_PASSWORD: "{{ EDXAPP_EMAIL_HOST_PASSWORD }}"
@@ -968,6 +1014,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   FACEBOOK_APP_SECRET: "{{ EDXAPP_FACEBOOK_APP_SECRET }}"
   FACEBOOK_API_VERSION: "{{ EDXAPP_FACEBOOK_API_VERSION }}"
   ENTERPRISE_SERVICE_WORKER_USERNAME: "{{ EDXAPP_ENTERPRISE_SERVICE_WORKER_USERNAME }}"
+  BRANCH_IO_KEY: "{{ EDXAPP_BRANCH_IO_KEY }}"
 
 generic_cache_config: &default_generic_cache
   BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
@@ -978,6 +1025,7 @@ generic_env_config:  &edxapp_generic_env
   CREDENTIALS_PUBLIC_SERVICE_URL: "{{ EDXAPP_CREDENTIALS_PUBLIC_SERVICE_URL }}"
   ECOMMERCE_PUBLIC_URL_ROOT: "{{ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT }}"
   ECOMMERCE_API_URL: "{{ EDXAPP_ECOMMERCE_API_URL }}"
+  EDX_PLATFORM_REVISION: "{{ edx_platform_version }}"
   ENTERPRISE_API_URL: "{{ EDXAPP_ENTERPRISE_API_URL }}"
   COURSE_CATALOG_API_URL: "{{ EDXAPP_COURSE_CATALOG_API_URL }}"
   COURSE_CATALOG_VISIBILITY_PERMISSION: "{{ EDXAPP_COURSE_CATALOG_VISIBILITY_PERMISSION }}"
@@ -1168,6 +1216,11 @@ generic_env_config:  &edxapp_generic_env
 
 lms_auth_config:
   <<: *edxapp_generic_auth
+  CONTENTSTORE:
+    <<: *edxapp_generic_default_contentstore
+    ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
+    DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
+  DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
   SEGMENT_KEY: "{{ EDXAPP_LMS_SEGMENT_KEY }}"
   OPTIMIZELY_PROJECT_ID: "{{ EDXAPP_OPTIMIZELY_PROJECT_ID }}"
   EDX_API_KEY: "{{ EDXAPP_EDX_API_KEY }}"
@@ -1203,6 +1256,7 @@ lms_auth_config:
   ACE_CHANNEL_SAILTHRU_API_KEY: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_KEY }}"
   ACE_CHANNEL_SAILTHRU_API_SECRET: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_SECRET }}"
   ENTERPRISE_REPORTING_SECRET: "{{ EDXAPP_ENTERPRISE_REPORTING_SECRET }}"
+  ANALYTICS_API_KEY: "{{ EDXAPP_LMS_ANALYTICS_API_KEY }}"
 
 
 lms_env_config:
@@ -1255,10 +1309,15 @@ lms_env_config:
   ACE_CHANNEL_SAILTHRU_TEMPLATE_NAME: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_TEMPLATE_NAME }}"
   ACE_ROUTING_KEY: "{{ EDXAPP_ACE_ROUTING_KEY }}"
   ENTERPRISE_TAGLINE: "{{ EDXAPP_ENTERPRISE_TAGLINE }}"
+  ANALYTICS_API_URL: "{{ EDXAPP_LMS_ANALYTICS_API_URL }}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
-  SEGMENT_KEY: "{{ EDXAPP_CMS_SEGMENT_KEY }}"
+  CONTENTSTORE:
+    <<: *edxapp_generic_default_contentstore
+    ADDITIONAL_OPTIONS: "{{ EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS }}"
+    DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
+  DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
   MODULESTORE:
     default:
         ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
@@ -1279,6 +1338,7 @@ cms_auth_config:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
                 render_template: 'edxmako.shortcuts.render_to_string'
+  SEGMENT_KEY: "{{ EDXAPP_CMS_SEGMENT_KEY }}"
   PARSE_KEYS: "{{ EDXAPP_PARSE_KEYS }}"
 
 cms_env_config:
@@ -1336,7 +1396,6 @@ base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
 django_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/django.txt"
 post_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/post.txt"
 paver_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/paver.txt"
-private_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/edx-private.txt"
 
 sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
 sandbox_local_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/local.txt"
@@ -1367,7 +1426,6 @@ edxapp_requirements_with_github_urls:
   - "{{ base_requirements_file }}"
   - "{{ post_requirements_file }}"
   - "{{ paver_requirements_file }}"
-  - "{{ private_requirements_file }}"
   - "{{ sandbox_post_requirements }}"
   - "{{ sandbox_local_requirements }}"
   - "{{ sandbox_base_requirements }}"

@@ -1,8 +1,34 @@
 - Role: edxapp
   - Added `EDXAPP_DEFAULT_COURSE_VISIBILITY_IN_CATALOG` setting (defaults to `both`).
 
-- Role: edxapp
   - Added `EDXAPP_DEFAULT_MOBILE_AVAILABLE` setting (defaults to `false`).
+
+  - Added `EDX_PLATFORM_REVISION` (set from `edx_platform_version`). This is for
+  edx-platform debugging purposes, and replaces calling dealer.git at startup.
+
+- Role: veda_pipeline_worker
+  - New role to run all (`deliver, ingest, youtubecallback`) [video pipeline workers](https://github.com/edx/edx-video-pipeline/blob/master/bin/)
+
+- Role: veda_ffmpeg
+  - New role added to compile ffmpeg for video pipeline. It will be used as a dependency for video pipeline roles.
+
+- Role: edxapp
+  - Added `EDXAPP_BRANCH_IO_KEY` to configure branch.io journey app banners.
+
+- Role: ecomworker
+  - Added `ECOMMERCE_WORKER_BROKER_TRANSPORT` with a default value of 'ampq' to be backwards compatible with rabbit.  Set to 'redis' if you wish to use redis instead of rabbit as a queue for ecommerce worker.
+
+- Role: ecommerce
+  - Added `ECOMMERCE_BROKER_TRANSPORT` with a default value of 'ampq' to be backwards compatible with rabbit.  Set to 'redis' if you wish to use redis instead of rabbit as a queue for ecommerce.
+
+- Role: credentials
+  - This role is now dependent on the edx_django_service role. Settings are all the same, but nearly all of the tasks are performed by the edx_django_service role.
+
+- Role: veda_delivery_worker
+  - New role added to run [video delivery worker](https://github.com/edx/edx-video-pipeline/blob/master/bin/deliver)
+
+- Role: veda_web_frontend
+  - New role added for [edx-video-pipeline](https://github.com/edx/edx-video-pipeline)
 
 - Role: edxapp
   - Added `EDXAPP_LMS_INTERNAL_ROOT_URL` setting (defaults to `EDXAPP_LMS_ROOT_URL`).
@@ -15,14 +41,21 @@
     your configuration to set `EDXAPP_CELERY_BROKER_TRANSPORT` explicitly.
 
 - Role: edxapp
-  - Added `EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE` with a default value of
-    SECONDARY_PREFERED to distribute read workload across the replica set.
-  - Changed `EDXAPP_MONGO_HOSTS` to be a comma seperated string, which is
-    required by pymongo.MongoReplicaSetClient for multiple hosts instead of an
-    array.
   - Added `EDXAPP_MONGO_REPLICA_SET`, which is required to use
-    pymongo.MongoReplicaSetClient in PyMongo 2.9.1, whis is required to use the
-    read_preference setting. This should be set to the name of your replica set.
+    pymongo.MongoReplicaSetClient in PyMongo 2.9.1.  This should be set to the
+    name of your replica set.
+    This setting causes the `EDXAPP_*_READ_PREFERENCE` settings below to be used.
+  - Added `EDXAPP_MONGO_CMS_READ_PREFERENCE` with a default value of `PRIMARY`.
+  - Added `EDXAPP_MONGO_LMS_READ_PREFERENCE` with a default value of
+    `SECONDARY_PREFERED` to distribute the read workload across the replica set
+    for replicated docstores and contentstores.
+  - Added `EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE` with a default value of
+    `EDXAPP_MONGO_LMS_READ_PREFERENCE`.
+  - Added `EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG` with a default value of
+    `EDXAPP_MONGO_CMS_READ_PREFERENCE`, to enforce consistency between
+    Studio and the LMS Preview modes.
+  - Removed `EDXAPP_CONTENTSTORE_ADDITIONAL_OPTS`, since there is no notion of
+    common options to the content store anymore.
 
 - Role: nginx
   - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security

@@ -87,6 +87,14 @@
     - install
     - install:code
 
+# Download a theme and apply small modifications like SASS changes
+# To enable/disable this, set SIMPLETHEME_ENABLE_DEPLOY
+# https://github.com/ansible/ansible/issues/19472 prevents including the
+# role conditionally
+- name: Install a theme through simpletheme
+  include_role:
+    name: "simple_theme"
+
 - name: Stat each requirements file with Github URLs to ensure it exists
   stat:
     path: "{{ item }}"
@@ -152,11 +160,11 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w {{ item.extra_args|default('') }} {{ item.name }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   with_items:
-  - "{{ private_requirements_file }}"
+  - "{{ EDXAPP_PRIVATE_REQUIREMENTS }}"
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
@@ -239,12 +247,11 @@
     - install
     - install:app-requirements
 
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json 
 - name: install node dependencies
-  npm:
-    executable: "{{ edxapp_nodeenv_bin }}/npm"
-    path: "{{ edxapp_code_dir }}"
-    production: "{{ edxapp_npm_production }}"
-    state: latest
+  shell: "{{ edxapp_nodeenv_bin }}/npm install"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   environment: "{{ edxapp_environment }}"
   become_user: "{{ edxapp_user }}"
   tags:

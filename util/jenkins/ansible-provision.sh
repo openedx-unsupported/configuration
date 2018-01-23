@@ -127,9 +127,9 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-8609a6fc"
+    ami="ami-abd2e6d1"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-da05a4a0"
+    ami="ami-aa2ea6d0"
   fi
 fi
 
@@ -203,6 +203,9 @@ ECOMMERCE_VERSION: $ecommerce_version
 CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
+
+VIDEO_PIPELINE_BASE_NGINX_PORT: 80
+VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
@@ -295,14 +298,19 @@ ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
+DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 
-DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
-DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
+VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
+VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
 
 EOF
 fi
@@ -345,12 +353,16 @@ EOF
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
         run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
+veda_web_frontend="true"
+veda_pipeline_worker="false"
+veda_encode_worker="false"
 declare -A deploy
-roles="edxapp forum ecommerce credentials discovery notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker notifier xqueue xserver certs demo testcourses"
 
 for role in $roles; do
     deploy[$role]=${!role}
