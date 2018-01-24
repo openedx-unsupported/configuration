@@ -1,5 +1,15 @@
-#Variables for rabbitmq
 ---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Defaults for role rabbitmq
+# 
 
 rabbitmq_app_dir: "{{ COMMON_APP_DIR }}/rabbitmq"
 rabbitmq_data_dir: "{{ COMMON_DATA_DIR }}/rabbitmq"
@@ -25,21 +35,26 @@ RABBITMQ_VHOSTS:
   - '/'
 
 RABBITMQ_CLUSTERED_HOSTS: []
+# This is the default for rabbit, but allows overriding if
+# you run a dedicated rabbit cluster
+# https://www.rabbitmq.com/memory.html
+# https://www.rabbitmq.com/production-checklist.html
+RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.4
+
+RABBITMQ_VERSION: 3.6.9-1
+
+RABBITMQ_CLUSTER_NAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-rabbit"
 
 # Internal role variables below this line
 
 # option to force deletion of the mnesia dir
 rabbitmq_refresh: false
 
-# We mirror the deb package for rabbitmq-server because
-# nodes need to be running the same version
-rabbitmq_pkg_url: "http://files.edx.org/rabbitmq_packages/rabbitmq-server_3.2.3-1_all.deb"
-rabbitmq_pkg: "rabbitmq-server"
+rabbitmq_repo: "deb https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ {{ ansible_distribution_release }} main"
+rabbitmq_repo_key: "https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey"
+
 rabbitmq_debian_pkgs:
-  - python-software-properties
-  # for installing the deb package with
-  # dependencies
-  - gdebi
+  - "apt-transport-https"
 
 rabbitmq_config_dir: "/etc/rabbitmq"
 rabbitmq_cookie_dir: "/var/lib/rabbitmq"
@@ -58,3 +73,5 @@ rabbitmq_auth_config:
 
 rabbitmq_plugins:
   - rabbitmq_management
+
+rabbitmq_cron_timeout: 5

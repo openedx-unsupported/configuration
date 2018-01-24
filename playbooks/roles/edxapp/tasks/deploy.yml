@@ -20,6 +20,7 @@
     - { src: 'edxapp_env.j2', dest: '{{ edxapp_app_dir }}/edxapp_env', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'newrelic.ini.j2', dest: '{{ edxapp_app_dir }}/newrelic.ini', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'git_ssh.sh.j2', dest: '{{ edxapp_git_ssh }}', owner: '{{ edxapp_user }}', group: '{{ edxapp_user }}', mode: '0750' }
+    - { src: 'boto.j2', dest: '{{ edxapp_app_dir }}/.boto', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
   tags:
     - install
     - install:base
@@ -86,6 +87,14 @@
     - install
     - install:code
 
+# Download a theme and apply small modifications like SASS changes
+# To enable/disable this, set SIMPLETHEME_ENABLE_DEPLOY
+# https://github.com/ansible/ansible/issues/19472 prevents including the
+# role conditionally
+- name: Install a theme through simpletheme
+  include_role:
+    name: "simple_theme"
+
 - name: Stat each requirements file with Github URLs to ensure it exists
   stat:
     path: "{{ item }}"
@@ -151,11 +160,11 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w {{ item.extra_args|default('') }} {{ item.name }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   with_items:
-  - "{{ private_requirements_file }}"
+  - "{{ EDXAPP_PRIVATE_REQUIREMENTS }}"
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
@@ -238,12 +247,11 @@
     - install
     - install:app-requirements
 
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json 
 - name: install node dependencies
-  npm:
-    executable: "{{ edxapp_nodeenv_bin }}/npm"
-    path: "{{ edxapp_code_dir }}"
-    production: yes
-    state: latest
+  shell: "{{ edxapp_nodeenv_bin }}/npm install"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   environment: "{{ edxapp_environment }}"
   become_user: "{{ edxapp_user }}"
   tags:
@@ -417,3 +425,24 @@
   become_user: "{{ common_web_user }}"
   tags:
     - manage
+
+- name: create service worker users
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  with_items: "{{ SERVICE_WORKER_USERS }}"
+  when: CREATE_SERVICE_WORKER_USERS
+  tags:
+    - manage
+    - manage:db
+
+- name: reindex all courses
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: EDXAPP_REINDEX_ALL_COURSES
+  tags:
+    - install
+    - install:base

@@ -127,21 +127,46 @@
     - install
     - install:app-requirements
 
-- name: Ensure hdfs services are started
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  tags:
+    - install
+    - install:configuration
+
+- name: enable Hadoop services
   service:
-    name: hdfs
+    name: "{{ item }}"
+    enabled: yes
+  with_items: "{{ hadoop_common_services }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: start Hadoop services
+  service:
+    name: "{{ item }}"
     state: started
+  with_items: "{{ hadoop_common_services }}"
   tags:
     - manage
     - manage:start
 
-- name: Ensure map reduce services are started
+- name: stop Hadoop services
   service:
-    name: yarn
-    state: started
+    name: "{{ item }}"
+    state: stopped
+  with_items: "{{ hadoop_common_services }}"
   tags:
-    - manage
+    - manage:stop
+
+- name: restart Hadoop services
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items: "{{ hadoop_common_services }}"
+  tags:
     - manage:start
+    - manage:restart
 
 - name: Ensure package dir exists in HDFS
   shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p /edx-analytics-pipeline/packages/"
@@ -156,6 +181,10 @@
   tags:
     - install
     - install:app-requirements
+  register: libcp
+  until: libcp|success
+  retries: 6
+  delay: 10
 
 - name: Ensure the data directory exists
   shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && hdfs dfs -mkdir -p {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}"
@@ -197,6 +226,22 @@
     password: "{{ ANALYTICS_PIPELINE_OUTPUT_DATABASE.password }}"
     priv: 'acceptance%.*:ALL'
     append_privs: yes
+  tags:
+    - install
+    - install:configuration
+
+- name: Test if Hive metadata store schema exists
+  shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && {{ HIVE_HOME }}/bin/hive | tr '\n' ' '"
+  become_user: "{{ hadoop_common_user }}"
+  register: hive_metastore_info
+  tags:
+    - install
+    - install:configuration
+
+- name: Initialize Hive metadata store schema
+  shell: ". {{ HADOOP_COMMON_CONF_DIR }}/hadoop-env.sh && {{ HIVE_HOME }}/bin/schematool -dbType mysql -initSchema"
+  become_user: "{{ hadoop_common_user }}"
+  when: "'Version information not found in metastore' in hive_metastore_info.stderr"
   tags:
     - install
     - install:configuration

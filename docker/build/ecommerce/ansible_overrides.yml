@@ -1,15 +1,31 @@
 ---
+COMMON_GIT_PATH: 'edx'
+ECOMMERCE_VERSION: 'master'
 
-DOCKER_TLD: "edx"
+COMMON_MYSQL_MIGRATE_USER: '{{ ECOMMERCE_MYSQL_USER }}'
+COMMON_MYSQL_MIGRATE_PASS: '{{ ECOMMERCE_MYSQL_PASSWORD }}'
 
-ECOMMERCE_DATABASES:
-  # rw user
-  default:
-    ENGINE: 'django.db.backends.mysql'
-    NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
-    USER: 'ecomm001'
-    PASSWORD: 'password'
-    HOST: 'db.{{ DOCKER_TLD  }}'
-    PORT: '3306'
-    ATOMIC_REQUESTS: true
-    CONN_MAX_AGE: 60
+# NOTE: Theming requires downloading a theme from a separate Git repo. This repo (edx/edx-themes) is private for
+# edX.org. In order to build an image with these themes, you must update COMMON_GIT_IDENTITY to an SSH key with access
+# to the private repo. Otherwise, the sample-themes repository, which has no ecommerce themes, will be downloaded if
+# comprehensive theming is enabled.
+ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING: false
+#THEMES_GIT_IDENTITY: "{{ COMMON_GIT_IDENTITY }}"
+#THEMES_GIT_PROTOCOL: "ssh"
+#THEMES_GIT_MIRROR: "github.com"
+#THEMES_GIT_PATH: "edx"
+#THEMES_REPO: "edx-themes.git"
+
+ECOMMERCE_DATABASE_HOST: 'edx.devstack.mysql'
+ECOMMERCE_DJANGO_SETTINGS_MODULE: 'ecommerce.settings.devstack'
+ECOMMERCE_GUNICORN_EXTRA: '--reload'
+ECOMMERCE_MEMCACHE: ['edx.devstack.memcached:11211']
+ECOMMERCE_ECOMMERCE_URL_ROOT: 'http://localhost:18130'
+ECOMMERCE_LMS_URL_ROOT: 'http://edx.devstack.lms:18000'
+ECOMMERCE_DISCOVERY_SERVICE_URL: 'http://edx.devstack.discovery:18381'
+
+edx_django_service_is_devstack: true
+
+# NOTE: The creation of demo data requires database access,
+# which we don't have when making new images.
+ecommerce_create_demo_data: false

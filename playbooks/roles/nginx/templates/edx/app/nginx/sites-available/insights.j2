@@ -4,6 +4,19 @@ upstream insights_app_server {
     {% endfor %}
 }
 
+# The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+# but only the server name (e.g. https://www.example.com).
+# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+#
+# Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+# of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+map $http_origin $cors_origin {
+  default "null";
+{% for host in INSIGHTS_CORS_ORIGIN_WHITELIST %}
+  "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+{% endfor %}
+}
+
 server {
   listen {{ INSIGHTS_NGINX_PORT }} default_server;
 
@@ -14,12 +27,22 @@ server {
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
   {% endif %}
 
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ insights_service_name }};
+    add_header Cache-Control "max-age=31536000";
+    add_header 'Access-Control-Allow-Origin' $cors_origin;
+    add_header 'Access-Control-Allow-Methods' 'HEAD, GET, OPTIONS';
+
+    # Inform downstream caches to take certain headers into account when reading/writing to cache.
+    add_header 'Vary' 'Accept-Encoding,Origin';
+
     try_files /staticfiles/$file =404;
   }
 

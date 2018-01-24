@@ -10,18 +10,33 @@
     msg: "MMSAPIKEY is required"
   when: MMSAPIKEY is not defined 
 
-- name: download mongo mms agent
+- name: download trusty mongo mms agent
   get_url:
     url: "{{ base_url }}/{{ item.dir }}/{{ item.agent }}_{{ item.version }}_{{ pkg_arch }}.{{ pkg_format }}"
     dest: "/tmp/{{ item.agent }}-{{ item.version }}.{{ pkg_format }}"
   register: download_mms_deb
   with_items: "{{ agents }}"
+  when: ansible_distribution_release == 'trusty'
+
+- name: download xenial mongo mms agent
+  get_url:
+    url: "{{ base_url }}/{{ item.dir }}/{{ item.agent }}_{{ item.version }}_{{ pkg_arch }}.{{ os_version }}.{{ pkg_format }}"
+    dest: "/tmp/{{ item.agent }}-{{ item.version }}.{{ pkg_format }}"
+  register: download_mms_deb
+  with_items: "{{ agents }}"
+  when: ansible_distribution_release == 'xenial'
   
 - name: install mongo mms agent
   apt:
     deb: "/tmp/{{ item.agent }}-{{ item.version }}.deb"
   when: download_mms_deb.changed
-  notify: restart mms
+  with_items: "{{ agents }}"
+
+- name: add group ID to monitoring-agent.config
+  lineinfile:
+    dest: "{{ item.config }}"
+    regexp: "^mmsGroupId="
+    line: "mmsGroupId={{ MMSGROUPID }}"
   with_items: "{{ agents }}"
 
 - name: add key to monitoring-agent.config
@@ -29,10 +44,9 @@
     dest: "{{ item.config }}"
     regexp: "^mmsApiKey="
     line: "mmsApiKey={{ MMSAPIKEY }}"
-  notify: restart mms
   with_items: "{{ agents }}"
 
-- name: start mms service
+- name: start mms service 
   service:
     name: "{{ item.agent }}"
     state: started

@@ -38,8 +38,11 @@ error_page {{ k }} {{ v }};
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+  
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
   {% endif %}
 
   # Prevent invalid display courseware in IE 10+ with high privacy settings
@@ -104,9 +107,6 @@ error_page {{ k }} {{ v }};
 
     proxy_redirect off;
     proxy_pass http://cms-backend;
-
-    {{ NGINX_EDXAPP_CMS_APP_EXTRA }}
-
     {% if NGINX_CMS_PROXY_CONNECT_TIMEOUT %}
     proxy_connect_timeout {{ NGINX_CMS_PROXY_CONNECT_TIMEOUT }};
     {% endif %}
@@ -134,6 +134,13 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
+    try_files $uri @proxy_to_cms_app;
+  }
+
+  # The api is accessed using OAUTH2 which
+  # uses the authorization header so we can't have
+  # basic auth on it as well.
+  location /api {
     try_files $uri @proxy_to_cms_app;
   }
 

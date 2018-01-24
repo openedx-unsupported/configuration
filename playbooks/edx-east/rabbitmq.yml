@@ -12,7 +12,7 @@
     elb_pre_post: true
     # Number of instances to operate on at a time
     serial_count: 1
-    CLUSTER_NAME: 'commoncluster'
+    CLUSTER_NAME: 'rabbitmq'
   serial: "{{ serial_count }}"
   pre_tasks:
     - action: ec2_facts
@@ -31,7 +31,17 @@
       when: elb_pre_post
   roles:
     - aws
+    - role: automated
+      AUTOMATED_USERS: "{{ RABBIT_AUTOMATED_USERS | default({}) }}"
+      tags: 
+        - automated_role
     - rabbitmq
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
   post_tasks:
     - debug:
         var: ansible_ec2_instance_id

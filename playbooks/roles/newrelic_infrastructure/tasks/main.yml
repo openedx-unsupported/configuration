@@ -1,0 +1,65 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# newrelic_infrastructure
+#
+# Overview:
+#
+# Installs the New Relic Infrastructure service https://newrelic.com/infrastructure
+##
+# Dependencies:
+#
+# Example play:
+#   roles:
+#   - common
+#   - newrelic_infrastructure
+#
+#
+- name: install license key
+  template:
+    src: etc/newrelic-infra.j2
+    dest: /etc/newrelic-infra.yml
+    mode: 0600
+  register: license_key_file
+  tags:
+    - install
+    - install:configuration
+
+- name: Add apt key for New Relic Infrastructure
+  apt_key:
+    url: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_KEY_URL }}"
+    state: present
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Install apt repository for New Relic Infrastructure
+  apt_repository:
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO }}"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Install New Relic Infrastructure agent
+  apt:
+    name: "newrelic-infra"
+  tags:
+    - install
+    - install:code
+
+- name: Restart the infrastructure agent if the license key changes
+  service:
+    name: newrelic-infra
+    state: restarted
+  when: license_key_file.changed
+  tags:
+    - install
+    - install:configuration

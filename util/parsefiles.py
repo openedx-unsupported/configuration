@@ -9,8 +9,10 @@ import argparse
 
 TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
 DOCKER_PATH_ROOT = pathlib2.Path(TRAVIS_BUILD_DIR, "docker", "build")
+DOCKER_PLAYS_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "docker", "plays")
 CONFIG_FILE_PATH = pathlib2.Path(TRAVIS_BUILD_DIR, "util", "parsefiles_config.yml")
 LOGGER = logging.getLogger(__name__)
+
 
 def build_graph(git_dir, roles_dirs, aws_play_dirs, docker_play_dirs):
     """
@@ -149,6 +151,7 @@ def _open_yaml_file(file_str):
             LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
 
+
 def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
     """
     Converts change set consisting of a number of files to the roles that they represent/contain.
@@ -181,8 +184,9 @@ def change_set_to_roles(files, git_dir, roles_dirs, playbooks_dirs, graph):
                 items.add(_get_role_name_from_file(file_path))
     return items
 
+
 def get_plays(files, git_dir, playbooks_dirs):
-    """ 
+    """
     Determines which files in the change set are aws playbooks
 
     files: A list of files modified by a commit range.
@@ -210,7 +214,8 @@ def get_plays(files, git_dir, playbooks_dirs):
                 plays.add(_get_playbook_name_from_file(file_path))
 
     return plays
-                
+
+
 def _get_playbook_name_from_file(path):
     """
     Gets name of playbook from the filepath, which is the last part of the filepath.
@@ -220,7 +225,7 @@ def _get_playbook_name_from_file(path):
     """
     # get last part of filepath
     return path.stem
-   
+
 
 def _get_role_name_from_file(path):
     """
@@ -234,6 +239,7 @@ def _get_role_name_from_file(path):
 
     # name of role is the next part of the file path after "roles"
     return dirs[dirs.index("roles")+1]
+
 
 def get_dependencies(roles, graph):
     """
@@ -256,6 +262,7 @@ def get_dependencies(roles, graph):
         items |= {dependent.name for dependent in dependents}
 
     return items
+
 
 def get_docker_plays(roles, graph):
     """Gets all docker plays that contain at least role in common with roles."""
@@ -291,6 +298,7 @@ def get_docker_plays(roles, graph):
 
     return items
 
+
 def filter_docker_plays(plays, repo_path):
     """Filters out docker plays that do not have a Dockerfile."""
 
@@ -305,6 +313,7 @@ def filter_docker_plays(plays, repo_path):
             LOGGER.warning("covered playbook '%s' does not have Dockerfile." % play)
 
     return items
+
 
 def _get_role_name(role):
     """
@@ -329,6 +338,66 @@ def _get_role_name(role):
     else:
         LOGGER.warning("role %s could not be resolved to a role name." % role)
         return None
+
+
+def _get_modified_dockerfiles(files, git_dir):
+    """
+    Return changed files under docker/build directory
+    :param files:
+    :param git_dir:
+    :return:
+    """
+    items = set()
+    candidate_files = {f for f in DOCKER_PATH_ROOT.glob("**/*")}
+    for f in files:
+        file_path = pathlib2.Path(git_dir, f)
+        if file_path in candidate_files:
+            play = items.add(_get_play_name(file_path))
+
+            if play is not None:
+                items.add(play)
+
+    return items
+
+
+def get_modified_dockerfiles_plays(files, git_dir):
+    """
+    Return changed files under docker/plays directory
+    :param files:
+    :param git_dir:
+    :return:
+    """
+    items = set()
+    candidate_files = {f for f in DOCKER_PLAYS_PATH.glob("*.yml")}
+    for f in files:
+        file_path = pathlib2.Path(git_dir, f)
+        if file_path in candidate_files:
+            items.add(_get_playbook_name_from_file(file_path))
+    return items
+
+
+def _get_play_name(path):
+
+    """
+    Gets name of play from the filepath, which is the token
+    after either "docker/build" in the file path.
+
+    Input:
+    path: A path to the changed file under docker/build dir
+    """
+
+    # attempt to extract Docker image name from file path; splits the path of a file over
+    # "docker/build/", because the first token after "docker/build/" is the image name
+    suffix = (str(path)).split(str(os.path.join('docker', 'build', '')))
+
+    # if file path contains "docker/build/"
+    if len(suffix) > 1:
+        # split suffix over separators to file path components separately
+        suffix_parts = suffix[1].split(os.sep)
+        # first token will be image name; <repo>/docker/build/<image>/...
+        return suffix_parts[0]
+    return None
+
 
 def arg_parse():
 
@@ -387,5 +456,12 @@ if __name__ == '__main__':
     # filter out docker plays without a Dockerfile
     docker_plays = filter_docker_plays(docker_plays, TRAVIS_BUILD_DIR)
 
-    # prints Docker plays
-    print " ".join(str(play) for play in docker_plays)
+    # Add playbooks to the list whose docker file has been modified
+    modified_docker_files = _get_modified_dockerfiles(change_set, TRAVIS_BUILD_DIR)
+
+    # Add plays to the list which got changed in docker/plays directory
+    docker_plays_dir = get_modified_dockerfiles_plays(change_set, TRAVIS_BUILD_DIR)
+
+    all_plays = set(set(docker_plays) | set( modified_docker_files) | set(docker_plays_dir))
+
+    print " ".join(all_plays)

@@ -44,7 +44,7 @@
   get_url:
     dest: /tmp/{{ item.name }}
     url: "{{ item.url }}"
-  register: download_deb
+  register: download_trusty_deb
   with_items: "{{ trusty_browser_s3_deb_pkgs }}"
   when: ansible_distribution_release == 'trusty'
   tags:
@@ -55,7 +55,7 @@
   get_url:
     dest: /tmp/{{ item.name }}
     url: "{{ item.url }}"
-  register: download_deb
+  register: download_xenial_deb
   with_items: "{{ browser_s3_deb_pkgs }}"
   when: ansible_distribution_release == 'xenial'
   tags:
@@ -65,7 +65,7 @@
 - name: install trusty browser packages
   shell: gdebi -nq /tmp/{{ item.name }}
   with_items: "{{ trusty_browser_s3_deb_pkgs }}"
-  when: download_deb.changed and
+  when: download_trusty_deb.changed and
         ansible_distribution_release == 'trusty'
   tags:
     - install
@@ -74,7 +74,7 @@
 - name: install xenial browser packages
   shell: gdebi -nq /tmp/{{ item.name }}
   with_items: "{{ browser_s3_deb_pkgs }}"
-  when: download_deb.changed and
+  when: download_xenial_deb.changed and
         ansible_distribution_release == 'xenial'
   tags:
     - install
@@ -176,12 +176,18 @@
     owner: root
     group: root
   when: ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:configuration
 
 - name: start xvfb
   service:
     name: xvfb
     state: restarted
   when: ansible_distribution_release == 'trusty'
+  tags:
+    - manage
+    - manage:start
 
 # Use systemd for xvfb in 16.04
 - name: create xvfb systemd service
@@ -202,5 +208,5 @@
     state: started
   when: ansible_distribution_release == 'xenial'
   tags:
-    - install
-    - install:configuration
+    - manage
+    - manage:start

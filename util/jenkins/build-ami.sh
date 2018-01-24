@@ -88,14 +88,6 @@ if [[ ! -z "$configurationprivaterepo" ]]; then
   fi
 fi
 
-configurationinternal_params=""
-if [[ ! -z "$configurationinternalrepo" ]]; then
-  configurationinternal_params="--configuration-internal-repo $configurationinternalrepo"
-  if [[ ! -z "$configurationinternalversion" ]]; then
-    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configurationinternalversion"
-  fi
-fi
-
 hipchat_params=""
 if [[ ! -z "$hipchat_room_id" ]] && [[ ! -z "$hipchat_api_token"  ]]; then
   hipchat_params="--hipchat-room-id $hipchat_room_id --hipchat-api-token $hipchat_api_token"
@@ -135,4 +127,16 @@ cd util/vpc-tools/
 
 echo "$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
 cat /var/tmp/$BUILD_ID-extra-vars.yml
+
+configuration_internal_var="configuration_internal_version"
+configurationinternalversion=$(grep "$configuration_internal_var" "/var/tmp/$BUILD_ID-extra-vars.yml" | awk -F: '{print $2}')
+
+configurationinternal_params=""
+if [[ ! -z "$configurationinternalrepo" ]]; then
+  configurationinternal_params="--configuration-internal-repo $configurationinternalrepo"
+  if [[ ! -z "$configurationinternalversion" ]]; then
+    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configurationinternalversion"
+  fi
+fi
+
 python -u abbey.py -p $play -t m3.large -d $deployment -e $environment $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $configurationinternal_params $hipchat_params $cleanup_params $notification_params $datadog_params $region_params $identity_params

@@ -20,12 +20,19 @@
   apt:
     name: "{{ item }}"
     state: present
+    update_cache: yes
   with_items: "{{ notifier_debian_pkgs }}"
+  tags:
+    - "install"
+    - "install:system-requirements"
 
 - name: Check if incommon ca is installed
   command: "test -e /usr/share/ca-certificates/incommon/InCommonServerCA.crt"
   register: incommon_present
   ignore_errors: yes
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Create incommon ca directory
   file:
@@ -33,21 +40,33 @@
     state: directory
     mode: "2775"
   when: incommon_present|failed
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Retrieve incommon server CA
   get_url:
     url: "https://www.incommon.org/cert/repository/InCommonServerCA.txt"
     dest: "/usr/share/ca-certificates/incommon/InCommonServerCA.crt"
   when: incommon_present|failed
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Add InCommon ca cert
   lineinfile:
     dest: /etc/ca-certificates.conf
     regexp: 'incommon/InCommonServerCA.crt'
     line: 'incommon/InCommonServerCA.crt'
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Update ca certs globally
   shell: "update-ca-certificates"
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Create notifier user {{ notifier_user }}
   user:
@@ -56,6 +75,9 @@
     shell: /bin/false
     home: "{{ notifier_app_dir }}"
     createhome: no
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Create notifier app dir
   file:
@@ -63,9 +85,9 @@
     state: directory
     owner: "{{ notifier_user }}"
     group: "{{ common_web_group }}"
-  notify:
-    - restart notifier-scheduler
-    - restart notifier-celery-workers
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Setup the notifier env
   template:
@@ -74,6 +96,9 @@
     owner: "{{ notifier_user }}"
     group: "{{ notifier_user }}"
     mode: "0655"
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Drop a bash_profile
   copy:
@@ -81,6 +106,9 @@
     dest: "{{ notifier_app_dir }}/.bash_profile"
     owner: "{{ notifier_user }}"
     group: "{{ notifier_user }}"
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Ensure .bashrc exists
   file:
@@ -88,18 +116,27 @@
     state: touch
   become: true
   become_user: "{{ notifier_user }}"
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Add source of notifier_env to .bashrc
   lineinfile:
     dest: "{{ notifier_app_dir }}/.bashrc"
     regexp: '. {{ notifier_app_dir }}/notifier_env'
     line: '. {{ notifier_app_dir }}/notifier_env'
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Add source venv to .bashrc
   lineinfile:
     dest: "{{ notifier_app_dir }}/.bashrc"
     regexp: '. {{ NOTIFIER_VENV_DIR }}/bin/activate'
     line: '. {{ NOTIFIER_VENV_DIR }}/bin/activate'
+  tags:
+    - "install"
+    - "install:base"
 
 - name: Create desired directories
   file:
@@ -113,6 +150,17 @@
     - { path: '{{ notifier_app_dir }}/bin', owner: '{{ notifier_user }}', group: '{{ notifier_user }}', mode: '2775' }
     - { path: '{{ notifier_app_dir }}/.ssh', owner: '{{ notifier_user }}', group: '{{ notifier_user }}', mode: '2700' }
     - { path: '{{ COMMON_LOG_DIR }}/notifier', owner: 'syslog', group: 'syslog', mode: '0664' }
+  tags:
+    - "install"
+    - "install:base"
+
+- name: Copy the boto file
+  template:
+    src: "boto.j2"
+    dest: "{{ notifier_app_dir }}/.boto"
+    owner: "{{ notifier_user }}"
+    group: "{{ NOTIFIER_WEB_USER }}"
+    mode: 0644
 
 - name: Write supervisord wrapper for celery workers and scheduler
   template:
@@ -122,6 +170,9 @@
   become_user: "{{ notifier_user }}"
   with_items:
     - { src: 'notifier-scheduler-supervisor.sh.j2', dest: '{{ notifier_app_dir }}/notifier-scheduler-supervisor.sh' }
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: Write supervisord config for celery workers and scheduler
   template:
@@ -132,6 +183,9 @@
   with_items:
     - { src: 'edx/app/supervisor/conf.d/notifier-celery-workers.conf.j2', dest: '{{ supervisor_available_dir }}/notifier-celery-workers.conf' }
     - { src: 'edx/app/supervisor/conf.d/notifier-scheduler.conf.j2', dest: '{{ supervisor_available_dir }}/notifier-scheduler.conf' }
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: Enable supervisord config for celery workers
   file:
@@ -140,9 +194,10 @@
     state: link
     force: yes
   become_user: "{{ supervisor_user }}"
-  notify:
-    - restart notifier-celery-workers
   when: not disable_edx_services
+  tags:
+    - "install"
+    - "install:configuration"
 
 - name: Enable supervisord config for scheduler
   file:
@@ -151,9 +206,10 @@
     state: link
     force: yes
   become_user: "{{ supervisor_user }}"
-  notify:
-    - restart notifier-scheduler
   when: not disable_edx_services
+  tags:
+    - "install"
+    - "install:configuration"
 
 - include: deploy.yml
   tags:

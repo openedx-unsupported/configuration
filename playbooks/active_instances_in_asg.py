@@ -58,15 +58,20 @@ class ActiveInventory():
                     active_instances = [instance['InstanceId'] for instance in instances['InstanceStates'] if instance['State'] == 'InService']
                     for instance_id in active_instances:
                         active_groups[instances_to_groups[instance_id]] = 1 
+
+            # If we found no active groups, because there are no ELBs (edxapp workers normally)
+            elbs = list(chain.from_iterable([group['LoadBalancerNames'] for group in matching_groups]))
+            if not (active_groups or elbs):
+                # This implies we're in a worker cluster since we have no ELB and we didn't find an active group above
+                for group in matching_groups:
+                    # Asgard marks a deleting ASG with SuspendedProcesses
+                    # If the ASG doesn't have those, then it's "Active" and a worker since there was no ELB above
+                    if not {'Launch','AddToLoadBalancer'} <= {i['ProcessName'] for i in group['SuspendedProcesses']}:
+                        active_groups[group['AutoScalingGroupName']] = 1
+
             if len(active_groups) > 1:
                 # When we have more than a single active ASG, we need to bail out as we don't know what ASG to pick an instance from
                 print("Multiple active ASGs - unable to choose an instance", file=sys.stderr)
-                return
-            # If we found no active groups, because there are no ELBs (edxapp workers normally)
-            # print a sensible reason why we failed
-            elbs = list(chain.from_iterable([group['LoadBalancerNames'] for group in matching_groups]))
-            if not (active_groups or elbs):
-                print("Multiple ASGs and no ELB - unable to choose an instance", file=sys.stderr)
                 return
         else:
             active_groups = { g['AutoScalingGroupName']: 1 for g in matching_groups }

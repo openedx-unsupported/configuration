@@ -11,7 +11,7 @@
 # Defaults for role hadoop_common
 #
 
-HADOOP_COMMON_VERSION: 2.3.0
+HADOOP_COMMON_VERSION: 2.7.2
 HADOOP_COMMON_USER_HOME: "{{ COMMON_APP_DIR }}/hadoop"
 HADOOP_COMMON_HOME: "{{ HADOOP_COMMON_USER_HOME }}/hadoop"
 HADOOP_COMMON_DATA: "{{ COMMON_DATA_DIR }}/hadoop"
@@ -31,25 +31,27 @@ hadoop_common_group: hadoop
 hadoop_common_temporary_dir: /var/tmp
 hadoop_common_dist:
   filename: "hadoop-{{ HADOOP_COMMON_VERSION }}.tar.gz"
-  url: "https://archive.apache.org/dist/hadoop/core/hadoop-{{ HADOOP_COMMON_VERSION }}/hadoop-{{ HADOOP_COMMON_VERSION }}.tar.gz"
-  sha256sum: 3fad58b525a47cf74458d0996564a2151c5a28baa1f92383e7932774deef5023
+  url: "https://archive.apache.org/dist/hadoop/common/hadoop-{{ HADOOP_COMMON_VERSION }}/hadoop-{{ HADOOP_COMMON_VERSION }}.tar.gz"
+  sha256sum: 49AD740F85D27FA39E744EB9E3B1D9442AE63D62720F0AABDAE7AA9A718B03F7
+
 hadoop_common_protobuf_dist:
   filename: "protobuf-{{ HADOOP_COMMON_PROTOBUF_VERSION }}.tar.gz"
   url: "https://github.com/google/protobuf/releases/download/v{{ HADOOP_COMMON_PROTOBUF_VERSION }}/protobuf-{{ HADOOP_COMMON_PROTOBUF_VERSION }}.tar.gz"
   sha256sum: c55aa3dc538e6fd5eaf732f4eb6b98bdcb7cedb5b91d3b5bdcf29c98c293f58e
+
 hadoop_common_native_dist:
-  filename: "release-{{ HADOOP_COMMON_VERSION }}.tar.gz"
-  url: "https://github.com/apache/hadoop-common/archive/release-{{ HADOOP_COMMON_VERSION }}.tar.gz"
-  sha256sum: a8e1b49d4e891255d465e9449346ac7fb259bb35dce07d9f0df3b46fac3e9bd0
+  filename: "hadoop-{{ HADOOP_COMMON_VERSION }}-src.tar.gz"
+  url: "https://archive.apache.org/dist/hadoop/common/hadoop-{{ HADOOP_COMMON_VERSION }}/hadoop-{{ HADOOP_COMMON_VERSION }}-src.tar.gz"
+  sha256sum: 7d48e61b5464a76543fecf5655d06215cf8674d248b28bc74f613bc8aa047d33
+
 hadoop_common_java_home: "{{ oraclejdk_link }}"
 hadoop_common_env: "{{ HADOOP_COMMON_HOME }}/hadoop_env"
 
 #
 # OS packages
 #
-
 hadoop_common_debian_pkgs:
-  - llvm-gcc
+  - gcc
   - build-essential
   - make
   - cmake
@@ -118,3 +120,13 @@ mapred_site_config: {}
 yarn_site_config: {}
 HADOOP_CORE_SITE_EXTRA_CONFIG: {}
 HDFS_SITE_EXTRA_CONFIG: {}
+
+# Define all the services here, assuming we have a single-node Hadoop
+# cluster.
+hadoop_common_services:
+  - hdfs-namenode
+  - hdfs-datanode
+  - yarn-resourcemanager
+  - yarn-nodemanager
+  - yarn-proxyserver
+  - mapreduce-historyserver

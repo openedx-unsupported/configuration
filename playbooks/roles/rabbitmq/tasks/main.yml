@@ -2,37 +2,81 @@
 # It is recommended that this role be played with serial set to 1 because
 # There is a bug with initializing multiple nodes in the HA cluster at once
 # http://rabbitmq.1065348.n5.nabble.com/Rabbitmq-boot-failure-with-quot-tables-not-present-quot-td24494.html
-
-- name: Install python-software-properties if debian
+#
+- name: install packages needed by rabbit
   apt:
     name: "{{ item }}"
     state: present
+    install_recommends: yes
+    force: yes
+    update_cache: yes
   with_items: "{{ rabbitmq_debian_pkgs }}"
+  tags:
+    - install
+    - install:app-requirements
 
-- name: Fetch the rabbitmq server deb
-  get_url:
-    url: "{{ rabbitmq_pkg_url }}"
-    dest: "/var/tmp/{{ rabbitmq_pkg_url | basename }}"
+- name: trust rabbit's packagecloud repository
+  apt_key:
+    url: "{{ rabbitmq_repo_key }}"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
 
+- name: add rabbit's packagecloud repository
+  apt_repository:
+    repo: "{{ rabbitmq_repo }}"
+    state: present
+    update_cache: yes
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+# If we don't set pipefail first, `||` will be looking at the exit code of the last command in the pipe
 - name: Check if rabbit is installed
-  shell: 'dpkg -s rabbitmq-server >/dev/null 2>&1 || echo "not installed"'
-  register: is_installed
-
-- name: Install rabbit package using gdebi
-  shell: "gdebi --n {{ rabbitmq_pkg_url|basename }}"
+  shell: |
+    set -o pipefail
+    dpkg -s rabbitmq-server | grep Version | sed -r 's/.*: (.*)/\1/' || echo 'not installed'
   args:
-    chdir: /var/tmp
-  when: is_installed.stdout is defined and is_installed.stdout == "not installed"
+    executable: /bin/bash
+  register: installed_version
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+- name: Warn if wrong rabbit version is installed
+  debug: msg="Expected rabbitmq version {{ RABBITMQ_VERSION }}, found {{ installed_version.stdout }} - will not upgrade in place"
+  when: installed_version.stdout is defined and installed_version.stdout not in [RABBITMQ_VERSION, 'not installed']
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+- name: Install rabbit package
+  apt:
+    name: "rabbitmq-server={{ RABBITMQ_VERSION }}"
+    state: present
+    force: yes
+    update_cache: yes
+  when: installed_version.stdout is defined and installed_version.stdout == "not installed"
+  tags:
+    - "install"
+    - "install:app-requirements"
 
 - name: Stop rabbit cluster
   service:
     name: rabbitmq-server
     state: stopped
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 # In case there are lingering processes, ignore errors
 # silently
 - name: Send sigterm to any running rabbitmq processes
   shell: "pkill -u rabbitmq || true"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Create rabbitmq edx directories
   file:
@@ -43,6 +87,9 @@
   with_items:
     - "{{ rabbitmq_app_dir }}"
     - "{{ rabbitmq_log_dir }}"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Add queue monitoring script
   template:
@@ -52,6 +99,8 @@
     group: "{{ rabbitmq_group }}"
     mode: "0755"
   tags:
+    - "install"
+    - "install:app-configuration"
     - "monitoring"
 
 - name: Add RabbitMQ memory usage script
@@ -62,20 +111,26 @@
     group: "{{ rabbitmq_group }}"
     mode: "0775"
   tags:
+    - "install"
+    - "install:app-configuration"
     - "monitoring"
 
 - name: Set up a cron job to run queue script
   cron:
     name: "log-queue-lenghts"
-    job: "{{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh >/dev/null 2>&1"
+    job: /usr/bin/timeout {{ rabbitmq_cron_timeout }} {{ rabbitmq_app_dir }}/log-rabbitmq-queues.sh >/dev/null 2>&1
   tags:
+    - "install"
+    - "install:app-configuration"
     - "monitoring"
 
 - name: Set up a cron job to run the script
   cron:
     name: "log-rabbitmq-memory-usage"
-    job: "{{ rabbitmq_app_dir }}/log-rabbitmq-memory.sh >/dev/null 2>&1"
+    job: /usr/bin/timeout {{ rabbitmq_cron_timeout }} {{ rabbitmq_app_dir }}/log-rabbitmq-memory.sh >/dev/null 2>&1
   tags:
+    - "install"
+    - "install:app-configuration"
     - "monitoring"
 
 - name: install logrotate configuration
@@ -84,7 +139,7 @@
     dest: /etc/logrotate.d/rabbitmq
   tags:
     - "install"
-    - "install:configuration"
+    - "install:app-configuration"
     - "logrotate"
 
 # Defaulting to /var/lib/rabbitmq
@@ -95,6 +150,9 @@
     owner: rabbitmq
     group: rabbitmq
     mode: "0755"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Add rabbitmq erlang cookie
   template:
@@ -104,6 +162,9 @@
     group: rabbitmq
     mode: "0400"
   register: erlang_cookie
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 # Defaulting to /etc/rabbitmq
 - name: Create rabbitmq config directory
@@ -113,6 +174,9 @@
     owner: root
     group: root
     mode: "0755"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Add rabbitmq environment configuration
   template:
@@ -121,6 +185,9 @@
     owner: root
     group: root
     mode: "0644"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Add rabbitmq cluster configuration
   template:
@@ -130,12 +197,18 @@
     group: root
     mode: "0644"
   register: cluster_configuration
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Install plugins
   rabbitmq_plugin:
     names: "{{ item }}"
     state: enabled
   with_items: "{{ rabbitmq_plugins }}"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 # When rabbitmq starts up it creates a folder of metadata at '/var/lib/rabbitmq/mnesia'.
 # This folder should be deleted before clustering is setup because it retains data
@@ -145,16 +218,25 @@
     path: "{{ rabbitmq_mnesia_folder }}"
     state: absent
   when: erlang_cookie.changed or cluster_configuration.changed or rabbitmq_refresh
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Start rabbit nodes
   service:
     name: rabbitmq-server
     state: started
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Wait for rabbit to start
   wait_for:
     port: "{{ rabbitmq_management_port }}"
     delay: 2
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Remove guest user
   rabbitmq_user:
@@ -163,6 +245,8 @@
   tags:
     - users
     - maintenance
+    - "manage"
+    - "manage:app-users"
 
 - name: Add vhosts
   rabbitmq_vhost:
@@ -172,32 +256,51 @@
   tags:
     - vhosts
     - maintenance
+    - "install"
+    - "install:app-configuration"
+
+- set_fact:
+    permissions: "{{ permissions|default([])+[{'vhost':item,'configure_priv':'.*','read_priv':'.*','write_priv':'.*'}] }}"
+  with_items:
+    - "{{ RABBITMQ_VHOSTS }}"
+  tags: 
+    - users
+    - maintenance
+    - "manage"
+    - "manage:app-users"
 
 - name: Add admin users
   rabbitmq_user:
-    user: "{{ item[0].name }}"
-    password: "{{ item[0].password }}"
-    read_priv: '.*'
-    write_priv: '.*'
-    configure_priv: '.*'
+    user: "{{ item.name }}"
+    password: "{{ item.password }}"
     tags: "administrator"
-    state: present
-    vhost: "{{ item[1] }}"
-  with_nested:
+    state: "{{ item.state | default('present') }}"
+    permissions: "{{ permissions }}"
+  with_items:
     - "{{rabbitmq_auth_config.admins}}"
-    - "{{ RABBITMQ_VHOSTS }}"
   when: "'admins' in rabbitmq_auth_config"
   tags:
     - users
     - maintenance
+    - "manage"
+    - "manage:app-users"
 
 - name: Make queues mirrored
-  shell: "/usr/sbin/rabbitmqctl -p {{ item }} set_policy HA \"\" '{\"ha-mode\":\"all\",\"ha-sync-mode\":\"automatic\"}'"
-  when: RABBITMQ_CLUSTERED_HOSTS|length > 1
+  rabbitmq_policy:
+    name: HA
+    pattern: .*
+    vhost: "{{ item }}"
+  args:
+    tags:
+      ha-mode: all
+      ha-sync-mode: automatic
   with_items: "{{ RABBITMQ_VHOSTS }}"
+  when: RABBITMQ_CLUSTERED_HOSTS|length > 1
   tags:
     - ha
     - maintenance
+    - "install"
+    - "install:app-configuration"
 
 #
 # Depends upon the management plugin
@@ -206,6 +309,9 @@
   get_url:
     url: "http://localhost:{{ rabbitmq_management_port }}/cli/rabbitmqadmin"
     dest: "/usr/local/bin/rabbitmqadmin"
+  tags:
+    - "install"
+    - "install:app-configuration"
 
 - name: Ensure rabbitmqadmin attributes
   file:
@@ -213,3 +319,12 @@
     owner: root
     group: root
     mode: "0655"
+  tags:
+    - "install"
+    - "install:app-configuration"
+
+- name: Set cluster name
+  command: "/usr/sbin/rabbitmqctl set_cluster_name  {{ RABBITMQ_CLUSTER_NAME }}"
+  tags:
+    - "install"
+    - "install:app-configuration"

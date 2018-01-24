@@ -15,13 +15,10 @@ INSIGHTS_LMS_BASE: 'http://127.0.0.1:8000'
 INSIGHTS_CMS_BASE: 'http://127.0.0.1:8010'
 INSIGHTS_BASE_URL: 'http://127.0.0.1:8110'
 INSIGHTS_MEMCACHE: [ '127.0.0.1:11211' ]
-INSIGHTS_FEEDBACK_EMAIL: 'dashboard@example.com'
 INSIGHTS_MKTG_BASE: 'http://example.com'
 INSIGHTS_LOGOUT_URL: '{{ INSIGHTS_MKTG_BASE }}/accounts/logout/'
 INSIGHTS_PRIVACY_POLICY_URL: '{{ INSIGHTS_MKTG_BASE }}/privacy-policy'
 INSIGHTS_TERMS_OF_SERVICE_URL: '{{ INSIGHTS_MKTG_BASE }}/terms-service'
-# Delete the 'INSIGHTS_SUPPORT_URL' once the release will out for 'INSIGHTS_SUPPORT_EMAIL'
-INSIGHTS_SUPPORT_URL: ''
 INSIGHTS_SUPPORT_EMAIL: ''
 INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL: '{{ INSIGHTS_LMS_BASE }}/course'
 INSIGHTS_OAUTH2_SECRET: 'secret'
@@ -54,17 +51,21 @@ INSIGHTS_THEME_SCSS: 'sass/themes/open-edx.scss'
 INSIGHTS_RESEARCH_URL: 'https://www.edx.org/research-pedagogy'
 INSIGHTS_OPEN_SOURCE_URL: 'http://set-me-please'
 
+INSIGHTS_DOMAIN: 'insights'
+
 # Comma-delimited list of field names to include in the Learner List CSV download
 # e.g., "username,segments,cohort,engagements.videos_viewed,last_updated"
 # Default (null) includes all available fields, in alphabetical order
 INSIGHTS_LEARNER_API_LIST_DOWNLOAD_FIELDS: !!null
 
 INSIGHTS_DATABASE_NAME: 'dashboard'
-
 INSIGHTS_DATABASE_USER: rosencrantz
 INSIGHTS_DATABASE_PASSWORD: secret
 INSIGHTS_DATABASE_HOST: 127.0.0.1
 INSIGHTS_DATABASE_PORT: 3306
+INSIGHTS_MYSQL_OPTIONS:
+  connect_timeout: 10
+  init_command: "SET sql_mode='STRICT_TRANS_TABLES'"
 
 INSIGHTS_DATABASES:
   # rw user
@@ -75,20 +76,27 @@ INSIGHTS_DATABASES:
     PASSWORD: '{{ INSIGHTS_DATABASE_PASSWORD }}'
     HOST: "{{ INSIGHTS_DATABASE_HOST }}"
     PORT: '{{ INSIGHTS_DATABASE_PORT }}'
+    OPTIONS: "{{ INSIGHTS_MYSQL_OPTIONS }}"
 
 INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL: "URL_FOR_LMS_COURSE_LIST_PAGE"
+
+INSIGHTS_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+INSIGHTS_CDN_DOMAIN: !!null
+
+INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA: []
+INSIGHTS_CORS_ORIGIN_WHITELIST_DEFAULT:
+  - "{{ INSIGHTS_DOMAIN }}"
+INSIGHTS_CORS_ORIGIN_WHITELIST: "{{ INSIGHTS_CORS_ORIGIN_WHITELIST_DEFAULT + INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA }}"
 
 #
 # This block of config is dropped into /edx/etc/insights.yml
 # and is read in by analytics_dashboard/settings/production.py
 INSIGHTS_CONFIG:
-  # Delete the 'SUPPORT_URL' once the release will out for 'SUPPORT_EMAIL'
-  SUPPORT_URL: '{{ INSIGHTS_SUPPORT_URL }}'
   SUPPORT_EMAIL: '{{ INSIGHTS_SUPPORT_EMAIL }}'
   DOCUMENTATION_LOAD_ERROR_URL: '{{ INSIGHTS_DOC_BASE }}/Reference.html#error-conditions'
   SEGMENT_IO_KEY: '{{ INSIGHTS_SEGMENT_IO_KEY }}'
   SEGMENT_IGNORE_EMAIL_REGEX: '{{ INSIGHTS_SEGMENT_IGNORE_EMAIL_REGEX }}'
-  FEEDBACK_EMAIL: '{{ INSIGHTS_FEEDBACK_EMAIL }}'
   PRIVACY_POLICY_URL: '{{ INSIGHTS_PRIVACY_POLICY_URL }}'
   TERMS_OF_SERVICE_URL: '{{ INSIGHTS_TERMS_OF_SERVICE_URL }}'
   HELP_URL: '{{ INSIGHTS_DOC_BASE }}'
@@ -99,6 +107,7 @@ INSIGHTS_CONFIG:
   SOCIAL_AUTH_EDX_OIDC_KEY: '{{ INSIGHTS_OAUTH2_KEY }}'
   SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ INSIGHTS_OAUTH2_SECRET }}'
   SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
+  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
   SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ INSIGHTS_OIDC_LOGOUT_URL }}'
   # This value should be the same as SOCIAL_AUTH_EDX_OIDC_SECRET
   SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ INSIGHTS_OAUTH2_SECRET }}'
@@ -120,12 +129,9 @@ INSIGHTS_CONFIG:
   # static file config
   STATICFILES_DIRS: ["{{ insights_static_path }}"]
   STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ insights_service_name }}/staticfiles"
-  THEME_SCSS: '{{ INSIGHTS_THEME_SCSS }}'
   RESEARCH_URL: '{{ INSIGHTS_RESEARCH_URL }}'
   OPEN_SOURCE_URL: '{{ INSIGHTS_OPEN_SOURCE_URL }}'
   # db config
-  DATABASE_OPTIONS:
-    connect_timeout: 10
   DATABASES: "{{ INSIGHTS_DATABASES }}"
   LMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL }}"
   COURSE_API_URL: "{{ INSIGHTS_COURSE_API_URL }}"
@@ -136,8 +142,11 @@ INSIGHTS_CONFIG:
   SESSION_COOKIE_NAME:  "{{ INSIGHTS_SESSION_COOKIE_NAME | default('insights_sessionid') }}"
   CSRF_COOKIE_NAME: "{{ INSIGHTS_CSRF_COOKIE_NAME | default('insights_csrftoken') }}"
   LANGUAGE_COOKIE_NAME: "{{ INSIGHTS_LANGUAGE_COOKIE_NAME | default('insights_language') }}"
+  SESSION_EXPIRE_AT_BROWSER_CLOSE: "{{ INSIGHTS_SESSION_EXPIRE_AT_BROWSER_CLOSE }}"
   CMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL }}"
   LEARNER_API_LIST_DOWNLOAD_FIELDS: "{{ INSIGHTS_LEARNER_API_LIST_DOWNLOAD_FIELDS }}"
+  # CDN url to serve assets from
+  CDN_DOMAIN: "{{ INSIGHTS_CDN_DOMAIN }}"
 
 INSIGHTS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
 INSIGHTS_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
@@ -168,6 +177,7 @@ insights_environment:
   DJANGO_SETTINGS_MODULE: "analytics_dashboard.settings.production"
   ANALYTICS_DASHBOARD_CFG: "{{ COMMON_CFG_DIR  }}/{{ insights_service_name }}.yml"
   PATH: "{{ insights_nodeenv_bin }}:{{ insights_venv_dir }}/bin:{{ ansible_env.PATH }}"
+  THEME_SCSS: '{{ INSIGHTS_THEME_SCSS }}'
 
 
 insights_service_name: insights
@@ -209,7 +219,5 @@ insights_debian_pkgs:
   - gettext
 
 insights_release_specific_debian_pkgs:
-  precise:
-    - openjdk-7-jdk
   xenial:
     - openjdk-8-jdk

@@ -1,17 +1,25 @@
 Vagrant.require_version ">= 1.8.7"
+unless Vagrant.has_plugin?("vagrant-hostsupdater")
+  raise "Please install the vagrant-hostsupdater plugin by running `vagrant plugin install vagrant-hostsupdater`"
+end
 
 VAGRANTFILE_API_VERSION = "2"
 
-MEMORY = 4096
+MEMORY = 6144
 CPU_COUNT = 2
 
 # map the name of the git branch that we use for a release
 # to a name and a file path, which are used for retrieving
 # a Vagrant box from the internet.
 openedx_releases = {
+  "open-release/ginkgo.1rc1" => "ginkgo-fullstack-2017-07-14",
+  "open-release/ginkgo.1" => "ginkgo-fullstack-2017-08-14",
+
   "open-release/ficus.1rc3" => "ficus-fullstack-2017-02-07",
   "open-release/ficus.1rc4" => "ficus-fullstack-2017-02-15",
   "open-release/ficus.1" => "ficus-fullstack-2017-02-15",
+  "open-release/ficus.2" => "ficus-fullstack-2017-03-28",
+  "open-release/ficus.3" => "ficus-fullstack-2017-04-20",
 
   "open-release/eucalyptus/1rc1" => "eucalyptus-fullstack-1rc1",
   "open-release/eucalyptus.1rc2" => "eucalyptus-fullstack-2016-08-19",
@@ -36,7 +44,7 @@ openedx_releases = {
   # Cypress is deprecated and unsupported
   # Birch is deprecated and unsupported
 }
-openedx_releases.default = "ficus-fullstack-2017-02-15"
+openedx_releases.default = "ginkgo-fullstack-2017-08-14"
 
 openedx_release = ENV['OPENEDX_RELEASE']
 boxname = ENV['OPENEDX_BOXNAME']
@@ -71,10 +79,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provider :virtualbox do |vb|
     vb.customize ["modifyvm", :id, "--memory", MEMORY.to_s]
     vb.customize ["modifyvm", :id, "--cpus", CPU_COUNT.to_s]
-
-    # Allow DNS to work for Ubuntu 12.10 host
-    # http://askubuntu.com/questions/238040/how-do-i-fix-name-service-for-vagrant-client
-    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
 
     # Virtio is faster, but the box needs to have support for it.  We didn't
     # have support in the boxes before Ficus.

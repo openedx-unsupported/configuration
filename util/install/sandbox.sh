@@ -1,6 +1,6 @@
 #!/bin/bash
 ##
-## Installs the pre-requisites for running edX on a single Ubuntu 12.04
+## Installs the pre-requisites for running edX on a single Ubuntu 16.04
 ## instance.  This script is provided as a convenience and any of these
 ## steps could be executed manually.
 ##
@@ -52,9 +52,9 @@ VERSION_VARS=(
   ANALYTICS_API_VERSION
   ECOMMERCE_VERSION
   ECOMMERCE_WORKER_VERSION
+  DISCOVERY_VERSION
 )
 
-EXTRA_VARS="-e SANDBOX_ENABLE_ECOMMERCE=True $EXTRA_VARS"
 for var in ${VERSION_VARS[@]}; do
   # Each variable can be overridden by a similarly-named environment variable,
   # or OPENEDX_RELEASE, if provided.
@@ -90,4 +90,4 @@ sudo -H pip install -r requirements.txt
 ##
 ## Run the edx_sandbox.yml playbook in the configuration/playbooks directory
 ##
-cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./edx_sandbox.yml -i "localhost," $EXTRA_VARS
+cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./edx_sandbox.yml -i "localhost," $EXTRA_VARS "$@"

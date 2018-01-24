@@ -33,13 +33,6 @@
 - fail: msg="JENKINS_ADMIN_S3_PROFILE.secret_key is not defined."
   when: JENKINS_ADMIN_S3_PROFILE.secret_key is not defined
 
-- name: add admin specific apt repositories
-  apt_repository:
-    repo: "{{ item }}"
-    state: "present"
-    update_cache: "yes"
-  with_items: "{{ jenkins_admin_debian_repos }}"
-
 - name: create the scripts directory
   file:
     path: "{{ jenkins_admin_scripts_dir }}"
@@ -114,7 +107,7 @@
     group: "{{ jenkins_group }}"
     mode: 0755
     state: directory
-  with_items: jenkins_admin_jobs
+  with_items: "{{ jenkins_admin_jobs }}"
 
 - name: create admin job config files
   template:
@@ -123,12 +116,7 @@
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
     mode: 0644
-  with_items: jenkins_admin_jobs
-
-# adding chris-lea nodejs repo
-- name: add ppas for current versions of nodejs
-  apt_repository:
-    repo: "{{ jenkins_chrislea_ppa }}"
+  with_items: "{{ jenkins_admin_jobs }}"
 
 - name: install system packages for edxapp virtualenvs
   apt:
@@ -147,17 +135,8 @@
     mode: 0440
     validate: "visudo -cf %s"
 
-- name: install global gem dependencies
-  gem:
-    name: "{{ item.name }}"
-    state: present
-    version: "{{ item.version }}"
-    user_install: no
-  with_items: jenkins_admin_gem_pkgs
-
 - name: get s3 one time url
-  local_action:
-    module: "s3"
+  s3:
     bucket: "{{ JENKINS_ADMIN_BACKUP_BUCKET }}"
     object: "{{ JENKINS_ADMIN_BACKUP_S3_KEY }}"
     mode: "geturl"
@@ -168,7 +147,7 @@
 - name: download s3 backup
   get_url:
     url: "{{ s3_one_time_url.url }}"
-    dest: "/tmp/{{ JENKINS_ADMIN_BACKUP_S3_KEY | basename }}"
+    dest: "/tmp/jenkins_backup.tar.gz"
     mode: 0644
     owner: "{{ jenkins_user }}"
   when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined
@@ -192,8 +171,4 @@
   service:
     name: "jenkins"
     state: "started"
-  when: JENKINS_ADMIN_BACKUP_BUCKET and JENKINS_BACKUP_S3_KEY
-
-- include: nat_monitor.yml
-  tags:
-    - nat-monitor
+  when: JENKINS_ADMIN_BACKUP_BUCKET is defined and JENKINS_ADMIN_BACKUP_S3_KEY is defined

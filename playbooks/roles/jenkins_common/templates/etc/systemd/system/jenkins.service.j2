@@ -1,0 +1,21 @@
+[Unit]
+Description=Jenkins
+
+[Service]
+Type=forking
+Environment="JENKINS_HOME={{ jenkins_common_home }}"
+Environment="JENKINS_CONFIG_PATH={{ jenkins_common_config_path }}"
+PassEnvironment=JENKINS_HOME JENKINS_CONFIG_PATH
+User=jenkins
+Group=jenkins
+ExecStart=/usr/bin/java \
+  {{ jenkins_common_jvm_args }} \
+  -jar /usr/share/jenkins/jenkins.war \
+  --daemon \
+  --logfile=/var/log/jenkins/jenkins.log \
+  --webroot=/var/cache/jenkins \
+  --httpPort={{ jenkins_common_port }} \
+  --ajp13Port=-1
+
+[Install]
+WantedBy=multi-user.target
