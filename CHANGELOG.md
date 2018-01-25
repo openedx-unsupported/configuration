@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `EDXAPP_FERNET_KEYS` to allow for use of django-fernet-keys in LMS.
+  
+- Role: edxapp
   - Added `EDX_PLATFORM_REVISION` (set from `edx_platform_version`). This is for
   edx-platform debugging purposes, and replaces calling dealer.git at startup.
 
