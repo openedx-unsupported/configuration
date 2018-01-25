@@ -1,0 +1,10 @@
+[program:celerybeat]
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_WORKERS_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},PYTHONPATH={{ edxapp_code_dir }},SERVICE_VARIANT={{ EDXAPP_CELERY_BEAT.service_variant }}
+user={{ common_web_user }}
+directory={{ edxapp_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edxapp_venv_dir + '/bin/newrelic-admin run-program ' if EDXAPP_CELERY_BEAT.monitor and COMMON_ENABLE_NEWRELIC_APP else ''}}{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py {{ EDXAPP_CELERY_BEAT.service_variant }} --settings={{ worker_django_settings_module }} celery beat --loglevel=info --pidfile={{ EDXAPP_CELERY_BEAT.pid_file }} -s {{ EDXAPP_CELERY_BEAT.beat_file }}
+killasgroup=true
+stopwaitsecs={{ EDXAPP_CELERY_BEAT.stopwaitsecs | default(EDXAPP_WORKER_DEFAULT_STOPWAITSECS) }}

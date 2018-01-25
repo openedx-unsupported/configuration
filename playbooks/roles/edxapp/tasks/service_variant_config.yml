@@ -47,7 +47,7 @@
     - install
     - install:configuration
 
-# write the supervisor script for edxapp and celery workers
+# write the supervisor script for edxapp, celery workers and celerybeat
 - name: writing edxapp and celery supervisor scripts
   template:
     src: "{{ item }}.j2"
@@ -59,6 +59,7 @@
   with_items:
     - edxapp.conf
     - workers.conf
+    - celerybeat.conf
   tags:
     - install
     - install:configuration
@@ -108,6 +109,18 @@
     force: yes
   become_user: "{{ supervisor_user }}"
   when: celery_worker is defined and not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: enable celerybeat supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/celerybeat.conf"
+    dest: "{{ supervisor_cfg_dir }}/celerybeat.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  when: EDXAPP_CELERY_BEAT.enabled and not disable_edx_services
   tags:
     - install
     - install:configuration

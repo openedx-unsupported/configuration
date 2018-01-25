@@ -337,6 +337,17 @@
   tags:
     - manage
 
+- name: ensure celerybeat has started
+  supervisorctl:
+    name: "celerybeat"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: started
+  when: EDXAPP_CELERY_BEAT.enabled and not disable_edx_services
+  become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+
 - name: ensure edxapp_workers has started
   supervisorctl:
     name: "edxapp_worker:"
@@ -389,6 +400,17 @@
     state: restarted
   when: edxapp_installed is defined and celery_worker is not defined and not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+
+- name: restart edxapp celerybeat
+  supervisorctl:
+    name: "celerybeat"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: restarted
+  when: EDXAPP_CELERY_BEAT.enabled and not disable_edx_services
+  become_user: "{{ common_web_user }}"
   tags:
     - manage
 
