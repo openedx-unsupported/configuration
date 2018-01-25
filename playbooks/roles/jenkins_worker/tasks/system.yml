@@ -16,9 +16,12 @@
     owner={{ jenkins_user }} group={{ jenkins_group }}
   ignore_errors: yes
 
-- name: Copy ssh keys for jenkins
-  command: cp /home/ubuntu/.ssh/authorized_keys /home/{{ jenkins_user }}/.ssh/authorized_keys
-  ignore_errors: yes
+- name: Get the authorized key that should be used for this machine.
+  authorized_key:
+    user: "{{ jenkins_user }}"
+    state: present
+    key: "{{ jenkins_worker_key_url }}"
+  when: jenkins_worker_key_ur is defined
 
 - name: Set key permissions
   file:
