@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
+
+- Role: edxapp
   - Added `EDXAPP_FERNET_KEYS` to allow for use of django-fernet-keys in LMS.
   
 - Role: edxapp
