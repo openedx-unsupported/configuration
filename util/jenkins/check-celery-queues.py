@@ -108,7 +108,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     if len(all_queues) > max_metrics:
         # TODO: Use proper logging framework
         print("Warning! Too many metrics, refusing to publish more than {}"
-            .format(max_metrics))
+              .format(max_metrics))
 
     # Take first max_metrics number of queues from all_queues and remove
     # queues that aren't in redis
