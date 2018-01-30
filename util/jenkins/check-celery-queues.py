@@ -133,11 +133,9 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         queue_threshold = threshold
         if queue in thresholds:
             queue_threshold = thresholds[queue]
-        # Period of 300 is 5 minutes
-        period = 300
-        # 6 periods of 5 min each is 30 minutes
-        # so queue must be over threshold for 30 minutes
-        evaluation_periods = 6
+        # Period is in seconds
+        period = 60
+        evaluation_periods = 15
         comparison_operator = "GreaterThanThreshold"
         treat_missing_data = "notBreaching"
         statistic = "Maximum"
