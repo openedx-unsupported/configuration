@@ -72,10 +72,17 @@ class CwBotoWrapper(object):
 @click.option('--max-metrics', default=30,
               help='Maximum number of CloudWatch metrics to publish')
 @click.option('--threshold', default=50,
-              help='Maximum queue length before alarm notification is sent')
+              help='Default maximum queue length before alarm notification is'
+              + ' sent')
+@click.option('--queue-threshold', type=(str, int), multiple=True,
+              help='Threshold per queue in format --queue-threshold'
+              + ' {queue_name} {threshold}. May be used multiple times')
 @click.option('--sns-arn', '-s', help='ARN for SNS alert topic', required=True)
 def check_queues(host, port, environment, deploy, max_metrics, threshold,
-                 sns_arn):
+                 queue_threshold, sns_arn):
+
+    thresholds = dict(queue_threshold)
+
     timeout = 1
     namespace = "celery/{}-{}".format(environment, deploy)
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
@@ -123,10 +130,16 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
 
     for queue in queues:
         dimensions = [{'Name': dimension, 'Value': queue}]
+        queue_threshold = threshold
+        if queue in thresholds:
+            queue_threshold = thresholds[queue]
+        # Period of 300 is 5 minutes
         period = 300
-        evaluation_periods = 1
+        # 6 periods of 5 min each is 30 minutes
+        # so queue must be over threshold for 30 minutes
+        evaluation_periods = 6
         comparison_operator = "GreaterThanThreshold"
-        treat_missing_data = "missing"
+        treat_missing_data = "notBreaching"
         statistic = "Maximum"
         actions = [sns_arn]
         alarm_name = "{}-{} {} queue length over threshold".format(environment,
@@ -145,7 +158,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                                         Period=period,
                                         EvaluationPeriods=evaluation_periods,
                                         TreatMissingData=treat_missing_data,
-                                        Threshold=threshold,
+                                        Threshold=queue_threshold,
                                         ComparisonOperator=comparison_operator,
                                         Statistic=statistic,
                                         AlarmActions=actions)
