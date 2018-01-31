@@ -1,3 +1,6 @@
+- Role: devpi_consumer
+  - Added role to configure Python containers to use devpi for Docker Devstack
+
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
 
