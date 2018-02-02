@@ -10,4 +10,4 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook xqueue.yml -i '1
 
 COPY docker/build/xqueue/docker-run.sh /
 ENTRYPOINT ["/docker-run.sh"]
-EXPOSE 8110 18110
+EXPOSE 18040
