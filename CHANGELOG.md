@@ -1,3 +1,7 @@
+- Role: xqueue
+  - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
+  - Added `XQUEUE_CACHES` to allow a configurable xqueue cache.
+
 - Role: nginx
   - Added `NGINX_EDXAPP_CMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for Studio.
   - Added `NGINX_EDXAPP_LMS_APP_EXTRA`, which makes it possible to add custom settings to the site configuration for the LMS.
