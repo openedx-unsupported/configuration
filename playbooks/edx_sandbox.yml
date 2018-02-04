@@ -24,13 +24,13 @@
     DISCOVERY_URL_ROOT: 'http://localhost:{{ DISCOVERY_NGINX_PORT }}'
     SANDBOX_ENABLE_ECOMMERCE: False
     SANDBOX_ENABLE_DISCOVERY: False
+    SANDBOX_ENABLE_CERTIFICATES: True
     ENABLE_DISCOVERY_METADATA_REFRESH_CRONTASK: True
   roles:
     - role: swapfile
       SWAPFILE_SIZE: 4GB
     - role: nginx
       nginx_sites:
-      - certs
       - cms
       - lms
       - forum
@@ -45,6 +45,10 @@
       nginx_sites:
       - discovery
       when: SANDBOX_ENABLE_DISCOVERY
+    - role: nginx
+      nginx_sites:
+      - certs
+      when: SANDBOX_ENABLE_CERTIFICATES
     - role: edxlocal
       when: EDXAPP_MYSQL_HOST == 'localhost'
     - role: memcache
@@ -78,7 +82,8 @@
       NOTIFIER_DIGEST_TASK_INTERVAL: 5
     - role: xqueue
       update_users: True
-    - certs
+    - role: certs
+      when: SANDBOX_ENABLE_CERTIFICATES
     - edx_ansible
     - role: datadog
       when: COMMON_ENABLE_DATADOG
