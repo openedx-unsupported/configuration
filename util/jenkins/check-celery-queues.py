@@ -159,6 +159,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                                         Threshold=queue_threshold,
                                         ComparisonOperator=comparison_operator,
                                         Statistic=statistic,
+                                        InsufficientDataActions=actions,
+                                        OKActions=actions,
                                         AlarmActions=actions)
 
 
