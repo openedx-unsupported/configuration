@@ -1,9 +1,12 @@
+- Role: certs
+  - Added `QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
+
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
 
 - Role: edxapp
   - Added `EDXAPP_FERNET_KEYS` to allow for use of django-fernet-keys in LMS.
-  
+
 - Role: edxapp
   - Added `EDX_PLATFORM_REVISION` (set from `edx_platform_version`). This is for
   edx-platform debugging purposes, and replaces calling dealer.git at startup.
