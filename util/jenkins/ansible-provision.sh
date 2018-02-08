@@ -316,6 +316,10 @@ VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
 VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
 VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
 
+VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
+VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
+VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
+
 EOF
 fi
 
@@ -362,9 +366,10 @@ EOF
     fi
 fi
 
-veda_web_frontend="true"
-veda_pipeline_worker="false"
-veda_encode_worker="false"
+veda_web_frontend=${video_pipeline:-false}
+veda_pipeline_worker=${video_pipeline:-false}
+veda_encode_worker=${video_encode_worker:-false}
+
 declare -A deploy
 roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker notifier xqueue xserver certs demo testcourses"
 
