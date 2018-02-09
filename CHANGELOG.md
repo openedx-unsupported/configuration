@@ -1,5 +1,5 @@
 - Role: certs
-  - Added `QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
+  - Added `CERTS_QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
 
 - Role: xqueue
   - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
