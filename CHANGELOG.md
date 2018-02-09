@@ -1,5 +1,5 @@
 - Role: certs
-  - Added `QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
+  - Added `CERTS_QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
 
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
