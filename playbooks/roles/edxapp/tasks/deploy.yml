@@ -459,3 +459,13 @@
   tags:
     - manage
     - manage:db
+
+- name: install cron job to run clearsessions
+  cron:
+    name: "clear expired Django sessions"
+    user: "{{ edxapp_user }}"
+    job: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
+    hour: "{{ EDXAPP_CLEARSESSIONS_CRON_HOURS }}"
+    minute: "{{ EDXAPP_CLEARSESSIONS_CRON_MINUTES }}"
+    day: "*"
+  when: EDXAPP_CLEARSESSIONS_CRON_ENABLED
