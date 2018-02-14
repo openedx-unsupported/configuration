@@ -18,7 +18,7 @@ def find_active_instances(cluster_file, region):
         cluster_map = yaml.safe_load(f)
 
     asg = boto3.client('autoscaling', region)
-    all_groups = asg.describe_auto_scaling_groups()
+    all_groups = asg.describe_auto_scaling_groups(MaxRecords=100)
 
     # dictionary that contains the environment/deployment/cluster triple as the key and the value is a list of the asgs that match the triple
     all_matching_asgs = {}
