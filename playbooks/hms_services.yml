@@ -1,0 +1,27 @@
+---
+
+# Sets up server with edX services which can't be deployed on regular appservers.
+
+- name: Bootstrap instance(s)
+  hosts: services
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Configure instance(s)
+  hosts: services
+  become: True
+  gather_facts: True
+  roles:
+    - role: swapfile
+      SWAPFILE_SIZE: 2GB
+    - security
+    - role: rabbitmq
+      rabbitmq_ip: ""
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
