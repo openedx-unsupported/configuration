@@ -366,9 +366,9 @@ EOF
     fi
 fi
 
-veda_web_frontend=${video_pipeline:-false}
+veda_web_frontend=${video_pipeline_na:-false}
 veda_pipeline_worker=${video_pipeline:-false}
-veda_encode_worker=${video_encode_worker:-false}
+veda_encode_worker=${video_encode_worker_na:-false}
 
 declare -A deploy
 roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker notifier xqueue xserver certs demo testcourses"
