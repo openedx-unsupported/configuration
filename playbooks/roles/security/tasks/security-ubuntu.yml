@@ -7,7 +7,6 @@
     update_cache: yes
   with_items: "{{ security_debian_pkgs }}"
 
-
 - name: Update all system packages
   apt:
     upgrade: safe
@@ -30,6 +29,28 @@
     - "systemctl disable apt-daily.timer"
     - "systemctl disable apt-daily-upgrade.timer"
   ignore_errors: true
+
+- name: Create directory to override apt-daily.timer unit configs 
+  file: 
+    path: "/etc/systemd/system/apt-daily.timer.d"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  when: ansible_distribution_release == 'xenial' and SECURITY_UNATTENDED_UPGRADES
+
+- name: Add delay to unattended-upgrades after boot
+  template:
+    src: "etc/systemd/system/apt-daily.timer.d/override.conf"
+    dest: "/etc/systemd/system/apt-daily.timer.d/override.conf"
+    owner: root
+    group: root
+    mode: 0644
+  when: ansible_distribution_release == 'xenial' and SECURITY_UNATTENDED_UPGRADES
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  when: ansible_distribution_release == 'xenial'
 
 - name: Disable unattended-upgrades
   file:
