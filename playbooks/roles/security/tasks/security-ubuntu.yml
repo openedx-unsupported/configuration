@@ -30,27 +30,41 @@
     - "systemctl disable apt-daily-upgrade.timer"
   ignore_errors: true
 
-- name: Create directory to override apt-daily.timer unit configs 
+- name: Create directories to override apt-timer units configs 
   file: 
-    path: "/etc/systemd/system/apt-daily.timer.d"
+    path: "{{ item.path }}"
     state: directory
     owner: root
     group: root
     mode: 0755
   when: ansible_distribution_release == 'xenial' and SECURITY_UNATTENDED_UPGRADES
+  with_items: "{{ apt_timer_directories }}"
 
 - name: Add delay to unattended-upgrades after boot
   template:
-    src: "etc/systemd/system/apt-daily.timer.d/override.conf"
-    dest: "/etc/systemd/system/apt-daily.timer.d/override.conf"
+    src: "{{ item.path | regex_replace('^\\/','') }}/override.conf"
+    dest: "{{ item.path }}/override.conf"
     owner: root
     group: root
     mode: 0644
   when: ansible_distribution_release == 'xenial' and SECURITY_UNATTENDED_UPGRADES
+  with_items: "{{ apt_timer_directories }}"
 
-- name: reload systemd configuration
-  command: systemctl daemon-reload
-  when: ansible_distribution_release == 'xenial'
+- name: Enable unattended-upgrades if Xenial (16.04)
+  command: "{{ item }}"
+  when: ansible_distribution_release == 'xenial' and SECURITY_UNATTENDED_UPGRADES
+  with_items:
+   - "systemctl enable apt-daily.timer"
+   - "systemctl enable apt-daily-upgrade.timer"
+  ignore_errors: true
+
+- name: reload systemd units configuration 
+  command: "{{ item }}"
+  when: ansible_distribution_release == 'xenial' and SECURITY_UNATTENDED_UPGRADES
+  with_items:
+   - "systemctl daemon-reload"
+   - "systemctl start apt-daily.timer"
+   - "systemctl start apt-daily-upgrade.timer"
 
 - name: Disable unattended-upgrades
   file:
