@@ -1,3 +1,9 @@
+- Role: devpi
+  - New role added to configure a devpi service as a pass-through cache for PyPI.
+
+- Role: devpi_consumer
+  - Added role to configure Python containers to use devpi for Docker Devstack
+
 - Role: xqueue
   - Remove S3_BUCKET and S3_PATH_PREFIX - they were deprecated prior to ginkgo
   - Remove SERVICE_VARIANT - it was copied from edxapp but never truly used (except to complicate things)
