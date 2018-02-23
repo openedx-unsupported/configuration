@@ -1,3 +1,7 @@
+- Role: xqueue
+  - Remove S3_BUCKET and S3_PATH_PREFIX - they were deprecated prior to ginkgo
+  - Remove SERVICE_VARIANT - it was copied from edxapp but never truly used (except to complicate things)
+
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
 
