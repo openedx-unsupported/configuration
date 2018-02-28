@@ -369,9 +369,10 @@ fi
 veda_web_frontend=${video_pipeline:-false}
 veda_pipeline_worker=${video_pipeline:-false}
 veda_encode_worker=${video_encode_worker:-false}
+video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
 
 for role in $roles; do
     deploy[$role]=${!role}
