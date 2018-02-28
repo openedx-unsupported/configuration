@@ -239,6 +239,12 @@
   - Updated elasticsearch version to 1.5.0
 
 - Role: edxapp
+  - Added `EDXAPP_CELERY_BROKER_TRANSPORT` and renamed `EDXAPP_RABBIT_HOSTNAME`
+    to `EDXAPP_CELERY_BROKER_HOSTNAME`. This is to support non-amqp brokers,
+    specifically redis. If `EDXAPP_CELERY_BROKER_HOSTNAME` is unset it will use
+    the value of `EDXAPP_RABBIT_HOSTNAME`, however it is recommended to update
+    your configuration to set `EDXAPP_CELERY_BROKER_TRANSPORT` explicitly.
+
   - Install development.txt in Vagrant and Docker devstacks
 
 - Role: edxapp
