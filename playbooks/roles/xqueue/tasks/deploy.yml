@@ -44,6 +44,17 @@
     - install
     - install:configuration
 
+- name: setup the app env file
+  template:
+    src: "xqueue_env.j2"
+    dest: "{{ xqueue_app_dir }}/xqueue_env"
+    owner: "{{ xqueue_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
 # Do A Checkout
 - name: "Git checkout xqueue repo into {{ xqueue_code_dir }}"
   git:
@@ -132,7 +143,7 @@
     - manage
     - manage:start
 
-- name: Create a symlink for venv python
+- name: Create a symlink for venv commands
   file:
     src: "{{ xqueue_venv_bin }}/{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ item }}.xqueue"
@@ -140,6 +151,17 @@
   with_items:
     - python
     - pip
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Create symlinks for repo commands
+  file:
+    src: "{{ xqueue_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.xqueue"
+    state: link
+  with_items:
+    - manage.py
   tags:
     - install
     - install:app-requirements
