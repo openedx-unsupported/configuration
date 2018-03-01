@@ -108,6 +108,16 @@
     - install
     - install:configuration
 
+- name: create script to compile and update assets
+  template:
+    src: "edx/bin/edxapp-update-assets.j2"
+    dest: "{{ COMMON_BIN_DIR }}/edxapp-update-assets"
+    owner: "{{ edxapp_user }}"
+    mode: 0755
+  tags:
+    - install
+    - install:configuration
+
 # migrate when the migrate user is overridden in extra vars
 - name: migrate
   command: "{{ COMMON_BIN_DIR }}/edxapp-migrate-{{ item }}"
@@ -139,10 +149,9 @@
     - assets
 
 # Gather assets using paver if possible
-- name: "gather {{ item }} static assets with paver"
-  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
-  when: celery_worker is not defined and not devstack and item != "lms-preview"
-  with_items: "{{ service_variants_enabled }}"
+- name: "gather static assets with paver"
+  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets"
+  when: celery_worker is not defined and not devstack
   tags:
     - gather_static_assets
     - assets
