@@ -208,6 +208,10 @@ CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
 
+ANALYTICS_API_NGINX_PORT: 80
+ANALYTICS_API_SSL_NGINX_PORT: 443
+ANALYTICS_API_VERSION: $analytics_api_version
+
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
@@ -294,6 +298,8 @@ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
 
+ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
 ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
@@ -370,7 +376,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+roles="edxapp forum ecommerce credentials discovery analytics_api veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
 
 for role in $roles; do
     deploy[$role]=${!role}
