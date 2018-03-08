@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added empty `EDXAPP_PASSWORD_COMPLEXITY` setting to ease overriding complexity.
+
 - Role: splunkforwarder
   - Updated the role so the splunkforwarder can be installed on Amazon Linux OS environment, which is a RHEL variant
 
