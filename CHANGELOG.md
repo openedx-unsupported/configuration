@@ -1,3 +1,8 @@
+- Role: edxapp
+  - Added `EDXAPP_PASSWORD_COMPLEXITY` to require a letter and a number in user passwords.
+  - Set `ENFORCE_PASSWORD_POLICY` feature flag to true, to enable the above setting.
+  - Bumped `EDXAPP_PASSWORD_MIN_LENGTH` to 8 and `EDXAPP_PASSWORD_MAX_LENGTH` to 100.
+
 - Role: xqueue
   - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
   - Added `XQUEUE_CACHES` to allow a configurable xqueue cache.
