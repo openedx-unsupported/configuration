@@ -12,6 +12,10 @@ upstream cms-backend {
 
 server {
   # CMS configuration file for nginx, templated by ansible
+
+  {% if EDXAPP_ENABLE_CONNECTION_LIMITING %}
+  limit_conn addr {{ EDXAPP_CONNECTIONS_PER_ADDRESS_LIMIT }};
+  {% endif %}
       
   # Proxy to a remote maintanence page
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
@@ -29,6 +33,8 @@ server {
   {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
 error_page {{ k }} {{ v }};
   {% endfor %}
+
+  {% include "ddos_mitigation-slow-connections.j2" %}
 
   listen {{ EDXAPP_CMS_NGINX_PORT }} {{ default_site }};
 
@@ -106,6 +112,10 @@ error_page {{ k }} {{ v }};
   }
 
   location / {
+    {% if EDXAPP_ENABLE_RATE_LIMITING %}
+    limit_req zone=root burst={{ EDXAPP_SITE_REQUEST_BURST_RATE }};
+    {% endif %}
+
     {% if EDXAPP_CMS_ENABLE_BASIC_AUTH|bool %}
       {% include "basic-auth.j2" %}
     {% endif %}

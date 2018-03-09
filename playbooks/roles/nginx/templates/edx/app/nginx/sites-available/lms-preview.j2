@@ -7,6 +7,12 @@ upstream lms-preview-backend {
 server {
   # LMS-preview configuration file for nginx, templated by ansible
 
+  {% if EDXAPP_ENABLE_CONNECTION_LIMITING %}
+  limit_conn addr {{ EDXAPP_CONNECTIONS_PER_ADDRESS_LIMIT }};
+  {% endif %}
+
+  {% include "ddos_mitigation-slow-connections.j2" %}
+
   listen {{ EDXAPP_LMS_PREVIEW_NGINX_PORT }};
 
   {% if NGINX_ENABLE_SSL %}
@@ -47,6 +53,10 @@ server {
   }
 
   location / {
+    {% if EDXAPP_ENABLE_RATE_LIMITING %}
+    limit_req zone=root burst={{ EDXAPP_SITE_REQUEST_BURST_RATE }};
+    {% endif %}
+
     {% if EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       {% include "basic-auth.j2" %}
     {% endif %}

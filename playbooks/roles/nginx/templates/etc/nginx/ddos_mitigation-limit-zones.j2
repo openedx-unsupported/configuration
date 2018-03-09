@@ -1,0 +1,30 @@
+{% if EDXAPP_ENABLE_RATE_LIMITING %}
+
+# Make zone
+limit_req_zone $cookie_{{ EDXAPP_SESSION_COOKIE_NAME }} zone=cookies:10m rate={{ EDXAPP_COURSES_REQUEST_RATE }};
+
+{% for agent in EDXAPP_RATE_LIMITED_USER_AGENTS %}
+
+# Map of http user agaent within name limit_bot_atgent_alias having binary IP of the agent
+map $http_user_agent {{ "$limit_bot_" ~ agent.alias }} {
+  {{ agent.agent_name }} $binary_remote_addr;
+}
+
+limit_req_zone {{ "$limit_bot_" ~ agent.alias }} zone=agents:10m rate={{ agent.rate }};
+{% endfor %}
+
+# Limit login requests from a single client IP address to the configured rate
+limit_req_zone $binary_remote_addr zone=login:10m rate={{ EDXAPP_LOGIN_REQUEST_RATE }};
+
+# Limit site requests from a single client IP address to the configured rate 
+limit_req_zone $binary_remote_addr zone=root:10m rate={{ EDXAPP_SITE_REQUEST_RATE }};
+    
+{% endif %}
+
+{% if EDXAPP_ENABLE_CONNECTION_LIMITING %}
+
+# Allow each client IP address to open no more than a configured number of connections
+# to the website.
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+
+{% endif %}
