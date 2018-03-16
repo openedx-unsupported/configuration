@@ -1,3 +1,7 @@
+- Role: xqueue
+  - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
+  - Added `XQUEUE_CACHES` to allow a configurable xqueue cache.
+
 - Role: devpi
   - New role added to configure a devpi service as a pass-through cache for PyPI.
 
@@ -15,7 +19,7 @@
 
 - Role: edxapp
   - Added `EDXAPP_FERNET_KEYS` to allow for use of django-fernet-keys in LMS.
-  
+
 - Role: edxapp
   - Added `EDX_PLATFORM_REVISION` (set from `edx_platform_version`). This is for
   edx-platform debugging purposes, and replaces calling dealer.git at startup.
