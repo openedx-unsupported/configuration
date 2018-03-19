@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Added `ECOMMERCE_EMAIL_BACKEND`, `ECOMMERCE_EMAIL_HOST`, `ECOMMERCE_EMAIL_PORT` and `ECOMMERCE_EMAIL_USE_TLS`. This defaults to using `django.core.mail.backends.smtp.EmailBackend` running on port 25.
+
 - Role: xqueue
   - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
   - Added `XQUEUE_CACHES` to allow a configurable xqueue cache.
