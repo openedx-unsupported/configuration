@@ -74,6 +74,7 @@ def upload_to_gcloud_storage(file_path, bucket):
     """
 
     import boto
+    import gcs_oauth2_boto_plugin
 
     logging.info('Uploading backup at "{}" to Google Cloud Storage bucket '
                  '"{}"'.format(file_path, bucket))
