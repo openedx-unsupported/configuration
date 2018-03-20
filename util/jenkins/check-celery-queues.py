@@ -143,25 +143,22 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         alarm_name = "{}-{} {} queue length over threshold".format(environment,
                                                                    deploy,
                                                                    queue)
-        if len(cloudwatch.describe_alarms_for_metric(Namespace=namespace,
-                                                     MetricName=metric_name,
-                                                     Dimensions=dimensions)
-                ['MetricAlarms']) < 1:
-            print('Creating new alarm "{}"'.format(alarm_name))
-            cloudwatch.put_metric_alarm(AlarmName=alarm_name,
-                                        AlarmDescription=alarm_name,
-                                        Namespace=namespace,
-                                        MetricName=metric_name,
-                                        Dimensions=dimensions,
-                                        Period=period,
-                                        EvaluationPeriods=evaluation_periods,
-                                        TreatMissingData=treat_missing_data,
-                                        Threshold=queue_threshold,
-                                        ComparisonOperator=comparison_operator,
-                                        Statistic=statistic,
-                                        InsufficientDataActions=actions,
-                                        OKActions=actions,
-                                        AlarmActions=actions)
+        
+        print('Creating or updating alarm "{}"'.format(alarm_name))
+        cloudwatch.put_metric_alarm(AlarmName=alarm_name,
+                                    AlarmDescription=alarm_name,
+                                    Namespace=namespace,
+                                    MetricName=metric_name,
+                                    Dimensions=dimensions,
+                                    Period=period,
+                                    EvaluationPeriods=evaluation_periods,
+                                    TreatMissingData=treat_missing_data,
+                                    Threshold=queue_threshold,
+                                    ComparisonOperator=comparison_operator,
+                                    Statistic=statistic,
+                                    InsufficientDataActions=actions,
+                                    OKActions=actions,
+                                    AlarmActions=actions)
 
 
 if __name__ == '__main__':
