@@ -1,0 +1,52 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role log_sync_s3
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+
+- name: Install system packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items: "{{ aws_debian_pkgs }}"
+  when: ansible_distribution in common_debian_variants
+
+- name: Install aws python packages
+  pip:
+    name: "{{ item }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  with_items: "{{ aws_pip_pkgs }}"
+
+- name: Create s3 log sync script
+  template:
+    dest: "{{ aws_s3_sync_script }}"
+    src: send-logs-to-s3.j2
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Create symlink for s3 log sync script
+  file:
+    state: link
+    src: "{{ aws_s3_sync_script }}"
+    dest: "{{ COMMON_S3_LOG_SYNC_SCRIPT }}"

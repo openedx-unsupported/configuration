@@ -69,22 +69,6 @@
     group: root
     mode: 0644
 
-- name: Create s3 log sync script
-  template:
-    dest: "{{ aws_s3_sync_script }}"
-    src: send-logs-to-s3.j2
-    mode: 0755
-    owner: root
-    group: root
-  when: COMMON_OBJECT_STORE_LOG_SYNC
-
-- name: Create symlink for s3 log sync script
-  file:
-    state: link
-    src: "{{ aws_s3_sync_script }}"
-    dest: "{{ COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT }}"
-  when: COMMON_OBJECT_STORE_LOG_SYNC
-
  # update the ssh motd on Ubuntu
  # Remove some of the default motd display on ubuntu
  # and add a custom motd.  These do not require an
@@ -105,4 +89,4 @@
     path: "{{ item.item }}"
     mode: "0644"
   when: vagrant_home_dir.stat.exists == False and ansible_distribution in common_debian_variants and item.stat.exists
-  with_items: "{{ motd_files_exist.results }}" 
+  with_items: "{{ motd_files_exist.results }}"
