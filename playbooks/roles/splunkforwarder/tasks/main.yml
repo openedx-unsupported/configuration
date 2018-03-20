@@ -21,7 +21,7 @@
 #
 #
 
-# Install Splunk Forwarder
+# Install Splunk Forwarder for common_debian_variants
 - name: Install splunkforwarder specific system packages
   apt:
     name: "{{ item }}"
@@ -31,18 +31,34 @@
     - splunk
     - install
     - update
+  when: ansible_distribution in common_debian_variants
 
 - name: Download the splunk deb
   get_url:
     dest: "/tmp/{{ SPLUNKFORWARDER_DEB }}"
     url: "{{ SPLUNKFORWARDER_PACKAGE_URL }}"
-  register: download_deb
-  until: download_deb|succeeded
+  register: download_package
+  until: download_package|succeeded
   retries: 5
+  when: ansible_distribution in common_debian_variants
 
 - name: Install splunk forwarder
   shell: "gdebi -nq /tmp/{{ SPLUNKFORWARDER_DEB }}"
-  when: download_deb.changed
+  when: ansible_distribution in common_debian_variants and download_package.changed
+
+# Install Splunk Forwarder for common_redhat_variants
+- name: Download the splunk rpm
+  get_url:
+    dest: "/tmp/{{ SPLUNKFORWARDER_RPM }}"
+    url: "{{ SPLUNKFORWARDER_PACKAGE_URL }}"
+  register: download_package
+  until: download_package|succeeded
+  retries: 5
+  when: ansible_distribution in common_redhat_variants
+
+- name: Install splunk forwarder
+  shell: "rpm -i /tmp/{{ SPLUNKFORWARDER_RPM }}"
+  when: ansible_distribution in common_redhat_variants and download_package.changed
 
 - name: Create splunk user
   user:
@@ -51,7 +67,7 @@
     state: present
     append: yes
     groups: syslog,adm
-  when: download_deb.changed
+  when: download_package.changed
 
 # Need to start splunk manually so that it can create various files
 # and directories that aren't created till the first run and are needed
@@ -60,19 +76,19 @@
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk start --accept-license --answer-yes --no-prompt"
   args:
     creates: "{{ splunkforwarder_output_dir }}/var/lib/splunk"
-  when: download_deb.changed
+  when: download_package.changed
   register: started_manually
 
 - name: Stop splunk manually
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk stop --accept-license --answer-yes --no-prompt"
-  when: download_deb.changed and started_manually.changed
+  when: download_package.changed and started_manually.changed
 
 - name: Create boot script
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt"
   args:
     creates: /etc/init.d/splunk
   register: create_boot_script
-  when: download_deb.changed
+  when: download_package.changed
   notify: restart splunkforwarder
 
 - name: Ensure splunk forder permissions
@@ -82,12 +98,12 @@
     recurse: yes
     owner: splunk
     group: splunk
-  when: download_deb.changed
+  when: download_package.changed
   notify: restart splunkforwarder
 
 - name: Update admin pasword
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk edit user admin -password '{{ SPLUNKFORWARDER_PASSWORD }}' -auth admin:changeme --accept-license --answer-yes --no-prompt"
-  when: download_deb.changed
+  when: download_package.changed
   notify: restart splunkforwarder
 
 - name: Add chkconfig to init script
@@ -97,7 +113,7 @@
     line: "# chkconfig: 235 98 55"
     insertafter: "#!/bin/sh"
     state: present
-  when: download_deb.changed and create_boot_script.changed
+  when: download_package.changed and create_boot_script.changed
   notify: restart splunkforwarder
 
 - name: Make sure necessary dirs exist
