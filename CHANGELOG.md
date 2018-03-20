@@ -1,7 +1,7 @@
 - Role: xqueue
   - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
   - Added `XQUEUE_CACHES` to allow a configurable xqueue cache.
-
+ 
 - Role: devpi
   - New role added to configure a devpi service as a pass-through cache for PyPI.
 
