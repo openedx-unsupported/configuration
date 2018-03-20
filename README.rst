@@ -53,4 +53,4 @@ For info on any large recent changes please see the `change log`_.
 .. _CloudFormation: http://aws.amazon.com/cloudformation/
 .. _Ansible: http://ansible.com/
 .. _OpenEdX Wiki: https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home
-.. _change log: https://github.com/edx/configuration/blob/master/CHANGELOG.md
+.. _change log: https://github.com/edx/configuration/blob/master/CHANGELOG.md 
