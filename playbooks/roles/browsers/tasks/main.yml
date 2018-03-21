@@ -90,7 +90,7 @@
     - install:system-requirements
 
 - name: unzip GeckoDriver tarfile
-  shell: tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin
+  shell: tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin/geckodriver2
   args:
     chdir: /var/tmp
   when: download_geckodriver.changed
@@ -100,7 +100,7 @@
 
 - name: make GeckoDriver binary executable
   file:
-    path: /usr/local/bin/geckodriver
+    path: /usr/local/bin/geckodriver2
     mode: 0755
   when: download_geckodriver.changed
   tags:
@@ -109,11 +109,17 @@
 
 - name: verify GeckoDriver location and mode
   stat:
-    path: /usr/local/bin/geckodriver
+    path: /usr/local/bin/geckodriver2
   register: geckodriver
   tags:
     - install
     - install:system-requirements
+
+- name: Add geckodriver wrapper script
+  copy:
+    src: "../files/geckodriver"
+    dest: "/usr/bin/geckodriver"
+    mode: 0755
 
 - assert:
     that:
