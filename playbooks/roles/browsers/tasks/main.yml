@@ -90,13 +90,16 @@
     - install:system-requirements
 
 - name: unzip GeckoDriver tarfile
-  shell: tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin/geckodriver2
+  shell: tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin/geckodriver
   args:
     chdir: /var/tmp
   when: download_geckodriver.changed
   tags:
     - install
     - install:system-requirements
+
+- name: Move geckodriver to geckodriver2
+  command: mv /usr/local/bin/geckodriver /usr/local/bin/geckodriver2
 
 - name: make GeckoDriver binary executable
   file:
@@ -118,7 +121,7 @@
 - name: Add geckodriver wrapper script
   copy:
     src: "../files/geckodriver"
-    dest: "/usr/bin/geckodriver"
+    dest: "/usr/local/bin/geckodriver"
     mode: 0755
 
 - assert:
