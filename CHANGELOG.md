@@ -1,5 +1,10 @@
+- Role edx_django_service
+  - Added maintenance page under the flag EDX_DJANGO_SERVICE_ENABLE_S3_MAINTENANCE.
+  - Added the s3_maintenance.j2 file to point to the s3 maintenance page.
+
 - Role: xqueue
   - Added XQUEUE_MYSQL_CONN_MAX_AGE so that you can have xqueue use django's persistent DB connections
+
 - Role: edxapp
   - Added empty `EDXAPP_PASSWORD_COMPLEXITY` setting to ease overriding complexity.
 
