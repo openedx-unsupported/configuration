@@ -1,3 +1,9 @@
+- Role: splunkforwarder
+  - Updated the role so the splunkforwarder can be installed on Amazon Linux OS environment, which is a RHEL variant
+
+- Role: server_utils
+  - Update to only do things for debian varient environment
+
 - Role: xqueue
   - Added `XQUEUE_SESSION_ENGINE` to allow a configurable xqueue session engine.
   - Added `XQUEUE_CACHES` to allow a configurable xqueue cache.
