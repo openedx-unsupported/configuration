@@ -80,6 +80,49 @@
     - install
     - install:system-requirements
 
+- name: download GeckoDriver
+  get_url:
+    url: "{{ geckodriver_url }}"
+    dest: /tmp/geckodriver.tar.gz
+  register: download_geckodriver
+  tags:
+    - install
+    - install:system-requirements
+
+- name: unzip GeckoDriver tarfile
+  shell: tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin
+  args:
+    chdir: /var/tmp
+  when: download_geckodriver.changed
+  tags:
+    - install
+    - install:system-requirements
+
+- name: make GeckoDriver binary executable
+  file:
+    path: /usr/local/bin/geckodriver
+    mode: 0755
+  when: download_geckodriver.changed
+  tags:
+    - install
+    - install:system-requirements
+
+- name: verify GeckoDriver location and mode
+  stat:
+    path: /usr/local/bin/geckodriver
+  register: geckodriver
+  tags:
+    - install
+    - install:system-requirements
+
+- assert:
+    that:
+      - "geckodriver.stat.exists"
+      - "geckodriver.stat.mode == '0755'"
+  tags:
+    - install
+    - install:system-requirements
+
 - name: download ChromeDriver
   get_url:
     url: "{{ chromedriver_url }}"
