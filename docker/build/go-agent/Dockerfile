@@ -48,13 +48,13 @@ RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3, /usr/local/bin/pip3
 
 # Upgrade pip and setup tools. Needed for Ansible 2.x
 RUN \
-  pip install --upgrade pip==8.1.2 && \
-  pip3 install --upgrade pip==8.1.2 && \
+  pip install --upgrade pip==9.0.3 && \
+  pip3 install --upgrade pip==9.0.3 && \
   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
   hash -r && \
   # upgrade setuptools early to avoid no distribution errors
-  pip install --upgrade setuptools==24.0.3 && \
-  pip3 install --upgrade setuptools==24.0.3
+  pip install --upgrade setuptools==39.0.1 && \
+  pip3 install --upgrade setuptools==39.0.1
 
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
