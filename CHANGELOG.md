@@ -1,3 +1,5 @@
+- Role: xqueue
+  - Added XQUEUE_MYSQL_CONN_MAX_AGE so that you can have xqueue use django's persistent DB connections
 - Role: edxapp
   - Added empty `EDXAPP_PASSWORD_COMPLEXITY` setting to ease overriding complexity.
 
