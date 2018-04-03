@@ -30,6 +30,16 @@ default "null";
 server {
   server_name {{ edx_django_service_hostname }};
 
+  {% if EDX_DJANGO_SERVICE_ENABLE_S3_MAINTENANCE %}
+  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # EDX_DJANGO_SERVICE_ENABLE_S3_MAINTENANCE is enabled.
+  
+  error_page 502 @maintenance;
+
+    {% include "s3_maintenance.j2" %}
+
+  {% endif %}
+
   {% if NGINX_ENABLE_SSL %}
 
   listen {{ edx_django_service_nginx_port }} {{ default_site }};
