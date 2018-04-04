@@ -1,9 +1,17 @@
 # Build using: docker build -f Dockerfile.gocd-agent -t gocd-agent .
-# https://hub.docker.com/r/gocd/gocd-agent-deprecated/
-FROM gocd/gocd-agent-deprecated:17.7.0
+# https://hub.docker.com/r/gocd/gocd-agent-ubuntu-14.04/
+FROM gocd/gocd-agent-ubuntu-14.04:v17.10.0
 
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
+
+# Set locale to UTF-8 which is not the default for go-agent Docker container
+RUN apt-get update &&\
+    apt-get install -y locales &&\
+    locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
 
 # starting with 16.04 apt-get-repository is not installed in the base image, lets install it so we are ready
 # http://lifeonubuntu.com/ubuntu-missing-add-apt-repository-command/
@@ -64,12 +72,12 @@ RUN pip install 'awscli>=1.11.58'
 # that can checkout private github repositories used as pipeline materials. The key material here is faked and is only
 # used to pass CI!
 # setup the github identity
-ADD docker/build/go-agent/files/go_github_key.pem /var/go/.ssh/id_rsa
-RUN chmod 600 /var/go/.ssh/id_rsa && \
-    chown go:go /var/go/.ssh/id_rsa
+ADD docker/build/go-agent/files/go_github_key.pem /home/go/.ssh/id_rsa
+RUN chmod 600 /home/go/.ssh/id_rsa && \
+    chown go:go /home/go/.ssh/id_rsa
 
 # setup the known_hosts
-RUN touch /var/go/.ssh/known_hosts && \
-    chmod 600 /var/go/.ssh/known_hosts && \
-    chown go:go /var/go/.ssh/known_hosts && \
-    ssh-keyscan -t rsa,dsa github.com > /var/go/.ssh/known_hosts
+RUN touch /home/go/.ssh/known_hosts && \
+    chmod 600 /home/go/.ssh/known_hosts && \
+    chown go:go /home/go/.ssh/known_hosts && \
+    ssh-keyscan -t rsa,dsa github.com > /home/go/.ssh/known_hosts
