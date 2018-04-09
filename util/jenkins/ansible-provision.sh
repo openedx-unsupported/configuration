@@ -412,7 +412,7 @@ fi
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
-if [[ $set_whitelabel == "true" ]]; then
+if [[ $set_whitelabel == "true" && $recreate == "true" ]]; then
     # Setup Whitelabel themes
     run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
