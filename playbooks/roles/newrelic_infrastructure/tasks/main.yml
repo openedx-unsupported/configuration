@@ -38,6 +38,7 @@
   tags:
     - install
     - install:app-requirements
+  when: ansible_distribution == 'Ubuntu'
 
 - name: Install apt repository for New Relic Infrastructure
   apt_repository:
@@ -47,13 +48,38 @@
   tags:
     - install
     - install:app-requirements
+  when: ansible_distribution == 'Ubuntu'
 
-- name: Install New Relic Infrastructure agent
+- name: Install newrelic related system packages for Ubuntu
   apt:
-    name: "newrelic-infra"
+    name: "{{ item }}"
+    install_recommends: yes
+    state: latest
   tags:
     - install
-    - install:code
+    - install:app-requirements
+  with_items: "{{ newrelic_infrastructure_debian_pkgs }}"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Configure the New Relic Servers yum repository
+  yum:
+    name: "{{ NEWRELIC_AMAZON_REPO }}"
+    state: present
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Amazon'
+
+- name: Install newrelic related system packages for Amazon
+  yum:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items: "{{ newrelic_infrastructure_redhat_pkgs }}"
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Amazon'
 
 - name: Restart the infrastructure agent if the license key changes
   service:
