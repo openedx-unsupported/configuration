@@ -2,7 +2,8 @@
   - Removed RabbitMQ in earlier changes in XQueue itself, we don't need any of the configuration
     XQUEUE_RABBITMQ_USER XQUEUE_RABBITMQ_PASS XQUEUE_RABBITMQ_VHOST XQUEUE_RABBITMQ_HOSTNAME 
     XQUEUE_RABBITMQ_PORT XQUEUE_RABBITMQ_TLS
-
+  - Added NEWRELIC_APPNAME and NEWRELIC_LICENSE_KEY to the configuration files consumed by XQueue.
+    Useful for external utilities that are reporting NR metrics.
     
 - Role edx_django_service
   - Added maintenance page under the flag EDX_DJANGO_SERVICE_ENABLE_S3_MAINTENANCE.
