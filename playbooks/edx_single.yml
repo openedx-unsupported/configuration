@@ -1,0 +1,51 @@
+---
+
+# Example sandbox configuration
+# for single server community
+# installs
+
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  roles:
+    - role: swapfile
+      SWAPFILE_SIZE: 8GB
+    - role: nginx
+      nginx_sites:
+      - certs
+      - cms
+      - lms
+      - forum
+      - xqueue
+      nginx_default_sites:
+      - lms
+    - role: edxlocal
+    - role: memcache
+    - role: mongo
+    - role: rabbitmq
+      rabbitmq_ip: 127.0.0.1
+    - role: edxapp
+      celery_worker: True
+    - edxapp
+    - demo
+    - oauth_client_setup
+    - oraclejdk
+    - role: elasticsearch
+    - forum
+    - role: notifier
+      NOTIFIER_DIGEST_TASK_INTERVAL: 5
+    - role: xqueue
+      update_users: True
+    - certs
+    - edx_ansible
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+
