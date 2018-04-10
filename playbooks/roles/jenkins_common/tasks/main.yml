@@ -289,6 +289,30 @@
     - install:jenkins-configuration
     - jenkins:local-dev
 
+- name: Delete any ec2 related files
+  shell: 'rm -r {{ jenkins_common_home }}/plugins/ec2*'
+  become: true
+  become_user: '{{ jenkins_common_user }}'
+  tags:
+    - install
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
+    - jenkins:local-dev
+
+- name: Get forked ec2 version from S3
+  get_url:
+    url: https://s3.amazonaws.com/edx-testeng-tools/ec2/ec2.hpi
+    dest: '{{ jenkins_common_home }}/plugins/ec2.hpi'
+  become: true
+  become_user: '{{ jenkins_common_user }}'
+  tags:
+    - install
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
+    - jenkins:local-dev
+
 - name: Copy secret file credentials
   copy:
     content: "{{ item.content }}"
