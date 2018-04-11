@@ -24,6 +24,6 @@ RUN php -r "readfile('http://files.drush.org/drush.phar');" > drush && \
 # material that can checkout private github repositories used as pipeline materials. The key material here is faked and
 # is only used to pass CI!
 # setup the acquia github identity
-ADD docker/build/go-agent-marketing/files/acquia_github_key.pem /var/go/.ssh/acquia_github_key
-RUN chmod 600 /var/go/.ssh/acquia_github_key && \
-    chown go:go /var/go/.ssh/acquia_github_key
+ADD docker/build/go-agent-marketing/files/acquia_github_key.pem /home/go/.ssh/acquia_github_key
+RUN chmod 600 /home/go/.ssh/acquia_github_key && \
+    chown go:go /home/go/.ssh/acquia_github_key
