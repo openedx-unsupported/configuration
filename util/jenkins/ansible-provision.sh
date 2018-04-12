@@ -287,6 +287,7 @@ EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
+XQUEUE_CONSUMER_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue_consumer
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
