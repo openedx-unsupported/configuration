@@ -6,6 +6,7 @@
     Useful for external utilities that are reporting NR metrics.
   - Added XQUEUE_CONSUMER_NEWRELIC_APPNAME which is added to the supervisor start of xqueue_consumer
     if you have New Relic enabled.
+  - Retired XQUEUE_WORKERS_PER_QUEUE
     
 - Role edx_django_service
   - Added maintenance page under the flag EDX_DJANGO_SERVICE_ENABLE_S3_MAINTENANCE.
