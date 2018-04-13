@@ -61,6 +61,10 @@ def main(noop, pingdom_email, pingdom_password,
                 """.format(alert_config))
             else:
                 print("Attempting UPDATE: {0}".format(alert_config))
+                # We always update because the parameters to POST check
+                # and the paramters returned by GET check differ.
+                # It would be difficult to figure out if changes
+                # have occured.
                 update_check(pingdom_email, pingdom_password,
                              pingdom_api_key, existing_check['id'],
                              alert_config)
