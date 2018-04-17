@@ -115,17 +115,7 @@ apt-get update -y
 apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 
 
-# Workaround for a 16.04 bug, need to upgrade to latest and then
-# potentially downgrade to the preferred version.
-if [[ "xenial" = "${SHORT_DIST}" ]]; then
-    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2
-    pip install --upgrade pip
-    pip install --upgrade pip=="${PIP_VERSION}"
-    #apt-get install -y build-essential sudo git-core libmysqlclient-dev
-else
-    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
-    pip install --upgrade pip=="${PIP_VERSION}"
-fi
+pip install --upgrade pip=="${PIP_VERSION}"
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
