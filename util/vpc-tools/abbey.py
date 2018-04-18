@@ -400,16 +400,7 @@ fi
 apt-get update -y
 
 apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
-
-# Workaround for a 16.04 bug, need to upgrade to latest and then
-# potentially downgrade to the preferred version.
-# https://github.com/pypa/pip/issues/3862
-if [[ "xenial" = "$SHORT_DIST" ]]; then
-    pip install --upgrade pip
-    pip install --upgrade pip=="$PIP_VERSION"
-else
-    pip install --upgrade pip=="$PIP_VERSION"
-fi
+pip install --upgrade pip=="$PIP_VERSION"
 
 # pip moves to /usr/local/bin when upgraded
 hash -r   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
