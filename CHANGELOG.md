@@ -1,5 +1,8 @@
+- Removed Vagrantfiles for devstack and fullstack, and supporting files.
+
 - Role: xqueue
   - Added XQUEUE_SUBMISSION_PROCESSING_DELAY and XQUEUE_CONSUMER_DELAY to xqueue env so they can be passed along to the app.
+
 - Role: edxapp
   - Moved `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`, and `PASSWORD_COMPLEXITY` to generic_env_config to allow CMS and LMS to share these configurations
 
