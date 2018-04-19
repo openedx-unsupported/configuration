@@ -300,6 +300,16 @@ location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
     expires {{ EDXAPP_PROFILE_IMAGE_MAX_AGE }}s;
 }
 
+{% if NGINX_DJANGO_ADMIN_ACCESS_CIDRS and EDXAPP_ENABLE_DJANGO_ADMIN_RESTRICTION %}
+  location /admin {
+    {% for cidr in NGINX_DJANGO_ADMIN_ACCESS_CIDRS %}
+      allow {{ cidr }};
+    {% endfor %}
+      deny all;
+      try_files $uri @proxy_to_lms_app;
+  }
+{% endif %}
+
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
   {% include "extra_locations_lms.j2" ignore missing %}
