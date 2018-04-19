@@ -52,11 +52,16 @@ XQUEUE_MYSQL_CONN_MAX_AGE: 0 # This is Django's default https://docs.djangoproje
 XQUEUE_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-xqueue"
 XQUEUE_CONSUMER_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-xqueue_consumer"
 XQUEUE_SETTINGS_MODULE: "xqueue.aws_settings"
-# Set the number of workers explicitely for xqueue
+# Set the number of gunicorn front end workers explicitely for xqueue
 XQUEUE_WORKERS: !!null
 
 XQUEUE_SESSION_ENGINE: !!null
 XQUEUE_CACHES: !!null
+
+# Number of minutes to ignore a pulled/pushed submission before making it available again
+XQUEUE_SUBMISSION_PROCESSING_DELAY: 1
+# Number of seconds to delay before querying for available push submissions
+XQUEUE_CONSUMER_DELAY: 10
 
 # Internal vars below this line
 #############################################
@@ -91,6 +96,8 @@ xqueue_env_config:
   UPLOAD_BUCKET: "{{ XQUEUE_UPLOAD_BUCKET }}"
   UPLOAD_PATH_PREFIX: "{{ XQUEUE_UPLOAD_PATH_PREFIX }}"
   NEWRELIC_APPNAME: "{{ XQUEUE_NEWRELIC_APPNAME }}"
+  SUBMISSION_PROCESSING_DELAY: "{{ XQUEUE_SUBMISSION_PROCESSING_DELAY }}"
+  CONSUMER_DELAY: "{{ XQUEUE_CONSUMER_DELAY }}"
 
 xqueue_auth_config:
   AWS_ACCESS_KEY_ID:  "{{ XQUEUE_AWS_ACCESS_KEY_ID }}"
