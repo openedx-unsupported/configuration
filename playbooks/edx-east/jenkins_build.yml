@@ -17,52 +17,6 @@
     COMMON_SECURITY_UPDATES: yes
     SECURITY_UPGRADE_ON_ANSIBLE: true
 
-    SPLUNKFORWARDER_LOG_ITEMS:
-      - source: '/var/lib/jenkins/jobs/edx-platform-*/builds/*/junitResult.xml'
-        recursive: true
-        index: 'testeng'
-        sourcetype: junit
-        followSymlink: false
-        blacklist: coverage|private|subset|specific|custom|special|\.gz$
-        crcSalt: '<SOURCE>'
-
-      - source: '/var/lib/jenkins/jobs/*/builds/*/build.xml'
-        index: 'testeng'
-        recursive: true
-        sourcetype: build_result
-        followSymlink: false
-        crcSalt: '<SOURCE>'
-        blacklist: '\.gz$'
-
-      - source: '/var/lib/jenkins/jobs/edx-platform-*/builds/*/archive/.../test_root/log/timing.*.log'
-        index: 'testeng'
-        recursive: true
-        sourcetype: 'json_timing_log'
-        followSymlink: false
-        crcSalt: '<SOURCE>'
-        blacklist: coverage|private|subset|specific|custom|special|\.gz$
-
-      - source: '/var/lib/jenkins/jobs/edx-platform-*/builds/*/archive/test_root/log/timing.*.log'
-        index: 'testeng'
-        recursive: true
-        sourcetype: 'json_timing_log'
-        followSymlink: false
-        crcSalt: '<SOURCE>'
-        blacklist: coverage|private|subset|specific|custom|special|\.gz$
-
-      - source: '/var/lib/jenkins/jobs/count-workers/builds/*/log'
-        index: 'testeng'
-        recursive: true
-        sourcetype: 'count_worker_log'
-        followSymlink: false
-        crcSalt: '<SOURCE>'
-
-      - source: '/var/log/jenkins/jenkins.log'
-        index: 'testeng'
-        recursive: false
-        followSymlink: false
-        blacklist: '\.gz$'
-
   roles:
     - aws
     - role: datadog
@@ -72,15 +26,6 @@
 
 
     - jenkins_build
-
-    # run just the splunkforwarder role by using '--tags "splunkonly"'
-    # e.g. ansible-playbook jenkins_testeng_master.yml -i inventory.ini --tags "splunkonly" -vvvv
-    - role: splunkforwarder
-      when: COMMON_ENABLE_SPLUNKFORWARDER
-      tags:
-        - splunkonly
-        - jenkins:promote-to-production
-      become: True
 
     - role: newrelic
       when: COMMON_ENABLE_NEWRELIC
