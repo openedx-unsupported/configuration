@@ -16,6 +16,7 @@
 # Install the platform requirements using pip.
 - name: Install edx-platform requirements using pip
   pip:
+    chdir: "{{ jenkins_home }}/shallow-clone"
     requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
     extra_args: "--exists-action=w"
     virtualenv: "{{ jenkins_home }}/edx-venv"
@@ -27,25 +28,6 @@
     - paver.txt
     - testing.txt
   become_user: "{{ jenkins_user }}"
-
-
-# These and the pip install below it can be removed some time after
-# https://github.com/edx/edx-platform/pull/7465 has merged.
-# This will keep us from breaking after that gets merged.
-- stat: path="{{ jenkins_home }}/shallow-clone/requirements/edx/post.txt"
-  register: post_requirements
-  become_user: "{{ jenkins_user }}"
-
-- name: Install edx-platform post requirements using pip
-  pip:
-    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
-    extra_args: "--exists-action=w"
-    virtualenv: "{{ jenkins_home }}/edx-venv"
-    virtualenv_command: virtualenv
-  with_items:
-    - post.txt
-  become_user: "{{ jenkins_user }}"
-  when: post_requirements.stat.exists
 
 # Archive the current state of the virtualenv
 # as a starting point for new builds.
