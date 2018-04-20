@@ -1,4 +1,14 @@
-FROM edxops/xenial-common:latest
+# To build this Dockerfile:
+#
+# From the root of configuration:
+#
+# docker build -f docker/build/jenkins_build/Dockerfile .
+#
+# This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
+# with the currently checked-out configuration repo.
+
+ARG BASE_IMAGE_TAG=latest
+FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 MAINTAINER edxops
 
 USER root

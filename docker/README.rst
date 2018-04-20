@@ -43,10 +43,9 @@ set of make commands.
 Image naming
 ************
 
-Images built from master branches are named ``edxops/<service>``, for example,
-``edxops/edxapp``. Images built from Open edX release branches include the
-short release name: ``edxops/ficus/edxapp``. Both images will have a
-``:latest`` version.
+The latest images built from master branches are named ``edxops/<service>:latest``,
+for example, ``edxops/edxapp:latest``. Images built from Open edX release
+branches use an appropriate tag, such as ``edxops/edxapp:hawthorn.master``.
 
 Build arguments
 ***************
@@ -56,13 +55,13 @@ Dockerfiles make use of these build arguments:
 -  ``OPENEDX_RELEASE`` is the release branch to use. It defaults to "master".
    To use an Open edX release, provide the full branch name:
 
-``--build-arg OPENEDX_RELEASE=open-release/ficus.master``
+``--build-arg OPENEDX_RELEASE=open-release/hawthorn.master``
 
--  ``IMAGE_PREFIX`` is the release branch component to add to images. It
-   defaults to an empty string for master builds. For Open edX release, use the
-   short name of the release, with a trailing slash:
+-  ``BASE_IMAGE_TAG`` is the tag for the base image to build on. It
+   defaults to "latest" for master builds. For an Open edX release, use
+   the name of the release:
 
-``--build-arg IMAGE_PREFIX=ficus/``
+``--build-arg BASE_IMAGE_TAG=hawthorn.master``
 
 Conventions
 ***********
