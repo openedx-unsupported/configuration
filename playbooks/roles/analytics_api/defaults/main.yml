@@ -13,11 +13,48 @@
 
 ANALYTICS_API_GIT_IDENTITY: !!null
 
-# depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
-# and a key being provided via NEWRELIC_LICENSE_KEY
-ANALYTICS_API_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
-ANALYTICS_API_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
-ANALYTICS_API_NGINX_PORT: "18100"
+#
+# vars are namespace with the module name
+#
+
+analytics_api_service_name: "analytics_api"
+analytics_api_gunicorn_port: "8100"
+
+ANALYTICS_API_DJANGO_SETTINGS_MODULE: "analyticsdataserver.settings.production"
+
+analytics_api_environment:
+  ANALYTICS_API_CFG: "{{ COMMON_CFG_DIR }}/{{ analytics_api_service_name }}.yml"
+  DJANGO_SETTINGS_MODULE: "{{ ANALYTICS_API_DJANGO_SETTINGS_MODULE }}"
+
+analytics_api_home: "{{ COMMON_APP_DIR }}/{{ analytics_api_service_name }}"
+analytics_api_user: "{{ analytics_api_service_name }}"
+analytics_api_code_dir: "{{ analytics_api_home }}/{{ analytics_api_service_name }}"
+
+analytics_api_wsgi_name: "analyticsdataserver"
+analytics_api_hostname: "analytics-api"
+
+#
+# OS packages
+#
+analytics_api_debian_pkgs:
+  - 'libmysqlclient-dev'
+
+ANALYTICS_API_VERSION: "master"
+ANALYTICS_API_NGINX_PORT: '1{{ analytics_api_gunicorn_port }}'
+ANALYTICS_API_SSL_NGINX_PORT: '4{{ analytics_api_gunicorn_port }}'
+
+ANALYTICS_API_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-analytics-data-api.git
+    VERSION: "{{ ANALYTICS_API_VERSION }}"
+    DESTINATION: "{{ analytics_api_code_dir }}"
+    SSH_KEY: "{{ ANALYTICS_API_GIT_IDENTITY }}"
+
+
+ANALYTICS_API_SECRET_KEY: 'Your secret key here'
+ANALYTICS_API_AUTH_TOKEN: 'put-your-api-token-here'
 
 ANALYTICS_API_DEFAULT_DB_NAME: 'analytics-api'
 ANALYTICS_API_DEFAULT_USER: 'api001'
@@ -57,17 +94,6 @@ ANALYTICS_API_DATABASES:
     PORT: '{{ ANALYTICS_API_REPORTS_PORT }}'
     OPTIONS: "{{ ANALYTICS_API_REPORTS_MYSQL_OPTIONS }}"
 
-ANALYTICS_API_VERSION: "master"
-# Default dummy user, override this!!
-ANALYTICS_API_USERS:
-  "dummy-api-user": "changeme"
-
-ANALYTICS_API_SECRET_KEY: 'Your secret key here'
-ANALYTICS_API_TIME_ZONE: 'UTC'
-ANALYTICS_API_LANGUAGE_CODE: 'en-us'
-ANALYTICS_API_AUTH_TOKEN: 'put-your-api-token-here'
-
-
 ANALYTICS_API_ELASTICSEARCH_LEARNERS_HOST: 'localhost'
 ANALYTICS_API_ELASTICSEARCH_LEARNERS_INDEX: 'roster_1_2'
 ANALYTICS_API_ELASTICSEARCH_LEARNERS_UPDATE_INDEX: 'index_updates'
@@ -80,11 +106,6 @@ ANALYTICS_API_DATETIME_FORMAT: '%Y-%m-%dT%H%M%S'
 ANALYTICS_API_DEFAULT_PAGE_SIZE: 25
 ANALYTICS_API_MAX_PAGE_SIZE: 100
 ANALYTICS_API_AGGREGATE_PAGE_SIZE: 10
-
-ANALYTICS_API_BASE_URL: 'http://localhost:8100'
-ANALYTICS_API_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ analytics_api_service_name }}'
-ANALYTICS_API_MEDIA_ROOT: '{{ ANALYTICS_API_DATA_DIR }}/static/reports'
-ANALYTICS_API_MEDIA_URL: '/static/reports/'
 
 # Example settings to use Amazon S3 as a storage backend for course reports.
 #
@@ -103,21 +124,27 @@ ANALYTICS_API_MEDIA_URL: '/static/reports/'
 #
 # Other storage providers can be used, as long as they provide the .url() method.
 
+ANALYTICS_API_BASE_URL: 'http://localhost:8100'
+ANALYTICS_API_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ analytics_api_service_name }}'
+ANALYTICS_API_MEDIA_ROOT: '{{ ANALYTICS_API_DATA_DIR }}/static/reports'
+ANALYTICS_API_MEDIA_URL: '/static/reports/'
+
 ANALYTICS_API_REPORT_DOWNLOAD_BACKEND:
   DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
   MEDIA_ROOT: '{{ ANALYTICS_API_MEDIA_ROOT }}'
   MEDIA_URL: '{{ ANALYTICS_API_BASE_URL }}{{ ANALYTICS_API_MEDIA_URL }}'
   COURSE_REPORT_FILE_LOCATION_TEMPLATE: '{course_id}_{report_name}.csv'
 
-ANALYTICS_API_SERVICE_CONFIG:
-  ANALYTICS_DATABASE: 'reports'
-  SECRET_KEY: '{{ ANALYTICS_API_SECRET_KEY }}'
-  TIME_ZONE: '{{ ANALYTICS_API_TIME_ZONE }}'
-  LANGUAGE_CODE: '{{ANALYTICS_API_LANGUAGE_CODE }}'
+ANALYTICS_API_CSRF_COOKIE_SECURE: false
+
+analytics_api_service_config_overrides:
   API_AUTH_TOKEN: '{{ ANALYTICS_API_AUTH_TOKEN }}'
   STATICFILES_DIRS: ['static']
   STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ analytics_api_service_name }}/staticfiles"
+  LMS_BASE_URL: "{{ ANALYTICS_API_LMS_BASE_URL | default('http://127.0.0.1:8000') }}"
+
   # db config
+  ANALYTICS_DATABASE: ANALYTICS_API_REPORTS_DB_NAME
   DATABASES: '{{ ANALYTICS_API_DATABASES }}'
   ELASTICSEARCH_LEARNERS_HOST: '{{ ANALYTICS_API_ELASTICSEARCH_LEARNERS_HOST }}'
   ELASTICSEARCH_LEARNERS_INDEX: '{{ ANALYTICS_API_ELASTICSEARCH_LEARNERS_INDEX }}'
@@ -134,55 +161,6 @@ ANALYTICS_API_SERVICE_CONFIG:
   REPORT_DOWNLOAD_BACKEND: '{{ ANALYTICS_API_REPORT_DOWNLOAD_BACKEND }}'
   CSRF_COOKIE_SECURE: "{{ ANALYTICS_API_CSRF_COOKIE_SECURE }}"
 
-ANALYTICS_API_REPOS:
-  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
-    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
-    PATH: "{{ COMMON_GIT_PATH }}"
-    REPO: edx-analytics-data-api.git
-    VERSION: "{{ ANALYTICS_API_VERSION }}"
-    DESTINATION: "{{ analytics_api_code_dir }}"
-    SSH_KEY: "{{ ANALYTICS_API_GIT_IDENTITY }}"
-
-ANALYTICS_API_GUNICORN_WORKERS: "2"
-ANALYTICS_API_GUNICORN_EXTRA: ""
-ANALYTICS_API_GUNICORN_EXTRA_CONF: ""
-
-ANALYTICS_API_CSRF_COOKIE_SECURE: false
-#
-# vars are namespace with the module name.
-#
-
-analytics_api_environment:
-  DJANGO_SETTINGS_MODULE: "analyticsdataserver.settings.production"
-  ANALYTICS_API_CFG: "{{ COMMON_CFG_DIR  }}/{{ analytics_api_service_name }}.yml"
-
-analytics_api_service_name: "analytics_api"
-analytics_api_user: "{{ analytics_api_service_name }}"
-analytics_api_home: "{{ COMMON_APP_DIR }}/{{ analytics_api_service_name }}"
-analytics_api_code_dir: "{{ analytics_api_home }}/{{ analytics_api_service_name }}"
-analytics_api_conf_dir: "{{ analytics_api_home }}"
-analytics_api_venv_dir: "{{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}"
-analytics_api_venv_bin: "{{ analytics_api_venv_dir }}/bin"
-
-analytics_api_gunicorn_host: "127.0.0.1"
-analytics_api_gunicorn_port: "8100"
-analytics_api_gunicorn_timeout: "300"
-
-analytics_api_django_settings: "production"
-
-analytics_api_log_dir: "{{ COMMON_LOG_DIR }}/{{ analytics_api_service_name }}"
-
-analytics_api_requirements_base: "{{ analytics_api_code_dir }}/requirements"
-analytics_api_requirements:
-  - base.txt
-  - production.txt
-  - optional.txt
-
-#
-# OS packages
-#
-
-analytics_api_debian_pkgs:
-  - 'libmysqlclient-dev'
-
-analytics_api_redhat_pkgs: []
+# Default dummy user, override this!!
+ANALYTICS_API_USERS:
+  "dummy-api-user": "changeme"
