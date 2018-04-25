@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `RETIREMENT_STATES` to generic_env_config to support making the retirement workflow configurable.
+
 - Removed Vagrantfiles for devstack and fullstack, and supporting files.
 
 - Role: xqueue
