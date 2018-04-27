@@ -1,3 +1,6 @@
+- Role: certs
+  - Added `CERTS_QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
+
 - Role: edxapp
   - Added `RETIREMENT_STATES` to generic_env_config to support making the retirement workflow configurable.
 
