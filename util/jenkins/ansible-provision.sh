@@ -299,7 +299,7 @@ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
 
-ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
 ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
