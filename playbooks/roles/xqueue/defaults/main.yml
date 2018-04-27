@@ -66,29 +66,11 @@ XQUEUE_SUBMISSION_PROCESSING_DELAY: 1
 # Number of seconds to delay before querying for available push submissions
 XQUEUE_CONSUMER_DELAY: 10
 
-# Internal vars below this line
-#############################################
+INSIGHTS_CSRF_COOKIE_SECURE: false
 
-xqueue_app_dir: "{{ COMMON_APP_DIR }}/xqueue"
-xqueue_code_dir: "{{ xqueue_app_dir }}/xqueue"
-xqueue_data_dir: "{{ COMMON_DATA_DIR }}/xqueue"
-xqueue_venvs_dir: "{{ xqueue_app_dir }}/venvs"
-xqueue_venv_dir: "{{ xqueue_venvs_dir }}/xqueue"
-xqueue_venv_bin: "{{ xqueue_venv_dir }}/bin"
-xqueue_user: "xqueue"
-
-# Default nginx listen port
-# These should be overrided if you want
-# to serve all content on port 80
-xqueue_gunicorn_port: 8040
-xqueue_gunicorn_host: 127.0.0.1
-
-xqueue_environment:
-  DJANGO_SETTINGS_MODULE: '{{ XQUEUE_SETTINGS_MODULE }}'
-  PATH: '{{ xqueue_venv_bin }}:{{ ansible_env.PATH }}'
-
-
-xqueue_env_config:
+# This block of config is dropped into /edx/etc/xqueue.yml
+# and is read in by XQUEUE_SETTINGS
+XQUEUE_CONFIG:
   XQUEUES: "{{ XQUEUE_QUEUES }}"
   LOGGING_ENV: "{{ XQUEUE_LOGGING_ENV }}"
   SYSLOG_SERVER: "{{ XQUEUE_SYSLOG_SERVER }}"
@@ -101,8 +83,6 @@ xqueue_env_config:
   NEWRELIC_APPNAME: "{{ XQUEUE_NEWRELIC_APPNAME }}"
   SUBMISSION_PROCESSING_DELAY: "{{ XQUEUE_SUBMISSION_PROCESSING_DELAY }}"
   CONSUMER_DELAY: "{{ XQUEUE_CONSUMER_DELAY }}"
-
-xqueue_auth_config:
   AWS_ACCESS_KEY_ID:  "{{ XQUEUE_AWS_ACCESS_KEY_ID }}"
   AWS_SECRET_ACCESS_KEY: "{{ XQUEUE_AWS_SECRET_ACCESS_KEY }}"
   SWIFT_USERNAME: "{{ XQUEUE_SWIFT_USERNAME }}"
@@ -127,8 +107,43 @@ xqueue_auth_config:
       OPTIONS: "{{ XQUEUE_MYSQL_OPTIONS }}"
   NEWRELIC_LICENSE_KEY: "{{ NEWRELIC_LICENSE_KEY | default('') }}"
 
-xqueue_source_repo: "https://github.com/edx/xqueue.git"
-xqueue_version: 'master'
+XQUEUE_VERSION: "master"
+XQUEUE_GIT_IDENTITY: !!null
+
+XQUEUE_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: xqueue.git
+    VERSION: "{{ XQUEUE_VERSION }}"
+    DESTINATION: "{{ xqueue_code_dir }}"
+    SSH_KEY: "{{ XQUEUE_GIT_IDENTITY }}"
+
+# Internal vars below this line
+#############################################
+
+xqueue_service_name: "xqueue"
+
+xqueue_app_dir: "{{ COMMON_APP_DIR }}/xqueue"
+xqueue_code_dir: "{{ xqueue_app_dir }}/xqueue"
+xqueue_data_dir: "{{ COMMON_DATA_DIR }}/xqueue"
+xqueue_venvs_dir: "{{ xqueue_app_dir }}/venvs"
+xqueue_venv_dir: "{{ xqueue_venvs_dir }}/xqueue"
+xqueue_venv_bin: "{{ xqueue_venv_dir }}/bin"
+
+xqueue_user: "xqueue"
+xqueue_home: "{{ COMMON_APP_DIR }}/{{ xqueue_service_name }}"
+
+# Default nginx listen port
+# These should be overrided if you want
+# to serve all content on port 80
+xqueue_gunicorn_port: 8040
+xqueue_gunicorn_host: 127.0.0.1
+
+xqueue_environment:
+  DJANGO_SETTINGS_MODULE: '{{ XQUEUE_SETTINGS_MODULE }}'
+  PATH: '{{ xqueue_venv_bin }}:{{ ansible_env.PATH }}'
+
 xqueue_requirements_file:      "{{ xqueue_code_dir }}/requirements.txt"
 xqueue_openstack_requirements_file: "{{ xqueue_code_dir }}/openstack-requirements.txt"
 
