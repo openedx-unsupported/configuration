@@ -38,7 +38,7 @@ ENV BOTO_CONFIG=/dev/null \
     EDX_PPA_KEY_ID='69464050'
 
 
-ENV PATH="$PATH:/edx/app/analytics_pipeline/venvs/analytics_pipeline/bin:${JAVA_HOME}/bin:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin:${HIVE_HOME}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${SQOOP_HOME}/bin" \
+ENV PATH="/edx/app/analytics_pipeline/venvs/analytics_pipeline/bin:${JAVA_HOME}/bin:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin:${HIVE_HOME}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${SQOOP_HOME}/bin:$PATH" \
     COMMON_DATA_DIR=$COMMON_BASE_DIR/var \
     COMMON_APP_DIR=$COMMON_BASE_DIR/app \
     COMMON_LOG_DIR=$COMMON_BASE_DIR/var/log \
@@ -128,9 +128,11 @@ RUN pip install $COMMON_PIP_PACKAGES_PIP $COMMON_PIP_PACKAGES_SETUPTOOLS $COMMON
     && echo '[hadoop]\nversion: cdh4\ncommand: /edx/app/hadoop/hadoop/bin/hadoop\nstreaming-jar: /edx/app/hadoop/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.2.jar' > /etc/luigi/client.cfg
 
 RUN apt-get update && make system-requirements
+ADD docker/build/analytics_pipeline/devstack.sh /edx/app/analytics_pipeline/devstack.sh
+RUN chown hadoop:hadoop /edx/app/analytics_pipeline/devstack.sh && chmod a+x /edx/app/analytics_pipeline/devstack.sh
 USER hadoop
 RUN touch /edx/app/hadoop/.bashrc \
-    && echo 'export JAVA_HOME=/usr/lib/jvm/java-8-oracle\nexport HADOOP_HOME=/edx/app/hadoop/hadoop\nexport HIVE_HOME=/edx/app/hadoop/hive\nexport SQOOP_HOME=/edx/app/hadoop/sqoop\nexport SPARK_HOME=/edx/app/hadoop/spark\nexport PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/edx/app/analytics_pipeline/venvs/analytics_pipeline/bin:/usr/lib/jvm/java-8-oracle/bin:/edx/app/hadoop/hadoop/bin:/edx/app/hadoop/hadoop/sbin:/edx/app/hadoop/hive/bin:/edx/app/hadoop/spark/bin:/edx/app/hadoop/spark/sbin:/edx/app/hadoop/sqoop/bin"' > /edx/app/hadoop/.bashrc \
+    && echo 'export JAVA_HOME=/usr/lib/jvm/java-8-oracle\nexport HADOOP_HOME=/edx/app/hadoop/hadoop\nexport HIVE_HOME=/edx/app/hadoop/hive\nexport SQOOP_HOME=/edx/app/hadoop/sqoop\nexport SPARK_HOME=/edx/app/hadoop/spark\nexport PATH="/edx/app/analytics_pipeline/venvs/analytics_pipeline/bin:${JAVA_HOME}/bin:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin:${HIVE_HOME}/bin:${SPARK_HOME}/bin:${SPARK_HOME}/sbin:${SQOOP_HOME}/bin:$PATH"' > /edx/app/hadoop/.bashrc \
     && . $ANALYTICS_PIPELINE_VENV/analytics_pipeline/bin/activate \
     && make test-requirements requirements
 
