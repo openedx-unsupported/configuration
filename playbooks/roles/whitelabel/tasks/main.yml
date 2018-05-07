@@ -35,3 +35,16 @@
    --dns-name {{ dns_name }} --settings=ecommerce.settings.production --theme-path {{ WHITELABEL_THEME_DIR }}
   become_user: "{{ ecommerce_user }}"
   environment: "{{ ecommerce_environment }}"
+
+# Journals
+
+- name: Create Sites and Partners for Journals
+  shell: >
+      {{ COMMON_BIN_DIR }}/python.journals {{ COMMON_BIN_DIR }}/manage.journals create_themed_sites
+      --settings={{ JOURNALS_DJANGO_SETTINGS_MODULE }}
+      --dns-name {{ dns_name }}
+      --theme-path {{ WHITELABEL_THEME_DIR }}
+      --port "80"
+  become_user: "{{ journals_user }}"
+  environment: "{{ journals_environment }}"
+  when: "{{ JOURNALS_ENABLED }}"
