@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG` to make configurable whether password complexity is checked on login and how such complexity is rolled out to users.
+
 - Role: certs
   - Added `CERTS_QUEUE_POLL_FREQUENCY` to make configurable the certificate agent's queue polling frequency.
 
