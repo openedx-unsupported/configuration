@@ -21,22 +21,25 @@ XQUEUE_SYSLOG_SERVER: 'localhost'
 
 XQUEUE_UPLOAD_BUCKET: 'sandbox-bucket'
 XQUEUE_UPLOAD_PATH_PREFIX: 'sandbox-xqueue'
+# You can set this to S3 or Swift, but it will
+# default to the django file storage for tests/devstacks
+XQUEUE_DEFAULT_FILE_STORAGE: !!null
 
 XQUEUE_LOCAL_LOGLEVEL: 'INFO'
 
 # If you try to use an Instance IAM Role rather than a user key S3 will invalidate the signed
 # URLs used in uploaded file submissions.  If you don't upload files on grade submissions, then
 # it's ok, the submission is stored directly in the database.
-XQUEUE_AWS_ACCESS_KEY_ID : ''
-XQUEUE_AWS_SECRET_ACCESS_KEY : ''
+XQUEUE_AWS_ACCESS_KEY_ID : !!null
+XQUEUE_AWS_SECRET_ACCESS_KEY : !!null
 
-XQUEUE_SWIFT_USERNAME: ''
-XQUEUE_SWIFT_KEY: ''
-XQUEUE_SWIFT_TENANT_ID: ''
-XQUEUE_SWIFT_TENANT_NAME: ''
-XQUEUE_SWIFT_AUTH_URL: ''
-XQUEUE_SWIFT_AUTH_VERSION: 1
-XQUEUE_SWIFT_REGION_NAME: ''
+XQUEUE_SWIFT_USERNAME: !!null
+XQUEUE_SWIFT_KEY: !!null
+XQUEUE_SWIFT_TENANT_ID: !!null
+XQUEUE_SWIFT_TENANT_NAME: !!null
+XQUEUE_SWIFT_AUTH_URL: !!null
+XQUEUE_SWIFT_AUTH_VERSION: !!null
+XQUEUE_SWIFT_REGION_NAME: !!null
 
 XQUEUE_BASIC_AUTH_USER: "{{ COMMON_HTPASSWD_USER }}"
 XQUEUE_BASIC_AUTH_PASSWORD: "{{ COMMON_HTPASSWD_PASS }}"
@@ -54,7 +57,6 @@ XQUEUE_MYSQL_CONN_MAX_AGE: 0 # This is Django's default https://docs.djangoproje
 
 XQUEUE_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-xqueue"
 XQUEUE_CONSUMER_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-xqueue_consumer"
-XQUEUE_SETTINGS_MODULE: "xqueue.aws_settings"
 # Set the number of gunicorn front end workers explicitely for xqueue
 XQUEUE_WORKERS: !!null
 
@@ -66,29 +68,11 @@ XQUEUE_SUBMISSION_PROCESSING_DELAY: 1
 # Number of seconds to delay before querying for available push submissions
 XQUEUE_CONSUMER_DELAY: 10
 
-# Internal vars below this line
-#############################################
+INSIGHTS_CSRF_COOKIE_SECURE: false
 
-xqueue_app_dir: "{{ COMMON_APP_DIR }}/xqueue"
-xqueue_code_dir: "{{ xqueue_app_dir }}/xqueue"
-xqueue_data_dir: "{{ COMMON_DATA_DIR }}/xqueue"
-xqueue_venvs_dir: "{{ xqueue_app_dir }}/venvs"
-xqueue_venv_dir: "{{ xqueue_venvs_dir }}/xqueue"
-xqueue_venv_bin: "{{ xqueue_venv_dir }}/bin"
-xqueue_user: "xqueue"
-
-# Default nginx listen port
-# These should be overrided if you want
-# to serve all content on port 80
-xqueue_gunicorn_port: 8040
-xqueue_gunicorn_host: 127.0.0.1
-
-xqueue_environment:
-  DJANGO_SETTINGS_MODULE: '{{ XQUEUE_SETTINGS_MODULE }}'
-  PATH: '{{ xqueue_venv_bin }}:{{ ansible_env.PATH }}'
-
-
-xqueue_env_config:
+# This block of config is dropped into /edx/etc/xqueue.yml
+# and is read in by xqueue.XQUEUE_SETTINGS
+XQUEUE_CONFIG:
   XQUEUES: "{{ XQUEUE_QUEUES }}"
   LOGGING_ENV: "{{ XQUEUE_LOGGING_ENV }}"
   SYSLOG_SERVER: "{{ XQUEUE_SYSLOG_SERVER }}"
@@ -98,11 +82,10 @@ xqueue_env_config:
   LOCAL_LOGLEVEL: "{{ XQUEUE_LOCAL_LOGLEVEL }}"
   UPLOAD_BUCKET: "{{ XQUEUE_UPLOAD_BUCKET }}"
   UPLOAD_PATH_PREFIX: "{{ XQUEUE_UPLOAD_PATH_PREFIX }}"
+  DEFAULT_FILE_STORAGE: "{{ XQUEUE_DEFAULT_FILE_STORAGE }}"
   NEWRELIC_APPNAME: "{{ XQUEUE_NEWRELIC_APPNAME }}"
   SUBMISSION_PROCESSING_DELAY: "{{ XQUEUE_SUBMISSION_PROCESSING_DELAY }}"
   CONSUMER_DELAY: "{{ XQUEUE_CONSUMER_DELAY }}"
-
-xqueue_auth_config:
   AWS_ACCESS_KEY_ID:  "{{ XQUEUE_AWS_ACCESS_KEY_ID }}"
   AWS_SECRET_ACCESS_KEY: "{{ XQUEUE_AWS_SECRET_ACCESS_KEY }}"
   SWIFT_USERNAME: "{{ XQUEUE_SWIFT_USERNAME }}"
@@ -112,6 +95,7 @@ xqueue_auth_config:
   SWIFT_AUTH_URL: "{{ XQUEUE_SWIFT_AUTH_URL }}"
   SWIFT_AUTH_VERSION: "{{ XQUEUE_SWIFT_AUTH_VERSION }}"
   SWIFT_REGION_NAME: "{{ XQUEUE_SWIFT_REGION_NAME }}"
+  # This is used by the xqueue consumer in case it needs to send a password protected submission out for a push grader.
   REQUESTS_BASIC_AUTH: ["{{ XQUEUE_BASIC_AUTH_USER }}", "{{XQUEUE_BASIC_AUTH_PASSWORD}}"]
   USERS: "{{ XQUEUE_DJANGO_USERS }}"
   DATABASES:
@@ -127,8 +111,44 @@ xqueue_auth_config:
       OPTIONS: "{{ XQUEUE_MYSQL_OPTIONS }}"
   NEWRELIC_LICENSE_KEY: "{{ NEWRELIC_LICENSE_KEY | default('') }}"
 
-xqueue_source_repo: "https://github.com/edx/xqueue.git"
-xqueue_version: 'master'
+XQUEUE_VERSION: "master"
+XQUEUE_GIT_IDENTITY: !!null
+
+XQUEUE_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: xqueue.git
+    VERSION: "{{ XQUEUE_VERSION }}"
+    DESTINATION: "{{ xqueue_code_dir }}"
+    SSH_KEY: "{{ XQUEUE_GIT_IDENTITY }}"
+
+# Internal vars below this line
+#############################################
+
+xqueue_service_name: "xqueue"
+
+xqueue_app_dir: "{{ COMMON_APP_DIR }}/xqueue"
+xqueue_code_dir: "{{ xqueue_app_dir }}/xqueue"
+xqueue_data_dir: "{{ COMMON_DATA_DIR }}/xqueue"
+xqueue_venvs_dir: "{{ xqueue_app_dir }}/venvs"
+xqueue_venv_dir: "{{ xqueue_venvs_dir }}/xqueue"
+xqueue_venv_bin: "{{ xqueue_venv_dir }}/bin"
+
+xqueue_user: "xqueue"
+xqueue_home: "{{ COMMON_APP_DIR }}/{{ xqueue_service_name }}"
+
+# Default nginx listen port
+# These should be overrided if you want
+# to serve all content on port 80
+xqueue_gunicorn_port: 8040
+xqueue_gunicorn_host: 127.0.0.1
+
+xqueue_environment:
+  DJANGO_SETTINGS_MODULE: 'xqueue.{{ XQUEUE_SETTINGS }}'
+  PATH: '{{ xqueue_venv_bin }}:{{ ansible_env.PATH }}'
+  XQUEUE_CFG: '{{ COMMON_CFG_DIR }}/xqueue.yml'
+
 xqueue_requirements_file:      "{{ xqueue_code_dir }}/requirements.txt"
 xqueue_openstack_requirements_file: "{{ xqueue_code_dir }}/openstack-requirements.txt"
 
