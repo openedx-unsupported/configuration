@@ -1,3 +1,6 @@
+- Role: credentials
+  - Set `LANGUAGE_COOKIE_NAME` so that Credentials will use the global language cookie.
+
 - Role: edxapp
   - Added `PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG` to make configurable whether password complexity is checked on login and how such complexity is rolled out to users.
 
