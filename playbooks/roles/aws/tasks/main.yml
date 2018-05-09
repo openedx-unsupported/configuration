@@ -54,12 +54,19 @@
   with_items: "{{ aws_debian_pkgs }}"
   when: ansible_distribution in common_debian_variants
 
+- name: Copy the Python requirements file
+  template:
+    src: "requirements.txt.j2"
+    dest: "{{ aws_requirements }}"
+    owner: root
+    group: root
+    mode: 0644
+
 - name: Install aws python packages
   pip:
-    name: "{{ item }}"
+    requirements: "{{ aws_requirements }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
-  with_items: "{{ aws_pip_pkgs }}"
 
 - name: Copy the boto global config file
   template:
@@ -105,4 +112,4 @@
     path: "{{ item.item }}"
     mode: "0644"
   when: vagrant_home_dir.stat.exists == False and ansible_distribution in common_debian_variants and item.stat.exists
-  with_items: "{{ motd_files_exist.results }}" 
+  with_items: "{{ motd_files_exist.results }}"
