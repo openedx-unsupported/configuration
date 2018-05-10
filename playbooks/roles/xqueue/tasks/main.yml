@@ -95,6 +95,7 @@
   environment:
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    XQUEUE_CFG: '{{ COMMON_CFG_DIR }}/xqueue.yml'
   when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
   run_once: yes
   tags:
@@ -102,8 +103,10 @@
     - migrate:db
 
 - name: Create users
-  shell: "SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.{{ XQUEUE_SETTINGS }} --pythonpath={{ xqueue_code_dir }}"
+  shell: "{{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.{{ XQUEUE_SETTINGS }} --pythonpath={{ xqueue_code_dir }}"
   become_user: "{{ xqueue_user }}"
+  environment:
+    XQUEUE_CFG: '{{ COMMON_CFG_DIR }}/xqueue.yml'
   when: not disable_edx_services
   tags:
     - manage
