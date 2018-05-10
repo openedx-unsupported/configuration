@@ -393,7 +393,8 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xserver certs demo testcourses"
+plays="edxapp ecommerce discovery journals notifier xserver demo testcourses"
+#plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xserver certs demo testcourses"
 
 for play in $plays; do
     deploy[$play]=${!play}
