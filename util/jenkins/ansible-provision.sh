@@ -182,7 +182,7 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 cd playbooks/edx-east
 
 cat << EOF > $extra_vars_file
-edx_platform_version: $edxapp_version
+edx_platform_version: whitelabel/journal
 forum_version: $forum_version
 notifier_version: $notifier_version
 xqueue_version: $xqueue_version
@@ -202,7 +202,7 @@ EDXAPP_CMS_NGINX_PORT: 80
 
 ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
-ECOMMERCE_VERSION: $ecommerce_version
+ECOMMERCE_VERSION: whitelabel/journal
 
 CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
@@ -221,7 +221,7 @@ VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
-DISCOVERY_VERSION: $discovery_version
+DISCOVERY_VERSION: whitelabel/journal
 NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
