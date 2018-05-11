@@ -1,0 +1,24 @@
+- name: Deploy edX Journals
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'journals'
+  roles:
+    - aws
+    - role: nginx
+      nginx_default_sites:
+        - journals
+    - journals
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
