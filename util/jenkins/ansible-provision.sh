@@ -173,6 +173,15 @@ if [[ -z $set_whitelabel ]]; then
   set_whitelabel="true"
 fi
 
+if [[ -z $enable_journals ]]; then
+  enable_journals="true"
+fi
+
+if [[ -z $journals_version ]]; then
+  journals_version="master"
+fi
+
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -190,6 +199,7 @@ xserver_version: $xserver_version
 certs_version: $certs_version
 configuration_version: $configuration_version
 demo_version: $demo_version
+journals_version: $journals_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -214,7 +224,8 @@ ANALYTICS_API_VERSION: $analytics_api_version
 
 JOURNALS_NGINX_PORT: 80
 JOURNALS_SSL_NGINX_PORT: 443
-JOURNALS_VERSION: master
+JOURNALS_VERSION: $journals_version
+JOURNALS_ENABLED: $enable_journals
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -411,9 +422,13 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+            if [[ ${i} == "forum" && $enable_journals == "true" ]]; then
+                echo "skipping forums configuration as it conflicts with journals elasticsearch5"
+            else
+              run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+              if [[ ${i} == "edxapp" ]]; then
+                  run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+              fi
             fi
         fi
     done

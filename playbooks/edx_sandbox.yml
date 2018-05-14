@@ -25,7 +25,6 @@
     ecommerce_create_demo_data: true
     credentials_create_demo_data: true
     SANDBOX_ENABLE_DISCOVERY: true
-    SANDBOX_ENABLE_JOURNALS: true
     SANDBOX_ENABLE_ECOMMERCE: true
   roles:
     - role: swapfile
@@ -61,17 +60,18 @@
     - demo
     - oauth_client_setup
     - oraclejdk
-    # - role: elasticsearch
-    #    when: 
-    #      - not SANDBOX_ENABLE_JOURNALS
-    #      - "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
-    - elasticsearch5
-      when: SANDBOX_ENABLE_JOURNALS
-    - forum
+    - role: elasticsearch
+       when: 
+         - not JOURNALS_ENABLED
+         - "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
+    - role: elasticsearch5
+      when: JOURNALS_ENABLED
+    - role: forum
+      when: not JOURNALS_ENABLED
     - role: discovery
       when: SANDBOX_ENABLE_DISCOVERY
     - role: journals
-      when: SANDBOX_ENABLE_JOURNALS
+      when: JOURNALS_ENABLED
     - role: notifier
       NOTIFIER_DIGEST_TASK_INTERVAL: 5
     - role: xqueue
