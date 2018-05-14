@@ -185,7 +185,7 @@ cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
-xqueue_version: $xqueue_version
+XQUEUE_VERSION: $xqueue_version
 xserver_version: $xserver_version
 certs_version: $certs_version
 configuration_version: $configuration_version
