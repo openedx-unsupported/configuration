@@ -77,7 +77,7 @@ if __name__ == '__main__':
     migration_args.add_argument("--edxapp-python",
             help="Path to python to use for executing migration check.")
     migration_args.add_argument("--edxapp-env",
-            help="Location of the ecommerce environment file.")
+            help="Location of the edxapp environment file.")
 
     xq_migration_args = parser.add_argument_group("xqueue_migrations",
             "Args for running xqueue migration checks.")
@@ -85,6 +85,8 @@ if __name__ == '__main__':
             help="Location of the xqueue code.")
     xq_migration_args.add_argument("--xqueue-python",
             help="Path to python to use for executing migration check.")
+    migration_args.add_argument("--xqueue-env",
+            help="Location of the xqueue environment file.")
 
     ecom_migration_args = parser.add_argument_group("ecommerce_migrations",
             "Args for running ecommerce migration checks.")
@@ -217,37 +219,27 @@ if __name__ == '__main__':
     try:
         for service in services_for_instance(instance_id):
             if service in MIGRATION_COMMANDS:
-                # Do extra migration related stuff.
-                if service == 'xqueue' and args.xqueue_code_dir:
-                    cmd = MIGRATION_COMMANDS[service].format(python=args.xqueue_python,
-                        code_dir=args.xqueue_code_dir)
-                    if os.path.exists(args.xqueue_code_dir):
-                        os.chdir(args.xqueue_code_dir)
+                services = {
+                    "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
+                    "cms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
+                    "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
+                    "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
+                    "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
+                    "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
+                    "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir},
+                    "xqueue": {'python': args.xqueue_python, 'env_file': args.xqueue_env, 'code_dir': args.xqueue_code_dir},
+                }
+
+                if service in services and all(arg!=None for arg in services[service].values()) and service in MIGRATION_COMMANDS:
+                    serv_vars = services[service]
+
+                    cmd = MIGRATION_COMMANDS[service].format(**serv_vars)
+                    if os.path.exists(serv_vars['code_dir']):
+                        os.chdir(serv_vars['code_dir'])
                         # Run migration check command.
-                        output = subprocess.check_output(cmd, shell=True)
-                        if 'Migrating' in output:
+                        output = subprocess.check_output(cmd, shell=True, )
+                        if '[ ]' in output:
                             raise Exception("Migrations have not been run for {}".format(service))
-                else:
-                    services = {
-                        "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
-                        "cms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
-                        "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
-                        "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
-                        "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
-                        "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
-                        "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir}
-                    }
-
-                    if service in services and all(arg!=None for arg in services[service].values()) and service in MIGRATION_COMMANDS:
-                        serv_vars = services[service]
-
-                        cmd = MIGRATION_COMMANDS[service].format(**serv_vars)
-                        if os.path.exists(serv_vars['code_dir']):
-                            os.chdir(serv_vars['code_dir'])
-                            # Run migration check command.
-                            output = subprocess.check_output(cmd, shell=True, )
-                            if '[ ]' in output:
-                                raise Exception("Migrations have not been run for {}".format(service))
 
 
             # Link to available service.
