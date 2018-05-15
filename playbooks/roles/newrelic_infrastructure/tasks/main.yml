@@ -81,6 +81,21 @@
     - install:app-requirements
   when: ansible_distribution == 'Amazon'
 
+- name: Install newrelic display name script
+  copy:
+    src: "edx/bin/write_nr_display_name_config.sh"
+    dest: "/edx/bin/write_nr_display_name_config.sh"
+    owner: root
+    group: root
+    mode: u=rwx,g=r,o=r
+
+- name: Run newrelic display name script on boot
+  lineinfile:
+    path: "/etc/rc.local"
+    line: "/edx/bin/write_nr_display_name_config.sh"
+    insertbefore: "exit 0"
+    mode: "u+x,g+x"
+
 - name: Restart the infrastructure agent if the license key changes
   service:
     name: newrelic-infra
