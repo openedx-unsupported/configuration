@@ -164,5 +164,21 @@ JOURNALS_CSRF_COOKIE_SECURE: false
 journals_create_demo_data: false
 
 journals_post_migrate_commands:
-  - command: './manage.py create_site --sitename "Test Site" --hostname "testsite.localhost" --port "18606"'
-    when: false
+  - command: >
+      ./manage.py create_site
+      --sitename "DemoSite"
+      --hostname "journals-{{ EDXAPP_SITE_NAME }}"
+      --port "80"
+      --lms-root-url "{{ EDXAPP_LMS_ROOT_URL }}"
+      --lms-public-root-url "{{ EDXAPP_LMS_ROOT_URL }}"
+      --discovery-api-url "{{ JOURNALS_DISCOVERY_API_URL }}"
+      --ecommerce-api-url "JOURNALS_ECOMMERCE_API_URL"
+      --discovery-partner-id 1
+      --ecommerce-partner-id 1
+      --currency-codes USD
+      --client-secret "{{ JOURNALS_SOCIAL_AUTH_EDX_OIDC_SECRET }}"
+      --client-id "{{ JOURNALS_SOCIAL_AUTH_EDX_OIDC_KEY }}"
+      --discovery-journal-api-url "{{ JOURNALS_DISCOVERY_JOURNALS_API_URL }}"
+      --ecommerce-journal-api-url "{{ JOURNALS_ECOMMERCE_JOURNALS_API_URL }}"
+  - command: ./manage.py create_org --key 'edX' --sitename 'DemoSite'
+  - command: ./manage.py publish_journals --create 'Demo Journal' --org 'edX' --price '100.00'"
