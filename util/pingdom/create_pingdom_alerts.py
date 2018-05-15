@@ -138,7 +138,7 @@ def create_check(pingdom_email, pingdom_password, pingdom_api_key, payload):
         print_error_prefix()
         print_request_and_response(response)
         exit(1)
-    return json.loads(response.content)
+    return json.loads(response.content.decode('utf-8'))
 
 
 def update_check(pingdom_email, pingdom_password,
@@ -159,7 +159,7 @@ def update_check(pingdom_email, pingdom_password,
         print_error_prefix()
         print_request_and_response(response)
         exit(1)
-    return json.loads(response.content)
+    return json.loads(response.content.decode('utf-8'))
 
 
 def list_checks(pingdom_email, pingdom_password, pingdom_api_key):
@@ -174,7 +174,7 @@ def list_checks(pingdom_email, pingdom_password, pingdom_api_key):
         print_error_prefix()
         print_request_and_response(response)
         exit(1)
-    return json.loads(response.content)['checks']
+    return json.loads(response.content.decode('utf-8'))['checks']
 
 
 def list_users(pingdom_email, pingdom_password, pingdom_api_key):
@@ -189,7 +189,7 @@ def list_users(pingdom_email, pingdom_password, pingdom_api_key):
         print_error_prefix()
         print_request_and_response(response)
         exit(1)
-    return json.loads(response.content)
+    return json.loads(response.content.decode('utf-8'))
 
 
 def build_checks_by_hostname(pingdom_email, pingdom_password, pingdom_api_key):
@@ -221,7 +221,7 @@ def print_request_and_response(response):
     for key in response.headers:
         print("{0}: {1}".format(key, response.headers[key]))
     print("")
-    print(response.content)
+    print(response.content.decode('utf-8'))
     print("------------------")
 
 
