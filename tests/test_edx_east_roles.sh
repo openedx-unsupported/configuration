@@ -16,7 +16,7 @@ ansible-playbook -i localhost, --syntax-check travis-test.yml
 
 output_dir="$PWD/test_output/env-dep"
 mkdir -p $output_dir
-ansible-playbook -i localhost, -c local --tags edxapp_cfg edxapp.yml -e edxapp_user=`whoami` -e edxapp_app_dir=$output_dir -e edxapp_code_dir=$output_dir -e EDXAPP_CFG_DIR=$output_dir
+ansible-playbook -i localhost, -c local --tags edxapp_cfg edxapp.yml -e edxapp_user=`whoami` -e edxapp_app_dir=$output_dir -e edxapp_code_dir=$output_dir
 
 root_dir=$output_dir
 environment_deployments="."
