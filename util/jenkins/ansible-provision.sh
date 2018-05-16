@@ -178,7 +178,7 @@ if [[ -z $enable_journals ]]; then
 fi
 
 if [[ -z $journals_version ]]; then
-  journals_version="master"
+  journals_version="bfiller/fix-create-sites"
 fi
 
 
