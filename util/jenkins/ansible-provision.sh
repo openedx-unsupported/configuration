@@ -324,9 +324,9 @@ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
-JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
-JOURNALS_URL_ROOT: "https://journals-${deploy_host}"
-JOURNALS_LMS_URL_ROOT: "https://${deploy_host}"
+JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
 JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
 JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
