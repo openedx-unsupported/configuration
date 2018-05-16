@@ -12,6 +12,11 @@
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
 export NEW_RELIC_APP_NAME="{{ edx_django_service_newrelic_appname }}"
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  HOSTNAME=$(hostname)
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
 export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
 {% endif -%}
 
