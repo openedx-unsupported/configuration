@@ -313,6 +313,8 @@ SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
+EDXAPP_JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+EDXAPP_JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
 
 ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
@@ -325,7 +327,6 @@ ecommerce_create_demo_data: true
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
 JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
 JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
 JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
