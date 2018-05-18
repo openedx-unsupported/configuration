@@ -173,8 +173,8 @@ if [[ -z $set_whitelabel ]]; then
   set_whitelabel="true"
 fi
 
-if [[ -z $enable_journals ]]; then
-  enable_journals="true"
+if [[ -z $journals ]]; then
+  journals="true"
 fi
 
 if [[ -z $journals_version ]]; then
@@ -225,7 +225,7 @@ ANALYTICS_API_VERSION: $analytics_api_version
 JOURNALS_NGINX_PORT: 80
 JOURNALS_SSL_NGINX_PORT: 443
 JOURNALS_VERSION: $journals_version
-JOURNALS_ENABLED: $enable_journals
+JOURNALS_ENABLED: $journals
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -313,8 +313,6 @@ SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
-EDXAPP_JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
-EDXAPP_JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
 
 ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
@@ -326,6 +324,8 @@ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
+JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
 JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
 JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
 JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
@@ -423,7 +423,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            if [[ ${i} == "forum" && $enable_journals == "true" ]]; then
+            if [[ ${i} == "forum" && $journals == "true" ]]; then
                 echo "skipping forums configuration as it conflicts with journals elasticsearch5"
             else
               run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
