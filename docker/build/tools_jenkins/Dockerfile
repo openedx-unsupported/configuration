@@ -1,4 +1,4 @@
-FROM edxops/xenial-common:latest
+FROM edxops/trusty-common:latest
 MAINTAINER edxops
 
 USER root
