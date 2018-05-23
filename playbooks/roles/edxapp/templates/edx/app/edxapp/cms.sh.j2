@@ -6,11 +6,7 @@
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
 {% set executable = edxapp_venv_bin + '/newrelic-admin run-program ' + edxapp_venv_bin + '/gunicorn' %}
-{% else %}
-{% set executable = edxapp_venv_bin + '/gunicorn' %}
-{% endif %}
 
-{% if COMMON_ENABLE_NEWRELIC_APP %}
 export NEW_RELIC_APP_NAME="{{ EDXAPP_NEWRELIC_CMS_APPNAME }}"
 export NEW_RELIC_CONFIG_FILE="{{ edxapp_app_dir }}/newrelic.ini"
 if command -v ec2metadata >/dev/null 2>&1; then
@@ -19,7 +15,10 @@ if command -v ec2metadata >/dev/null 2>&1; then
   export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
 fi
 export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
-{% endif -%}
+
+{% else %}
+{% set executable = edxapp_venv_bin + '/gunicorn' %}
+{% endif %}
 
 export PORT="{{ edxapp_cms_gunicorn_port }}"
 export ADDRESS="{{ edxapp_cms_gunicorn_host }}"
