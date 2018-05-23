@@ -264,28 +264,13 @@
 
 - name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip:
+    chdir: "{{ edxapp_code_dir }}"
     requirements: "{{ sandbox_base_requirements }}"
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
-  tags:
-    - edxapp-sandbox
-    - install
-    - install:app-requirements
-
-- name: code sandbox | Install sandbox requirements into sandbox venv
-  shell: "{{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
-  args:
-    chdir: "{{ edxapp_code_dir }}"
-  with_items:
-    - "{{ sandbox_local_requirements }}"
-    - "{{ sandbox_post_requirements }}"
-  become_user: "{{ edxapp_sandbox_user }}"
-  when: EDXAPP_PYTHON_SANDBOX
-  register: sandbox_install_output
-  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   tags:
     - edxapp-sandbox
     - install
