@@ -424,13 +424,9 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            if [[ ${i} == "forum" && $journals == "true" ]]; then
-                echo "skipping forums configuration as it conflicts with journals elasticsearch5"
-            else
-              run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-              if [[ ${i} == "edxapp" ]]; then
-                  run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-              fi
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+            if [[ ${i} == "edxapp" ]]; then
+                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
             fi
         fi
     done
