@@ -324,7 +324,6 @@ ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
-# NOTE: This is the same as DISCOVERY_URL_ROOT below
 JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
 JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
 JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
