@@ -178,7 +178,7 @@ if [[ -z $journals ]]; then
 fi
 
 if [[ -z $journals_version ]]; then
-  journals_version="bfiller/add-docker-deps"
+  journals_version="master"
 fi
 
 
