@@ -158,6 +158,9 @@
 - Role: nginx
   - Modified `lms.j2` , `cms.j2` , `credentials.j2` , `edx_notes_api.j2` and `insights.j2` to enable HTTP Strict Transport Security
   - Added `NGINX_HSTS_MAX_AGE` to make HSTS header `max_age` value configurable and used in templates
+  - Added `NGINX_SERVER_TEMPLATE` to make the error file template location configurable
+  - Added `NGINX_SERVER_STATIC_FILES` to allow copying static contents to the server static folder. Can be used to deploy static contents for the error pages for example
+  - When there is file named `maintenance.html` in the `nginx_server_static_dir`, it will be shown if the backend is unavailable
 
 - Role: server_utils
   - Install "vim", not "vim-tiny".
