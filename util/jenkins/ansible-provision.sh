@@ -426,5 +426,9 @@ if [[ $set_whitelabel == "true" ]]; then
     run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
+if [[ $enable_newrelic == "true" ]]; then
+    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
+fi
+
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
