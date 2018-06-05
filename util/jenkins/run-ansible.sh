@@ -19,7 +19,7 @@ if [[
     exit 1
 fi
 
-cd $WORKSPACE/configuration/playbooks/edx-east
+cd $WORKSPACE/configuration/playbooks
 
 ansible_extra_vars+=" -e serial_count=$serial_count -e elb_pre_post=$elb_pre_post"
 
