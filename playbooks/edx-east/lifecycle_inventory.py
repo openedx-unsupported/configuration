@@ -1,0 +1,1 @@
+../lifecycle_inventory.py
