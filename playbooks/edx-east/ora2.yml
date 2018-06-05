@@ -26,9 +26,6 @@
       environment:
         PATH: "{{ edxapp_deploy_path }}"
       become_user: "{{ edxapp_user }}"
-      notify:
-        - "restart edxapp"
-        - "restart workers"
       tags:
         - deploy
 
@@ -39,15 +36,14 @@
       environment:
         DB_MIGRATION_USER: "{{ edxapp_mysql_user }}"
         DB_MIGRATION_PASS: "{{ edxapp_mysql_password }}"
-      notify:
-        - "restart edxapp"
-        - "restart workers"
       tags:
         - deploy
 
-  handlers:
-    - name: restart edxapp
-      shell: "{{ supervisorctl_path }} restart edxapp:"
+    - name: restart lms
+      shell: "{{ supervisorctl_path }} restart lms"
+
+    - name: restart studio
+      shell: "{{ supervisorctl_path }} restart cms"
 
     - name: restart workers
       shell: "{{ supervisorctl_path }} restart edxapp_worker:"

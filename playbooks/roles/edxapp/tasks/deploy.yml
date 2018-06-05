@@ -349,12 +349,15 @@
 
 - name: ensure edxapp has started
   supervisorctl:
-    name: "edxapp:"
+    name: "{{ item }}"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: started
   become_user: "{{ supervisor_service_user }}"
   when: celery_worker is not defined and not disable_edx_services
+  with_items:
+    - 'lms'
+    - 'cms'
   tags:
     - manage
 
@@ -404,12 +407,15 @@
 
 - name: restart edxapp
   supervisorctl:
-    name: "edxapp:"
+    name: "{{ item }}"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: restarted
   when: edxapp_installed is defined and celery_worker is not defined and not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  with_items:
+    - 'lms'
+    - 'cms'
   tags:
     - manage
 
