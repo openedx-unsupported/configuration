@@ -74,8 +74,8 @@ if [[ "$use_blessed" == "true" ]]; then
   blessed_params="--blessed"
 fi
 
-if [[ -e "configuration/playbooks/edx-east/${play}.yml" ]]; then
-  playbookdir_params="--playbook-dir configuration/playbooks/edx-east"
+if [[ -e "configuration/playbooks/${play}.yml" ]]; then
+  playbookdir_params="--playbook-dir configuration/playbooks"
 else
   playbookdir_params="--playbook-dir ansible-private"
 fi

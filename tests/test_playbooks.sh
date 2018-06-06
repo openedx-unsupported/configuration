@@ -1,7 +1,7 @@
 set -e
 
 ROOT_DIR=$PWD
-cd playbooks/edx-east
+cd playbooks
 ROLE_DIRS=$(/bin/ls -d roles/*)
 cat <<EOF >travis-test.yml
 - name: Play to test all roles

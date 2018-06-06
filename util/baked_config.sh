@@ -23,5 +23,5 @@ fi
 
 mkdir -p $WORKSPACE/baked-config-secure/${E_D}
 
-cd ../playbooks/edx-east/
+cd ../playbooks/
 ansible-playbook -vvv -c local -i 'localhost,' --tags edxapp_cfg ./edxapp.yml ${VARS} -e edxapp_user=$(whoami) -e common_web_group=$(whoami) -e edxapp_app_dir=$WORKSPACE/baked-config-secure/${E_D} -e edxapp_code_dir=$WORKSPACE/edx-platform -s --ask-sudo-pass --diff

@@ -179,7 +179,7 @@ dns_name="${dns_name,,}"
 deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
-cd playbooks/edx-east
+cd playbooks
 
 cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
