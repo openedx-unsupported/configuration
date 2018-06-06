@@ -1,3 +1,7 @@
+- Role: edxapp
+  - EDXAPP_NGINX_SKIP_ENABLE_SITES added to allow you to not sync in the lms or cms nginx configuration.  Instead you can enable them during deployment.
+  - EDXAPP_NGINX_DEFAULT_SITES added to allow you to mark both lms and cms as defaults, best paired with picking which site to enable during deployment.
+
 - Role: XQueue
   - Convert to a yaml config (instead of xqueue.auth.json and xqueue.env.json we get xqueue.yml and it lives by default in /edx/etc/xqueue.yml like standard IDAs)
   - Add XQUEUE_DEFAULT_FILE_STORAGE so that you can specify S3 or Swift in your config
