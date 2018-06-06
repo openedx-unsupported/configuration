@@ -30,8 +30,8 @@
     - install
     - install:configuration
 
-# write the supervisor script for edxapp and celery workers
-- name: writing edxapp and celery supervisor scripts
+# write the supervisor script for celery workers
+- name: writing celery supervisor scripts
   template:
     src: "edx/app/supervisor/conf.d.available/{{ item }}.j2"
     dest: "{{ supervisor_available_dir }}/{{ item }}"
@@ -40,8 +40,17 @@
     mode: 0644
   become_user: "{{ supervisor_user }}"
   with_items:
-    - edxapp.conf
     - workers.conf
+  tags:
+    - install
+    - install:configuration
+
+# clean out an old edxapp.conf file which we don't use now.
+# this can be deleted after we build things from scratch.
+- name: clean out old edxapp.conf
+  file:
+    path: "{{ supervisor_available_dir }}/edxapp.conf"
+    state: "absent"
   tags:
     - install
     - install:configuration
@@ -66,18 +75,6 @@
     force: yes
   become_user: "{{ supervisor_user }}"
   with_items: "{{ service_variants_enabled }}"
-  when: celery_worker is not defined and not disable_edx_services
-  tags:
-    - install
-    - install:configuration
-
-- name: enable edxapp supervisor script
-  file:
-    src: "{{ supervisor_available_dir }}/edxapp.conf"
-    dest: "{{ supervisor_cfg_dir }}/edxapp.conf"
-    state: link
-    force: yes
-  become_user: "{{ supervisor_user }}"
   when: celery_worker is not defined and not disable_edx_services
   tags:
     - install
