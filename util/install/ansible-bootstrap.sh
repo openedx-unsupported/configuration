@@ -40,14 +40,13 @@ fi
 #
 # Bootstrapping constants
 #
-VIRTUAL_ENV_VERSION="15.0.2"
-PIP_VERSION="8.1.2"
-SETUPTOOLS_VERSION="24.0.3"
+VIRTUAL_ENV_VERSION="15.2.0"
+PIP_VERSION="9.0.3"
+SETUPTOOLS_VERSION="39.0.1"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
-EDX_PPA="deb http://ppa.edx.org precise main"
 EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
 EDX_PPA_KEY_ID="B41E5E3969464050"
 
@@ -70,10 +69,7 @@ if [[ $(id -u) -ne 0 ]] ;then
     exit 1;
 fi
 
-if grep -q 'Precise Pangolin' /etc/os-release
-then
-    SHORT_DIST="precise"
-elif grep -q 'Trusty Tahr' /etc/os-release
+if grep -q 'Trusty Tahr' /etc/os-release
 then
     SHORT_DIST="trusty"
 elif grep -q 'Xenial Xerus' /etc/os-release
@@ -82,7 +78,7 @@ then
 else
     cat << EOF
 
-    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
+    This script is only known to work on Ubuntu Trusty and Xenial,
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 
@@ -119,17 +115,7 @@ apt-get update -y
 apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 
 
-# Workaround for a 16.04 bug, need to upgrade to latest and then
-# potentially downgrade to the preferred version.
-if [[ "xenial" = "${SHORT_DIST}" ]]; then
-    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2
-    pip install --upgrade pip
-    pip install --upgrade pip=="${PIP_VERSION}"
-    #apt-get install -y build-essential sudo git-core libmysqlclient-dev
-else
-    #apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev
-    pip install --upgrade pip=="${PIP_VERSION}" --index-url=https://pypi.python.org/simple/
-fi
+pip install --upgrade pip=="${PIP_VERSION}"
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
@@ -149,8 +135,9 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     cd ${CONFIGURATION_DIR}
     git checkout ${CONFIGURATION_VERSION}
     make requirements
+
     cd "${CONFIGURATION_DIR}"/playbooks/edx-east
-    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}" -e "edx_ansible_source_repo=${CONFIGURATION_REPO}"
+    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
 
     # cleanup
     rm -rf "${ANSIBLE_DIR}"
@@ -172,4 +159,3 @@ else
     mkdir -p /edx/ansible/facts.d
     echo '{ "ansible_bootstrap_run": true }' > /edx/ansible/facts.d/ansible_bootstrap.json
 fi
-

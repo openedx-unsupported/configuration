@@ -1,43 +1,48 @@
 SHELL := /bin/bash
 .PHONY: help requirements clean build test pkg
 
-include *.mk
+help: main.help
 
-help:
+main.help:
 	@echo ''
 	@echo 'Makefile for the edX Configuration'
 	@echo ''
 	@echo 'Usage:'
 	@echo '    make requirements              install requirements'
+	@echo '    make upgrade                   upgrade dependencies in requirements files'
 	@echo '    make test                      run all tests'
 	@echo '    make build                     build everything'
 	@echo '    make pkg                       package everything'
 	@echo '    make clean                     remove build by-products'
 	@echo ''
-	@echo '    Docker:'
-	@echo '        $$image: any dockerhub image'
-	@echo '        $$container: any container defined in docker/build/$$container/Dockerfile'
-	@echo ''
-	@echo '        make $(docker_pull)$$image        pull $$image from dockerhub'
-	@echo ''
-	@echo '        make $(docker_build)$$container   build $$container'
-	@echo '        make $(docker_test)$$container    test that $$container will build'
-	@echo '        make $(docker_pkg)$$container     package $$container for a push to dockerhub'
-	@echo '        make $(docker_push)$$container    push $$container to dockerhub '
-	@echo ''
-	@echo '        make docker.build          build all defined docker containers (based on dockerhub base images)'
-	@echo '        make docker.test           test all defined docker containers'
-	@echo '        make docker.pkg            package all defined docker containers (using local base images)'
-	@echo '        make docker.push           push all defined docker containers'
-	@echo ''
-	@echo '    Tests:'
-	@echo '        test.syntax                Run all syntax tests'
-	@echo '        test.syntax.json           Run syntax tests on .json files'
-	@echo '        test.syntax.yml            Run syntax tests on .yml files'
-	@echo '        test.syntax.jinja          Run syntax tests on .j2 files'
-	@echo '        test.edx_east_roles        Run validation on edx-east roles'
-	@echo ''
 
 requirements:
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements.txt --exists-action w
+
+upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints
+	pip install -qr pre-requirements.txt --exists-action w
+	pip install -qr requirements/pip-tools.txt
+	# Make sure to compile files after any other files they include!
+	pip-compile --upgrade -o requirements/pip-tools.txt requirements/pip-tools.in
+	pip-compile --upgrade -o requirements.txt requirements/base.in
+	pip-compile --upgrade -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
+	pip-compile --upgrade -o requirements3.txt requirements/ses-limits.in
+	pip-compile --upgrade -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
+	pip-compile --upgrade -o util/jenkins/requirements-celery.txt requirements/celery.in
+	pip-compile --upgrade -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
+	pip-compile --upgrade -o util/pingdom/requirements.txt requirements/pingdom.in
+	pip-compile --upgrade -o util/vpc-tools/requirements.txt requirements/vpc-tools.in
+	# Post process all of the files generated above to work around open pip-tools issues
+	util/post-pip-compile.sh \
+ 	    requirements/pip-tools.txt \
+	    requirements.txt \
+	    playbooks/roles/aws/templates/requirements.txt.j2 \
+	    requirements3.txt \
+	    util/elasticsearch/requirements.txt \
+	    util/jenkins/requirements-celery.txt \
+	    util/jenkins/requirements-cloudflare.txt \
+	    util/pingdom/requirements.txt \
+	    util/vpc-tools/requirements.txt
+
+include *.mk

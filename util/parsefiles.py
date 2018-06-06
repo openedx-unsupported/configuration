@@ -207,7 +207,7 @@ def get_plays(files, git_dir, playbooks_dirs):
 
             # if the change set file is in the set of playbook files
             if file_path in candidate_files:
-                plays.add(_get_playbok_name_from_file(file_path))
+                plays.add(_get_playbook_name_from_file(file_path))
 
     return plays
                 

@@ -14,6 +14,26 @@ docker_test=docker.test.
 docker_pkg=docker.pkg.
 docker_push=docker.push.
 
+help: docker.help
+
+docker.help:
+	@echo '    Docker:'
+	@echo '        $$image: any dockerhub image'
+	@echo '        $$container: any container defined in docker/build/$$container/Dockerfile'
+	@echo ''
+	@echo '        $(docker_pull)$$image        pull $$image from dockerhub'
+	@echo ''
+	@echo '        $(docker_build)$$container   build $$container'
+	@echo '        $(docker_test)$$container    test that $$container will build'
+	@echo '        $(docker_pkg)$$container     package $$container for a push to dockerhub'
+	@echo '        $(docker_push)$$container    push $$container to dockerhub '
+	@echo ''
+	@echo '        docker.build          build all defined docker containers (based on dockerhub base images)'
+	@echo '        docker.test           test all defined docker containers'
+	@echo '        docker.pkg            package all defined docker containers (using local base images)'
+	@echo '        docker.push           push all defined docker containers'
+	@echo ''
+
 # N.B. / is used as a separator so that % will match the /
 # in something like 'edxops/trusty-common:latest'
 # Also, make can't handle ':' in filenames, so we instead '@'
@@ -70,10 +90,12 @@ $(docker_push)%: $(docker_pkg)%
 
 .build/%/Dockerfile.test: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	@sed -E "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
+	@# perl p (print the line) n (loop over every line) e (exec the regex), like sed but cross platform
+	@perl -pne "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
 .build/%/Dockerfile.pkg: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	@sed -E "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
+	@# perl p (print the line) n (loop over every line) e (exec the regex), like sed but cross platform
+	@perl -pne "s#FROM edxops/([^:]+)(:\S*)?#FROM \1:test#" $< > $@
 
 -include $(foreach image,$(images),.build/$(image)/Dockerfile.d)
