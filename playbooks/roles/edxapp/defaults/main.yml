@@ -392,15 +392,22 @@ EDXAPP_ID_VERIFICATION_SUPPORT_LINK: ''
 EDXAPP_ACTIVATION_EMAIL_SUPPORT_LINK: ''
 EDXAPP_PASSWORD_RESET_SUPPORT_LINK: ''
 EDXAPP_EDXMKTG_USER_INFO_COOKIE_NAME: "edx-user-info"
-# Set this sets the url for static files
-# Override this var to use a CDN
-# Example: xxxxx.cloudfront.net/static/
-EDXAPP_STATIC_URL_BASE: "/static/"
 
 # Settings for Grade downloads
 EDXAPP_GRADE_STORAGE_CLASS: 'django.core.files.storage.FileSystemStorage'
 EDXAPP_GRADE_STORAGE_KWARGS:
   location: /tmp/edx-s3/grades
+
+# These set the url for static files
+# Override this var to use a CDN
+# Example: http://xxxxx.cloudfront.net/static/
+
+# Default variable, likely to be retired since LMS and CMS are being separated
+EDXAPP_STATIC_URL_BASE: "/static/"
+# If you would like LMS to use a different CDN or path
+EDXAPP_LMS_STATIC_URL_BASE: "{{ EDXAPP_STATIC_URL_BASE }}"
+# If you would like Studio to use a different CDN or path
+EDXAPP_CMS_STATIC_URL_BASE: "{{ EDXAPP_STATIC_URL_BASE }}"
 
 # Credit card processor
 # These are the same defaults set in common.py
@@ -1113,7 +1120,6 @@ generic_env_config:  &edxapp_generic_env
     STORAGE_TYPE: "{{ EDXAPP_GRADE_STORAGE_TYPE | default(None) }}"
     BUCKET: "{{ EDXAPP_GRADE_BUCKET | default(None) }}"
     ROOT_PATH: "{{ EDXAPP_GRADE_ROOT_PATH | default(None) }}"
-  STATIC_URL_BASE: "{{ EDXAPP_STATIC_URL_BASE }}"
   STATIC_ROOT_BASE: "{{ edxapp_staticfile_dir }}"
   LMS_BASE: "{{ EDXAPP_LMS_BASE }}"
   CMS_BASE: "{{ EDXAPP_CMS_BASE }}"
@@ -1373,6 +1379,7 @@ lms_env_config:
   ENTERPRISE_TAGLINE: "{{ EDXAPP_ENTERPRISE_TAGLINE }}"
   ANALYTICS_API_URL: "{{ EDXAPP_LMS_ANALYTICS_API_URL }}"
   GOOGLE_SITE_VERIFICATION_ID: "{{ EDXAPP_GOOGLE_SITE_VERIFICATION_ID }}"
+  STATIC_URL_BASE: "{{ EDXAPP_LMS_STATIC_URL_BASE }}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
@@ -1412,6 +1419,7 @@ cms_env_config:
   CELERY_QUEUES: "{{ EDXAPP_CMS_CELERY_QUEUES }}"
   ALTERNATE_WORKER_QUEUES: "lms"
   COURSE_IMPORT_EXPORT_BUCKET: "{{ EDXAPP_IMPORT_EXPORT_BUCKET }}"
+  STATIC_URL_BASE: "{{ EDXAPP_CMS_STATIC_URL_BASE }}"
 
 # install dir for the edx-platform repo
 edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
