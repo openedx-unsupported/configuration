@@ -20,6 +20,10 @@ MIGRATION_COMMANDS = {
         'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
         'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
     }
+NGINX_ENABLE = {
+        'lms':  "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
+        'cms':  "sudo ln -sf /edx/app/nginx/sites-available/cms /etc/nginx/sites-enabled/cms",
+    }
 HIPCHAT_USER = "PreSupervisor"
 
 # Max amount of time to wait for tags to be applied.
@@ -250,6 +254,13 @@ if __name__ == '__main__':
                 report.append("Enabling service: {}".format(service))
             else:
                 raise Exception("No conf available for service: {}".format(link_location))
+
+            if service in NGINX_ENABLE:
+                subprocess.call(NGINX_ENABLE[service], shell=True)
+                report.append("Enabling nginx: {}".format(service))
+            # We have to reload the new config files
+            subprocess.call("/bin/systemctl reload nginx", shell=True)
+
     except AWSConnectionError as ae:
         msg = "{}: ERROR : {}".format(prefix, ae)
         if notify:
