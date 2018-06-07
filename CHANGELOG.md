@@ -1,3 +1,14 @@
+- Role: nginx
+  - Added `NGINX_SERVER_MAINTENANCE_FILE_OFF` and `NGINX_SERVER_MAINTENANCE_FILE_ON` to be used to add a server maintenance template on demand.
+  - The maintenance template can be activated with:
+    ```
+    sudo mv /edx/var/nginx/server-static/server-maintenance_off.html /edx/var/nginx/server-static/server-maintenance_on.html
+    ```
+  - The maintenance template can be deactivated with:
+    ```
+    sudo mv /edx/var/nginx/server-static/server-maintenance_on.html /edx/var/nginx/server-static/server-maintenance_off.html
+    ```
+
 - Role: edxapp
   - EDXAPP_NGINX_SKIP_ENABLE_SITES added to allow you to not sync in the lms or cms nginx configuration.  Instead you can enable them during deployment.
   - EDXAPP_NGINX_DEFAULT_SITES added to allow you to mark both lms and cms as defaults, best paired with picking which site to enable during deployment.
