@@ -38,8 +38,11 @@ error_page {{ k }} {{ v }};
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+  
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
   {% endif %}
 
   # Prevent invalid display courseware in IE 10+ with high privacy settings
@@ -104,6 +107,17 @@ error_page {{ k }} {{ v }};
 
     proxy_redirect off;
     proxy_pass http://cms-backend;
+    {% if NGINX_CMS_PROXY_CONNECT_TIMEOUT %}
+    proxy_connect_timeout {{ NGINX_CMS_PROXY_CONNECT_TIMEOUT }};
+    {% endif %}
+    {% if NGINX_CMS_PROXY_SEND_TIMEOUT %}
+    proxy_send_timeout {{ NGINX_CMS_PROXY_SEND_TIMEOUT }};
+    {% endif %}
+    {% if NGINX_CMS_PROXY_READ_TIMEOUT %}
+    proxy_read_timeout {{ NGINX_CMS_PROXY_READ_TIMEOUT }};
+    {% endif %}
+
+    {{ NGINX_EDXAPP_CMS_APP_EXTRA }}
   }
 
   location / {
@@ -122,6 +136,23 @@ error_page {{ k }} {{ v }};
   location /heartbeat {
     try_files $uri @proxy_to_cms_app;
   }
+
+  # The api is accessed using OAUTH2 which
+  # uses the authorization header so we can't have
+  # basic auth on it as well.
+  location /api {
+    try_files $uri @proxy_to_cms_app;
+  }
+
+{% if NGINX_DJANGO_ADMIN_ACCESS_CIDRS and EDXAPP_ENABLE_DJANGO_ADMIN_RESTRICTION %}
+  location /admin {
+    {% for cidr in NGINX_DJANGO_ADMIN_ACCESS_CIDRS %}
+      allow {{ cidr }};
+    {% endfor %}
+      deny all;
+      try_files $uri @proxy_to_lms_app;
+  }
+{% endif %}
 
   {% include "robots.j2" %}
   {% include "static-files.j2" %}

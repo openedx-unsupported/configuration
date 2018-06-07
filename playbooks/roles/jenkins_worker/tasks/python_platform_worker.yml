@@ -16,36 +16,15 @@
 # Install the platform requirements using pip.
 - name: Install edx-platform requirements using pip
   pip:
+    chdir: "{{ jenkins_home }}/shallow-clone"
     requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
     extra_args: "--exists-action=w"
     virtualenv: "{{ jenkins_home }}/edx-venv"
     virtualenv_command: virtualenv
   with_items:
-    - pre.txt
-    - github.txt
-    - base.txt
-    - paver.txt
+    - django.txt
     - testing.txt
   become_user: "{{ jenkins_user }}"
-
-
-# These and the pip install below it can be removed some time after
-# https://github.com/edx/edx-platform/pull/7465 has merged.
-# This will keep us from breaking after that gets merged.
-- stat: path="{{ jenkins_home }}/shallow-clone/requirements/edx/post.txt"
-  register: post_requirements
-  become_user: "{{ jenkins_user }}"
-
-- name: Install edx-platform post requirements using pip
-  pip:
-    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
-    extra_args: "--exists-action=w"
-    virtualenv: "{{ jenkins_home }}/edx-venv"
-    virtualenv_command: virtualenv
-  with_items:
-    - post.txt
-  become_user: "{{ jenkins_user }}"
-  when: post_requirements.stat.exists
 
 # Archive the current state of the virtualenv
 # as a starting point for new builds.
@@ -61,19 +40,3 @@
 # done with it
 - name: Remove shallow-clone
   file: path={{ jenkins_home }}/shallow-clone state=absent
-
-# Although firefox is installed through the browsers role, install
-# a newer copy under the jenkins home directory. This will allow
-# platform pull requests to use a custom firefox path to a different
-# version
-- name: Install custom firefox to jenkins home
-  get_url:
-    url: "{{ custom_firefox_url }}"
-    dest: "{{ jenkins_home }}/firefox-{{ custom_firefox_version }}.tar.bz2"
-
-- name: unpack custom firefox version
-  unarchive:
-    src: "{{ jenkins_home }}/firefox-{{ custom_firefox_version }}.tar.bz2"
-    dest: "{{ jenkins_home }}"
-    creates: "{{ jenkins_home }}/firefox"
-    copy: no

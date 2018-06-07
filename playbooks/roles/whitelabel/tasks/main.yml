@@ -1,0 +1,37 @@
+# LMS
+
+- name: Create Sites and Themes
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
+    create_sites_and_configurations --dns-name {{ dns_name }} --theme-path {{ WHITELABEL_THEME_DIR }}
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+
+# CMS
+
+- name: Create Courses
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp cms --settings={{ COMMON_EDXAPP_SETTINGS }}
+    create_course {{ WHITELABEL_MODULE_STORE }} {{ WHITELABEL_ADMIN_USER }} {{ item }}  {{ WHITELABEL_COURSE_NUM }}
+    {{ WHITELABEL_COURSE_RUN }} {{ item }}-{{ WHITELABEL_COURSE_TITLE }}
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  with_items: "{{ WHITELABEL_ORG }}"
+
+# Discovery
+
+- name: Create Sites and Partners
+  shell: >
+   {{ COMMON_BIN_DIR }}/python.discovery {{ COMMON_BIN_DIR }}/manage.discovery create_sites_and_partners
+   --dns-name {{ dns_name }} --settings=course_discovery.settings.production --theme-path {{ WHITELABEL_THEME_DIR }}
+  become_user: "{{ discovery_user }}"
+  environment: "{{ discovery_environment }}"
+
+# Ecommere
+
+- name: Create Sites and Partners for Ecommerce
+  shell: >
+   {{ COMMON_BIN_DIR }}/python.ecommerce {{ COMMON_BIN_DIR }}/manage.ecommerce create_sites_and_partners
+   --dns-name {{ dns_name }} --settings=ecommerce.settings.production --theme-path {{ WHITELABEL_THEME_DIR }}
+  become_user: "{{ ecommerce_user }}"
+  environment: "{{ ecommerce_environment }}"

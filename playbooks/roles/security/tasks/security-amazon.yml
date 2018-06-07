@@ -1,0 +1,36 @@
+---
+#### Enable periodic security updates
+- name: Install security packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items: "{{ security_redhat_pkgs }}"
+
+- name: Enable automatic start for update service
+  service:
+    name: yum-cron
+    enabled: yes
+    state: started
+
+- name: Update all system packages
+  yum:
+    name: '*'
+    state: latest
+  when: SAFE_UPGRADE_ON_ANSIBLE
+
+- name: Configure security auto-updates
+  lineinfile:
+    dest: /etc/yum/yum-cron.conf
+    regexp: "{{ item.regexp }}"
+    line:  "{{ item.line }}"
+  with_items:
+    - { regexp: '^update_cmd', line: 'update_cmd = security' }
+    - { regexp: '^apply_updates', line: 'apply_updates = yes' }
+
+- name: "Take security updates during ansible runs"
+  command: "{{ item }}"
+  when: SECURITY_UPGRADE_ON_ANSIBLE
+  with_items:
+    - yum check-update --security
+    - yum update --security -y

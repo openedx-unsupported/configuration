@@ -23,8 +23,18 @@
     src: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'device': None})).device }}"
     fstype: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype }}"
     state: unmounted
-  when: "{{ UNMOUNT_DISKS and (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype != item.fstype }}"
+  when: "UNMOUNT_DISKS and (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype != item.fstype"
   with_items: "{{ volumes }}"
+
+# If there are disks we want to be unmounting, but we can't because UNMOUNT_DISKS is false
+# that is an errorable condition, since it will cause the format step to fail
+- name: Check that we don't want to unmount disks to change fstype when UNMOUNT_DISKS is false
+  fail: msg="Found disks mounted with the wrong filesystem type, but can't unmount them. This role will need to be re-run with -e 'UNMOUNT_DISKS=True' if you believe that is safe."
+  when:
+    "not UNMOUNT_DISKS and
+    volumes | selectattr('device', 'equalto', item.device) | list | length != 0 and
+    (volumes | selectattr('device', 'equalto', item.device) | first).fstype != item.fstype"
+  with_items: "{{ ansible_mounts }}"
 
 # Noop & reports "ok" if fstype is correct
 # Errors if fstype is wrong and disk is mounted (hence above task)
@@ -33,7 +43,7 @@
     dev: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
     # Necessary because AWS gives some ephemeral disks the wrong fstype by default
-    force: true
+    force: "{{ FORCE_REFORMAT_DISKS }}"
   with_items: "{{ volumes }}"
 
 # This can fail if one volume is mounted on a child directory as another volume
@@ -57,7 +67,7 @@
 
 # If there are disks we want to be unmounting, but we can't because UNMOUNT_DISKS is false
 # that is an errorable condition, since it can easily allow us to double mount a disk.
-- name: Check that we don't want to unmount disks when UNMOUNT_DISKS is false
+- name: Check that we don't want to unmount disks to change mountpoint when UNMOUNT_DISKS is false
   fail: msg="Found disks mounted in the wrong place, but can't unmount them.  This role will need to be re-run with -e 'UNMOUNT_DISKS=True' if you believe that is safe."
   when:
     not UNMOUNT_DISKS and

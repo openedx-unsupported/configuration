@@ -118,9 +118,35 @@
   become_user: "{{ edx_django_service_user }}"
   environment: "{{ edx_django_service_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  run_once: yes
   tags:
     - migrate
     - migrate:db
+
+- name: run post-migrate commands
+  command: "{{ item.command }}"
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  with_items: '{{ edx_django_service_post_migrate_commands }}'
+  when: migrate_db is defined and migrate_db|lower == "yes" and item.when | bool
+  run_once: yes
+  tags:
+    - migrate
+    - migrate:db
+    - migrate:post
+
+- name: ensure log files exist for tailing
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_user }}"
+  with_items: '{{ edx_django_service_name_devstack_logs }}'
+  tags:
+    - install
+    - install:configuration
 
 - name: write out the supervisor wrapper
   template:
@@ -239,6 +265,7 @@
     owner: root
     group: "{{ common_web_user }}"
     mode: 0640
+  when: nginx_app_dir is defined
   notify: reload nginx
   tags:
     - install
@@ -251,6 +278,7 @@
     state: link
     owner: root
     group: root
+  when: nginx_app_dir is defined
   notify: reload nginx
   tags:
     - install

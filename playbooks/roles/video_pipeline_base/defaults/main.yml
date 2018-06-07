@@ -1,0 +1,197 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for common variables for video_pipeline. This is the base role for all video pipeline roles.
+#
+
+video_pipeline_base_service_name: "video_pipeline_base"
+
+video_pipeline_base_val_base_url: "{{ VIDEO_PIPELINE_BASE_LMS_BASE_URL | default('http://127.0.0.1:8000') }}"
+
+VIDEO_PIPELINE_BASE_GUNICORN_PORT: 8555
+VIDEO_PIPELINE_BASE_NGINX_PORT: "1{{ VIDEO_PIPELINE_BASE_GUNICORN_PORT }}"
+VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: "4{{ VIDEO_PIPELINE_BASE_GUNICORN_PORT }}"
+
+VIDEO_PIPELINE_BASE_URL_ROOT: "http://127.0.0.1:{{ VIDEO_PIPELINE_BASE_NGINX_PORT }}"
+
+VIDEO_PIPELINE_BASE_API_URL: "{{ VIDEO_PIPELINE_BASE_URL_ROOT }}/api"
+VIDEO_PIPELINE_BASE_OAUTH_URL: "{{ VIDEO_PIPELINE_BASE_URL_ROOT }}/veda_auth"
+VIDEO_PIPELINE_BASE_OAUTH_TOKEN_URL: "{{ VIDEO_PIPELINE_BASE_URL_ROOT }}/o/token"
+VIDEO_PIPELINE_BASE_OAUTH_CLIENT_ID: "video-pipeline-client-id"
+VIDEO_PIPELINE_BASE_OAUTH_CLIENT_NAME: "video-pipeline"
+VIDEO_PIPELINE_BASE_OAUTH_CLIENT_SECRET: "video-pipeline-client-secret"
+
+VIDEO_PIPELINE_BASE_SECRET_KEY: "SET-ME-TO-A-UNIQUE-LONG-RANDOM-STRING"
+
+VIDEO_PIPELINE_BASE_DEFAULT_DB_NAME: "veda"
+VIDEO_PIPELINE_BASE_MYSQL_HOST: "localhost"
+VIDEO_PIPELINE_BASE_MYSQL_USER: "veda001"
+VIDEO_PIPELINE_BASE_MYSQL_PASSWORD: "password"
+
+VIDEO_PIPELINE_BASE_RABBITMQ_BROKER: "localhost"
+VIDEO_PIPELINE_BASE_RABBITMQ_USER: "celery"
+VIDEO_PIPELINE_BASE_RABBITMQ_PASS: "celery"
+
+# video pipeline config overrides
+
+VIDEO_PIPELINE_BASE_EDX_S3_INGEST:
+  BUCKET: "SET-ME-PLEASE"
+  ROOT_PATH: "ingest/"
+
+VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES:
+  BUCKET: "SET-ME-PLEASE"
+  ROOT_PATH: "video-images/"
+
+VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS:
+  BUCKET: "SET-ME-PLEASE"
+  ROOT_PATH: "video-transcripts/"
+
+VIDEO_PIPELINE_BASE_EDX_CLOUDFRONT_PREFIX: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_EDX_S3_ENDPOINT_BUCKET: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_VEDA_S3_UPLOAD_BUCKET: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_VEDA_S3_HOTSTORE_BUCKET: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_VEDA_DELIVERABLE_BUCKET: "SET-ME-PLEASE"
+
+VIDEO_PIPELINE_BASE_VEDA_BASE_URL: "{{ VIDEO_PIPELINE_BASE_URL_ROOT }}"
+VIDEO_PIPELINE_BASE_VEDA_ACCESS_KEY_ID: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_VEDA_SECRET_ACCESS_KEY: "SET-ME-PLEASE"
+
+VIDEO_PIPELINE_BASE_ADMIN_EMAIL: "veda@example.com"
+VIDEO_PIPELINE_BASE_VEDA_NOREPLY_EMAIL: "veda-noreply@example.com"
+
+VIDEO_PIPELINE_BASE_CIELO24_API_ENVIRONMENT: "sandbox"
+VIDEO_PIPELINE_BASE_TRANSCRIPT_PROVIDER_REQUEST_TOKEN: "SET-ME-TO-A-UNIQUE-LONG-RANDOM-STRING"
+
+VIDEO_PIPELINE_BASE_SOCIAL_AUTH_EDX_OIDC_KEY: "pipeline-key"
+VIDEO_PIPELINE_BASE_SOCIAL_AUTH_EDX_OIDC_SECRET: "pipeline-secret"
+
+VIDEO_PIPELINE_BASE_VAL_API_URL: "{{ video_pipeline_base_val_base_url }}/api/val/v0/videos"
+VIDEO_PIPELINE_BASE_VAL_TOKEN_URL: "{{ video_pipeline_base_val_base_url }}/oauth2/access_token"
+VIDEO_PIPELINE_BASE_VAL_VIDEO_IMAGES_URL: "{{ video_pipeline_base_val_base_url }}/api/val/v0/videos/video-images/update/"
+VIDEO_PIPELINE_BASE_VAL_CLIENT_ID: "{{ VIDEO_PIPELINE_BASE_SOCIAL_AUTH_EDX_OIDC_KEY }}"
+VIDEO_PIPELINE_BASE_VAL_SECRET_KEY: "{{ VIDEO_PIPELINE_BASE_SOCIAL_AUTH_EDX_OIDC_SECRET }}"
+VIDEO_PIPELINE_BASE_VAL_USERNAME: "staff"
+VIDEO_PIPELINE_BASE_VAL_PASSWORD: "edx"
+VIDEO_PIPELINE_BASE_VAL_TRANSCRIPT_CREATE_URL: "{{ video_pipeline_base_val_base_url }}/api/val/v0/videos/video-transcripts/create/"
+VIDEO_PIPELINE_BASE_VAL_VIDEO_TRANSCRIPT_STATUS_URL: "{{ video_pipeline_base_val_base_url }}/api/val/v0/videos/status/"
+
+VIDEO_PIPELINE_BASE_SG_SERVER_PATH: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_SG_SCRIPT_NAME: "SET-ME-PLEASE"
+VIDEO_PIPELINE_BASE_SG_SCRIPT_KEY: "SET-ME-PLEASE"
+
+VIDEO_PIPELINE_BASE_HOST_ENVIRONMENT: "sandbox"
+
+# video pipeline config
+
+video_pipeline_base_config_default:
+  DATABASES:
+      default:
+          ENGINE: 'django.db.backends.mysql'
+          NAME: "{{ VIDEO_PIPELINE_BASE_DEFAULT_DB_NAME }}"
+          USER: "{{ VIDEO_PIPELINE_BASE_MYSQL_USER }}"
+          PASSWORD: "{{ VIDEO_PIPELINE_BASE_MYSQL_PASSWORD }}"
+          HOST: "{{ VIDEO_PIPELINE_BASE_MYSQL_HOST }}"
+          PORT: 3306
+
+  SECRET_KEY: "{{ VIDEO_PIPELINE_BASE_SECRET_KEY }}"
+
+  # django staticfile settings
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ video_pipeline_base_service_name }}/staticfiles"
+
+  SERVICE_VARIANT_NAME: "{{ video_pipeline_base_service_name }}"
+
+  # ---
+  # AWS Buckets, Prefixes
+  # ---
+  # Studio/Platform
+  edx_s3_ingest_prefix: "{{ VIDEO_PIPELINE_BASE_EDX_S3_INGEST.ROOT_PATH }}"
+  edx_s3_ingest_bucket: "{{ VIDEO_PIPELINE_BASE_EDX_S3_INGEST.BUCKET }}"
+  edx_s3_endpoint_bucket: "{{ VIDEO_PIPELINE_BASE_EDX_S3_ENDPOINT_BUCKET }}"
+
+  # CF
+  edx_cloudfront_prefix: "{{ VIDEO_PIPELINE_BASE_EDX_CLOUDFRONT_PREFIX }}"
+
+  # Images
+  aws_video_images_bucket: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES.BUCKET }}"
+  aws_video_images_prefix: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_IMAGES.ROOT_PATH }}"
+
+  # Transcripts
+  aws_video_transcripts_bucket: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS.BUCKET }}"
+  aws_video_transcripts_prefix: "{{ VIDEO_PIPELINE_BASE_AWS_VIDEO_TRANSCRIPTS.ROOT_PATH }}"
+
+  # VEDA Internal
+  veda_s3_upload_bucket: "{{ VIDEO_PIPELINE_BASE_VEDA_S3_UPLOAD_BUCKET }}"
+  veda_upload_bucket: "{{ VIDEO_PIPELINE_BASE_VEDA_S3_UPLOAD_BUCKET }}"
+  veda_s3_hotstore_bucket: "{{ VIDEO_PIPELINE_BASE_VEDA_S3_HOTSTORE_BUCKET }}"
+  veda_deliverable_bucket: "{{ VIDEO_PIPELINE_BASE_VEDA_DELIVERABLE_BUCKET }}"
+  veda_base_url: "{{ VIDEO_PIPELINE_BASE_VEDA_BASE_URL }}"
+  s3_base_url: https://s3.amazonaws.com
+
+  # cielo24 api urls
+  cielo24_api_base_url: 'https://{{ VIDEO_PIPELINE_BASE_CIELO24_API_ENVIRONMENT }}.cielo24.com/api'
+
+  # 3playmedia api urls
+  three_play_api_base_url: https://api.3playmedia.com/
+  three_play_api_transcript_url: https://static.3playmedia.com/
+
+  # a token identifying a valid request from transcript provider
+  transcript_provider_request_token: "{{ VIDEO_PIPELINE_BASE_TRANSCRIPT_PROVIDER_REQUEST_TOKEN }}"
+
+  # Ingest Secret
+  veda_secret_access_key: "{{ VIDEO_PIPELINE_BASE_VEDA_SECRET_ACCESS_KEY }}"
+  veda_access_key_id: "{{ VIDEO_PIPELINE_BASE_VEDA_ACCESS_KEY_ID }}"
+
+  # ---
+  # email vars
+  # ---
+  veda_noreply_email: "{{ VIDEO_PIPELINE_BASE_VEDA_NOREPLY_EMAIL }}"
+  admin_email: "{{ VIDEO_PIPELINE_BASE_ADMIN_EMAIL }}"
+
+  # ---
+  # VEDA API
+  # ---
+  ## VEDA API Auth
+  veda_api_url: "{{ VIDEO_PIPELINE_BASE_API_URL }}"
+  veda_auth_url: "{{ VIDEO_PIPELINE_BASE_OAUTH_URL }}"
+  veda_client_id: "{{ VIDEO_PIPELINE_BASE_OAUTH_CLIENT_ID }}"
+  veda_secret_key: "{{ VIDEO_PIPELINE_BASE_OAUTH_CLIENT_SECRET }}"
+  veda_token_url: "{{ VIDEO_PIPELINE_BASE_OAUTH_TOKEN_URL }}"
+
+  # ---
+  # VAL
+  # ---
+  val_api_url: "{{ VIDEO_PIPELINE_BASE_VAL_API_URL }}"
+  val_token_url: "{{ VIDEO_PIPELINE_BASE_VAL_TOKEN_URL }}"
+  val_video_images_url: "{{ VIDEO_PIPELINE_BASE_VAL_VIDEO_IMAGES_URL }}"
+  # Credentials
+  val_client_id: "{{ VIDEO_PIPELINE_BASE_VAL_CLIENT_ID }}"
+  val_secret_key: "{{ VIDEO_PIPELINE_BASE_VAL_SECRET_KEY }}"
+  val_password: "{{ VIDEO_PIPELINE_BASE_VAL_PASSWORD }}"
+  val_username: "{{ VIDEO_PIPELINE_BASE_VAL_USERNAME }}"
+  val_transcript_create_url: "{{ VIDEO_PIPELINE_BASE_VAL_TRANSCRIPT_CREATE_URL }}"
+  val_video_transcript_status_url: "{{ VIDEO_PIPELINE_BASE_VAL_VIDEO_TRANSCRIPT_STATUS_URL }}"
+
+  rabbitmq_broker: "{{ VIDEO_PIPELINE_BASE_RABBITMQ_BROKER }}"
+  rabbitmq_user: "{{ VIDEO_PIPELINE_BASE_RABBITMQ_USER }}"
+  rabbitmq_pass: "{{ VIDEO_PIPELINE_BASE_RABBITMQ_PASS }}"
+  onsite_worker: False
+
+  # ---
+  # Shotgun Variables (internal mediateam)
+  # ---
+  sg_server_path: "{{ VIDEO_PIPELINE_BASE_SG_SERVER_PATH }}"
+  sg_script_name: "{{ VIDEO_PIPELINE_BASE_SG_SCRIPT_NAME }}"
+  sg_script_key: "{{ VIDEO_PIPELINE_BASE_SG_SCRIPT_KEY }}"
+
+  lms_base_url: "{{ video_pipeline_base_val_base_url }}"
+  instance_prefix: "{{ ansible_ec2_public_ipv4 }}"
+
+video_pipeline_base_config_extra: {}
+VIDEO_PIPELINE_BASE_CONFIG: '{{ video_pipeline_base_config_default | combine(video_pipeline_base_config_extra) }}'

@@ -28,12 +28,17 @@ PermissionsStartOnly=true
 User={{ supervisor_service_user }}
 
 Type=forking
-TimeoutStartSec=432000
+TimeoutSec=432000
 
 ExecStart={{ supervisor_venv_dir }}/bin/supervisord --configuration {{ supervisor_cfg }}
 ExecReload={{ supervisor_venv_dir }}/bin/supervisorctl reload
 ExecStop={{ supervisor_venv_dir }}/bin/supervisorctl shutdown
 
+# Trust supervisor to kill all its children
+# Otherwise systemd will see that ExecStop ^ comes back synchronously and say "Oh, I can kill everyone in this cgroup"
+# https://www.freedesktop.org/software/systemd/man/systemd.service.html#ExecStop=
+# https://www.freedesktop.org/software/systemd/man/systemd.kill.html
+KillMode=none
 
 [Install]
 WantedBy=multi-user.target

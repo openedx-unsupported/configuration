@@ -259,19 +259,25 @@
     - "install"
     - "install:app-configuration"
 
+- set_fact:
+    permissions: "{{ permissions|default([])+[{'vhost':item,'configure_priv':'.*','read_priv':'.*','write_priv':'.*'}] }}"
+  with_items:
+    - "{{ RABBITMQ_VHOSTS }}"
+  tags: 
+    - users
+    - maintenance
+    - "manage"
+    - "manage:app-users"
+
 - name: Add admin users
   rabbitmq_user:
-    user: "{{ item[0].name }}"
-    password: "{{ item[0].password }}"
-    read_priv: '.*'
-    write_priv: '.*'
-    configure_priv: '.*'
+    user: "{{ item.name }}"
+    password: "{{ item.password }}"
     tags: "administrator"
-    state: present
-    vhost: "{{ item[1] }}"
-  with_nested:
+    state: "{{ item.state | default('present') }}"
+    permissions: "{{ permissions }}"
+  with_items:
     - "{{rabbitmq_auth_config.admins}}"
-    - "{{ RABBITMQ_VHOSTS }}"
   when: "'admins' in rabbitmq_auth_config"
   tags:
     - users

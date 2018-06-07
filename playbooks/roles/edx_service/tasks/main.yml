@@ -43,12 +43,7 @@
 #       debian: [ pkg1, pkg2, pkg3 ]
 #       redhat: [ pkg4, pkg5 ]
 #
-# Assumes that the home directory has been created above.
-# In some cases(vagrant boxes) the home directory gets created
-# but does not have the corrent owner and group. In vagrant for
-# example we were seeing it defaulting to `root` for both.
-# The item that is a blank string("") ensures the ownership
-# of the home directory is always correct before proceeding.
+
 - name: Create edx_service app, venv, data, and staticfiles dirs
   file:
     path: "{{ edx_service_home }}/{{ item }}"
@@ -64,16 +59,24 @@
     - install
     - install:base
 
-- name: Create /edx/var and /edx/etc dirs
+- name: Create /edx/var/app dir
   file:
-    path: "{{ item }}/{{ edx_service_name }}"
+    path: "/edx/var/{{ edx_service_name }}"
     state: directory
     owner: "{{ edx_service_user }}"
     group: "{{ common_web_group }}"
     mode: "0755"
-  with_items:
-    - "/edx/var"
-    - "/edx/etc"
+  tags:
+    - install
+    - install:base
+
+- name: Create /edx/etc dir
+  file:
+    path: "/edx/etc"
+    state: directory
+    owner: "{{ edx_service_user }}"
+    group: "{{ common_web_group }}"
+    mode: "0755"
   tags:
     - install
     - install:base
@@ -95,7 +98,7 @@
     src: "config.yml.j2"
     dest: "{{ COMMON_CFG_DIR  }}/{{ edx_service_name }}.yml"
     mode: "0644"
-  when: edx_service_config is defined
+  when: edx_service_config
   tags:
     - install
     - install:configuration

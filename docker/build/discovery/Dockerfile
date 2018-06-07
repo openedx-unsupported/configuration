@@ -7,28 +7,25 @@
 # This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
 # with the currently checked-out configuration repo.
 
-FROM edxops/xenial-common:latest
+ARG BASE_IMAGE_TAG=latest
+FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 MAINTAINER edxops
-
-ENV DISCOVERY_VERSION=master
-ENV REPO_OWNER=edx
-
-ADD . /edx/app/edx_ansible/edx_ansible
-
-WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
-
-RUN echo '{ "allow_root": true }' > /root/.bowerrc
-
-RUN apt-get update
-RUN apt install -y xvfb firefox gettext
-
-COPY docker/build/discovery/ansible_overrides.yml /
-RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook discovery.yml \
-    -c local -i '127.0.0.1,' \
-    -t 'install,assets,devstack:install' \
-    --extra-vars="@/ansible_overrides.yml" \
-    --extra-vars="DISCOVERY_VERSION=$DISCOVERY_VERSION" \
-    --extra-vars="COMMON_GIT_PATH=$REPO_OWNER"
-
 USER root
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+
+ADD . /edx/app/edx_ansible/edx_ansible
+WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
+
+COPY docker/build/discovery/ansible_overrides.yml /
+COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
+
+ARG OPENEDX_RELEASE=master
+ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
+RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook discovery.yml \
+    -c local -i '127.0.0.1,' \
+    -t 'install,assets,devstack' \
+    --extra-vars="DISCOVERY_VERSION=${OPENEDX_RELEASE}" \
+    --extra-vars="@/ansible_overrides.yml" \
+    --extra-vars="@/devstack/ansible_overrides.yml"
+
+EXPOSE 18381

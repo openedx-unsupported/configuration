@@ -74,8 +74,8 @@ if [[ "$use_blessed" == "true" ]]; then
   blessed_params="--blessed"
 fi
 
-if [[ -e "configuration/playbooks/edx-east/${play}.yml" ]]; then
-  playbookdir_params="--playbook-dir configuration/playbooks/edx-east"
+if [[ -e "configuration/playbooks/${play}.yml" ]]; then
+  playbookdir_params="--playbook-dir configuration/playbooks"
 else
   playbookdir_params="--playbook-dir ansible-private"
 fi
@@ -85,14 +85,6 @@ if [[ ! -z "$configurationprivaterepo" ]]; then
   configurationprivate_params="--configuration-private-repo $configurationprivaterepo"
   if [[ ! -z "$configurationprivateversion" ]]; then
     configurationprivate_params="$configurationprivate_params --configuration-private-version $configurationprivateversion"
-  fi
-fi
-
-configurationinternal_params=""
-if [[ ! -z "$configurationinternalrepo" ]]; then
-  configurationinternal_params="--configuration-internal-repo $configurationinternalrepo"
-  if [[ ! -z "$configurationinternalversion" ]]; then
-    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configurationinternalversion"
   fi
 fi
 
@@ -135,4 +127,16 @@ cd util/vpc-tools/
 
 echo "$vars" > /var/tmp/$BUILD_ID-extra-vars.yml
 cat /var/tmp/$BUILD_ID-extra-vars.yml
+
+configuration_internal_var="configuration_internal_version"
+configurationinternalversion=$(grep "$configuration_internal_var" "/var/tmp/$BUILD_ID-extra-vars.yml" | awk -F: '{print $2}')
+
+configurationinternal_params=""
+if [[ ! -z "$configurationinternalrepo" ]]; then
+  configurationinternal_params="--configuration-internal-repo $configurationinternalrepo"
+  if [[ ! -z "$configurationinternalversion" ]]; then
+    configurationinternal_params="$configurationinternal_params --configuration-internal-version $configurationinternalversion"
+  fi
+fi
+
 python -u abbey.py -p $play -t m3.large -d $deployment -e $environment $base_params $blessed_params $playbookdir_params --vars /var/tmp/$BUILD_ID-extra-vars.yml -c $BUILD_NUMBER --configuration-version $configuration --configuration-secure-version $configuration_secure -k $jenkins_admin_ec2_key --configuration-secure-repo $jenkins_admin_configuration_secure_repo $configurationprivate_params $configurationinternal_params $hipchat_params $cleanup_params $notification_params $datadog_params $region_params $identity_params

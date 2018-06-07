@@ -65,7 +65,7 @@ def parse_args():
                         metavar="PLAY", required=True)
     parser.add_argument('--playbook-dir',
                         help='directory to find playbooks in',
-                        default='configuration/playbooks/edx-east',
+                        default='configuration/playbooks',
                         metavar="PLAYBOOKDIR", required=False)
     parser.add_argument('-d', '--deployment', metavar="DEPLOYMENT",
                         required=True)
@@ -146,7 +146,7 @@ def parse_args():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--base-ami', required=False,
                        help="ami to use as a base ami",
-                       default="ami-0568456c")
+                       default="ami-cd0f5cb6")
     group.add_argument('--blessed', action='store_true',
                        help="Look up blessed ami for env-dep-play.",
                        default=False)
@@ -327,10 +327,9 @@ fi
 #
 # Bootstrapping constants
 #
-VIRTUAL_ENV_VERSION="15.0.2"
-PIP_VERSION="8.1.2"
-SETUPTOOLS_VERSION="24.0.3"
-EDX_PPA="deb http://ppa.edx.org precise main"
+VIRTUAL_ENV_VERSION="15.2.0"
+PIP_VERSION="9.0.3"
+SETUPTOOLS_VERSION="39.0.1"
 EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
 EDX_PPA_KEY_ID="B41E5E3969464050"
 
@@ -353,10 +352,7 @@ if [[ $(id -u) -ne 0 ]] ;then
     exit 1;
 fi
 
-if grep -q 'Precise Pangolin' /etc/os-release
-then
-    SHORT_DIST="precise"
-elif grep -q 'Trusty Tahr' /etc/os-release
+if grep -q 'Trusty Tahr' /etc/os-release
 then
     SHORT_DIST="trusty"
 elif grep -q 'Xenial Xerus' /etc/os-release
@@ -365,7 +361,7 @@ then
 else
     cat << EOF
 
-    This script is only known to work on Ubuntu Precise, Trusty and Xenial,
+    This script is only known to work on Ubuntu Trusty and Xenial,
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 
@@ -391,7 +387,7 @@ apt-get install -y software-properties-common python-software-properties
 add-apt-repository -y ppa:git-core/ppa
 
 # For older distributions we need to install a PPA for Python 2.7.10
-if [[ "precise" = "$SHORT_DIST" || "trusty" = "$SHORT_DIST" ]]; then
+if [[ "trusty" = "$SHORT_DIST" ]]; then
 
     # Add python PPA
     apt-key adv --keyserver "$EDX_PPA_KEY_SERVER" --recv-keys "$EDX_PPA_KEY_ID"
@@ -418,12 +414,8 @@ pip install virtualenv=="$VIRTUAL_ENV_VERSION"
 
 # python3 is required for certain other things
 # (currently xqwatcher so it can run python2 and 3 grader code,
-# but potentially more in the future). It's not available on Ubuntu 12.04,
-# but in those cases we don't need it anyways.
-if [[ -n "$(apt-cache search --names-only '^python3-pip$')" ]]; then
-    /usr/bin/apt-get update
-    /usr/bin/apt-get install -y python3-pip python3-dev
-fi
+# but potentially more in the future).
+/usr/bin/apt-get install -y python3-pip python3-dev
 
 # this is missing on 14.04 (base package on 12.04)
 # we need to do this on any build, since the above apt-get
@@ -715,6 +707,9 @@ def create_ami(instance_id, name, description):
                 time.sleep(AWS_API_WAIT_TIME)
                 conf_secure_tag = "{} {}".format(args.configuration_secure_repo, args.configuration_secure_version)
                 img.add_tag("version:configuration_secure", conf_secure_tag)
+                time.sleep(AWS_API_WAIT_TIME)
+                conf_internal_tag = "{} {}".format(args.configuration_internal_repo, args.configuration_internal_version)
+                img.add_tag("version:configuration_internal", conf_internal_tag)
                 time.sleep(AWS_API_WAIT_TIME)
                 img.add_tag("cache_id", args.cache_id)
                 time.sleep(AWS_API_WAIT_TIME)

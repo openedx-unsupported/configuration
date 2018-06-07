@@ -10,13 +10,13 @@
 #
 #
 # Tasks for role splunk-server
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
@@ -44,7 +44,7 @@
     owner: splunk
     group: splunk
     mode: "0400"
-  when: "{{ SPLUNK_SSL_CERT is defined and SPLUNK_SSL_CERT | length > 0 }}"
+  when: SPLUNK_SSL_CERT is defined
   with_together:
     - [forwarder.pem, cacert.pem]
     - ["{{ SPLUNK_SSL_CERT }}", "{{ SPLUNK_SSL_ROOT_CA }}"]
@@ -55,7 +55,7 @@
     dest: "{{ splunk_home }}/etc/system/local/inputs.conf"
     owner: splunk
     group: splunk
-    mode: "0644"
+    mode: "0600"
 
 - name: Create bucket directories
   file:
@@ -90,7 +90,7 @@
     dest: "{{ splunk_home }}/etc/apps/search/local/indexes.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
-    mode: 0700
+    mode: 0600
   tags:
     - "install"
     - "install:configuration"
@@ -101,7 +101,7 @@
     dest: "{{ splunk_home }}/etc/system/local/alert_actions.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
-    mode: 0700
+    mode: 0600
   tags:
     - install
     - install:configuration
@@ -112,7 +112,7 @@
     dest: "{{ splunk_home }}/etc/apps/search/local/savedsearches.conf"
     owner: "{{ splunk_user }}"
     group: "{{ splunk_user }}"
-    mode: 0700
+    mode: 0600
   tags:
     - "install"
     - "install:configuration"
@@ -149,12 +149,71 @@
     - install
     - install:configuration
 
+- name: create splunk coldToFrozen script
+  template:
+    src: "opt/splunk/bin/coldToFrozenS3.j2"
+    dest: "{{ splunk_home }}/bin/coldToFrozenS3"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0700
+  tags:
+    - "install"
+    - "install:configuration"
+
+- name: create app download directory
+  file:
+    path: "{{ SPLUNK_APP_DOWNLOAD_PATH }}"
+    owner: "{{ splunk_user }}"
+    group: "{{ splunk_user }}"
+    mode: 0755
+    state: directory
+  tags:
+    - install
+    - install:configuration
+
+- name: discover existing app tars
+  stat: path={{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}
+  register: app_present
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: download missing tars
+  shell: "aws s3 cp {{ SPLUNK_APP_S3_PATH }}/{{ item.1.file_name }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.1.file_name }}"
+  tags:
+    - install
+    - install:configuration
+  when: not item.0.stat.exists
+  with_together:
+  - "{{ app_present.results }}"
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: verify app checksums
+  shell: "echo \"{{ item.md5sum }} {{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}\" | md5sum -c --status"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
+- name: install apps
+  unarchive:
+    copy: no
+    src: "{{ SPLUNK_APP_DOWNLOAD_PATH }}/{{ item.file_name }}"
+    dest: "{{ splunk_home }}/etc/apps"
+  tags:
+    - install
+    - install:configuration
+  with_items:
+  - "{{ SPLUNK_APP_TARS }}"
+
 - name: restart splunk
-  service: 
+  service:
     name: splunk
-    state: restarted 
+    state: restarted
   tags:
     - "install"
     - "install:configuration"
     - "restart"
-

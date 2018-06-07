@@ -1,14 +1,4 @@
 ---
-- name: create edxapp configuration dir
-  file:
-    path: "{{ EDXAPP_CFG_DIR }}"
-    state: directory
-    owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
-  tags:
-    - install
-    - install:base
-
 - name: copy the template to the desired location
   template:
     src: "{{ item.src }}"
@@ -20,6 +10,7 @@
     - { src: 'edxapp_env.j2', dest: '{{ edxapp_app_dir }}/edxapp_env', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'newrelic.ini.j2', dest: '{{ edxapp_app_dir }}/newrelic.ini', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'git_ssh.sh.j2', dest: '{{ edxapp_git_ssh }}', owner: '{{ edxapp_user }}', group: '{{ edxapp_user }}', mode: '0750' }
+    - { src: 'boto.j2', dest: '{{ edxapp_app_dir }}/.boto', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
   tags:
     - install
     - install:base
@@ -86,6 +77,14 @@
     - install
     - install:code
 
+# Download a theme and apply small modifications like SASS changes
+# To enable/disable this, set SIMPLETHEME_ENABLE_DEPLOY
+# https://github.com/ansible/ansible/issues/19472 prevents including the
+# role conditionally
+- name: Install a theme through simpletheme
+  include_role:
+    name: "simple_theme"
+
 - name: Stat each requirements file with Github URLs to ensure it exists
   stat:
     path: "{{ item }}"
@@ -133,7 +132,7 @@
 - name: Stat each Python requirements file to ensure it exists
   stat:
     path: "{{ item }}"
-  with_items: "{{ edxapp_requirements_files }}"
+  with_items: "{{ edxapp_requirements_files }} + {{ [openstack_requirements_file] if EDXAPP_SETTINGS == 'openstack' else [] }}"
   register: python_requirement_files
   tags:
     - install
@@ -161,11 +160,11 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w {{ item.extra_args|default('') }} {{ item.name }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   with_items:
-  - "{{ private_requirements_file }}"
+  - "{{ EDXAPP_PRIVATE_REQUIREMENTS }}"
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
@@ -212,8 +211,6 @@
     chdir: "{{ edxapp_code_dir }}"
   with_items:
   - "{{ sandbox_base_requirements }}"
-  - "{{ sandbox_local_requirements }}"
-  - "{{ sandbox_post_requirements }}"
   become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
@@ -248,12 +245,11 @@
     - install
     - install:app-requirements
 
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: install node dependencies
-  npm:
-    executable: "{{ edxapp_nodeenv_bin }}/npm"
-    path: "{{ edxapp_code_dir }}"
-    production: "{{ edxapp_npm_production }}"
-    state: latest
+  shell: "{{ edxapp_nodeenv_bin }}/npm install"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
   environment: "{{ edxapp_environment }}"
   become_user: "{{ edxapp_user }}"
   tags:
@@ -274,28 +270,13 @@
 
 - name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip:
+    chdir: "{{ edxapp_code_dir }}"
     requirements: "{{ sandbox_base_requirements }}"
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
-  tags:
-    - edxapp-sandbox
-    - install
-    - install:app-requirements
-
-- name: code sandbox | Install sandbox requirements into sandbox venv
-  shell: "{{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
-  args:
-    chdir: "{{ edxapp_code_dir }}"
-  with_items:
-    - "{{ sandbox_local_requirements }}"
-    - "{{ sandbox_post_requirements }}"
-  become_user: "{{ edxapp_sandbox_user }}"
-  when: EDXAPP_PYTHON_SANDBOX
-  register: sandbox_install_output
-  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   tags:
     - edxapp-sandbox
     - install
@@ -310,7 +291,7 @@
     - install:app-requirements
 
 - name: compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x .git/.* {{ edxapp_code_dir }}"
+  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x '.git/.*|node_modules/.*' {{ edxapp_code_dir }}"
   become_user: "{{ edxapp_user }}"
   tags:
     - install
@@ -328,6 +309,21 @@
   tags:
     - install
     - install:code
+
+- name: "create service wrapper scripts - {{item}}"
+  template:
+    dest: "{{ edxapp_app_dir }}/{{item}}"
+    src: "edx/app/edxapp/{{item}}.j2"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: "og+rx"
+  with_items:
+    - "lms.sh"
+    - "cms.sh"
+    - "worker.sh"
+  tags:
+    - install
+    - install:configuration
 
 # creates the supervisor jobs for the
 # service variants configured, runs
@@ -353,12 +349,15 @@
 
 - name: ensure edxapp has started
   supervisorctl:
-    name: "edxapp:"
+    name: "{{ item }}"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: started
   become_user: "{{ supervisor_service_user }}"
   when: celery_worker is not defined and not disable_edx_services
+  with_items:
+    - 'lms'
+    - 'cms'
   tags:
     - manage
 
@@ -408,12 +407,15 @@
 
 - name: restart edxapp
   supervisorctl:
-    name: "edxapp:"
+    name: "{{ item }}"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: restarted
   when: edxapp_installed is defined and celery_worker is not defined and not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  with_items:
+    - 'lms'
+    - 'cms'
   tags:
     - manage
 
@@ -427,3 +429,24 @@
   become_user: "{{ common_web_user }}"
   tags:
     - manage
+
+- name: create service worker users
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  with_items: "{{ SERVICE_WORKER_USERS }}"
+  when: CREATE_SERVICE_WORKER_USERS
+  tags:
+    - manage
+    - manage:db
+
+- name: reindex all courses
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: EDXAPP_REINDEX_ALL_COURSES
+  tags:
+    - install
+    - install:base

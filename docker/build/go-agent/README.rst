@@ -3,12 +3,12 @@ Usage
 
 Start the container with this:
 
-``docker run -ti -e GO_SERVER=your.go.server.ip_or_host gocd/gocd-agent``
+``docker run -ti -e GO_SERVER=your.go.server.ip_or_host edx/go-agent``
 
 If you need to start a few GoCD agents together, you can of course use the
 shell to do that. Start a few agents in the background, like this:
 
-``for each in 1 2 3; do docker run -d --link angry_feynman:go-server gocd/gocd-agent; done``
+``for each in 1 2 3; do docker run -d --link angry_feynman:go-server edx/go-agent; done``
 
 Getting into the container
 ##########################
@@ -52,6 +52,11 @@ Building and Uploading the container to ECS
    -  ``docker build -f docker/build/go-agent/Dockerfile .``
    -  or
    -  ``make docker.test.go-agent``
+
+-  Tag image for the go-agent-marketing Dockerfile
+
+   - *REQUIRED for go-agent-marketing Dockerfile*
+   - ``docker tag <image_id> edxops/go-agent``
 
 -  Log docker in to AWS
 

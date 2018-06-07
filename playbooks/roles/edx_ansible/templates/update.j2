@@ -10,12 +10,16 @@ IFS=","
 
     Usage: $PROG <repo> <version>
             -v        add verbosity to edx_ansible run
+            -e        add extra_vars to ansible plays
             -h        this
 
     <repo> - must be one of edx-platform, edx-workers, xqueue, cs_comments_service, credentials, xserver, configuration,
     read-only-certificate-code, edx-analytics-data-api, edx-ora2, insights, ecommerce, course_discovery,
-    notifier
+    notifier, video_web_frontend, video_delivery_worker, veda_pipeline_worker, video_encode_worker, veda_ffmpeg
     <version> - can be a commit or tag
+    <extra_vars> - specify extra_vars to any of the ansible plays with the -e switch and then ecaptulating your vars in "double quotes"
+                   example: update <repo> <version> -e "-e 'hallo=bye' -e 'bye=hallo'"
+                   you can also specify a file as -e "-e '@/path/to/file.yml'"
 
 EO
 IFS=$SAVE_IFS
@@ -44,6 +48,12 @@ fi
 extra_args="$extra_args -e 'disable_edx_services=true' -e devstack=true"
 {% endif %}
 
+if [[ "$3" == "-e" ]]; then
+    opt=$4
+    sed -e 's/^"//' -e 's/"$//' <<<"$opt"
+    extra_args="$extra_args $opt"
+fi
+
 declare -A repos_to_cmd
 edx_ansible_cmd="{{ edx_ansible_venv_bin }}/ansible-playbook -i localhost, -c local $extra_args"
 
@@ -61,7 +71,11 @@ repos_to_cmd["insights"]="$edx_ansible_cmd insights.yml -e 'INSIGHTS_VERSION=$2'
 repos_to_cmd["ecommerce"]="$edx_ansible_cmd ecommerce.yml -e 'ECOMMERCE_VERSION=$2'"
 repos_to_cmd["discovery"]="$edx_ansible_cmd discovery.yml -e 'DISCOVERY_VERSION=$2'"
 repos_to_cmd["notifier"]="$edx_ansible_cmd notifier.yml -e 'NOTIFIER_VERSION=$2'"
-
+repos_to_cmd["video_web_frontend"]="$edx_ansible_cmd veda_web_frontend.yml -e 'VEDA_WEB_FRONTEND_VERSION=$2'"
+repos_to_cmd["video_delivery_worker"]="$edx_ansible_cmd veda_delivery_worker.yml -e 'VEDA_DELIVERY_WORKER_VERSION=$2'"
+repos_to_cmd["veda_pipeline_worker"]="$edx_ansible_cmd veda_pipeline_worker.yml -e 'VEDA_PIPELINE_WORKER_VERSION=$2'"
+repos_to_cmd["video_encode_worker"]="$edx_ansible_cmd veda_encode_worker.yml -e 'VEDA_ENCODE_WORKER_VERSION=$2'"
+repos_to_cmd["veda_ffmpeg"]="$edx_ansible_cmd veda_ffmpeg.yml -e 'VEDA_FFMPEG_VERSION=$2'"
 
 if [[ -z $1 || -z $2 ]]; then
     echo
@@ -77,5 +91,5 @@ if [[ -z ${repos_to_cmd[$1]} ]]; then
     exit 1
 fi
 
-cd {{ edx_ansible_code_dir }}/playbooks/edx-east
+cd {{ edx_ansible_code_dir }}/playbooks
 eval "sudo ${repos_to_cmd["$1"]} $verbose"

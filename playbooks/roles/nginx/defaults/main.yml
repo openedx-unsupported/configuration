@@ -18,6 +18,7 @@ NGINX_USERS:
 
 NGINX_ENABLE_SSL: False
 NGINX_REDIRECT_TO_HTTPS: False
+NGINX_HSTS_MAX_AGE: 31536000
 # Set these to real paths on your
 # filesystem, otherwise nginx will
 # use a self-signed snake-oil cert
@@ -48,18 +49,43 @@ NGINX_LOG_FORMAT_NAME: 'p_combined'
 # headers to reflect the properties of the incoming request.
 NGINX_SET_X_FORWARDED_HEADERS: False
 
+# Increasing these values allows studio to process more complex operations.
+# Default timeouts limit CMS connections to 60 seconds.
+
+NGINX_CMS_PROXY_CONNECT_TIMEOUT: !!null
+NGINX_CMS_PROXY_SEND_TIMEOUT: !!null
+NGINX_CMS_PROXY_READ_TIMEOUT: !!null
+
 NGINX_SERVER_ERROR_IMG: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Pendleton_Sinking_Ship.jpg/640px-Pendleton_Sinking_Ship.jpg'
+NGINX_SERVER_ERROR_IMG_ALT: ''
+NGINX_SERVER_ERROR_LANG: 'en'
+NGINX_SERVER_ERROR_STYLE_H1: 'font-family: "Helvetica Neue",Helvetica,Roboto,Arial,sans-serif; margin-bottom: .3em; font-size: 2.0em; line-height: 1.25em; text-rendering: optimizeLegibility; font-weight: bold; color: #000000;'
+NGINX_SERVER_ERROR_STYLE_P_H2: 'font-family: "Helvetica Neue",Helvetica,Roboto,Arial,sans-serif; margin-bottom: .3em; line-height: 1.25em; text-rendering: optimizeLegibility; font-weight: bold; font-size: 1.8em; color: #5b5e63;'
+NGINX_SERVER_ERROR_STYLE_P: 'font-family: Georgia,Cambria,"Times New Roman",Times,serif; margin: auto; margin-bottom: 1em; font-weight: 200; line-height: 1.4em; font-size: 1.1em; max-width: 80%;'
+NGINX_SERVER_ERROR_STYLE_DIV: 'margin: auto; width: 800px; text-align: center; padding:20px 0px 0px 0px;'
 NGINX_SERVER_HTML_FILES:
   - file: rate-limit.html
+    lang: "{{ NGINX_SERVER_ERROR_LANG }}"
     title: 'Rate limit exceeded'
     msg: 'If think you have encountered this message in error please let us know at <a href="mailto:{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}">{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}</a>'
     img: "{{ NGINX_SERVER_ERROR_IMG }}"
+    img_alt: "{{ NGINX_SERVER_ERROR_IMG_ALT }}"
     heading: 'Uh oh, we are having some server issues..'
+    style_h1: "{{ NGINX_SERVER_ERROR_STYLE_H1 }}"
+    style_p_h2: "{{ NGINX_SERVER_ERROR_STYLE_P_H2 }}"
+    style_p: "{{ NGINX_SERVER_ERROR_STYLE_P }}"
+    style_div: "{{ NGINX_SERVER_ERROR_STYLE_DIV }}"
   - file: server-error.html
+    lang: "{{ NGINX_SERVER_ERROR_LANG }}"
     title: 'Server error'
     msg: 'We have been notified of the error, if it persists please let us know at <a href="mailto:{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}">{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}</a>'
     img: "{{ NGINX_SERVER_ERROR_IMG }}"
+    img_alt: "{{ NGINX_SERVER_ERROR_IMG_ALT }}"
     heading: 'Uh oh, we are having some server issues..'
+    style_h1: "{{ NGINX_SERVER_ERROR_STYLE_H1 }}"
+    style_p_h2: "{{ NGINX_SERVER_ERROR_STYLE_P_H2 }}"
+    style_p: "{{ NGINX_SERVER_ERROR_STYLE_P }}"
+    style_div: "{{ NGINX_SERVER_ERROR_STYLE_DIV }}"
 
 NGINX_APT_REPO: deb http://nginx.org/packages/ubuntu/ {{ ansible_distribution_release }} nginx
 
@@ -85,8 +111,6 @@ NGINX_EDXAPP_ERROR_PAGES:
   "504": "{{ nginx_default_error_page }}"
 
 CMS_HOSTNAME: '~^((stage|prod)-)?studio.*'
-ECOMMERCE_HOSTNAME: '~^((stage|prod)-)?ecommerce.*'
-CREDENTIALS_HOSTNAME: '~^((stage|prod)-)?credentials.*'
 
 nginx_template_dir: "edx/app/nginx/sites-available"
 
@@ -153,3 +177,10 @@ NGINX_CREATE_HTPASSWD_FILE: >
     XQUEUE_ENABLE_BASIC_AUTH|bool or
     XSERVER_ENABLE_BASIC_AUTH|bool
   }}
+
+# Extra settings to add to site configuration for Studio
+NGINX_EDXAPP_CMS_APP_EXTRA: ""
+# Extra settings to add to site configuration for LMS
+NGINX_EDXAPP_LMS_APP_EXTRA: ""
+
+NGINX_DJANGO_ADMIN_ACCESS_CIDRS: []

@@ -26,12 +26,16 @@
     demo_test_and_staff_users: "{{ demo_test_users }}"
   when: not DEMO_CREATE_STAFF_USER
 
+- name: build staff, admin, and test user list
+  set_fact:
+    demo_test_admin_and_staff_users: "{{ demo_test_and_staff_users + SANDBOX_EDXAPP_USERS }}"
+
 - name: create some test users
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}{% if item.is_staff %} --staff{% endif %}"
+  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}{% if item.is_staff %} --staff{% endif %}{% if item.is_superuser %} --superuser{% endif %}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
-  with_items: "{{ demo_test_and_staff_users }}"
+  with_items: "{{ demo_test_admin_and_staff_users }}"
   when: demo_checkout.changed
 
 - name: enroll test users in the demo course

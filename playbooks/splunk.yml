@@ -1,0 +1,17 @@
+# Usage: ansible-playbook splunk.yml -e@/path/to/environment-deployment.yml
+
+- name: Deploy Splunk
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+  roles:
+    - splunk-server
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG

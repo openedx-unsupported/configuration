@@ -1,6 +1,6 @@
 #!/bin/bash
 ##
-## Installs the pre-requisites for running edX on a single Ubuntu 12.04
+## Installs the pre-requisites for running edX on a single Ubuntu 16.04
 ## instance.  This script is provided as a convenience and any of these
 ## steps could be executed manually.
 ##
@@ -32,9 +32,9 @@ sudo apt-get upgrade -y
 ## Install system pre-requisites
 ##
 sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python-pip libmysqlclient-dev python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc g++
-sudo pip install --upgrade pip==8.1.2
-sudo pip install --upgrade setuptools==24.0.3
-sudo -H pip install --upgrade virtualenv==15.0.2
+sudo pip install --upgrade pip==9.0.3
+sudo pip install --upgrade setuptools==39.0.1
+sudo -H pip install --upgrade virtualenv==15.2.0
 
 ##
 ## Overridable version variables in the playbooks. Each can be overridden
@@ -52,9 +52,10 @@ VERSION_VARS=(
   ANALYTICS_API_VERSION
   ECOMMERCE_VERSION
   ECOMMERCE_WORKER_VERSION
+  DISCOVERY_VERSION
+  THEMES_VERSION
 )
 
-EXTRA_VARS="-e SANDBOX_ENABLE_ECOMMERCE=True $EXTRA_VARS"
 for var in ${VERSION_VARS[@]}; do
   # Each variable can be overridden by a similarly-named environment variable,
   # or OPENEDX_RELEASE, if provided.
@@ -90,4 +91,4 @@ sudo -H pip install -r requirements.txt
 ##
 ## Run the edx_sandbox.yml playbook in the configuration/playbooks directory
 ##
-cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./edx_sandbox.yml -i "localhost," $EXTRA_VARS
+cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./edx_sandbox.yml -i "localhost," $EXTRA_VARS "$@"

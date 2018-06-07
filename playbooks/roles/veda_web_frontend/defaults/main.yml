@@ -1,0 +1,84 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role veda_web_frontend
+#
+
+# TODO! https://openedx.atlassian.net/browse/EDUCATOR-1852
+veda_web_frontend_service_name: "veda"
+
+veda_web_frontend_user: "{{ veda_web_frontend_service_name }}"
+veda_web_frontend_home: "{{ COMMON_APP_DIR }}/{{ veda_web_frontend_service_name }}"
+
+veda_web_frontend_service_home: "{{ COMMON_APP_DIR }}/{{ veda_web_frontend_service_name }}"
+veda_web_frontend_code_dir: "{{ veda_web_frontend_service_home }}/{{ veda_web_frontend_service_name }}"
+veda_web_frontend_venv_dir: "{{ veda_web_frontend_service_home }}/venvs/{{ veda_web_frontend_service_name }}"
+veda_web_frontend_work_dir: "{{ COMMON_DATA_DIR }}/{{ veda_web_frontend_service_name }}/VEDA_WORKING"
+
+veda_web_frontend_directories:
+  VEDA_WORKING: '{{ veda_web_frontend_work_dir }}'
+
+veda_web_frontend_config_other: {}
+veda_web_frontend_config_extra: "{{ veda_web_frontend_config_other | combine(veda_web_frontend_directories) }}"
+
+VEDA_WEB_FRONTEND_LOAD_DATA: false
+veda_web_frontend_post_migrate_commands:
+  - command: 'python manage.py loaddata encodes'
+    when: '{{ VEDA_WEB_FRONTEND_LOAD_DATA }}'
+
+#
+# OS packages
+#
+
+veda_web_frontend_debian_pkgs:
+  - libffi6
+  - libffi-dev
+
+VEDA_WEB_FRONTEND_REPO: "edx-video-pipeline"
+
+VEDA_WEB_FRONTEND_VERSION: "master"
+
+VEDA_WEB_FRONTEND_MEMCACHE: []
+
+VEDA_WEB_FRONTEND_DJANGO_SETTINGS_MODULE: "VEDA.settings.production"
+
+VEDA_WEB_FRONTEND_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+VEDA_WEB_FRONTEND_DATA_DIR: "{{ COMMON_DATA_DIR }}/{{ veda_web_frontend_service_name }}"
+VEDA_WEB_FRONTEND_MEDIA_ROOT: "{{ VEDA_WEB_FRONTEND_DATA_DIR }}/media"
+VEDA_WEB_FRONTEND_MEDIA_URL: "/media/"
+
+VEDA_WEB_FRONTEND_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: "django.core.files.storage.FileSystemStorage"
+  MEDIA_ROOT: "{{ VEDA_WEB_FRONTEND_MEDIA_ROOT }}"
+  MEDIA_URL: "{{ VEDA_WEB_FRONTEND_MEDIA_URL }}"
+
+VEDA_WEB_FRONTEND_ENVIRONMENT:
+  VIDEO_PIPELINE_CFG: "{{ COMMON_CFG_DIR }}/{{ veda_web_frontend_service_name }}.yml"
+  PYTHONPATH: "{{ veda_web_frontend_code_dir }}"
+
+VEDA_WEB_FRONTEND_STATICFILES_STORAGE: "django.contrib.staticfiles.storage.StaticFilesStorage"
+
+VEDA_WEB_FRONTEND_SERVICE_CONFIG: !!null
+VEDA_WEB_FRONTEND_SECRET_KEY: '{{ VIDEO_PIPELINE_BASE_SECRET_KEY }}'
+
+VEDA_WEB_FRONTEND_GUNICORN_PORT: '{{ VIDEO_PIPELINE_BASE_GUNICORN_PORT }}'
+VEDA_WEB_FRONTEND_NGINX_PORT: '{{ VIDEO_PIPELINE_BASE_NGINX_PORT }}'
+VEDA_WEB_FRONTEND_SSL_NGINX_PORT: '{{ VIDEO_PIPELINE_BASE_SSL_NGINX_PORT }}'
+
+VEDA_WEB_FRONTEND_DEFAULT_DB_NAME: '{{ VIDEO_PIPELINE_BASE_DEFAULT_DB_NAME }}'
+VEDA_WEB_FRONTEND_MYSQL_HOST: '{{ VIDEO_PIPELINE_BASE_MYSQL_HOST }}'
+VEDA_WEB_FRONTEND_MYSQL_USER: '{{ VIDEO_PIPELINE_BASE_MYSQL_USER }}'
+VEDA_WEB_FRONTEND_MYSQL_PASSWORD: '{{ VIDEO_PIPELINE_BASE_MYSQL_PASSWORD }}'
+
+VEDA_WEB_FRONTEND_OAUTH2_URL: '{{ VIDEO_PIPELINE_BASE_URL_ROOT }}/api/val/v0'
+VEDA_WEB_FRONTEND_LOGOUT_URL: '{{ VIDEO_PIPELINE_BASE_URL_ROOT }}/logout/'
+VEDA_WEB_FRONTEND_SOCIAL_AUTH_EDX_OIDC_KEY: '{{ VIDEO_PIPELINE_BASE_SOCIAL_AUTH_EDX_OIDC_KEY | default("pipeline-key") }}'
+VEDA_WEB_FRONTEND_SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ VIDEO_PIPELINE_BASE_SOCIAL_AUTH_EDX_OIDC_SECRET | default("pipeline-secret") }}'

@@ -2,12 +2,15 @@
   "variables": {
     "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
     "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "new_relic_key": "{{env `NEW_RELIC_KEY`}}",
     "playbook_remote_dir": "/tmp/packer-edx-playbooks",
     "venv_dir": "/edx/app/edx_ansible/venvs/edx_ansible",
     "ami": "{{env `JENKINS_WORKER_AMI`}}",
     "test_platform_version": "{{env `TEST_PLATFORM_VERSION`}}",
+    "security_group": "{{env `AWS_SECURITY_GROUP`}}",
     "delete_or_keep": "{{env `DELETE_OR_KEEP_AMI`}}",
-    "remote_branch": "{{env `REMOTE_BRANCH`}}"
+    "remote_branch": "{{env `REMOTE_BRANCH`}}",
+    "jenkins_worker_key_url": "{{env `JENKINS_WORKER_KEY_URL`}}"
   },
   "builders": [{
     "type": "amazon-ebs",
@@ -20,10 +23,16 @@
     "ssh_username": "ubuntu",
     "ami_description": "jenkins worker",
     "iam_instance_profile": "jenkins-worker",
-    "security_group_id": "sg-75af5e18",
+    "security_group_id": "{{user `security_group`}}",
     "tags": {
-        "delete_or_keep": "{{user `delete_or_keep`}}"
-    }
+      "delete_or_keep": "{{user `delete_or_keep`}}"
+    },
+    "launch_block_device_mappings": [{
+      "delete_on_termination": true,
+      "device_name": "/dev/sda1",
+      "volume_size": "40",
+      "volume_type": "gp2"
+    }]
   }],
   "provisioners": [{
     "type": "shell",
@@ -45,12 +54,13 @@
       "sudo bash ./ansible-bootstrap.sh" ]
   }, {
     "type": "ansible-local",
-    "playbook_file": "../../playbooks/edx-east/jenkins_worker.yml",
+    "playbook_file": "../../playbooks/jenkins_worker.yml",
     "playbook_dir": "../../playbooks",
     "command": ". {{user `venv_dir`}}/bin/activate && ansible-playbook",
     "inventory_groups": "jenkins_worker",
     "extra_arguments": [
+      "-e \"jenkins_edx_platform_version={{user `test_platform_version`}} NEWRELIC_LICENSE_KEY={{user `new_relic_key`}} initialize_replica_set=false mongo_configure_replica_set=false jenkins_worker_key_url='{{user `jenkins_worker_key_url`}}'\"",
       "-vvv"
-    ]
+      ]
   }]
 }

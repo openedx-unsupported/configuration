@@ -111,6 +111,7 @@
   with_items:
     - { src: 'etc/nginx/nginx.conf.j2', dest: '/etc/nginx/nginx.conf', group: '{{ common_web_user }}', mode: "0644" }
     - { src: 'edx/app/nginx/sites-available/edx-release.j2', dest: '{{ nginx_sites_available_dir }}/edx-release', group: 'root', mode: "0600" }
+    - { src: 'edx/app/nginx/sites-available/maps.j2', dest: '{{ nginx_sites_available_dir }}/maps', group: 'root', mode: "0600" }
   notify: restart nginx
   tags:
     - install
@@ -131,12 +132,15 @@
 
 - name: Creating link for common nginx configuration
   file:
-    src: "{{ nginx_sites_available_dir }}/edx-release"
-    dest: "{{ nginx_sites_enabled_dir }}/edx-release"
+    src: "{{ nginx_sites_available_dir }}/{{ item }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ item }}"
     state: link
     owner: root
     group: root
   notify: reload nginx
+  with_items:
+    - "edx-release"
+    - "maps"
   tags:
     - install
     - install:configuration

@@ -1,0 +1,49 @@
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  serial: 10
+  vars:
+    migrate_db: "yes"
+  roles:
+    - aws
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      - xqueue
+      - xserver
+      nginx_default_sites:
+      - lms
+    - mysql
+    - role: edxlocal
+      tags: edxlocal
+    - memcache
+    - mongo_3_2
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - testcourses
+    - role: redis
+    - oraclejdk
+    - elasticsearch
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - role: xserver
+      when: XSERVER_GIT_IDENTITY|length > 0
+    - edx_ansible
+    - analytics_api
+    - ecommerce
+    - credentials
+    - oauth_client_setup
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - flower

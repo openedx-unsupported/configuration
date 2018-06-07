@@ -1,0 +1,113 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for veda_pipeline_worker role
+#
+
+- name: install application requirements
+  pip:
+    requirements: '{{ veda_pipeline_worker_requirements_base }}/{{ item }}'
+    virtualenv: '{{ veda_pipeline_worker_home }}/venvs/{{ veda_pipeline_worker_service_name }}'
+    state: present
+  become_user: '{{ veda_pipeline_worker_user }}'
+  with_items: "{{ veda_pipeline_worker_requirements }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: create worker work directories
+  file:
+    path: "{{ item.value }}"
+    state: directory
+    owner: "{{ veda_pipeline_worker_service_name }}"
+    group: "{{ common_web_group }}"
+    mode: 0775
+  with_dict: "{{ veda_pipeline_worker_directories }}"
+  tags:
+    - install
+    - install:base
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: '{{ veda_pipeline_worker_home }}/venvs/{{ veda_pipeline_worker_service_name }}/bin/{{ item }}'
+    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.veda_pipeline_worker'
+    state: link
+  with_items:
+  - python
+  - pip
+  tags:
+    - install
+    - install:configuration
+
+- name: write out the supervisor wrapper
+  template:
+    src: edx/app/veda_pipeline_worker/veda_pipeline_worker.sh.j2
+    dest: '{{ veda_pipeline_worker_home }}/{{ veda_pipeline_worker_service_name }}_{{ item }}.sh'
+    mode: 0650
+    owner: '{{ supervisor_user }}'
+    group: '{{ common_web_user }}'
+  with_items: "{{ veda_pipeline_worker_variants }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: write supervisord config
+  template:
+    src: edx/app/supervisor/conf.d.available/veda_pipeline_worker.conf.j2
+    dest: '{{ supervisor_available_dir }}/{{ veda_pipeline_worker_service_name }}_{{ item }}.conf'
+    owner: '{{ supervisor_user }}'
+    group: '{{ common_web_user }}'
+    mode: 0644
+  with_items: "{{ veda_pipeline_worker_variants }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: setup the veda_pipeline_worker env file
+  template:
+    src: edx/app/veda_pipeline_worker/veda_pipeline_worker_env.j2
+    dest: '{{ veda_pipeline_worker_home }}/{{ veda_pipeline_worker_service_name }}_env'
+    owner: '{{ veda_pipeline_worker_user }}'
+    group: '{{ veda_pipeline_worker_user }}'
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: enable supervisor script
+  file:
+    src: '{{ supervisor_available_dir }}/{{ veda_pipeline_worker_service_name }}_{{ item }}.conf'
+    dest: '{{ supervisor_cfg_dir }}/{{ veda_pipeline_worker_service_name }}_{{ item }}.conf'
+    state: link
+    force: yes
+  with_items: "{{ veda_pipeline_worker_variants }}"
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  shell: '{{ supervisor_ctl }} -c {{ supervisor_cfg }} update'
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: restart the applicaton
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: '{{ supervisor_ctl }}'
+    config: '{{ supervisor_cfg }}'
+    name: '{{ veda_pipeline_worker_service_name }}_{{ item }}'
+  with_items: "{{ veda_pipeline_worker_variants }}"
+  when: not disable_edx_services
+  become_user: '{{ supervisor_service_user }}'
+  tags:
+    - manage
+    - manage:start

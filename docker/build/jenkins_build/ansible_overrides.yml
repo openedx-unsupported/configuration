@@ -1,0 +1,54 @@
+---
+# This docker image for build jenkins is currently intended for local
+# development, or as a base for the community, so we leave out github oauth and
+# add the seed job creator.
+build_jenkins_configuration_scripts:
+  - 1addJarsToClasspath.groovy
+  - 2checkInstalledPlugins.groovy
+  - 3importCredentials.groovy
+  - 3mainConfiguration.groovy
+  - 3setGlobalProperties.groovy
+  - 3shutdownCLI.groovy
+  - 4configureEc2Plugin.groovy
+#  - 4configureGHOAuth.groovy  # intentionally left commented out
+  - 4configureGHPRB.groovy
+  - 4configureGit.groovy
+  - 4configureGithub.groovy
+  - 4configureHipChat.groovy
+  - 4configureJobConfigHistory.groovy
+  - 4configureMailerPlugin.groovy
+  - 4configureMaskPasswords.groovy
+  - 4configureSecurity.groovy
+  - 5addSeedJob.groovy  # added this
+  - 5createLoggers.groovy
+
+
+jenkins_common_non_plugin_template_files:
+  - credentials
+  - ec2_config
+  - ghprb_config
+  - git_config
+  - github_config
+  # - github_oauth # intentionally commented out
+  - hipchat_config
+  - job_config_history
+  - log_config
+  - mailer_config
+  - main_config
+  - mask_passwords_config
+  - properties_config
+  - security
+  - seed_config
+
+# Add the jenkins-worker label so that this jenkins master will work
+# out-of-the-box for running most kinds of jobs.  This makes integration
+# testing easier, and is easier for the openedx community.
+jenkins_common_main_labels:
+  - 'dsl-seed-runner'
+  - 'backup-runner'
+  - 'jenkins-worker'  # added this
+
+# We're running all our jobs on the Jenkins Master by default (one container
+# only), so we need to bump up the number of executors for some jobs with
+# downstream jobs to work correctly.
+jenkins_common_main_num_executors: 6

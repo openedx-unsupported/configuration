@@ -40,10 +40,9 @@
     url: "{{ GO_SERVER_APT_KEY_URL }}"
     state: present
 
-- name: install go-server using apt-get
-  apt:
-    name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
-    update_cache: yes
+- name: install openjdk ppa repository
+  apt_repository:
+    repo: "{{ openjdk_apt_source }}"
     state: present
 
 - name: install other needed system packages
@@ -53,6 +52,12 @@
     update_cache: true
     cache_valid_time: 3600
   with_items: "{{ GO_SERVER_APT_PKGS }}"
+
+- name: install go-server using apt-get
+  apt:
+    name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
+    update_cache: yes
+    state: present
 
 - name: create go-server plugin directory
   file:

@@ -1,0 +1,47 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for veda_encode_worker role
+#
+
+veda_encode_worker_service_name: 'veda_encode_worker'
+veda_encode_worker_user: '{{ veda_encode_worker_service_name }}'
+veda_encode_worker_home: '{{ COMMON_APP_DIR }}/{{ veda_encode_worker_service_name }}'
+veda_encode_worker_code_dir: '{{ veda_encode_worker_home }}/{{ veda_encode_worker_service_name }}'
+veda_encode_worker_venv_bin: '{{ veda_encode_worker_home }}/venvs/{{ veda_encode_worker_service_name }}/bin'
+veda_encode_worker_data_dir: '{{ COMMON_DATA_DIR }}/{{ veda_encode_worker_service_name }}/ENCODE_WORKDIR'
+veda_encode_worker_service_config: !!null
+
+veda_encode_worker_directories:
+  ENCODE_WORK_DIR: '{{ veda_encode_worker_data_dir }}'
+
+veda_encode_worker_config_other: {}
+veda_encode_worker_config_extra: '{{ veda_encode_worker_config_other | combine(veda_encode_worker_directories) }}'
+
+veda_encode_worker_requirements_base: '{{ veda_encode_worker_code_dir }}'
+veda_encode_worker_requirements:
+  - requirements.txt
+
+veda_encode_worker_environment:
+  PATH: '{{ veda_encode_worker_venv_bin }}:{{ ansible_env.PATH }}'
+  PYTHONPATH: "{{ veda_encode_worker_code_dir }}"
+  VEDA_ENCODE_WORKER_CFG: '{{ COMMON_CFG_DIR }}/{{ veda_encode_worker_service_name }}.yml'
+
+VEDA_ENCODE_WORKER_GIT_IDENTITY: !!null
+VEDA_ENCODE_WORKER_VERSION: 'master'
+
+VEDA_ENCODE_WORKER_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: edx-video-worker.git
+    VERSION: '{{ VEDA_ENCODE_WORKER_VERSION }}'
+    DESTINATION: '{{ veda_encode_worker_code_dir }}'
+    SSH_KEY: '{{ VEDA_ENCODE_WORKER_GIT_IDENTITY }}'

@@ -18,7 +18,7 @@
 
 - name: terminating single instance
   local_action:
-    module: ec2_2_1_1_0
+    module: ec2
     state: 'absent'
     region: "{{ region }}"
     instance_ids: "{{tag_lookup.instance_ids}}"
@@ -36,10 +36,11 @@
 
 - name: Launch ec2 instance
   local_action:
-    module: ec2_2_1_1_0
+    module: ec2
     keypair: "{{ keypair }}"
     group: "{{ security_group }}"
     instance_type: "{{ instance_type }}"
+    instance_initiated_shutdown_behavior: "{{ instance_initiated_shutdown_behavior }}"
     image: "{{ ami }}"
     vpc_subnet_id: "{{ vpc_subnet_id }}"
     assign_public_ip: yes
@@ -58,7 +59,7 @@
 
 - name: Add DNS name
   local_action:
-    module: route53_2_1_1_0
+    module: route53
     overwrite: yes
     command: create
     zone: "{{ dns_zone }}"
@@ -66,11 +67,15 @@
     ttl: 300
     record: "{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item.public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
   with_items: "{{ ec2.instances }}"
 
 - name: Add DNS names for services
   local_action:
-    module: route53_2_1_1_0
+    module: route53
     overwrite: yes
     command: create
     zone: "{{ dns_zone }}"
@@ -78,9 +83,31 @@
     ttl: 300
     record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
   with_nested:
     - "{{ ec2.instances }}"
-    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials']
+    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials', 'veda', 'analytics-api']
+
+- name: Add DNS name for whitelabel sites
+  local_action:
+    module: route53
+    overwrite: yes
+    command: create
+    zone: "{{ dns_zone }}"
+    type: CNAME
+    ttl: 300
+    record: "{{ item[1] }}"
+    value: "{{ item[0].public_dns_name }}"
+  register: task_result
+  until: task_result|succeeded
+  retries: 5
+  delay: 30
+  with_nested:
+    - "{{ ec2.instances }}"
+    - "{{ WHITELABEL_DNS }}"
 
 - name: Add new instance to host group
   local_action:

@@ -1,0 +1,38 @@
+- name: Deploy edxapp
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    serial_count: 1
+    CLUSTER_NAME: 'edxapp'
+  serial: "{{ serial_count }}"
+  roles:
+   - role: aws
+     when: COMMON_ENABLE_AWS_ROLE
+   - role: automated
+     AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}"
+   - role: nginx
+     nginx_sites:
+     - lms
+     - cms
+     nginx_default_sites:
+     - lms
+     nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
+     nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
+     nginx_redirects: "{{ NGINX_EDXAPP_CUSTOM_REDIRECTS }}"
+   - edxapp
+   - role: devstack_sqlite_fix
+     when: devstack is defined and devstack
+   - role: datadog
+     when: COMMON_ENABLE_DATADOG
+   - role: splunkforwarder
+     when: COMMON_ENABLE_SPLUNKFORWARDER
+   - role: newrelic
+     when: COMMON_ENABLE_NEWRELIC
+   - role: newrelic
+     when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+   - role: minos
+     when: COMMON_ENABLE_MINOS
+   - role: datadog-uninstall
+     when: not COMMON_ENABLE_DATADOG
+
