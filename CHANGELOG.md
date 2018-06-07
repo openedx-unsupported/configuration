@@ -1,3 +1,6 @@
+- Structure: edx-east
+  - Deprecated the edx-east folder, playbooks now live in the top level directory instead of edx-east/playbooks. A symbolic link was added for now, but should not be relied upon.
+
 - Role: edxapp
   - EDXAPP_NGINX_SKIP_ENABLE_SITES added to allow you to not sync in the lms or cms nginx configuration.  Instead you can enable them during deployment.
   - EDXAPP_NGINX_DEFAULT_SITES added to allow you to mark both lms and cms as defaults, best paired with picking which site to enable during deployment.
