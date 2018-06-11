@@ -222,6 +222,12 @@ if __name__ == '__main__':
 
     try:
         for service in services_for_instance(instance_id):
+            if service in NGINX_ENABLE:
+                subprocess.call(NGINX_ENABLE[service], shell=True)
+                report.append("Enabling nginx: {}".format(service))
+            # We have to reload the new config files
+            subprocess.call("/bin/systemctl reload nginx", shell=True)
+
             if service in MIGRATION_COMMANDS:
                 services = {
                     "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
@@ -254,12 +260,6 @@ if __name__ == '__main__':
                 report.append("Enabling service: {}".format(service))
             else:
                 raise Exception("No conf available for service: {}".format(link_location))
-
-            if service in NGINX_ENABLE:
-                subprocess.call(NGINX_ENABLE[service], shell=True)
-                report.append("Enabling nginx: {}".format(service))
-            # We have to reload the new config files
-            subprocess.call("/bin/systemctl reload nginx", shell=True)
 
     except AWSConnectionError as ae:
         msg = "{}: ERROR : {}".format(prefix, ae)
