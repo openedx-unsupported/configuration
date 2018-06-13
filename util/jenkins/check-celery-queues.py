@@ -69,7 +69,7 @@ class CwBotoWrapper(object):
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-@click.option('--max-metrics', default=30,
+@click.option('--max-metrics', default=20,
               help='Maximum number of CloudWatch metrics to publish')
 @click.option('--threshold', default=50,
               help='Default maximum queue length before alarm notification is'
