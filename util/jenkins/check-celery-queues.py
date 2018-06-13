@@ -3,6 +3,7 @@ import click
 import boto3
 import botocore
 import backoff
+from itertools import zip_longest
 
 max_tries = 5
 
@@ -105,62 +106,61 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         set(redis_queues).difference(existing_queues)
     )
 
-    if len(all_queues) > max_metrics:
-        # TODO: Use proper logging framework
-        print("Warning! Too many metrics, refusing to publish more than {}"
-              .format(max_metrics))
+    for queues in grouper(all_queues, max_metrics):
+        queues = [q for q in queues if q is not None]
+        metric_data = []
+        for queue in queues:
+            metric_data.append({
+                'MetricName': metric_name,
+                'Dimensions': [{
+                    "Name": dimension,
+                    "Value": queue
+                }],
+                'Value': redis_client.llen(queue)
+            })
 
-    # Filter redis_queues out of all_queues and then take the max_metrics
-    # portion of that.
-    queues = [q for q in all_queues if q in redis_queues]
-    queues = queues[:max_metrics]
+        if len(metric_data) > 0:
+            cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
 
-    metric_data = []
-    for queue in queues:
-        metric_data.append({
-            'MetricName': metric_name,
-            'Dimensions': [{
-                "Name": dimension,
-                "Value": queue
-            }],
-            'Value': redis_client.llen(queue)
-        })
+        for queue in queues:
+            dimensions = [{'Name': dimension, 'Value': queue}]
+            queue_threshold = threshold
+            if queue in thresholds:
+                queue_threshold = thresholds[queue]
+            # Period is in seconds
+            period = 60
+            evaluation_periods = 15
+            comparison_operator = "GreaterThanThreshold"
+            treat_missing_data = "notBreaching"
+            statistic = "Maximum"
+            actions = [sns_arn]
+            alarm_name = "{}-{} {} queue length over threshold".format(environment,
+                                                                       deploy,
+                                                                       queue)
+            
+            print('Creating or updating alarm "{}"'.format(alarm_name))
+            cloudwatch.put_metric_alarm(AlarmName=alarm_name,
+                                        AlarmDescription=alarm_name,
+                                        Namespace=namespace,
+                                        MetricName=metric_name,
+                                        Dimensions=dimensions,
+                                        Period=period,
+                                        EvaluationPeriods=evaluation_periods,
+                                        TreatMissingData=treat_missing_data,
+                                        Threshold=queue_threshold,
+                                        ComparisonOperator=comparison_operator,
+                                        Statistic=statistic,
+                                        InsufficientDataActions=actions,
+                                        OKActions=actions,
+                                        AlarmActions=actions)
 
-    if len(metric_data) > 0:
-        cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
-
-    for queue in queues:
-        dimensions = [{'Name': dimension, 'Value': queue}]
-        queue_threshold = threshold
-        if queue in thresholds:
-            queue_threshold = thresholds[queue]
-        # Period is in seconds
-        period = 60
-        evaluation_periods = 15
-        comparison_operator = "GreaterThanThreshold"
-        treat_missing_data = "notBreaching"
-        statistic = "Maximum"
-        actions = [sns_arn]
-        alarm_name = "{}-{} {} queue length over threshold".format(environment,
-                                                                   deploy,
-                                                                   queue)
-        
-        print('Creating or updating alarm "{}"'.format(alarm_name))
-        cloudwatch.put_metric_alarm(AlarmName=alarm_name,
-                                    AlarmDescription=alarm_name,
-                                    Namespace=namespace,
-                                    MetricName=metric_name,
-                                    Dimensions=dimensions,
-                                    Period=period,
-                                    EvaluationPeriods=evaluation_periods,
-                                    TreatMissingData=treat_missing_data,
-                                    Threshold=queue_threshold,
-                                    ComparisonOperator=comparison_operator,
-                                    Statistic=statistic,
-                                    InsufficientDataActions=actions,
-                                    OKActions=actions,
-                                    AlarmActions=actions)
-
+# Stolen right from the itertools recipes
+# https://docs.python.org/3/library/itertools.html#itertools-recipes
+def grouper(iterable, n, fillvalue=None):
+    "Collect data into fixed-length chunks or blocks"
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 
 if __name__ == '__main__':
     check_queues()
