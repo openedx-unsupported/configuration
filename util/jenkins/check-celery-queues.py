@@ -110,9 +110,10 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         print("Warning! Too many metrics, refusing to publish more than {}"
               .format(max_metrics))
 
-    # Take first max_metrics number of queues from all_queues and remove
-    # queues that aren't in redis
-    queues = [q for q in all_queues[:max_metrics] if q in redis_queues]
+    # Filter redis_queues out of all_queues and then take the max_metrics
+    # portion of that.
+    queues = [q for q in all_queues if q in redis_queues]
+    queues = queues[:max_metrics]
 
     metric_data = []
     for queue in queues:
