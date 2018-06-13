@@ -15,4 +15,4 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook go-server.y
  -t 'install,assets,devstack' \
  --extra-vars="@/ansible_overrides.yml"
 
-EXPOSE 8153
+EXPOSE 8153 8154
