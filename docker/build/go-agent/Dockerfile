@@ -1,4 +1,4 @@
-# Build using: docker build -f Dockerfile.gocd-agent -t gocd-agent .
+# To run, use the command docker build . -f docker/build/go-agent/Dockerfile --tag edx-ops/go-agent:latest
 # https://hub.docker.com/r/gocd/gocd-agent-ubuntu-14.04/
 FROM gocd/gocd-agent-ubuntu-14.04:v17.10.0
 

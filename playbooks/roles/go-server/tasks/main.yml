@@ -34,16 +34,25 @@
   apt_repository:
     repo: "{{ GO_SERVER_APT_SOURCE }}"
     state: present
+  tags:
+    - install
+    - install:base
 
 - name: install aptitude key for go-server/go-server
   apt_key:
     url: "{{ GO_SERVER_APT_KEY_URL }}"
     state: present
+  tags:
+    - install
+    - install:base
 
 - name: install openjdk ppa repository
   apt_repository:
     repo: "{{ openjdk_apt_source }}"
     state: present
+  tags:
+    - install
+    - install:base
 
 - name: install other needed system packages
   apt:
@@ -52,12 +61,18 @@
     update_cache: true
     cache_valid_time: 3600
   with_items: "{{ GO_SERVER_APT_PKGS }}"
+  tags:
+    - install
+    - install:base
 
 - name: install go-server using apt-get
   apt:
     name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
     update_cache: yes
     state: present
+  tags:
+    - install
+    - install:base
 
 - name: create go-server plugin directory
   file:
@@ -66,6 +81,9 @@
     mode: 0776
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
+  tags:
+    - install
+    - install:base
 
 - name: install go-server plugins
   get_url:
@@ -78,6 +96,9 @@
   with_items:
     - { url: "{{ GO_SERVER_OAUTH_LOGIN_JAR_URL }}", md5: "{{ GO_SERVER_OAUTH_LOGIN_MD5 }}" }
     - { url: "{{ GO_SERVER_GITHUB_PR_PLUGIN_JAR_URL }}", md5: "{{ GO_SERVER_GITHUB_PR_PLUGIN_MD5 }}" }
+  tags:
+    - install
+    - install:base
 
 - name: install go-server configuration
   template:
@@ -87,6 +108,9 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
     force: no
+  tags:
+    - install
+    - install:base
 
 - name: ensure everyone can read go-server log files
   file:
@@ -171,7 +195,7 @@
     - install
     - install:app-configuration
 
-- name: restart go-server
+- name: Restart go-server
   service:
     name: "{{ GO_SERVER_SERVICE_NAME }}"
     state: restarted
