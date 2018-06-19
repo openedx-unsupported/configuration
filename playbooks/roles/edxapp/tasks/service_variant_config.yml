@@ -66,6 +66,40 @@
     - install
     - install:configuration
 
+# write the supervisor script for mongod and sshd
+# this should only be run when provisioning a jenkins-worker container
+- name: Set ignore_jenkins_worker_command when no tags present
+  set_fact: ignore_jenkins_worker_command=true
+
+- name: writing mongod and sshd supervisor scripts
+  template:
+    src: "edx/app/supervisor/conf.d.available/{{ item }}.j2"
+    dest: "{{ supervisor_available_dir }}/{{ item }}"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  with_items:
+    - mongod.conf
+    - sshd.conf
+  when: 'ignore_jenkins_worker_command is not defined'
+  tags:
+    - jenkins-worker
+
+- name: "enable mongod and sshd supervisor script"
+  file:
+    src: "{{ supervisor_available_dir }}/{{ item }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ item }}.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  with_items:
+    - mongod
+    - sshd
+  when: 'ignore_jenkins_worker_command is not defined'
+  tags:
+    - jenkins-worker
+
 # Enable the supervisor jobs
 - name: "enable {{ item }} supervisor script"
   file:
