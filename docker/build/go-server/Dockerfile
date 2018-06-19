@@ -16,5 +16,4 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook /edx/app/ed
  --extra-vars="@/ansible_overrides.yml"
 
 USER go
-
 EXPOSE 8153 8154
