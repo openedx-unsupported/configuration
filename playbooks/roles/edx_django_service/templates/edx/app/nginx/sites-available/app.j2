@@ -25,6 +25,17 @@ default "null";
 {% for host in edx_django_service_cors_whitelist %}
   "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
 {% endfor %}
+
+{% if NGINX_ENABLE_SSL %}
+  {% include "concerns/handle-ip-disclosure.j2" %}
+  rewrite ^ https://$host$request_uri? permanent;
+{% else %}  
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+    {% include "concerns/handle-tls-terminated-elsewhere-ip-disclosure.j2" %}
+    {% include "concerns/handle-tls-terminated-elsewhere-redirect.j2" %}
+  {% endif %}
+  {% include "concerns/app-common.j2" %}
+{% endif %}
 }
 
 server {
