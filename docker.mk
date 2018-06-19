@@ -8,7 +8,7 @@ all_images:=$(patsubst docker/build/%/Dockerfile,%,$(dockerfiles))
 
 # Used in the test.mk file as well.
 images:=$(if $(TRAVIS_COMMIT_RANGE),$(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py),$(all_images))
-
+	
 docker_build=docker.build.
 docker_test=docker.test.
 docker_pkg=docker.pkg.
