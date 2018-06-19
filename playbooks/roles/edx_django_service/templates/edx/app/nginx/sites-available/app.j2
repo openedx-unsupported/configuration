@@ -10,9 +10,13 @@ server {
   listen {{ edx_django_service_nginx_port }};
 
 {% if NGINX_ENABLE_SSL %}
+  {% include "concerns/handle-ip-disclosure.j2" %}
   rewrite ^ https://$host$request_uri? permanent;
 {% else %}  
-  {% include "concerns/handle-tls-terminated-elsewhere-redirect.j2" %}
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+    {% include "concerns/handle-tls-terminated-elsewhere-ip-disclosure.j2" %}
+    {% include "concerns/handle-tls-terminated-elsewhere-redirect.j2" %}
+  {% endif %}
   {% include "concerns/app-common.j2" %}
 {% endif %}
 }
