@@ -107,6 +107,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     )
 
     for queues in grouper(all_queues, max_metrics):
+        # grouper can return a bunch of Nones and we want to skip those
         queues = [q for q in queues if q is not None]
         metric_data = []
         for queue in queues:
