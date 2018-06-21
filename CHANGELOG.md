@@ -1,3 +1,6 @@
+- XQueue
+  - Expose CLOUDWATCH_QUEUE_COUNT_METRIC which is defined XQueue's settings.py for further dictionary structure
+
 - nginx:
   - remove nginx_cfg - an internal variable that was really only used for the edx-release nginx site, which served version.{html,json} off of a nonstandard port.  The file it served was never populated.
 
