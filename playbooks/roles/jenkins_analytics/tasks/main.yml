@@ -7,57 +7,30 @@
   tags:
   - jenkins
 
-- name: Install httplib2 (required by uri module used in this role)
-  pip:
-    name: httplib2
-  tags:
-  - jenkins
-
-# Jenkins authentication/authorization
-
-- fail: msg="Please change default password for jenkins user"
-  when: jenkins_auth_realm.name == "unix" and jenkins_auth_realm.plain_password == jenkins_auth_realm.username
+- name: create directory
+  file:
+    path: "/home/{{ jenkins_user }}/.ssh"
+    state: directory
+    owner: '{{ jenkins_user }}'
+    group: '{{ jenkins_group }}'
   tags:
     - jenkins-auth
 
-- fail: msg="Please change default github oauth client key and secret"
-  when: jenkins_auth_realm.name == "github_oauth" and ((not jenkins_auth_realm.clientId) or (not jenkins_auth_realm.clientSecret))
+- copy:
+    src: '{{ AUTOMATION_PRIVATE_KEY_SOURCE_PATH }}'
+    dest: '{{ jenkins_private_keyfile }}'
+    owner: '{{ jenkins_user }}'
+    group: '{{ jenkins_group }}'
+    mode: 0600
   tags:
     - jenkins-auth
 
-- name: generate jenkins user password
-  shell: "openssl passwd -1 '{{ jenkins_auth_realm.plain_password | quote }}'"
-  register: jenkins_user_password_hash
-  no_log: True
-  when: jenkins_auth_realm.name == "unix"
-  tags:
-    - jenkins-auth
-
-- user:
-    name: "{{ jenkins_user }}"
-    state: present
-    groups: shadow
-    append: yes
-    password: '!' # locked
-    update_password: always
-    generate_ssh_key: yes
-    ssh_key_file: "{{ jenkins_private_keyfile }}"
-  tags:
-    - jenkins-auth
-
-- user:
-    name: "{{ jenkins_user }}"
-    password: "{{ jenkins_user_password_hash.stdout }}"
-  when: jenkins_auth_realm.name == "unix"
-  tags:
-    - jenkins-auth
-
-- name: template config.xml
-  template:
-    src: jenkins.config.main.xml
-    dest: "{{ jenkins_home }}/config.xml"
-    owner: "{{ jenkins_user }}"
-    group: "{{ jenkins_group }}"
+- copy:
+    src: '{{ AUTOMATION_PUBLIC_KEY_SOURCE_PATH }}'
+    dest: '{{ jenkins_public_keyfile }}'
+    owner: '{{ jenkins_user }}'
+    group: '{{ jenkins_group }}'
+    mode: 0600
   tags:
     - jenkins-auth
 
@@ -95,127 +68,32 @@
   tags:
     - jenkins-auth
 
-# Unconditionally restart Jenkins, this has two side-effects:
-# 1. Jenkins uses new auth realm
-# 2. We guarantee that jenkins is started (this is not certain
-#    as Jenkins is started by handlers from jenkins_master,
-#    these handlers are launched after this role).
+- name: Wait for Jenkins to start up before proceeding.
+  shell: "curl -D - --silent --max-time 5 {{ JENKINS_MAIN_URL }}cli/"
+  register: result
+  until: (result.stdout.find("403 Forbidden") != -1) or (result.stdout.find("200 OK") != -1) and (result.stdout.find("Please wait while") == -1)
+  retries: 60
+  delay: 10
+  changed_when: false
+  check_mode: no
+  tags:
+    - jenkins-auth
+
+- name: wipe initialization scripts from jenkins_commons
+  file:
+    path: '{{ jenkins_home }}/init.groovy.d/'
+    state: absent
+  tags:
+    - jenkins-auth
+
+- name: wipe initialization configuration files from jenkins_commons
+  file:
+    path: '{{ jenkins_home }}/init-configs/'
+    state: absent
+  tags:
+    - jenkins-auth
 
 - name: restart Jenkins
   service: name=jenkins state=restarted
   tags:
     - jenkins-auth
-
-# Upload Jenkins credentials
-
-- name: create credentials dir
-  file: name={{ jenkins_credentials_root }} state=directory
-  tags:
-    - jenkins-credentials
-
-- name: upload groovy credentials script
-  template:
-    src: addCredentials.groovy
-    dest: "{{ jenkins_credentials_script }}"
-    mode: "600"
-  tags:
-    - jenkins-credentials
-
-- name: upload credentials file
-  template:
-    src: credentials_file.json.j2
-    dest: "{{ jenkins_credentials_file_dest }}"
-    mode: "600"
-    owner: "{{ jenkins_user }}"
-  tags:
-    - jenkins-credentials
-
-- name: add credentials
-  include: execute_jenkins_cli.yaml
-  vars:
-    jenkins_command_string: "groovy {{ jenkins_credentials_script }}"
-  tags:
-    - jenkins-credentials
-
-- name: clean up
-  file: name={{ jenkins_credentials_root }} state=absent
-  tags:
-    - jenkins-credentials
-
-# Upload seed job
-
-- name: create seed job dir
-  file: name={{ jenkins_seed_job_root }} state=directory owner={{ jenkins_user }} group={{ jenkins_group }}
-  tags:
-    - jenkins-seed-job
-
-- name: clone job-dsl-plugin repo
-  git:
-    repo: https://github.com/jenkinsci/job-dsl-plugin.git
-    depth: 1
-    dest: "{{ jenkins_seed_job_root }}"
-  become: yes
-  become_user: "{{ jenkins_user }}"
-  tags:
-    - jenkins-seed-job
-
-- name: upload groovy seed job script
-  template:
-    src: seedJob.groovy
-    dest: "{{ jenkins_seed_job_script }}"
-    mode: "600"
-    owner: "{{ jenkins_user }}"
-    group: "{{ jenkins_group }}"
-  tags:
-    - jenkins-seed-job
-
-- name: generate seed job xml
-  shell: "GRADLE_OPTS=\"-Dorg.gradle.daemon=true\" ./gradlew run -Pargs={{ jenkins_seed_job_script }}"
-  args:
-    chdir: "{{ jenkins_seed_job_root }}"
-  become: yes
-  become_user: "{{ jenkins_user }}"
-  tags:
-    - jenkins-seed-job
-
-- name: check if job is present
-  include: execute_jenkins_cli.yaml
-  vars:
-    jenkins_command_string: "get-job {{ jenkins_seed_job.name }}"
-    jenkins_ignore_cli_errors: yes
-  tags:
-    - jenkins-seed-job
-
-- set_fact:
-    get_job_output: "{{ jenkins_command_output }}"
-  tags:
-    - jenkins-seed-job
-
-# Upload seed job to Jenkins
-
-- name: Create seed job if absent
-  include: execute_jenkins_cli.yaml
-  vars:
-    jenkins_command_string: "create-job {{ jenkins_seed_job.name }}"
-    jenkins_command_prefix: "cat {{ jenkins_seed_job_xmlfile }} | "
-  when: get_job_output.rc != 0
-  tags:
-    - jenkins-seed-job
-
-- name: update seed job
-  include: execute_jenkins_cli.yaml
-  vars:
-    jenkins_command_string: "update-job {{ jenkins_seed_job.name }}"
-    jenkins_command_prefix: "cat {{ jenkins_seed_job_xmlfile }} | "
-  when: get_job_output.rc == 0
-  tags:
-    - jenkins-seed-job
-
-# Build the seed job
-
-- name: Build the seed job
-  include: execute_jenkins_cli.yaml
-  vars:
-    jenkins_command_string: "build {{ jenkins_seed_job.name }} -s"
-  tags:
-    - jenkins-seed-job

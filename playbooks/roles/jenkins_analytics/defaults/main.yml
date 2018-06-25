@@ -1,297 +1,247 @@
 ---
 # See README.rst for variable descriptions
 
-# Packages required to build edx-analytics-pipeline
+jenkins_home: '/var/lib/jenkins'
+
+JENKINS_SERVER_NAME: 'jenkins.analytics.edx.org'
+jenkins_user: 'jenkins'
+jenkins_group: 'jenkins'
+jenkins_user_home: '/home/{{ jenkins_user }}'
+jenkins_port: 8080
+jenkins_nginx_port: 80
+jenkins_protocol_https: true
+AUTOMATION_USER: 'edx-analytics-automation'
+
+JENKINS_VOLUMES: []
+
+analytics_jenkins_seed_name: 'data_engineering_seed_job'
+analytics_jenkins_seed_path: '{{ jenkins_common_config_path }}/xml/seed_job.xml'
+analytics_jenkins_seed_job_source: '{{ role_path }}/../jenkins_analytics/files/xml/seed_job.xml'
+
+analytics_jenkins_user_uid: 1002
+analytics_jenkins_group_gid: 1004
+analytics_jenkins_version: jenkins_2.89.4
+analytics_jenkins_jvm_args: '-Djava.awt.headless=true -Xmx16g -Djenkins.install.runSetupWizard=false'
+
+jenkins_base_environment_variables:
+  - NAME: 'AUTOMATION_USER'
+    VALUE: '{{ AUTOMATION_USER }}'
+  - NAME: 'PAGER_NOTIFY'
+    VALUE: '{{ PAGER_NOTIFY }}'
+
+
 JENKINS_ANALYTICS_EXTRA_PKGS:
-  - libpq-dev
-  - libffi-dev
+# Analytics Exporter Requirements
+  - pkg-config
+  - libsqlite3-dev
+  - libgeos-dev
+  - libmysqlclient-dev
+  - libgraphviz-dev
+  - libxmlsec1-dev
+  - zip
 
-# Change this default password: (see README.rst to see how you can do it)
-JENKINS_ANALYTICS_USER_PASSWORD_PLAIN: jenkins
-JENKINS_ANALYTICS_AUTH_REALM: github_oauth
-JENKINS_ANALYTICS_AUTH_ADMINISTRATORS: []
-JENKINS_ANALYTICS_AUTH_JOB_BUILDERS: []
-JENKINS_ANALYTICS_AUTH_ANONYMOUS_PERMISSIONS: []
-JENKINS_ANALYTICS_AUTH_ADMINISTRATOR_PERMISSIONS:
-  - com.cloudbees.plugins.credentials.CredentialsProvider.Create
-  - com.cloudbees.plugins.credentials.CredentialsProvider.Delete
-  - com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains
-  - com.cloudbees.plugins.credentials.CredentialsProvider.Update
-  - com.cloudbees.plugins.credentials.CredentialsProvider.View
-  - hudson.model.Computer.Build
-  - hudson.model.Computer.Configure
-  - hudson.model.Computer.Connect
-  - hudson.model.Computer.Create
-  - hudson.model.Computer.Delete
-  - hudson.model.Computer.Disconnect
-  - hudson.model.Hudson.Administer
-  - hudson.model.Hudson.ConfigureUpdateCenter
-  - hudson.model.Hudson.Read
-  - hudson.model.Hudson.RunScripts
-  - hudson.model.Hudson.UploadPlugins
-  - hudson.model.Item.Build
-  - hudson.model.Item.Cancel
-  - hudson.model.Item.Configure
-  - hudson.model.Item.Create
-  - hudson.model.Item.Delete
-  - hudson.model.Item.Discover
-  - hudson.model.Item.Move
-  - hudson.model.Item.Read
-  - hudson.model.Item.Workspace
-  - hudson.model.Run.Delete
-  - hudson.model.Run.Update
-  - hudson.model.View.Configure
-  - hudson.model.View.Create
-  - hudson.model.View.Delete
-  - hudson.model.View.Read
-  - hudson.scm.SCM.Tag
-JENKINS_ANALYTICS_AUTH_JOB_BUILDER_PERMISSIONS:
-  - com.cloudbees.plugins.credentials.CredentialsProvider.Create
-  - com.cloudbees.plugins.credentials.CredentialsProvider.Delete
-  - com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains
-  - com.cloudbees.plugins.credentials.CredentialsProvider.Update
-  - com.cloudbees.plugins.credentials.CredentialsProvider.View
-  - hudson.model.Hudson.Read
-  - hudson.model.Hudson.RunScripts
-  - hudson.model.Item.Build
-  - hudson.model.Item.Cancel
-  - hudson.model.Item.Configure
-  - hudson.model.Item.Create
-  - hudson.model.Item.Delete
-  - hudson.model.Item.Discover
-  - hudson.model.Item.Move
-  - hudson.model.Item.Read
-  - hudson.model.Item.Workspace
-  - hudson.model.Run.Delete
-  - hudson.model.Run.Update
-  - hudson.model.View.Configure
-  - hudson.model.View.Create
-  - hudson.model.View.Delete
-  - hudson.model.View.Read
-  - hudson.scm.SCM.Tag
 
-JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_ID: null
-JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_SECRET: null
-JENKINS_ANALYTICS_GITHUB_OAUTH_SCOPES:
-  - read:org
-  - user:email
-JENKINS_ANALYTICS_GITHUB_OAUTH_WEB_URI: 'https://github.com'
-JENKINS_ANALYTICS_GITHUB_OAUTH_API_URI: 'https://api.github.com'
+# plugins
+analytics_jenkins_plugins_list:
+  - name: 'ansicolor'
+    version: '0.4.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ant'
+    version: '1.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'antisamy-markup-formatter'
+    version: '1.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'buildgraph-view'
+    version: '1.1.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'build-name-setter'
+    version: '1.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'build-timeout'
+    version: '1.14.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'build-user-vars-plugin'
+    version: '1.5'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'cobertura'
+    version: '1.9.6'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'copyartifact'
+    version: '1.32.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'credentials'
+    version: '2.1.13'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'credentials-binding'
+    version: '1.7'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'cvs'
+    version: '2.12'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ec2'
+    version: '1.28'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'envinject'
+    version: '1.92.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'exclusive-execution'
+    version: '0.8'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'external-monitor-job'
+    version: '1.4'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'flexible-publish'
+    version: '0.15.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'git'
+    version: '3.4.0'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'git-client'
+    version: '2.7.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'github'
+    version: '1.29.1'
+    group: 'com.coravy.hudson.plugins.github'
+  - name: 'github-api'
+    version: '1.90'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'github-oauth'
+    version: '0.29'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'gradle'
+    version: '1.24'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'groovy'
+    version: '1.29'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'groovy-postbuild'
+    version: '2.2'
+    group: 'org.jvnet.hudson.plugins'
+  - name: 'htmlpublisher'
+    version: '1.10'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'javadoc'
+    version: '1.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'jobConfigHistory'
+    version: '2.10'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'job-dsl'
+    version: '1.67'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'junit'
+    version: '1.24'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ldap'
+    version: '1.11'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'mailer'
+    version: '1.18'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'mask-passwords'
+    version: '2.8'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'matrix-auth'
+    version: '1.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'matrix-project'
+    version: '1.13'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'maven-plugin'
+    version: '2.8'
+    group: 'org.jenkins-ci.main'
+  - name: 'monitoring'
+    version: '1.56.0'
+    group: 'org.jvnet.hudson.plugins'
+  - name: 'multiple-scms'
+    version: '0.6'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'nodelabelparameter'
+    version: '1.7.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'pam-auth'
+    version: '1.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'parameterized-trigger'
+    version: '2.34'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'PrioritySorter'
+    version: '2.9'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'rebuild'
+    version: '1.25'
+    group: 'com.sonyericsson.hudson.plugins.rebuild'
+  - name: 'reverse-proxy-auth-plugin'
+    version: '1.5'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'run-condition'
+    version: '1.0'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'shiningpanda'
+    version: '0.23'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'script-security'
+    version: '1.44'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ssh-agent'
+    version: '1.5'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ssh-credentials'
+    version: '1.13'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ssh-slaves'
+    version: '1.9'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'subversion'
+    version: '2.5.7'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'text-finder'
+    version: '1.10'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'throttle-concurrents'
+    version: '2.0.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'timestamper'
+    version: '1.5.15'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'token-macro'
+    version: '1.12.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'translation'
+    version: '1.12'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'violations'
+    version: '0.7.11'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'xunit'
+    version: '1.93'
+    group: 'org.jenkins-ci.plugins'
 
-JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID: 'github-deploy-key'
-JENKINS_ANALYTICS_GITHUB_CREDENTIAL_USER: 'git'
-JENKINS_ANALYTICS_GITHUB_CREDENTIAL_PASSPHRASE: null
-JENKINS_ANALYTICS_GITHUB_CREDENTIAL_KEY: null
+# ghprb
+analytics_jenkins_ghprb_white_list_phrase: '.*[Aa]dd\W+to\W+whitelist.*'
+analytics_jenkins_ghprb_ok_phrase: '.*ok\W+to\W+test.*'
+analytics_jenkins_ghprb_retest_phrase: '.*jenkins\W+run\W+all.*'
+analytics_jenkins_ghprb_skip_phrase: '.*\[[Ss]kip\W+ci\].*'
+analytics_jenkins_ghprb_cron_schedule: 'H/5 * * * *'
 
-JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT: 2
+# github
+JENKINS_GITHUB_CONFIG: ''
 
-ANALYTICS_SCHEDULE_SECURE_REPO_URL: null
-ANALYTICS_SCHEDULE_SECURE_REPO_DEST: "analytics-secure-config"
-ANALYTICS_SCHEDULE_SECURE_REPO_VERSION: "master"
-ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
-ANALYTICS_SCHEDULE_SECURE_REPO_MASTER_SSH_CREDENTIAL_FILE: "aws.pem"
-ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL: "git@github.com:edx/jenkins-job-dsl.git"
-ANALYTICS_SCHEDULE_JOBS_DSL_REPO_VERSION: "master"
-ANALYTICS_SCHEDULE_JOBS_DSL_REPO_CREDENTIAL_ID: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
+# hipchat
+analytics_jenkins_hipchat_room: 'Data Engineering'
 
-ANALYTICS_SCHEDULE_SEED_JOB_NAME: "AnalyticsSeedJob"
-ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_ID: "ssh-access-key"
-ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_USER: "hadoop"
-ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_PASSPHRASE: null
-ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_FILE: "{{ jenkins_home }}/workspace/{{ ANALYTICS_SCHEDULE_SEED_JOB_NAME }}/{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST }}/{{ ANALYTICS_SCHEDULE_SECURE_REPO_MASTER_SSH_CREDENTIAL_FILE }}"
-ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH: |
-  src/main/groovy
-  lib/*.jar
-ANALYTICS_SCHEDULE_JOBS_DSL_TARGET_JOBS:
-  - jobs/analytics-edx-jenkins.edx.org/*Jobs.groovy
+# ec2
+analytics_jenkins_instance_cap: '500'
 
-JENKINS_ANALYTICS_CREDENTIALS:
-  - id: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_ID }}"
-    scope: GLOBAL
-    username: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_USER }}"
-    type: ssh-private-key
-    passphrase: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_PASSPHRASE }}"
-    description: github access key, generated by ansible
-    privatekey: "{{ JENKINS_ANALYTICS_GITHUB_CREDENTIAL_KEY }}"
-  - id: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_ID }}"
-    scope: GLOBAL
-    username: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_USER }}"
-    type: ssh-private-keyfile
-    passphrase: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_PASSPHRASE }}"
-    description: ssh access key, generated by ansible
-    privatekey: "{{ ANALYTICS_SCHEDULE_MASTER_SSH_CREDENTIAL_FILE }}"
+# job config history
+#analytics_jenkins_history_max_days: '15'
+#analytics_jenkins_history_exclude_pattern: 'queue|nodeMonitors|UpdateCenter|global-build-stats|GhprbTrigger'
 
-ANALYTICS_SCHEDULE_COMMON_VARS: ''
-ANALYTICS_SCHEDULE_ANSWER_DISTRIBUTION: true
-ANALYTICS_SCHEDULE_ANSWER_DISTRIBUTION_EXTRA_VARS: ''
-ANALYTICS_SCHEDULE_COURSE_ACTIVITY_WEEKLY: true
-ANALYTICS_SCHEDULE_COURSE_ACTIVITY_WEEKLY_EXTRA_VARS: ''
-ANALYTICS_SCHEDULE_IMPORT_ENROLLMENTS_INTO_MYSQL: true
-ANALYTICS_SCHEDULE_IMPORT_ENROLLMENTS_INTO_MYSQL_EXTRA_VARS: ''
-ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_ALL_VIDEO: true
-ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_ALL_VIDEO_EXTRA_VARS: ''
-ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY: true
-ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY_EXTRA_VARS: ''
-
-jenkins_credentials_root: '/tmp/credentials'
-jenkins_credentials_file_dest: "{{ jenkins_credentials_root }}/credentials.json"
-jenkins_credentials_script: "{{ jenkins_credentials_root }}/addCredentials.groovy"
-jenkins_seed_job_root: '{{ jenkins_home }}/workspace/_seedjob'
-jenkins_seed_job_script: "{{ jenkins_seed_job_root }}/seedJob.dsl"
-jenkins_seed_job_xmlfile: "{{ jenkins_seed_job_root }}/job-dsl-core/{{ jenkins_seed_job.name }}.xml"
+JENKINS_ANALYTICS_CONCURRENT_JOBS_COUNT: 5
 
 jenkins_connection_retries: 240
 jenkins_connection_delay: 1
 
-jenkins_private_keyfile: "{{ jenkins_home }}/.ssh/id_rsa"
+jenkins_private_keyfile: "{{ jenkins_user_home }}/.ssh/id_rsa"
 jenkins_public_keyfile: "{{ jenkins_private_keyfile }}.pub"
-jenkins_admin_users:
-  - "{{ jenkins_user }}"
-
-jenkins_auth_realms_available:
-  none:
-    name: none
-    cli_auth: ''
-  unix:
-    name: unix
-    service: su
-    plain_password: "{{ JENKINS_ANALYTICS_USER_PASSWORD_PLAIN }}"
-    username: "{{ jenkins_user }}"
-    cli_auth: '-i {{ jenkins_private_keyfile }}'
-  github_oauth:
-    name: github_oauth
-    webUri: "{{ JENKINS_ANALYTICS_GITHUB_OAUTH_WEB_URI }}"
-    apiUri: "{{ JENKINS_ANALYTICS_GITHUB_OAUTH_API_URI }}"
-    clientId: "{{ JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_ID }}"
-    clientSecret: "{{ JENKINS_ANALYTICS_GITHUB_OAUTH_CLIENT_SECRET }}"
-    oauthScopes: "{{ JENKINS_ANALYTICS_GITHUB_OAUTH_SCOPES }}"
-    cli_auth: '-i {{ jenkins_private_keyfile }}'
-
-jenkins_auth_realm: "{{ jenkins_auth_realms_available[JENKINS_ANALYTICS_AUTH_REALM] }}"
-
-jenkins_auth_users:
-  anonymous:
-    - anonymous
-  administrators: "{{ jenkins_admin_users + JENKINS_ANALYTICS_AUTH_ADMINISTRATORS }}"
-  job_builders: "{{ JENKINS_ANALYTICS_AUTH_JOB_BUILDERS | default([]) }}"
-
-jenkins_auth_permissions:
-  anonymous: "{{ JENKINS_ANALYTICS_AUTH_ANONYMOUS_PERMISSIONS }}"
-  administrators: "{{ JENKINS_ANALYTICS_AUTH_ADMINISTRATOR_PERMISSIONS }}"
-  job_builders: "{{ JENKINS_ANALYTICS_AUTH_JOB_BUILDER_PERMISSIONS }}"
-
-# For now only a single seed job is supported, adding more would require
-# Ansible 2.+ or converting _execute_jenkins_cli to a module
-jenkins_seed_job:
-  name: "{{ ANALYTICS_SCHEDULE_SEED_JOB_NAME }}"
-  multiscm:
-    - scm:
-      type: git
-      url: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_URL }}"
-      dest: ""
-      branch: '\$DSL_BRANCH'
-      credential_id: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_REPO_CREDENTIAL_ID | default('') }}"
-    - scm:
-      type: git
-      url: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_URL | default('') }}"
-      dest: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_DEST | default('') }}"
-      branch: '\$SECURE_BRANCH'
-      credential_id: "{{ ANALYTICS_SCHEDULE_SECURE_REPO_CREDENTIAL_ID | default('') }}"
-  analytics_tasks:
-    - id: ANSWER_DISTRIBUTION
-      enable: "{{ ANALYTICS_SCHEDULE_ANSWER_DISTRIBUTION | default(true) }}"
-      extra_vars: "{{ ANALYTICS_SCHEDULE_ANSWER_DISTRIBUTION_EXTRA_VARS | default('') }}"
-    - id: COURSE_ACTIVITY_WEEKLY
-      enable: "{{ ANALYTICS_SCHEDULE_COURSE_ACTIVITY_WEEKLY | default(true) }}"
-      extra_vars: "{{ ANALYTICS_SCHEDULE_COURSE_ACTIVITY_WEEKLY_EXTRA_VARS | default('') }}"
-    - id: IMPORT_ENROLLMENTS_INTO_MYSQL
-      enable: "{{ ANALYTICS_SCHEDULE_IMPORT_ENROLLMENTS_INTO_MYSQL | default(true) }}"
-      extra_vars: "{{ ANALYTICS_SCHEDULE_IMPORT_ENROLLMENTS_INTO_MYSQL_EXTRA_VARS | default('') }}"
-    - id: INSERT_TO_MYSQL_ALL_VIDEO
-      enable: "{{ ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_ALL_VIDEO | default(true) }}"
-      extra_vars: "{{ ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_ALL_VIDEO_EXTRA_VARS | default('') }}"
-    - id: INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY
-      enable: "{{ ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY | default(true) }}"
-      extra_vars: "{{ ANALYTICS_SCHEDULE_INSERT_TO_MYSQL_COURSE_ENROLL_BY_COUNTRY_EXTRA_VARS | default('') }}"
-  dsl:
-    gradle_tasks:
-      - clean
-      - libs
-      - test
-    removed_view_action: IGNORE
-    removed_job_action: IGNORE
-    additional_classpath: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_CLASSPATH }}"
-    target_jobs: "{{ ANALYTICS_SCHEDULE_JOBS_DSL_TARGET_JOBS }}"
-
-jenkins_analytics_plugins:
-    - { name: "ansicolor", version: "0.4.1" }
-    - { name: "ant", version: "1.2" }
-    - { name: "build-flow-plugin", version: "0.17" }
-    - { name: "build-flow-test-aggregator", version: "1.0" }
-    - { name: "build-flow-toolbox-plugin", version: "0.1" }
-    - { name: "build-name-setter", version: "1.3" }
-    - { name: "build-pipeline-plugin", version: "1.4" }
-    - { name: "build-timeout", version: "1.14.1" }
-    - { name: "build-user-vars-plugin", version: "1.5" }
-    - { name: "buildgraph-view", version: "1.1.1" }
-    - { name: "cloudbees-folder", version: "5.2.1" }
-    - { name: "cobertura", version: "1.9.6" }
-    - { name: "copyartifact", version: "1.32.1" }
-    - { name: "copy-to-slave", version: "1.4.3" }
-    - { name: "credentials", version: "2.1.4" }
-    - { name: "credentials-binding", version: "1.10" }
-    - { name: "dashboard-view", version: "2.9.1" }
-    - { name: "ec2", version: "1.28" }
-    - { name: "envinject", version: "1.92.1" }
-    - { name: "external-monitor-job", version: "1.4" }
-    - { name: "ghprb", version: "1.22.4" }
-    - { name: "git", version: "2.4.0"}
-    - { name: "git-client", version: "1.19.0"}
-    - { name: "github", version: "1.14.0" }
-    - { name: "github-api", version: "1.69" }
-    - { name: "github-oauth", version: "0.22.3" }
-    - { name: "github-sqs-plugin", version: "1.5" }
-    - { name: "gradle", version: "1.24" }
-    - { name: "grails", version: "1.7" }
-    - { name: "groovy-postbuild", version: "2.2" }
-    - { name: "htmlpublisher", version: "1.3" }
-    - { name: "javadoc", version: "1.3" }
-    - { name: "jobConfigHistory", version: "2.10" }
-    - { name: "job-dsl", version: "1.43" }
-    - { name: "junit", version: "1.3" }
-    - { name: "ldap", version: "1.11" }
-    - { name: "mailer", version: "1.16" }
-    - { name: "mapdb-api", version: "1.0.6.0" }
-    - { name: "mask-passwords", version: "2.8" }
-    - { name: "matrix-auth", version: "1.2" }
-    - { name: "matrix-project", version: "1.4" }
-    - { name: "monitoring", version: "1.56.0" }
-    - { name: "multiple-scms", version: "0.5" }
-    - { name: "nested-view", version: "1.10" }
-    - { name: "next-build-number", version: "1.0" }
-    - { name: "node-iterator-api", version: "1.5" }
-    - { name: "notification", version: "1.5" }
-    - { name: "pam-auth", version: "1.2" }
-    - { name: "parameterized-trigger", version: "2.25" }
-    - { name: "postbuild-task", version: "1.8" }
-    - { name: "plain-credentials", version: "1.1" }
-    - { name: "PrioritySorter", version: "2.9" }
-    - { name: "rebuild", version: "1.25" }
-    - { name: "sauce-ondemand", version: "1.61" }
-    - { name: "scm-api", version: "0.2" }
-    - { name: "script-security", version: "1.12" }
-    - { name: "s3", version: "0.6" }
-    - { name: "ssh-agent", version: "1.5" }
-    - { name: "ssh-credentials", version: "1.11" }
-    - { name: "ssh-slaves", version: "1.9" }
-    - { name: "shiningpanda", version: "0.23" }
-    - { name: "throttle-concurrents", version: "1.9.0" }
-    - { name: "tmpcleaner", version: "1.1" }
-    - { name: "token-macro", version: "1.10" }
-    - { name: "timestamper", version: "1.5.15" }
-    - { name: "thinBackup", version: "1.7.4" }
-    - { name: "translation", version: "1.12" }
-    - { name: "violations", version: "0.7.11" }
-    - { name: "windows-slaves", version: "1.0" }
-    - { name: "workflow-step-api", version: "1.14.2" }
-    - { name: "xunit", version: "1.93"}
