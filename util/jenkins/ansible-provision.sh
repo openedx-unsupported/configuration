@@ -173,6 +173,10 @@ if [[ -z $set_whitelabel ]]; then
   set_whitelabel="true"
 fi
 
+if [[ -z $set_portal ]]; then
+  set_portal="true"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -377,7 +381,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+plays="edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses portal"
 
 for play in $plays; do
     deploy[$play]=${!play}

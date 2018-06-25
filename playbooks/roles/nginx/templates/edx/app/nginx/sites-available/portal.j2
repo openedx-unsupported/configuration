@@ -1,0 +1,33 @@
+server {
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ PORTAL_NGINX_PORT }} default_server;
+
+  {% if NGINX_ENABLE_SSL %}
+  listen {{ PORTAL_NGINX_SSL_PORT }} ssl;
+
+  {% include "common-settings.j2" %}
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
+  {% endif %}
+
+
+  location / {
+    root {{ COMMON_DATA_DIR }}/{{ portal_name }};
+    add_header Cache-Control "max-age=31536000";
+    add_header 'Access-Control-Allow-Origin' $cors_origin;
+    add_header 'Access-Control-Allow-Methods' 'HEAD, GET, OPTIONS';
+
+    # Inform downstream caches to take certain headers into account when reading/writing to cache.
+    add_header 'Vary' 'Accept-Encoding,Origin';
+
+    try_files $uri $uri/ =404;
+  }
+}
