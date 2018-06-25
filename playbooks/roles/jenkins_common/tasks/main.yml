@@ -50,6 +50,17 @@
     - install
     - install:system-requirements
 
+- name: Create jenkins home and set ownership
+  file:
+    path: "{{ jenkins_common_home }}"
+    state: directory
+    owner: "{{ jenkins_common_user }}"
+    group: "{{ jenkins_common_group }}"
+    recurse: true
+  tags:
+    - install
+    - install:system-requirements
+
 - name: Create /var/run/jenkins
   file:
     path: "/var/run/jenkins"
@@ -267,7 +278,7 @@
     owner: '{{ jenkins_common_user }}'
     group: '{{ jenkins_common_group }}'
   with_fileglob:
-    - '{{ role_path }}/files/xml/*'
+    - '{{ jenkins_commons_seed_job_source }}'
   tags:
     - install
     - install:base
@@ -348,6 +359,7 @@
     name: jenkins
     daemon_reload: yes
     state: restarted
+    enabled: yes
   tags:
     - manage
     - manage:start
