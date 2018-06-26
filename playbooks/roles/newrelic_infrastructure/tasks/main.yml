@@ -38,6 +38,7 @@
   tags:
     - install
     - install:app-requirements
+  when: ansible_distribution == 'Ubuntu'
 
 - name: Install apt repository for New Relic Infrastructure
   apt_repository:
@@ -47,13 +48,53 @@
   tags:
     - install
     - install:app-requirements
+  when: ansible_distribution == 'Ubuntu'
 
-- name: Install New Relic Infrastructure agent
+- name: Install newrelic related system packages for Ubuntu
   apt:
-    name: "newrelic-infra"
+    name: "{{ item }}"
+    install_recommends: yes
+    state: latest
   tags:
     - install
-    - install:code
+    - install:app-requirements
+  with_items: "{{ newrelic_infrastructure_debian_pkgs }}"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: Configure the New Relic Servers yum repository
+  yum:
+    name: "{{ NEWRELIC_AMAZON_REPO }}"
+    state: present
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Amazon'
+
+- name: Install newrelic related system packages for Amazon
+  yum:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items: "{{ newrelic_infrastructure_redhat_pkgs }}"
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Amazon'
+
+- name: Install newrelic display name script
+  copy:
+    src: "edx/bin/write_nr_display_name_config.sh"
+    dest: "/edx/bin/write_nr_display_name_config.sh"
+    owner: root
+    group: root
+    mode: u=rwx,g=r,o=r
+
+- name: Run newrelic display name script on boot
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: "/edx/bin/write_nr_display_name_config.sh"
+    insertbefore: "exit 0"
+    mode: "u+x,g+x"
 
 - name: Restart the infrastructure agent if the license key changes
   service:
