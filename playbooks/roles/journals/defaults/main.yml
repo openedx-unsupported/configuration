@@ -16,15 +16,16 @@ JOURNALS_GIT_IDENTITY: !!null
 #
 # vars are namespace with the module name.
 #
-journals_service_name: "journals"
+journals_service_name: "{{ 'journals' if JOURNALS_ENABLED else 'None' }}"
 journals_gunicorn_port: 8606
 
 journals_environment:
   JOURNALS_CFG: "{{ COMMON_CFG_DIR }}/{{ journals_service_name }}.yml"
 
-journals_user: "{{ journals_service_name }}"
+journals_user: "{{ journals_service_name if JOURNALS_ENABLED else 'None' }}"
 journals_home: "{{ COMMON_APP_DIR }}/{{ journals_service_name }}"
-journals_code_dir: "{{ journals_home }}/{{ journals_service_name }}"
+journals_code_dir_path: "{{ journals_home }}/{{ journals_service_name }}"
+journals_code_dir: "{{ journals_code_dir_path if JOURNALS_ENABLED else 'None' }}"
 
 #
 # OS packages
@@ -39,7 +40,7 @@ journals_debian_pkgs:
 JOURNALS_NGINX_PORT: "1{{ journals_gunicorn_port }}"
 JOURNALS_SSL_NGINX_PORT: "4{{ journals_gunicorn_port }}"
 
-JOURNALS_DEFAULT_DB_NAME: 'journals'
+JOURNALS_DEFAULT_DB_NAME: "{{ 'journals' if JOURNALS_ENABLED else '' }}"
 JOURNALS_MYSQL: 'localhost'
 # MySQL usernames are limited to 16 characters
 JOURNALS_MYSQL_USER: 'journ001'
@@ -53,7 +54,7 @@ JOURNALS_MEMCACHE: [ 'memcache' ]
 
 JOURNALS_VERSION: "master"
 JOURNALS_DJANGO_SETTINGS_MODULE: "journals.settings.production"
-JOURNALS_URL_ROOT: 'http://journals:{{ JOURNALS_NGINX_PORT }}'
+JOURNALS_URL_ROOT: 'http://localhost:{{ JOURNALS_NGINX_PORT }}'
 JOURNALS_LOGOUT_URL: '{{ JOURNALS_URL_ROOT }}/logout/'
 
 JOURNALS_SECRET_KEY: 'Your secret key here'
@@ -159,6 +160,13 @@ JOURNALS_AUTOMATED_USERS: {}
 
 JOURNALS_CSRF_COOKIE_SECURE: false
 
+JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
+JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
+JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
+JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
+JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
+JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
 journals_create_demo_data: false
 
 journals_post_migrate_commands:
@@ -179,9 +187,9 @@ journals_post_migrate_commands:
       --discovery-journal-api-url "{{ JOURNALS_DISCOVERY_JOURNALS_API_URL }}"
       --ecommerce-journal-api-url "{{ JOURNALS_ECOMMERCE_JOURNALS_API_URL }}"
       --ecommerce-public-url-root "{{ JOURNALS_ECOMMERCE_BASE_URL }}"
-    when: true
+    when: "{{ journals_create_demo_data }}"
   - command: './manage.py create_org --key "edX" --sitename "DemoSite"'
-    when: true
+    when: "{{ journals_create_demo_data }}"
   - command: >
       {{ COMMON_BIN_DIR }}/python.journals {{ COMMON_BIN_DIR }}/manage.journals publish_journals --create "Demo Journal" --org "edX" --price "100.00"
     become_user: "{{ journals_user }}"
