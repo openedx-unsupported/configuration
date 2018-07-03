@@ -240,7 +240,7 @@
 
 - name: Create NGINX server templates
   template:
-    src: "edx/var/nginx/server-static/server-template.j2"
+    src: "{{ NGINX_SERVER_TEMPLATE }}"
     dest: "{{ nginx_server_static_dir }}/{{ item.file }}"
     owner: root
     group: "{{ common_web_user }}"
@@ -249,6 +249,18 @@
   tags:
     - install
     - install:configuration
+
+- name: Copy static contents
+  copy:
+    src: "{{ item }}"
+    dest: "{{ nginx_server_static_dir }}"
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_user }}"
+    mode: "0640"
+  with_items: "{{ NGINX_SERVER_STATIC_FILES }}"
+  tags:
+     - install
+     - install:configuration
 
 - name: Write out htpasswd file
   htpasswd:

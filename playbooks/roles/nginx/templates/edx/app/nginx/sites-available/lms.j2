@@ -74,10 +74,19 @@ server {
   
   {% endif %}
 
+  # maintenance page
+  if (-f {{ nginx_server_static_dir }}/maintenance.html) {
+     rewrite ^(?!/server/)(.*)$ /server/maintenance.html last;
+  }
+
   # error pages
   {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
 error_page {{ k }} {{ v }};
   {% endfor %}
+
+  {% if NGINX_PROXY_INTERCEPT_ERRORS %}
+  proxy_intercept_errors on;
+  {% endif %}
 
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
