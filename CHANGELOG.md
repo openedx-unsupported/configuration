@@ -1,3 +1,6 @@
+- Installation
+  - OPENEDX_RELEASE is now required, to prevent accidental installation of master.
+
 - XQueue
   - Expose CLOUDWATCH_QUEUE_COUNT_METRIC which is defined XQueue's settings.py for further dictionary structure
 

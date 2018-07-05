@@ -9,11 +9,17 @@
 ##
 
 ##
-## Sanity check
+## Sanity checks
 ##
+
+if [[ ! $OPENEDX_RELEASE ]]; then
+    echo "You must define OPENEDX_RELEASE"
+    exit
+fi
+
 if [[ `lsb_release -rs` != "16.04" ]]; then
-   echo "This script is only known to work on Ubuntu 16.04, exiting...";
-   exit;
+    echo "This script is only known to work on Ubuntu 16.04, exiting..."
+    exit
 fi
 
 ##
