@@ -74,11 +74,6 @@ server {
   
   {% endif %}
 
-  # maintenance page
-  if (-f {{ nginx_server_static_dir }}/maintenance.html) {
-     rewrite ^(?!/server/)(.*)$ /server/maintenance.html last;
-  }
-
   # error pages
   {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
 error_page {{ k }} {{ v }};
@@ -154,6 +149,11 @@ error_page {{ k }} {{ v }};
 
     proxy_redirect off;
     proxy_pass http://lms-backend;
+
+    # maintenance page
+    if (-f {{ nginx_server_static_dir }}/maintenance.html) {
+      rewrite .* /server/maintenance.html last;
+    }
 
     {{ NGINX_EDXAPP_LMS_APP_EXTRA }}
   }
