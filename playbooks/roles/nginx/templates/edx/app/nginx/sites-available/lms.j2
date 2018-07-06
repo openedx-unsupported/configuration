@@ -74,11 +74,6 @@ server {
   
   {% endif %}
 
-  # maintenance page
-  if (-f {{ nginx_server_static_dir }}/maintenance.html) {
-     rewrite ^(?!/server/)(.*)$ /server/maintenance.html last;
-  }
-
   # error pages
   {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
 error_page {{ k }} {{ v }};
@@ -155,6 +150,11 @@ error_page {{ k }} {{ v }};
     proxy_redirect off;
     proxy_pass http://lms-backend;
 
+    # maintenance page
+    if (-f {{ nginx_server_static_dir }}/maintenance.html) {
+      rewrite .* /server/maintenance.html last;
+    }
+
     {{ NGINX_EDXAPP_LMS_APP_EXTRA }}
   }
 
@@ -197,30 +197,36 @@ error_page {{ k }} {{ v }};
   # uses the authorization header so we can't have
   # basic auth on it as well.
   location /api {
+    {% include "api-maintenance.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 
   #enterprise API
   location /enterprise/api {
+    {% include "api-maintenance.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 
   # Consent API
   location /consent/api {
+    {% include "api-maintenance.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 
   # Need a separate location for the image uploads endpoint to limit upload sizes
   location ~ ^/api/profile_images/[^/]*/[^/]*/upload$ {
+    {% include "api-maintenance.j2" %}
     try_files $uri @proxy_to_lms_app;
     client_max_body_size {{ EDXAPP_PROFILE_IMAGE_MAX_BYTES + 1000 }};
   }
 
   location /notifier_api {
+    {% include "api-maintenance.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 
   location /user_api {
+    {% include "api-maintenance.j2" %}
     try_files $uri @proxy_to_lms_app;
   }
 
