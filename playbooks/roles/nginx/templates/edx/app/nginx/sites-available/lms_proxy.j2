@@ -1,0 +1,19 @@
+{% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+{% else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+{% endif %}
+
+    # newrelic-specific header records the time when nginx handles a request.
+    proxy_set_header X-Queue-Start "t=${msec}";
+
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://lms-backend;
+
+    {{ NGINX_EDXAPP_LMS_APP_EXTRA }}

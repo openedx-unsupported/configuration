@@ -30,6 +30,8 @@ server {
 error_page {{ k }} {{ v }};
   {% endfor %}
 
+{% include "empty_json.j2" %}
+
   listen {{ EDXAPP_CMS_NGINX_PORT }} {{ default_site }};
 
   {% if NGINX_ENABLE_SSL %}
@@ -66,34 +68,15 @@ error_page {{ k }} {{ v }};
   {% include "common-settings.j2" %}
 
   location @proxy_to_cms_app {
-    {% if NGINX_SET_X_FORWARDED_HEADERS %}
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Port $server_port;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    {% else %}
-    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
-    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
-    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
-    {% endif %}
+{% include "cms_proxy.j2" %}
+  }
 
-    # newrelic-specific header records the time when nginx handles a request.
-    proxy_set_header X-Queue-Start "t=${msec}";
+  location @proxy_to_cms_app_api {
+    error_page 504 @empty_json;
+    error_page 502 @empty_json;
+    error_page 500 @empty_json;
 
-    proxy_set_header Host $http_host;
-
-    proxy_redirect off;
-    proxy_pass http://cms-backend;
-    {% if NGINX_CMS_PROXY_CONNECT_TIMEOUT %}
-    proxy_connect_timeout {{ NGINX_CMS_PROXY_CONNECT_TIMEOUT }};
-    {% endif %}
-    {% if NGINX_CMS_PROXY_SEND_TIMEOUT %}
-    proxy_send_timeout {{ NGINX_CMS_PROXY_SEND_TIMEOUT }};
-    {% endif %}
-    {% if NGINX_CMS_PROXY_READ_TIMEOUT %}
-    proxy_read_timeout {{ NGINX_CMS_PROXY_READ_TIMEOUT }};
-    {% endif %}
-
-    {{ NGINX_EDXAPP_CMS_APP_EXTRA }}
+{% include "cms_proxy.j2" %}
   }
 
   location / {
@@ -117,7 +100,7 @@ error_page {{ k }} {{ v }};
   # uses the authorization header so we can't have
   # basic auth on it as well.
   location /api {
-    try_files $uri @proxy_to_cms_app;
+    try_files $uri @proxy_to_cms_app_api;
   }
 
 {% if NGINX_DJANGO_ADMIN_ACCESS_CIDRS and EDXAPP_ENABLE_DJANGO_ADMIN_RESTRICTION %}
