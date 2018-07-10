@@ -173,12 +173,12 @@
     - install:base
     - install:jenkins-configuration
 
-- name: Copy all init scripts other than oauth for local dev
+- name: Copy all init scripts other than oauth and security for local dev
   command: 'cp {{ jenkins_common_git_home }}/jenkins-configuration/{{ jenkins_common_configuration_src_path }}/{{ item }} {{ jenkins_common_home }}/init.groovy.d/'
   with_items: '{{ jenkins_common_configuration_scripts }}'
   become: true
   become_user: '{{ jenkins_common_user }}'
-  when: 'item != "4configureGHOAuth.groovy" and init_scripts_copied is not defined'
+  when: 'item != "4configureGHOAuth.groovy" and item != "4configureSecurity.groovy" and init_scripts_copied is not defined'
   tags:
     - jenkins:local-dev
 
@@ -212,14 +212,14 @@
     - install:base
     - install:jenkins-configuration
 
-- name: For local dev, copy any config files other than oauth
+- name: For local dev, copy any config files other than oauth and security
   template:
     src: '{{ role_path }}/templates/config/{{ item }}.yml.j2'
     dest: '{{ jenkins_common_config_path }}/{{ item }}.yml'
     owner: '{{ jenkins_common_user }}'
     group: '{{ jenkins_common_group }}'
   with_items: '{{ jenkins_common_non_plugin_template_files }}'
-  when: 'item != "security" and templates_copied is not defined'
+  when: 'item != "github_oauth" and item != "security" and templates_copied is not defined'
   tags:
     - jenkins:local-dev
 
