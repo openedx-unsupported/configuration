@@ -1,3 +1,6 @@
+- git_clone:
+  - The working tree is explicitly checked for modified files, to prevent mysterious failures.
+
 - Installation
   - OPENEDX_RELEASE is now required, to prevent accidental installation of master.
 
