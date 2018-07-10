@@ -1,0 +1,71 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_maintenance
+#
+
+- name: Find supervisor apps
+  supervisorctl:
+    name: "{{ item }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: present
+  become_user: "{{ supervisor_service_user }}"
+  ignore_errors: yes
+  register: supervisor_apps
+  with_items: "{{ EDX_MAINTENANCE_SUPERVISOR_APPS }}"
+  tags:
+    - manage
+
+- name: Enable fake heartbeat
+  copy:
+    content: ""
+    dest: "{{ nginx_server_static_dir }}/maintenance_heartbeat.txt"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: "0640"
+  when: ENABLE_MAINTENANCE
+  tags:
+    - manage
+
+- name: Stop edxapp
+  supervisorctl:
+    # Use item.item because item.item strips the : off of edxapp_worker:
+    name: "{{ item.item }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: stopped
+  become_user: "{{ supervisor_service_user }}"
+  when: ENABLE_MAINTENANCE and not item is failed
+  with_items: "{{ supervisor_apps.results }}"
+  tags:
+    - manage
+
+- name: Start edxap
+  supervisorctl:
+    # Use item.item because item.item strips the : off of edxapp_worker:
+    name: "{{ item.item }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: started
+  become_user: "{{ supervisor_service_user }}"
+  when: not ENABLE_MAINTENANCE and not item is failed
+  with_items: "{{ supervisor_apps.results }}"
+  tags:
+    - manage
+
+- name: Disable fake heartbeat
+  file:
+    dest: "{{ nginx_server_static_dir }}/maintenance_heartbeat.txt"
+    state: absent
+  when: not ENABLE_MAINTENANCE
+  tags:
+    - manage
