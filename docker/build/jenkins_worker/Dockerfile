@@ -51,7 +51,7 @@ RUN mkdir /var/run/sshd \
   && useradd -ms /bin/bash ubuntu -g ubuntu -d /home/ubuntu \
   && curl ${JENKINS_WORKER_KEY_URL} --create-dirs -o /home/ubuntu/.ssh/authorized_keys
 
-RUN chown -R ubuntu /home/ubuntu /edx/app/edxapp/edx-platform
+RUN chown -R ubuntu /home/ubuntu /edx/app/edxapp/edx-platform /edx/app/edxapp/venvs
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
 
 EXPOSE 22
