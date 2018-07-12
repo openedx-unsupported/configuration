@@ -66,7 +66,7 @@ server {
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
 
   # Do not include a 502 error in NGINX_ERROR_PAGES when 
-  # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
+  # NGINX_EDXAPP_ENABLE_S3_MAINTENANCE is enabled.
 
   error_page 502 @maintenance;
 
@@ -78,6 +78,8 @@ server {
   {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
 error_page {{ k }} {{ v }};
   {% endfor %}
+
+{% include "empty_json.j2" %}
 
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
 
@@ -128,25 +130,16 @@ error_page {{ k }} {{ v }};
   {% endif -%}
 
   location @proxy_to_lms_app {
-    {% if NGINX_SET_X_FORWARDED_HEADERS %}
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Port $server_port;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    {% else %}
-    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
-    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
-    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
-    {% endif %}
+{% include "lms_proxy.j2" %}
 
-    # newrelic-specific header records the time when nginx handles a request.
-    proxy_set_header X-Queue-Start "t=${msec}";
+  }
 
-    proxy_set_header Host $http_host;
+  location @proxy_to_lms_app_api {
+    error_page 504 @empty_json;
+    error_page 502 @empty_json;
+    error_page 500 @empty_json;
 
-    proxy_redirect off;
-    proxy_pass http://lms-backend;
-
-    {{ NGINX_EDXAPP_LMS_APP_EXTRA }}
+{% include "lms_proxy.j2" %}
   }
 
   location / {
@@ -188,31 +181,31 @@ error_page {{ k }} {{ v }};
   # uses the authorization header so we can't have
   # basic auth on it as well.
   location /api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   #enterprise API
   location /enterprise/api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   # Consent API
   location /consent/api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   # Need a separate location for the image uploads endpoint to limit upload sizes
   location ~ ^/api/profile_images/[^/]*/[^/]*/upload$ {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
     client_max_body_size {{ EDXAPP_PROFILE_IMAGE_MAX_BYTES + 1000 }};
   }
 
   location /notifier_api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   location /user_api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   # No basic auth security on the github_service_hook url, so that github can use it for cms
@@ -241,6 +234,12 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
+    # If /edx/var/nginx/server-static/maintenance_heartbeat.txt exists serve an
+    # empty 200 so the instance stays in the load balancer to serve the
+    # maintenance page
+    if (-f /edx/var/nginx/server-static/maintenance_heartbeat.txt) {
+       return 200;
+    }
     try_files $uri @proxy_to_lms_app;
   }
 
