@@ -22,15 +22,6 @@ if [[ `lsb_release -rs` != "16.04" ]]; then
     exit
 fi
 
-if [[ ! -f config.yml ]]; then
-    echo 'You must create a config.yml file specifying the hostnames (and if'
-    echo 'needed, ports) of your LMS and Studio hosts.'
-    echo 'For example:'
-    echo '    EDXAPP_LMS_BASE: "11.22.33.44"'
-    echo '    EDXAPP_CMS_BASE: "11.22.33.44:18010"'
-    exit
-fi
-
 ##
 ## Log what's happening
 ##
@@ -85,7 +76,6 @@ VERSION_VARS=(
     ECOMMERCE_VERSION
     ECOMMERCE_WORKER_VERSION
     DISCOVERY_VERSION
-    THEMES_VERSION
 )
 
 for var in ${VERSION_VARS[@]}; do
@@ -102,8 +92,6 @@ done
 if [[ -f my-passwords.yml ]]; then
     EXTRA_VARS="-e@$(pwd)/my-passwords.yml $EXTRA_VARS"
 fi
-
-EXTRA_VARS="-e@$(pwd)/config.yml $EXTRA_VARS"
 
 CONFIGURATION_VERSION=${CONFIGURATION_VERSION-$OPENEDX_RELEASE}
 
@@ -123,9 +111,9 @@ cd /var/tmp/configuration
 sudo -H pip install -r requirements.txt
 
 ##
-## Run the openedx_native.yml playbook in the configuration/playbooks directory
+## Run the edx_sandbox.yml playbook in the configuration/playbooks directory
 ##
-cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./openedx_native.yml -i "localhost," $EXTRA_VARS "$@"
+cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./edx_sandbox.yml -i "localhost," $EXTRA_VARS "$@"
 ansible_status=$?
 
 if [[ $ansible_status -ne 0 ]]; then
