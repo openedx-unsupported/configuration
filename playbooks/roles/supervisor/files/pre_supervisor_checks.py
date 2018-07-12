@@ -164,8 +164,22 @@ if __name__ == '__main__':
     try:
         if args.hipchat_api_key:
             hc = hipchat.HipChat(token=args.hipchat_api_key)
-            notify = lambda message: hc.message_room(room_id=args.hipchat_room,
-                message_from=HIPCHAT_USER, message=message)
+            def notify(message):
+               RETRIES = 3
+               last_exception = None
+               for _ in range(RETRIES):
+                    try:
+                        hc.message_room(
+                            room_id=args.hipchat_room,
+                            message_from=HIPCHAT_USER, message=message
+                        )
+                        break
+                    except Exception as e:
+                        last_exception = e
+               else:
+                   print("Failed to send message on HipChat, {}".format(last_exception))
+                   traceback.print_exc()
+
     except Exception as e:
         print("Failed to initialize hipchat, {}".format(e))
         traceback.print_exc()
