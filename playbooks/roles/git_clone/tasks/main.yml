@@ -54,6 +54,20 @@
     - install
     - install:code
 
+- name: Check that working tree is clean
+  shell: test ! -e "{{ item }}" || git -C "{{ item }}" status --porcelain --untracked-files=no
+  register: dirty_files
+  # Using the map here means that the items will only be the DESTINATION strings,
+  # rather than the full GIT_REPOS structures, which have data we don't want to log,
+  # so we don't have to use no_log on this task.
+  with_items: "{{ GIT_REPOS | map(attribute='DESTINATION') | list }}"
+
+- name: Require a clean working tree
+  fail:
+    msg: "There are modified files in {{ item.item }}: {{ item.stdout }}"
+  when: item.stdout|length > 0
+  with_items: "{{ dirty_files.results }}"
+
 - name: Checkout code over ssh
   git:
     repo: "git@{{ item.DOMAIN }}:{{ item.PATH }}/{{ item.REPO }}"
