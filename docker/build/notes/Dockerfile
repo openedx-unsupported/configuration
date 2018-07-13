@@ -7,10 +7,13 @@
 # This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
 # with the currently checked-out configuration repo.
 
-FROM edxops/xenial-common:latest
+ARG BASE_IMAGE_TAG=latest
+FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 MAINTAINER edxops
 
-ENV NOTES_VERSION=master
+ARG OPENEDX_RELEASE=master
+ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
+ENV NOTES_VERSION=${OPENEDX_RELEASE}
 ENV REPO_OWNER=edx
 
 ADD . /edx/app/edx_ansible/edx_ansible
@@ -25,5 +28,5 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook notes.yml \
     --extra-vars="EDX_NOTES_API_VERSION=$NOTES_VERSION" \
     --extra-vars="COMMON_GIT_PATH=$REPO_OWNER"
 
-USER root 
+USER root
 CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
