@@ -1,4 +1,5 @@
-FROM edxops/xenial-common:latest
+ARG BASE_IMAGE_TAG=latest
+FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 MAINTAINER edxops
 
 USER root
@@ -117,7 +118,12 @@ RUN chown hadoop:hadoop /etc/bootstrap.sh \
     && chown -R hadoop:hadoop /edx/app/hadoop
 
 # Analytics pipeline
+ARG OPENEDX_RELEASE=master
+ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
 RUN git clone https://github.com/edx/edx-analytics-pipeline \
+    && cd edx-analytics-pipeline \
+    && git checkout ${OPENEDX_RELEASE} \
+    && cd .. \
     && cp /var/tmp/edx-analytics-pipeline/Makefile /var/tmp/Makefile \
     && cp -r /var/tmp/edx-analytics-pipeline/requirements /var/tmp/requirements \
     && rm -rf /var/tmp/edx-analytics-pipeline
