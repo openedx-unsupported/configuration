@@ -93,6 +93,12 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
+    # If /edx/var/nginx/server-static/maintenance_heartbeat.txt exists serve an
+    # empty 200 so the instance stays in the load balancer to serve the
+    # maintenance page
+    if (-f /edx/var/nginx/server-static/maintenance_heartbeat.txt) {
+       return 200;
+    }
     try_files $uri @proxy_to_cms_app;
   }
 
