@@ -17,7 +17,6 @@ ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/jenkins_worker/ansible_overrides.yml /jenkins_worker/ansible_overrides.yml
-COPY docker/build/edxapp/devstack.yml /
 COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
 
 ARG OPENEDX_RELEASE=master
@@ -27,7 +26,6 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook edxapp.yml 
     -t 'install,assets,devstack,jenkins-worker' \
     --extra-vars="edx_platform_version=${OPENEDX_RELEASE}" \
     --extra-vars="@/jenkins_worker/ansible_overrides.yml" \
-    --extra-vars="@/devstack.yml" \
     --extra-vars="@/devstack/ansible_overrides.yml"
 
 # Run the mongo play
