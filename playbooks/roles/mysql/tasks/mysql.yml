@@ -33,6 +33,9 @@
 # Thought that instead of performing all those steps and get the repo, why not directly use this repo
 # `deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6`, I just picked this line and directly used it and it worked for us.
 
+
+
+
 - name: Install mysql-5.6 and dependencies
   apt:
     name: "{{ item }}"
@@ -40,6 +43,14 @@
     state: present
   with_items: "{{ mysql_debian_pkgs }}"
 
+- name: Set default character sets and collations
+  template: >
+    src=default_character_sets_and_collations.cnf.j2
+    dest={{ mysql_dir }}/mysql.conf.d/default_character_sets_and_collations.cnf
+    owner=root group=root mode=0644
+  notify:
+    - restart mysql
+    
 - name: Start mysql
   service:
     name: mysql
