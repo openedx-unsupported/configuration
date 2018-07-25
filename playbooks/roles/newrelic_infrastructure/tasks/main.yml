@@ -40,6 +40,7 @@
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu'
 
+# For bionic, use the xenial repo for now.
 - name: Install apt repository for New Relic Infrastructure
   apt_repository:
     repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO }}"
@@ -48,7 +49,18 @@
   tags:
     - install
     - install:app-requirements
-  when: ansible_distribution == 'Ubuntu'
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release != 'bionic'
+
+# For bionic, use the xenial repo for now.
+- name: Install apt repository for New Relic Infrastructure
+  apt_repository:
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_XENIAL }}"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
 
 - name: Install newrelic related system packages for Ubuntu
   apt:
