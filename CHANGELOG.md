@@ -1,3 +1,5 @@
+- Use Ansible 2.3.1.0 so that we can do shallow clones of tags.
+
 - git_clone:
   - The working tree is explicitly checked for modified files, to prevent mysterious failures.
 
