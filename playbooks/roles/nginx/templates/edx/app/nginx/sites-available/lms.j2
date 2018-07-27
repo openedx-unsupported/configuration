@@ -5,10 +5,13 @@
 {%- endif -%}
 
 upstream lms-backend {
-    {% for host in nginx_lms_gunicorn_hosts %}
-        server {{ host }}:{{ edxapp_lms_gunicorn_port }} fail_timeout=0;
-    {% endfor %}
-
+    {%- if EDXAPP_GUNICORN_SOCK_LMS -%}
+        server unix:{{ EDXAPP_GUNICORN_SOCK_LMS }} fail_timeout=0;
+    {%- else -%}
+        {% for host in nginx_lms_preview_gunicorn_hosts %}
+            server {{ host }}:{{ edxapp_lms_preview_gunicorn_port }} fail_timeout=0;
+        {% endfor %}
+    {%- endif -%}
 }
 
 {%- if EDXAPP_ENABLE_RATE_LIMITING -%}

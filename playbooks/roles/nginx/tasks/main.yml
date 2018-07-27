@@ -129,6 +129,45 @@
     - install
     - install:configuration
 
+- name: Create the socket directory
+  file:
+    path: {{ EDXAPP_SOCKET_LOCATION_FOLDER }}
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_user }}"
+    state: directory
+    mode: 0777
+  tags:
+    - install
+    - install:configuration
+
+- name: update configuration file for file limits
+  template:
+    src: etc/security/limits.conf.j2
+    dest: "/etc/security/limits.conf"
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: Update sysctl config file with tamplate
+  template:
+    src: etc/sysctl.conf.j2
+    dest: "/etc/sysctl.conf"
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: Restart sysctl
+  shell: sysctl -p
+  tags:
+    - install
+    - install:configuration
+
 - name: Creating link for common nginx configuration
   file:
     src: "{{ nginx_sites_available_dir }}/{{ item }}"

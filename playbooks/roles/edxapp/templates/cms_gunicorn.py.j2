@@ -5,13 +5,22 @@ gunicorn configuration file: http://docs.gunicorn.org/en/stable/configure.html
 """
 import multiprocessing
 
-preload_app = False
-timeout = {{ EDXAPP_CMS_GUNICORN_TIMEOUT }}
+preload_app = True
+timeout = 600
+backlog = 2048
+{% if EDXAPP_GUNICORN_SOCK_CMS %}
+bind = "{{ EDXAPP_GUNICORN_SOCK_CMS }}"
+{% else %}
 bind = "{{ edxapp_cms_gunicorn_host }}:{{ edxapp_cms_gunicorn_port }}"
+{% endif %}
 pythonpath = "{{ edxapp_code_dir }}"
 
 {% if EDXAPP_CMS_MAX_REQ -%}
 max_requests = {{ EDXAPP_CMS_MAX_REQ }}
+{% endif -%}
+
+{% if EDXAPP_CMS_MAX_REQ_JITTER -%}
+max_requests_jitter = {{ EDXAPP_CMS_MAX_REQ_JITTER }}
 {% endif -%}
 
 {% if EDXAPP_WORKERS %}
