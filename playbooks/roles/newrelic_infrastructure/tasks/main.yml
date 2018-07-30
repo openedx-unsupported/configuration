@@ -40,7 +40,8 @@
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu'
 
-- name: Install apt repository for New Relic Infrastructure
+# For bionic, use the xenial repo for now.
+- name: Install apt repository for New Relic Infrastructure if not bionic
   apt_repository:
     repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO }}"
     state: present
@@ -48,7 +49,18 @@
   tags:
     - install
     - install:app-requirements
-  when: ansible_distribution == 'Ubuntu'
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release != 'bionic'
+
+# For bionic, use the xenial repo for now.
+- name: Install apt repository for New Relic Infrastructure if bionic
+  apt_repository:
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_XENIAL }}"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
 
 - name: Install newrelic related system packages for Ubuntu
   apt:
@@ -89,12 +101,16 @@
     group: root
     mode: u=rwx,g=r,o=r
 
+# In Ubuntu>16.04, /etc/rc.local doesn't exist by default. Since this script isn't
+# used by the GoCD instance using Ubuntu 18.04, skip this task when running on Bionic.
+# See OPS-3341 and http://manpages.ubuntu.com/manpages/bionic/man8/systemd-rc-local-generator.8.html
 - name: Run newrelic display name script on boot
   lineinfile:
     dest: "/etc/rc.local"
     line: "/edx/bin/write_nr_display_name_config.sh"
     insertbefore: "exit 0"
     mode: "u+x,g+x"
+  when: ansible_distribution_release != 'bionic'
 
 - name: Restart the infrastructure agent if the license key changes
   service:
