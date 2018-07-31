@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `EDXAPP_X_FRAME_OPTIONS` to prevent click jacking in LMS.
+
 - git_clone:
   - The working tree is explicitly checked for modified files, to prevent mysterious failures.
 
