@@ -1,3 +1,7 @@
+Role: nginx
+  - Added `NGINX_SERVER_HTML_FILES_TEMPLATE` to make the error file template configurable.
+  - Added `NGINX_SERVER_STATIC_FILES` to allow copying static contents to the server static folder. Can be used to deploy static contents for the error pages for example.
+
 - Role: analytics_api
   - Added `ANALYTICS_API_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
 
