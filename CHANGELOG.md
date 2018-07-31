@@ -1,3 +1,6 @@
+- Role: nginx
+  - Added `NGINX_EDXAPP_PROXY_INTERCEPT_ERRORS` to be able to use custom static error pages for error responses from the LMS.
+
 - Role: analytics_api
   - Added `ANALYTICS_API_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
 
