@@ -134,7 +134,7 @@ if [[ -z $ami ]]; then
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="t2.large"
+  instance_type="r5.large"
 fi
 
 if [[ -z $instance_initiated_shutdown_behavior ]]; then
