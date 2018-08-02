@@ -27,6 +27,7 @@
     --service_username {{ DISCOVERY_SERVICE_USER_NAME }}
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  when: "{{ JOURNALS_SANDBOX_BUILD }}"
   tags:
     - manage
     - manage:db
@@ -40,6 +41,7 @@
     mode: "0775"
   with_items:
     - "{{ JOURNALS_MEDIA_ROOT }}"
+  when: "{{ JOURNALS_SANDBOX_BUILD }}"
   tags:
     - install
     - install:base
@@ -49,6 +51,7 @@
      path: /edx/app/edx_ansible/edx_ansible/playbooks/roles/journals/tasks/
      name: elasticsearch5
      state: present
+  when: "{{ JOURNALS_SANDBOX_BUILD }}"
   tags:
     - install
     - install:base
@@ -60,6 +63,7 @@
     state: started
     ports:
      - "9500:9200"
+  when: "{{ JOURNALS_SANDBOX_BUILD }}"
   tags:
     - install
     - install:base
@@ -68,6 +72,7 @@
   wait_for:
     port: 9500
     delay: 10
+  when: "{{ JOURNALS_SANDBOX_BUILD }}"
   tags:
     - install
     - install:base
@@ -77,6 +82,7 @@
     {{ COMMON_BIN_DIR }}/python.journals {{ COMMON_BIN_DIR }}/manage.journals update_index --settings={{ JOURNALS_DJANGO_SETTINGS_MODULE }}
   become_user: "{{ journals_user }}"
   environment: "{{ journals_environment }}"
+  when: "{{ JOURNALS_SANDBOX_BUILD }}"
   tags:
     - install
     - install:app-requirements
