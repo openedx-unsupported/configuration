@@ -75,10 +75,13 @@ then
 elif grep -q 'Xenial Xerus' /etc/os-release
 then
     SHORT_DIST="xenial"
+elif grep -q 'Bionic Beaver' /etc/os-release
+then
+    SHORT_DIST="bionic"
 else
     cat << EOF
 
-    This script is only known to work on Ubuntu Trusty and Xenial,
+    This script is only known to work on Ubuntu Trusty, Xenial, and Bionic;
     exiting.  If you are interested in helping make installation possible
     on other platforms, let us know.
 
@@ -87,6 +90,12 @@ EOF
 fi
 
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
+
+
+if [[ "${SHORT_DIST}" == bionic ]] ;then
+  apt-get update
+  apt-get install -y gnupg
+fi
 
 # Upgrade the OS
 apt-get update -y
@@ -98,14 +107,22 @@ if [ "${UPGRADE_OS}" = true ]; then
 fi
 
 # Required for add-apt-repository
-apt-get install -y software-properties-common python-software-properties
+if [[ "${SHORT_DIST}" == bionic ]] ;then
+  apt-get install -y software-properties-common
+else
+  apt-get install -y software-properties-common python-software-properties
+fi
 
 # Add git PPA
 add-apt-repository -y ppa:git-core/ppa
 
-# For older software we need to install our own PPA.
-apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
-add-apt-repository -y "${EDX_PPA}"
+# For older software we need to install our own PPA
+# Phased out with Ubuntu 18.04 Bionic
+if [[ "${SHORT_DIST}" != bionic ]] ;then
+  apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
+  add-apt-repository -y "${EDX_PPA}"
+fi
+
 
 # Install python 2.7 latest, git and other common requirements
 # NOTE: This will install the latest version of python 2.7 and
@@ -159,4 +176,3 @@ else
     mkdir -p /edx/ansible/facts.d
     echo '{ "ansible_bootstrap_run": true }' > /edx/ansible/facts.d/ansible_bootstrap.json
 fi
-
