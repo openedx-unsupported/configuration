@@ -91,7 +91,6 @@ fi
 
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
-
 if [[ "${SHORT_DIST}" == bionic ]] ;then
   apt-get update
   apt-get install -y gnupg
@@ -107,6 +106,7 @@ if [ "${UPGRADE_OS}" = true ]; then
 fi
 
 # Required for add-apt-repository
+# For Ubuntu >= 18.04, python-software-properties has been phased out
 if [[ "${SHORT_DIST}" == bionic ]] ;then
   apt-get install -y software-properties-common
 else
@@ -117,7 +117,7 @@ fi
 add-apt-repository -y ppa:git-core/ppa
 
 # For older software we need to install our own PPA
-# Phased out with Ubuntu 18.04 Bionic
+# This ppa was phased out when upgrading to Ubuntu 18.04 Bionic
 if [[ "${SHORT_DIST}" != bionic ]] ;then
   apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
   add-apt-repository -y "${EDX_PPA}"
