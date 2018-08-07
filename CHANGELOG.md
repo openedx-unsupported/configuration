@@ -2,6 +2,9 @@
   - Added `ANALYTICS_API_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
 
 - Role: edxapp
+  - `EDXAPP_X_FRAME_OPTIONS` added in studio to prevent clickjacking.
+
+- Role: edxapp
   - Added `EDXAPP_X_FRAME_OPTIONS` to prevent click jacking in LMS.
 
 - git_clone:
