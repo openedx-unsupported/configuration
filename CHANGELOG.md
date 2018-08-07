@@ -1,3 +1,6 @@
+- Role: analytics_api
+  - Added `basic_auth_exempted_paths` configuration for enterprise api endpoints
+
 - Role: edx_django_service
   - Added optional `edx_django_service_allow_cors_headers` boolean option to pass CORS headers (`Access-Control-Allow-Origin` and `Access-Control-Allow-Methods`) on non basic-auth
   calls to support `/api` endpoints for analytics_api.
