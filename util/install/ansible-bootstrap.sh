@@ -91,11 +91,6 @@ fi
 
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
-if [[ "${SHORT_DIST}" == bionic ]] ;then
-  apt-get update
-  apt-get install -y gnupg
-fi
-
 # Upgrade the OS
 apt-get update -y
 apt-key update -y
@@ -107,8 +102,9 @@ fi
 
 # Required for add-apt-repository
 # For Ubuntu >= 18.04, python-software-properties has been phased out
+# but gnupg now needs to be installed
 if [[ "${SHORT_DIST}" == bionic ]] ;then
-  apt-get install -y software-properties-common
+  apt-get install -y software-properties-common gnupg
 else
   apt-get install -y software-properties-common python-software-properties
 fi
