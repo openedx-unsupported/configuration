@@ -27,6 +27,7 @@ import sys
 from collections import defaultdict
 from os import environ
 from itertools import chain
+import random
 
 class ActiveInventory():
 
@@ -85,7 +86,7 @@ class ActiveInventory():
 
         for group in active_groups.keys():
             for group_instance in groups_to_instances[group]:
-                instance = ec2.describe_instances(InstanceIds=[group_instance])['Reservations'][0]['Instances'][0]
+                instance = random.choice(ec2.describe_instances(InstanceIds=[group_instance])['Reservations'][0]['Instances'])
                 if 'PrivateIpAddress' in instance:
                     print("{},".format(instance['PrivateIpAddress']))
                     return # We only want a single IP
