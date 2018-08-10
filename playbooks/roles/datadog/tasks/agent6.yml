@@ -1,0 +1,46 @@
+---
+- name: Create /etc/datadog-agent
+  file:
+    dest: /etc/datadog-agent
+    state: directory
+
+- name: Create main Datadog agent yaml configuration file (beta)
+  template:
+    src: datadog.yaml.j2
+    dest: /etc/datadog-agent/datadog.yaml
+    owner: '{{ datadog_user }}'
+    group: '{{ datadog_group }}'
+  notify: restart datadog-agent
+
+- name: Create a configuration file for each Datadog check
+  template:
+    src: checks.yaml.j2
+    dest: "/etc/datadog-agent/conf.d/{{ item }}.yaml"
+    owner: '{{ datadog_user }}'
+    group: '{{ datadog_group }}'
+  with_items: '{{ datadog_checks|list }}'
+  notify: restart datadog-agent
+
+- name: Create trace agent configuration file
+  template:
+    src: datadog.conf.j2
+    dest: /etc/datadog-agent/trace-agent.conf
+    owner: '{{ datadog_user }}'
+    group: '{{ datadog_group }}'
+  notify: restart datadog-agent
+
+- name: Create process agent configuration file
+  template:
+    src: datadog.conf.j2
+    dest: /etc/datadog-agent/process-agent.conf
+    owner: '{{ datadog_user }}'
+    group: '{{ datadog_group }}'
+  notify: restart datadog-agent
+
+- name: Ensure datadog-agent is running
+  service: name=datadog-agent state=started enabled=yes
+  when: datadog_enabled
+
+- name: Ensure datadog-agent is not running
+  service: name=datadog-agent state=stopped enabled=no
+  when: not datadog_enabled
