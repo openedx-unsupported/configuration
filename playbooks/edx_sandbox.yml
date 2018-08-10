@@ -15,16 +15,9 @@
   hosts: all
   become: True
   gather_facts: True
-  vars:
-    migrate_db: "yes"
-    EDXAPP_LMS_NGINX_PORT: '80'
-    edx_platform_version: 'master'
-    # Set to false if deployed behind another proxy/load balancer.
-    NGINX_SET_X_FORWARDED_HEADERS: True
-    DISCOVERY_URL_ROOT: 'http://localhost:{{ DISCOVERY_NGINX_PORT }}'
   roles:
     - role: swapfile
-      SWAPFILE_SIZE: 4GB
+      SWAPFILE_SIZE: 8GB
     - role: nginx
       nginx_sites:
       - certs
@@ -32,33 +25,25 @@
       - lms
       - forum
       - xqueue
-      # - ecommerce
       nginx_default_sites:
       - lms
+
     - role: edxlocal
       when: EDXAPP_MYSQL_HOST == 'localhost'
     - role: memcache
-      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
     - role: mongo
-      when: "'localhost' in EDXAPP_MONGO_HOSTS"
     - role: rabbitmq
       rabbitmq_ip: 127.0.0.1
     - role: edxapp
       celery_worker: True
     - edxapp
-    # - ecommerce
-    # - role: ecomworker
-    #   ECOMMERCE_WORKER_BROKER_HOST: 127.0.0.1
-    # - analytics_api
-    # - insights
+    - analytics_api
+    - insights
     # not ready yet: - edx_notes_api
-    - demo
     - oauth_client_setup
     - oraclejdk
     - role: elasticsearch
-      when: "'localhost' in EDXAPP_ELASTIC_SEARCH_CONFIG|map(attribute='host')"
     - forum
-    - discovery
     - role: notifier
       NOTIFIER_DIGEST_TASK_INTERVAL: 5
     - role: xqueue
