@@ -107,10 +107,9 @@ if [ "${UPGRADE_OS}" = true ]; then
 fi
 
 # Required for add-apt-repository
-if [[ "${SHORT_DIST}" == bionic ]] ;then
-  apt-get install -y software-properties-common
-else
-  apt-get install -y software-properties-common python-software-properties
+apt-get install -y software-properties-common
+if [[ "${SHORT_DIST}" != bionic ]] ;then
+  apt-get install -y python-software-properties
 fi
 
 # Add git PPA
