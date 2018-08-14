@@ -92,15 +92,14 @@ fi
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
 # Upgrade the OS
+apt-get update -y
+
+# To apt-key update in bionic, gnupg is needed.
 if [[ "${SHORT_DIST}" == bionic ]] ;then
-  apt-get update -y
   apt-get install -y gnupg
-  apt-key update -y
 fi
-if [[ "${SHORT_DIST}" != bionic ]] ;then
-  apt-get update -y
-  apt-key update -y
-fi
+
+apt-key update -y
 
 if [ "${UPGRADE_OS}" = true ]; then
     echo "Upgrading the OS..."
