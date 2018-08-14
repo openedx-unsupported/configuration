@@ -93,7 +93,7 @@ EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
 # Upgrade the OS
 if [[ "${SHORT_DIST}" == bionic ]] ;then
-  apt-get update
+  apt-get update -y
   apt-get install -y gnupg
   apt-key update -y
 fi
