@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 #
-# Script for installing Ansible and the edX configuration repostory
+# Script for installing Ansible and the edX configuration repository
 # onto a host to enable running ansible to complete configuration.
 # This script can be used by Docker, Packer or any other system
-# for building images that requires having ansible available.
+# for building images that require having ansible available.
 #
 # Can be run as follows:
 #
