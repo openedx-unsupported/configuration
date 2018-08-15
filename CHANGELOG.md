@@ -1,3 +1,5 @@
+- Removed the obsolete install_stack.sh file (the last reference to fullstack)
+
 - Role: nginx
   - Added `NGINX_EDXAPP_PROXY_INTERCEPT_ERRORS` to be able to use custom static error pages for error responses from the LMS.
   - Added `NGINX_SERVER_HTML_FILES_TEMPLATE` to make the error file template configurable.
