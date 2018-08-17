@@ -9,8 +9,7 @@
 # part of that config
 # database_connection:
 #   login_user: "root"
-#   login_password: "super-secure-password"
-#
+#   login_password: "super-secure-password" #
 # database_name: your-database-name
 # database_size: number of gigabytes (integer)
 # instance_type: Choose an AWS RDS instance type such as "db.t2.medium"
@@ -23,10 +22,8 @@
 # backup_window: UTC time of the day to take a backup "08:00-08:30"
 # backup_retention: Days to keep backups (integer)
 # multi_zone: yes or no (whether this RDS is multi-az)
-# tags:
-#   environment: "environment"
-#   deployment:  "deployment"
-#   cluster:     "cluster"
+# performance_insights: yes or no (or unset) whether to enable Performance Insights (must be 5.6.40 or greater and not a t2)
+# tags: "Key=Value,Key=Value,environment=environment,deployment=deployment,cluster=cluster"
  
 
 - name: Create databases and users
@@ -34,26 +31,42 @@
   gather_facts: False
   tasks:
 
-  - name: create RDS
+# The rds module for ansible only uses boto2, and boto2 defaults to magnetic discs and will
+# use io1 if you specify piops, but you can't have gp2.
+# Adapted from https://github.com/ansible/ansible-modules-core/issues/633
+# which points you to the various other open github issues.
+
+  - name: Create RDS instance using SSD (gp2) storage
+    command: "aws rds create-db-instance
+              --db-instance-identifier {{ database_name }}
+              --storage-type gp2
+              --allocated-storage {{ database_size }}
+              --db-instance-class {{ instance_type }}
+              --engine {{ database_engine|default('MySQL') }}
+              --engine-version {{ database_engine_version }}
+              --master-username {{ database_connection.login_user }}
+              --master-user-password {{ database_connection.login_password }}
+              --vpc-security-group-ids {{ vpc_security_groups}}
+              --db-subnet-group-name {{ subnet_group }}
+              --preferred-maintenance-window {{ maintenance_window }}
+              --db-parameter-group-name {{ parameter_group }}
+              --backup-retention-period {{ backup_retention }}
+              --preferred-backup-window {{ backup_window }}
+              --{{ '' if multi_zone == 'yes' else 'no-' }}multi-az
+              {{ '--enable-performance-insights' if performance_insights is defined and performance_insights == 'yes' else '' }}
+              --tags {{ tags }}
+              "
+    register: result
+    failed_when: >
+      result.rc != 0 and ('DBInstanceAlreadyExists' not in result.stderr)
+    changed_when: "result.rc == 0"
+
+  - name: Wait RDS to be available
     rds:
-      command: create
-      instance_name: "{{ database_name }}"
-      db_engine: "{{ database_engine|default('MySQL') }}"
-      size: "{{ database_size }}"
-      instance_type: "{{ instance_type }}"
+      command: facts
       region: "{{ aws_region }}"
-      username: "{{ database_connection.login_user }}" 
-      password: "{{ database_connection.login_password }}"
-      engine_version: "{{ database_engine_version }}"
-      maint_window: "{{ maintenance_window }}"
-      multi_zone: "{{ multi_zone }}"
-      vpc_security_groups: "{{ vpc_security_groups }}"
-      subnet: "{{ subnet_group }}"
-      parameter_group: "{{ parameter_group }}"
-      backup_window: "{{ backup_window }}"
-      backup_retention: "{{ backup_retention }}"
-      tags: "{{ tags }}"
-# It would be nice to wait for success, but this takes a while and I routinely tripped
-# the API call limit at AWS.  Add it back if we know how to limit those.
-#      wait: yes
-#      wait_timeout: 900
+      instance_name: "{{ database_name }}"
+    register: result
+    until: result.instance.status == "available"
+    retries: 20
+    delay: 60
