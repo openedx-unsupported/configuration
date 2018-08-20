@@ -201,3 +201,42 @@
     - "install"
     - "install:configuration"
     - "logrotate"
+
+- name: Check if wkhtmltopdf installed 
+  stat:
+    path: /usr/bin/wkhtmltopdf
+  register: wkhtmltopdf_file
+
+- name: Check if wkhtmltopdf installed 
+  stat:
+    path: /usr/bin/wkhtmltoimage
+  register: wkhtmltoimage_file
+
+- debug: var=wkhtmltopdf_file
+
+- name: Get wkhtmltox
+  unarchive:
+    remote_src: yes
+    src: https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.3/wkhtmltox-0.12.3_linux-generic-amd64.tar.xz
+    dest: /tmp
+    creates: /tmp/wkhtmltopdf
+  when: not wkhtmltopdf_file.stat.exists or not wkhtmltoimage_file.stat.exists
+
+- name: Copy wkhtmltox to the PATH
+  copy:
+    remote_src: yes
+    src: "/tmp/wkhtmltox/bin/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    mode: 0755
+    owner: root
+    group: root
+  when: not wkhtmltopdf_file.stat.exists or not wkhtmltoimage_file.stat.exists
+  whith_items:
+    - wkhtmltoimage
+    - wkhtmltopdf
+
+- name: Cleanup wkhtmltopdf temp archive
+  file:
+    path: /tmp/wkhtmltox
+    state: absent
+  when: not wkhtmltopdf_file.stat.exists or not wkhtmltoimage_file.stat.exists
