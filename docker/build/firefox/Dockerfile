@@ -1,4 +1,4 @@
-FROM selenium/standalone-firefox-debug:3.11.0-californium
+FROM selenium/standalone-firefox-debug:3.14.0-arsenic
 MAINTAINER edxops
 
 USER root
