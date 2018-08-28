@@ -1,0 +1,120 @@
+- name: Remove old git repo
+  file:
+    state: absent
+    path: "{{ prospectus_build_server_repo_path }}/"
+
+- name: Remove old app repo
+  file:
+    state: absent
+    path: "{{ prospectus_app_dir }}"
+
+- name: Remove data directory
+  file:
+    state: absent
+    path: "{{ PROSPECTUS_DATA_DIR }}"
+
+- name: Create clone of prospectus
+  git:
+    repo: "{{ prospectus_repo }}"
+    dest: "{{ prospectus_build_server_repo_path }}"
+    version: "{{ prospectus_version }}"
+  become_user: "{{ prospectus_user }}"
+
+- name: build virtualenv with python2.7
+  command: "virtualenv --python=python2.7 {{ prospectus_venv_dir }}"
+  args:
+    creates: "{{ prospectus_venv_dir }}/bin/pip"
+  become_user: "{{ prospectus_user }}"
+  when: not edx_django_service_use_python3
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Pin pip to a specific version.
+  command: "{{ prospectus_venv_dir }}/bin/pip install pip=={{ common_pip_version }}"
+  become_user: "{{ prospectus_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add prospectus configuration file
+  template:
+    src: ".env.environment.j2"
+    dest: "{{ prospectus_build_server_repo_path }}/config/.env.{{ prospectus_environment }}"
+    mode: "0644"
+    owner: "{{ prospectus_user }}"
+    group: "{{ prospectus_user }}"
+
+# NOTE (CCB): Ideally we should use the pip Ansible command,
+# but that doesn't seem to work with the Python 3.x virtualenv.
+- name: install nodenv
+  command: pip install nodeenv
+  become_user: "{{ prospectus_user }}"
+  environment: "{{ prospectus_env_vars }}"
+  tags:
+    - install
+    - install:system-requirements
+
+# Install node
+- name: create nodeenv
+  shell: "{{ prospectus_venv_dir }}/bin/nodeenv {{ prospectus_nodeenv_dir }} --node={{ prospectus_node_version }} --prebuilt --force"
+  tags:
+    - install
+    - install:system-requirements
+
+# Set the npm registry
+# This needs to be done as root since npm is weird about
+# chown - https://github.com/npm/npm/issues/3565
+- name: Set the npm registry
+  shell: "npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'"
+  args:
+    creates: "{{ prospectus_app_dir }}/.npmrc"
+  environment: "{{ prospectus_env_vars }}"
+  tags:
+    - install
+    - install:app-requirements
+
+# Set the npm registry permissions
+- name: Set the npm registry permissions
+  file:
+    path: "{{ prospectus_app_dir }}/.npmrc"
+    owner: "{{ prospectus_user }}"
+    group: "{{ prospectus_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+- name: install node dependencies
+  shell: "{{ prospectus_nodeenv_bin }}/npm install"
+  args:
+    chdir: "{{ prospectus_app_dir }}"
+  environment: "{{ prospectus_env_vars }}"
+  become_user: "{{ prospectus_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+- name: install node dependencies
+  shell: "{{ prospectus_nodeenv_bin }}/npm run build"
+  args:
+    chdir: "{{ prospectus_app_dir }}"
+  environment: "{{ prospectus_env_vars }}"
+  become_user: "{{ prospectus_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+# Copy over the target from the previous build to where it needs to be
+- name: Create data folder
+  file:
+    path: "{{ PROSPECTUS_DATA_DIR }}"
+    state: directory
+    owner: "{{ prospectus_user }}"
+    group: "{{ prospectus_user }}"
+
+- name: Copy prospectus static files
+  synchronize: # Copy is insanely slow, don't use it
+    src: "{{ prospectus_app_dir }}/public/" # include trailing slash as we just want the files
+    dest: "{{ PROSPECTUS_DATA_DIR }}"

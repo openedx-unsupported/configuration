@@ -1,3 +1,6 @@
+- Role: prospectus
+  - New role added to configure the prospectus service
+
 - Removed the obsolete install_stack.sh file (the last reference to fullstack)
 
 - Role: nginx
