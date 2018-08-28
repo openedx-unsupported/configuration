@@ -120,17 +120,6 @@ def parse_args():
                         default=5,
                         help="How long to delay message display from sqs "
                              "to ensure ordering")
-    parser.add_argument("--hipchat-room-id", required=False,
-                        default=None,
-                        help="The API ID of the Hipchat room to post"
-                             "status messages to")
-    parser.add_argument("--ansible-hipchat-room-id", required=False,
-                        default='Hammer',
-                        help="The room used by the abbey instance for "
-                             "printing verbose ansible run data.")
-    parser.add_argument("--hipchat-api-token", required=False,
-                        default=None,
-                        help="The API token for Hipchat integration")
     parser.add_argument("--callback-url", required=False,
                         default=None,
                         help="The callback URL to send notifications to")
@@ -291,11 +280,6 @@ SQS_NAME={queue_name}
 SQS_REGION={region}
 SQS_MSG_PREFIX="[ $instance_id $instance_ip $environment-$deployment $play ]"
 PYTHONUNBUFFERED=1
-HIPCHAT_TOKEN={hipchat_token}
-HIPCHAT_ROOM={hipchat_room}
-HIPCHAT_MSG_PREFIX="$environment-$deployment-$play: "
-HIPCHAT_FROM="ansible-$instance_id"
-HIPCHAT_MSG_COLOR=$(echo -e "yellow\\ngreen\\npurple\\ngray" | shuf | head -1)
 DATADOG_API_KEY={datadog_api_key}
 # environment for ansible
 export ANSIBLE_ENABLE_SQS SQS_NAME SQS_REGION SQS_MSG_PREFIX PYTHONUNBUFFERED
@@ -522,8 +506,6 @@ ansible-playbook -vvvv -c local -i "localhost," stop_all_edx_services.yml $extra
 rm -rf $base_dir
 
     """.format(
-                hipchat_token=args.hipchat_api_token,
-                hipchat_room=args.ansible_hipchat_room_id,
                 configuration_version=args.configuration_version,
                 configuration_secure_version=args.configuration_secure_version,
                 configuration_secure_repo=args.configuration_secure_repo,
@@ -834,22 +816,6 @@ def launch_and_configure(ec2_args):
 
     return run_summary, ami
 
-
-def send_hipchat_message(message):
-    print(message)
-    if args.callback_url:
-        r=requests.get("{}/{}".format(args.callback_url, message))
-    else:
-        #If hipchat is configured send the details to the specified room
-        if args.hipchat_api_token and args.hipchat_room_id:
-            import hipchat
-            try:
-                hipchat = hipchat.HipChat(token=args.hipchat_api_token)
-                hipchat.message_room(args.hipchat_room_id, 'AbbeyNormal',
-                                     message)
-            except Exception as e:
-                print("Hipchat messaging resulted in an error: %s." % e)
-
 if __name__ == '__main__':
 
     args = parse_args()
@@ -925,8 +891,8 @@ if __name__ == '__main__':
                 environment=args.environment,
                 deployment=args.deployment,
                 play=args.play)
+            print(message)
 
-            send_hipchat_message(message)
     except Exception as e:
         message = 'An error occurred building AMI for {environment} ' \
             '{deployment} {play}.  The Exception was {exception}'.format(
@@ -934,7 +900,7 @@ if __name__ == '__main__':
                 deployment=args.deployment,
                 play=args.play,
                 exception=repr(e))
-        send_hipchat_message(message)
+        print(message)
         error_in_abbey_run = True
     finally:
         print
