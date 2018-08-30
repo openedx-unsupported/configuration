@@ -1,3 +1,6 @@
+- Role: edxapp
+  - `EDXAPP_CACHE_BACKEND` added to allow overriding Django's memcache backend
+
 - Removed the obsolete install_stack.sh file (the last reference to fullstack)
 
 - Role: nginx
