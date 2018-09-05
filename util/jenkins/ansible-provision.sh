@@ -327,6 +327,7 @@ ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
 JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
 JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
 JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
 JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
