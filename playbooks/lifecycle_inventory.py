@@ -88,7 +88,7 @@ class LifecycleInventory():
 if __name__=="__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--region', help='The aws region to use when connecting.', default='us-east-1')
+    parser.add_argument('-r', '--region', help='The aws region to use when connecting.', default=environ.get('AWS_REGION', 'us-east-1'))
     parser.add_argument('-l', '--list', help='Ansible passes this, we ignore it.', action='store_true', default=True)
     args = parser.parse_args()
 
