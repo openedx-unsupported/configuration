@@ -55,8 +55,16 @@ def collect_ips(file_name):
             rds_instances = entry[rds_instances_key]
             for instance in rds_instances:
                 display_name = instance['display_name']
-                instance_id   = instance['instance_id']
-                print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
+                instance_id = None
+                if instance.has_key('instance_id'):
+                    instance_id   = instance['instance_id']
+                    print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
+                elif instance.has_key('cluster_id'):
+                    cluster_id    = instance['cluster_id']
+                    instance_id   = get_writer_instance_id_by_cluster_id(cluster_id)
+                    print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
+                else:
+                    raise ValueError('Cant locate RDS instance without instance_id or cluster_id')
 
         static_entries_key = 'static_entries'
         if entry.has_key(static_entries_key):
@@ -126,6 +134,17 @@ def get_elasticache_ip_by_cluster_id(cluster_id):
     )
     hostname = response['CacheClusters'][0]['CacheNodes'][0]['Endpoint']['Address']
     return get_ip_for_hostname(hostname)
+
+def get_writer_instance_id_by_cluster_id(cluster_id):
+    client = boto3.client('rds')
+    response = client.describe_db_clusters(
+        DBClusterIdentifier=cluster_id
+    )
+    members = response['DBClusters'][0]['DBClusterMembers']
+    for member in members:
+        if member['IsClusterWriter']:
+            return member['DBInstanceIdentifier']
+    raise ValueError('Could not locate RDS instance with given instance_id or cluster_id')
 
 def get_rds_ip_by_instance_id(instance_id):
     client = boto3.client('rds')
