@@ -1,3 +1,10 @@
+# Remove all of the old code
+- name: Remove read-only ssh key for the prospectus repo
+  file:
+    path: "{{ prospectus_git_identity }}"
+    state: absent
+  when: PROSPECTUS_GIT_IDENTITY != "none"
+
 - name: Remove old git repo
   file:
     state: absent
@@ -13,13 +20,45 @@
     state: absent
     path: "{{ PROSPECTUS_DATA_DIR }}"
 
-- name: Create clone of prospectus
+- name: Create ssh script for git
+  template:
+    src: "{{ prospectus_git_ssh | basename }}.j2"
+    dest: "{{ prospectus_git_ssh }}"
+    owner: "{{ prospectus_user }}"
+    mode: "0750"
+
+# This key is only needed if you are pulling down a private
+# prospectus repo
+- name: Install read-only ssh key for the prospectus repo
+  copy:
+    content: "{{ PROSPECTUS_GIT_IDENTITY }}"
+    dest: "{{ prospectus_git_identity }}"
+    force: yes
+    owner: "{{ prospectus_user }}"
+    mode: "0600"
+  when: PROSPECTUS_GIT_IDENTITY != "none"
+
+- name: "Checkout prospectus repo into {{ prospectus_code_dir }}"
   git:
+    dest: "{{ prospectus_code_dir }}"
     repo: "{{ prospectus_repo }}"
-    dest: "{{ prospectus_build_server_repo_path }}"
     version: "{{ prospectus_version }}"
     accept_hostkey: yes
   become_user: "{{ prospectus_user }}"
+  environment:
+    GIT_SSH: "{{ prospectus_git_ssh }}"
+  register: prospectus_checkout
+  when: PROSPECTUS_GIT_IDENTITY != "none"
+
+- name: Checkout prospectus repo into {{ prospectus_code_dir }}
+  git:
+    dest: "{{ prospectus_code_dir }}"
+    repo: "{{ prospectus_repo }}"
+    version: "{{ prospectus_version }}"
+    accept_hostkey: yes
+  become_user: "{{ prospectus_user }}"
+  register: prospectus_checkout
+  when: PROSPECTUS_GIT_IDENTITY == "none"
 
 - name: build virtualenv with python2.7
   command: "virtualenv --python=python2.7 {{ prospectus_venv_dir }}"
@@ -69,7 +108,7 @@
 - name: Set the npm registry
   shell: "npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'"
   args:
-    creates: "{{ prospectus_app_dir }}/.npmrc"
+    creates: "{{ prospectus_code_dir }}/.npmrc"
   environment: "{{ prospectus_env_vars }}"
   tags:
     - install
@@ -78,7 +117,7 @@
 # Set the npm registry permissions
 - name: Set the npm registry permissions
   file:
-    path: "{{ prospectus_app_dir }}/.npmrc"
+    path: "{{ prospectus_code_dir }}/.npmrc"
     owner: "{{ prospectus_user }}"
     group: "{{ prospectus_user }}"
   tags:
@@ -89,7 +128,7 @@
 - name: install node dependencies
   shell: "{{ prospectus_nodeenv_bin }}/npm install"
   args:
-    chdir: "{{ prospectus_app_dir }}"
+    chdir: "{{ prospectus_code_dir }}"
   environment: "{{ prospectus_env_vars }}"
   become_user: "{{ prospectus_user }}"
   tags:
@@ -100,7 +139,7 @@
 - name: install node dependencies
   shell: "{{ prospectus_nodeenv_bin }}/npm run build"
   args:
-    chdir: "{{ prospectus_app_dir }}"
+    chdir: "{{ prospectus_code_dir }}"
   environment: "{{ prospectus_env_vars }}"
   become_user: "{{ prospectus_user }}"
   tags:
@@ -117,5 +156,5 @@
 
 - name: Copy prospectus static files
   synchronize: # Copy is insanely slow, don't use it
-    src: "{{ prospectus_app_dir }}/public/" # include trailing slash as we just want the files
+    src: "{{ prospectus_code_dir }}/public/" # include trailing slash as we just want the files
     dest: "{{ PROSPECTUS_DATA_DIR }}"
