@@ -1,3 +1,6 @@
+- Role: prospectus
+  - New role added to configure the prospectus service
+
 - Role: edxapp
   - `EDXAPP_CACHE_BACKEND` added to allow overriding Django's memcache backend
 
