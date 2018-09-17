@@ -71,7 +71,7 @@ def collect_ips(file_name):
             static_entries = entry[static_entries_key]
             for item in static_entries:
                 display_name = item['display_name']
-                display_value   = item['display_value']
+                display_value = item['display_value']
                 print_line_item(display_name, display_value)
 
 
