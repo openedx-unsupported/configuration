@@ -24,13 +24,22 @@ def collect_ips(file_name):
             for hostname in external_hostnames:
                 print_line_item(hostname, get_ip_for_hostname(hostname))
 
-        internal_hostnames_key = 'ec2_name_tags'
-        if entry.has_key(internal_hostnames_key):
-            internal_name_tags = entry[internal_hostnames_key]
-            for pair in internal_name_tags:
+        ec2_instance_name_tags_key = 'ec2_instance_name_tags'
+        if entry.has_key(ec2_instance_name_tags_key):
+            ec2_name_tags = entry[ec2_instance_name_tags_key]
+            for pair in ec2_name_tags:
                 display_name = pair['display_name']
                 aws_tag_name = pair['aws_tag_name']
                 ip = get_instance_ip_by_name_tag(aws_tag_name)
+                print_line_item(display_name, ip)
+
+        ec2_elb_name_tags_key = 'ec2_elb_name_tags'
+        if entry.has_key(ec2_elb_name_tags_key):
+            ec2_elb_name_tags = entry[ec2_elb_name_tags_key]
+            for pair in ec2_elb_name_tags:
+                display_name = pair['display_name']
+                elb_name = pair['elb_name']
+                ip = get_elb_ip_by_elb_name(elb_name)
                 print_line_item(display_name, ip)
 
         elasticache_clusters_key = 'elasticache_clusters'
@@ -46,8 +55,24 @@ def collect_ips(file_name):
             rds_instances = entry[rds_instances_key]
             for instance in rds_instances:
                 display_name = instance['display_name']
-                instance_id   = instance['instance_id']
-                print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
+                instance_id = None
+                if instance.has_key('instance_id'):
+                    instance_id   = instance['instance_id']
+                    print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
+                elif instance.has_key('cluster_id'):
+                    cluster_id    = instance['cluster_id']
+                    instance_id   = get_writer_instance_id_by_cluster_id(cluster_id)
+                    print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
+                else:
+                    raise ValueError('Cant locate RDS instance without instance_id or cluster_id')
+
+        static_entries_key = 'static_entries'
+        if entry.has_key(static_entries_key):
+            static_entries = entry[static_entries_key]
+            for item in static_entries:
+                display_name = item['display_name']
+                display_value = item['display_value']
+                print_line_item(display_name, display_value)
 
 
 cli.add_command(collect_ips)
@@ -81,6 +106,16 @@ def get_instance_ip_by_name_tag(value):
             ip = i['PrivateIpAddress']
             return ip
 
+def get_elb_ip_by_elb_name(elb_name):
+    client = boto3.client('elb')
+    response = client.describe_load_balancers(
+        LoadBalancerNames=[
+            elb_name,
+        ]
+    )
+    hostname = response['LoadBalancerDescriptions'][0]['DNSName']
+    return get_ip_for_hostname(hostname)
+
 def get_elasticache_ip_by_cluster_id(cluster_id):
     client = boto3.client('elasticache')
     response = client.describe_cache_clusters(
@@ -99,6 +134,17 @@ def get_elasticache_ip_by_cluster_id(cluster_id):
     )
     hostname = response['CacheClusters'][0]['CacheNodes'][0]['Endpoint']['Address']
     return get_ip_for_hostname(hostname)
+
+def get_writer_instance_id_by_cluster_id(cluster_id):
+    client = boto3.client('rds')
+    response = client.describe_db_clusters(
+        DBClusterIdentifier=cluster_id
+    )
+    members = response['DBClusters'][0]['DBClusterMembers']
+    for member in members:
+        if member['IsClusterWriter']:
+            return member['DBInstanceIdentifier']
+    raise ValueError('Could not locate RDS instance with given instance_id or cluster_id')
 
 def get_rds_ip_by_instance_id(instance_id):
     client = boto3.client('rds')
