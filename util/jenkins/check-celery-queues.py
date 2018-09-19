@@ -62,38 +62,6 @@ class CwBotoWrapper(object):
     def put_metric_alarm(self, *args, **kwargs):
         return self.client.put_metric_alarm(*args, **kwargs)
 
-class Ec2BotoWrapper(object):
-    def __init__(self):
-        self.client = boto3.client('ec2')
-
-    @backoff.on_exception(backoff.expo,
-                          (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
-    def describe_instances(self, *args, **kwargs):
-        return self.client.describe_instances(*args, **kwargs)
-
-def count_workers(environment, deploy, play, cluster):
-    ec2 = Ec2BotoWrapper()
-
-    num_workers = len(ec2.describe_instances(
-        Filters=[
-            {'Name': 'tag:environment', 'Values': [environment]},
-            {'Name': 'tag:deployment', 'Values': [deploy]},
-            {'Name': 'tag:play', 'Values': [play]},
-            {'Name': 'tag:cluster', 'Values': [cluster]},
-            {'Name': 'instance-state-name', 'Values': ['running']},
-        ]
-    )['Reservations'])
-    metric_data = {
-        'MetricName': 'count',
-        'Dimensions': [{
-            "Name": "workers",
-            "Value": play
-        }],
-        'Value': num_workers
-    }
-
-    return metric_data
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
@@ -186,10 +154,6 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                                         InsufficientDataActions=actions,
                                         OKActions=actions,
                                         AlarmActions=actions)
-
-    # Track number of worker instances so it can be graphed in CloudWatch
-    workers_metric_data = count_workers(environment, deploy, 'edxapp', 'worker')
-    cloudwatch.put_metric_data(Namespace=namespace, MetricData=[workers_metric_data])
 
 # Stolen right from the itertools recipes
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
