@@ -31,6 +31,15 @@
     mode: "{{ item.value.mode }}"
   with_dict: "{{ vhost_dirs }}"
 
+- name: Add script for syncing logs on exit
+  template:
+    src: sync-logs-on-exit.j2
+    dest: "{{ COMMON_OBJECT_STORE_LOG_SYNC_ON_EXIT }}"
+    owner: root
+    group: root
+    mode: 0744
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
 - name: Force logrotate on supervisor stop
   template:
     src: etc/init/sync-on-stop.conf.j2
@@ -39,6 +48,18 @@
     group: root
     mode: 0644
   when: COMMON_OBJECT_STORE_LOG_SYNC
+        and (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
+
+# With systemd, log rotation should be run with an `ExecStop` directive
+# of `syslog.service` to ensure that rsyslogd will not be killed before attempt
+# of syncing logs.
+- name: Force logrotate on syslog stop
+  lineinfile:
+    path: /etc/systemd/system/syslog.service
+    line: "ExecStop={{ COMMON_OBJECT_STORE_LOG_SYNC_ON_EXIT }}"
+    insertafter: "^ExecStart=.*$"
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+        and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
 
 - name: Update /etc/dhcp/dhclient.conf
   template:
