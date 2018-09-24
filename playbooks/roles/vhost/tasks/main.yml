@@ -50,14 +50,23 @@
   when: COMMON_OBJECT_STORE_LOG_SYNC
         and (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
 
-# With systemd, log rotation should be run with an `ExecStop` directive
-# of `syslog.service` to ensure that rsyslogd will not be killed before attempt
-# of syncing logs.
-- name: Force logrotate on syslog stop
-  lineinfile:
-    path: /etc/systemd/system/syslog.service
-    line: "ExecStop={{ COMMON_OBJECT_STORE_LOG_SYNC_ON_EXIT }}"
-    insertafter: "^ExecStart=.*$"
+# With systemd, log rotation should be run before the `rsyslog` service exits
+# to ensure that all logs are compressed and synced before shutting down the server.
+- name: Add systemd service for syncing logs on exit
+  template:
+    src: etc/systemd/system/sync-logs-on-exit.service.j2
+    dest: /etc/systemd/system/sync-logs-on-exit.service
+    owner: root
+    group: root
+    mode: 0644
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+        and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
+
+- name: Enable systemd service for syncing logs on exit
+  systemd:
+    name: sync-logs-on-exit
+    enabled: yes
+    daemon_reload: yes
   when: COMMON_OBJECT_STORE_LOG_SYNC
         and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
 
