@@ -65,13 +65,13 @@ server {
 
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
 
-  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # Do not include a 502 error in NGINX_ERROR_PAGES when
   # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
 
   error_page 502 @maintenance;
 
     {% include "s3_maintenance.j2" %}
-  
+
   {% endif %}
 
   # error pages
@@ -98,7 +98,7 @@ error_page {{ k }} {{ v }};
 
 
   {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
-  
+
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
   error_log {{ nginx_log_dir }}/error.log error;
 
@@ -285,6 +285,10 @@ location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
       deny all;
       try_files $uri @proxy_to_lms_app;
   }
+{% endif %}
+
+{% if ENABLE_HMX_WORDPRESS %}
+  {% include "hmx_location.j2" %}
 {% endif %}
 
   {% include "robots.j2" %}
