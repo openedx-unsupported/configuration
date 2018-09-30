@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `EDXAPP_LOGIN_REDIRECT_WHITELIST` which provides a whitelist of domains to which the login/logout pages will redirect.
+
 - Role: prospectus
   - New role added to configure the prospectus service
 
