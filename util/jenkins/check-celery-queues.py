@@ -97,10 +97,17 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     existing_queues = []
     for m in response["Metrics"]:
         existing_queues.extend(
-            [d['Value'] for d in m["Dimensions"] if d['Name'] == dimension])
+            [d['Value'] for d in m["Dimensions"] if (
+                d['Name'] == dimension and
+                not d['Value'].endswith(".pidbox") and
+                not d['Value'].startswith("_kombu"))]
+        )
 
     redis_queues = set([k.decode() for k in redis_client.keys()
-                        if redis_client.type(k) == b'list'])
+                        if (redis_client.type(k) == b'list' and
+                            not k.decode().endswith(".pidbox") and
+                            not k.decode().startswith("_kombu"))])
+    print("redis_queues", redis_queues)
 
     all_queues = existing_queues + list(
         set(redis_queues).difference(existing_queues)
