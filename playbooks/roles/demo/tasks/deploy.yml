@@ -10,7 +10,7 @@
   register: demo_checkout
 
 - name: import demo course
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py cms --settings={{ demo_edxapp_settings }} import {{ demo_edxapp_course_data_dir }} {{ demo_code_dir }}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ demo_edxapp_venv_bin }}/python ./manage.py cms --settings={{ demo_edxapp_settings }} import {{ demo_edxapp_course_data_dir }} {{ demo_code_dir }}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
@@ -31,7 +31,7 @@
     demo_test_admin_and_staff_users: "{{ demo_test_and_staff_users + SANDBOX_EDXAPP_USERS }}"
 
 - name: create some test users
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}{% if item.is_staff %} --staff{% endif %}{% if item.is_superuser %} --superuser{% endif %}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}{% if item.is_staff %} --staff{% endif %}{% if item.is_superuser %} --superuser{% endif %}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
@@ -39,7 +39,7 @@
   when: demo_checkout.changed
 
 - name: enroll test users in the demo course
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms enroll_user_in_course -e {{ item.email }} -c {{ demo_course_id }}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms enroll_user_in_course -e {{ item.email }} -c {{ demo_course_id }}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
@@ -48,14 +48,14 @@
   when: demo_checkout.changed
 
 - name: add test users to the certificate whitelist
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms cert_whitelist -a {{ item.email }} -c {{ demo_course_id }}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} --service-variant lms cert_whitelist -a {{ item.email }} -c {{ demo_course_id }}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   with_items: "{{ demo_test_users }}"
   when: demo_checkout.changed
 
 - name: seed the forums for the demo course
-  shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} seed_permissions_roles {{ demo_course_id }}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings={{ demo_edxapp_settings }} seed_permissions_roles {{ demo_course_id }}"
   args:
     chdir: "{{ demo_edxapp_code_dir }}"
   with_items: "{{ demo_test_users }}"
