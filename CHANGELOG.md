@@ -1,3 +1,6 @@
+- Role: edx_notes_api
+  - Added `JWT_AUTH` to edx-notes-api that is used in other IDAs.
+
 - Role: edxapp
   - Added `EDXAPP_LOGIN_REDIRECT_WHITELIST` which provides a whitelist of domains to which the login/logout pages will redirect.
 
