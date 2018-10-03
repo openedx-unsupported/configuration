@@ -1,11 +1,15 @@
 import redis
+import json
+import datetime
 import click
 import boto3
 import botocore
 import backoff
 from itertools import zip_longest
 
-max_tries = 5
+MAX_TRIES = 5
+QUEUE_AGE_HASH_NAME = "queue_age_monitoring"
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
 class RedisWrapper(object):
@@ -15,23 +19,44 @@ class RedisWrapper(object):
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def keys(self):
         return self.redis.keys()
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def type(self, key):
         return self.redis.type(key)
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def llen(self, key):
         return self.redis.llen(key)
+
+    @backoff.on_exception(backoff.expo,
+                          (redis.exceptions.TimeoutError,
+                           redis.exceptions.ConnectionError),
+                          max_tries=MAX_TRIES)
+    def lindex(self, key, index):
+        return self.redis.lindex(key, index)
+
+    @backoff.on_exception(backoff.expo,
+                          (redis.exceptions.TimeoutError,
+                           redis.exceptions.ConnectionError),
+                          max_tries=MAX_TRIES)
+    def hgetall(self, key):
+        return self.redis.hgetall(key)
+
+    @backoff.on_exception(backoff.expo,
+                          (redis.exceptions.TimeoutError,
+                           redis.exceptions.ConnectionError),
+                          max_tries=MAX_TRIES)
+    def hset(self, key, field, value):
+        return self.redis.hset(key, field, value)
 
 
 class CwBotoWrapper(object):
@@ -40,27 +65,50 @@ class CwBotoWrapper(object):
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def list_metrics(self, *args, **kwargs):
         return self.client.list_metrics(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
         return self.client.put_metric_data(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def describe_alarms_for_metric(self, *args, **kwargs):
         return self.client.describe_alarms_for_metric(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def put_metric_alarm(self, *args, **kwargs):
         return self.client.put_metric_alarm(*args, **kwargs)
+
+def build_new_state(old_state, queue_first_items, current_time):
+    new_state = {}
+    for queue_name, first_item_encoded in queue_first_items.items():
+        # TODO: Catch/Handle exception if not json
+        first_item = json.loads(first_item_encoded)
+        # TODO: Handle keys missing in data
+        correlation_id = first_item['properties']['correlation_id']
+        first_occurance_time = current_time
+
+        if queue_name in old_state:
+            queue_old_state = json.loads(old_state[queue_name])
+            old_correlation_id = queue_old_state['correlation_id']
+            if old_correlation_id == correlation_id:
+                first_occurance_time = datetime.datetime.strptime(
+                    queue_old_state['first_occurance_time'], DATE_FORMAT)
+
+        new_state[queue_name] = {
+            'correlation_id': correlation_id,
+            'first_occurance_time': first_occurance_time,
+        }
+
+    return new_state
 
 
 @click.command()
@@ -88,6 +136,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     namespace = "celery/{}-{}".format(environment, deploy)
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
+    redis_client2 = RedisWrapper(host='localhost', port=port, socket_timeout=timeout,
+                                socket_connect_timeout=timeout)
     cloudwatch = CwBotoWrapper()
     metric_name = 'queue_length'
     dimension = 'queue'
@@ -107,60 +157,70 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                         if (redis_client.type(k) == b'list' and
                             not k.decode().endswith(".pidbox") and
                             not k.decode().startswith("_kombu"))])
-    print("redis_queues", redis_queues)
 
     all_queues = existing_queues + list(
         set(redis_queues).difference(existing_queues)
     )
+    queue_age_hash = redis_client2.hgetall(QUEUE_AGE_HASH_NAME)
+    old_state = {k.decode("utf-8"): v for k,v in queue_age_hash.items()}
 
-    for queues in grouper(all_queues, max_metrics):
-        # grouper can return a bunch of Nones and we want to skip those
-        queues = [q for q in queues if q is not None]
-        metric_data = []
-        for queue in queues:
-            metric_data.append({
-                'MetricName': metric_name,
-                'Dimensions': [{
-                    "Name": dimension,
-                    "Value": queue
-                }],
-                'Value': redis_client.llen(queue)
-            })
+    metric_data = []
 
-        if len(metric_data) > 0:
-            cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+    queue_first_items = {}
+    current_time = datetime.datetime.now()
+    for queue_name in all_queues:
+        queue_first_items[queue_name] = redis_client.lindex(queue_name, 0)
 
-        for queue in queues:
-            dimensions = [{'Name': dimension, 'Value': queue}]
-            queue_threshold = threshold
-            if queue in thresholds:
-                queue_threshold = thresholds[queue]
-            # Period is in seconds
-            period = 60
-            evaluation_periods = 15
-            comparison_operator = "GreaterThanThreshold"
-            treat_missing_data = "notBreaching"
-            statistic = "Maximum"
-            actions = [sns_arn]
-            alarm_name = "{}-{} {} queue length over threshold".format(environment,
-                                                                       deploy,
-                                                                       queue)
-            
-            print('Creating or updating alarm "{}"'.format(alarm_name))
-            cloudwatch.put_metric_alarm(AlarmName=alarm_name,
-                                        AlarmDescription=alarm_name,
-                                        Namespace=namespace,
-                                        MetricName=metric_name,
-                                        Dimensions=dimensions,
-                                        Period=period,
-                                        EvaluationPeriods=evaluation_periods,
-                                        TreatMissingData=treat_missing_data,
-                                        Threshold=queue_threshold,
-                                        ComparisonOperator=comparison_operator,
-                                        Statistic=statistic,
-                                        InsufficientDataActions=actions,
-                                        OKActions=actions,
-                                        AlarmActions=actions)
+    new_state = build_new_state(old_state, queue_first_items, current_time)
+    print("new state {}".format(new_state))
+#    redis_client2.hset(QUEUE_AGE_HASH_NAME, queue_name, new_data)
+
+    for queue_name in all_queues:
+        metric_data.append({
+            'MetricName': metric_name,
+            'Dimensions': [{
+                "Name": dimension,
+                "Value": queue_name
+            }],
+            'Value': redis_client.llen(queue_name)
+        })
+
+    if len(metric_data) > 0:
+        for metric_data_grouped in grouper(metric_data, max_metrics):
+            print("metric_data {}".format(metric_data))
+            #cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+
+    for queue in all_queues:
+        dimensions = [{'Name': dimension, 'Value': queue}]
+        queue_threshold = threshold
+        if queue in thresholds:
+            queue_threshold = thresholds[queue]
+        # Period is in seconds
+        period = 60
+        evaluation_periods = 15
+        comparison_operator = "GreaterThanThreshold"
+        treat_missing_data = "notBreaching"
+        statistic = "Maximum"
+        actions = [sns_arn]
+        alarm_name = "{}-{} {} queue length over threshold".format(environment,
+                                                                   deploy,
+                                                                   queue)
+
+        print('Creating or updating alarm "{}"'.format(alarm_name))
+        cloudwatch.put_metric_alarm(AlarmName=alarm_name,
+                                    AlarmDescription=alarm_name,
+                                    Namespace=namespace,
+                                    MetricName=metric_name,
+                                    Dimensions=dimensions,
+                                    Period=period,
+                                    EvaluationPeriods=evaluation_periods,
+                                    TreatMissingData=treat_missing_data,
+                                    Threshold=queue_threshold,
+                                    ComparisonOperator=comparison_operator,
+                                    Statistic=statistic,
+                                    InsufficientDataActions=actions,
+                                    OKActions=actions,
+                                    AlarmActions=actions)
 
 # Stolen right from the itertools recipes
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
@@ -168,7 +228,10 @@ def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+    chunks = zip_longest(*args, fillvalue=fillvalue)
+    # Remove Nones in function
+    for chunk in chunks:
+        yield [v for v in chunk if v is not None]
 
 if __name__ == '__main__':
     check_queues()
