@@ -35,11 +35,6 @@ class RedisWrapper(object):
     def llen(self, key):
         return self.redis.llen(key)
 
-    @backoff.on_exception(backoff.expo,
-                          (redis.exceptions.TimeoutError,
-                           redis.exceptions.ConnectionError),
-                          max_tries=MAX_TRIES)
-
 
 class CwBotoWrapper(object):
     def __init__(self):
@@ -119,14 +114,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     all_queues = existing_queues + list(
         set(redis_queues).difference(existing_queues)
     )
-    queue_age_hash = redis_client2.hgetall(QUEUE_AGE_HASH_NAME)
-    old_state = {k.decode("utf-8"): v for k,v in queue_age_hash.items()}
 
     metric_data = []
-
-    queue_first_items = {}
-    for queue_name in all_queues:
-        queue_first_items[queue_name] = redis_client.lindex(queue_name, 0)
 
     for queue_name in all_queues:
         metric_data.append({
