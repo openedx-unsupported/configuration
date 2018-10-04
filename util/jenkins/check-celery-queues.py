@@ -6,8 +6,6 @@ import backoff
 from itertools import zip_longest
 
 MAX_TRIES = 5
-QUEUE_AGE_HASH_NAME = "queue_age_monitoring"
-DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
 class RedisWrapper(object):
