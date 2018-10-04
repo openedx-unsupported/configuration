@@ -50,8 +50,7 @@ class CwBotoWrapper(object):
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
-        #return self.client.put_metric_data(*args, **kwargs)
-        return True
+        return self.client.put_metric_data(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
@@ -63,8 +62,7 @@ class CwBotoWrapper(object):
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_alarm(self, *args, **kwargs):
-        #return self.client.put_metric_alarm(*args, **kwargs)
-        return True
+        return self.client.put_metric_alarm(*args, **kwargs)
 
 
 @click.command()
