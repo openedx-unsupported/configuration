@@ -1,6 +1,4 @@
 import redis
-import json
-import datetime
 import click
 import boto3
 import botocore
@@ -87,7 +85,8 @@ class CwBotoWrapper(object):
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
-        return self.client.put_metric_data(*args, **kwargs)
+        #return self.client.put_metric_data(*args, **kwargs)
+        return True
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
@@ -99,42 +98,9 @@ class CwBotoWrapper(object):
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_alarm(self, *args, **kwargs):
-        return self.client.put_metric_alarm(*args, **kwargs)
+        #return self.client.put_metric_alarm(*args, **kwargs)
+        return True
 
-
-def datetime_from_str(string):
-    return datetime.datetime.strptime(string, DATE_FORMAT)
-
-def str_from_datetime(dt):
-    return dt.strftime(DATE_FORMAT)
-
-
-def build_new_state(old_state, queue_first_items, current_time):
-    new_state = {}
-    for queue_name, first_item_encoded in queue_first_items.items():
-        # TODO: Catch/Handle exception if not json
-        first_item = json.loads(first_item_encoded)
-        # TODO: Handle keys missing in data
-        correlation_id = first_item['properties']['correlation_id']
-        first_occurance_time = current_time
-
-        if queue_name in old_state:
-            try:
-                queue_old_state = json.loads(old_state[queue_name])
-                old_correlation_id = queue_old_state['correlation_id']
-                if old_correlation_id == correlation_id:
-                    old_time_str = queue_old_state['first_occurance_time']
-                    first_occurance_time = datetimefrom_str(old_time_str)
-            except json.decoder.JSONDecodeError as e:
-                # TODO: Error message, maybe non-zero exit code
-                print("Error decoding for queue \"{}\": {}".format(queue_name, e))
-
-        new_state[queue_name] = {
-            'correlation_id': correlation_id,
-            'first_occurance_time': first_occurance_time,
-        }
-
-    return new_state
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
@@ -161,22 +127,19 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     namespace = "celery/{}-{}".format(environment, deploy)
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
-    redis_client2 = RedisWrapper(host='localhost', port=port, socket_timeout=timeout,
-                                socket_connect_timeout=timeout)
     cloudwatch = CwBotoWrapper()
     metric_name = 'queue_length'
     dimension = 'queue'
-    response = cloudwatch.list_metrics(Namespace=namespace,
-                                       MetricName=metric_name,
-                                       Dimensions=[{'Name': dimension}])
+##    response = cloudwatch.list_metrics(Namespace=namespace,
+##                                       MetricName=metric_name,
+##                                       Dimensions=[{'Name': dimension}])
     existing_queues = []
-    for m in response["Metrics"]:
-        existing_queues.extend(
-            [d['Value'] for d in m["Dimensions"] if (
-                d['Name'] == dimension and
-                not d['Value'].endswith(".pidbox") and
-                not d['Value'].startswith("_kombu"))]
-        )
+##    for m in response["Metrics"]:
+##        existing_queues.extend(
+##            [d['Value'] for d in m["Dimensions"] if (
+##                d['Name'] == dimension and
+##                not d['Value'].endswith(".pidbox") and
+##                not d['Value'].startswith("_kombu"))])
 
     redis_queues = set([k.decode() for k in redis_client.keys()
                         if (redis_client.type(k) == b'list' and
@@ -192,25 +155,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     metric_data = []
 
     queue_first_items = {}
-    current_time = datetime.datetime.now()
     for queue_name in all_queues:
         queue_first_items[queue_name] = redis_client.lindex(queue_name, 0)
-
-    new_state = build_new_state(old_state, queue_first_items, current_time)
-    print("new state {}".format(new_state))
-
-    redis_new_state = {}
-    for queue_name, queue_new_state in new_state.items():
-        dt_str = str_from_datetime(queue_new_state['first_occurance_time'])
-        redis_new_state[queue_name] = json.dumps({
-            'correlation_id': queue_new_state['correlation_id'],
-            'first_occurance_time': dt_str,
-        })
-
-    redis_client2.delete(QUEUE_AGE_HASH_NAME)
-    redis_new_state.pop('edx.lms.core.default')
-    print("redis new state {}".format(redis_new_state))
-    redis_client2.hmset(QUEUE_AGE_HASH_NAME, redis_new_state)
 
     for queue_name in all_queues:
         metric_data.append({
