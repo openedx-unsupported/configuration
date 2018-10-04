@@ -126,7 +126,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     if len(metric_data) > 0:
         for metric_data_grouped in grouper(metric_data, max_metrics):
             print("metric_data {}".format(metric_data))
-            #cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+            cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
 
     for queue in all_queues:
         dimensions = [{'Name': dimension, 'Value': queue}]
