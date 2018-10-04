@@ -39,36 +39,6 @@ class RedisWrapper(object):
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
-    def lindex(self, key, index):
-        return self.redis.lindex(key, index)
-
-    @backoff.on_exception(backoff.expo,
-                          (redis.exceptions.TimeoutError,
-                           redis.exceptions.ConnectionError),
-                          max_tries=MAX_TRIES)
-    def hgetall(self, key):
-        return self.redis.hgetall(key)
-
-    @backoff.on_exception(backoff.expo,
-                          (redis.exceptions.TimeoutError,
-                           redis.exceptions.ConnectionError),
-                          max_tries=MAX_TRIES)
-    def delete(self, key):
-        return self.redis.delete(key)
-
-    @backoff.on_exception(backoff.expo,
-                          (redis.exceptions.TimeoutError,
-                           redis.exceptions.ConnectionError),
-                          max_tries=MAX_TRIES)
-    def hset(self, *args):
-        return self.redis.hset(*args)
-
-    @backoff.on_exception(backoff.expo,
-                          (redis.exceptions.TimeoutError,
-                           redis.exceptions.ConnectionError),
-                          max_tries=MAX_TRIES)
-    def hmset(self, *args):
-        return self.redis.hmset(*args)
 
 
 class CwBotoWrapper(object):
