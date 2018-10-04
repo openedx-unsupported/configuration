@@ -129,12 +129,11 @@ def build_new_state(old_state, queue_first_items, current_time):
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
 @click.option('--threshold', default=1,
-              help='Default queue maximum item age in minutes'
+              help='Default queue maximum item age in minutes')
 @click.option('--queue-threshold', type=(str, int), multiple=True,
               help='Per queue maximum item age in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times')
-def check_queues(host, port, environment, deploy, max_metrics, threshold,
-                 queue_threshold, sns_arn):
+def check_queues(host, port, environment, deploy, threshold, queue_threshold):
 
     thresholds = dict(queue_threshold)
 
