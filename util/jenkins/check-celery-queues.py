@@ -95,16 +95,16 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     cloudwatch = CwBotoWrapper()
     metric_name = 'queue_length'
     dimension = 'queue'
-##    response = cloudwatch.list_metrics(Namespace=namespace,
-##                                       MetricName=metric_name,
-##                                       Dimensions=[{'Name': dimension}])
+    response = cloudwatch.list_metrics(Namespace=namespace,
+                                       MetricName=metric_name,
+                                       Dimensions=[{'Name': dimension}])
     existing_queues = []
-##    for m in response["Metrics"]:
-##        existing_queues.extend(
-##            [d['Value'] for d in m["Dimensions"] if (
-##                d['Name'] == dimension and
-##                not d['Value'].endswith(".pidbox") and
-##                not d['Value'].startswith("_kombu"))])
+    for m in response["Metrics"]:
+        existing_queues.extend(
+            [d['Value'] for d in m["Dimensions"] if (
+                d['Name'] == dimension and
+                not d['Value'].endswith(".pidbox") and
+                not d['Value'].startswith("_kombu"))])
 
     redis_queues = set([k.decode() for k in redis_client.keys()
                         if (redis_client.type(k) == b'list' and
