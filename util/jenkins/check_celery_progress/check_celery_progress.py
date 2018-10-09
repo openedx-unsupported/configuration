@@ -3,7 +3,10 @@ import json
 import datetime
 import click
 import backoff
-import opsgenie-sdk
+from opsgenie.swagger_client import AlertApi
+from opsgenie.swagger_client import configuration
+from opsgenie.swagger_client.models import CreateAlertRequest
+from opsgenie.swagger_client.rest import ApiException
 from textwrap import dedent
 
 MAX_TRIES = 5
@@ -128,10 +131,22 @@ def build_new_state(old_state, queue_first_items, current_time):
 
 def should_send_alert(first_occurance_time, current_time, threshold):
     time_delta = current_time - first_occurance_time
-    return time_delta.total_seconds() > threshold
+    return time_delta.total_seconds() <= threshold
 
-def send_alert(environment, queue_name, threshold):
-    print(str.format("in {} the {} queue is stale. The first item in this queue has been stationary for longer than it's threshold of {0} seconds", environment, queue_name, threshold) )
+@backoff.on_exception(backoff.expo,
+                          (ApiException),
+                          max_tries=MAX_TRIES)
+def send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
+    
+    configuration.api_key['Authorization'] = opsgenie_api_key
+    configuration.api_key_prefix['Authorization'] = 'GenieKey'
+
+    alert_message = str.format("{}-{} {} queue is stale. Stationary for {}s", environment, deploy, queue_name, threshold)
+    print(alert_message)
+    response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message))
+    print('request id: {}'.format(response.request_id))
+    print('took: {}'.format(response.took))
+    print('result: {}'.format(response.result))
 
 def print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold):
     output = str.format(
@@ -144,6 +159,8 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
             threshold = {}
             default_threshold = {}
         """, queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+    configuration.api_key['Authorization'] = 'YOUR_API_KEY'
+    configuration.api_key_prefix['Authorization'] = 'GenieKey'
     print(dedent(output))
 
 @click.command()
@@ -158,7 +175,8 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
 @click.option('--queue-threshold', type=(str, int), multiple=True,
               help='Per queue maximum item age (seconds) in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times.')
-def check_queues(host, port, environment, deploy, default_threshold, queue_threshold):
+@click.option('--opsgenie_api_key', '-k', required=True)
+def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key):
 
     thresholds = dict(queue_threshold)
 
@@ -197,7 +215,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         do_alert = should_send_alert(first_occurance_time, current_time, threshold)
 
         if do_alert:
-            send_alert(environment, queue_name, threshold)
+            send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold)
         print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
 
 if __name__ == '__main__':
