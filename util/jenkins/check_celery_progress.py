@@ -3,7 +3,6 @@ import json
 import datetime
 import click
 import backoff
-from itertools import zip_longest
 
 MAX_TRIES = 5
 QUEUE_AGE_HASH_NAME = "queue_age_monitoring"
@@ -74,8 +73,10 @@ class RedisWrapper(object):
 def datetime_from_str(string):
     return datetime.datetime.strptime(string, DATE_FORMAT)
 
+
 def str_from_datetime(dt):
     return dt.strftime(DATE_FORMAT)
+
 
 def unpack_state(packed_state):
     decoded_state = {k.decode("utf-8"): v for k, v in packed_state.items()}
@@ -86,9 +87,10 @@ def unpack_state(packed_state):
         packed_state[key] = {
             'correlation_id': decoded_value['correlation_id'],
             'first_occurance_time': datetime_from_str(decoded_value['first_occurance_time']),
-        } 
+        }
 
     return packed_state
+
 
 def pack_state(unpacked_state):
     packed_state = {}
@@ -99,6 +101,7 @@ def pack_state(unpacked_state):
             'first_occurance_time': dt_str,
         })
     return packed_state
+
 
 def build_new_state(old_state, queue_first_items, current_time):
     new_state = {}
@@ -121,6 +124,7 @@ def build_new_state(old_state, queue_first_items, current_time):
 
     return new_state
 
+
 @click.command()
 @click.option('--host', '-h', default='localhost',
               help='Hostname of redis server')
@@ -141,11 +145,11 @@ def check_queues(host, port, environment, deploy, threshold, queue_threshold):
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
     redis_client2 = RedisWrapper(host='localhost', port=port, socket_timeout=timeout,
-                                socket_connect_timeout=timeout)
+                                 socket_connect_timeout=timeout)
     queue_names = set([k.decode() for k in redis_client.keys()
-                        if (redis_client.type(k) == b'list' and
-                            not k.decode().endswith(".pidbox") and
-                            not k.decode().startswith("_kombu"))])
+                       if (redis_client.type(k) == b'list' and
+                           not k.decode().endswith(".pidbox") and
+                           not k.decode().startswith("_kombu"))])
 
     queue_age_hash = redis_client2.hgetall(QUEUE_AGE_HASH_NAME)
     old_state = unpack_state(queue_age_hash)
