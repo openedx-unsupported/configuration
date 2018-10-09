@@ -3,6 +3,7 @@ import json
 import datetime
 import click
 import backoff
+import opsgenie-sdk
 from textwrap import dedent
 
 MAX_TRIES = 5
