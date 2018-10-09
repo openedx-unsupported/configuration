@@ -3,6 +3,7 @@ import json
 import datetime
 import click
 import backoff
+from textwrap import dedent
 
 MAX_TRIES = 5
 QUEUE_AGE_HASH_NAME = "queue_age_monitoring"
@@ -124,6 +125,25 @@ def build_new_state(old_state, queue_first_items, current_time):
 
     return new_state
 
+def should_send_alert(first_occurance_time, current_time, threshold):
+    time_delta = current_time - first_occurance_time
+    return time_delta.total_seconds() > threshold
+
+def send_alert(environment, queue_name, threshold):
+    print(str.format("in {} the {} queue is stale. The first item in this queue has been stationary for longer than it's threshold of {0} seconds", environment, queue_name, threshold) )
+
+def print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold):
+    output = str.format(
+        """
+            ---------------------------------------------
+            queue_name = {}
+            do_alert = {}
+            first_occurance_time = {}
+            current_time = {}
+            threshold = {}
+            default_threshold = {}
+        """, queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+    print(dedent(output))
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
@@ -132,12 +152,12 @@ def build_new_state(old_state, queue_first_items, current_time):
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-@click.option('--threshold', default=1,
-              help='Default queue maximum item age in minutes')
+@click.option('--default-threshold', default=1,
+              help='Default queue maximum item age in seconds')
 @click.option('--queue-threshold', type=(str, int), multiple=True,
-              help='Per queue maximum item age in format --queue-threshold'
-              + ' {queue_name} {threshold}. May be used multiple times')
-def check_queues(host, port, environment, deploy, threshold, queue_threshold):
+              help='Per queue maximum item age (seconds) in format --queue-threshold'
+              + ' {queue_name} {threshold}. May be used multiple times.')
+def check_queues(host, port, environment, deploy, default_threshold, queue_threshold):
 
     thresholds = dict(queue_threshold)
 
@@ -166,3 +186,19 @@ def check_queues(host, port, environment, deploy, threshold, queue_threshold):
 
     redis_client2.delete(QUEUE_AGE_HASH_NAME)
     redis_client2.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
+
+    for queue_name in queue_names:
+        threshold = default_threshold
+        if queue_name in thresholds:
+            threshold = thresholds[queue_name]
+
+        first_occurance_time = new_state[queue_name]['first_occurance_time']
+        do_alert = should_send_alert(first_occurance_time, current_time, threshold)
+
+        if do_alert:
+            send_alert(environment, queue_name, threshold)
+        print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+
+if __name__ == '__main__':
+    check_queues()
+    
