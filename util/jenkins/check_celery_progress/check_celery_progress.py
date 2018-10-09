@@ -131,7 +131,7 @@ def build_new_state(old_state, queue_first_items, current_time):
 
 def should_send_alert(first_occurance_time, current_time, threshold):
     time_delta = current_time - first_occurance_time
-    return time_delta.total_seconds() <= threshold
+    return time_delta.total_seconds() > threshold
 
 @backoff.on_exception(backoff.expo,
                           (ApiException),
@@ -220,4 +220,3 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
 if __name__ == '__main__':
     check_queues()
-    
