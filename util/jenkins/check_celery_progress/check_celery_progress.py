@@ -198,10 +198,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     for queue_name in queue_names:
         queue_first_items[queue_name] = redis_client.lindex(queue_name, 0)
 
-    print("old state {}".format(old_state))
-    print("\n\nqueue_first_items {}\n\n".format(queue_first_items))
     new_state = build_new_state(old_state, queue_first_items, current_time)
-    print("new state {}".format(new_state))
 
     redis_client2.delete(QUEUE_AGE_HASH_NAME)
     redis_client2.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
