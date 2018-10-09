@@ -175,7 +175,7 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
 @click.option('--queue-threshold', type=(str, int), multiple=True,
               help='Per queue maximum item age (seconds) in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times.')
-@click.option('--opsgenie_api_key', '-k', required=True)
+@click.option('--opsgenie_api_key', '-k', envvar='OPSGENIE_API_KEY', required=True)
 def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key):
 
     thresholds = dict(queue_threshold)
