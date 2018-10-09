@@ -41,17 +41,17 @@ class TestCheckCeleryQueues(unittest.TestCase):
         self.assertEqual(False, result)
 
     def test_should_send_alert_under_threshold(self):
-        first_occurance_time = self.time_0 - timedelta(minutes=4)
+        first_occurance_time = self.time_0 - timedelta(seconds=self.threshold-60)
         result = should_send_alert(first_occurance_time, self.time_0, self.threshold)
         self.assertEqual(False, result)
 
     def test_should_send_alert_over_threshold(self):
-        first_occurance_time = self.time_0 - timedelta(minutes=6)
+        first_occurance_time = self.time_0 - timedelta(seconds=self.threshold+60)
         result = should_send_alert(first_occurance_time, self.time_0, self.threshold)
         self.assertEqual(True, result)
 
     def test_should_send_alert_negative_delta(self):
-        first_occurance_time = self.time_0 + timedelta(minutes=4)
+        first_occurance_time = self.time_0 + timedelta(seconds=self.threshold+60)
         result = should_send_alert(first_occurance_time, self.time_0, self.threshold)
         self.assertEqual(False, result)
 
