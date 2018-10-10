@@ -197,7 +197,8 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     new_state = build_new_state(old_state, queue_first_items, current_time)
 
     redis_client.delete(QUEUE_AGE_HASH_NAME)
-    redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
+    if new_state:
+        redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
 
     for queue_name in queue_names:
         threshold = default_threshold
