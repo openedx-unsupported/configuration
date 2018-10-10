@@ -154,6 +154,7 @@ def send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
 
 
 def print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold):
+    time_delta = (current_time - first_occurance_time).seconds
     output = str.format(
         """
             ---------------------------------------------
@@ -161,9 +162,10 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
             do_alert = {}
             first_occurance_time = {}
             current_time = {}
+            time_delta = {} seconds
             threshold = {}
             default_threshold = {}
-        """, queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+        """, queue_name, do_alert, first_occurance_time, current_time, time_delta, threshold, default_threshold)
     print(dedent(output))
 
 
