@@ -168,7 +168,7 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-@click.option('--default-threshold', default=1,
+@click.option('--default-threshold', default=60,
               help='Default queue maximum item age in seconds')
 @click.option('--queue-threshold', type=(str, int), multiple=True,
               help='Per queue maximum item age (seconds) in format --queue-threshold'
