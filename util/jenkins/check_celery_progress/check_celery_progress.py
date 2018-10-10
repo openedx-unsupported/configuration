@@ -85,16 +85,16 @@ def str_from_datetime(dt):
 
 def unpack_state(packed_state):
     decoded_state = {k.decode("utf-8"): v for k, v in packed_state.items()}
-    packed_state = {}
+    unpacked_state = {}
 
     for key, value in decoded_state.items():
         decoded_value = json.loads(value)
-        packed_state[key] = {
+        unpacked_state[key] = {
             'correlation_id': decoded_value['correlation_id'],
             'first_occurance_time': datetime_from_str(decoded_value['first_occurance_time']),
         }
 
-    return packed_state
+    return unpacked_state
 
 
 def pack_state(unpacked_state):
