@@ -144,7 +144,7 @@ def send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
 
     alert_message = str.format(
-        "{}-{} {} queue is stale. Stationary for {}s", environment, deploy, queue_name, threshold
+        "{}-{} {} queue is stale. Stationary for over {}s", environment, deploy, queue_name, threshold
     )
     print(alert_message)
     response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message))
