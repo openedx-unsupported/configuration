@@ -5,7 +5,7 @@ import botocore
 import backoff
 from itertools import zip_longest
 
-max_tries = 5
+MAX_TRIES = 5
 
 
 class RedisWrapper(object):
@@ -15,21 +15,21 @@ class RedisWrapper(object):
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def keys(self):
         return self.redis.keys()
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def type(self, key):
         return self.redis.type(key)
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def llen(self, key):
         return self.redis.llen(key)
 
@@ -40,25 +40,25 @@ class CwBotoWrapper(object):
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def list_metrics(self, *args, **kwargs):
         return self.client.list_metrics(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
         return self.client.put_metric_data(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def describe_alarms_for_metric(self, *args, **kwargs):
         return self.client.describe_alarms_for_metric(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
-                          max_tries=max_tries)
+                          max_tries=MAX_TRIES)
     def put_metric_alarm(self, *args, **kwargs):
         return self.client.put_metric_alarm(*args, **kwargs)
 
@@ -97,63 +97,68 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     existing_queues = []
     for m in response["Metrics"]:
         existing_queues.extend(
-            [d['Value'] for d in m["Dimensions"] if d['Name'] == dimension])
+            [d['Value'] for d in m["Dimensions"] if (
+                d['Name'] == dimension and
+                not d['Value'].endswith(".pidbox") and
+                not d['Value'].startswith("_kombu"))])
 
     redis_queues = set([k.decode() for k in redis_client.keys()
-                        if redis_client.type(k) == b'list'])
+                        if (redis_client.type(k) == b'list' and
+                            not k.decode().endswith(".pidbox") and
+                            not k.decode().startswith("_kombu"))])
 
     all_queues = existing_queues + list(
         set(redis_queues).difference(existing_queues)
     )
 
-    for queues in grouper(all_queues, max_metrics):
-        # grouper can return a bunch of Nones and we want to skip those
-        queues = [q for q in queues if q is not None]
-        metric_data = []
-        for queue in queues:
-            metric_data.append({
-                'MetricName': metric_name,
-                'Dimensions': [{
-                    "Name": dimension,
-                    "Value": queue
-                }],
-                'Value': redis_client.llen(queue)
-            })
+    metric_data = []
 
-        if len(metric_data) > 0:
+    for queue_name in all_queues:
+        metric_data.append({
+            'MetricName': metric_name,
+            'Dimensions': [{
+                "Name": dimension,
+                "Value": queue_name
+            }],
+            'Value': redis_client.llen(queue_name)
+        })
+
+    if len(metric_data) > 0:
+        for metric_data_grouped in grouper(metric_data, max_metrics):
+            print("metric_data {}".format(metric_data))
             cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
 
-        for queue in queues:
-            dimensions = [{'Name': dimension, 'Value': queue}]
-            queue_threshold = threshold
-            if queue in thresholds:
-                queue_threshold = thresholds[queue]
-            # Period is in seconds
-            period = 60
-            evaluation_periods = 15
-            comparison_operator = "GreaterThanThreshold"
-            treat_missing_data = "notBreaching"
-            statistic = "Maximum"
-            actions = [sns_arn]
-            alarm_name = "{}-{} {} queue length over threshold".format(environment,
-                                                                       deploy,
-                                                                       queue)
-            
-            print('Creating or updating alarm "{}"'.format(alarm_name))
-            cloudwatch.put_metric_alarm(AlarmName=alarm_name,
-                                        AlarmDescription=alarm_name,
-                                        Namespace=namespace,
-                                        MetricName=metric_name,
-                                        Dimensions=dimensions,
-                                        Period=period,
-                                        EvaluationPeriods=evaluation_periods,
-                                        TreatMissingData=treat_missing_data,
-                                        Threshold=queue_threshold,
-                                        ComparisonOperator=comparison_operator,
-                                        Statistic=statistic,
-                                        InsufficientDataActions=actions,
-                                        OKActions=actions,
-                                        AlarmActions=actions)
+    for queue in all_queues:
+        dimensions = [{'Name': dimension, 'Value': queue}]
+        queue_threshold = threshold
+        if queue in thresholds:
+            queue_threshold = thresholds[queue]
+        # Period is in seconds
+        period = 60
+        evaluation_periods = 15
+        comparison_operator = "GreaterThanThreshold"
+        treat_missing_data = "notBreaching"
+        statistic = "Maximum"
+        actions = [sns_arn]
+        alarm_name = "{}-{} {} queue length over threshold".format(environment,
+                                                                   deploy,
+                                                                   queue)
+
+        print('Creating or updating alarm "{}"'.format(alarm_name))
+        cloudwatch.put_metric_alarm(AlarmName=alarm_name,
+                                    AlarmDescription=alarm_name,
+                                    Namespace=namespace,
+                                    MetricName=metric_name,
+                                    Dimensions=dimensions,
+                                    Period=period,
+                                    EvaluationPeriods=evaluation_periods,
+                                    TreatMissingData=treat_missing_data,
+                                    Threshold=queue_threshold,
+                                    ComparisonOperator=comparison_operator,
+                                    Statistic=statistic,
+                                    InsufficientDataActions=actions,
+                                    OKActions=actions,
+                                    AlarmActions=actions)
 
 # Stolen right from the itertools recipes
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
@@ -161,7 +166,10 @@ def grouper(iterable, n, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
-    return zip_longest(*args, fillvalue=fillvalue)
+    chunks = zip_longest(*args, fillvalue=fillvalue)
+    # Remove Nones in function
+    for chunk in chunks:
+        yield [v for v in chunk if v is not None]
 
 if __name__ == '__main__':
     check_queues()
