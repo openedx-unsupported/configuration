@@ -214,9 +214,9 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         do_alert = should_send_alert(first_occurance_time, current_time, threshold)
 
+        print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
         if do_alert:
             send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold)
-        print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
 
 
 if __name__ == '__main__':
