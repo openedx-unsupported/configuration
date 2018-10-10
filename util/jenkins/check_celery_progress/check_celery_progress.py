@@ -112,7 +112,7 @@ def build_new_state(old_state, queue_first_items, current_time):
     new_state = {}
     for queue_name, first_item_encoded in queue_first_items.items():
         # TODO: Catch/Handle exception if not json
-        first_item = json.loads(first_item_encoded)
+        first_item = json.loads(first_item_encoded.decode("utf-8"))
         # TODO: Handle keys missing in data
         correlation_id = first_item['properties']['correlation_id']
         first_occurance_time = current_time
