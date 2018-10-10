@@ -159,13 +159,11 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
             threshold = {}
             default_threshold = {}
         """, queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
-    configuration.api_key['Authorization'] = 'YOUR_API_KEY'
-    configuration.api_key_prefix['Authorization'] = 'GenieKey'
     print(dedent(output))
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
-              help='Hostname of redis server')
+              help='Hostname of redis server', required=True)
 @click.option('--port', '-p', default=6379, help='Port of redis server')
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
@@ -183,14 +181,12 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
-    redis_client2 = RedisWrapper(host='localhost', port=port, socket_timeout=timeout,
-                                 socket_connect_timeout=timeout)
     queue_names = set([k.decode() for k in redis_client.keys()
                        if (redis_client.type(k) == b'list' and
                            not k.decode().endswith(".pidbox") and
                            not k.decode().startswith("_kombu"))])
 
-    queue_age_hash = redis_client2.hgetall(QUEUE_AGE_HASH_NAME)
+    queue_age_hash = redis_client.hgetall(QUEUE_AGE_HASH_NAME)
     old_state = unpack_state(queue_age_hash)
 
     queue_first_items = {}
@@ -200,8 +196,8 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     new_state = build_new_state(old_state, queue_first_items, current_time)
 
-    redis_client2.delete(QUEUE_AGE_HASH_NAME)
-    redis_client2.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
+    redis_client.delete(QUEUE_AGE_HASH_NAME)
+    redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
 
     for queue_name in queue_names:
         threshold = default_threshold
