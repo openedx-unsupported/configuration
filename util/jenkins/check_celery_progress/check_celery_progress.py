@@ -1,6 +1,6 @@
-import redis
 import json
 import datetime
+import redis
 import click
 import backoff
 from opsgenie.swagger_client import AlertApi
@@ -129,26 +129,32 @@ def build_new_state(old_state, queue_first_items, current_time):
 
     return new_state
 
+
 def should_send_alert(first_occurance_time, current_time, threshold):
     time_delta = current_time - first_occurance_time
     return time_delta.total_seconds() > threshold
 
+
 @backoff.on_exception(backoff.expo,
-                          (ApiException),
-                          max_tries=MAX_TRIES)
+                      (ApiException),
+                      max_tries=MAX_TRIES)
 def send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
-    
+
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
 
-    alert_message = str.format("{}-{} {} queue is stale. Stationary for {}s", environment, deploy, queue_name, threshold)
+    alert_message = str.format(
+        "{}-{} {} queue is stale. Stationary for over {}s", environment, deploy, queue_name, threshold
+    )
     print(alert_message)
     response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message))
     print('request id: {}'.format(response.request_id))
     print('took: {}'.format(response.took))
     print('result: {}'.format(response.result))
 
+
 def print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold):
+    time_delta = (current_time - first_occurance_time).seconds
     output = str.format(
         """
             ---------------------------------------------
@@ -156,10 +162,12 @@ def print_info(queue_name, do_alert, first_occurance_time, current_time, thresho
             do_alert = {}
             first_occurance_time = {}
             current_time = {}
+            time_delta = {} seconds
             threshold = {}
             default_threshold = {}
-        """, queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+        """, queue_name, do_alert, first_occurance_time, current_time, time_delta, threshold, default_threshold)
     print(dedent(output))
+
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
@@ -208,9 +216,10 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         do_alert = should_send_alert(first_occurance_time, current_time, threshold)
 
+        print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
         if do_alert:
             send_alert(opsgenie_api_key, environment, deploy, queue_name, threshold)
-        print_info(queue_name, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+
 
 if __name__ == '__main__':
     check_queues()
