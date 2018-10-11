@@ -195,7 +195,7 @@ def extract_body(task):
 
     return body_dict
 
-/4838#pullrequestreview-163991927
+
 def print_info(queue_name, body, do_alert, first_occurance_time, current_time, threshold, default_threshold):
     time_delta = (current_time - first_occurance_time).seconds
     task = ""
