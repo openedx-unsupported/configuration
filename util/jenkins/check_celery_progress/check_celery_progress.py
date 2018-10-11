@@ -217,8 +217,8 @@ def print_info(queue_name, body, do_alert, first_occurance_time, current_time, t
             first_occurance_time = {}
             current_time = {}
             time_delta = {} seconds
-            threshold = {}
-            default_threshold = {}
+            threshold = {} seconds
+            default_threshold = {} seconds
         """, queue_name, task, kwargs, do_alert, first_occurance_time, current_time, time_delta, threshold, default_threshold)
     print(dedent(output))
 
@@ -273,7 +273,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         elif new_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
             new_state[queue_name]['alert_created'] = False
-        close_alert(opsgenie_api_key, environment, deploy, queue_name)
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
         if 'alert_created' in old_state[queue_name] and old_state[queue_name]['alert_created']:
