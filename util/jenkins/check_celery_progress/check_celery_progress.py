@@ -196,13 +196,26 @@ def extract_body(task):
     return body_dict
 
 
-def print_info(queue_name, body, do_alert, first_occurance_time, current_time, threshold, default_threshold):
+def print_info(
+    queue_name,
+    correlation_id,
+    body,
+    do_alert,
+    first_occurance_time,
+    current_time,
+    threshold,
+    default_threshold,
+):
     time_delta = (current_time - first_occurance_time).seconds
-    task = ""
-    kwargs = ""
+    task = "Key missing"
+    args = "Key missing"
+    kwargs = "Key missing"
 
     if 'task' in body:
         task = body['task']
+
+    if 'args' in body:
+        args = body['args']
 
     if 'kwargs' in body:
         kwargs = body['kwargs']
@@ -211,7 +224,9 @@ def print_info(queue_name, body, do_alert, first_occurance_time, current_time, t
         """
             ---------------------------------------------
             queue_name = {}
+            correlation_id = {}
             task = {}
+            args = {}
             kwargs = {}
             do_alert = {}
             first_occurance_time = {}
@@ -219,7 +234,19 @@ def print_info(queue_name, body, do_alert, first_occurance_time, current_time, t
             time_delta = {} seconds
             threshold = {} seconds
             default_threshold = {} seconds
-        """, queue_name, task, kwargs, do_alert, first_occurance_time, current_time, time_delta, threshold, default_threshold)
+        """,
+        queue_name,
+        correlation_id,
+        task,
+        args,
+        kwargs,
+        do_alert,
+        first_occurance_time,
+        current_time,
+        time_delta,
+        threshold,
+        default_threshold,
+    )
     print(dedent(output))
 
 
@@ -262,11 +289,12 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         if queue_name in thresholds:
             threshold = thresholds[queue_name]
 
+        correlation_id = new_state[queue_name]['correlation_id']
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         body = extract_body(queue_first_items[queue_name])
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
-        print_info(queue_name, body, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+        print_info(queue_name, correlation_id, body, do_alert, first_occurance_time, current_time, threshold, default_threshold)
         if not new_state[queue_name]['alert_created'] and do_alert:
             create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold)
             new_state[queue_name]['alert_created'] = True
