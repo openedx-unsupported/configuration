@@ -298,7 +298,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     queue_age_hash = redis_client.hgetall(QUEUE_AGE_HASH_NAME)
     old_state = unpack_state(queue_age_hash)
     # Temp debugging
-    print("old_state\n{}".format(pretty_state(old_state)))
+    print("DEBUG: old_state\n{}\n".format(pretty_state(old_state)))
 
     queue_first_items = {}
     current_time = datetime.datetime.now()
@@ -312,7 +312,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     new_state = build_new_state(old_state, queue_first_items, current_time)
 
     # Temp debugging
-    print("new_state from new_state() function\n{}".format(pretty_state(new_state)))
+    print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
 
     for queue_name in queue_names:
         threshold = default_threshold
@@ -357,14 +357,15 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             new_state[queue_name]['alert_created'] = False
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
-        print("Checking cleared queue {}".format(queue_name))
+        print("DEBUG: Checking cleared queue {}".format(queue_name))
         if old_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
 
     redis_client.delete(QUEUE_AGE_HASH_NAME)
     if new_state:
         redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
-        print("new_state pushed to redis\n{}".format(pretty_state(new_state)))
+        # Temp Debugging
+        print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
 
 
 if __name__ == '__main__':
