@@ -78,6 +78,21 @@ class RedisWrapper(object):
         return self.redis.hmset(*args)
 
 
+def pretty_json(obj):
+    return json.dumps(obj, indent=4, sort_keys=True)
+
+
+def pretty_state(state):
+    output = {}
+    for queue_name, queue_state in state.items():
+        output[queue_name] = {}
+        for key, value in queue_state.items():
+            if key == 'first_occurance_time':
+                value = str_from_datetime(value)
+            output[queue_name][key] = value
+    return pretty_json(output)
+
+
 def datetime_from_str(string):
     return datetime.datetime.strptime(string, DATE_FORMAT)
 
@@ -95,6 +110,7 @@ def unpack_state(packed_state):
         unpacked_state[key] = {
             'correlation_id': decoded_value['correlation_id'],
             'first_occurance_time': datetime_from_str(decoded_value['first_occurance_time']),
+            'alert_created': decoded_value['alert_created'],
         }
 
     return unpacked_state
@@ -107,6 +123,7 @@ def pack_state(unpacked_state):
         packed_state[queue_name] = json.dumps({
             'correlation_id': queue_state['correlation_id'],
             'first_occurance_time': dt_str,
+            'alert_created': queue_state['alert_created'],
         })
     return packed_state
 
@@ -120,10 +137,9 @@ def build_new_state(old_state, queue_first_items, current_time):
         alert_created = False
         if queue_name in old_state:
             old_correlation_id = old_state[queue_name]['correlation_id']
+            alert_created = old_state[queue_name]['alert_created']
             if old_correlation_id == correlation_id:
                 first_occurance_time = old_state[queue_name]['first_occurance_time']
-            if 'alert_created' in old_state[queue_name]:
-                alert_created = old_state[queue_name]['alert_created']
 
         new_state[queue_name] = {
             'correlation_id': correlation_id,
@@ -150,7 +166,7 @@ def generate_alert_alias(environment, deploy, queue_name):
 @backoff.on_exception(backoff.expo,
                       (ApiException),
                       max_tries=MAX_TRIES)
-def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
+def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, info):
 
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
@@ -159,7 +175,7 @@ def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
     alias = generate_alert_alias(environment, deploy, queue_name)
 
     print("Creating Alert: {}".format(alias))
-    response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias))
+    response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias, description=info))
     print('request id: {}'.format(response.request_id))
     print('took: {}'.format(response.took))
     print('result: {}'.format(response.result))
@@ -196,7 +212,7 @@ def extract_body(task):
     return body_dict
 
 
-def print_info(
+def generate_info(
     queue_name,
     correlation_id,
     body,
@@ -205,6 +221,7 @@ def print_info(
     current_time,
     threshold,
     default_threshold,
+    jenkins_build_url,
 ):
     time_delta = (current_time - first_occurance_time).seconds
     task = "Key missing"
@@ -234,6 +251,7 @@ def print_info(
             time_delta = {} seconds
             threshold = {} seconds
             default_threshold = {} seconds
+            jenkins_build_url = {}
         """,
         queue_name,
         correlation_id,
@@ -246,8 +264,9 @@ def print_info(
         time_delta,
         threshold,
         default_threshold,
+        jenkins_build_url,
     )
-    print(dedent(output))
+    return dedent(output)
 
 
 @click.command()
@@ -263,7 +282,8 @@ def print_info(
               help='Per queue maximum item age (seconds) in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times.')
 @click.option('--opsgenie-api-key', '-k', envvar='OPSGENIE_API_KEY', required=True)
-def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key):
+@click.option('--jenkins-build-url', '-j', envvar='BUILD_URL', required=False)
+def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key, jenkins_build_url):
 
     thresholds = dict(queue_threshold)
 
@@ -277,12 +297,22 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     queue_age_hash = redis_client.hgetall(QUEUE_AGE_HASH_NAME)
     old_state = unpack_state(queue_age_hash)
+    # Temp debugging
+    print("DEBUG: old_state\n{}\n".format(pretty_state(old_state)))
 
     queue_first_items = {}
     current_time = datetime.datetime.now()
+
     for queue_name in queue_names:
-        queue_first_items[queue_name] = json.loads(redis_client.lindex(queue_name, 0).decode("utf-8"))
+        queue_first_item = redis_client.lindex(queue_name, 0)
+        # Check that queue_first_item is not None which is the case if the queue is empty
+        if queue_first_item is not None:
+            queue_first_items[queue_name] = json.loads(queue_first_item.decode("utf-8"))
+
     new_state = build_new_state(old_state, queue_first_items, current_time)
+
+    # Temp debugging
+    print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
 
     for queue_name in queue_names:
         threshold = default_threshold
@@ -292,23 +322,50 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         correlation_id = new_state[queue_name]['correlation_id']
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         body = extract_body(queue_first_items[queue_name])
+        redacted_body = {'task': body['task'], 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
-        print_info(queue_name, correlation_id, body, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+        info = generate_info(
+            queue_name,
+            correlation_id,
+            body,
+            do_alert,
+            first_occurance_time,
+            current_time,
+            threshold,
+            default_threshold,
+            jenkins_build_url,
+        )
+        redacted_info = generate_info(
+            queue_name,
+            correlation_id,
+            redacted_body,
+            do_alert,
+            first_occurance_time,
+            current_time,
+            threshold,
+            default_threshold,
+            jenkins_build_url,
+        )
+        print(info)
+
         if not new_state[queue_name]['alert_created'] and do_alert:
-            create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold)
+            create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, redacted_info)
             new_state[queue_name]['alert_created'] = True
-        elif new_state[queue_name]['alert_created']:
+        elif new_state[queue_name]['alert_created'] and not do_alert:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
             new_state[queue_name]['alert_created'] = False
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
-        if 'alert_created' in old_state[queue_name] and old_state[queue_name]['alert_created']:
+        print("DEBUG: Checking cleared queue {}".format(queue_name))
+        if old_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
 
     redis_client.delete(QUEUE_AGE_HASH_NAME)
     if new_state:
         redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
+        # Temp Debugging
+        print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
 
 
 if __name__ == '__main__':
