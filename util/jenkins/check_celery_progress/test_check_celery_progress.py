@@ -1,7 +1,7 @@
 import unittest
 import datetime
 from datetime import timedelta
-from check_celery_progress import build_new_state, datetime_from_str, should_create_alert
+from check_celery_progress import build_new_state, datetime_from_str, should_create_alert, pack_state, unpack_state
 
 class TestCheckCeleryQueues(unittest.TestCase):
     
@@ -149,6 +149,14 @@ class TestCheckCeleryQueues(unittest.TestCase):
         first_occurance_time = self.time_0 + timedelta(seconds=self.threshold+60)
         result = should_create_alert(first_occurance_time, self.time_0, self.threshold)
         self.assertEqual(False, result)
+
+    def test_pack_state(self):
+        # Round trip state to make sure all fields are preserved
+        state = build_new_state({}, self.queue_first_items_0, self.time_0)
+        packed_state = pack_state(state)
+        encoded_packed_state = {k.encode("utf-8"): v.encode("utf-8") for k, v in packed_state.items()}
+        unpacked_state = unpack_state(encoded_packed_state)
+        self.assertEqual(state, unpacked_state)
 
 
 if __name__ == '__main__':

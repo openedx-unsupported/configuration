@@ -110,6 +110,7 @@ def unpack_state(packed_state):
         unpacked_state[key] = {
             'correlation_id': decoded_value['correlation_id'],
             'first_occurance_time': datetime_from_str(decoded_value['first_occurance_time']),
+            'alert_created': decoded_value['alert_created'],
         }
 
     return unpacked_state
@@ -122,6 +123,7 @@ def pack_state(unpacked_state):
         packed_state[queue_name] = json.dumps({
             'correlation_id': queue_state['correlation_id'],
             'first_occurance_time': dt_str,
+            'alert_created': queue_state['alert_created'],
         })
     return packed_state
 
@@ -135,10 +137,9 @@ def build_new_state(old_state, queue_first_items, current_time):
         alert_created = False
         if queue_name in old_state:
             old_correlation_id = old_state[queue_name]['correlation_id']
+            alert_created = old_state[queue_name]['alert_created']
             if old_correlation_id == correlation_id:
                 first_occurance_time = old_state[queue_name]['first_occurance_time']
-            if 'alert_created' in old_state[queue_name]:
-                alert_created = old_state[queue_name]['alert_created']
 
         new_state[queue_name] = {
             'correlation_id': correlation_id,
@@ -357,7 +358,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
         print("Checking cleared queue {}".format(queue_name))
-        if 'alert_created' in old_state[queue_name] and old_state[queue_name]['alert_created']:
+        if old_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
 
     redis_client.delete(QUEUE_AGE_HASH_NAME)
