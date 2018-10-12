@@ -150,7 +150,7 @@ def generate_alert_alias(environment, deploy, queue_name):
 @backoff.on_exception(backoff.expo,
                       (ApiException),
                       max_tries=MAX_TRIES)
-def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
+def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, info):
 
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
@@ -159,7 +159,7 @@ def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold):
     alias = generate_alert_alias(environment, deploy, queue_name)
 
     print("Creating Alert: {}".format(alias))
-    response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias))
+    response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias, description=info))
     print('request id: {}'.format(response.request_id))
     print('took: {}'.format(response.took))
     print('result: {}'.format(response.result))
@@ -196,7 +196,7 @@ def extract_body(task):
     return body_dict
 
 
-def print_info(
+def generate_info(
     queue_name,
     correlation_id,
     body,
@@ -205,6 +205,7 @@ def print_info(
     current_time,
     threshold,
     default_threshold,
+    jenkins_build_url,
 ):
     time_delta = (current_time - first_occurance_time).seconds
     task = "Key missing"
@@ -234,6 +235,7 @@ def print_info(
             time_delta = {} seconds
             threshold = {} seconds
             default_threshold = {} seconds
+            jenkins_build_url = {}
         """,
         queue_name,
         correlation_id,
@@ -246,8 +248,9 @@ def print_info(
         time_delta,
         threshold,
         default_threshold,
+        jenkins_build_url,
     )
-    print(dedent(output))
+    return dedent(output)
 
 
 @click.command()
@@ -263,7 +266,8 @@ def print_info(
               help='Per queue maximum item age (seconds) in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times.')
 @click.option('--opsgenie-api-key', '-k', envvar='OPSGENIE_API_KEY', required=True)
-def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key):
+@click.option('--jenkins-build-url', '-j', envvar='BUILD_URL', required=False)
+def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key, jenkins_build_url):
 
     thresholds = dict(queue_threshold)
 
@@ -292,11 +296,35 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         correlation_id = new_state[queue_name]['correlation_id']
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         body = extract_body(queue_first_items[queue_name])
+        redacted_body = {'task': body['task'], 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
-        print_info(queue_name, correlation_id, body, do_alert, first_occurance_time, current_time, threshold, default_threshold)
+        info = generate_info(
+            queue_name,
+            correlation_id,
+            body,
+            do_alert,
+            first_occurance_time,
+            current_time,
+            threshold,
+            default_threshold,
+            jenkins_build_url,
+        )
+        redacted_info = generate_info(
+            queue_name,
+            correlation_id,
+            redacted_body,
+            do_alert,
+            first_occurance_time,
+            current_time,
+            threshold,
+            default_threshold,
+            jenkins_build_url,
+        )
+        print(info)
+
         if not new_state[queue_name]['alert_created'] and do_alert:
-            create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold)
+            create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, redacted_info)
             new_state[queue_name]['alert_created'] = True
         elif new_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
