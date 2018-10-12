@@ -153,6 +153,19 @@
     - install
     - install:app-requirements
 
+- name: Install pngquant
+  apt:
+    name: "pngquant"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Compress images
+  shell: "find public -name '*.png' -exec pngquant --skip-if-larger --quality 50-75 --ext .png --force -- {} \\;"
+  args:
+    chdir: "{{ prospectus_code_dir }}"
+  become_user: "{{ prospectus_user }}"
+
 # Copy over the target from the previous build to where it needs to be
 - name: Create data folder
   file:
