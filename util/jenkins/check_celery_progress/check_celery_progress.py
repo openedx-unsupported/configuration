@@ -352,7 +352,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         if not new_state[queue_name]['alert_created'] and do_alert:
             create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, redacted_info)
             new_state[queue_name]['alert_created'] = True
-        elif new_state[queue_name]['alert_created']:
+        elif new_state[queue_name]['alert_created'] and not do_alert:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
             new_state[queue_name]['alert_created'] = False
 
