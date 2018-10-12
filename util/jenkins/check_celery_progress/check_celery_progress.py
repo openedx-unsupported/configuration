@@ -78,6 +78,21 @@ class RedisWrapper(object):
         return self.redis.hmset(*args)
 
 
+def pretty_json(obj):
+    return json.dumps(obj, indent=4, sort_keys=True)
+
+
+def pretty_state(state):
+    output = {}
+    for queue_name, queue_state in state.items():
+        output[queue_name] = {}
+        for key, value in queue_state.items():
+            if key == 'first_occurance_time':
+                value = str_from_datetime(value)
+            output[queue_name][key] = value
+    return pretty_json(output)
+
+
 def datetime_from_str(string):
     return datetime.datetime.strptime(string, DATE_FORMAT)
 
@@ -281,12 +296,16 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     queue_age_hash = redis_client.hgetall(QUEUE_AGE_HASH_NAME)
     old_state = unpack_state(queue_age_hash)
+    # Temp debugging
+    print("old_state\n{}".format(pretty_state(old_state)))
 
     queue_first_items = {}
     current_time = datetime.datetime.now()
     for queue_name in queue_names:
         queue_first_items[queue_name] = json.loads(redis_client.lindex(queue_name, 0).decode("utf-8"))
     new_state = build_new_state(old_state, queue_first_items, current_time)
+    # Temp debugging
+    print("new_state from new_state() function\n{}".format(pretty_state(new_state)))
 
     for queue_name in queue_names:
         threshold = default_threshold
@@ -331,12 +350,14 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             new_state[queue_name]['alert_created'] = False
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
+        print("Checking cleared queue {}".format(queue_name))
         if 'alert_created' in old_state[queue_name] and old_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
 
     redis_client.delete(QUEUE_AGE_HASH_NAME)
     if new_state:
         redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
+        print("new_state pushed to redis\n{}".format(pretty_state(new_state)))
 
 
 if __name__ == '__main__':
