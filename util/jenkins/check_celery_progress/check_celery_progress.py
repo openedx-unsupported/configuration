@@ -301,9 +301,15 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     queue_first_items = {}
     current_time = datetime.datetime.now()
+
     for queue_name in queue_names:
-        queue_first_items[queue_name] = json.loads(redis_client.lindex(queue_name, 0).decode("utf-8"))
+        queue_first_item = redis_client.lindex(queue_name, 0)
+        # Check that queue_first_item is not None which is the case if the queue is empty
+        if queue_first_item is not None:
+            queue_first_items[queue_name] = json.loads(queue_first_item.decode("utf-8"))
+
     new_state = build_new_state(old_state, queue_first_items, current_time)
+
     # Temp debugging
     print("new_state from new_state() function\n{}".format(pretty_state(new_state)))
 
