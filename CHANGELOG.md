@@ -1,3 +1,6 @@
+- Role: edx_notes_api
+  - Added `JWT_AUTH` to edx-notes-api that is used in other IDAs.
+
 - Role: edxapp
   - Added `AUTH_PASSWORD_VALIDATORS` to utilize Django's password validation. Base validators included in configuration are UserAttributeSimilarity to test the password against the username and email using the default similarity threshold of 0.7 (1.0 fails exact matches only), MinimumLength to test password minimum length, and MaximumLength to test password maximum length.
 
