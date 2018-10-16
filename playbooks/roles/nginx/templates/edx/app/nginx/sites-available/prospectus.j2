@@ -15,6 +15,11 @@ server {
 
   root {{ PROSPECTUS_DATA_DIR }};
 
+  # Ignore the rollout group headers for the health check endpoint.
+  location /HealthCheck {
+    try_files $uri $uri/index.html @backend;
+  }
+
   location / {
     if ($http_x_rollout_group !~ "test") {
       proxy_pass {{ PROSPECTUS_PROXY_PASS }};
