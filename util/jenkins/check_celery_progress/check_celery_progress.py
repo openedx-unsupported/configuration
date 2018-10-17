@@ -286,6 +286,8 @@ def generate_info(
 def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key, jenkins_build_url):
 
     thresholds = dict(queue_threshold)
+    print("Default Threshold (seconds): {}".format(default_threshold))
+    print("Per Queue Thresholds (seconds):\n{}".format(pretty_json(thresholds)))
 
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
