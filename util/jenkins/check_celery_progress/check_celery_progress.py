@@ -276,7 +276,7 @@ def generate_info(
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-@click.option('--default-threshold', default=60,
+@click.option('--default-threshold', default=300,
               help='Default queue maximum item age in seconds')
 @click.option('--queue-threshold', type=(str, int), multiple=True,
               help='Per queue maximum item age (seconds) in format --queue-threshold'
