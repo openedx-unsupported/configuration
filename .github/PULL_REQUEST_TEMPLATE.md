@@ -3,7 +3,7 @@ Configuration Pull Request
 
 Make sure that the following steps are done before merging:
 
-  - [ ] A DevOps team member has approved the PR.
+  - [ ] A DevOps team member has approved the PR if it is code shared across multiple services and you don't own all of the services.
   - [ ] Are you adding any new default values that need to be overridden when this change goes live? If so:
     - [ ] Update the appropriate internal repo (be sure to update for all our environments)
     - [ ] If you are updating a secure value rather than an internal one, file a DEVOPS ticket with details.
