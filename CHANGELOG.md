@@ -1,3 +1,8 @@
+- Role: edx_django_service
+  - Added new overridable variable `edx_django_service_gunicorn_max_requests`
+- Role: ecommerce
+  - Set default max_requests to 3000.(eg. restart gunicorn process every 3000 requests.)
+
 - Role: edx_notes_api
   - Added `JWT_AUTH` to edx-notes-api that is used in other IDAs.
 
