@@ -1,3 +1,6 @@
+- Role: common_vars
+  - Added `COMMON_ENABLE_AWS_INTEGRATION` to run the `aws` role when enabled. Default: `False`.
+
 - Use Ansible 2.3.1.0 so that we can do shallow clones of tags.
 
 - git_clone:
