@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler. 
+  
 - Role: edx_django_service
   - Added new overridable variable `edx_django_service_gunicorn_max_requests`
 - Role: ecommerce
