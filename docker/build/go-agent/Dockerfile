@@ -64,6 +64,13 @@ RUN \
   pip install --upgrade setuptools==39.0.1 && \
   pip3 install --upgrade setuptools==39.0.1
 
+# Compile python 3.6 for Zappa, as zappa requires python 2.7 or 3.6.
+# There is no bionic GOCD official image published to base off of, and there is no official 3.6 python package for ubuntu 14.04 or 16.04
+# This will only be on your path as 'python3.6' it will not change the current 'python3' on your path to python 3.6
+# This isnt a separate agent because deploys of this are likely quite rare.
+# If we update the GOCD agent to use ubuntu > 14 we can just use the python3
+# that is already installed for zappa deployments.
+RUN apt-get update && apt-get install zlib1g-dev wget lsb-core -qy && cd /opt && wget https://www.python.org/ftp/python/3.6.7/Python-3.6.7.tgz && tar -xvf Python-3.6.7.tgz && cd /opt/Python-3.6.7 && ./configure --prefix=/usr && cd /opt/Python-3.6.7 && make && make commoninstall maninstall && rm -rf /opt/Python-3.6.7
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install 'awscli>=1.11.58'
