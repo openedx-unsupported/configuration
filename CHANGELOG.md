@@ -1,3 +1,5 @@
+- Role: ecommerce
+  - Remove unused JWT_SECRET_KEYS. 
 
 - Role: ecommerce
   - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler. 
