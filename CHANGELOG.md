@@ -1,3 +1,7 @@
+- Role: Edxapp
+  - EDXAPP_ENV_EXTRA was changed from being a default for EDXAPP_LMS_ENV_EXTRA and EDXAPP_CMS_ENV_EXTRA to holding common settings that are set in LMS and CMS in combination with the specific ones.
+  - Same with EDXAPP_AUTH_EXTRA (EDXAPP_LMS_AUTH_EXTRA and EDXAPP_CMS_AUTH_EXTRA)
+
 - Role: edx_django_service
   - Added new overridable variable `edx_django_service_gunicorn_max_requests`
 - Role: ecommerce
