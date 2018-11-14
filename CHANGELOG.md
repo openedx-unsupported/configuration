@@ -1,5 +1,10 @@
+
+- Role: ecommerce
+  - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler. 
+
 - Role: edxapp
   - Added `ENTERPRISE_CUSTOMER_SUCCESS_EMAIL` to lms_env_config for configuring emails to the customer success team.
+
 - Role: edx_django_service
   - Added new overridable variable `edx_django_service_gunicorn_max_requests`
 - Role: ecommerce
