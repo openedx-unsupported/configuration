@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Remove low priority queue, use default instead.
+
 - Role: ecommerce
   - Remove unused JWT_SECRET_KEYS. 
 
