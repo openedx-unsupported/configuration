@@ -37,22 +37,42 @@
     - "{{ splunk_home }}/{{ splunk_cert_path }}"
     - "{{ splunk_home }}/etc/system/local"
 
-- name: Write SSL certs to disk
+- name: Write splunk forwarder TLS certs to disk
   copy:
     dest: "{{ splunk_home }}/{{ splunk_cert_path }}/{{ item.0 }}"
     content: "{{ item.1 }}"
     owner: splunk
     group: splunk
     mode: "0400"
-  when: SPLUNK_SSL_CERT is defined
+  when: SPLUNK_FORWARDER_TLS_CERT is defined
   with_together:
     - [forwarder.pem, cacert.pem]
-    - ["{{ SPLUNK_SSL_CERT }}", "{{ SPLUNK_SSL_ROOT_CA }}"]
+    - ["{{ SPLUNK_FORWARDER_TLS_CERT }}", "{{ SPLUNK_FORWARDER_TLS_ROOT_CA }}"]
+
+- name: Write splunk web TLS certs to disk
+  copy:
+    dest: "{{ splunk_home }}/{{ splunk_cert_path }}/{{ item.0 }}"
+    content: "{{ item.1 }}"
+    owner: splunk
+    group: splunk
+    mode: "0400"
+  when: SPLUNK_WEB_TLS_CERT is defined
+  with_together:
+    - [web.crt, web.key]
+    - ["{{ SPLUNK_WEB_TLS_CERT }}", "{{ SPLUNK_WEB_TLS_KEY }}"]
 
 - name: Create inputs configuration
   template:
     src: opt/splunk/etc/system/local/inputs.conf.j2
     dest: "{{ splunk_home }}/etc/system/local/inputs.conf"
+    owner: splunk
+    group: splunk
+    mode: "0600"
+
+- name: Create web configuration
+  template:
+    src: opt/splunk/etc/system/local/web.conf.j2
+    dest: "{{ splunk_home }}/etc/system/local/web.conf"
     owner: splunk
     group: splunk
     mode: "0600"
