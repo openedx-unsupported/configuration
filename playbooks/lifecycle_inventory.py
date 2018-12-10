@@ -63,10 +63,21 @@ class LifecycleInventory():
 
         return dict
 
-    def run(self):
+    def get_asgs(self):
         asg = boto3.client('autoscaling', region_name=self.region)
-    
-        groups = asg.describe_auto_scaling_groups()['AutoScalingGroups']
+        asg_request = asg.describe_auto_scaling_groups()
+        asg_accumulator = asg_request['AutoScalingGroups']
+
+        while 'NextToken' in asg_request:
+            print len(asg_accumulator)
+            asg_request = asg.describe_auto_scaling_groups(NextToken=asg_request['NextToken'])
+            asg_accumulator.extend(asg_request['AutoScalingGroups'])
+
+        return asg_accumulator
+
+    def run(self):
+
+        groups = self.get_asgs()
 
         instances = self.get_instance_dict()
         inventory = defaultdict(list)
