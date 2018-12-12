@@ -69,7 +69,6 @@ class LifecycleInventory():
         asg_accumulator = asg_request['AutoScalingGroups']
 
         while 'NextToken' in asg_request:
-            print len(asg_accumulator)
             asg_request = asg.describe_auto_scaling_groups(NextToken=asg_request['NextToken'])
             asg_accumulator.extend(asg_request['AutoScalingGroups'])
 
