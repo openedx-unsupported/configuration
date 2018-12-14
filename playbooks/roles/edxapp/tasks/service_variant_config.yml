@@ -16,15 +16,32 @@
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
 
-- name: render yml config # not used yet
+- name: render lms yml config # meant to replace existing json config eventually
   template:
-    src: "{{ item }}.yml.j2"
-    dest: "{{ edxapp_app_dir }}/{{ item }}.yml"
+    src: "lms.yml.j2"
+    dest: "{{ edxapp_app_dir }}/lms.yml"
     owner: "{{ edxapp_user }}"
     group: "{{ common_web_group }}"
     mode: 0640
   become: true
   with_items: "{{ service_variants_enabled }}"
+  when: '"lms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: render studio yml config # meant to replace existing json config eventually
+  template:
+    src: "studio.yml.j2"
+    dest: "{{ edxapp_app_dir }}/studio.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  with_items: "{{ service_variants_enabled }}"
+  when: '"cms" in service_variants_enabled'
   tags:
     - install
     - install:configuration
