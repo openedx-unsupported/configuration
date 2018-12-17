@@ -1,0 +1,60 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role newrelic-npi
+# 
+# Overview:
+# 
+#
+# Dependencies:
+#
+# 
+# Example play:
+#
+#
+
+- name: Download newrelic NPI
+  get_url:
+    dest: "/tmp/{{ newrelic_npi_installer }}"
+    url: "{{ NEWRELIC_NPI_URL }}"
+  register: download_npi_installer
+
+- name: create npi install directory {{ NEWRELIC_NPI_PREFIX }}
+  file:
+    path: "{{ NEWRELIC_NPI_PREFIX }}"
+    state: directory
+    mode: 0755
+    owner: "{{ NEWRELIC_USER }}"
+
+- name: install newrelic npi
+  shell: "tar -xzf /tmp/{{ newrelic_npi_installer }} --strip-components=1 -C \"{{NEWRELIC_NPI_PREFIX}}\""
+  when: download_npi_installer.changed
+  become_user: "{{ NEWRELIC_USER }}"
+
+- name: configure npi with the default user
+  shell: "{{ NEWRELIC_NPI_PREFIX }}/bin/node {{ NEWRELIC_NPI_PREFIX }}/npi.js \"set user {{ NEWRELIC_USER }}\""
+  args:
+    chdir: "{{ NEWRELIC_NPI_PREFIX }}"
+  become_user: "{{ NEWRELIC_USER }}"
+
+- name: configure npi with the license key
+  shell: "./npi set license_key {{ NEWRELIC_LICENSE_KEY }}"
+  args:
+    chdir: "{{ NEWRELIC_NPI_PREFIX }}"
+  become_user: "{{ NEWRELIC_USER }}"
+
+- name: configure npi with the distro
+  shell: "./npi set distro {{ NEWRELIC_NPI_DISTRO }}"
+  args:
+    chdir: "{{ NEWRELIC_NPI_PREFIX }}"
+  become_user: "{{ NEWRELIC_USER }}"
+
+
