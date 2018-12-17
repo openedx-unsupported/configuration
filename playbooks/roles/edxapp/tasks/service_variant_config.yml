@@ -16,6 +16,16 @@
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
 
+- name: combined lms auth env for yml
+  set_fact:
+    lms_combined_config: '{{lms_env_config|combine(lms_auth_config)}}'
+  when: '"lms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
 - name: render lms yml config # meant to replace existing json config eventually
   template:
     src: "lms.yml.j2"
@@ -26,6 +36,16 @@
   become: true
   with_items: "{{ service_variants_enabled }}"
   when: '"lms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: combined cms auth env for yml
+  set_fact:
+    cms_combined_config: '{{cms_env_config|combine(cms_auth_config)}}'
+  when: '"cms" in service_variants_enabled'
   tags:
     - install
     - install:configuration
