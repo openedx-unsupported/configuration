@@ -17,7 +17,7 @@ ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/credentials/ansible_overrides.yml /
-COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
+COPY docker/common_ansible_overrides.yml /devstack/ansible_overrides.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
