@@ -208,7 +208,6 @@ def extract_body(task):
         body_dict = json.loads(body.decode("utf-8"))
     except:
         body_dict = {}
-
     return body_dict
 
 
@@ -216,6 +215,7 @@ def generate_info(
     queue_name,
     correlation_id,
     body,
+    running_tasks,
     do_alert,
     first_occurance_time,
     current_time,
@@ -242,7 +242,8 @@ def generate_info(
             ---------------------------------------------
             queue_name = {}
             correlation_id = {}
-            task = {}
+            next_task = {}
+            running_tasks = {}
             args = {}
             kwargs = {}
             do_alert = {}
@@ -256,6 +257,7 @@ def generate_info(
         queue_name,
         correlation_id,
         task,
+        running_tasks,
         args,
         kwargs,
         do_alert,
@@ -296,7 +298,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
                        if (redis_client.type(k) == b'list' and
                            not k.decode().endswith(".pidbox") and
                            not k.decode().startswith("_kombu"))])
-
     queue_age_hash = redis_client.hgetall(QUEUE_AGE_HASH_NAME)
     old_state = unpack_state(queue_age_hash)
     # Temp debugging
@@ -315,7 +316,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     # Temp debugging
     print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
-
+    active_tasks = ""
     for queue_name in queue_names:
         threshold = default_threshold
         if queue_name in thresholds:
@@ -324,6 +325,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         correlation_id = new_state[queue_name]['correlation_id']
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         body = extract_body(queue_first_items[queue_name])
+        active_tasks = get_current_tasks(host, port, queue_name)
         redacted_body = {'task': body['task'], 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
@@ -331,6 +333,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             queue_name,
             correlation_id,
             body,
+            active_tasks,
             do_alert,
             first_occurance_time,
             current_time,
@@ -342,6 +345,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             queue_name,
             correlation_id,
             redacted_body,
+            active_tasks,
             do_alert,
             first_occurance_time,
             current_time,
@@ -368,6 +372,33 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
         # Temp Debugging
         print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
+
+
+def connection(host, port):
+    from celery import Celery
+    celery_app = " "
+    try:
+        broker_url = "redis://" + host + ":" + str(port)
+        celery_app = Celery(broker=broker_url)
+    except Exception as e:
+        print("Exception ", e)
+    return celery_app
+
+
+# Functionality added to get list of currently running tasks
+# because Redis returns only the next tasks in the list
+def get_current_tasks(host, port, queue):
+    active_list = list()
+    celery_app = connection(host, port)
+    celery_obj = celery_app.control.inspect()
+    try:
+        for worker, data in celery_obj.active().items():
+            if queue in worker:
+                for tasks in data:
+                    active_list.append(tasks['name'])
+    except Exception as e:
+        print("Exception", e)
+    return ", ".join(set(active_list))
 
 
 if __name__ == '__main__':
