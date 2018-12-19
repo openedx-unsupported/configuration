@@ -1,22 +1,21 @@
 import click
 import yaml
 import json
+from collections import defaultdict
 
 @click.command()
 @click.option('--files', '-m', multiple=True)
 def check_for_yaml_key_collisions(files):
-    values_for_keys = {}
+    values_for_keys = defaultdict(lambda: [])
     for file_path in files:
         content = None
-        if ".yml" in file_path or ".yaml" in file_path:
+        if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             stream = file(file_path, 'r')
             content = yaml.load(stream)
-        elif ".json" in file_path:
+        elif file_path.endswith(".json"):
             with open(file_path, "r") as read_file:
                 content = json.load(read_file)
         for key, value in content.iteritems():
-            if key not in values_for_keys:
-                values_for_keys[key] = []
             values_for_keys[key].append(value)
 
     collisions = {}
