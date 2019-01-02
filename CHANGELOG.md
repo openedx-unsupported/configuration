@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Renamed proctoring backend setting to work with edx-proctoring 1.5.0
+
+- Role: edxapp
   - Remove low priority queue, use default instead.
 
 - Role: ecommerce
