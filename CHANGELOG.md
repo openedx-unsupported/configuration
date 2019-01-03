@@ -1,5 +1,6 @@
 - Role: edxapp
   - Renamed proctoring backend setting to work with edx-proctoring 1.5.0
+  - Render auth and env config to a single yml file
 
 - Role: edxapp
   - Remove low priority queue, use default instead.
