@@ -286,7 +286,7 @@ def generate_info(
 @click.option('--opsgenie-api-key', '-k', envvar='OPSGENIE_API_KEY', required=True)
 @click.option('--jenkins-build-url', '-j', envvar='BUILD_URL', required=False)
 def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key, jenkins_build_url):
-
+    redacted_body = ""
     thresholds = dict(queue_threshold)
     print("Default Threshold (seconds): {}".format(default_threshold))
     print("Per Queue Thresholds (seconds):\n{}".format(pretty_json(thresholds)))
@@ -302,7 +302,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     old_state = unpack_state(queue_age_hash)
     # Temp debugging
     print("DEBUG: old_state\n{}\n".format(pretty_state(old_state)))
-
     queue_first_items = {}
     current_time = datetime.datetime.now()
 
@@ -316,7 +315,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     # Temp debugging
     print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
-    active_tasks = ""
     for queue_name in queue_names:
         threshold = default_threshold
         if queue_name in thresholds:
@@ -326,7 +324,12 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         body = extract_body(queue_first_items[queue_name])
         active_tasks = get_current_tasks(host, port, queue_name)
-        redacted_body = {'task': body['task'], 'args': 'REDACTED', 'kwargs': 'REDACTED'}
+        # placed redacted_body code in try/except block to avoid failing since
+        # the task was failing for prod-edx E-D
+        try:
+            redacted_body = {'task': body['task'], 'args': 'REDACTED', 'kwargs': 'REDACTED'}
+        except KeyError as error:
+            print("BODY: {} \n\n KeyError: {}".format(body, error))
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
         info = generate_info(
@@ -354,7 +357,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             jenkins_build_url,
         )
         print(info)
-
         if not new_state[queue_name]['alert_created'] and do_alert:
             create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, redacted_info)
             new_state[queue_name]['alert_created'] = True
