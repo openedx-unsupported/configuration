@@ -50,11 +50,20 @@
     - install
     - install:system-requirements
 
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+  tags:
+    - install
+    - install:base
+
 - name: start docker service
   service:
     name: docker
     enabled: yes
     state: started
+  when: docker_container.stdout != 'yes'
   tags:
     - install
     - install:configuration
