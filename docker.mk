@@ -8,6 +8,8 @@ all_images:=$(patsubst docker/build/%/Dockerfile,%,$(dockerfiles))
 
 # Used in the test.mk file as well.
 images:=$(if $(TRAVIS_COMMIT_RANGE),$(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py),$(all_images))
+# Only use images that actually contain a Dockerfile
+images:=$(shell echo "$(all_images) $(images)" | tr " " "\n" | sort | uniq -d)
 
 docker_build=docker.build.
 docker_test=docker.test.
