@@ -208,8 +208,7 @@ class BrowserAlerts:
 
 @click.command()
 @click.option('--new-relic-api-key', required=True, help='API Key to use to speak with NewRelic.')
-@click.option('--operation-name', required=True, help='Operation name to be performed.')
-def controller(new_relic_api_key, operation_name):
+def controller(new_relic_api_key):
     """
     Control execution of all other functions
     Arguments:
@@ -218,54 +217,48 @@ def controller(new_relic_api_key, operation_name):
         operation_name (str):
             Get this from cli args
     """
-    if operation_name == "Infrastructure":
-        # Initializing object of classes
-        infracheck = InfraAlerts()
-        new_relic_obj = NewRelic(new_relic_api_key)
-        # Get list of all instances in different regions
-        instance_list = infracheck.edc_extractor()
-        # Get list of all alert policies in new relic
-        alert_policies = new_relic_obj.new_relic_policies_extractor()
-        # Get list of all instances without alerts
-        missing_alerts_list = infracheck.missing_alerts_checker(instance_list, alert_policies)
-        format_string = "{:<30}{}"
-        print(format_string.format("Instnace ID","Instance Name"))
-        for instance_wo_alerts in missing_alerts_list:
-            print(format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"]))
-        sys.exit(0)
-    elif operation_name == "Applications":
-        # Initializing object of classes
-        appcheck = AppAlerts(new_relic_api_key)
-        new_relic_obj = NewRelic(new_relic_api_key)
-        # Get list of all applications from new relic
-        apps_list = appcheck.new_relic_app_extractor()
-        # Get list of all alert policies in new relic
-        alert_policies = new_relic_obj.new_relic_policies_extractor()
-        # Get list of all applications without alerts
-        missing_alerts_list = appcheck.missing_alerts_checker(apps_list, alert_policies)
-        format_string = "{:<20}{}"
-        print(format_string.format("Application ID", "Application Name"))
-        for instance_wo_alerts in missing_alerts_list:
-            print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
-        sys.exit(0)
-    elif operation_name == "Browser":
-        # Initializing object of classes
-        browsercheck = BrowserAlerts(new_relic_api_key)
-        new_relic_obj = NewRelic(new_relic_api_key)
-        # Get list of all browser applications from new relic
-        browser_list = browsercheck.new_relic_browser_extractor()
-        # Get list of all alert policies in new relic
-        alert_policies = new_relic_obj.new_relic_policies_extractor()
-        # Get list of all browser applications without alerts
-        missing_alerts_list = browsercheck.missing_alerts_checker(browser_list, alert_policies)
-        format_string = "{:<20}{}"
-        print(format_string.format("Browser ID", "Browser Name"))
-        for instance_wo_alerts in missing_alerts_list:
-            print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
-        sys.exit(0)
-    else:
-        print("Invalid Operation name")
-        sys.exit(1)
+    flag = 0
+    # Initializing object of classes
+    infracheck = InfraAlerts()
+    new_relic_obj = NewRelic(new_relic_api_key)
+    # Get list of all instances in different regions
+    instance_list = infracheck.edc_extractor()
+    # Get list of all alert policies in new relic
+    alert_policies = new_relic_obj.new_relic_policies_extractor()
+    # Get list of all instances without alerts
+    missing_alerts_list = infracheck.missing_alerts_checker(instance_list, alert_policies)
+    format_string = "{:<30}{}"
+    print(format_string.format("Instnace ID","Instance Name"))
+    for instance_wo_alerts in missing_alerts_list:
+        print(format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"]))
+        flag = 1
+
+    # Initializing object of classes
+    appcheck = AppAlerts(new_relic_api_key)
+    new_relic_obj = NewRelic(new_relic_api_key)
+    # Get list of all applications from new relic
+    apps_list = appcheck.new_relic_app_extractor()
+    # Get list of all applications without alerts
+    missing_alerts_list_app = appcheck.missing_alerts_checker(apps_list, alert_policies)
+    format_string = "{:<20}{}"
+    print(format_string.format("Application ID", "Application Name"))
+    for instance_wo_alerts in missing_alerts_list_app:
+        print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
+        flag = 1
+
+    # Initializing object of classes
+    browsercheck = BrowserAlerts(new_relic_api_key)
+    new_relic_obj = NewRelic(new_relic_api_key)
+    # Get list of all browser applications from new relic
+    browser_list = browsercheck.new_relic_browser_extractor()
+    # Get list of all browser applications without alerts
+    missing_alerts_list_browser = browsercheck.missing_alerts_checker(browser_list, alert_policies)
+    format_string = "{:<20}{}"
+    print(format_string.format("Browser ID", "Browser Name"))
+    for instance_wo_alerts in missing_alerts_list_browser:
+        print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
+        flag = 1
+    sys.exit(flag)
 
 
 if __name__ == '__main__':
