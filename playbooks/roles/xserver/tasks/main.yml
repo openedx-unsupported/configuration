@@ -29,6 +29,17 @@
     - "{{ xserver_data_dir }}"
     - "{{ xserver_data_dir }}/data"
 
+- name: Setup the xserver env
+  template:
+    src: "xserver_env.j2"
+    dest: "{{ xserver_app_dir }}/xserver_env"
+    owner: "{{ xserver_user }}"
+    group: "{{ xserver_user }}"
+    mode: "0655"
+  tags:
+    - "install"
+    - "install:base"
+
 - name: Create sandbox sudoers file
   template:
     src: 99-sandbox.j2
@@ -54,6 +65,15 @@
     name: "{{ item }}"
     state: present
   with_items: "{{ xserver_debian_pkgs }}"
+
+- name: Create manage.py symlink
+  file:
+    src: "{{ xserver_manage }}"
+    dest: "{{ COMMON_BIN_DIR }}/manage.{{ xserver_service_name }}"
+    state: link
+  tags:
+    - install
+    - install:app-requirements
 
 - name: Load python-sandbox apparmor profile
   template:
