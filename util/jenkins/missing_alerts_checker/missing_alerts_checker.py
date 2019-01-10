@@ -1,6 +1,5 @@
 import boto3
 import requests
-from requests.exceptions import HTTPError, RequestException
 import click
 from botocore.exceptions import ClientError
 import sys
@@ -214,8 +213,6 @@ def controller(new_relic_api_key):
     Arguments:
         new_relic_api_key (str):
             Get this from cli args
-        operation_name (str):
-            Get this from cli args
     """
     flag = 0
     # Initializing object of classes
@@ -241,6 +238,7 @@ def controller(new_relic_api_key):
     # Get list of all applications without alerts
     missing_alerts_list_app = appcheck.missing_alerts_checker(apps_list, alert_policies)
     format_string = "{:<20}{}"
+    print("")
     print(format_string.format("Application ID", "Application Name"))
     for instance_wo_alerts in missing_alerts_list_app:
         print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
@@ -254,6 +252,7 @@ def controller(new_relic_api_key):
     # Get list of all browser applications without alerts
     missing_alerts_list_browser = browsercheck.missing_alerts_checker(browser_list, alert_policies)
     format_string = "{:<20}{}"
+    print("")
     print(format_string.format("Browser ID", "Browser Name"))
     for instance_wo_alerts in missing_alerts_list_browser:
         print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
