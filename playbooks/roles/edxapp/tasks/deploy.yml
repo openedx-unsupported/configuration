@@ -464,3 +464,20 @@
 - name: install additional cron jobs
   cron: "{{ item }}"
   with_items: "{{ EDXAPP_ADDITIONAL_CRON_JOBS }}"
+
+- name: create DOT application for the basic auth user
+  shell: >-
+    . {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python
+    ./manage.py lms create_dot_application --settings={{ edxapp_settings }}
+    "{{ EDXAPP_BASIC_AUTH_DOT_APP_NAME }}"
+    "{{ EDXAPP_BASIC_AUTH_DOT_APP_USERNAME }}"
+    --public --grant-type="password"
+    --client-id="{{ COMMON_HTPASSWD_USER }}"
+    --client-secret="{{ COMMON_HTPASSWD_PASS }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: COMMON_ENABLE_BASIC_AUTH
+  tags:
+    - install
+    - install:base
