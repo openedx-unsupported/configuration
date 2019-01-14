@@ -390,18 +390,17 @@ def connection(host, port):
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
 def get_current_tasks(host, port, queue):
-    running_tasks = dict()
+    active_list = list()
     celery_app = connection(host, port)
     celery_obj = celery_app.control.inspect()
     try:
         for worker, data in celery_obj.active().items():
             if queue in worker:
                 for tasks in data:
-                    running_tasks.setdefault(
-                        tasks["hostname"], []).append(tasks["name"])
+                    active_list.append(tasks['name'])
     except Exception as e:
         print("Exception", e)
-    return pretty_json(running_tasks)
+    return ", ".join(set(active_list))
 
 
 if __name__ == '__main__':
