@@ -404,9 +404,14 @@ def get_current_tasks(host, port, queue):
     try:
         for worker, data in celery_obj.active().items():
             if queue in worker:
-                for tasks in data:
+                for task in data:
+                    print(data)
                     running_tasks.setdefault(
-                        tasks["hostname"], []).append(tasks["name"])
+                        task["hostname"], []).append({
+                            'task': task["name"],
+                            'args': task.get("args"),
+                            'kwargs': task.get("kwargs"),
+                        })
     except Exception as e:
         print("Exception", e)
     return pretty_json(running_tasks)
