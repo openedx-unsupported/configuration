@@ -227,12 +227,12 @@ def generate_info(
     jenkins_build_url,
 ):
     time_delta = (current_time - first_occurance_time).seconds
-    task = "Key missing"
+    next_task = "Key missing"
     args = "Key missing"
     kwargs = "Key missing"
 
     if 'task' in body:
-        task = body['task']
+        next_task = body['task']
 
     if 'args' in body:
         args = body['args']
@@ -245,10 +245,6 @@ def generate_info(
             =============================================
             queue_name = {}
             correlation_id = {}
-            next_task = {}
-            running_tasks = {}
-            args = {}
-            kwargs = {}
             do_alert = {}
             first_occurance_time = {}
             current_time = {}
@@ -256,13 +252,16 @@ def generate_info(
             threshold = {} seconds
             default_threshold = {} seconds
             jenkins_build_url = {}
+            ---------------------------------------------
+            running_tasks = {}
+            ---------------------------------------------
+            next_task = {}
+            args = {}
+            kwargs = {}
+            =============================================
         """),
         queue_name,
         correlation_id,
-        task,
-        running_tasks,
-        args,
-        kwargs,
         do_alert,
         first_occurance_time,
         current_time,
@@ -270,6 +269,10 @@ def generate_info(
         threshold,
         default_threshold,
         jenkins_build_url,
+        running_tasks,
+        next_task,
+        args,
+        kwargs,
     )
     return output
 
