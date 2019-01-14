@@ -218,7 +218,7 @@ def generate_info(
     queue_name,
     correlation_id,
     body,
-    running_tasks,
+    active_tasks,
     do_alert,
     first_occurance_time,
     current_time,
@@ -253,7 +253,7 @@ def generate_info(
             default_threshold = {} seconds
             jenkins_build_url = {}
             ---------------------------------------------
-            running_tasks = {}
+            active_tasks = {}
             ---------------------------------------------
             next_task = {}
             args = {}
@@ -269,7 +269,7 @@ def generate_info(
         threshold,
         default_threshold,
         jenkins_build_url,
-        running_tasks,
+        active_tasks,
         next_task,
         args,
         kwargs,
@@ -335,7 +335,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         except Exception as error:
             print("ERROR: Unable to extract task body, exception {}".format(error))
             ret_val = 1
-        active_tasks = get_current_tasks(host, port, queue_name)
+        active_tasks = get_active_tasks(host, port, queue_name)
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
@@ -397,8 +397,8 @@ def connection(host, port):
 
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
-def get_current_tasks(host, port, queue):
-    running_tasks = dict()
+def get_active_tasks(host, port, queue):
+    active_tasks = dict()
     celery_app = connection(host, port)
     celery_obj = celery_app.control.inspect()
     try:
@@ -406,7 +406,7 @@ def get_current_tasks(host, port, queue):
             if queue in worker:
                 for task in data:
                     print(data)
-                    running_tasks.setdefault(
+                    active_tasks.setdefault(
                         task["hostname"], []).append({
                             'task': task["name"],
                             'args': task.get("args"),
@@ -414,7 +414,7 @@ def get_current_tasks(host, port, queue):
                         })
     except Exception as e:
         print("Exception", e)
-    return pretty_json(running_tasks)
+    return pretty_json(active_tasks)
 
 
 if __name__ == '__main__':
