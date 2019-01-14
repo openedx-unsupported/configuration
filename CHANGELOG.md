@@ -1,3 +1,7 @@
+- Role: nginx
+  - Modified robots.txt.j2 to accept the Allow rule.
+  - Modified robots.txt.j2 to accept either a single string or a list of strings for agent, disallow, and allow.
+
 - abbey.py
   - Removed abbey.py
 
