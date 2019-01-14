@@ -238,8 +238,8 @@ def generate_info(
         kwargs = body['kwargs']
 
     output = str.format(
-        """
-            ---------------------------------------------
+        dedent("""
+            =============================================
             queue_name = {}
             correlation_id = {}
             next_task = {}
@@ -253,7 +253,7 @@ def generate_info(
             threshold = {} seconds
             default_threshold = {} seconds
             jenkins_build_url = {}
-        """,
+        """),
         queue_name,
         correlation_id,
         task,
@@ -268,7 +268,7 @@ def generate_info(
         default_threshold,
         jenkins_build_url,
     )
-    return dedent(output)
+    return output
 
 
 @click.command()
