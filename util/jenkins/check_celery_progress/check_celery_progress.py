@@ -333,7 +333,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         try:
             body = extract_body(queue_first_items[queue_name])
         except Exception as error:
-            print("ERROR: Unable to extract task body, exception {}".format(error))
+            print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
             ret_val = 1
         active_tasks = get_active_tasks(host, port, queue_name)
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
@@ -391,7 +391,7 @@ def connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_app = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception ", e)
+        print("Exception in connection()", e)
     return celery_app
 
 
@@ -413,8 +413,8 @@ def get_active_tasks(host, port, queue):
                             'kwargs': task.get("kwargs"),
                         })
     except Exception as e:
-        print("Exception", e)
-    return pretty_json(active_tasks)
+        print("Exception in get_active_tasks()", e)
+    return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
 if __name__ == '__main__':
