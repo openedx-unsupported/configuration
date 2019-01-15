@@ -1,3 +1,5 @@
+import sys
+import pickle
 import json
 import datetime
 import base64
@@ -200,14 +202,15 @@ def close_alert(opsgenie_api_key, environment, deploy, queue_name):
 
 def extract_body(task):
     body = base64.b64decode(task['body'])
+    body_dict = {}
 
     if 'headers' in task and 'compression' in task['headers'] and task['headers']['compression'] == 'application/x-gzip':
         body = zlib.decompress(body)
 
-    try:
+    if task.get('content-type') == 'application/json':
         body_dict = json.loads(body.decode("utf-8"))
-    except:
-        body_dict = {}
+    elif task.get('content-type') == 'application/x-python-serialize':
+        body_dict = pickle.loads(body, encoding='bytes')
     return body_dict
 
 
@@ -215,7 +218,7 @@ def generate_info(
     queue_name,
     correlation_id,
     body,
-    running_tasks,
+    active_tasks,
     do_alert,
     first_occurance_time,
     current_time,
@@ -224,12 +227,12 @@ def generate_info(
     jenkins_build_url,
 ):
     time_delta = (current_time - first_occurance_time).seconds
-    task = "Key missing"
+    next_task = "Key missing"
     args = "Key missing"
     kwargs = "Key missing"
 
     if 'task' in body:
-        task = body['task']
+        next_task = body['task']
 
     if 'args' in body:
         args = body['args']
@@ -238,14 +241,10 @@ def generate_info(
         kwargs = body['kwargs']
 
     output = str.format(
-        """
-            ---------------------------------------------
+        dedent("""
+            =============================================
             queue_name = {}
             correlation_id = {}
-            next_task = {}
-            running_tasks = {}
-            args = {}
-            kwargs = {}
             do_alert = {}
             first_occurance_time = {}
             current_time = {}
@@ -253,13 +252,16 @@ def generate_info(
             threshold = {} seconds
             default_threshold = {} seconds
             jenkins_build_url = {}
-        """,
+            ---------------------------------------------
+            active_tasks = {}
+            ---------------------------------------------
+            next_task = {}
+            args = {}
+            kwargs = {}
+            =============================================
+        """),
         queue_name,
         correlation_id,
-        task,
-        running_tasks,
-        args,
-        kwargs,
         do_alert,
         first_occurance_time,
         current_time,
@@ -267,8 +269,12 @@ def generate_info(
         threshold,
         default_threshold,
         jenkins_build_url,
+        active_tasks,
+        next_task,
+        args,
+        kwargs,
     )
-    return dedent(output)
+    return output
 
 
 @click.command()
@@ -286,7 +292,7 @@ def generate_info(
 @click.option('--opsgenie-api-key', '-k', envvar='OPSGENIE_API_KEY', required=True)
 @click.option('--jenkins-build-url', '-j', envvar='BUILD_URL', required=False)
 def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key, jenkins_build_url):
-    redacted_body = ""
+    ret_val = 0
     thresholds = dict(queue_threshold)
     print("Default Threshold (seconds): {}".format(default_threshold))
     print("Per Queue Thresholds (seconds):\n{}".format(pretty_json(thresholds)))
@@ -316,20 +322,21 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     # Temp debugging
     print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
     for queue_name in queue_names:
+        redacted_body = ""
         threshold = default_threshold
         if queue_name in thresholds:
             threshold = thresholds[queue_name]
 
         correlation_id = new_state[queue_name]['correlation_id']
         first_occurance_time = new_state[queue_name]['first_occurance_time']
-        body = extract_body(queue_first_items[queue_name])
-        active_tasks = get_current_tasks(host, port, queue_name)
-        # placed redacted_body code in try/except block to avoid failing since
-        # the task was failing for prod-edx E-D
+        body = {}
         try:
-            redacted_body = {'task': body['task'], 'args': 'REDACTED', 'kwargs': 'REDACTED'}
-        except KeyError as error:
-            print("BODY: {} \n\n KeyError: {}".format(body, error))
+            body = extract_body(queue_first_items[queue_name])
+        except Exception as error:
+            print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
+            ret_val = 1
+        redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
+        active_tasks, redacted_active_tasks = get_active_tasks(host, port, queue_name)
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
         info = generate_info(
@@ -348,7 +355,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             queue_name,
             correlation_id,
             redacted_body,
-            active_tasks,
+            redacted_active_tasks,
             do_alert,
             first_occurance_time,
             current_time,
@@ -375,6 +382,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         # Temp Debugging
         print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
 
+    sys.exit(ret_val)
 
 def connection(host, port):
     from celery import Celery
@@ -383,24 +391,36 @@ def connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_app = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception ", e)
+        print("Exception in connection()", e)
     return celery_app
 
 
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
-def get_current_tasks(host, port, queue):
-    active_list = list()
+def get_active_tasks(host, port, queue, redacted=True):
+    active_tasks = dict()
+    redacted_active_tasks = dict()
     celery_app = connection(host, port)
     celery_obj = celery_app.control.inspect()
     try:
         for worker, data in celery_obj.active().items():
             if queue in worker:
-                for tasks in data:
-                    active_list.append(tasks['name'])
+                for task in data:
+                    active_tasks.setdefault(
+                        task["hostname"], []).append([
+                            'task: {}'.format(task.get("name")),
+                            'args: {}'.format(task.get("args")),
+                            'kwargs: {}'.format(task.get("kwargs")),
+                        ])
+                    redacted_active_tasks.setdefault(
+                        task["hostname"], []).append([
+                            'task: {}'.format(task.get("name")),
+                            'args: REDACTED',
+                            'kwargs: REDACTED',
+                        ])
     except Exception as e:
-        print("Exception", e)
-    return ", ".join(set(active_list))
+        print("Exception in get_active_tasks()", e)
+    return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
 if __name__ == '__main__':
