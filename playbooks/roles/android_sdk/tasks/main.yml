@@ -40,9 +40,16 @@
   become: yes
 # Use the android sdk manager to install the build targets necessary for the edx mobile app
 - name: Install Android API levels 
-  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_build_targets }}" 
+  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_build_targets }} --verbose" 
   become: yes
   become_user: "{{ android_user }}"
+
+# Create repository file needed for sdkmanaer 
+- name: Download Android System Image
+  shell: "touch ~/.android/repositories.cfg" 
+  become: yes
+  become_user: "{{ android_user }}"
+
 # Put Android package names into a list for easier installation command
 - name: Gather Android packages to download into a list
   util_map:
@@ -53,7 +60,7 @@
   register: android_packages
 # Use the android sdk manager to install the build tools necessary for the edx mobile app
 - name: Install other Android tools
-  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager {{ android_packages.function_output | join(' ') }}"
+  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager {{ android_packages.function_output | join(' ') }} --verbose "
   become: yes
   become_user: "{{ android_user }}"
 # Link adb to tools, where all the rest of the android tools are
@@ -73,7 +80,7 @@
   with_items: "{{ android_apt_libraries }}"
 # Download Android System Image to run emulator 
 - name: Download Android System Image
-  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_sys_image }}" 
+  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_sys_image }} --verbose " 
   become: yes
   become_user: "{{ android_user }}"
 
