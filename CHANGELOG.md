@@ -1,3 +1,6 @@
+- Roles: nginx
+  - Added RG_NGINX_LMS_CLIENT_MAX_BODY_SIZE, RG_NGINX_CMS_CLIENT_MAX_BODY_SIZE to override `client_max_body_size` in lms and cms nginx configuration.
+
 - Role: edxapp
   - Added creation of enterprise_worker user to provisioning. This user is used by the edx-enterprise package when making API requests to Open edX IDAs.
 
