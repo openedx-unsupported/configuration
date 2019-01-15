@@ -1,0 +1,18 @@
+[program:lms_celery_beat]
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_WORKERS_APPNAME }},NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ EDXAPP_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},LANG={{ EDXAPP_LANG }},PYTHONPATH={{ edxapp_code_dir }},SERVICE_VARIANT=lms,BOTO_CONFIG="{{ edxapp_app_dir }}/.boto
+user={{ common_web_user }}
+directory={{ edxapp_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edxapp_app_dir }}/worker.sh lms --settings={{ worker_django_settings_module }} celery beat --loglevel=info --scheduler djcelery.schedulers:DatabaseScheduler --pid {{ edxapp_data_dir }}/celerybeat.pid
+
+; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
+; with an exit code of zero for certain types of unrecoverable errors, so we must make sure that the workers
+; are auto restarted even when exiting with code 0.
+; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
+autorestart=true
+
+[group:edxapp_celery_beat]
+programs=lms_celery_beat

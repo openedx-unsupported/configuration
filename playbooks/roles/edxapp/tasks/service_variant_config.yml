@@ -97,6 +97,20 @@
     - install
     - install:configuration
 
+# write the supervisor script for celery beat processes
+- name: write celery beat supervisor scripts
+  template:
+    src: "edx/app/supervisor/conf.d.available/celery_beat.j2"
+    dest: "{{ supervisor_available_dir }}/celery_beat"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  when: "{{ EDXAPP_ENABLE_CELERY_BEAT }}"
+  tags:
+    - install
+    - install:configuration
+
 # clean out an old edxapp.conf file which we don't use now.
 # this can be deleted after we build things from scratch.
 - name: clean out old edxapp.conf
