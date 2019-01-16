@@ -160,6 +160,18 @@
     - install
     - install:configuration
 
+- name: enable celery beat supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/celery_beat.conf"
+    dest: "{{ supervisor_cfg_dir }}/celery_beat.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  when: celery_worker is defined and not disable_edx_services and "{{ EDXAPP_ENABLE_CELERY_BEAT }}"
+  tags:
+    - install
+    - install:configuration
+
 - name: create helper scripts for managing edxapp
   template:
     src: "edx/bin/{{ item[0] }}-{{ item[1] }}.j2"
