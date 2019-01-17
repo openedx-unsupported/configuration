@@ -404,7 +404,7 @@ def get_active_tasks(host, port, queue, redacted=True):
     celery_obj = celery_app.control.inspect()
     try:
         for worker, data in celery_obj.active().items():
-            if queue in worker:
+            if queue in worker.split('@')[1]:
                 for task in data:
                     active_tasks.setdefault(
                         task["hostname"], []).append([
