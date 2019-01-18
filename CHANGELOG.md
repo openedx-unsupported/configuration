@@ -1,3 +1,6 @@
+- Role: discovery
+  - Added `DISCOVERY_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
+
 - abbey.py
   - Removed abbey.py
 
