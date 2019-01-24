@@ -9,3 +9,4 @@ Make sure that the following steps are done before merging:
     - [ ] If you are updating a secure value rather than an internal one, file a DEVOPS ticket with details.
     - [ ] Add an entry to the CHANGELOG.
   - [ ] If you are making a complicated change, have you performed the proper testing specified on the [Ops Ansible Testing Checklist](https://openedx.atlassian.net/wiki/display/EdxOps/Ops+Ansible+Testing+Checklist)?  Adding a new variable does not require the full list (although testing on a sandbox is a great idea to ensure it links with your downstream code changes).
+  - [ ] Think about how this change will affect Open edX operators.  Have you updated the wiki page for the next Open edX release?
