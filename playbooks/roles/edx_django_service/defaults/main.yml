@@ -84,6 +84,7 @@ edx_django_service_basic_auth_exempted_paths_extra: []
 edx_django_service_basic_auth_exempted_paths: '{{ edx_django_service_basic_auth_exempted_paths_default + edx_django_service_basic_auth_exempted_paths_extra }}'
 
 edx_django_service_newrelic_appname: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}'
+edx_django_service_enable_newrelic_distributed_tracing: false
 
 edx_django_service_repos:
   - PROTOCOL: '{{ edx_django_service_git_protocol }}'
@@ -120,6 +121,7 @@ edx_django_service_caches:
 edx_django_service_default_db_host: 'localhost'
 edx_django_service_default_db_name: '{{ edx_django_service_name }}'
 edx_django_service_default_db_atomic_requests: false
+edx_django_service_default_db_conn_max_age: 60
 edx_django_service_db_user: 'REPLACE-ME'
 edx_django_service_db_password: 'password'
 edx_django_service_db_options:
@@ -135,7 +137,7 @@ edx_django_service_databases:
     HOST: '{{ edx_django_service_default_db_host }}'
     PORT: '3306'
     ATOMIC_REQUESTS: '{{ edx_django_service_default_db_atomic_requests }}'
-    CONN_MAX_AGE: 60
+    CONN_MAX_AGE: '{{ edx_django_service_default_db_conn_max_age }}'
     OPTIONS: '{{ edx_django_service_db_options }}'
 
 edx_django_service_social_auth_edx_oidc_key: '{{ edx_django_service_name }}-key'
@@ -158,7 +160,7 @@ edx_django_service_jwt_auth:
     - AUDIENCE: '{{ edx_django_service_jwt_audience }}'
       ISSUER: '{{ edx_django_service_jwt_issuer }}'
       SECRET_KEY: '{{ edx_django_service_jwt_secret_key }}'
-  JWT_PUBLIC_SIGNING_JWK_SET: '{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET }}'
+  JWT_PUBLIC_SIGNING_JWK_SET: '{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET|string }}'
 
 edx_django_service_extra_apps: []
 
@@ -224,4 +226,6 @@ edx_django_service_automated_users:
 #
 edx_django_service_post_migrate_commands: []
 
-EDX_DJANGO_SERVICE_ENABLE_DJANGO_ADMIN_RESTRICTION: false
+EDX_DJANGO_SERVICE_ENABLE_ADMIN_URLS_RESTRICTION: false
+
+EDX_DJANGO_SERVICE_ADMIN_URLS: []

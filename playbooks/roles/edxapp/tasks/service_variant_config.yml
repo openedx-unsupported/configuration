@@ -16,6 +16,58 @@
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
 
+- name: combined lms auth env for yml
+  set_fact:
+    lms_combined_config: '{{lms_env_config|combine(lms_auth_config)}}'
+  when: '"lms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: render lms yml config # meant to replace existing json config eventually
+  template:
+    src: "lms.yml.j2"
+    dest: "{{ COMMON_CFG_DIR }}/lms.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  with_items: "{{ service_variants_enabled }}"
+  when: '"lms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: combined cms auth env for yml
+  set_fact:
+    cms_combined_config: '{{cms_env_config|combine(cms_auth_config)}}'
+  when: '"cms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: render studio yml config # meant to replace existing json config eventually
+  template:
+    src: "studio.yml.j2"
+    dest: "{{ COMMON_CFG_DIR }}/studio.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  with_items: "{{ service_variants_enabled }}"
+  when: '"cms" in service_variants_enabled'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
 # write the supervisor scripts for the service variants
 - name: "writing {{ item }} supervisor script"
   template:

@@ -2,7 +2,6 @@ import argparse
 import boto.ec2
 from boto.utils import get_instance_metadata, get_instance_identity
 from boto.exception import AWSConnectionError
-import hipchat
 import os
 import subprocess
 import traceback
@@ -148,41 +147,10 @@ if __name__ == '__main__':
     analyticsapi_migration_args.add_argument("--analytics-api-code-dir",
         help="Location of the analytics_api code.")
 
-    hipchat_args = parser.add_argument_group("hipchat",
-            "Args for hipchat notification.")
-    hipchat_args.add_argument("-c","--hipchat-api-key",
-        help="Hipchat token if you want to receive notifications via hipchat.")
-    hipchat_args.add_argument("-r","--hipchat-room",
-        help="Room to send messages to.")
-
     args = parser.parse_args()
 
     report = []
     prefix = None
-    notify = None
-
-    try:
-        if args.hipchat_api_key:
-            hc = hipchat.HipChat(token=args.hipchat_api_key)
-            def notify(message):
-               RETRIES = 3
-               last_exception = None
-               for _ in range(RETRIES):
-                    try:
-                        hc.message_room(
-                            room_id=args.hipchat_room,
-                            message_from=HIPCHAT_USER, message=message
-                        )
-                        break
-                    except Exception as e:
-                        last_exception = e
-               else:
-                   print("Failed to send message on HipChat, {}".format(last_exception))
-                   traceback.print_exc()
-
-    except Exception as e:
-        print("Failed to initialize hipchat, {}".format(e))
-        traceback.print_exc()
 
     instance_id = get_instance_metadata()['instance-id']
     prefix = instance_id
@@ -221,8 +189,6 @@ if __name__ == '__main__':
     if environment is None or deployment is None or play is None:
         msg = "Unable to retrieve environment, deployment, or play tag."
         print(msg)
-        if notify:
-            notify("{} : {}".format(prefix, msg))
         exit(0)
 
     #get the hostname of the sandbox
@@ -242,8 +208,6 @@ if __name__ == '__main__':
     except Exception as e:
         msg = "Failed to tag volumes associated with {}: {}".format(instance_id, str(e))
         print(msg)
-        if notify:
-            notify(msg)
 
     try:
         for service in services_for_instance(instance_id):
@@ -289,19 +253,12 @@ if __name__ == '__main__':
 
     except AWSConnectionError as ae:
         msg = "{}: ERROR : {}".format(prefix, ae)
-        if notify:
-            notify(msg)
-            notify(traceback.format_exc())
         raise ae
     except Exception as e:
         msg = "{}: ERROR : {}".format(prefix, e)
         print(msg)
-        if notify:
-            notify(msg)
         traceback.print_exc()
         raise e
     else:
         msg = "{}: {}".format(prefix, " | ".join(report))
         print(msg)
-        if notify:
-            notify(msg)

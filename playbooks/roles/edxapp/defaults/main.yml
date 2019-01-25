@@ -169,6 +169,7 @@ EDXAPP_CELERY_BROKER_TRANSPORT: 'amqp'
 EDXAPP_CELERY_BROKER_VHOST: ""
 EDXAPP_CELERY_BROKER_USE_SSL: false
 EDXAPP_CELERY_EVENT_QUEUE_TTL: "None"
+EDXAPP_CELERY_TIMEZONE: "UTC"
 EDXAPP_BRANCH_IO_KEY: ""
 
 EDXAPP_VIDEO_CDN_URLS:
@@ -262,7 +263,7 @@ EDXAPP_ACE_ENABLED_CHANNELS: ['django_email']
 EDXAPP_ACE_ENABLED_POLICIES: ['bulk_email_optout']
 EDXAPP_ACE_CHANNEL_SAILTHRU_DEBUG: True
 EDXAPP_ACE_CHANNEL_SAILTHRU_TEMPLATE_NAME: !!null
-EDXAPP_ACE_ROUTING_KEY: 'edx.lms.core.low'
+EDXAPP_ACE_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_ACE_CHANNEL_DEFAULT_EMAIL: 'django_email'
 EDXAPP_ACE_CHANNEL_TRANSACTIONAL_EMAIL: 'django_email'
 
@@ -368,7 +369,7 @@ EDXAPP_LMS_ISSUER: "{{ COMMON_JWT_ISSUER }}"
 EDXAPP_JWT_EXPIRATION: 30  # Number of seconds until expiration
 EDXAPP_JWT_AUDIENCE: "{{ COMMON_JWT_AUDIENCE }}"
 EDXAPP_JWT_SECRET_KEY: "{{ COMMON_JWT_SECRET_KEY }}"
-EDXAPP_JWT_PUBLIC_SIGNING_JWK_SET: "{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET }}"
+EDXAPP_JWT_PUBLIC_SIGNING_JWK_SET: "{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET|string }}"
 
 # See https://github.com/edx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0008-use-asymmetric-jwts.rst
 EDXAPP_JWT_SIGNING_ALGORITHM: !!null
@@ -565,6 +566,9 @@ EDXAPP_XML_S3_KEY: !!null
 EDXAPP_NEWRELIC_LMS_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-edxapp-lms"
 EDXAPP_NEWRELIC_CMS_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-edxapp-cms"
 EDXAPP_NEWRELIC_WORKERS_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-edxapp-workers"
+EDXAPP_LMS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+EDXAPP_CMS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+EDXAPP_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
 
 EDXAPP_ORA2_FILE_PREFIX: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}/ora2'
 EDXAPP_FILE_UPLOAD_STORAGE_BUCKET_NAME: '{{ EDXAPP_AWS_STORAGE_BUCKET_NAME }}'
@@ -603,20 +607,12 @@ EDXAPP_REGISTRATION_EXTRA_FIELDS:
   country: "required"
 
 EDXAPP_CELERY_WORKERS:
-  - queue: low
-    service_variant: cms
-    concurrency: 1
-    monitor: True
   - queue: default
     service_variant: cms
     concurrency: 1
     monitor: True
   - queue: high
     service_variant: cms
-    concurrency: 1
-    monitor: True
-  - queue: low
-    service_variant: lms
     concurrency: 1
     monitor: True
   - queue: default
@@ -634,7 +630,8 @@ EDXAPP_CELERY_WORKERS:
     max_tasks_per_child: 1
 EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
-EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: 'edx.lms.core.low'
+EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: 'edx.lms.core.default'
+EDXAPP_PROGRAM_CERTIFICATES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\1')|list }}"
 EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\1')|list }}"
 
@@ -747,9 +744,9 @@ EDXAPP_CREDIT_PROVIDER_SECRET_KEYS: {}
 
 # Proctoring configuration (redirct URLs and keys shared between systems)
 EDXAPP_PROCTORING_SETTINGS: {}
-EDXAPP_PROCTORING_BACKEND_PROVIDER:
-  class: 'edx_proctoring.backends.null.NullBackendProvider'
-  options: {}
+EDXAPP_PROCTORING_BACKENDS:
+  DEFAULT: 'null'
+  null: {}
 
 EDXAPP_RETIRED_USERNAME_PREFIX: "retired__user_"
 EDXAPP_RETIRED_EMAIL_PREFIX: "retired__user_"
@@ -884,6 +881,8 @@ EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES:
   - audit
   - honor
 
+EDXAPP_ENTERPRISE_CUSTOMER_SUCCESS_EMAIL: "customersuccess@edx.org"
+
 EDXAPP_ENTERPRISE_ENROLLMENT_API_URL: "{{ EDXAPP_LMS_INTERNAL_ROOT_URL }}/api/enrollment/v1/"
 
 # The default value of this needs to be a 16 character string
@@ -922,6 +921,9 @@ EDXAPP_MAINTENANCE_BANNER_TEXT: "Sample banner message"
 EDXAPP_PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG:
   ENFORCE_COMPLIANCE_ON_LOGIN: false
 
+# Needed to link the LMS instructor dashboard to the writable gradebook micro-frontend
+EDXAPP_LMS_WRITABLE_GRADEBOOK_URL: null
+
 #-------- Everything below this line is internal to the role ------------
 
 #Use YAML references (& and *) and hash merge <<: to factor out shared settings
@@ -951,6 +953,8 @@ edxapp_upload_dir: "{{ edxapp_data_dir }}/uploads"
 edxapp_theme_dir: "{{ edxapp_data_dir }}/themes"
 edxapp_git_identity: "{{ edxapp_app_dir }}/edxapp-git-identity"
 edxapp_git_ssh: "/tmp/edxapp_git_ssh.sh"
+edxapp_studio_cfg: "{{ COMMON_CFG_DIR }}/studio.yml"
+edxapp_lms_cfg: "{{ COMMON_CFG_DIR }}/lms.yml"
 
 edxapp_devstack_logs:
   - "{{ supervisor_log_dir }}/cms-stdout.log"
@@ -991,6 +995,8 @@ edxapp_environment_default:
   # be updated to /edx/etc/edxapp when the switch to
   # yaml based configs is complete
   CONFIG_ROOT: "{{ edxapp_app_dir }}"
+  LMS_CFG: "{{ edxapp_lms_cfg }}"
+  STUDIO_CFG: "{{ edxapp_studio_cfg }}"
   BOTO_CONFIG: "{{ edxapp_app_dir }}/.boto"
 
 edxapp_environment_extra: {}
@@ -1103,6 +1109,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   ZENDESK_OAUTH_ACCESS_TOKEN: "{{ EDXAPP_ZENDESK_OAUTH_ACCESS_TOKEN }}"
   CELERY_BROKER_USER: "{{ EDXAPP_CELERY_USER }}"
   CELERY_BROKER_PASSWORD: "{{ EDXAPP_CELERY_PASSWORD }}"
+  CELERY_TIMEZONE: "{{ EDXAPP_CELERY_TIMEZONE }}"
   GOOGLE_ANALYTICS_ACCOUNT: "{{ EDXAPP_GOOGLE_ANALYTICS_ACCOUNT }}"
   DJFS: "{{ EDXAPP_DJFS }}"
   CREDIT_PROVIDER_SECRET_KEYS: "{{ EDXAPP_CREDIT_PROVIDER_SECRET_KEYS }}"
@@ -1115,6 +1122,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   FACEBOOK_API_VERSION: "{{ EDXAPP_FACEBOOK_API_VERSION }}"
   ENTERPRISE_SERVICE_WORKER_USERNAME: "{{ EDXAPP_ENTERPRISE_SERVICE_WORKER_USERNAME }}"
   BRANCH_IO_KEY: "{{ EDXAPP_BRANCH_IO_KEY }}"
+  PROCTORING_BACKENDS: "{{ EDXAPP_PROCTORING_BACKENDS }}"
 
 generic_cache_config: &default_generic_cache
   BACKEND:  "{{ EDXAPP_CACHE_BACKEND }}"
@@ -1204,9 +1212,9 @@ generic_env_config:  &edxapp_generic_env
       - ISSUER: "{{ EDXAPP_LMS_ISSUER }}"
         AUDIENCE: "{{ EDXAPP_JWT_AUDIENCE }}"
         SECRET_KEY: "{{ EDXAPP_JWT_SECRET_KEY }}"
-    JWT_PUBLIC_SIGNING_JWK_SET: "{{ EDXAPP_JWT_PUBLIC_SIGNING_JWK_SET }}"
+    JWT_PUBLIC_SIGNING_JWK_SET: "{{ EDXAPP_JWT_PUBLIC_SIGNING_JWK_SET|string }}"
     JWT_SIGNING_ALGORITHM: "{{ EDXAPP_JWT_SIGNING_ALGORITHM }}"
-    JWT_PRIVATE_SIGNING_JWK: "{{ EDXAPP_JWT_PRIVATE_SIGNING_JWK }}"
+    JWT_PRIVATE_SIGNING_JWK: "{{ EDXAPP_JWT_PRIVATE_SIGNING_JWK|string }}"
 
   #must end in slash (https://docs.djangoproject.com/en/1.4/ref/settings/#media-url)
   MEDIA_URL:  "{{ EDXAPP_MEDIA_URL }}/"
@@ -1369,7 +1377,6 @@ lms_auth_config:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
                 render_template: 'edxmako.shortcuts.render_to_string'
-  PROCTORING_BACKEND_PROVIDER: "{{ EDXAPP_PROCTORING_BACKEND_PROVIDER }}"
   SOCIAL_AUTH_OAUTH_SECRETS: "{{ EDXAPP_SOCIAL_AUTH_OAUTH_SECRETS }}"
   ACE_CHANNEL_SAILTHRU_API_KEY: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_KEY }}"
   ACE_CHANNEL_SAILTHRU_API_SECRET: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_SECRET }}"
@@ -1417,6 +1424,7 @@ lms_env_config:
   CELERY_QUEUES: "{{ EDXAPP_LMS_CELERY_QUEUES }}"
   ALTERNATE_WORKER_QUEUES: "cms"
   ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES: "{{ EDXAPP_ENTERPRISE_COURSE_ENROLLMENT_AUDIT_MODES }}"
+  ENTERPRISE_CUSTOMER_SUCCESS_EMAIL: "{{ EDXAPP_ENTERPRISE_CUSTOMER_SUCCESS_EMAIL }}"
   ENTERPRISE_ENROLLMENT_API_URL: "{{ EDXAPP_ENTERPRISE_ENROLLMENT_API_URL }}"
   ENTERPRISE_SUPPORT_URL: "{{ EDXAPP_ENTERPRISE_SUPPORT_URL }}"
   PARENTAL_CONSENT_AGE_LIMIT: "{{ EDXAPP_PARENTAL_CONSENT_AGE_LIMIT }}"
@@ -1432,6 +1440,8 @@ lms_env_config:
   GOOGLE_SITE_VERIFICATION_ID: "{{ EDXAPP_GOOGLE_SITE_VERIFICATION_ID }}"
   STATIC_URL_BASE: "{{ EDXAPP_LMS_STATIC_URL_BASE }}"
   X_FRAME_OPTIONS: "{{ EDXAPP_X_FRAME_OPTIONS }}"
+  WRITABLE_GRADEBOOK_URL: "{{ EDXAPP_LMS_WRITABLE_GRADEBOOK_URL }}"
+  PROGRAM_CERTIFICATES_ROUTING_KEY: "{{ EDXAPP_PROGRAM_CERTIFICATES_ROUTING_KEY }}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth

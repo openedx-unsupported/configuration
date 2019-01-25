@@ -1,3 +1,25 @@
+- Role: discovery
+  - Added `DISCOVERY_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
+
+- abbey.py
+  - Removed abbey.py
+
+- Role: edxapp
+  - Renamed proctoring backend setting to work with edx-proctoring 1.5.0
+  - Render auth and env config to a single yml file
+
+- Role: edxapp
+  - Remove low priority queue, use default instead.
+
+- Role: ecommerce
+  - Remove unused JWT_SECRET_KEYS. 
+
+- Role: ecommerce
+  - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler. 
+
+- Role: edxapp
+  - Added `ENTERPRISE_CUSTOMER_SUCCESS_EMAIL` to lms_env_config for configuring emails to the customer success team.
+
 - Role: edx_django_service
   - Added new overridable variable `edx_django_service_gunicorn_max_requests`
 

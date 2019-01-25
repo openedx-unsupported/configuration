@@ -17,7 +17,7 @@ ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/jenkins_worker/ansible_overrides.yml /jenkins_worker/ansible_overrides.yml
-COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
+COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
@@ -26,7 +26,8 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook edxapp.yml 
     -t 'install,assets,devstack' \
     --extra-vars="edx_platform_version=${OPENEDX_RELEASE}" \
     --extra-vars="@/jenkins_worker/ansible_overrides.yml" \
-    --extra-vars="@/devstack/ansible_overrides.yml"
+    --extra-vars="@/devstack/ansible_overrides.yml" \
+    && rm -rf /edx/app/edxapp/.cache /edx/app/edxapp/edx-platform
 
 # Add sshd to enable jenkins master to ssh into containers
 RUN apt-get update \

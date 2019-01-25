@@ -62,6 +62,13 @@
     ansible_distribution in common_debian_variants and
     ansible_distribution_release != 'bionic'
 
+- name: Update expired apt keys
+  shell: apt-key adv --recv-keys --keyserver {{ COMMON_EDX_PPA_KEY_SERVER }} {{ COMMON_EDX_PPA_KEY_ID }}
+  when: >
+    ansible_distribution in common_debian_variants and
+    ansible_distribution_release != 'bionic'
+
+
 - name: Add custom edX PPA
   # Ensure that we get the latest version of python 2.7
   # MySQL 5.6 is from our own PPA: https://bugs.mysql.com/bug.php?id=84848
@@ -111,6 +118,10 @@
     group: "{{ item.group | default('root') }}"
     mode: "0755"
   with_items: "{{ common_directories }}"
+  tags:
+    - install
+    - install:configuration
+    - common_directories
 
 - name: upload sudo config for key forwarding as root
   copy:
