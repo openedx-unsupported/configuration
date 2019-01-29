@@ -74,22 +74,12 @@
 # to run some of the below commands.
 - name: Start splunk manually
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk start --accept-license --answer-yes --no-prompt"
-  args:
-    creates: "{{ splunkforwarder_output_dir }}/var/lib/splunk"
   when: download_rpm.changed or download_deb.changed
   register: started_manually
 
 - name: Stop splunk manually
   shell: "{{ splunkforwarder_output_dir }}/bin/splunk stop --accept-license --answer-yes --no-prompt"
   when: (download_rpm.changed or download_deb.changed) and started_manually.changed
-
-- name: Create boot script
-  shell: "{{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt"
-  args:
-    creates: /etc/init.d/splunk
-  register: create_boot_script
-  when: download_rpm.changed or download_deb.changed
-  notify: restart splunkforwarder
 
 - name: Ensure splunk forder permissions
   file:
@@ -99,21 +89,13 @@
     owner: splunk
     group: splunk
   when: download_rpm.changed or download_deb.changed
-  notify: restart splunkforwarder
 
-- name: Update admin pasword
-  shell: "{{ splunkforwarder_output_dir }}/bin/splunk edit user admin -password '{{ SPLUNKFORWARDER_PASSWORD }}' -auth admin:changeme --accept-license --answer-yes --no-prompt"
+- name: Create boot script
+  shell: "{{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt"
+  args:
+    creates: /etc/systemd/system/SplunkForwarder.service
+  register: create_boot_script
   when: download_rpm.changed or download_deb.changed
-  notify: restart splunkforwarder
-
-- name: Add chkconfig to init script
-  lineinfile:
-    dest: /etc/init.d/splunk
-    regexp: "^# chkconfig: 235 98 55"
-    line: "# chkconfig: 235 98 55"
-    insertafter: "#!/bin/sh"
-    state: present
-  when: (download_rpm.changed or download_deb.changed) and create_boot_script.changed
   notify: restart splunkforwarder
 
 - name: Make sure necessary dirs exist
