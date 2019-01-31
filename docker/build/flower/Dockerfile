@@ -1,10 +1,10 @@
-FROM python:2.7.15-alpine
+FROM ubuntu:xenial
 
-# Get latest root certificates
-RUN apk add --no-cache ca-certificates && update-ca-certificates
+# Update and get pip.
+RUN apt-get update && apt-get install -y python3-pip
 
 # Install the required packages
-RUN pip install --no-cache-dir redis==2.10.6 celery==3.1.18 flower==0.9.2
+RUN pip3 install --no-cache-dir redis==2.10.6 celery==3.1.18 flower==0.9.2
 
 # PYTHONUNBUFFERED: Force stdin, stdout and stderr to be totally unbuffered. (equivalent to `python -u`)
 # PYTHONHASHSEED: Enable hash randomization (equivalent to `python -R`)
