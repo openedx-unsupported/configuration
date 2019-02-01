@@ -14,10 +14,12 @@ ENV PYTHONUNBUFFERED=1 PYTHONHASHSEED=random PYTHONDONTWRITEBYTECODE=1
 # Default port
 EXPOSE 5555
 
+RUN apt-get install bash -qy
+
 # Run as a non-root user by default, run as user with least privileges.
 USER nobody
 
 # Mount a config here if you want to enable OAuth etc
 ADD flowerconfig.py /flowerconfig.py
 
-CMD ["flower"]
+ENTRYPOINT [ "flower" ]
