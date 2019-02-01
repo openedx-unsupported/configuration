@@ -7,7 +7,7 @@ dockerfiles:=$(shell ls docker/build/*/Dockerfile)
 all_images:=$(patsubst docker/build/%/Dockerfile,%,$(dockerfiles))
 
 # Used in the test.mk file as well.
-images:= flower
+images:=$(if $(TRAVIS_COMMIT_RANGE),$(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py),$(all_images))
 # Only use images that actually contain a Dockerfile
 images:=$(shell echo "$(all_images) $(images)" | tr " " "\n" | sort | uniq -d)
 
@@ -53,7 +53,7 @@ clean: docker.clean
 docker.clean:
 	rm -rf .build
 
-docker.test.shard: $(foreach image,$(shell echo $(images) | tr ' ' '\n' | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
+docker.test.shard: $(foreach image,$(shell echo $(images) | python util/balancecontainers.py $(SHARDS) | awk 'NR%$(SHARDS)==$(SHARD)'),$(docker_test)$(image))
 
 docker.build: $(foreach image,$(images),$(docker_build)$(image))
 docker.test: $(foreach image,$(images),$(docker_test)$(image))
@@ -67,9 +67,7 @@ $(docker_build)%: docker/build/%/Dockerfile
 	docker build -f $< .
 
 $(docker_test)%: .build/%/Dockerfile.test
-    date
-    docker build -t $*:test -f $< .
-    date
+	docker build -t $*:test -f $< .
 
 $(docker_pkg)%: .build/%/Dockerfile.pkg
 	docker build -t $*:latest -f $< .
