@@ -29,68 +29,71 @@ group and state.
 }
 """
 import argparse
-import boto3
+import boto
+import boto.ec2.autoscale
 import json
 from collections import defaultdict
 from os import environ
 
 class LifecycleInventory():
 
-    def __init__(self, region):
+    profile = None
+
+    def __init__(self, profile):
         parser = argparse.ArgumentParser()
-        self.region = region
+        self.profile = profile
 
     def get_e_d_from_tags(self, group):
 
         environment = "default_environment"
         deployment = "default_deployment"
 
-        for r in group['Tags']:
-            if r['Key'] == "environment":
-                environment = r['Value']
-            elif r['Key'] == "deployment":
-                deployment = r['Value']
+        for r in group.tags:
+            if r.key == "environment":
+                environment = r.value
+            elif r.key == "deployment":
+                deployment = r.value
         return environment,deployment
 
     def get_instance_dict(self):
-        ec2 = boto3.client('ec2', region_name=self.region)
-        reservations = ec2.describe_instances()['Reservations']
+        ec2 = boto.ec2.connect_to_region(region,profile_name=self.profile)
+        reservations = ec2.get_all_instances()
 
         dict = {}
 
-        for instance in [i for r in reservations for i in r['Instances']]:
-            dict[instance['InstanceId']] = instance
+        for instance in [i for r in reservations for i in r.instances]:
+            dict[instance.id] = instance
 
         return dict
 
     def run(self):
-        asg = boto3.client('autoscaling', region_name=self.region)
-    
-        groups = asg.describe_auto_scaling_groups()['AutoScalingGroups']
+        asg = boto.ec2.autoscale.connect_to_region(region,profile_name=self.profile)
+        groups = asg.get_all_groups()
 
         instances = self.get_instance_dict()
         inventory = defaultdict(list)
 
         for group in groups:
 
-            for instance in group['Instances']:
+            for instance in group.instances:
 
-                private_ip_address = instances[instance['InstanceId']]['PrivateIpAddress']
+                private_ip_address = instances[instance.instance_id].private_ip_address
                 if private_ip_address:
                     environment,deployment = self.get_e_d_from_tags(group)
-                    inventory[environment + "_" + deployment + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
-                    inventory[group['AutoScalingGroupName']].append(private_ip_address)
-                    inventory[group['AutoScalingGroupName'] + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
-                    inventory[instance['LifecycleState'].replace(":","_")].append(private_ip_address)
+                    inventory[environment + "_" + deployment + "_" + instance.lifecycle_state.replace(":","_")].append(private_ip_address)
+                    inventory[group.name].append(private_ip_address)
+                    inventory[group.name + "_" + instance.lifecycle_state.replace(":","_")].append(private_ip_address)
+                    inventory[instance.lifecycle_state.replace(":","_")].append(private_ip_address)
 
         print json.dumps(inventory, sort_keys=True, indent=2)
 
 if __name__=="__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--region', help='The aws region to use when connecting.', default='us-east-1')
+    parser.add_argument('-p', '--profile', help='The aws profile to use when connecting.')
     parser.add_argument('-l', '--list', help='Ansible passes this, we ignore it.', action='store_true', default=True)
     args = parser.parse_args()
 
+    region = environ.get('AWS_REGION','us-east-1')
 
-    LifecycleInventory(args.region).run()
+    LifecycleInventory(args.profile).run()
