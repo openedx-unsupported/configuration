@@ -20,6 +20,6 @@ RUN apt-get install bash -qy
 USER nobody
 
 # Mount a config here if you want to enable OAuth etc
-ADD flowerconfig.py /flowerconfig.py
+ADD docker/build/flower/flowerconfig.py /flowerconfig.py
 
 ENTRYPOINT [ "flower" ]
