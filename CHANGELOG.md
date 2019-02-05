@@ -1,3 +1,6 @@
+- common_vars
+  - Added new overridable variable `COMMON_LMS_BASE_URL`.
+
 - Role: discovery
   - Added `DISCOVERY_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
 
