@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Added CORS_ORIGIN_WHITELIST and CORS_URLS_REGEX to allow selective CORS whitelisting of origins/urls. 
+
 - common_vars
   - Added new overridable variable `COMMON_LMS_BASE_URL`.
 
