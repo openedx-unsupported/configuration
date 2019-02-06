@@ -4,6 +4,16 @@
   {%- set default_site = "" -%}
 {%- endif -%}
 
+map $uri $cs_whitelist {
+  default 0;
+  "/professional-certificate/delftx-data-analysis-&-visualization-with-excel" 1;
+}
+
+map $uri $bz_whitelist {
+  default 0;
+  "/professional-certificate/babsonx-financial-decision-making-for-leaders" 1;
+}
+
 server {
   # Prospectus configuration file for nginx, templated by ansible
 
@@ -30,7 +40,21 @@ server {
   }
 
   location / {
-    if ($http_x_rollout_group !~ "test") {
+    set $cs_control "0:0";
+    if ($http_x_rollout_group ~ "cs_control") {
+      set $cs_control "${cs_whitelist}:1";
+    }
+
+    if ($cs_control = "1:1") {
+      proxy_pass {{ PROSPECTUS_PROXY_PASS }};
+    }
+
+    set $bz_control "0:0";
+    if ($http_x_rollout_group ~ "bz_control") {
+      set $bz_control "${bz_whitelist}:1";
+    }
+
+    if ($bz_control = "1:1") {
       proxy_pass {{ PROSPECTUS_PROXY_PASS }};
     }
     location ~ \.(js|css)$ {
