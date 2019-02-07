@@ -17,18 +17,39 @@ server {
 
   # Ignore the rollout group headers for the health check endpoint.
   location /HealthCheck {
-    try_files $uri $uri/index.html @backend;
+    try_files $uri $uri/index.html @drupal;
+  }
+
+  location /admin/ {
+    add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
+    try_files $uri @drupal;
+  }
+
+  location /static/ {
+    add_header 'Cache-Control' 'public, max-age=31536000, immutable';
   }
 
   location / {
-    if ($http_x_rollout_group !~ "test") {
+    location ~ \.(js|css)$ {
+      add_header 'Cache-Control' 'public, max-age=31536000, immutable';
+      try_files $uri @drupal;
+    }
+
+    if ($http_x_content_source ~ "drupal") {
       proxy_pass {{ PROSPECTUS_PROXY_PASS }};
     }
-    try_files $uri $uri/index.html @backend;
+
+    try_files $uri @index;
   }
 
-  location @backend {
-      proxy_pass {{ PROSPECTUS_PROXY_PASS }};
+  location @index {
+    add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
+    try_files $uri/index.html @drupal;
+  }
+
+  location @drupal {
+    add_header 'Cache-Control' '';
+    proxy_pass {{ PROSPECTUS_PROXY_PASS }};
   }
 
 }

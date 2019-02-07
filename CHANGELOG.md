@@ -2,6 +2,12 @@
   - Modified robots.txt.j2 to accept the Allow rule.
   - Modified robots.txt.j2 to accept either a single string or a list of strings for agent, disallow, and allow.
 
+- common_vars
+  - Added new overridable variable `COMMON_LMS_BASE_URL`.
+
+- Role: discovery
+  - Added `DISCOVERY_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
+
 - abbey.py
   - Removed abbey.py
 
@@ -23,6 +29,10 @@
 
 - Role: edx_django_service
   - Added new overridable variable `edx_django_service_gunicorn_max_requests`
+
+- Role: edxapp
+  - `EDXAPP_EDXAPP_SECRET_KEY` no longer has a default value
+
 - Role: ecommerce
   - Set default max_requests to 3000.(eg. restart gunicorn process every 3000 requests.)
 

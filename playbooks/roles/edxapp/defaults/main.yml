@@ -147,7 +147,7 @@ EDXAPP_COMMENTS_SERVICE_URL:  'http://localhost:18080'
 # EDXAPP_COMMENTS_SERVICE_KEY must match FORUM_API_KEY
 EDXAPP_COMMENTS_SERVICE_KEY:  'password'
 
-EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
+# EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"  # Commented out to ensure secure defaults
 
 EDXAPP_FERNET_KEYS:
   - "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
@@ -169,6 +169,7 @@ EDXAPP_CELERY_BROKER_TRANSPORT: 'amqp'
 EDXAPP_CELERY_BROKER_VHOST: ""
 EDXAPP_CELERY_BROKER_USE_SSL: false
 EDXAPP_CELERY_EVENT_QUEUE_TTL: "None"
+EDXAPP_CELERY_TIMEZONE: "UTC"
 EDXAPP_BRANCH_IO_KEY: ""
 
 EDXAPP_VIDEO_CDN_URLS:
@@ -630,6 +631,7 @@ EDXAPP_CELERY_WORKERS:
 EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: 'edx.lms.core.default'
+EDXAPP_PROGRAM_CERTIFICATES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_LMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'lms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.lms.core.\\1')|list }}"
 EDXAPP_CMS_CELERY_QUEUES: "{{ edxapp_workers|selectattr('service_variant', 'equalto', 'cms')|map(attribute='queue')|map('regex_replace', '(.*)', 'edx.cms.core.\\1')|list }}"
 
@@ -803,6 +805,11 @@ EDXAPP_SESSION_COOKIE_SECURE: false
 EDXAPP_CLEARSESSIONS_CRON_ENABLED: false
 EDXAPP_CLEARSESSIONS_CRON_HOURS: "14"
 EDXAPP_CLEARSESSIONS_CRON_MINUTES: "0"
+
+# Add additional cron jobs from the given list.
+# See ansible docs for valid options for these items:
+#  https://docs.ansible.com/ansible/latest/modules/cron_module.html
+EDXAPP_ADDITIONAL_CRON_JOBS: []
 
 EDXAPP_VIDEO_IMAGE_MAX_AGE: 31536000
 
@@ -1107,6 +1114,7 @@ edxapp_generic_auth_config:  &edxapp_generic_auth
   ZENDESK_OAUTH_ACCESS_TOKEN: "{{ EDXAPP_ZENDESK_OAUTH_ACCESS_TOKEN }}"
   CELERY_BROKER_USER: "{{ EDXAPP_CELERY_USER }}"
   CELERY_BROKER_PASSWORD: "{{ EDXAPP_CELERY_PASSWORD }}"
+  CELERY_TIMEZONE: "{{ EDXAPP_CELERY_TIMEZONE }}"
   GOOGLE_ANALYTICS_ACCOUNT: "{{ EDXAPP_GOOGLE_ANALYTICS_ACCOUNT }}"
   DJFS: "{{ EDXAPP_DJFS }}"
   CREDIT_PROVIDER_SECRET_KEYS: "{{ EDXAPP_CREDIT_PROVIDER_SECRET_KEYS }}"
@@ -1438,6 +1446,7 @@ lms_env_config:
   STATIC_URL_BASE: "{{ EDXAPP_LMS_STATIC_URL_BASE }}"
   X_FRAME_OPTIONS: "{{ EDXAPP_X_FRAME_OPTIONS }}"
   WRITABLE_GRADEBOOK_URL: "{{ EDXAPP_LMS_WRITABLE_GRADEBOOK_URL }}"
+  PROGRAM_CERTIFICATES_ROUTING_KEY: "{{ EDXAPP_PROGRAM_CERTIFICATES_ROUTING_KEY }}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth

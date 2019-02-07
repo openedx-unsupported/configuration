@@ -29,7 +29,7 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	pip-compile --upgrade -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
 	pip-compile --upgrade -o requirements3.txt requirements/ses-limits.in
 	pip-compile --upgrade -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
-	pip-compile --upgrade -o util/jenkins/requirements-celery.txt requirements/celery.in
+	pip-compile --upgrade -o util/jenkins/update_celery_monitoring/requirements.txt requirements/celery.in
 	pip-compile --upgrade -o util/jenkins/check_celery_progress/requirements.txt requirements/celery_progress.in
 	pip-compile --upgrade -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
 	pip-compile --upgrade -o util/pingdom/requirements.txt requirements/pingdom.in
@@ -41,7 +41,7 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	    playbooks/roles/aws/templates/requirements.txt.j2 \
 	    requirements3.txt \
 	    util/elasticsearch/requirements.txt \
-	    util/jenkins/requirements-celery.txt \
+	    util/jenkins/update_celery_monitoring/requirements.txt \
 	    util/jenkins/check_celery_progress/requirements.txt \
 	    util/jenkins/requirements-cloudflare.txt \
 	    util/pingdom/requirements.txt \
