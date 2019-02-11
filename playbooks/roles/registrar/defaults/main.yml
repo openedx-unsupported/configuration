@@ -1,0 +1,93 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role registrar
+#
+
+
+#
+# vars are namespace with the module name.
+#
+registrar_service_name: 'registrar'
+
+registrar_environment:
+  REGISTRAR_CFG: '{{ COMMON_CFG_DIR }}/{{ registrar_service_name }}.yml'
+
+registrar_gunicorn_port: 8734
+
+registrar_debian_pkgs: []
+
+REGISTRAR_NGINX_PORT: '1{{ registrar_gunicorn_port }}'
+REGISTRAR_SSL_NGINX_PORT: '4{{ registrar_gunicorn_port }}'
+
+REGISTRAR_DEFAULT_DB_NAME: 'registrar'
+REGISTRAR_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+REGISTRAR_MYSQL_USER: 'registrar001'
+REGISTRAR_MYSQL_PASSWORD: 'password'
+
+REGISTRAR_MEMCACHE: [ 'memcache' ]
+
+REGISTRAR_DJANGO_SETTINGS_MODULE: 'registrar.settings.production'
+REGISTRAR_DOMAIN: 'localhost'
+REGISTRAR_URL_ROOT: 'http://{{ REGISTRAR_DOMAIN }}:{{ REGISTRAR_NGINX_PORT }}'
+REGISTRAR_LOGOUT_URL: '{{ REGISTRAR_URL_ROOT }}/logout/'
+
+REGISTRAR_LANGUAGE_CODE: 'en'
+REGISTRAR_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+REGISTRAR_SERVICE_USER: 'registrar_service_user'
+
+REGISTRAR_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ registrar_service_name }}'
+
+# TODO: Let edx_django_service manage REGISTRAR_STATIC_ROOT in phase 2.
+REGISTRAR_STATIC_ROOT: '{{ REGISTRAR_DATA_DIR }}/staticfiles'
+REGISTRAR_MEDIA_URL: '/media/'
+REGISTRAR_STATIC_URL: '/static/'
+
+REGISTRAR_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+REGISTRAR_CORS_ORIGIN_ALLOW_ALL: false
+REGISTRAR_CORS_ORIGIN_WHITELIST_DEFAULT:
+ - '{{ REGISTRAR_DOMAIN }}'
+
+REGISTRAR_CORS_ORIGIN_WHITELIST_EXTRA: []
+REGISTRAR_CORS_ORIGIN_WHITELIST: '{{ REGISTRAR_CORS_ORIGIN_WHITELIST_DEFAULT + REGISTRAR_CORS_ORIGIN_WHITELIST_EXTRA }}'
+
+REGISTRAR_VERSION: 'master'
+
+REGISTRAR_GUNICORN_EXTRA: ''
+
+REGISTRAR_EXTRA_APPS: []
+
+REGISTRAR_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+REGISTRAR_CERTIFICATE_LANGUAGES:
+  'en': 'English'
+  'es_419': 'Spanish'
+
+registrar_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ REGISTRAR_CERTIFICATE_LANGUAGES }}'
+  REGISTRAR_SERVICE_USER: '{{ REGISTRAR_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ REGISTRAR_LANGUAGE_COOKIE_NAME }}'
+  CSRF_COOKIE_SECURE: "{{ REGISTRAR_CSRF_COOKIE_SECURE }}"
+
+# See edx_django_service_automated_users for an example of what this should be
+REGISTRAR_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+REGISTRAR_LMS_URL_ROOT: !!null
+REGISTRAR_DISCOVERY_API_URL:  !!null
+
+REGISTRAR_CSRF_COOKIE_SECURE: false
+
+REGISTRAR_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+registrar_post_migrate_commands: []
