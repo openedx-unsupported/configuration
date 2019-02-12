@@ -38,9 +38,7 @@ def cloudwatch_alarm_checker(alarmprefix, region):
     """
     Return number of alarms associated with given RDS instance
     Returns:
-        [
-            len(alarms): integer
-        ]
+        len(alarms): integer
     """
     client = boto3.client('cloudwatch', region_name=region)
     alarms = client.describe_alarms(AlarmNamePrefix=alarmprefix)
