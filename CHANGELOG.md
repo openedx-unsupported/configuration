@@ -1,6 +1,10 @@
+- Role: nginx
+  - Modified robots.txt.j2 to accept the Allow rule.
+  - Modified robots.txt.j2 to accept either a single string or a list of strings for agent, disallow, and allow.
+
 - Role: ecommerce
   - Added CORS_ORIGIN_WHITELIST and CORS_URLS_REGEX to allow selective CORS whitelisting of origins/urls. 
-
+  
 - common_vars
   - Added new overridable variable `COMMON_LMS_BASE_URL`.
 
