@@ -7,10 +7,24 @@ upstream xqueue_app_server {
 server {
   listen {{ XQUEUE_NGINX_PORT }} default_server;
 
+  {% if NGINX_ENABLE_SSL %}
+  listen {{ XQUEUE_NGINX_SSL_PORT }} ssl;
+
   {% include "common-settings.j2" %}
 
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
   error_log {{ nginx_log_dir }}/error.log error;
+  
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
+  {% endif %}
+
+  {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
 
   location / {
     {% if XQUEUE_ENABLE_BASIC_AUTH|bool %}
