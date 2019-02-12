@@ -1,0 +1,25 @@
+---
+- name: make oracle directory for instant client
+  file:
+    path: "{{ oracle_path }}"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: 0755
+  tags:
+    - install
+    - install:system-requirements
+- name: download instant client
+  shell: "aws s3 cp {{ IT_ORACLE_S3_PATH }}/{{ IT_ORACLE_INSTANT_CLIENT }} {{ oracle_path }}"
+  tags:
+    - install
+    - install:system-requirements
+- name: unzip instant client
+  shell: "unzip {{ oracle_path }}/{{ IT_ORACLE_INSTANT_CLIENT }} -d {{ oracle_path }}"
+  tags:
+    - install
+    - install:system-requirements
+- name: clean up zip file
+  file:
+    path: "oracle_path/{{ IT_ORACLE_INSTANT_CLIENT }}"
+    state: absent
