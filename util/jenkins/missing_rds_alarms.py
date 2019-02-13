@@ -51,7 +51,6 @@ def controller():
     """
     rds = rds_extractor()
     missing_alarm = []
-    flag = 0
     # List of RDS we don't care about
     ignore_rds_list = []
     for db in rds:
@@ -59,13 +58,11 @@ def controller():
             alarms_count = cloudwatch_alarm_checker(db["name"], db["Region"])
             if alarms_count < 1:
                 missing_alarm.append(db["name"])
-                flag = 1
-            else:
-                pass
-    if flag == 1:
+    if len(missing_alarm) > 0:
         print "RDS Name"
         print '\n'.join(str(p) for p in missing_alarm)
-    sys.exit(flag)
+        sys.exit(1)
+    sys.exit(0)
 
 
 if __name__ == '__main__':
