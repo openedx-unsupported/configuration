@@ -1,10 +1,13 @@
+- Role: ecomworker
+  - Added `assignment_email` default template value in `SAILTHRU` config to send offer assignment emails.
+
 - Role: nginx
   - Modified robots.txt.j2 to accept the Allow rule.
   - Modified robots.txt.j2 to accept either a single string or a list of strings for agent, disallow, and allow.
 
 - Role: ecommerce
-  - Added CORS_ORIGIN_WHITELIST and CORS_URLS_REGEX to allow selective CORS whitelisting of origins/urls. 
-  
+  - Added CORS_ORIGIN_WHITELIST and CORS_URLS_REGEX to allow selective CORS whitelisting of origins/urls.
+
 - common_vars
   - Added new overridable variable `COMMON_LMS_BASE_URL`.
 
@@ -22,10 +25,10 @@
   - Remove low priority queue, use default instead.
 
 - Role: ecommerce
-  - Remove unused JWT_SECRET_KEYS. 
+  - Remove unused JWT_SECRET_KEYS.
 
 - Role: ecommerce
-  - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler. 
+  - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler.
 
 - Role: edxapp
   - Added `ENTERPRISE_CUSTOMER_SUCCESS_EMAIL` to lms_env_config for configuring emails to the customer success team.
