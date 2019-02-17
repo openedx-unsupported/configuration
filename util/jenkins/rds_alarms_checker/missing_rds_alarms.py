@@ -1,6 +1,27 @@
 import boto3
 from botocore.exceptions import ClientError
 import sys
+import backoff
+import click
+
+MAX_TRIES = 5
+
+
+class BotoEC2:
+    def __init__(self, client, **kwargs):
+        self.client = boto3.client(client, **kwargs)
+
+    @backoff.on_exception(backoff.expo, ClientError, max_tries=MAX_TRIES)
+    def describe_regions(self):
+        return self.client.describe_regions()
+
+    @backoff.on_exception(backoff.expo, ClientError, max_tries=MAX_TRIES)
+    def describe_db_instances(self):
+        return self.client.describe_db_instances()
+
+    @backoff.on_exception(backoff.expo, ClientError, max_tries=MAX_TRIES)
+    def describe_alarms(self, **kwargs):
+        return self.client.describe_alarms(**kwargs)
 
 
 def rds_extractor():
@@ -15,7 +36,7 @@ def rds_extractor():
             }
         ]
     """
-    client_region = boto3.client("ec2")
+    client_region = BotoEC2('ec2')
     rds_list = []
     try:
         regions_list = client_region.describe_regions()
@@ -23,7 +44,7 @@ def rds_extractor():
         print("Unable to connect to AWS with error :{}".format(e))
         sys.exit(1)
     for region in regions_list["Regions"]:
-        client = boto3.client("rds", region_name=region["RegionName"])
+        client = BotoEC2("rds", region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
             temp_dict = {}
@@ -40,21 +61,27 @@ def cloudwatch_alarm_checker(alarmprefix, region):
     Returns:
         len(alarms): integer
     """
-    client = boto3.client('cloudwatch', region_name=region)
+    client = BotoEC2('cloudwatch', region_name=region)
     alarms = client.describe_alarms(AlarmNamePrefix=alarmprefix)
     return len(alarms.get('MetricAlarms'))
 
 
-def controller():
+@click.command()
+@click.option('--deploy', required=True, help='API Key to use to speak with NewRelic.')
+def controller(deploy):
     """
     Control execution of all other functions
     """
     rds = rds_extractor()
     missing_alarm = []
     # List of RDS we don't care about
-    ignore_rds_list = []
+    ignore_rds_list = {
+        "edx" : [],
+        "mckinsey" : [],
+        "edge" : []
+    }
     for db in rds:
-        if db["name"] not in ignore_rds_list:
+        if db["name"] not in ignore_rds_list[deploy]:
             alarms_count = cloudwatch_alarm_checker(db["name"], db["Region"])
             if alarms_count < 1:
                 missing_alarm.append(db["name"])
@@ -67,4 +94,3 @@ def controller():
 
 if __name__ == '__main__':
     controller()
-
