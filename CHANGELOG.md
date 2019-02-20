@@ -1,4 +1,8 @@
 - Role: nginx
+  - Added CORS Access-Control-Allow-Origin for static assets.
+  - Replaced wildcard Access-Control-Allow-Origin header for fonts. Make sure you set EDXAPP_CORS_ORIGIN_WHITELIST to include all your domains.
+
+- Role: nginx
   - Modified robots.txt.j2 to accept the Allow rule.
   - Modified robots.txt.j2 to accept either a single string or a list of strings for agent, disallow, and allow.
 
