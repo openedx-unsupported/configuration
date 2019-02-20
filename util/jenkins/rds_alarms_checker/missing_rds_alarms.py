@@ -7,17 +7,27 @@ import click
 MAX_TRIES = 5
 
 
-class BotoEC2:
-    def __init__(self, client, **kwargs):
-        self.client = boto3.client(client, **kwargs)
+class EC2BotoWrapper:
+    def __init__(self):
+        self.client = boto3.client("ec2")
 
     @backoff.on_exception(backoff.expo, ClientError, max_tries=MAX_TRIES)
     def describe_regions(self):
         return self.client.describe_regions()
 
+
+class RDSBotoWrapper:
+    def __init__(self, **kwargs):
+        self.client = boto3.client("rds", **kwargs)
+
     @backoff.on_exception(backoff.expo, ClientError, max_tries=MAX_TRIES)
     def describe_db_instances(self):
         return self.client.describe_db_instances()
+
+
+class CWBotoWrapper:
+    def __init__(self, **kwargs):
+        self.client = boto3.client("cloudwatch", **kwargs)
 
     @backoff.on_exception(backoff.expo, ClientError, max_tries=MAX_TRIES)
     def describe_alarms(self, **kwargs):
@@ -36,7 +46,7 @@ def rds_extractor():
             }
         ]
     """
-    client_region = BotoEC2('ec2')
+    client_region = EC2BotoWrapper()
     rds_list = []
     try:
         regions_list = client_region.describe_regions()
@@ -44,7 +54,7 @@ def rds_extractor():
         print("Unable to connect to AWS with error :{}".format(e))
         sys.exit(1)
     for region in regions_list["Regions"]:
-        client = BotoEC2("rds", region_name=region["RegionName"])
+        client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
             temp_dict = {}
@@ -61,15 +71,14 @@ def cloudwatch_alarm_checker(alarmprefix, region):
     Returns:
         len(alarms): integer
     """
-    client = BotoEC2('cloudwatch', region_name=region)
+    client = CWBotoWrapper(region_name=region)
     alarms = client.describe_alarms(AlarmNamePrefix=alarmprefix)
     return len(alarms.get('MetricAlarms'))
 
 
 @click.command()
-@click.option('--deploy', required=True, help='API Key to use to speak with NewRelic.')
 @click.option('--whitelist', type=(str), multiple=True, help='List of Whitelisted RDS')
-def controller(deploy, whitelist):
+def controller(whitelist):
     """
     Control execution of all other functions
     """
