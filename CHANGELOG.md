@@ -1,3 +1,6 @@
+- Open edX
+  - Renamed edx_sandbox.yml to openedx_native.yml
+
 - Role: ecomworker
   - Added `assignment_email` default template value in `SAILTHRU` config to send offer assignment emails.
 
