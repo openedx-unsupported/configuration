@@ -68,6 +68,7 @@ def cloudwatch_alarm_checker(alarmprefix, region):
 
 @click.command()
 @click.option('--deploy', required=True, help='API Key to use to speak with NewRelic.')
+@click.option('--whitelist', type=(str, int), multiple=True, help='List of Whitelisted RDS')
 def controller(deploy):
     """
     Control execution of all other functions
@@ -75,13 +76,12 @@ def controller(deploy):
     rds = rds_extractor()
     missing_alarm = []
     # List of RDS we don't care about
-    ignore_rds_list = {
-        "edx" : [],
-        "mckinsey" : [],
-        "edge" : []
-    }
+    ignore_rds_list = list(whitelist)
+    print "++++++++++++++"
+    print ignore_rds_list
+    print "+++++++++"
     for db in rds:
-        if db["name"] not in ignore_rds_list[deploy]:
+        if db["name"] not in ignore_rds_list:
             alarms_count = cloudwatch_alarm_checker(db["name"], db["Region"])
             if alarms_count < 1:
                 missing_alarm.append(db["name"])
