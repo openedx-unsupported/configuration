@@ -68,7 +68,7 @@ def cloudwatch_alarm_checker(alarmprefix, region):
 
 @click.command()
 @click.option('--deploy', required=True, help='API Key to use to speak with NewRelic.')
-@click.option('--whitelist', type=(str, int), multiple=True, help='List of Whitelisted RDS')
+@click.option('--whitelist', type=(str), multiple=True, help='List of Whitelisted RDS')
 def controller(deploy):
     """
     Control execution of all other functions
