@@ -29,7 +29,7 @@
     state: directory
     owner: "{{ android_user }}"
     group: "{{ android_group }}"
-    mode: 0775
+    mode: 0775   
 # Unzip Android SDK and pipe the output to dev/null because unzipping archive creates a large amount of logging which fails the job 
 - name: Unzip the Android archive
   shell: "unzip /tmp/android-sdk.zip -d {{ android_home }} > /dev/null"
@@ -84,3 +84,9 @@
   shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_sys_image }} > /dev/null" 
   become: yes
   become_user: "{{ android_user }}"
+
+- name: Adding executable permissions 
+  file:
+    path: "{{ item }}"
+    mode: 0655
+  with_items: "{{ android_files }}"
