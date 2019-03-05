@@ -189,7 +189,7 @@ if __name__ == '__main__':
     if environment is None or deployment is None or play is None:
         msg = "Unable to retrieve environment, deployment, or play tag."
         print(msg)
-        exit(0)
+        exit(1)
 
     #get the hostname of the sandbox
     hostname = socket.gethostname()
