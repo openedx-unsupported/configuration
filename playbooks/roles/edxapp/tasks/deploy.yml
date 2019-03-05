@@ -464,3 +464,13 @@
 - name: install additional cron jobs
   cron: "{{ item }}"
   with_items: "{{ EDXAPP_ADDITIONAL_CRON_JOBS }}"
+
+- name: populate retirement states
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} populate_retirement_states"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: EDXAPP_RETIREMENT_SERVICE_SETUP
+  tags:
+    - manage
+    - manage:db
