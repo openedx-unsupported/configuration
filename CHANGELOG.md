@@ -710,3 +710,11 @@
 
 - Role: registrar
   - Create role
+
+- Role: registrar
+  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_KEY` for oauth2.
+  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_SECRET` for oauth2.
+  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_KEY` for backend auth.
+  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_SECRET` for backend auth.
+  - Added `REGISTRAR_SERVICE_USER_EMAIL` to have a registrar service user on LMS
+  - Added `REGISTRAR_SERVICE_USER_NAME` to have a registrar service user on LMS
