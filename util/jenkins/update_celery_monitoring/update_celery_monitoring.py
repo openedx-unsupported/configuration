@@ -4,6 +4,7 @@ import boto3
 import botocore
 import backoff
 from itertools import zip_longest
+from collections import defaultdict
 
 MAX_TRIES = 5
 
@@ -74,29 +75,42 @@ class Ec2BotoWrapper(object):
         return self.client.describe_instances(*args, **kwargs)
 
 
-def count_workers(environment, deploy, play, cluster):
+def count_workers(environment, deploy, cluster):
     ec2 = Ec2BotoWrapper()
 
-    num_workers = len(ec2.describe_instances(
+    counts_by_play = defaultdict(int)
+
+    reservations = ec2.describe_instances(
         Filters=[
             {'Name': 'tag:environment', 'Values': [environment]},
             {'Name': 'tag:deployment', 'Values': [deploy]},
-            {'Name': 'tag:play', 'Values': [play]},
             {'Name': 'tag:cluster', 'Values': [cluster]},
             {'Name': 'instance-state-name', 'Values': ['running']},
         ]
-    )['Reservations'])
-    metric_data = {
-        'MetricName': 'count',
-        'Dimensions': [{
-            "Name": "workers",
-            "Value": play
-        }],
-        'Value': num_workers
-    }
+    )['Reservations']
+
+    for reservation in reservations:
+        for instance in reservation["Instances"]:
+            tag_play = None
+            for tag in instance['Tags']:
+                if tag.get('Key') == 'play':
+                    tag_play = tag.get('Value')
+                    counts_by_play[tag_play] += 1
+
+    metric_data = []
+
+    for play, num_workers in counts_by_play.items():
+        metric_data.append({
+            'MetricName': 'count',
+            'Dimensions': [{
+                "Name": "workers",
+                "Value": play
+            }],
+            'Value': num_workers
+            }
+        )
 
     return metric_data
-
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
@@ -196,9 +210,9 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                                     AlarmActions=actions)
 
     # Track number of worker instances so it can be graphed in CloudWatch
-    workers_metric_data = count_workers(environment, deploy, 'edxapp', 'worker')
+    workers_metric_data = count_workers(environment, deploy, 'worker')
     print("workers_metric_data {}".format(workers_metric_data))
-    cloudwatch.put_metric_data(Namespace=namespace, MetricData=[workers_metric_data])
+    cloudwatch.put_metric_data(Namespace=namespace, MetricData=workers_metric_data)
 
 
 # Stolen right from the itertools recipes
