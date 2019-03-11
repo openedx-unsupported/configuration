@@ -7,3 +7,4 @@ Make sure that the following steps are done before merging
   - [ ] are you adding any new default values that need to be overridden when this goes live?
     - [ ] Open a ticket (DEVOPS) to make sure that they have been added to secure vars.
     - [ ] Add an entry to the CHANGELOG.
+  - [ ] Are you adding/updating any variables that need to be added/updated to a specific `configuration-secure` repo?
