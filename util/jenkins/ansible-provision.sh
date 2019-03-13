@@ -19,11 +19,19 @@
 # - name_tag
 set -x
 
+echo
+echo
+echo "#################   STARTING!   #################"
+echo
+echo
+
 # Seeing the environment is fine, spewing secrets to the log isn't ok
 env | grep -v AWS | grep -v ARN
 
 export PYTHONUNBUFFERED=1
-export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
+
+# Todo: uncomment this when sandbox is up locally
+# export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 # docker on OS-X includes your Mac's home directory in the socket path
 # that SSH/Ansible uses for the control socket, pushing you over
@@ -31,6 +39,12 @@ export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 if [ -f /.dockerenv ]; then
     export ANSIBLE_SSH_CONTROL_PATH=/tmp/%%C
 fi
+
+echo
+echo
+echo "#################   2   #################"
+echo
+echo
 
 run_ansible() {
   if [[ "$VERBOSE" == "true" ]]; then
@@ -42,6 +56,7 @@ run_ansible() {
   ansible-playbook $verbose_arg $@
   ret=$?
   if [[ $ret -ne 0 ]]; then
+    echo "Exiting RET"
     exit $ret
   fi
 }
@@ -63,6 +78,12 @@ if [[ -z $BUILD_USER_ID ]]; then
     BUILD_USER_ID=edx-sandbox
 fi
 
+echo
+echo
+echo "#################   3   #################"
+echo
+echo
+
 
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
@@ -70,6 +91,13 @@ if [[ -z $WORKSPACE ]]; then
 else
     source "$WORKSPACE/configuration/util/jenkins/ascii-convert.sh"
 fi
+
+echo
+echo
+echo "#################   4   #################"
+echo
+echo
+
 
 if [[ -z $static_url_base ]]; then
   static_url_base="/static"
@@ -80,20 +108,24 @@ if [[ -z $github_username  ]]; then
 fi
 
 # Having access keys OR a boto config allows sandboxes to be built.
-if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
-  echo "AWS credentials not found for $aws_account"
-  exit 1
-fi
+# Todo: uncomment this when sandbox is up locally
+#if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
+#  echo "AWS credentials not found for $aws_account"
+#  exit 1
+#fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
-sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
+# Todo: uncomment this when sandbox is up locally
+# sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
+    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${extra_vars_file}"
+    # Todo: uncomment this when sandbox is up locally and remove above line
+    #extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
 fi
 
 if [[ -z $region ]]; then
@@ -169,17 +201,18 @@ if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
 fi
 
-if [[ -z $set_whitelabel ]]; then
-  set_whitelabel="true"
-fi
+# Todo: Remove if not required for Apros sandbox
+#if [[ -z $set_whitelabel ]]; then
+#  set_whitelabel="true"
+#fi
 
-if [[ -z $journals ]]; then
-  journals="false"
-fi
+#if [[ -z $journals ]]; then
+#  journals="false"
+#fi
 
-if [[ -z $journals_version ]]; then
-  journals_version="master"
-fi
+#if [[ -z $journals_version ]]; then
+#  journals_version="master"
+#fi
 
 
 # Lowercase the dns name to deal with an ansible bug
@@ -193,14 +226,19 @@ cd playbooks
 cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
-notifier_version: $notifier_version
-XQUEUE_VERSION: $xqueue_version
-xserver_version: $xserver_version
-certs_version: $certs_version
+forum_ruby_version: $forum_ruby_version
+forum_source_repo: $forum_source_repo
 configuration_version: $configuration_version
-demo_version: $demo_version
-THEMES_VERSION: $themes_version
-journals_version: $journals_version
+
+
+# Todo: Remove below commented if not required for Apros sandbox
+#notifier_version: $notifier_version
+#XQUEUE_VERSION: $xqueue_version
+#xserver_version: $xserver_version
+#certs_version: $certs_version
+#demo_version: $demo_version
+#THEMES_VERSION: $themes_version
+#journals_version: $journals_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -211,30 +249,30 @@ EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
 
-ECOMMERCE_NGINX_PORT: 80
-ECOMMERCE_SSL_NGINX_PORT: 443
-ECOMMERCE_VERSION: $ecommerce_version
+# Todo: Remove below commented if not required for Apros sandbox
+#ECOMMERCE_NGINX_PORT: 80
+#ECOMMERCE_SSL_NGINX_PORT: 443
+#ECOMMERCE_VERSION: $ecommerce_version
+#CREDENTIALS_NGINX_PORT: 80
+#CREDENTIALS_SSL_NGINX_PORT: 443
+#CREDENTIALS_VERSION: $credentials_version
+#ANALYTICS_API_NGINX_PORT: 80
+#ANALYTICS_API_SSL_NGINX_PORT: 443
+#ANALYTICS_API_VERSION: $analytics_api_version
 
-CREDENTIALS_NGINX_PORT: 80
-CREDENTIALS_SSL_NGINX_PORT: 443
-CREDENTIALS_VERSION: $credentials_version
+# Todo: Remove if not required for Apros sandbox
+#JOURNALS_NGINX_PORT: 80
+#JOURNALS_SSL_NGINX_PORT: 443
+#JOURNALS_VERSION: $journals_version
+#JOURNALS_ENABLED: $journals
+#JOURNALS_SANDBOX_BUILD: True
 
-ANALYTICS_API_NGINX_PORT: 80
-ANALYTICS_API_SSL_NGINX_PORT: 443
-ANALYTICS_API_VERSION: $analytics_api_version
+#VIDEO_PIPELINE_BASE_NGINX_PORT: 80
+#VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
-JOURNALS_NGINX_PORT: 80
-JOURNALS_SSL_NGINX_PORT: 443
-JOURNALS_VERSION: $journals_version
-JOURNALS_ENABLED: $journals
-JOURNALS_SANDBOX_BUILD: True
-
-VIDEO_PIPELINE_BASE_NGINX_PORT: 80
-VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
-
-DISCOVERY_NGINX_PORT: 80
-DISCOVERY_SSL_NGINX_PORT: 443
-DISCOVERY_VERSION: $discovery_version
+#DISCOVERY_NGINX_PORT: 80
+#DISCOVERY_SSL_NGINX_PORT: 443
+#DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
@@ -268,17 +306,35 @@ EOF_AUTH
 
 fi
 
+echo
+echo
+echo "#################   5th skipped - 6   #################"
+echo
+echo
+
 if [[ -n $nginx_users ]]; then
    cat << EOF_AUTH >> $extra_vars_file
 NGINX_USERS: $nginx_users
 EOF_AUTH
 fi
 
+echo
+echo
+echo "#################   7   #################"
+echo
+echo
+
 if [[ $enable_client_profiling == "true" ]]; then
     cat << EOF_PROFILING >> $extra_vars_file
 EDXAPP_SESSION_SAVE_EVERY_REQUEST: True
 EOF_PROFILING
 fi
+
+echo
+echo
+echo "#################   8   #################"
+echo
+echo
 
 if [[ $edx_internal == "true" ]]; then
     # if this isn't a public server add the github
@@ -289,8 +345,11 @@ EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: studio-${deploy_host}
 EDXAPP_SITE_NAME: ${deploy_host}
-CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-CERTS_VERIFY_URL: "http://${deploy_host}:18090"
+
+# Todo: Remove below commented if not required for Apros sandbox
+
+#CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
+#CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_internal: True
 COMMON_USER_INFO:
   - name: ${github_username}
@@ -312,54 +371,62 @@ XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
 XQUEUE_CONSUMER_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue_consumer
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
-EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
-EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
-EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
 
-ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
+# Todo: Remove below commented if not required for Apros sandbox
+#EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
+#EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+#EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
+#EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
+
+#ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
-ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
-ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
-ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
-ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-ecommerce_create_demo_data: true
+#ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
+#ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
+#ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
+#ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+#ecommerce_create_demo_data: true
 
-JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
-JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
-JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
-JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
-JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
-JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
-JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
-journals_create_demo_data: true
+# Todo: Remove if not required for Apros sandbox
+#JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+#JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
+#JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
+#JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
+#JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
+#JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+#JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
+#JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
+#JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
+#JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
+#JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
+#journals_create_demo_data: true
 
-DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
-DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+#DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+#DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
-credentials_create_demo_data: true
-CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
-CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
-CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
-CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
+#credentials_create_demo_data: true
+#CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
+#CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
+#CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
+#CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+#CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 
-VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
-VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
-VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+#VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
+#VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
+#VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
 
-VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
-VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
-VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
+#VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
+#VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
+#VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 
 EOF
 fi
 
+echo
+echo
+echo "#################   9   #################"
+echo
+echo
 
 if [[ $recreate == "true" ]]; then
     # vars specific to provisioning added to $extra-vars
@@ -402,13 +469,23 @@ EOF
     fi
 fi
 
-veda_web_frontend=${video_pipeline:-false}
-veda_pipeline_worker=${video_pipeline:-false}
-veda_encode_worker=${video_encode_worker:-false}
-video_pipeline_integration=${video_pipeline:-false}
+echo
+echo
+echo "#################   10   #################"
+echo
+echo
+
+# Todo: Remove below line if not required for Apros sandbox
+#veda_web_frontend=${video_pipeline:-false}
+#veda_pipeline_worker=${video_pipeline:-false}
+#veda_encode_worker=${video_encode_worker:-false}
+#video_pipeline_integration=${video_pipeline:-false}
+
+# Todo: Remove below line if not required for Apros sandbox
+#plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+plays="edxapp forum testcourses"
 
 for play in $plays; do
     deploy[$play]=${!play}
@@ -420,6 +497,12 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
     cat $extra_vars_file
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
+
+echo
+echo
+echo "#################   11   #################"
+echo
+echo
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the plays selected
@@ -434,12 +517,22 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     done
 fi
 
+echo
+echo
+echo "#################   12   #################"
+echo
+echo
+
 # deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
+cat $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
+
+# Todo: uncomment this when sandbox is up locally and remove above line
+#cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
+  echo "Exiting RET 2"
   exit $ret
 fi
 
@@ -448,17 +541,42 @@ if [[ $run_oauth == "true" ]]; then
     run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
+echo
+echo
+echo "#################   13   #################"
+echo
+echo
+
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
-if [[ $set_whitelabel == "true" ]]; then
+# Todo: Remove if not required for Apros sandbox
+#if [[ $set_whitelabel == "true" ]]; then
     # Setup Whitelabel themes
-    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
+#    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#fi
+
+echo
+echo
+echo "#################   14   #################"
+echo
+echo
 
 if [[ $enable_newrelic == "true" ]]; then
     run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
+echo
+echo
+echo "#################   15   #################"
+echo
+echo
+
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
+
+echo
+echo
+echo "#################   THE END!   #################"
+echo
+echo
