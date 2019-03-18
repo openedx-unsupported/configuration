@@ -218,7 +218,10 @@ fi
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
-deploy_host="${dns_name}.${dns_zone}"
+deploy_host="${dns_name}"
+# Todo: uncomment this when sandbox is up locally and remove above line
+#deploy_host="${dns_name}.${dns_zone}"
+
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
 cd playbooks
