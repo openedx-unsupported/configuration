@@ -281,6 +281,7 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
+COMMON_ENABLE_AWS_ROLE: false
 
 nginx_default_sites:
   - lms
