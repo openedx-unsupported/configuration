@@ -128,6 +128,9 @@ if [[ $edx_internal == "true" ]]; then
     #extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
 fi
 
+#Todo: remove this after successful testing on local
+extra_var_arg+=' -e ansible_host="jenkins_tools" -e ansible_user="root" -e ansible_become=true'
+
 if [[ -z $region ]]; then
   region="us-east-1"
 fi
@@ -500,7 +503,7 @@ done
 # run non-deploy tasks for all plays
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -c docker
 fi
 
 echo
@@ -515,9 +518,9 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c docker
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg -c docker
             fi
         fi
     done
@@ -531,7 +534,7 @@ echo
 
 # Todo: run_ansible command is modified to run locally (user arg value changed)
 # deploy the edx_ansible play
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg -c docker
 cat $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 
 # Todo: uncomment this when sandbox is up locally and remove above line
@@ -546,7 +549,7 @@ fi
 # Todo: run_ansible command is modified to run locally (user arg value changed)
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg -c docker
 fi
 
 echo
@@ -557,7 +560,7 @@ echo
 
 # Todo: run_ansible command is modified to run locally (user arg value changed)
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} -c docker
 
 # Todo: Remove if not required for Apros sandbox
 #if [[ $set_whitelabel == "true" ]]; then
@@ -573,7 +576,7 @@ echo
 
 # Todo: run_ansible command is modified to run locally (user arg value changed)
 if [[ $enable_newrelic == "true" ]]; then
-    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  -c docker
 fi
 
 echo
