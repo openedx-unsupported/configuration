@@ -15,7 +15,7 @@ sudo -v
 # Optional envs you can override if you wish to render config for different EDPs
 # these are expected to be comma separated with no spaces, see defaults.
 ENVIRONMENT_DEPLOYMENTS=${ENVIRONMENT_DEPLOYMENTS:=stage-edx,prod-edx,prod-edge,developer-sandbox}
-PLAYS=${PLAYS:="edxapp,veda_web_frontend,analyticsapi,credentials,journals,ecommerce,discovery"}
+PLAYS=${PLAYS:=edxapp,veda_web_frontend,analyticsapi,credentials,journals,ecommerce,discovery}
 
 rm -rf $CONFIG_RENDERING_TARGET
 cd $WORKSPACE/configuration/playbooks
