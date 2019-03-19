@@ -718,3 +718,6 @@
   - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_SECRET` for backend auth.
   - Added `REGISTRAR_SERVICE_USER_EMAIL` to have a registrar service user on LMS
   - Added `REGISTRAR_SERVICE_USER_NAME` to have a registrar service user on LMS
+
+- Role: registrar
+  - Added `REGISTRAR_SEGMENT_KEY` for segment.io event tracking.
