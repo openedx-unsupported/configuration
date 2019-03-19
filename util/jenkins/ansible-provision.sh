@@ -500,7 +500,7 @@ done
 # run non-deploy tasks for all plays
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -c local
 fi
 
 echo
@@ -509,14 +509,15 @@ echo "#################   11   #################"
 echo
 echo
 
+# Todo: run_ansible command is modified to run locally (user arg removed)
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     # Run deploy tasks for the plays selected
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg -c local
             fi
         fi
     done
@@ -528,8 +529,9 @@ echo "#################   12   #################"
 echo
 echo
 
+# Todo: run_ansible command is modified to run locally (user arg removed)
 # deploy the edx_ansible play
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg -c local
 cat $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 
 # Todo: uncomment this when sandbox is up locally and remove above line
@@ -541,9 +543,10 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
+# Todo: run_ansible command is modified to run locally (user arg removed)
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg -c local
 fi
 
 echo
@@ -552,8 +555,9 @@ echo "#################   13   #################"
 echo
 echo
 
+# Todo: run_ansible command is modified to run locally (user arg removed)
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} -c local
 
 # Todo: Remove if not required for Apros sandbox
 #if [[ $set_whitelabel == "true" ]]; then
@@ -567,8 +571,9 @@ echo "#################   14   #################"
 echo
 echo
 
+# Todo: run_ansible command is modified to run locally (user arg removed)
 if [[ $enable_newrelic == "true" ]]; then
-    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
+    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  -c local
 fi
 
 echo
