@@ -57,7 +57,7 @@ def rds_extractor():
     return rds_list
 
 
-def check_table_growth(rds_list, username, password, threshold):
+def check_table_growth(rds_list, username, password, threshold, rds_threshold):
     """
         Return:
              Return list all tables that cross threshold limit
@@ -92,9 +92,13 @@ def check_table_growth(rds_list, username, password, threshold):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
+            if item["name"] in rds_threshold:
+                threshold_limit = rds_threshold[item["name"]]
+            else:
+                threshold_limit = threshold
             for tables in rds_result:
                 temp_dict = {}
-                if tables[2] > float(threshold):
+                if tables[2] > float(threshold_limit):
                     temp_dict["rds"] = item["name"]
                     temp_dict["db"] = tables[0]
                     temp_dict["table"] = tables[1]
@@ -110,7 +114,8 @@ def check_table_growth(rds_list, username, password, threshold):
 @click.option('--username', required=True, help='Username for RDS')
 @click.option('--password', required=True, help='Password for RDS')
 @click.option('--threshold', required=True, help='Threshold for tables')
-def controller(username, password, threshold):
+@click.option('--rdsthreshold', type=(str, int), multiple=True, help='Specific RDS threshold')
+def controller(username, password, threshold, rdsthreshold):
     """
     Control execution of all other functions
     Arguments:
@@ -121,9 +126,12 @@ def controller(username, password, threshold):
             Get this from cli args
         threshold (str):
             Get this from cli args
+        rds_threshold (str, int):
+            Get this from cli args
     """
+    rds_threshold = dict(rdsthreshold)
     rds_list = rds_extractor()
-    table_list = check_table_growth(rds_list, username, password, threshold)
+    table_list = check_table_growth(rds_list, username, password, threshold, rds_threshold)
     if len(table_list) > 0:
         format_string = "{:<40}{:<20}{:<50}{}"
         print(format_string.format("RDS Name","Database Name", "Table Name", "Size"))
