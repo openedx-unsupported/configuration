@@ -129,7 +129,7 @@ if [[ $edx_internal == "true" ]]; then
 fi
 
 #Todo: remove this after successful testing on local
-extra_var_arg+=" -e ansible_become=true -e ansible_become_user=${auth_user} -e ansible_become_pass=${auth_pass}"
+extra_var_arg+=" -e ansible_become_user=${auth_user} -e ansible_become_pass=${auth_pass}"
 
 if [[ -z $region ]]; then
   region="us-east-1"
