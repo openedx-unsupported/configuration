@@ -22,6 +22,7 @@ set -x
 echo
 echo
 echo "#################   STARTING!   #################"
+echo "#################   USER: $USER   #################"
 echo
 echo
 
@@ -129,7 +130,7 @@ if [[ $edx_internal == "true" ]]; then
 fi
 
 #Todo: remove this after successful testing on local
-extra_var_arg+=" -e ansible_sudo_pass=${auth_pass}"
+extra_var_arg+=" -e ansible_become_pass=${auth_pass}"
 
 if [[ -z $region ]]; then
   region="us-east-1"
