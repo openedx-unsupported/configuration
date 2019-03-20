@@ -518,7 +518,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local --user=root  --extra-vars "ansible_sudo_pass=${auth_pass}"
             if [[ ${i} == "edxapp" ]]; then
                 run_ansible worker.yml -i "${deploy_host}," $extra_var_arg -c local
             fi
