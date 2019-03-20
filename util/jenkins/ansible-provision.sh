@@ -129,7 +129,7 @@ if [[ $edx_internal == "true" ]]; then
 fi
 
 #Todo: remove this after successful testing on local
-#extra_var_arg+=" -e ansible_user=${auth_user} -e ansible_sudo_pass=${auth_pass}"
+extra_var_arg+=" -e ansible_user=${auth_user} -e ansible_sudo_pass=${auth_pass}"
 
 if [[ -z $region ]]; then
   region="us-east-1"
@@ -518,7 +518,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local --user=$auth_user  --extra-vars "ansible_sudo_pass=${auth_pass}"
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local -b false"
             if [[ ${i} == "edxapp" ]]; then
                 run_ansible worker.yml -i "${deploy_host}," $extra_var_arg -c local
             fi
