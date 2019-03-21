@@ -71,9 +71,8 @@ else
 fi
 
 
-# Todo: BUILD_USER value should be set back to jenkins. Did it to run locally
 if [[ -z $BUILD_USER ]]; then
-    BUILD_USER=root
+    BUILD_USER=jenkins
 fi
 
 if [[ -z $BUILD_USER_ID ]]; then
@@ -206,18 +205,17 @@ if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
 fi
 
-# Todo: Remove if not required for Apros sandbox
-#if [[ -z $set_whitelabel ]]; then
-#  set_whitelabel="true"
-#fi
+if [[ -z $set_whitelabel ]]; then
+  set_whitelabel="true"
+fi
 
-#if [[ -z $journals ]]; then
-#  journals="false"
-#fi
+if [[ -z $journals ]]; then
+  journals="false"
+fi
 
-#if [[ -z $journals_version ]]; then
-#  journals_version="master"
-#fi
+if [[ -z $journals_version ]]; then
+  journals_version="master"
+fi
 
 
 # Lowercase the dns name to deal with an ansible bug
@@ -239,14 +237,13 @@ forum_source_repo: $forum_source_repo
 configuration_version: $configuration_version
 
 
-# Todo: Remove below commented if not required for Apros sandbox
-#notifier_version: $notifier_version
-#XQUEUE_VERSION: $xqueue_version
-#xserver_version: $xserver_version
-#certs_version: $certs_version
-#demo_version: $demo_version
-#THEMES_VERSION: $themes_version
-#journals_version: $journals_version
+notifier_version: $notifier_version
+XQUEUE_VERSION: $xqueue_version
+xserver_version: $xserver_version
+certs_version: $certs_version
+demo_version: $demo_version
+THEMES_VERSION: $themes_version
+journals_version: $journals_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -257,30 +254,30 @@ EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
 
-# Todo: Remove below commented if not required for Apros sandbox
-#ECOMMERCE_NGINX_PORT: 80
-#ECOMMERCE_SSL_NGINX_PORT: 443
-#ECOMMERCE_VERSION: $ecommerce_version
-#CREDENTIALS_NGINX_PORT: 80
-#CREDENTIALS_SSL_NGINX_PORT: 443
-#CREDENTIALS_VERSION: $credentials_version
-#ANALYTICS_API_NGINX_PORT: 80
-#ANALYTICS_API_SSL_NGINX_PORT: 443
-#ANALYTICS_API_VERSION: $analytics_api_version
+ECOMMERCE_NGINX_PORT: 80
+ECOMMERCE_SSL_NGINX_PORT: 443
+ECOMMERCE_VERSION: $ecommerce_version
 
-# Todo: Remove if not required for Apros sandbox
-#JOURNALS_NGINX_PORT: 80
-#JOURNALS_SSL_NGINX_PORT: 443
-#JOURNALS_VERSION: $journals_version
-#JOURNALS_ENABLED: $journals
-#JOURNALS_SANDBOX_BUILD: True
+CREDENTIALS_NGINX_PORT: 80
+CREDENTIALS_SSL_NGINX_PORT: 443
+CREDENTIALS_VERSION: $credentials_version
 
-#VIDEO_PIPELINE_BASE_NGINX_PORT: 80
-#VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
+ANALYTICS_API_NGINX_PORT: 80
+ANALYTICS_API_SSL_NGINX_PORT: 443
+ANALYTICS_API_VERSION: $analytics_api_version
 
-#DISCOVERY_NGINX_PORT: 80
-#DISCOVERY_SSL_NGINX_PORT: 443
-#DISCOVERY_VERSION: $discovery_version
+JOURNALS_NGINX_PORT: 80
+JOURNALS_SSL_NGINX_PORT: 443
+JOURNALS_VERSION: $journals_version
+JOURNALS_ENABLED: $journals
+JOURNALS_SANDBOX_BUILD: True
+
+VIDEO_PIPELINE_BASE_NGINX_PORT: 80
+VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
+
+DISCOVERY_NGINX_PORT: 80
+DISCOVERY_SSL_NGINX_PORT: 443
+DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
@@ -355,10 +352,9 @@ EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: studio-${deploy_host}
 EDXAPP_SITE_NAME: ${deploy_host}
 
-# Todo: Remove below commented if not required for Apros sandbox
 
-#CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-#CERTS_VERIFY_URL: "http://${deploy_host}:18090"
+CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
+CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_internal: True
 COMMON_USER_INFO:
   - name: ${github_username}
@@ -381,52 +377,50 @@ XQUEUE_CONSUMER_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue_consumer
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
 
-# Todo: Remove below commented if not required for Apros sandbox
-#EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
-#EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-#EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
-#EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
+EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
+EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
+EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
 
-#ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
+ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
-#ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
-#ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
-#ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
-#ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-#ecommerce_create_demo_data: true
+ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
+ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
+ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
+ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+ecommerce_create_demo_data: true
 
-# Todo: Remove if not required for Apros sandbox
-#JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
-#JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
-#JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
-#JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
-#JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
-#JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-#JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
-#JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
-#JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
-#JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
-#JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
-#journals_create_demo_data: true
+JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
+JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
+JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
+JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
+JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
+JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
+JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
+journals_create_demo_data: true
 
-#DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
-#DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
-#credentials_create_demo_data: true
-#CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
-#CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
-#CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
-#CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-#CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
+credentials_create_demo_data: true
+CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
+CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
+CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
+CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 
-#VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
-#VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
-#VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
+VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
+VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
 
-#VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
-#VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
-#VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
+VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
+VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
+VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 
 EOF
 fi
@@ -467,16 +461,15 @@ EOF
         extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0 -e elb_pre_post=false'
     fi
     # run the tasks to launch an ec2 instance from AMI
-    # Todo: Uncomment below lines when Apros sandbox is tested locally
-    #cat $extra_vars_file
-    #run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
+    cat $extra_vars_file
+    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg -c local
 
-    #if [[ $server_type == "full_edx_installation" ]]; then
+    if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-    #    run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-    #    run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-    #fi
+        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg -c local
+        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg -c local
+    fi
 fi
 
 echo
@@ -485,17 +478,14 @@ echo "#################   10   #################"
 echo
 echo
 
-# Todo: Remove below line if not required for Apros sandbox
-#veda_web_frontend=${video_pipeline:-false}
-#veda_pipeline_worker=${video_pipeline:-false}
-#veda_encode_worker=${video_encode_worker:-false}
-#video_pipeline_integration=${video_pipeline:-false}
+veda_web_frontend=${video_pipeline:-false}
+veda_pipeline_worker=${video_pipeline:-false}
+veda_encode_worker=${video_encode_worker:-false}
+video_pipeline_integration=${video_pipeline:-false}
 
-# Todo: Remove below line if not required for Apros sandbox
-#plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
 
 declare -A deploy
-plays="edxapp forum testcourses"
+plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
 
 for play in $plays; do
     deploy[$play]=${!play}
@@ -541,7 +531,7 @@ cat $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_
 
 # Todo: uncomment this when sandbox is up locally and remove above line
 #cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
   echo "Exiting RET 2"
@@ -564,11 +554,10 @@ echo
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} -c local
 
-# Todo: Remove if not required for Apros sandbox
-#if [[ $set_whitelabel == "true" ]]; then
+if [[ $set_whitelabel == "true" ]]; then
     # Setup Whitelabel themes
-#    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-#fi
+    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg -c local
+fi
 
 echo
 echo
