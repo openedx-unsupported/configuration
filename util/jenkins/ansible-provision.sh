@@ -71,8 +71,9 @@ else
 fi
 
 
+# Todo: BUILD_USER value should be set back to jenkins. Did it to run locally
 if [[ -z $BUILD_USER ]]; then
-    BUILD_USER=jenkins
+    BUILD_USER=root
 fi
 
 if [[ -z $BUILD_USER_ID ]]; then
@@ -130,7 +131,7 @@ if [[ $edx_internal == "true" ]]; then
 fi
 
 #Todo: remove this after successful testing on local
-extra_var_arg+=" -e ansible_sudo_user=${auth_user} -e ansible_become_pass=${auth_pass}"
+extra_var_arg+=" -e ansible_user=${auth_user} -e ansible_become_pass=${auth_pass} -E ansible_become=true"
 
 if [[ -z $region ]]; then
   region="us-east-1"
