@@ -54,7 +54,7 @@ class ActiveInventory():
                     if tag['Key'] == 'Name' and tag['Value'] == asg_name:
                         matching_groups.append(asg)
 
-        groups_to_instances = default_dict(list)
+        groups_to_instances = defaultdict(list)
         instances_to_groups = {}
 
         # for all instances in all auto scaling groups
