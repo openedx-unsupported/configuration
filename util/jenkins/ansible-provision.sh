@@ -461,8 +461,9 @@ EOF
         extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0 -e elb_pre_post=false'
     fi
     # run the tasks to launch an ec2 instance from AMI
-    cat $extra_vars_file
-    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg -c local
+    # Todo: uncomment below 2 after local success
+    #cat $extra_vars_file
+    #run_ansible edx_provision.yml -i inventory.ini $extra_var_arg -c local
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
