@@ -31,7 +31,7 @@ When running this role, you'll need to set:
 * `RETIREMENT_SERVICE_COOL_OFF_DAYS`: Number of days that an account stays  marked for deletion before being picked up be the retirement service
 * `RETIREMENT_SERVICE_ENABLE_CRON_JOB`: Set to true if you want to set up a daily cron job for the retirement service
 * `RETIREMENT_SERVICE_USER_EMAIL`: Email of the retirement worker user set up on LMS
-* `RETIREMENT_SERVICE_USER_NAME`: Username of the retirement worker user set up on LMS
+* `EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME`: Username of the retirement worker user set up on LMS
 * `RETIREMENT_SERVICE_OAUTH_CLIENT_ID`: OAuth2 client id from LMS
 * `RETIREMENT_SERVICE_OAUTH_CLIENT_SECRET`: OAuth2 client secret from LMS
 * `RETIREMENT_LMS_BASE_URL`: Full LMS url (e.g. `https://lms.domain.com`)
@@ -129,7 +129,7 @@ ansible-playbook \
   -e RETIREMENT_SERVICE_COOL_OFF_DAYS=0 \
   -e RETIREMENT_SERVICE_ENABLE_CRON_JOB=true \
   -e RETIREMENT_SERVICE_USER_EMAIL=retirement_service_worker@example.com \
-  -e RETIREMENT_SERVICE_USER_NAME=retirement_service_worker \
+  -e EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME=retirement_service_worker \
   -e RETIREMENT_SERVICE_OAUTH_CLIENT_ID=<CLIENT ID FROM PREVIOUS STEP> \
   -e RETIREMENT_SERVICE_OAUTH_CLIENT_SECRET=<CLIENT SECRET FROM PREVIOUS STEP>
 ```
