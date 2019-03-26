@@ -130,8 +130,8 @@ def rds_controller(rds_list, username, password):
 
 
 @click.command()
-@click.option('--username', required=True, help='Username to speak with RDS')
-@click.option('--password', required=True, help='Password to speak with RDS')
+@click.option('--username', envvar='USERNAME', required=True)
+@click.option('--password', envvar='PASSWORD', required=True)
 def main(username, password):
     rds_list = rds_extractor()
     rds_controller(rds_list, username, password)
