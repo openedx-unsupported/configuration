@@ -25,20 +25,20 @@ case "$1" in
 
         # Now we can run a subset of the tests via paver.
         # Run some of the common/lib unit tests
-        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
+        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py 2> /dev/null
 
         # Generate some coverage reports
-        paver coverage
+        paver coverage 2> /dev/null
 
         # Run some of the djangoapp unit tests
-        paver test_system -t lms/djangoapps/courseware/tests/tests.py
-        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
+        paver test_system -t lms/djangoapps/courseware/tests/tests.py 2> /dev/null
+        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py 2> /dev/null
         ;;
 
     "js")
 
         # Run some of the javascript unit tests
-        paver test_js_run -s lms-coffee
+        paver test_js_run -s lms-coffee 2> /dev/null
         ;;
 
     "bokchoy")
@@ -51,7 +51,7 @@ case "$1" in
 
     "quality")
         # Generate quality reports
-        paver run_quality
+        paver run_quality 2> /dev/null
         ;;
 
     *)
