@@ -25,33 +25,33 @@ case "$1" in
 
         # Now we can run a subset of the tests via paver.
         # Run some of the common/lib unit tests
-        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py 2> /dev/null
+        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py >> /dev/null 2>null1
 
         # Generate some coverage reports
-        paver coverage 2> /dev/null
+        paver coverage >> /dev/null 2>null1
 
         # Run some of the djangoapp unit tests
-        paver test_system -t lms/djangoapps/courseware/tests/tests.py 2> /dev/null
-        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py 2> /dev/null
+        paver test_system -t lms/djangoapps/courseware/tests/tests.py >> /dev/null 2>null1
+        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py >> /dev/null 2>null1
         ;;
 
     "js")
 
         # Run some of the javascript unit tests
-        paver test_js_run -s lms-coffee 2> /dev/null
+        paver test_js_run -s lms-coffee >> /dev/null 2>null1
         ;;
 
     "bokchoy")
 
         # Run some of the bok-choy tests
-        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest 2> /dev/null
-        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked --fasttest 2> /dev/null
-        paver test_bokchoy -t lms/test_lms_matlab_problem.py::MatlabProblemTest --fasttest 2> /dev/null
+        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest >> /dev/null 2>null1
+        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked --fasttest >> /dev/null 2>null1
+        paver test_bokchoy -t lms/test_lms_matlab_problem.py::MatlabProblemTest --fasttest >> /dev/null 2>null1
         ;;
 
     "quality")
         # Generate quality reports
-        paver run_quality 2> /dev/null
+        paver run_quality >> /dev/null 2>null1
         ;;
 
     *)
