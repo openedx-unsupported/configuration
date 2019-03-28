@@ -111,8 +111,8 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
 
 
 @click.command()
-@click.option('--username', required=True, help='Username for RDS')
-@click.option('--password', required=True, help='Password for RDS')
+@click.option('--username', envvar='USERNAME', required=True)
+@click.option('--password', envvar='PASSWORD', required=True)
 @click.option('--threshold', required=True, help='Threshold for tables')
 @click.option('--rdsthreshold', type=(str, int), multiple=True, help='Specific RDS threshold')
 def controller(username, password, threshold, rdsthreshold):
