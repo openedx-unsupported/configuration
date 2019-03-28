@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added 'SYSTEM_WIDE_ROLE_CLASSES' for use of edx-rbac roles in the jwt in the lms
+
 - Open edX
   - Renamed edx_sandbox.yml to openedx_native.yml
 
