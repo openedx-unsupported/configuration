@@ -205,6 +205,7 @@ edx_platform_version: $edxapp_version
 forum_version: $forum_version
 forum_ruby_version: $forum_ruby_version
 forum_source_repo: $forum_source_repo
+ansible_distribution: 'Ubuntu'
 notifier_version: $notifier_version
 XQUEUE_VERSION: $xqueue_version
 xserver_version: $xserver_version
