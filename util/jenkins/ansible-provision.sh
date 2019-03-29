@@ -406,6 +406,7 @@ EOF
     # Todo: uncomment below 2 after local success
     #cat $extra_vars_file
     #run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
+    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg -c local
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
@@ -413,6 +414,7 @@ EOF
         run_ansible redis.yml -i "${deploy_host}," $extra_var_arg -c local
         run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg -c local
         # Todo: uncomment below 2 lines and remove above 2 after local testing
+        #run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         #run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         #run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
