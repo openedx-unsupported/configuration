@@ -257,6 +257,8 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
+# Todo: Remove this after local testing
+NGINX_ENABLE_SSL: false
 
 nginx_default_sites:
   - lms
