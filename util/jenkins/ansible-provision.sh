@@ -93,6 +93,9 @@ extra_vars_file="/var/tmp/extra-vars-$$.yml"
 #sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
+# Todo: uncomment this below when sandbox is up locally
+extra_var_arg+=" -e _local_git_identity='jenkins'"
+
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -257,7 +260,7 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
-# Todo: Remove this after local testing
+# Todo: Remove these 2 after local testing
 NGINX_ENABLE_SSL: false
 
 nginx_default_sites:
