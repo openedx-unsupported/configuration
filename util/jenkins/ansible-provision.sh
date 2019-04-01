@@ -416,7 +416,8 @@ EOF
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
         run_ansible redis.yml -i "${deploy_host}," $extra_var_arg -c local
-        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg -c local
+        # ToDo: commenting as it breaks installation
+        #run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg -c local
         # Todo: uncomment below 2 lines and remove above 2 after local testing
         #run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         #run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
