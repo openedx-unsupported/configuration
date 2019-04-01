@@ -107,8 +107,8 @@ def check_queries_running(rds_list, username, password):
 
 
 @click.command()
-@click.option('--username', required=True, help='Username for RDS')
-@click.option('--password', required=True, help='Password for RDS')
+@click.option('--username', envvar='USERNAME', required=True)
+@click.option('--password', envvar='PASSWORD', required=True)
 def controller(username, password):
     """
     Control execution of all other functions
