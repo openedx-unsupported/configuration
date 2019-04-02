@@ -262,7 +262,7 @@ COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 # Todo: Remove these below after local testing
 NGINX_ENABLE_SSL: false
-THEMES_GIT_PROTOCOL: 'https'
+#THEMES_GIT_PROTOCOL: 'https'
 _local_git_identity: 'jenkins'
 EDXAPP_USE_GIT_IDENTITY: false
 XSERVER_GIT_IDENTITY: 'jenkins'
