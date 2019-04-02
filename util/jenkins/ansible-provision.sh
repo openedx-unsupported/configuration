@@ -263,9 +263,8 @@ COMMON_ENVIRONMENT: sandbox
 # Todo: Remove these below after local testing
 NGINX_ENABLE_SSL: false
 _local_git_identity: $aws_account
-#EDXAPP_USE_GIT_IDENTITY: false
-XSERVER_GIT_IDENTITY: $aws_account
-GIT_CLONE_NO_LOGGING: false
+EDXAPP_USE_GIT_IDENTITY: false
+EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
 
 nginx_default_sites:
   - lms
