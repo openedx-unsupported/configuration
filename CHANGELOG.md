@@ -724,3 +724,7 @@
 
 - Role: registrar
   - Added `REGISTRAR_SEGMENT_KEY` for segment.io event tracking.
+
+- Role: registrar
+  - Replaced `REGISTRAR_LMS_URL_ROOT` with `REGISTRAR_LMS_BASE_URL`.
+  - Replaced `REGISTRAR_DISCOVERY_API_URL` with `REGISTRAR_DISCOVERY_BASE_URL`.
