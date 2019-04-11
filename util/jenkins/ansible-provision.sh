@@ -158,7 +158,7 @@ if [[ -z $enable_newrelic ]]; then
 fi
 
 if [[ -z $enable_datadog ]]; then
-  enable_datadog="false"
+  enable_datadog="true"
 fi
 
 if [[ -z $performance_course ]]; then
