@@ -23,8 +23,7 @@ set -x
 env | grep -v AWS | grep -v ARN
 
 export PYTHONUNBUFFERED=1
-# Todo: uncomment this when sandbox is up locally
-#export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
+export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
 # docker on OS-X includes your Mac's home directory in the socket path
 # that SSH/Ansible uses for the control socket, pushing you over
@@ -82,31 +81,23 @@ if [[ -z $github_username  ]]; then
 fi
 
 # Having access keys OR a boto config allows sandboxes to be built.
-# Todo: uncomment this when sandbox is up locally
-#if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
-#  echo "AWS credentials not found for $aws_account"
-#  exit 1
+if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
+  echo "AWS credentials not found for $aws_account"
+  exit 1
 #fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
-# Todo: uncomment this when sandbox is up locally
-#sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
-# Todo: uncomment this below when sandbox is up locally
-extra_var_arg+=" -e _local_git_identity='jenkins'"
+# Todo: uncomment this below when sandbox build failed with message: '_local_git_identity' undefined
+# extra_var_arg+=" -e _local_git_identity='jenkins'"
 
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${extra_vars_file}"
-    # Todo: uncomment this when sandbox is up locally and remove above line
-    #extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
+    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
 fi
-
-#Todo: remove this after successful testing on local
-extra_var_arg+=" -e ansible_user=${auth_user} -e ansible_become_pass=${auth_pass} -e ansible_become=yes"
 
 if [[ -z $region ]]; then
   region="us-east-1"
@@ -158,7 +149,7 @@ if [[ -z $enable_newrelic ]]; then
 fi
 
 if [[ -z $enable_datadog ]]; then
-  enable_datadog="true"
+  enable_datadog="false"
 fi
 
 if [[ -z $performance_course ]]; then
@@ -196,9 +187,7 @@ fi
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
-deploy_host="${dns_name}"
-# Todo: uncomment this when sandbox is up locally and remove above line
-#deploy_host="${dns_name}.${dns_zone}"
+deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
 cd playbooks
@@ -206,8 +195,8 @@ cd playbooks
 cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
-forum_ruby_version: $forum_ruby_version
-forum_source_repo: $forum_source_repo
+forum_ruby_version: '2.3.7'
+forum_source_repo: 'https://github.com/edx-solutions/cs_comments_service.git'
 ansible_distribution: 'Ubuntu'
 ansible_distribution_release: 'xenial'
 notifier_version: $notifier_version
@@ -260,12 +249,13 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
-# Todo: Remove these below after local testing
-NGINX_ENABLE_SSL: false
-_local_git_identity: $aws_account
-EDXAPP_USE_GIT_IDENTITY: false
+
+# Todo: Uncomment these temp if found any related error otherwise, remove these below after testing
+#NGINX_ENABLE_SSL: false
+#_local_git_identity: $aws_account
+#EDXAPP_USE_GIT_IDENTITY: false
 EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
-EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
+#EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
 COMMON_EDXAPP_SETTINGS: 'devstack'
 EDXAPP_SETTINGS: 'devstack'
 
@@ -416,21 +406,14 @@ EOF
         extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0 -e elb_pre_post=false'
     fi
     # run the tasks to launch an ec2 instance from AMI
-    # Todo: uncomment below 2 after local success
-    #cat $extra_vars_file
-    #run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
-    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg -c local
+    cat $extra_vars_file
+    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg -c local
-        # ToDo: commenting as it breaks installation
-        #run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg -c local
-        # Todo: uncomment below 2 lines and remove above 2 after local testing
-        #run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-        #run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-        #run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
@@ -440,7 +423,10 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+
+#plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+# ToDO: Below list is temp, remove it and use above after testing.
+plays="edxapp forum certs demo testcourses"
 
 for play in $plays; do
     deploy[$play]=${!play}
@@ -450,9 +436,7 @@ done
 # run non-deploy tasks for all plays
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -c local
-    # Todo: uncomment below line and remove above line after local testing
-    #run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
@@ -460,27 +444,18 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg -c local
-            # Todo: uncomment below line and remove above line after local testing
-            #run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
             if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg -c local
-                # Todo: uncomment below line and remove above line after local testing
-                #run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
             fi
         fi
     done
 fi
 
 # deploy the edx_ansible play
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg -c local
-# Todo: uncomment below line and remove above line after local testing
-#run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-# Todo: uncomment below line after testing
-#cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -b
-# Todo: uncomment below line and remove above line after local testing
-#ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
   echo "Exiting RET 2"
@@ -489,27 +464,19 @@ fi
 
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg -c local
-    # Todo: uncomment below line and remove above line after local testing
-    #run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} -c local
-# Todo: uncomment below line and remove above line after local testing
-#run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 if [[ $set_whitelabel == "true" ]]; then
     # Setup Whitelabel themes
-    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg -c local
-    # Todo: uncomment below line and remove above line after local testing
-    #run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $enable_newrelic == "true" ]]; then
-    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  -c local
-    # Todo: uncomment below line and remove above line after local testing
-    #run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
+    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
 rm -f "$extra_vars_file"
