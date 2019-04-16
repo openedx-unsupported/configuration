@@ -8,7 +8,7 @@
 # with the currently checked-out configuration repo.
 
 FROM edxops/xenial-common:latest
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 

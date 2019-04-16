@@ -1,5 +1,5 @@
 FROM edxops/xenial-common:latest
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 ADD . /edx/app/edx_ansible/edx_ansible
