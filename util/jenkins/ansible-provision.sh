@@ -86,6 +86,22 @@ if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONF
   exit 1
 #fi
 
+############### MCKa ############
+AWS_DEFAULT_REGION = $region
+InstanceNameTag=$dns_name
+ForumConfigurationVersion="yonkers-gingko"
+AprosReleaseVerison="development"
+PATTERN='all'
+
+IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
+
+cd $WORKSPACE
+git clone https://hamzamunir7300@github.com/mckinseyacademy/mcka-ansible.git ansible-private
+git clone https://github.com/mckinseyacademy/mcka_apros.git mcka_apros
+
+cd $WORKSPACE/configuration
+
+##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
@@ -422,45 +438,64 @@ veda_pipeline_worker=${video_pipeline:-false}
 veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
-declare -A deploy
+#declare -A deploy
 
 #plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
 # ToDO: Below list is temp, remove it and use above after testing.
-plays="edxapp forum certs demo testcourses"
+#plays="edxapp forum certs demo testcourses"
 
-for play in $plays; do
-    deploy[$play]=${!play}
-done
+#for play in $plays; do
+#    deploy[$play]=${!play}
+#done
 
 # If reconfigure was selected or if starting from an ubuntu 16.04 AMI
 # run non-deploy tasks for all plays
-if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
+#if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
+#    cat $extra_vars_file
+#    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#fi
 
-if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
-    # Run deploy tasks for the plays selected
-    for i in $plays; do
-        if [[ ${deploy[$i]} == "true" ]]; then
-            cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            fi
-        fi
-    done
-fi
+#TODO: remove this
+#if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
+#    # Run deploy tasks for the plays selected
+#    for i in $plays; do
+#        if [[ ${deploy[$i]} == "true" ]]; then
+#            cat $extra_vars_file
+#            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#            if [[ ${i} == "edxapp" ]]; then
+#                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#            fi
+#        fi
+#    done
+#fi
 
 # deploy the edx_ansible play
-run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
-ret=$?
-if [[ $ret -ne 0 ]]; then
-  echo "Exiting RET 2"
-  exit $ret
-fi
+#run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
+#ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
+#ret=$?
+#if [[ $ret -ne 0 ]]; then
+#  echo "Exiting RET 2"
+#  exit $ret
+#fi
+
+extra_var_arg+=' -e edx_platform_version=$edxapp_version -e mcka_apros_version=$AprosReleaseVerison -e forum_version=$forum_version'
+cd $WORKSPACE/ansible-private
+
+ansible-playbook -vvvv mckinseyapros.yml -i $IpAddress, -u ubuntu $extra_var_arg
+
+
+cd $WORKSPACE/configuration/playbooks/edx-east
+
+git checkout $ForumConfigurationVersion
+
+ansible-playbook -vvvv forum.yml -i $IpAddress, -u ubuntu $extra_var_arg
+
+ansible ${PATTERN} -i $IpAddress, -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
+ansible ${PATTERN} -i $IpAddress, -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
+ansible ${PATTERN} -i $IpAddress, -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+
+
 
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
