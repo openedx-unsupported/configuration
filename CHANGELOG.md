@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Removed the OfficeMix XBlock (the service that it uses has been dead for months).
+
+- Role: edxapp
   - Added 'SYSTEM_WIDE_ROLE_CLASSES' for use of edx-rbac roles in the jwt in the lms
 
 - Open edX
