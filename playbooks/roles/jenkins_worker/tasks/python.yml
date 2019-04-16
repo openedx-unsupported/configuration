@@ -1,13 +1,24 @@
 ---
+# Versions of Python newer than 3.5 are not available in the default
+# package index for Ubuntu 16.04. Add the deadsnakes PPA for anything
+# newer
+- name: add deadsnakes PPA for newer Python versions
+  apt_repository:
+    repo: "ppa:fkrull/deadsnakes"
+    update_cache: yes
+  when: ansible_distribution_release == 'xenial'
+
+# Install newer versions of python for testing, but do not set them
+# as the default version
+- name: Install python versions
+  apt:
+    name: '{{ item }}'
+    state: present
+    update_cache: yes
+  with_items: '{{ jenkins_worker_python_versions }}'
 
 # Requests library is required for the github status script.
 - name: Install requests Python library
-  pip: name=requests state=present
-
-# Install Python 3.5. For now, do not set it as the default python
-# version
-- name: Install python 3.5
-  apt:
-    name: 'python3.5-dev'
+  pip:
+    name: requests
     state: present
-    update_cache: yes
