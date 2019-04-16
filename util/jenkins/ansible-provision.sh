@@ -84,7 +84,7 @@ fi
 if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONFIG) ]]; then
   echo "AWS credentials not found for $aws_account"
   exit 1
-#fi
+fi
 
 ############### MCKa ############
 AWS_DEFAULT_REGION = $region
@@ -103,6 +103,7 @@ cd $WORKSPACE/configuration
 
 ##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
+sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 # Todo: uncomment this below when sandbox build failed with message: '_local_git_identity' undefined
