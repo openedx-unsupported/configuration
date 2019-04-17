@@ -49,11 +49,13 @@ def rds_extractor():
         client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            temp_dict = {}
-            temp_dict["name"] = instance["DBInstanceIdentifier"]
-            temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-            temp_dict["Port"] = instance.get("Port")
-            rds_list.append(temp_dict)
+            # This condition use to skip irrelevant RDS
+            if "prod" in instance.get("Endpoint").get("Address") or "stage" in instance.get("Endpoint").get("Address"):
+                temp_dict = {}
+                temp_dict["name"] = instance["DBInstanceIdentifier"]
+                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                temp_dict["Port"] = instance.get("Port")
+                rds_list.append(temp_dict)
     return rds_list
 
 
@@ -126,7 +128,7 @@ def controller(username, password, threshold, rdsthreshold):
             Get this from cli args
         threshold (str):
             Get this from cli args
-        rds_threshold (str, int):
+        rdsthreshold (str, int):
             Get this from cli args
     """
     rds_threshold = dict(rdsthreshold)
