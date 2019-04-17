@@ -87,7 +87,8 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
             table_schema as `Database`, 
             table_name AS `Table`, 
             round(((data_length + index_length) / 1024 / 1024), 2) `Size in MB` 
-            FROM information_schema.TABLES 
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA NOT IN ('mysql', 'information_schema', 'performance_schema') 
             ORDER BY (data_length + index_length) DESC;
             """)
 
