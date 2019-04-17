@@ -94,12 +94,12 @@ AprosReleaseVerison="development"
 
 
 
-cd $WORKSPACE
-rm -r ansible-private/
-git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
+#cd $WORKSPACE
+#rm -r ansible-private/
+#git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
 #git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka_apros.git mcka_apros
 
-cd $WORKSPACE/configuration
+#cd $WORKSPACE/configuration
 
 ##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
@@ -478,24 +478,24 @@ fi
 #  exit $ret
 #fi
 
-extra_var_arg+=' -e edx_platform_version=$edxapp_version -e mcka_apros_version=$AprosReleaseVerison -e forum_version=$forum_version'
-cd $WORKSPACE/ansible-private
+#extra_var_arg+=' -e edx_platform_version=$edxapp_version -e mcka_apros_version=$AprosReleaseVerison -e forum_version=$forum_version'
+#cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
-ansible-playbook -vvvv mckinseyapros.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
+#ansible-playbook -vvvv mckinseyapros.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
 
 
-cd $WORKSPACE/configuration/playbooks/edx-east
+#cd $WORKSPACE/configuration/playbooks/edx-east
 
-git checkout $ForumConfigurationVersion
+#git checkout $ForumConfigurationVersion
 
-ansible-playbook -vvvv forum.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
+#ansible-playbook -vvvv forum.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
 
-PATTERN='all'
-ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
-ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
-ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+#PATTERN='all'
+#ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
+#ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
+#ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
 
 
 
