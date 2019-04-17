@@ -431,7 +431,7 @@ EOF
 #        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 #        run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 #    fi
-#fi
+fi
 
 veda_web_frontend=${video_pipeline:-false}
 veda_pipeline_worker=${video_pipeline:-false}
