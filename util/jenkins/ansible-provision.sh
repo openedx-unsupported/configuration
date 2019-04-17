@@ -95,6 +95,7 @@ AprosReleaseVerison="development"
 
 
 cd $WORKSPACE
+rm -r ansible-private/
 git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
 #git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka_apros.git mcka_apros
 
@@ -448,10 +449,10 @@ video_pipeline_integration=${video_pipeline:-false}
 
 # If reconfigure was selected or if starting from an ubuntu 16.04 AMI
 # run non-deploy tasks for all plays
-#if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
-#    cat $extra_vars_file
-#    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-#fi
+if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
+    cat $extra_vars_file
+    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
 
 #TODO: remove this
 #if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
