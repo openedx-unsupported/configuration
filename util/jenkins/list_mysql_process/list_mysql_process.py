@@ -26,7 +26,7 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
-def rds_extractor():
+def rds_extractor(environment):
     """
     Return list of all RDS instances across all the regions
     Returns:
@@ -49,11 +49,12 @@ def rds_extractor():
         client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            temp_dict = {}
-            temp_dict["name"] = instance["DBInstanceIdentifier"]
-            temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-            temp_dict["Port"] = instance.get("Port")
-            rds_list.append(temp_dict)
+            if environment in instance.get("Endpoint").get("Address"):
+                temp_dict = {}
+                temp_dict["name"] = instance["DBInstanceIdentifier"]
+                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                temp_dict["Port"] = instance.get("Port")
+                rds_list.append(temp_dict)
     return rds_list
 
 
@@ -109,7 +110,8 @@ def check_queries_running(rds_list, username, password):
 @click.command()
 @click.option('--username', envvar='USERNAME', required=True)
 @click.option('--password', envvar='PASSWORD', required=True)
-def controller(username, password):
+@click.option('--environment', required=True, help='Use to identify the environment')
+def controller(username, password, environment):
     """
     Control execution of all other functions
     Arguments:
@@ -118,8 +120,11 @@ def controller(username, password):
 
         password (str):
             Get this from cli args
+
+        environment (str):
+            Get this from cli args
     """
-    rds_list = rds_extractor()
+    rds_list = rds_extractor(environment)
     process_list = check_queries_running(rds_list, username, password)
     if len(process_list) > 0:
         format_string = "{:<20}{:<20}{:<30}{:<20}{:<20}{:<70}{}"
