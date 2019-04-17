@@ -87,17 +87,16 @@ if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONF
 fi
 
 ############### MCKa ############
-AWS_DEFAULT_REGION = $region
+AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-gingko"
 AprosReleaseVerison="development"
 PATTERN='all'
 
-IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
 cd $WORKSPACE
-git clone https://hamzamunir7300@github.com/mckinseyacademy/mcka-ansible.git ansible-private
-git clone https://github.com/mckinseyacademy/mcka_apros.git mcka_apros
+git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
+git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka_apros.git mcka_apros
 
 cd $WORKSPACE/configuration
 
@@ -423,8 +422,8 @@ EOF
 #        extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0 -e elb_pre_post=false'
 #    fi
     # run the tasks to launch an ec2 instance from AMI
-#    cat $extra_vars_file
-#    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
+    cat $extra_vars_file
+    run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
 #    if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
@@ -482,6 +481,8 @@ video_pipeline_integration=${video_pipeline:-false}
 
 extra_var_arg+=' -e edx_platform_version=$edxapp_version -e mcka_apros_version=$AprosReleaseVerison -e forum_version=$forum_version'
 cd $WORKSPACE/ansible-private
+
+IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
 ansible-playbook -vvvv mckinseyapros.yml -i $IpAddress, -u ubuntu $extra_var_arg
 
