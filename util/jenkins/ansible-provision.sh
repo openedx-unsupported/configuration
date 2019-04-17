@@ -94,11 +94,11 @@ AprosReleaseVerison="development"
 
 
 
-#cd $WORKSPACE
-#git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
+cd $WORKSPACE
+git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
 #git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka_apros.git mcka_apros
 
-#cd $WORKSPACE/configuration
+cd $WORKSPACE/configuration
 
 ##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
