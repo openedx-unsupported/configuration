@@ -469,14 +469,14 @@ fi
 #fi
 
 # deploy the edx_ansible play
-#run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-#cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
-#ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
-#ret=$?
-#if [[ $ret -ne 0 ]]; then
-#  echo "Exiting RET 2"
-#  exit $ret
-#fi
+run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
+ret=$?
+if [[ $ret -ne 0 ]]; then
+  echo "Exiting RET 2"
+  exit $ret
+fi
 
 #extra_var_arg+=' -e edx_platform_version=$edxapp_version -e mcka_apros_version=$AprosReleaseVerison -e forum_version=$forum_version'
 #cd $WORKSPACE/ansible-private
