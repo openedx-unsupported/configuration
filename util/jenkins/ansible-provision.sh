@@ -42,6 +42,7 @@ run_ansible() {
   ansible-playbook $verbose_arg $@
   ret=$?
   if [[ $ret -ne 0 ]]; then
+    echo "Exiting RET"
     exit $ret
   fi
 }
@@ -85,10 +86,27 @@ if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONF
   exit 1
 fi
 
+############### MCKa ############
+AWS_DEFAULT_REGION=$region
+InstanceNameTag=$dns_name
+ForumConfigurationVersion="yonkers-gingko"
+AprosReleaseVerison="development"
+
+
+
+cd $WORKSPACE
+rm -r ansible-private/
+git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git ansible-private
+git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka_apros.git mcka_apros
+
+cd $WORKSPACE/configuration
+
+##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
+
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -184,7 +202,6 @@ fi
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
-
 deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
@@ -193,6 +210,10 @@ cd playbooks
 cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
+forum_ruby_version: '2.3.7'
+forum_source_repo: 'https://github.com/edx-solutions/cs_comments_service.git'
+ansible_distribution: 'Ubuntu'
+ansible_distribution_release: 'xenial'
 notifier_version: $notifier_version
 XQUEUE_VERSION: $xqueue_version
 xserver_version: $xserver_version
@@ -243,6 +264,15 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
+
+# Todo: Uncomment these temp if found any related error otherwise, remove these below after testing
+#NGINX_ENABLE_SSL: false
+#_local_git_identity: $aws_account
+#EDXAPP_USE_GIT_IDENTITY: false
+EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
+#EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
+COMMON_EDXAPP_SETTINGS: 'devstack'
+EDXAPP_SETTINGS: 'devstack'
 
 nginx_default_sites:
   - lms
@@ -407,12 +437,15 @@ veda_pipeline_worker=${video_pipeline:-false}
 veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
-declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+#declare -A deploy
 
-for play in $plays; do
-    deploy[$play]=${!play}
-done
+#plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+# ToDO: Below list is temp, remove it and use above after testing.
+#plays="edxapp forum certs demo testcourses"
+
+#for play in $plays; do
+#    deploy[$play]=${!play}
+#done
 
 # If reconfigure was selected or if starting from an ubuntu 16.04 AMI
 # run non-deploy tasks for all plays
@@ -421,18 +454,19 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
-if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
-    # Run deploy tasks for the plays selected
-    for i in $plays; do
-        if [[ ${deploy[$i]} == "true" ]]; then
-            cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            fi
-        fi
-    done
-fi
+#TODO: remove this
+#if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
+#    # Run deploy tasks for the plays selected
+#    for i in $plays; do
+#        if [[ ${deploy[$i]} == "true" ]]; then
+#            cat $extra_vars_file
+#            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#            if [[ ${i} == "edxapp" ]]; then
+#                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#            fi
+#        fi
+#    done
+#fi
 
 # deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
@@ -440,8 +474,30 @@ cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | gre
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
+  echo "Exiting RET 2"
   exit $ret
 fi
+
+extra_var_arg+=' -e edx_platform_version=$edxapp_version -e mcka_apros_version=$AprosReleaseVerison -e forum_version=$forum_version'
+cd $WORKSPACE/ansible-private
+
+#IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
+
+ansible-playbook -vvvv mckinseyapros.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
+
+
+cd $WORKSPACE/configuration/playbooks/edx-east
+
+git checkout $ForumConfigurationVersion
+
+ansible-playbook -vvvv forum.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
+
+PATTERN='all'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+
+
 
 if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
