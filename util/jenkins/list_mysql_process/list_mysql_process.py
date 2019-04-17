@@ -132,7 +132,6 @@ def controller(username, password, environment):
         for items in process_list:
             print(format_string.format(items["id"], items["user"], items["host"], items["command"],
                                        str(items["time"]) + " sec", items["state"], items["info"]))
-        exit(1)
     exit(0)
 
 
