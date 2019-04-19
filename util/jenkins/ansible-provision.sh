@@ -490,12 +490,12 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 
 git checkout $ForumConfigurationVersion
 
-ansible-playbook -vvvv forum.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
+run_ansible forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
-ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
 
 
 
