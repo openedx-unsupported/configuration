@@ -89,7 +89,7 @@ fi
 ############### MCKa ############
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
-ForumConfigurationVersion="yonkers-gingko"
+ForumConfigurationVersion="yonkers-ginkgo"
 AprosReleaseVerison="development"
 
 
