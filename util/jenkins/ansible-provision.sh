@@ -478,12 +478,12 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version="${edxapp_version}" -e mcka_apros_version="${AprosReleaseVerison}" -e forum_version="${forum_version}"'
+extra_var_arg+=' -e edx_platform_version=${edxapp_version} -e mcka_apros_version=${AprosReleaseVerison} -e forum_version=${forum_version}'
 cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
-ansible-playbook -vvvv mckinseyapros.yml -i "${deploy_host}," -u ubuntu $extra_var_arg
+run_ansible  mckinseyapros.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
 cd $WORKSPACE/configuration/playbooks/edx-east
@@ -495,7 +495,7 @@ run_ansible forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
-ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
 
 
 
