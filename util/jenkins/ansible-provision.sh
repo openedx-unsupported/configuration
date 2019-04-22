@@ -495,7 +495,7 @@ cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
-run_ansible  mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible  mckinseyapros.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
 cd $WORKSPACE/configuration/playbooks/edx-east
