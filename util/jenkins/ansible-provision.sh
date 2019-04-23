@@ -91,13 +91,6 @@ AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
 
-
-
-cd $WORKSPACE
-rm -r ansible-private/
-git clone https://hamzamunir7300@github.com/mckinseyacademy/mcka-ansible.git ansible-private
-git clone https://hamzamunir7300@github.com/mckinseyacademy/mcka_apros.git mcka_apros
-
 cd $WORKSPACE/configuration
 
 ##### end MCKa ################################
