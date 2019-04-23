@@ -284,7 +284,7 @@ MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
 MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
 MCKA_APROS_MYSQL_HOST: "{{ EDXAPP_MYSQL_HOST }}"
 MCKA_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
-mcka_apros_version="development"
+mcka_apros_version: "development"
 
 nginx_default_sites:
   - lms
