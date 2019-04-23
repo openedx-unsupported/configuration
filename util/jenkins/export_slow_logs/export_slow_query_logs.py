@@ -45,7 +45,7 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
-def rds_extractor():
+def rds_extractor(environment):
     """
     Return list of all RDS instances across all the regions
     Returns:
@@ -68,14 +68,15 @@ def rds_extractor():
         client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            temp_dict = {}
-            temp_dict["name"] = instance["DBInstanceIdentifier"]
-            temp_dict["ARN"] = instance["DBInstanceArn"]
-            temp_dict["Region"] = region["RegionName"]
-            temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-            temp_dict["Username"] = instance.get("MasterUsername")
-            temp_dict["Port"] = instance.get("Port")
-            rds_list.append(temp_dict)
+            if environment in instance.get("Endpoint").get("Address"):
+                temp_dict = {}
+                temp_dict["name"] = instance["DBInstanceIdentifier"]
+                temp_dict["ARN"] = instance["DBInstanceArn"]
+                temp_dict["Region"] = region["RegionName"]
+                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                temp_dict["Username"] = instance.get("MasterUsername")
+                temp_dict["Port"] = instance.get("Port")
+                rds_list.append(temp_dict)
     return rds_list
 
 
@@ -132,8 +133,9 @@ def rds_controller(rds_list, username, password):
 @click.command()
 @click.option('--username', envvar='USERNAME', required=True)
 @click.option('--password', envvar='PASSWORD', required=True)
-def main(username, password):
-    rds_list = rds_extractor()
+@click.option('--environment', required=True, help='Use to identify the environment')
+def main(username, password, environment):
+    rds_list = rds_extractor(environment)
     rds_controller(rds_list, username, password)
 
 
