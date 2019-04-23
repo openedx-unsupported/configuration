@@ -90,7 +90,6 @@ fi
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
-AprosReleaseVerison="development"
 
 
 
@@ -285,6 +284,7 @@ MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
 MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
 MCKA_APROS_MYSQL_HOST: "{{ EDXAPP_MYSQL_HOST }}"
 MCKA_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
+mcka_apros_version="development"
 
 nginx_default_sites:
   - lms
@@ -490,7 +490,7 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version=${edxapp_version} -e mcka_apros_version=${AprosReleaseVerison} -e forum_version=${forum_version}'
+extra_var_arg+=' -e edx_platform_version=${edxapp_version} -e forum_version=${forum_version}'
 cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
