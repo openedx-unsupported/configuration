@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Added ECOMMERCE_ALLOW_CORS_HEADERS to use whitelist for CORS calls
+
 - Role: edxapp
   - Removed the OfficeMix XBlock (the service that it uses has been dead for months).
 
