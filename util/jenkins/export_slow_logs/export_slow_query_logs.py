@@ -5,7 +5,7 @@ import backoff
 import pymysql
 import time
 import uuid
-
+import click
 
 MAX_TRIES = 5
 
@@ -82,7 +82,6 @@ def rds_extractor():
 def rds_controller(rds_list, username, password):
     for item in rds_list:
         rds_host_endpoint = item["Endpoint"]
-        rds_username = item["Username"]
         rds_port = item["Port"]
         connection = pymysql.connect(host=rds_host_endpoint, port=rds_port,
                                      user=username, password=password)
@@ -98,13 +97,14 @@ def rds_controller(rds_list, username, password):
         cw_logs = []
         sequencetoken = None
         client = CWBotoWrapper()
+        loggroupname= "/slowlogs/" + rds_host_endpoint
         try:
-            client.create_log_group(logGroupName=rds_host_endpoint)
+            client.create_log_group(logGroupName=loggroupname)
             print('Created CloudWatch log group named "%s"', rds_host_endpoint)
         except ClientError:
             print('CloudWatch log group named "%s" already exists', rds_host_endpoint)
         LOG_STREAM = time.strftime('%Y-%m-%d') + "/[$LATEST]" + uuid.uuid4().hex
-        client.create_log_stream(logGroupName=rds_host_endpoint, logStreamName=LOG_STREAM)
+        client.create_log_stream(logGroupName=loggroupname, logStreamName=LOG_STREAM)
         for tables in rds_result:
             temp = {}
             temp["timestamp"] = int(tables[0].strftime("%s")) * 1000
@@ -115,14 +115,14 @@ def rds_controller(rds_list, username, password):
             cw_logs.append(temp)
         if sequencetoken == None:
             response = client.put_log_events(
-                                    logGroupName=rds_host_endpoint,
+                                    logGroupName=loggroupname,
                                     logStreamName=LOG_STREAM,
                                     logEvents=cw_logs
                                     )
         else:
             response = client.put_log_events(
-                logGroupName=rds_host_endpoint,
-                logStreamName="test",
+                logGroupName=loggroupname,
+                logStreamName=LOG_STREAM,
                 logEvents=cw_logs,
                 sequenceToken=sequencetoken
             )
