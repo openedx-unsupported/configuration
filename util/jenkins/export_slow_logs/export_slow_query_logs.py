@@ -95,39 +95,40 @@ def rds_controller(rds_list, username, password):
         rds_result = cursor.fetchall()
         cursor.close()
         connection.close()
-        cw_logs = []
-        sequencetoken = None
-        client = CWBotoWrapper()
-        loggroupname= "/slowlogs/" + rds_host_endpoint
-        try:
-            client.create_log_group(logGroupName=loggroupname)
-            print('Created CloudWatch log group named "%s"', rds_host_endpoint)
-        except ClientError:
-            print('CloudWatch log group named "%s" already exists', rds_host_endpoint)
-        LOG_STREAM = time.strftime('%Y-%m-%d') + "/[$LATEST]" + uuid.uuid4().hex
-        client.create_log_stream(logGroupName=loggroupname, logStreamName=LOG_STREAM)
-        for tables in rds_result:
-            temp = {}
-            temp["timestamp"] = int(tables[0].strftime("%s")) * 1000
-            temp["message"] = "User@Host: " + str(tables[1]) + \
-                "Query_time: " + str(tables[2]) + " Lock_time: " + str(tables[3]) + \
-                " Rows_sent: " + str(tables[4]) + " Rows_examined: " + str(tables[5]) +\
-                "Slow Query: " + str(tables[10])
-            cw_logs.append(temp)
-        if sequencetoken == None:
-            response = client.put_log_events(
-                                    logGroupName=loggroupname,
-                                    logStreamName=LOG_STREAM,
-                                    logEvents=cw_logs
-                                    )
-        else:
-            response = client.put_log_events(
-                logGroupName=loggroupname,
-                logStreamName=LOG_STREAM,
-                logEvents=cw_logs,
-                sequenceToken=sequencetoken
-            )
-        sequencetoken = response["nextSequenceToken"]
+        if len(rds_result) > 0:
+            cw_logs = []
+            sequencetoken = None
+            client = CWBotoWrapper()
+            loggroupname= "/slowlogs/" + rds_host_endpoint
+            try:
+                client.create_log_group(logGroupName=loggroupname)
+                print('Created CloudWatch log group named "%s"', loggroupname)
+            except ClientError:
+                print('CloudWatch log group named "%s" already exists', loggroupname)
+            LOG_STREAM = time.strftime('%Y-%m-%d') + "/[$LATEST]" + uuid.uuid4().hex
+            client.create_log_stream(logGroupName=loggroupname, logStreamName=LOG_STREAM)
+            for tables in rds_result:
+                temp = {}
+                temp["timestamp"] = int(tables[0].strftime("%s")) * 1000
+                temp["message"] = "User@Host: " + str(tables[1]) + \
+                    "Query_time: " + str(tables[2]) + " Lock_time: " + str(tables[3]) + \
+                    " Rows_sent: " + str(tables[4]) + " Rows_examined: " + str(tables[5]) +\
+                    "Slow Query: " + str(tables[10])
+                cw_logs.append(temp)
+            if sequencetoken == None:
+                response = client.put_log_events(
+                                        logGroupName=loggroupname,
+                                        logStreamName=LOG_STREAM,
+                                        logEvents=cw_logs
+                                        )
+            else:
+                response = client.put_log_events(
+                    logGroupName=loggroupname,
+                    logStreamName=LOG_STREAM,
+                    logEvents=cw_logs,
+                    sequenceToken=sequencetoken
+                )
+            sequencetoken = response["nextSequenceToken"]
 
 
 @click.command()
