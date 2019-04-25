@@ -21,7 +21,7 @@ set -x
 
 # Seeing the environment is fine, spewing secrets to the log isn't ok
 env | grep -v AWS | grep -v ARN
-
+export ssh_key=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCyBRj4cYWZpsVXnbOE3XKRuZmdd6Mw1rCBklQx28ptGAcIYVDBNjxegzHu4tkUozDPBTFpp178cjtPv+Fh5MrhOGccmMdS0mRG6xtRAb/ZXJ2pqqbdi081gR5ye7QbzA61+L8XrcmASBEhVTn9/Xq4XEwWkOkj8QCcDu3ocMsiH4XO3S+KWcQDNrTzxIspwYCiKOw2WmUpXnepseSQ+ufZlXFznVPpkOPtC6EUllNi+/qBOG/xNJjT806JPzzrb5Hwq31fEwujVvaWufCD2MCyVhdD1t4LNKWMTWVOfFBKu2DwY/fIa0oYT+Z6NvA1MjQAyx8H2eWT9Hz8ku0dgX39ggW41KGvfBQcNSm4cvApqeY5ft7arbfmNjaD34jvoHa5qxOEGPnhPR9QKbV5VwyDzaJ4Niu/L7mNo4DWmRtV5SdyMkPwiPFSgqvOI9WNYgSCw8hktBGpsxBwkVPIUfDt1tjyHcd6oTm08G5bCKMD3fdWqM3hP5dMXEBN9NcY7wIWGltvfcvQ8AINTUSsKcBsHXXO1zAMYsqrfkhwUyACiFiaZvmE+dmqDcbBc1w5gjYQvuy3IIfR/OMWzll45U4pQqxilsd1qhwHkPLsED/XNamkTPvV8sXxDYsxruNf1w8NU2qL57182ss8OARyweeX2l5bQ8gZMTdIVElnFP4ymQ==
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
@@ -260,8 +260,8 @@ COMMON_ENVIRONMENT: sandbox
 
 # Todo: Uncomment these temp if found any related error otherwise, remove these below after testing
 #NGINX_ENABLE_SSL: false
-#_local_git_identity: $ssh_key
-EDXAPP_USE_GIT_IDENTITY: true
+_local_git_identity: $ssh_key
+#EDXAPP_USE_GIT_IDENTITY: true
 EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
 #EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
 COMMON_EDXAPP_SETTINGS: 'aws'
