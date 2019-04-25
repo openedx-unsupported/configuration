@@ -21,7 +21,7 @@ set -x
 
 # Seeing the environment is fine, spewing secrets to the log isn't ok
 env | grep -v AWS | grep -v ARN
-export ssh_key="-----BEGIN RSA PRIVATE KEY-----
+export ssh_key=-----BEGIN RSA PRIVATE KEY-----
 MIIJJwIBAAKCAgEAsgUY+HGFmabFV52zhN1ykbmZnXejMNawgZJUMdvKbRgHCGFQ
 wTY8XoMx7uLZFKMwzwUxaade/HI7T7/hYeTK4ThnHJjHUtJkRusbUQG/2Vydqaqm
 3YtPNYEecnu0G8wOtfi/F63JgEgRIVU5/f16uFxMFpDpI/EAnA7t6HDLIh+Fzt0v
@@ -71,7 +71,7 @@ xOBDYFWciS4y/KqZotrtZcONWLPROzLNdgSwQe1CjdimhvZDXWNps2TxW6/fLsmv
 /ExH/9NYKyv356BYR++K9Lfks/z1DPCIf4iVmpTttAVSKClopnIbHj0s/PnVo4yc
 RIpz60sdPbKJ6UmXW5//mdM0ZK1NA+VRSRiruM2gf9kqTn8F0/gA99k8dVgU732D
 3FpSNKDDham8JxzsSBKrDMJqfuwjcNz/p3pIRVd47UvMp2IDNdAhCH0eJw==
------END RSA PRIVATE KEY-----"
+-----END RSA PRIVATE KEY-----
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
