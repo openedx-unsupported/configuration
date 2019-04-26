@@ -91,9 +91,9 @@ AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
 cd $WORKSPACE
+chmod -R 0777 private_vars/
 rm -rf private_vars/
 git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
-chmod -R 0644 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
