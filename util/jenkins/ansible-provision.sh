@@ -111,9 +111,7 @@ if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
     extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
-    echo "printing-1 $extra_var_arg"
-    extra_var_arg+="-e@${private_vars_file}"
-    echo "printing-2 $extra_var_arg"
+    extra_var_arg+=" -e@${private_vars_file}"
 fi
 
 if [[ -z $region ]]; then
