@@ -363,3 +363,30 @@
     - install:plugins
     - install:jenkins-configuration
     - jenkins:promote-to-production
+
+- name: Wait until the Jenkins service has fully initialized
+  uri:
+    url: "http://127.0.0.1:{{ jenkins_common_port }}"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 30
+  delay: 1
+  tags:
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
+
+- name: Delete any existing jenkins-configuration folders to avoid unwanted configuration
+  file:
+    path: '{{ item }}'
+    owner: '{{ jenkins_common_user }}'
+    group: '{{ jenkins_common_group }}'
+    state: absent
+  with_items:
+    - '{{ jenkins_common_home }}/init.groovy.d'
+    - '{{ jenkins_common_config_path }}'
+  tags:
+    - install:base
+    - install:plugins
+    - install:jenkins-configuration
