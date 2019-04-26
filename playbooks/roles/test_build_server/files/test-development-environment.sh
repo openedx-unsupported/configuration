@@ -25,33 +25,33 @@ case "$1" in
 
         # Now we can run a subset of the tests via paver.
         # Run some of the common/lib unit tests
-        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
-
+        paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py >> /dev/null 2>&1
         # Generate some coverage reports
         paver coverage
 
         # Run some of the djangoapp unit tests
-        paver test_system -t lms/djangoapps/courseware/tests/tests.py
-        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py
+        paver test_system -t lms/djangoapps/courseware/tests/tests.py >> /dev/null 2>&1
+        paver test_system -t cms/djangoapps/course_creators/tests/test_views.py >> /dev/null 2>&1
         ;;
 
     "js")
 
         # Run some of the javascript unit tests
-        paver test_js_run -s lms-coffee
+        paver test_js_run -s lms-coffee >> /dev/null 2>&1
         ;;
 
     "bokchoy")
 
         # Run some of the bok-choy tests
-        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest
-        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked --fasttest
-        paver test_bokchoy -t lms/test_lms_matlab_problem.py::MatlabProblemTest --fasttest
+        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest >> /dev/null 2>&1
+        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked --fasttest >> /dev/null 2>&1
+        paver test_bokchoy -t lms/test_lms_matlab_problem.py::MatlabProblemTest --fasttest >> /dev/null 2>&1
+
         ;;
 
     "quality")
         # Generate quality reports
-        paver run_quality
+        paver run_quality >> /dev/null 2>&1
         ;;
 
     *)
