@@ -43,8 +43,8 @@ case "$1" in
     "bokchoy")
 
         # Run some of the bok-choy tests
-        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest
-        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked
+        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest >> /dev/null 2>&1 
+        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked >> /dev/null 2>&1 
 
         ;;
 
