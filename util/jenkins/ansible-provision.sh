@@ -91,6 +91,7 @@ AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
 cd $WORKSPACE
+
 git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
@@ -107,7 +108,10 @@ extra_var_arg="-e@${extra_vars_file}"
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${private_vars_file} -e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
+    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
+    echo "printing-1 $extra_var_arg"
+    extra_var_arg+="-e@${private_vars_file}"
+    echo "printing-2 $extra_var_arg"
 fi
 
 if [[ -z $region ]]; then
@@ -271,7 +275,7 @@ COMMON_EDXAPP_SETTINGS: 'aws'
 EDXAPP_SETTINGS: 'aws'
 
 #mcka_apros_git_ssh:
-MCKA_APROS_USE_GIT_IDENTITY: true
+MCKA_APROS_USE_GIT_IDENTITY: false
 MCKA_APROS_AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
 MCKA_APROS_AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
 MCKA_APROS_DJANGO_SECRET_KEY: "DUMMY KEY"
