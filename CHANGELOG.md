@@ -742,3 +742,11 @@
 - Role: registrar
   - Added `REGISTRAR_API_ROOT`
   - Modified `REGISTRAR_MEDIA_URL`.
+
+- Role: registrar
+  - Added `REGISTRAR_CELERY_BROKER_TRANSPORT`.
+  - Added `REGISTRAR_CELERY_BROKER_USER`.
+  - Added `REGISTRAR_CELERY_BROKER_PASSWORD`.
+  - Added `REGISTRAR_CELERY_BROKER_HOSTNAME`.
+  - Added `REGISTRAR_CELERY_BROKER_VHOST`.
+  - Injected all above settings as environment variables for Registrar.
