@@ -735,3 +735,10 @@
 - Role: registrar
   - Replaced `REGISTRAR_MEDIA_ROOT`.
   - Added `REGISTRAR_MEDIA_STORAGE_BACKEND`.
+
+- Role: edx_django_service
+  - Added new overridable variable `edx_django_service_api_root`
+
+- Role: registrar
+  - Added `REGISTRAR_API_ROOT`
+  - Modified `REGISTRAR_MEDIA_URL`.
