@@ -275,6 +275,7 @@ COMMON_EDXAPP_SETTINGS: 'aws'
 EDXAPP_SETTINGS: 'aws'
 
 #mcka_apros_git_ssh:
+MCKA_APROS_AWS_STORAGE_BUCKET_NAME: 'qa-group-work'
 MCKA_APROS_API_KEY: "edx-api-key"
 BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
