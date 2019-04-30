@@ -98,7 +98,8 @@ chmod -R 0777 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
-
+declare -A sso=("saml-idp-mckinsey")
+declare -A langs=( ["en"]="English" )
 ##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
@@ -276,6 +277,8 @@ EDXAPP_SETTINGS: 'aws'
 
 #mcka_apros_git_ssh:
 MCKA_APROS_AWS_STORAGE_BUCKET_NAME: 'qa-group-work'
+MCKA_APROS_SSO_AUTOPROVISION_PROVIDERS: $sso
+MCKA_APROS_SUPPORTED_LANGUAGES: $langs
 MCKA_APROS_API_KEY: "edx-api-key"
 BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
