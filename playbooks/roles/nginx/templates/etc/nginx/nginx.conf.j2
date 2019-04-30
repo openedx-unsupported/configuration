@@ -23,7 +23,8 @@ http {
         large_client_header_buffers 4 16k;
         # server_tokens off;
 
-        # server_names_hash_bucket_size 64;
+        # increase bucket size for sites with long DNS names
+        server_names_hash_bucket_size 128;
         # server_name_in_redirect off;
 
         include /etc/nginx/mime.types;
@@ -35,13 +36,13 @@ http {
 
         log_format {{ NGINX_LOG_FORMAT_NAME }} '$http_x_forwarded_for - $remote_addr - $remote_user [$time_local]  '
                             '"$request" $status $body_bytes_sent $request_time '
-                            '"$http_referer" "$http_user_agent"';
+                            '"$http_referer" "$http_user_agent" $upstream_addr $upstream_response_time';
 
         log_format ssl_combined '$remote_addr - $ssl_client_s_dn - "$upstream_addr" [$time_local]  '
                                 '"$request" $status $body_bytes_sent $request_time '
                                 '"$http_referer" "$http_user_agent"';
 
-        access_log {{ nginx_log_dir }}/access.log p_combined;
+        access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
         error_log {{ nginx_log_dir }}/error.log;
 
         ##
