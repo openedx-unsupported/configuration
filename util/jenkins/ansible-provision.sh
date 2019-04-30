@@ -99,7 +99,8 @@ private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
 declare -A sso=("saml-idp-mckinsey")
-declare -A langs=( ["en"]="English" )
+declare -A langs
+langs["en"]="English"
 ##### end MCKa ################################
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
