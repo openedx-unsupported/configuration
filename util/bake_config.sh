@@ -12,7 +12,7 @@ set -e
 # Optional envs you can override if you wish to render config for different EDPs
 # these are expected to be comma separated with no spaces, see defaults.
 ENVIRONMENT_DEPLOYMENTS=${ENVIRONMENT_DEPLOYMENTS:=stage-edx,prod-edx,prod-edge,developer-sandbox}
-PLAYS=${PLAYS:=edxapp,veda_web_frontend,analyticsapi,credentials,journals,ecommerce,discovery}
+PLAYS=${PLAYS:=edxapp,veda_web_frontend,analyticsapi,credentials,journals,ecommerce,discovery,ecomworker,insights,notifier,registrar,notes}
 
 rm -rf $CONFIG_RENDERING_TARGET
 cd $WORKSPACE/configuration/playbooks
@@ -39,6 +39,5 @@ do
             # All other IDAs
             ansible-playbook --become-user=$(whoami) -vvv -c local -i 'localhost,' --tags install:app-configuration ./$PLAY.yml $VARS -e COMMON_CFG_DIR=$CONFIG_RENDERING_TARGET/$ENVIRONMENT_DEPLOYMENT
         fi
-
     done
 done

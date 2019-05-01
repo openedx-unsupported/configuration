@@ -24,7 +24,6 @@ NGINX_ENABLE = {
         'lms':  "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
         'cms':  "sudo ln -sf /edx/app/nginx/sites-available/cms /etc/nginx/sites-enabled/cms",
     }
-HIPCHAT_USER = "PreSupervisor"
 
 # Max amount of time to wait for tags to be applied.
 MAX_BACKOFF = 120
