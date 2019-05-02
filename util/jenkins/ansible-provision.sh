@@ -90,11 +90,6 @@ fi
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
-cd $WORKSPACE
-chmod -R 0777 private_vars/
-rm -rf private_vars/
-git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
-chmod -R 0777 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
@@ -309,10 +304,10 @@ MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
 #MCKA_APROS_MYSQL_HOST: "localhost"
 MCKINSEY_APROS_MYSQL_HOST: "localhost"
 #MCKA_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
-MCKINSEY_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
-MCKINSEY_APROS_MYSQL_USER: "{{ EDXAPP_MYSQL_USER }}"
-db_root_user: "{{ EDXAPP_MYSQL_USER }}"
-DBPassword: "{{ EDXAPP_MYSQL_PASSWORD }}"
+MCKINSEY_APROS_MYSQL_PASSWORD: "edxapp"
+MCKINSEY_APROS_MYSQL_USER: "edxapp"
+db_root_user: "edxapp"
+DBPassword: "edxapp"
 mcka_apros_version: "development"
 
 nginx_default_sites:
