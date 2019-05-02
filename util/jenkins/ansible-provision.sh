@@ -304,10 +304,10 @@ MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
 #MCKA_APROS_MYSQL_HOST: "localhost"
 MCKINSEY_APROS_MYSQL_HOST: "localhost"
 #MCKA_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
-MCKINSEY_APROS_MYSQL_PASSWORD: "edxapp"
-MCKINSEY_APROS_MYSQL_USER: "edxapp001"
+MCKINSEY_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_CSMH_PASSWORD }}"
+MCKINSEY_APROS_MYSQL_USER: "{{ EDXAPP_MYSQL_CSMH_USER }}"
 #db_root_user: "edxapp"
-DBPassword: "edxapp"
+#DBPassword: "edxapp"
 mcka_apros_version: "development"
 
 nginx_default_sites:
