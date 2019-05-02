@@ -301,12 +301,18 @@ MCKA_APROS_USE_GIT_IDENTITY: true
 MCKA_APROS_AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
 MCKA_APROS_AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
 MCKA_APROS_DJANGO_SECRET_KEY: "DUMMY KEY"
-MMCKA_APROS_MYSQL_DB_NAME: "mcka_apros"
-MCKA_APROS_MYSQL_USER: "mcka_apros001"
+#MMCKA_APROS_MYSQL_DB_NAME: "mcka_apros"
+MCKINSEY_APROS_MYSQL_DB_NAME: "mcka_apros"
+#MCKA_APROS_MYSQL_USER: "mcka_apros001"
 MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
 MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
-MCKA_APROS_MYSQL_HOST: "localhost"
-MCKA_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
+#MCKA_APROS_MYSQL_HOST: "localhost"
+MCKINSEY_APROS_MYSQL_HOST: "localhost"
+#MCKA_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
+MCKINSEY_APROS_MYSQL_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
+MCKINSEY_APROS_MYSQL_USER: "apros"
+db_root_user: "root"
+DBPassword: "root"
 mcka_apros_version: "development"
 
 nginx_default_sites:
@@ -518,7 +524,9 @@ cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
-run_ansible  mckinseyapros.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg
+
+run_ansible -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
 
 
 cd $WORKSPACE/configuration/playbooks/edx-east
