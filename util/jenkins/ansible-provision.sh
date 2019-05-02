@@ -307,6 +307,7 @@ MCKINSEY_APROS_MYSQL_HOST: "localhost"
 MCKINSEY_APROS_MYSQL_PASSWORD: "apros"
 MCKINSEY_APROS_MYSQL_USER: "apros"
 db_root_user: "root"
+DBPassword: ""
 
 mcka_apros_version: "development"
 
