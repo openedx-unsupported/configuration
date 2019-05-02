@@ -91,11 +91,11 @@ def count_workers(environment, deploy, cluster):
 
     for reservation in reservations:
         for instance in reservation["Instances"]:
-            tag_play = None
+            tag_asg = None
             for tag in instance['Tags']:
-                if tag.get('Key') == 'play':
-                    tag_play = tag.get('Value')
-                    counts_by_play[tag_play] += 1
+                if tag.get('Key') == 'aws:autoscaling:groupName':
+                    tag_asg = tag.get('Value')
+                    counts_by_play[tag_asg] += 1
 
     metric_data = []
 
