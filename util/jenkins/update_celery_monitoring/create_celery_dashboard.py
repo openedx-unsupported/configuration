@@ -161,11 +161,12 @@ def generate_dashboard(environment, deploy):
     y_cord += height
     height = 9
 
-    widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
-        title="{}-{} Notifier/Ecommerce".format(environment, deploy),
-        namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
-        include_filter="celery",
-    ))
+    if deploy in ["edx", "edge"]:
+        widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
+            title="{}-{} Notifier/Ecommerce".format(environment, deploy),
+            namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
+            include_filter="celery",
+        ))
 
     dashboard_body = { 'widgets': widgets }
 
