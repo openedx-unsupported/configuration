@@ -40,8 +40,8 @@ def generate_dashboard_widget_metrics(cloudwatch, namespace, metric_name, dimens
     for metric in metrics['Metrics']:
         for dimension in metric['Dimensions']:
             if dimension['Name'] == dimension_name:
-                if include_filter is None or re.search(include_filter, dimension['Value']):
-                    if exclude_filter is None or not re.search(exclude_filter, dimension['Value']):
+                if include_filter is None or re.search(include_filter, dimension['Value'], re.IGNORECASE):
+                    if exclude_filter is None or not re.search(exclude_filter, dimension['Value'], re.IGNROECASE):
                         values.append(dimension['Value'])
 
     values.sort()
