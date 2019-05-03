@@ -515,7 +515,7 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version="development"-e forum_version=${forum_version} -e migrate_db="no"'
+extra_var_arg+=' -e edx_platform_version="development" -e forum_version=${forum_version} -e migrate_db="no"'
 cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
