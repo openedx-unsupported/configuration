@@ -315,6 +315,7 @@ db_root_user: "root"
 DBPassword: ""
 CELERY_HEARTBEAT_ENABLED: false
 CREATE_SERVICE_WORKER_USERS: false
+EDXAPP_REINDEX_ALL_COURSES: false
 
 mcka_apros_version: "development"
 
