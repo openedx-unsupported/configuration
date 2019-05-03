@@ -1,4 +1,14 @@
 ---
+- name: create edxapp configuration dir
+  file:
+    path: "{{ EDXAPP_CFG_DIR }}"
+    state: directory
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
+
 - name: copy the template to the desired location
   template:
     src: "{{ item.src }}"
@@ -119,20 +129,10 @@
     - install
     - install:app-requirements
 
-- name: Pin pip to a specific version.
-  command: "{{ edxapp_venv_dir }}/bin/pip install pip=={{ common_pip_version }}"
-  args:
-    chdir: "{{ edxapp_code_dir }}"
-  become_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  tags:
-    - install
-    - install:app-requirements
-
 - name: Stat each Python requirements file to ensure it exists
   stat:
     path: "{{ item }}"
-  with_items: "{{ edxapp_requirements_files }} + {{ [openstack_requirements_file] if EDXAPP_SETTINGS == 'openstack' else [] }}"
+  with_items: "{{ edxapp_requirements_files }}"
   register: python_requirement_files
   tags:
     - install
@@ -211,6 +211,8 @@
     chdir: "{{ edxapp_code_dir }}"
   with_items:
   - "{{ sandbox_base_requirements }}"
+  - "{{ sandbox_local_requirements }}"
+  - "{{ sandbox_post_requirements }}"
   become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
@@ -270,13 +272,28 @@
 
 - name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip:
-    chdir: "{{ edxapp_code_dir }}"
     requirements: "{{ sandbox_base_requirements }}"
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
+  tags:
+    - edxapp-sandbox
+    - install
+    - install:app-requirements
+
+- name: code sandbox | Install sandbox requirements into sandbox venv
+  shell: "{{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  with_items:
+    - "{{ sandbox_local_requirements }}"
+    - "{{ sandbox_post_requirements }}"
+  become_user: "{{ edxapp_sandbox_user }}"
+  when: EDXAPP_PYTHON_SANDBOX
+  register: sandbox_install_output
+  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   tags:
     - edxapp-sandbox
     - install
@@ -310,21 +327,6 @@
     - install
     - install:code
 
-- name: "create service wrapper scripts - {{item}}"
-  template:
-    dest: "{{ edxapp_app_dir }}/{{item}}"
-    src: "edx/app/edxapp/{{item}}.j2"
-    owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
-    mode: "og+rx"
-  with_items:
-    - "lms.sh"
-    - "cms.sh"
-    - "worker.sh"
-  tags:
-    - install
-    - install:configuration
-
 # creates the supervisor jobs for the
 # service variants configured, runs
 # gather_assets and db migrations
@@ -349,15 +351,12 @@
 
 - name: ensure edxapp has started
   supervisorctl:
-    name: "{{ item }}"
+    name: "edxapp:"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: started
   become_user: "{{ supervisor_service_user }}"
   when: celery_worker is not defined and not disable_edx_services
-  with_items:
-    - 'lms'
-    - 'cms'
   tags:
     - manage
 
@@ -407,15 +406,12 @@
 
 - name: restart edxapp
   supervisorctl:
-    name: "{{ item }}"
+    name: "edxapp:"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: restarted
   when: edxapp_installed is defined and celery_worker is not defined and not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
-  with_items:
-    - 'lms'
-    - 'cms'
   tags:
     - manage
 
@@ -431,18 +427,18 @@
     - manage
 
 - name: create service worker users
-  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
   with_items: "{{ SERVICE_WORKER_USERS }}"
-  when: CREATE_SERVICE_WORKER_USERS and item.enabled|default(true)
+  when: CREATE_SERVICE_WORKER_USERS
   tags:
     - manage
     - manage:db
 
 - name: reindex all courses
-  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
+  shell: "{{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
@@ -450,17 +446,3 @@
   tags:
     - install
     - install:base
-
-- name: install cron job to run clearsessions
-  cron:
-    name: "clear expired Django sessions"
-    user: "{{ edxapp_user }}"
-    job: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
-    hour: "{{ EDXAPP_CLEARSESSIONS_CRON_HOURS }}"
-    minute: "{{ EDXAPP_CLEARSESSIONS_CRON_MINUTES }}"
-    day: "*"
-  when: EDXAPP_CLEARSESSIONS_CRON_ENABLED
-
-- name: install additional cron jobs
-  cron: "{{ item }}"
-  with_items: "{{ EDXAPP_ADDITIONAL_CRON_JOBS }}"
