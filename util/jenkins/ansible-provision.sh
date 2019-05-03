@@ -496,7 +496,7 @@ video_pipeline_integration=${video_pipeline:-false}
 # run non-deploy tasks for all plays
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    #run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 #TODO: remove this
