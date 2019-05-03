@@ -220,7 +220,11 @@ demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
 edxapp_user_shell: '/bin/bash'
-
+edxapp_user_createhome: 'yes'
+migrate_db: false
+mongo_enable_journal: false
+service_variants_enabled: []
+testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
