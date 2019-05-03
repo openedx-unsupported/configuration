@@ -16,52 +16,17 @@
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
 
-- name: combined lms auth env for yml
-  set_fact:
-    lms_combined_config: '{{lms_env_config|combine(lms_auth_config)}}'
-  when: '"lms" in service_variants_enabled'
-  tags:
-    - install
-    - install:configuration
-    - install:app-configuration
-    - edxapp_cfg # Old deprecated tag, will remove when possible
-
-- name: render lms yml config # meant to replace existing json config eventually
+- name: create auth and application yaml config
   template:
-    src: "lms.yml.j2"
-    dest: "{{ COMMON_CFG_DIR }}/lms.yml"
+    src: "{{ item[0] }}.{{ item[1] }}.yaml.j2"
+    dest: "{{ EDXAPP_CFG_DIR }}/{{ item[0] }}.{{ item[1] }}.yaml"
     owner: "{{ edxapp_user }}"
     group: "{{ common_web_group }}"
     mode: 0640
   become: true
-  with_items: "{{ service_variants_enabled }}"
-  when: '"lms" in service_variants_enabled'
-  tags:
-    - install
-    - install:configuration
-    - install:app-configuration
-    - edxapp_cfg # Old deprecated tag, will remove when possible
-
-- name: combined cms auth env for yml
-  set_fact:
-    cms_combined_config: '{{cms_env_config|combine(cms_auth_config)}}'
-  when: '"cms" in service_variants_enabled'
-  tags:
-    - install
-    - install:configuration
-    - install:app-configuration
-    - edxapp_cfg # Old deprecated tag, will remove when possible
-
-- name: render studio yml config # meant to replace existing json config eventually
-  template:
-    src: "studio.yml.j2"
-    dest: "{{ COMMON_CFG_DIR }}/studio.yml"
-    owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
-    mode: 0640
-  become: true
-  with_items: "{{ service_variants_enabled }}"
-  when: '"cms" in service_variants_enabled'
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    - [ 'env', 'auth' ]
   tags:
     - install
     - install:configuration
@@ -71,7 +36,7 @@
 # write the supervisor scripts for the service variants
 - name: "writing {{ item }} supervisor script"
   template:
-    src: "edx/app/supervisor/conf.d.available/{{ item }}.conf.j2"
+    src: "{{ item }}.conf.j2"
     dest: "{{ supervisor_available_dir }}/{{ item }}.conf"
     owner: "{{ supervisor_user }}"
     group: "{{ supervisor_user }}"
@@ -82,27 +47,18 @@
     - install
     - install:configuration
 
-# write the supervisor script for celery workers
-- name: writing celery supervisor scripts
+# write the supervisor script for edxapp and celery workers
+- name: writing edxapp and celery supervisor scripts
   template:
-    src: "edx/app/supervisor/conf.d.available/{{ item }}.j2"
+    src: "{{ item }}.j2"
     dest: "{{ supervisor_available_dir }}/{{ item }}"
     owner: "{{ supervisor_user }}"
     group: "{{ supervisor_user }}"
     mode: 0644
   become_user: "{{ supervisor_user }}"
   with_items:
+    - edxapp.conf
     - workers.conf
-  tags:
-    - install
-    - install:configuration
-
-# clean out an old edxapp.conf file which we don't use now.
-# this can be deleted after we build things from scratch.
-- name: clean out old edxapp.conf
-  file:
-    path: "{{ supervisor_available_dir }}/edxapp.conf"
-    state: "absent"
   tags:
     - install
     - install:configuration
@@ -132,6 +88,18 @@
     - install
     - install:configuration
 
+- name: enable edxapp supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/edxapp.conf"
+    dest: "{{ supervisor_cfg_dir }}/edxapp.conf"
+    state: link
+    force: yes
+  become_user: "{{ supervisor_user }}"
+  when: celery_worker is not defined and not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
 - name: enable celery worker supervisor script
   file:
     src: "{{ supervisor_available_dir }}/workers.conf"
@@ -153,16 +121,6 @@
   with_nested:
     - "{{ edxapp_helper_scripts }}"
     - "{{ service_variants_enabled }}"
-  tags:
-    - install
-    - install:configuration
-
-- name: create script to compile and update assets
-  template:
-    src: "edx/bin/edxapp-update-assets.j2"
-    dest: "{{ COMMON_BIN_DIR }}/edxapp-update-assets"
-    owner: "{{ edxapp_user }}"
-    mode: 0755
   tags:
     - install
     - install:configuration
@@ -198,9 +156,10 @@
     - assets
 
 # Gather assets using paver if possible
-- name: "gather static assets with paver"
-  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets"
-  when: celery_worker is not defined and not devstack
+- name: "gather {{ item }} static assets with paver"
+  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets-{{ item }}"
+  when: celery_worker is not defined and not devstack and item != "lms-preview"
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - gather_static_assets
     - assets
