@@ -142,12 +142,6 @@
     - install
     - install:base
 
-- name: reload systemd configuration
-  command: systemctl daemon-reload
-  tags:
-    - install
-    - install:configuration
-
   # This command and the subsequent check in the when condition are related
   # to this bug: https://github.com/ansible/ansible-modules-core/issues/593
 - name: Are we in a Docker container
@@ -166,6 +160,13 @@
   tags:
     - install
     - install:base
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
 
 - name: Start hermes
   service:
