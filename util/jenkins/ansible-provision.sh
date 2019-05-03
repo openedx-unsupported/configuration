@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#!/bin/bash -x
 
 # Ansible provisioning wrapper script that
 # assumes the following parameters set
@@ -21,7 +22,6 @@ set -x
 
 # Seeing the environment is fine, spewing secrets to the log isn't ok
 env | grep -v AWS | grep -v ARN
-
 export PYTHONUNBUFFERED=1
 export BOTO_CONFIG=/var/lib/jenkins/${aws_account}.boto
 
@@ -85,6 +85,18 @@ if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONF
   exit 1
 fi
 
+AWS_DEFAULT_REGION=$region
+
+InstanceNameTag=$dns_name
+ForumConfigurationVersion="master"
+
+cd $WORKSPACE/configuration
+pip install -r requirements.txt
+
+declare -A sso=("saml-idp-mckinsey")
+declare -A langs
+langs["en"]="English"
+
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
@@ -127,14 +139,14 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-dba190a1"
+    ami="ami-0b7431fd58e78be07"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-aa2ea6d0"
+    ami="ami-04169656fea786776"
   fi
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="t2.large"
+  instance_type="r5.large"
 fi
 
 if [[ -z $instance_initiated_shutdown_behavior ]]; then
@@ -169,32 +181,55 @@ if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
 fi
 
+if [[ -z $set_whitelabel ]]; then
+  set_whitelabel="true"
+fi
+
+if [[ -z $journals ]]; then
+  journals="false"
+fi
+
+if [[ -z $journals_version ]]; then
+  journals_version="master"
+fi
+
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
-
 deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
-cd playbooks/edx-east
+cd playbooks
 
 cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
+forum_ruby_version: '2.3.7'
+forum_source_repo: 'https://github.com/edx-solutions/cs_comments_service.git'
+ansible_distribution: 'Ubuntu'
+ansible_distribution_release: 'xenial'
 notifier_version: $notifier_version
-xqueue_version: $xqueue_version
+XQUEUE_VERSION: $xqueue_version
 xserver_version: $xserver_version
 certs_version: $certs_version
 configuration_version: $configuration_version
 demo_version: $demo_version
-
+THEMES_VERSION: $themes_version
+journals_version: $journals_version
+edxapp_user_shell: '/bin/bash'
+edxapp_user_createhome: 'yes'
+mongo_enable_journal: false
+testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
-
+migrate_db: "no"
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
-EDXAPP_LMS_NGINX_PORT: 80
-EDXAPP_CMS_NGINX_PORT: 80
+EDXAPP_LMS_NGINX_PORT: 18000
+EDXAPP_LMS_SSL_NGINX_PORT: 443
+EDXAPP_CMS_NGINX_PORT: 18000
+EDXAPP_CMS_SSL_NGINX_PORT: 443
 
 ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
@@ -204,6 +239,16 @@ CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
 
+ANALYTICS_API_NGINX_PORT: 80
+ANALYTICS_API_SSL_NGINX_PORT: 443
+ANALYTICS_API_VERSION: $analytics_api_version
+
+JOURNALS_NGINX_PORT: 80
+JOURNALS_SSL_NGINX_PORT: 443
+JOURNALS_VERSION: $journals_version
+JOURNALS_ENABLED: $journals
+JOURNALS_SANDBOX_BUILD: True
+
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
@@ -211,19 +256,240 @@ DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
-NGINX_REDIRECT_TO_HTTPS: True
+NGINX_REDIRECT_TO_HTTPS: true
 EDX_ANSIBLE_DUMP_VARS: true
-migrate_db: "yes"
-rabbitmq_ip: "127.0.0.1"
-rabbitmq_refresh: True
+dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 
+NGINX_ENABLE_SSL: true
+EDXAPP_USE_GIT_IDENTITY: true
+
+# MckA Theme
+EDXAPP_ENABLE_COMPREHENSIVE_THEMING: true
+EDXAPP_COMPREHENSIVE_THEME_DIRS:
+  - "/edx/app/edxapp/themes"
+EDXAPP_DEFAULT_SITE_THEME: 'mcka-theme'
+edxapp_theme_name: 'mcka-theme'
+edxapp_theme_source_repo: 'git@github.com:mckinseyacademy/mcka-theme.git'
+edxapp_theme_version: 'master'
+
+COMMON_EDXAPP_SETTINGS: 'aws'
+EDXAPP_SETTINGS: 'aws'
+
+MCKA_APROS_AWS_STORAGE_BUCKET_NAME: 'qa-group-work'
+MCKA_APROS_SSO_AUTOPROVISION_PROVIDERS: $sso
+MCKA_APROS_SUPPORTED_LANGUAGES:
+    en: English
+HEAP_APP_ID: 123123432
+MCKA_APROS_MILESTONES_ENABLED: false
+BASE_DOMAIN: $deploy_host
+EDXAPP_BASE: $deploy_host
+EDXAPP_LMS_SUBDOMAIN: "apros"
+COMMON_MYSQL_MIGRATE_PASS: "password"
+EDXAPP_CORS_ORIGIN_WHITELIST:
+  - "{{ EDXAPP_LMS_BASE }}"
+EDXAPP_SESSION_COOKIE_DOMAIN: ".${dns_zone}"
+MCKA_APROS_SESSION_COOKIE_DOMAIN: ".${dns_zone}"
+LMS_ELB: "courses.{{BASE_DOMAIN}}"
+CMS_ELB: "studio.{{BASE_DOMAIN}}"
+XQUEUE_ELB: "xqueue.{{BASE_DOMAIN}}"
+XSERVER_ELB: "xserver.{{BASE_DOMAIN}}"
+RABBIT_ELB: "rabbit.{{BASE_DOMAIN}}"
+FORUM_ELB: "forum.{{BASE_DOMAIN}}"
+APROS_ELB: "{{BASE_DOMAIN}}"
+CMS_HOSTNAME: "studio-{{BASE_DOMAIN}}"
+APROS_WORKER_LMS_BASE: "https://{{ LMS_ELB }}/"
+APROS_WORKER_CMS_BASE: "https://{{ CMS_ELB }}/"
+MCKA_APROS_USE_GIT_IDENTITY: true
+MCKA_APROS_AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+MCKA_APROS_AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+MCKA_APROS_DJANGO_SECRET_KEY: "DUMMY KEY"
+MCKA_APROS_MYSQL_DB_NAME: "mcka_apros"
+MCKA_APROS_MYSQL_USER: "root"
+MCKA_APROS_MYSQL_PASSWORD: ""
+EDXAPP_MYSQL_DB_NAME: "edxapp"
+EDXAPP_MYSQL_USER: "edxapp001"
+EDXAPP_MYSQL_PASSWORD: 'password'
+MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
+MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
+MCKINSEY_APROS_MYSQL_DB_NAME: "mcka_apros"
+MCKINSEY_APROS_MYSQL_HOST: "localhost"
+MCKINSEY_APROS_MYSQL_PASSWORD: ""
+MCKINSEY_APROS_MYSQL_USER: "root"
+db_root_user: "root"
+COMMON_ENABLE_SPLUNKFORWARDER: False
+DBPassword: ""
+MCKA_APROS_WORKERS: 5
+WORKER_DEFAULT_CONCURRENCY: 1
+WORKER_HIGH_CONCURRENCY: 5
+CREATE_SERVICE_WORKER_USERS: false
+EDXAPP_PYTHON_SANDBOX: true
+EDXAPP_CELERY_BROKER_HOSTNAME: 'localhost'
+EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
+EDXAPP_CELERY_USER: ''
+EDXAPP_CELERY_BROKER_VHOST: 0
+NO_PREREQ_INSTALL: 0
+EDXAPP_NO_PREREQ_INSTALL: 0
+#EDXAPP_MONGO_CMS_READ_PREFERENCE: 'primary'
+#EDXAPP_MONGO_LMS_READ_PREFERENCE: ''
+#EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: 'secondaryPreferred'
+EDX_SOLUTIONS_API: true
+MARK_PROGRESS_ON_GRADING_EVENT: true
+SIGNAL_ON_SCORE_CHANGED: true
+ORGANIZATIONS_APP: true
+ENABLE_XBLOCK_VIEW_ENDPOINT: true
+ENABLE_NOTIFICATIONS: true
+EDXAPP_LMS_AUTH_EXTRA:
+    MODULESTORE:
+      default:
+        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+      direct:
+        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+EDXAPP_CMS_AUTH_EXTRA:
+    MODULESTORE:
+      default:
+        ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+      direct:
+        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+NGINX_SSL_CERTIFICATE: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.pem'
+NGINX_SSL_KEY: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.key'
+EDXAPP_CELERY_WORKERS:
+    - concurrency: 3
+      monitor: true
+      queue: default
+      service_variant: cms
+      max_tasks_per_child: 5000
+    - concurrency: 1
+      monitor: true
+      queue: high
+      service_variant: cms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: default
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: high
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 1
+      max_tasks_per_child: 1
+      monitor: false
+      queue: high_mem
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: completion_aggregator
+      service_variant: lms
+      max_tasks_per_child: 10000
+mcka_apros_version: "development"
+mcka_apros_gunicorn_port: 3000
+MCKA_APROS_GUNICORN_EXTRA_CONF: 'preload_app = True'
+MCKA_APROS_GUNICORN_MAX_REQUESTS: 1000
 nginx_default_sites:
   - lms
-
+mcka_apros_service_name: 'mcka-apros'
+MCKA_APROS_SERVICE_USER_NAME: 'mcka_admin_user'
+MCKA_APROS_URL_ROOT: 'https://apros-${deploy_host}'
+MCKA_APROS_OAUTH2_CLIENT_ID: 'umJTteyU8k9no3FykQsabwRg6w6XO5hc9phlJvFg'
+MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwGbgTSoax6ZwFssk20us5ADLJ5A1mnaQi7Ih6EwZGQVss3ydiF45BZ3uZrqIzz0dgh3JFih1Z1bDp25CyLbw'
+APROS_OAUTH2_OPENEDX_CLIENT_ID: "{{ MCKA_APROS_OAUTH2_CLIENT_ID }}"
+APROS_OAUTH2_OPENEDX_CLIENT_SECRET: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET }}"
+MCKA_APROS_BASIC_AUTH: false
+oauth_client_setup_oauth2_clients:
+    - {
+        name: "{{ mcka_apros_service_name | default('None') }}",
+        url_root: "{{ MCKA_APROS_URL_ROOT | default('None') }}",
+        id: "{{ MCKA_APROS_BACKEND_SERVICE_EDX_OAUTH2_KEY | default('None') }}",
+        secret: "{{ MCKA_APROS_BACKEND_SERVICE_EDX_OAUTH2_SECRET | default('None') }}",
+        sso_id: "{{ MCKA_APROS_SOCIAL_AUTH_EDX_OAUTH2_KEY | default('None') }}",
+        sso_secret: "{{ MCKA_APROS_SOCIAL_AUTH_EDX_OAUTH2_SECRET | default('None') }}",
+        backend_service_id: "{{ MCKA_APROS_OAUTH2_CLIENT_ID | default('None') }}",
+        backend_service_secret: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET | default('None') }}",
+        logout_uri: "{{ MCKA_APROS_LOGOUT_URL | default('None') }}",
+        username: "{{ MCKA_APROS_SERVICE_USER_NAME | default('None') }}",
+      }
 # User provided extra vars
+EDXAPP_EDX_API_KEY: 'edx_api_key'
+MCKA_APROS_API_KEY: 'edx_api_key'
+COMMON_ENABLE_FORUM: true
 $extra_vars
 EOF
 
@@ -263,7 +529,7 @@ if [[ $edx_internal == "true" ]]; then
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio-${deploy_host}
+EDXAPP_CMS_BASE: "{{ CMS_ELB }}"
 EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
@@ -273,8 +539,8 @@ COMMON_USER_INFO:
     github: true
     type: admin
 USER_CMD_PROMPT: '[$name_tag] '
-COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
-COMMON_ENABLE_DATADOG: $enable_datadog
+COMMON_ENABLE_NEWRELIC_APP: false
+COMMON_ENABLE_DATADOG: false
 COMMON_OAUTH_BASE_URL: "https://${deploy_host}"
 FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 ENABLE_PERFORMANCE_COURSE: $performance_course
@@ -285,11 +551,14 @@ EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
+XQUEUE_CONSUMER_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue_consumer
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
+EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
+EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
+ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
 ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
@@ -297,6 +566,19 @@ ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
+
+JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
+JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
+JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
+JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
+JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
+JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
+JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
+JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
+journals_create_demo_data: true
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
@@ -311,6 +593,10 @@ CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
 VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
 VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+
+VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
+VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
+VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 
 EOF
 fi
@@ -347,63 +633,56 @@ EOF
     fi
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
+    cd $WORKSPACE/configuration/playbooks/edx-east
     run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
-veda_web_frontend="true"
-veda_pipeline_worker="false"
-veda_encode_worker="false"
-declare -A deploy
-roles="edxapp forum ecommerce credentials discovery veda_web_frontend veda_pipeline_worker veda_encode_worker notifier xqueue xserver certs demo testcourses"
+veda_web_frontend=${video_pipeline:-false}
+veda_pipeline_worker=${video_pipeline:-false}
+veda_encode_worker=${video_encode_worker:-false}
+video_pipeline_integration=${video_pipeline:-false}
 
-for role in $roles; do
-    deploy[$role]=${!role}
-done
-
-# If reconfigure was selected or if starting from an ubuntu 16.04 AMI
-# run non-deploy tasks for all roles
-if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
-
-if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
-    # Run deploy tasks for the roles selected
-    for i in $roles; do
-        if [[ ${deploy[$i]} == "true" ]]; then
-            cat $extra_vars_file
-            run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            if [[ ${i} == "edxapp" ]]; then
-                run_ansible worker.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-            fi
-        fi
-    done
-fi
-
-# deploy the edx_ansible role
+# deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
+  echo "Exiting RET 2"
   exit $ret
 fi
 
+#run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/create_db_and_users.yml $extra_var_arg  --user ubuntu
+
+cd $WORKSPACE/ansible-private
+
+run_ansible -i "${deploy_host}," mckinseysandbox.yml $extra_var_arg --user ubuntu
+run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
+
+cd $WORKSPACE/configuration/playbooks/edx-east
+
+extra_var_arg+=' -e migrate_db="yes"'
+run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
+
+PATTERN='all'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py load_seed_data'
+
+
+
 if [[ $run_oauth == "true" ]]; then
-    # Setup the OAuth2 clients
+#     Setup the OAuth2 clients
     run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
-
-# set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
