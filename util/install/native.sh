@@ -22,12 +22,48 @@ if [[ `lsb_release -rs` != "16.04" ]]; then
     exit
 fi
 
+# Config.yml is required, must define LMS and CMS names, and the names
+# must not infringe trademarks.
+
 if [[ ! -f config.yml ]]; then
     echo 'You must create a config.yml file specifying the hostnames (and if'
     echo 'needed, ports) of your LMS and Studio hosts.'
     echo 'For example:'
     echo '    EDXAPP_LMS_BASE: "11.22.33.44"'
     echo '    EDXAPP_CMS_BASE: "11.22.33.44:18010"'
+    exit
+fi
+
+grep -Fq EDXAPP_LMS_BASE config.yml
+GREP_LMS=$?
+
+grep -Fq EDXAPP_CMS_BASE config.yml
+GREP_CMS=$?
+
+if [[ $GREP_LMS == 1 ]] || [[ $GREP_CMS == 1 ]]; then
+    echo 'Your config.yml file must specify the hostnames (and if'
+    echo 'needed, ports) of your LMS and Studio hosts.'
+    echo 'For example:'
+    echo '    EDXAPP_LMS_BASE: "11.22.33.44"'
+    echo '    EDXAPP_CMS_BASE: "11.22.33.44:18010"'
+    exit
+fi
+
+grep -Fq edx. config.yml
+GREP_BAD_DOMAIN=$?
+
+if [[ $GREP_BAD_DOMAIN == 0 ]]; then
+    echo '*** NOTE: Open edX and edX are registered trademarks.'
+    echo 'You may not use "openedx." or "edx." as subdomains when naming your site.'
+    echo 'For more details, see the edX Trademark Policy: https://edx.org/trademarks'
+    echo ''
+    echo 'Here are some examples of unacceptable domain names:'
+    echo '    openedx.yourdomain.org'
+    echo '    edx.yourdomain.org'
+    echo '    openedxyourdomain.org'
+    echo '    yourdomain-edx.com'
+    echo ''
+    echo 'Please choose different domain names.'
     exit
 fi
 
