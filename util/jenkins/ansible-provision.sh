@@ -319,7 +319,7 @@ MCKINSEY_APROS_MYSQL_USER: "apros"
 db_root_user: "root"
 DBPassword: ""
 CELERY_HEARTBEAT_ENABLED: false
-CREATE_SERVICE_WORKER_USERS: false
+CREATE_SERVICE_WORKER_USERS: true
 EDXAPP_REINDEX_ALL_COURSES: false
 
 mcka_apros_version: "development"
