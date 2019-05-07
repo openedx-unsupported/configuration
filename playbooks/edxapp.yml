@@ -33,9 +33,15 @@
    - role: datadog-uninstall
      when: not COMMON_ENABLE_DATADOG
    - role: hermes
-     hermes_target_service: 'studio'
-     when: "EDXAPP_HERMES_ENABLED and 'cms' in service_variants_enabled"
-   - role: hermes
-     hermes_target_service: 'lms'
-     when: "EDXAPP_HERMES_ENABLED and 'lms' in service_variants_enabled"
-
+     when: "EDXAPP_HERMES_ENABLED"
+     hermes_allowed_sudo_commands:
+       - "/bin/cp {{ hermes_download_dir }}/lms.yml {{ COMMON_CFG_DIR }}/lms.yml"
+       - "/bin/cp {{ hermes_download_dir }}/lms.yml {{ COMMON_CFG_DIR }}/cms.yml"
+       - "/edx/bin/supervisorctl restart"
+     hermes_service_config:
+       - url: '{{ HERMES_REMOTE_FILE_LOCATION }}/{{ COMMON_ENVIRONMENT }}/lms.yml'
+         filename: '{{ hermes_download_dir }}/lms.yml'
+         command:  "sudo /bin/cp {{ hermes_download_dir }}/lms.yml {{ COMMON_CFG_DIR }}/lms.yml && /edx/bin/supervisorctl restart"
+       - url: '{{ HERMES_REMOTE_FILE_LOCATION }}/{{ COMMON_ENVIRONMENT }}/cms.yml'
+         filename: '{{ hermes_download_dir }}/cms.yml'
+         command:  "sudo /bin/cp {{ hermes_download_dir }}/cms.yml {{ COMMON_CFG_DIR }}/cms.yml && /edx/bin/supervisorctl restart"
