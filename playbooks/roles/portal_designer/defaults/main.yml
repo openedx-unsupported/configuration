@@ -1,0 +1,122 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role portal_designer
+#
+
+
+#
+# vars are namespace with the module name.
+#
+portal_designer_service_name: 'portal_designer'
+
+portal_designer_environment:
+  PORTAL_DESIGNER_CFG: '{{ COMMON_CFG_DIR }}/{{ portal_designer_service_name }}.yml'
+
+portal_designer_gunicorn_port: 8808
+
+portal_designer_debian_pkgs: []
+
+PORTAL_DESIGNER_NGINX_PORT: '1{{ portal_designer_gunicorn_port }}'
+PORTAL_DESIGNER_SSL_NGINX_PORT: '4{{ portal_designer_gunicorn_port }}'
+
+PORTAL_DESIGNER_DEFAULT_DB_NAME: 'portal_designer'
+PORTAL_DESIGNER_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+PORTAL_DESIGNER_MYSQL_USER: 'portal_designer001'
+PORTAL_DESIGNER_MYSQL_PASSWORD: 'password'
+
+PORTAL_DESIGNER_MEMCACHE: [ 'memcache' ]
+
+PORTAL_DESIGNER_DJANGO_SETTINGS_MODULE: 'portal_designer.settings.production'
+PORTAL_DESIGNER_DOMAIN: 'localhost'
+PORTAL_DESIGNER_URL_ROOT: 'http://{{ PORTAL_DESIGNER_DOMAIN }}:{{ PORTAL_DESIGNER_NGINX_PORT }}'
+PORTAL_DESIGNER_LOGOUT_URL: '{{ PORTAL_DESIGNER_URL_ROOT }}/logout/'
+
+PORTAL_DESIGNER_LANGUAGE_CODE: 'en'
+PORTAL_DESIGNER_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+PORTAL_DESIGNER_SERVICE_USER: 'portal_designer_service_user'
+
+PORTAL_DESIGNER_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ portal_designer_service_name }}'
+PORTAL_DESIGNER_MEDIA_ROOT: '{{ PORTAL_DESIGNER_DATA_DIR }}/media'
+PORTAL_DESIGNER_MEDIA_URL: '/media/'
+
+PORTAL_DESIGNER_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ PORTAL_DESIGNER_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ PORTAL_DESIGNER_MEDIA_URL }}'
+
+# TODO: Let edx_django_service manage PORTAL_DESIGNER_STATIC_ROOT in phase 2.
+PORTAL_DESIGNER_STATIC_ROOT: '{{ PORTAL_DESIGNER_DATA_DIR }}/staticfiles'
+PORTAL_DESIGNER_STATIC_URL: '/static/'
+
+PORTAL_DESIGNER_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+PORTAL_DESIGNER_CORS_ORIGIN_ALLOW_ALL: false
+PORTAL_DESIGNER_CORS_ORIGIN_WHITELIST_DEFAULT:
+ - '{{ PORTAL_DESIGNER_DOMAIN }}'
+
+PORTAL_DESIGNER_CORS_ORIGIN_WHITELIST_EXTRA: []
+PORTAL_DESIGNER_CORS_ORIGIN_WHITELIST: '{{ PORTAL_DESIGNER_CORS_ORIGIN_WHITELIST_DEFAULT + PORTAL_DESIGNER_CORS_ORIGIN_WHITELIST_EXTRA }}'
+
+PORTAL_DESIGNER_VERSION: 'master'
+
+PORTAL_DESIGNER_GUNICORN_EXTRA: ''
+
+PORTAL_DESIGNER_EXTRA_APPS: []
+
+PORTAL_DESIGNER_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+PORTAL_DESIGNER_CERTIFICATE_LANGUAGES:
+  'en': 'English'
+  'es_419': 'Spanish'
+
+portal_designer_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ PORTAL_DESIGNER_CERTIFICATE_LANGUAGES }}'
+  PORTAL_DESIGNER_SERVICE_USER: '{{ PORTAL_DESIGNER_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ PORTAL_DESIGNER_LANGUAGE_COOKIE_NAME }}'
+  CSRF_COOKIE_SECURE: "{{ PORTAL_DESIGNER_CSRF_COOKIE_SECURE }}"
+
+# See edx_django_service_automated_users for an example of what this should be
+PORTAL_DESIGNER_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+PORTAL_DESIGNER_LMS_URL_ROOT: !!null
+PORTAL_DESIGNER_DISCOVERY_API_URL:  !!null
+
+PORTAL_DESIGNER_CSRF_COOKIE_SECURE: false
+
+PORTAL_DESIGNER_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+portal_designer_post_migrate_commands: []
+
+PORTAL_DESIGNER_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'portal_designer-sso-key'
+PORTAL_DESIGNER_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'portal_designer-sso-secret'
+PORTAL_DESIGNER_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'portal_designer-backend-service-key'
+PORTAL_DESIGNER_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'portal_designer-backend-service-secret'
+PORTAL_DESIGNER_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+PORTAL_DESIGNER_GIT_IDENTITY: !!null
+
+portal_designer_service_name: "portal_designer"
+portal_designer_home: "{{ COMMON_APP_DIR }}/{{ portal_designer_service_name }}"
+portal_designer_code_dir: "{{ portal_designer_home }}/{{ portal_designer_service_name }}"
+
+PORTAL_DESIGNER_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: 'portal-designer.git'
+    VERSION: '{{ PORTAL_DESIGNER_VERSION }}'
+    DESTINATION: "{{ portal_designer_code_dir }}"
+    SSH_KEY: '{{ PORTAL_DESIGNER_GIT_IDENTITY }}'
+
+PORTAL_DESIGNER_SECRET_KEY: 'SET-ME-PLEASE'

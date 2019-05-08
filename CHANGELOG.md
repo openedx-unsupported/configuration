@@ -1,3 +1,6 @@
+- Role: portal_designer
+  - Create role
+
 - Role: edxapp
   - Removed the OfficeMix XBlock (the service that it uses has been dead for months).
 
