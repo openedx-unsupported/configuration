@@ -322,7 +322,8 @@ DBPassword: ""
 #CELERY_HEARTBEAT_ENABLED: false
 #CREATE_SERVICE_WORKER_USERS: true
 #EDXAPP_REINDEX_ALL_COURSES: false
-SIMPLETHEME_ENABLE_DEPLOY: false
+#SIMPLETHEME_ENABLE_DEPLOY: false
+celery_worker: true
 
 mcka_apros_version: "development"
 
