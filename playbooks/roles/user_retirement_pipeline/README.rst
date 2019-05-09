@@ -80,7 +80,7 @@ You can also test this role on your Docker devstack, like this:
 ```
 ....
 "RETIRED_USER_SALTS": ["oWiJVxbtp86kEV4jAHcZXSoSucSSF6GE6qjFA8rZp8yBPMSwKM",],
-"RETIREMENT_SERVICE_WORKER_USERNAME": "retirement_service_worker",
+"EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME": "retirement_service_worker",
 "RETIREMENT_STATES": [
     "PENDING",
     "RETIRING_ENROLLMENTS",
