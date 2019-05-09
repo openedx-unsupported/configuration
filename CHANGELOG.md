@@ -1,4 +1,4 @@
-- Role: portal_designer
+- Role: designer
   - Create role
 
 - Role: edxapp
