@@ -193,6 +193,8 @@ if __name__ == '__main__':
     #get the hostname of the sandbox
     hostname = socket.gethostname()
 
+    ami_id = get_instance_metadata()['ami-id']
+
     try:
         #get the list of the volumes, that are attached to the instance
         volumes = ec2.get_all_volumes(filters={'attachment.instance-id': instance_id})
@@ -203,6 +205,7 @@ if __name__ == '__main__':
                              "deployment": deployment,
                              "cluster": play,
                              "instance-id": instance_id,
+                             "ami-id": ami_id,
                              "created": volume.create_time })
     except Exception as e:
         msg = "Failed to tag volumes associated with {}: {}".format(instance_id, str(e))
