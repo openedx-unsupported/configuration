@@ -1,0 +1,40 @@
+---
+
+# Simplified playbook for the OpenCraft Instance Manager integration tests.
+
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    EDXAPP_LMS_NGINX_PORT: '80'
+    edx_platform_version: 'master'
+    # Set to false if deployed behind another proxy/load balancer.
+    NGINX_SET_X_FORWARDED_HEADERS: True
+    # These should stay false for the public AMI
+    COMMON_ENABLE_DATADOG: False
+    COMMON_ENABLE_SPLUNKFORWARDER: False
+  roles:
+    - role: swapfile
+      SWAPFILE_SIZE: 4GB
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      nginx_default_sites:
+      - lms
+    - role: edxlocal
+      when: EDXAPP_MYSQL_HOST == 'localhost'
+    - role: memcache
+      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
+    - role: mongo
+      when: "'localhost' in EDXAPP_MONGO_HOSTS"
+    - edxapp
