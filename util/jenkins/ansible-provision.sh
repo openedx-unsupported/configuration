@@ -325,7 +325,7 @@ DBPassword: ""
 #EDXAPP_REINDEX_ALL_COURSES: false
 #SIMPLETHEME_ENABLE_DEPLOY: false
 
-celery_worker: true
+#celery_worker: true
 
 mcka_apros_version: "development"
 
