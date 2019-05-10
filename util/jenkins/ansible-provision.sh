@@ -293,8 +293,9 @@ MCKA_APROS_API_KEY: "edx-api-key"
 BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
 EDXAPP_LMS_SUBDOMAIN: "apros"
-EDXAPP_CORS_ORIGIN_WHITELIST: {{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}
 EDXAPP_LMS_BASE: "{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
+EDXAPP_CORS_ORIGIN_WHITELIST:
+  - "{{ EDXAPP_LMS_BASE }}"
 EDXAPP_SESSION_COOKIE_DOMAIN: ".{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
 EDXAPP_PREVIEW_LMS_BASE: "preview.{{EDXAPP_LMS_BASE}}"
 EDXAPP_SITE_NAME: "{{EDXAPP_LMS_BASE}}"
@@ -371,8 +372,8 @@ if [[ $edx_internal == "true" ]]; then
     # xserver is installed
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
-EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio-${deploy_host}
+#EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_CMS_BASE: "{{ CMS_ELB }}"
 #EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
