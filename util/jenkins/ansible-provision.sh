@@ -366,7 +366,7 @@ EDXAPP_CELERY_WORKERS:
       service_variant: lms
       max_tasks_per_child: 10000
 mcka_apros_version: "development"
-
+mcka_apros_gunicorn_port: 3000
 nginx_default_sites:
   - lms
 
