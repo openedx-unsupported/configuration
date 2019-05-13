@@ -321,13 +321,50 @@ MCKINSEY_APROS_MYSQL_PASSWORD: "apros"
 MCKINSEY_APROS_MYSQL_USER: "apros"
 db_root_user: "root"
 DBPassword: ""
+MCKA_APROS_WORKERS: 6
+WORKER_DEFAULT_CONCURRENCY: 1
+WORKER_HIGH_CONCURRENCY: 5
 #CELERY_HEARTBEAT_ENABLED: false
 #CREATE_SERVICE_WORKER_USERS: true
 #EDXAPP_REINDEX_ALL_COURSES: false
 #SIMPLETHEME_ENABLE_DEPLOY: false
-
+EDXAPP_CELERY_BROKER_HOSTNAME: 'localhost'
+EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
+EDXAPP_CELERY_USER: ''
+EDXAPP_CELERY_BROKER_VHOST: 0
 celery_worker: false
-
+EDXAPP_CELERY_WORKERS:
+    - concurrency: 3
+      monitor: true
+      queue: default
+      service_variant: cms
+      max_tasks_per_child: 5000
+    - concurrency: 1
+      monitor: true
+      queue: high
+      service_variant: cms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: default
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: high
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 1
+      max_tasks_per_child: 1
+      monitor: false
+      queue: high_mem
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: completion_aggregator
+      service_variant: lms
+      max_tasks_per_child: 10000
 mcka_apros_version: "development"
 
 nginx_default_sites:
