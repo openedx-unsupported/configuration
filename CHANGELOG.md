@@ -1,3 +1,6 @@
+- Role: designer
+  - Create role
+
 - Role: edxapp
   - Added ENTERPRISE_MARKETING_FOOTER_QUERY_PARAMS to allow for edx specific query params to be added for business marketing footer.
 
