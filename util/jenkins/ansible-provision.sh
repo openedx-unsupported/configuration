@@ -367,6 +367,8 @@ EDXAPP_CELERY_WORKERS:
       max_tasks_per_child: 10000
 mcka_apros_version: "development"
 mcka_apros_gunicorn_port: 3000
+MCKA_APROS_GUNICORN_EXTRA_CONF: 'preload_app = True'
+MCKA_APROS_GUNICORN_MAX_REQUESTS: 1000
 nginx_default_sites:
   - lms
 
