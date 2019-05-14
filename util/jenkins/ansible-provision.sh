@@ -332,7 +332,7 @@ EDXAPP_CELERY_BROKER_HOSTNAME: 'localhost'
 EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
 EDXAPP_CELERY_USER: ''
 EDXAPP_CELERY_BROKER_VHOST: 0
-#celery_worker: false
+celery_worker: false
 EDXAPP_CELERY_WORKERS:
     - concurrency: 3
       monitor: true
