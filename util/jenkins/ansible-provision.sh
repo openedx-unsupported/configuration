@@ -90,6 +90,11 @@ fi
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
+cd $WORKSPACE
+chmod -R 0777 private_vars/
+rm -rf private_vars/
+git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
+chmod -R 0777 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
@@ -219,7 +224,12 @@ configuration_version: $configuration_version
 demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
-
+edxapp_user_shell: '/bin/bash'
+edxapp_user_createhome: 'yes'
+migrate_db: false
+mongo_enable_journal: false
+service_variants_enabled: []
+testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
@@ -267,6 +277,7 @@ COMMON_ENVIRONMENT: sandbox
 #_local_git_identity: $ssh_key
 #EDXAPP_USE_GIT_IDENTITY: true
 EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
+
 #EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
 COMMON_EDXAPP_SETTINGS: 'aws'
 EDXAPP_SETTINGS: 'aws'
@@ -281,8 +292,10 @@ MCKA_APROS_MILESTONES_ENABLED: false
 MCKA_APROS_API_KEY: "edx-api-key"
 BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
-EDXAPP_LMS_SUBDOMAIN: "lms"
+EDXAPP_LMS_SUBDOMAIN: "apros"
 EDXAPP_LMS_BASE: "{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
+EDXAPP_CORS_ORIGIN_WHITELIST:
+  - "{{ EDXAPP_LMS_BASE }}"
 EDXAPP_SESSION_COOKIE_DOMAIN: ".{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
 EDXAPP_PREVIEW_LMS_BASE: "preview.{{EDXAPP_LMS_BASE}}"
 EDXAPP_SITE_NAME: "{{EDXAPP_LMS_BASE}}"
@@ -308,9 +321,54 @@ MCKINSEY_APROS_MYSQL_PASSWORD: "apros"
 MCKINSEY_APROS_MYSQL_USER: "apros"
 db_root_user: "root"
 DBPassword: ""
-
+MCKA_APROS_WORKERS: 6
+WORKER_DEFAULT_CONCURRENCY: 1
+WORKER_HIGH_CONCURRENCY: 5
+#CELERY_HEARTBEAT_ENABLED: false
+#CREATE_SERVICE_WORKER_USERS: true
+#EDXAPP_REINDEX_ALL_COURSES: false
+#SIMPLETHEME_ENABLE_DEPLOY: false
+EDXAPP_CELERY_BROKER_HOSTNAME: 'localhost'
+EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
+EDXAPP_CELERY_USER: ''
+EDXAPP_CELERY_BROKER_VHOST: 0
+celery_worker: false
+EDXAPP_CELERY_WORKERS:
+    - concurrency: 3
+      monitor: true
+      queue: default
+      service_variant: cms
+      max_tasks_per_child: 5000
+    - concurrency: 1
+      monitor: true
+      queue: high
+      service_variant: cms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: default
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: high
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 1
+      max_tasks_per_child: 1
+      monitor: false
+      queue: high_mem
+      service_variant: lms
+      max_tasks_per_child: 5000
+    - concurrency: 2
+      monitor: true
+      queue: completion_aggregator
+      service_variant: lms
+      max_tasks_per_child: 10000
 mcka_apros_version: "development"
-
+mcka_apros_gunicorn_port: 3000
+MCKA_APROS_GUNICORN_EXTRA_CONF: 'preload_app = True'
+MCKA_APROS_GUNICORN_MAX_REQUESTS: 1000
 nginx_default_sites:
   - lms
 
@@ -353,9 +411,9 @@ if [[ $edx_internal == "true" ]]; then
     # xserver is installed
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
-EDXAPP_LMS_BASE: ${deploy_host}
-EDXAPP_CMS_BASE: studio-${deploy_host}
-EDXAPP_SITE_NAME: ${deploy_host}
+#EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_CMS_BASE: "{{ CMS_ELB }}"
+#EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_internal: True
@@ -488,7 +546,7 @@ video_pipeline_integration=${video_pipeline:-false}
 # run non-deploy tasks for all plays
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
     cat $extra_vars_file
-    run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    #run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 #TODO: remove this
@@ -515,7 +573,7 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version="development" -e forum_version=${forum_version} -e migrate_db="no"'
+extra_var_arg+=' -e edx_platform_version="development" -e forum_version="master" -e migrate_db="no"'
 cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
@@ -527,9 +585,9 @@ run_ansible -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
 
 cd $WORKSPACE/configuration/playbooks/edx-east
 
-git checkout $ForumConfigurationVersion
+#git checkout $ForumConfigurationVersion
 
-run_ansible forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
