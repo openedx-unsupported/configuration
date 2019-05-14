@@ -517,6 +517,7 @@ EOF
     fi
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
+    cd $WORKSPACE/configuration/playbooks/edx-east
     run_ansible edx_provision.yml -i inventory.ini $extra_var_arg --user ubuntu
 
     if [[ $server_type == "full_edx_installation" ]]; then
