@@ -213,7 +213,7 @@ cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 forum_ruby_version: '2.3.7'
-mcka_apros_ruby_version: '2.3.7'
+mcka_apros_ruby_version: '2.4.1'
 forum_source_repo: 'https://github.com/edx-solutions/cs_comments_service.git'
 ansible_distribution: 'Ubuntu'
 ansible_distribution_release: 'xenial'
