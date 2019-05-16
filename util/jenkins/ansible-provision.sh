@@ -234,17 +234,6 @@ testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
-edx_platform_repo: "git@github.com:edx-solutions/edx-platform.git"
-edx_platform_version: "development"
-
-mcka_apros_source_repo: "git@github.com:mckinseyacademy/mcka_apros.git"
-mcka_apros_version: "development"
-
-
-forum_source_repo: "https://github.com/edx-solutions/cs_comments_service.git"
-forum_version: "master"
-
-
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
