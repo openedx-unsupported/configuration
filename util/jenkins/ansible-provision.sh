@@ -599,6 +599,7 @@ run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user u
 
 run_ansible -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
 
+extra_var_arg+=' -e migrate_db="yes"'
 
 cd $WORKSPACE/configuration/playbooks/edx-east
 
