@@ -90,6 +90,18 @@ fi
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
+cd $WORKSPACE/configuration
+pip install -r requirements.txt
+
+
+. util/jenkins/assume-role.sh
+
+set +x
+
+assume-role ${ROLE_ARN}
+
+set -x
+
 cd $WORKSPACE
 chmod -R 0777 private_vars/
 rm -rf private_vars/
