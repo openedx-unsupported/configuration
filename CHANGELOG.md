@@ -756,3 +756,15 @@
   - Added `REGISTRAR_CELERY_BROKER_HOSTNAME`.
   - Added `REGISTRAR_CELERY_BROKER_VHOST`.
   - Injected all above settings as environment variables for Registrar.
+
+- Role: registrar
+  - Added `registrar-workers.conf.j2`
+  - Add task to generate `registrar-workers.conf` from `registrar-workers.conf.j2`
+  - Added `REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING`
+  - Added `REGISTRAR_WORKER_DEFAULT_STOPWAITSECS`
+  - Added `REGISTRAR_CELERY_HEARTBEAT_ENABLED`
+  - Added `REGISTRAR_NEWRELIC_WORKERS_APPNAME`
+  - Added `REGISTRAR_CELERY_WORKERS`
+
+- Role: supervisor
+  - Add registrar to `pre_supervisor_checks.py`
