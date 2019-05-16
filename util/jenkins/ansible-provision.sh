@@ -90,6 +90,9 @@ fi
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="yonkers-ginkgo"
+cd $WORKSPACE/configuration
+pip install -r requirements.txt
+
 cd $WORKSPACE
 chmod -R 0777 private_vars/
 rm -rf private_vars/
