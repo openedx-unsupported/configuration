@@ -212,9 +212,7 @@ cd playbooks
 cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
-forum_ruby_version: '2.3.7'
-rbenv_bundler_version: '1.16.0'
-mcka_apros_ruby_version: '2.3.7'
+forum_ruby_version: '2.4.1'
 forum_source_repo: 'https://github.com/edx-solutions/cs_comments_service.git'
 ansible_distribution: 'Ubuntu'
 ansible_distribution_release: 'xenial'
@@ -597,7 +595,7 @@ cd $WORKSPACE/ansible-private
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-run_ansible -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
+ansible-playbook -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
 
 extra_var_arg+=' -e migrate_db="yes"'
 
@@ -605,7 +603,7 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 
 git checkout $ForumConfigurationVersion
 
-run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
+ansible-playbook -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
