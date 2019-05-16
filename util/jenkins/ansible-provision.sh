@@ -89,7 +89,7 @@ fi
 ############### MCKa ############
 AWS_DEFAULT_REGION=$region
 InstanceNameTag=$dns_name
-ForumConfigurationVersion="yonkers-ginkgo"
+ForumConfigurationVersion="master"
 cd $WORKSPACE
 chmod -R 0777 private_vars/
 rm -rf private_vars/
