@@ -576,8 +576,8 @@ if [[ $ret -ne 0 ]]; then
 fi
 
 extra_var_arg+=' -e edx_platform_version="development" -e forum_version="master" -e migrate_db="no"'
-mckinsey_vars_file="${WORKSPACE}/configuration/edx-east/mcka_vars/mckinsey.yml"
-qa_vars_file="${WORKSPACE}/configuration/edx-east/mcka_vars/qa-mckinsey.yml"
+mckinsey_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/mckinsey.yml"
+qa_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/qa-mckinsey.yml"
 extra_var_arg+=" -e@${mckinsey_vars_file} -e@${qa_vars_file}"
 cd $WORKSPACE/ansible-private
 
