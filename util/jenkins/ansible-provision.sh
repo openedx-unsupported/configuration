@@ -582,7 +582,7 @@ cd $WORKSPACE/ansible-private
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-ansible-playbook -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
+run_ansible -i "${deploy_host}," mckinseyapros.yml $extra_var_arg --user ubuntu
 
 extra_var_arg+=' -e migrate_db="yes"'
 
@@ -590,7 +590,7 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 
 git checkout $ForumConfigurationVersion
 
-ansible-playbook -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
+run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
