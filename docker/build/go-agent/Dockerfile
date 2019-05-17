@@ -1,6 +1,6 @@
 # To run, use the command docker build . -f docker/build/go-agent/Dockerfile --tag edx-ops/go-agent:latest
-# https://hub.docker.com/r/gocd/gocd-agent-ubuntu-14.04/
-FROM gocd/gocd-agent-ubuntu-14.04:v17.10.0
+# https://hub.docker.com/r/gocd/gocd-agent-ubuntu-16.04/
+FROM gocd/gocd-agent-ubuntu-16.04:v17.10.0
 
 LABEL version="0.02" \
       description="This custom go-agent docker file installs additional requirements for the edx pipeline"
@@ -42,9 +42,19 @@ RUN apt-get update && apt-get install -y -q \
 # Install dependencies needed for Ansible 2.x
 RUN apt-get update && apt-get install -y libffi-dev libssl-dev
 
+# Install sudo to execute commands with root privileges
+RUN apt-get install -y sudo
+
+# Install packages needed for Docker installation
+RUN apt-get update && apt-get install -y apt-transport-https gnupg-agent
+
+# Add Docker's GPG key and repository
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - && \
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable"
+
 # Install Docker - for Docker container building by a go-agent.
-COPY docker/build/go-agent/files/docker_install.sh /tmp/docker/
-RUN /bin/bash /tmp/docker/docker_install.sh
+RUN apt-get update && apt-get install -y docker-ce
 
 # Add the go user to the docker group to allow the go user to run docker commands.
 # See: https://docs.docker.com/engine/installation/linux/ubuntulinux/
