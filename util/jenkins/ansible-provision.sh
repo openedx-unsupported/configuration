@@ -588,7 +588,7 @@ extra_var_arg+=' -e migrate_db="yes"'
 
 cd $WORKSPACE/configuration/playbooks/edx-east
 
-git checkout $ForumConfigurationVersion
+#git checkout $ForumConfigurationVersion
 
 run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
 
