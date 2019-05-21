@@ -586,9 +586,7 @@ cd $WORKSPACE/ansible-private
 
 ansible-playbook -vvvv -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-ansible-playbook -vvvv -i mckinseyapros.yml "${deploy_host}," $extra_var_arg --user ubuntu
-
-
+ansible-playbook -vvvv -i "${deploy_host}," mckinseyapros.yml  $extra_var_arg --user ubuntu
 
 
 extra_var_arg+=' -e migrate_db="yes"'
@@ -596,9 +594,9 @@ extra_var_arg+=' -e migrate_db="yes"'
 cd $WORKSPACE/configuration/playbooks/edx-east
 
 
-ansible-playbook -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
 #git checkout $ForumConfigurationVersion
 
+ansible-playbook -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
 ansible-playbook -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 PATTERN='all'
