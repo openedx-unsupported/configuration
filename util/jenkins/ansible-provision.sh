@@ -597,7 +597,7 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 #git checkout $ForumConfigurationVersion
 
 ansible-playbook -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
-ansible-playbook -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#ansible-playbook -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
