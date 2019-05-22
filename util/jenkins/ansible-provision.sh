@@ -101,13 +101,7 @@ private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
 pip install -r requirements.txt
-. util/jenkins/assume-role.sh
 
-set +x
-
-assume-role ${ROLE_ARN}
-
-set -x
 
 declare -A sso=("saml-idp-mckinsey")
 declare -A langs
