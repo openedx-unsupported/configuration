@@ -17,6 +17,10 @@
 #
 registrar_service_name: 'registrar'
 
+registrar_user: "{{ registrar_service_name }}"
+registrar_app_dir: "{{ COMMON_APP_DIR }}/{{ registrar_service_name }}"
+registrar_code_dir: "{{ registrar_app_dir }}/{{ registrar_service_name }}"
+
 REGISTRAR_CELERY_BROKER_TRANSPORT: ''
 REGISTRAR_CELERY_BROKER_USER: ''
 REGISTRAR_CELERY_BROKER_PASSWORD: ''
@@ -52,6 +56,7 @@ REGISTRAR_URL_ROOT: 'http://{{ REGISTRAR_DOMAIN }}:{{ REGISTRAR_NGINX_PORT }}'
 REGISTRAR_API_ROOT: '{{ REGISTRAR_URL_ROOT }}/api'
 REGISTRAR_LOGOUT_URL: '{{ REGISTRAR_URL_ROOT }}/logout/'
 
+REGISTRAR_LANG: 'en_US.UTF-8'
 REGISTRAR_LANGUAGE_CODE: 'en'
 REGISTRAR_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
 
@@ -124,5 +129,18 @@ REGISTRAR_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
 
 # Remote config
 REGISTRAR_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+# Worker settings
+REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+REGISTRAR_WORKER_DEFAULT_STOPWAITSECS: 432000
+REGISTRAR_CELERY_HEARTBEAT_ENABLED: true
+REGISTRAR_NEWRELIC_WORKERS_APPNAME: registrar-workers
+worker_django_settings_module: "{{ REGISTRAR_DJANGO_SETTINGS_MODULE }}"
+REGISTRAR_CELERY_WORKERS:
+  - queue: registrar
+    service_variant: registrar
+    concurrency: 1
+    monitor: True
+registrar_workers: "{{ REGISTRAR_CELERY_WORKERS }}"
 
 registrar_post_migrate_commands: []
