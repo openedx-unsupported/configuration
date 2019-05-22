@@ -1,3 +1,7 @@
+# From https://github.com/ansible/ansible/issues/31527#issuecomment-335495855
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
+
 import collections
 from datetime import datetime, timedelta
 import json
