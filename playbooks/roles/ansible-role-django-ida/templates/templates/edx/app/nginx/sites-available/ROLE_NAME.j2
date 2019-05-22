@@ -3,25 +3,25 @@
 #
 
 
-{{ '{%' }} if nginx_default_sites is defined and "{{ role_name }}" in nginx_default_sites {{ '%}' }}
+{{ '{%' }} if nginx_default_sites is defined and "{{ my_role_name }}" in nginx_default_sites {{ '%}' }}
   {{ '{%' }} set default_site = "default_server" {{ '%}' }}
 {{ '{%' }} else {{ '%}' }}
   {{ '{%' }} set default_site = "" {{ '%}' }}
 {{ '{%' }} endif {{ '%}' }}
 
-upstream {{ role_name }}_app_server {
-{{ '{%' }} for host in nginx_{{ role_name }}_gunicorn_hosts {{ '%}' }}
-    server {{ '{{' }} host }}:{{ '{{' }} {{ role_name }}_gunicorn_port }} fail_timeout=0;
+upstream {{ my_role_name }}_app_server {
+{{ '{%' }} for host in nginx_{{ my_role_name }}_gunicorn_hosts {{ '%}' }}
+    server {{ '{{' }} host }}:{{ '{{' }} {{ my_role_name }}_gunicorn_port }} fail_timeout=0;
 {{ '{%' }} endfor {{ '%}' }}
 }
 
 server {
-  server_name {{ '{{' }} {{ role_name|upper }}_HOSTNAME }};
+  server_name {{ '{{' }} {{ my_role_name|upper }}_HOSTNAME }};
 
   {{ '{%' }} if NGINX_ENABLE_SSL {{ '%}' }}
 
-  listen {{ '{{' }} {{ role_name|upper }}_NGINX_PORT }} {{ '{{' }} default_site }};
-  listen {{ '{{' }} {{ role_name|upper }}_SSL_NGINX_PORT }} ssl;
+  listen {{ '{{' }} {{ my_role_name|upper }}_NGINX_PORT }} {{ '{{' }} default_site }};
+  listen {{ '{{' }} {{ my_role_name|upper }}_SSL_NGINX_PORT }} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ '{{' }} NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ '{{' }} NGINX_SSL_KEY|basename }};
@@ -29,11 +29,11 @@ server {
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 
   {{ '{%' }} else {{ '%}' }}
-  listen {{ '{{' }} {{ role_name|upper }}_NGINX_PORT }} {{ '{{' }} default_site }};
+  listen {{ '{{' }} {{ my_role_name|upper }}_NGINX_PORT }} {{ '{{' }} default_site }};
   {{ '{%' }} endif {{ '%}' }}
 
   location ~ ^/static/(?P<file>.*) {
-    root {{ '{{' }} COMMON_DATA_DIR }}/{{ '{{' }} {{ role_name }}_service_name }};
+    root {{ '{{' }} COMMON_DATA_DIR }}/{{ '{{' }} {{ my_role_name }}_service_name }};
     try_files /staticfiles/$file =404;
   }
 
@@ -61,7 +61,7 @@ server {
     proxy_set_header Host $http_host;
 
     proxy_redirect off;
-    proxy_pass http://{{ role_name }}_app_server;
+    proxy_pass http://{{ my_role_name }}_app_server;
   }
 
 # Prevent invalid display courseware in IE 10+ with high privacy settings

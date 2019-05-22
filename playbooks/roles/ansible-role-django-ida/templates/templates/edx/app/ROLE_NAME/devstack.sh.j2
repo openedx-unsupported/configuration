@@ -2,18 +2,18 @@
 
 # {{ '{{' }} ansible_managed }}
 
-source {{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_env
+source {{ '{{' }} {{ my_role_name }}_home }}/{{ my_role_name }}_env
 COMMAND=$1
 
 case $COMMAND in
     start)
-        {{ '{%' }} set {{ role_name }}_venv_bin = {{ role_name }}_home + "/venvs/" + {{ role_name }}_service_name + "/bin" %}
-        {{ '{%' }} set executable = {{ role_name }}_venv_bin + '/gunicorn' %}
+        {{ '{%' }} set {{ my_role_name }}_venv_bin = {{ my_role_name }}_home + "/venvs/" + {{ my_role_name }}_service_name + "/bin" %}
+        {{ '{%' }} set executable = {{ my_role_name }}_venv_bin + '/gunicorn' %}
 
         {{ '{{' }} supervisor_venv_bin }}/supervisord --configuration {{ '{%' }}supervisor_cfg }}
 
         cd /edx/app/edx_ansible/edx_ansible/docker/plays
-        /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook {{ role_name }}.yml -c local -i '127.0.0.1,' \
+        /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook {{ my_role_name }}.yml -c local -i '127.0.0.1,' \
             -t 'install:app-requirements,assets:gather,devstack,migrate,manage:start' \
             --extra-vars="migrate_db=yes" \
             --extra-vars="@/ansible_overrides.yml"
@@ -21,11 +21,11 @@ case $COMMAND in
         # Docker requires an active foreground task. Tail the logs to appease Docker and
         # provide useful output for development.
         cd {{ '{{' }} supervisor_log_dir }}
-        tail -f {{ '{{' }} {{ role_name }}_service_name }}-stderr.log -f {{ '{{' }} {{ role_name }}_service_name }}-stdout.log
+        tail -f {{ '{{' }} {{ my_role_name }}_service_name }}-stderr.log -f {{ '{{' }} {{ my_role_name }}_service_name }}-stdout.log
         ;;
     open)
-        cd {{ '{{' }} {{ role_name }}_code_dir }}/
-        . {{ '{{' }} {{ role_name }}_venv_bin }}/activate
+        cd {{ '{{' }} {{ my_role_name }}_code_dir }}/
+        . {{ '{{' }} {{ my_role_name }}_venv_bin }}/activate
         /bin/bash
         ;;
 esac
