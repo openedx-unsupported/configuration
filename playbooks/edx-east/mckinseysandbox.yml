@@ -1,0 +1,50 @@
+###########
+#
+# Playbook to deploy the McKinsey Apros sandbox instances (QA/Integration)
+# Example: ``ansible-playbook mckinseysandbox.yml -i "qa-mckinsey-integration," -e @../mckinseyacademy/mckinsey-internal/ansible/vars/mckinsey.yml -e @../mckinseyacademy/mckinsey-internal/ansible/vars/sandbox-mckinsey.yml -e @../edx-ops/mckinsey-secure/ansible/vars/mckinsey.yml -e @../edx-ops/mckinsey-secure/ansible/vars/sandbox-mckinsey.yml``
+#
+# NOTE: This machine probably won't build fully the first time from scratch until you load Sanitized Mongo and RDS dumps from S3.
+#   These dumps currently live in s3://edx-mckinsey-stage-backup/ use mongorestore/mysql to import them once Mongo and RDS have been installed.
+#
+# TODO: Add Forum role after eucalyptus rebase
+
+
+
+- name: Deploy mckinsey sandbox
+  hosts: all
+  sudo: True
+  gather_facts: True
+  roles:
+    - role: aws
+    - role: user
+      user_info: "{{ COMMON_USER_INFO }}"
+    - role: nginx
+      nginx_sites:
+      - lms
+      - cms
+      nginx_default_sites:
+      - lms
+      nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
+      nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
+    - role: mysql
+    - role: memcache
+    - role: redis
+    - role: mongo
+    - role: 'edxapp'
+      celery_worker: True
+    - role: elasticsearch
+    - role: notifier
+      NOTIFIER_DIGEST_TASK_INTERVAL: "5"
+    - role: mckinsey_apros
+    - role: edxapp
+    - role: forum
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic
+      when: COMMON_ENABLE_NEWRELIC
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: threatstack
+      when: THREATSTACK_LICENSE_KEY is defined
