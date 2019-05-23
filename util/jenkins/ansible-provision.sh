@@ -606,22 +606,22 @@ ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apro
 
 
 
-if [[ $run_oauth == "true" ]]; then
+#if [[ $run_oauth == "true" ]]; then
     # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
+#    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#fi
 
 # set the hostname
-run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+#run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
-if [[ $set_whitelabel == "true" ]]; then
-    # Setup Whitelabel themes
-    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
+#if [[ $set_whitelabel == "true" ]]; then
+#    # Setup Whitelabel themes
+#    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#fi
 
-if [[ $enable_newrelic == "true" ]]; then
-    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
-fi
+#if [[ $enable_newrelic == "true" ]]; then
+#    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
+#fi
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
