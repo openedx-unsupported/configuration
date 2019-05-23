@@ -97,8 +97,6 @@ chmod -R 0777 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
-pip install -r requirements.txt
-
 
 declare -A sso=("saml-idp-mckinsey")
 declare -A langs
