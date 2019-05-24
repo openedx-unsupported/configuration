@@ -1,3 +1,6 @@
+- Role: xserver
+  - Remove xserver from sandbox builds.
+
 - Role: oauth_client_setup
   - Ensure that created DOT applications have corresponding ApplicationAccess records with user_id scope.
 
@@ -6,6 +9,9 @@
 
 - Open edX
   - Added `SANDBOX_ENABLE_NOTES` to enable/disable setting up the edx-notes-api IDA.
+
+- Role: registrar
+  - Add registrar to sandbox builds.
 
 - Role: registrar
   - Change default celery queue to `registrar.default`, explicitly set default exchange and routing key.

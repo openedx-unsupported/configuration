@@ -181,6 +181,14 @@ if [[ -z $journals_version ]]; then
   journals_version="master"
 fi
 
+if [[ -z $registrar ]]; then
+  registrar="false"
+fi
+
+if [[ -z $registrar_version ]]; then
+  registrar_version="master"
+fi
+
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
@@ -195,12 +203,12 @@ edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
 XQUEUE_VERSION: $xqueue_version
-xserver_version: $xserver_version
 certs_version: $certs_version
 configuration_version: $configuration_version
 demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
+registrar_version: $registrar_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -229,6 +237,12 @@ JOURNALS_VERSION: $journals_version
 JOURNALS_ENABLED: $journals
 JOURNALS_SANDBOX_BUILD: True
 
+REGISTRAR_NGINX_PORT: 80
+REGISTRAR_SSL_NGINX_PORT: 443
+REGISTRAR_VERSION: $registrar_version
+REGISTRAR_ENABLED: $registrar
+REGISTRAR_SANDBOX_BUILD: True
+
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
@@ -243,6 +257,7 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
+COMMON_LMS_BASE_URL: https://${deploy_host}
 
 nginx_default_sites:
   - lms
@@ -281,9 +296,6 @@ EOF_PROFILING
 fi
 
 if [[ $edx_internal == "true" ]]; then
-    # if this isn't a public server add the github
-    # user and set edx_internal to True so that
-    # xserver is installed
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
@@ -341,6 +353,12 @@ journals_create_demo_data: true
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+REGISTRAR_URL_ROOT: "https://registrar-${deploy_host}"
+REGISTRAR_API_ROOT: "https://registrar-${deploy_host}/api"
+REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
+REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
@@ -408,7 +426,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar"
 
 for play in $plays; do
     deploy[$play]=${!play}
