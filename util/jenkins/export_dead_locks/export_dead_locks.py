@@ -66,7 +66,6 @@ def rds_extractor(environment):
 
 
 def rds_controller(rds_list, username, password, hostname, splunkusername, splunkpassword, port, indexname):
-    service = splunk_client.connect(host=hostname, port=port, username=splunkusername, password=splunkpassword)
     for item in rds_list:
         rds_host_endpoint = item["Endpoint"]
         rds_port = item["Port"]
@@ -85,18 +84,20 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
             matches = re.finditer(regex, row[2])
             for matchNum, match in enumerate(matches, start=1):
                 global_str = match.group()
-        myindex = service.indexes[indexname]
-
-        # Open a socket
-        mysocket = myindex.attach(host=rds_host_endpoint, source="INNODB STATUS", sourcetype="RDS")
         expr = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}")
         global_str = re.sub(expr, '', global_str)
+        #to avoid empty dead locks
+        if len(global_str) > 0:
+            service = splunk_client.connect(host=hostname, port=port, username=splunkusername, password=splunkpassword)
+            myindex = service.indexes[indexname]
+            # Open a socket
+            mysocket = myindex.attach(host=rds_host_endpoint, source="INNODB STATUS", sourcetype="RDS")
 
-        # Send events to it
-        mysocket.send(global_str)
+            # Send events to it
+            mysocket.send(global_str)
 
-        # Close the socket
-        mysocket.close()
+            # Close the socket
+            mysocket.close()
 
 
 @click.command()
