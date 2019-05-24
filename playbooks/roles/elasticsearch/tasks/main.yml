@@ -29,7 +29,7 @@
 #    - elasticsearch
 #
 
-- name: Install Elasticsearch repo key 
+- name: Install Elasticsearch repo key
   apt_key:
     url: "{{ elasticsearch_apt_key_url }}"
     state: present
@@ -48,14 +48,19 @@
 - name: install elasticsearch
   apt:
     pkg: "{{ elasticsearch_package_name }}={{ ELASTICSEARCH_VERSION }}"
-    state: present 
+    state: present
     install_recommends: yes
-    force: yes 
+    force: yes
     update_cache: yes
   tags:
     - install
     - install:base
   register: elasticsearch_reinstall
+
+  # Prevent elasticsearch from being upgraded.
+- dpkg_selections:
+    name: elasticsearch
+    selection: hold
 
 - name: create directories
   file:
@@ -73,7 +78,7 @@
 
 - name: update elasticsearch defaults
   template:
-    src: etc/default/elasticsearch.j2 
+    src: etc/default/elasticsearch.j2
     dest: /etc/default/elasticsearch
   tags:
     - install
@@ -81,7 +86,7 @@
 
 - name: drop the elasticsearch config
   template:
-    src: edx/etc/elasticsearch/elasticsearch.yml.j2 
+    src: edx/etc/elasticsearch/elasticsearch.yml.j2
     dest: "{{ elasticsearch_cfg_dir }}/elasticsearch.yml"
     mode: 0744
   tags:
@@ -90,7 +95,7 @@
 
 - name: drop the elasticsearch logging config
   template:
-    src: edx/etc/elasticsearch/logging.yml.j2 
+    src: edx/etc/elasticsearch/logging.yml.j2
     dest: "{{ elasticsearch_cfg_dir }}/logging.yml"
     mode: 0744
   tags:
@@ -98,18 +103,18 @@
     - install:configuration
 
 - name: Ensure elasticsearch is enabled and started
-  service: 
+  service:
     name: elasticsearch
-    state: started 
+    state: started
     enabled: yes
   tags:
     - manage
     - manage:start
 
 - name: Restart elastic when there has been an upgrade
-  service: 
-    name: elasticsearch 
-    state: restarted 
+  service:
+    name: elasticsearch
+    state: restarted
     enabled: yes
   when: elasticsearch_reinstall.changed
   tags:
