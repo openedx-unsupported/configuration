@@ -343,6 +343,7 @@ EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
 EDXAPP_CELERY_USER: ''
 EDXAPP_CELERY_BROKER_VHOST: 0
 celery_worker: false
+NO_PREREQ_INSTALL: 0
 EDXAPP_CELERY_WORKERS:
     - concurrency: 3
       monitor: true
