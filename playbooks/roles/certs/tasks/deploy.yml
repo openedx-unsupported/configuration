@@ -67,6 +67,17 @@
   register: certs_checkout
   when: CERTS_GIT_IDENTITY == "none"
 
+- name: Checkout local theme
+  git:
+    dest: "{{ certs_app_dir }}/templates"
+    repo: "{{ certs_templates_repo }}"
+    version: "{{ certs_templates_version }}"
+    accept_hostkey: yes
+  become_user: "{{ certs_user }}"
+  environment:
+    GIT_SSH: "{{ certs_git_ssh }}"
+  when: certs_templates_repo != ''
+
 - name: Remove read-only ssh key for the certs repo
   file:
     path: "{{ certs_git_identity }}"
