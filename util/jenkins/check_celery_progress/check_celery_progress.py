@@ -7,6 +7,7 @@ import zlib
 import redis
 import click
 import backoff
+from celery import Celery
 from opsgenie.swagger_client import AlertApi
 from opsgenie.swagger_client import configuration
 from opsgenie.swagger_client.models import CreateAlertRequest, CloseAlertRequest
@@ -277,6 +278,43 @@ def generate_info(
     return output
 
 
+def celery_connection(host, port):
+    celery_client = " "
+    try:
+        broker_url = "redis://" + host + ":" + str(port)
+        celery_client = Celery(broker=broker_url)
+    except Exception as e:
+        print("Exception in connection()", e)
+    return celery_client
+
+
+# Functionality added to get list of currently running tasks
+# because Redis returns only the next tasks in the list
+def get_active_tasks(celery_client, queue):
+    active_tasks = dict()
+    redacted_active_tasks = dict()
+    celery_obj = celery_client.control.inspect()
+    try:
+        for worker, data in celery_obj.active().items():
+            if queue in worker.split('@')[1]:
+                for task in data:
+                    active_tasks.setdefault(
+                        task["hostname"], []).append([
+                            'task: {}'.format(task.get("name")),
+                            'args: {}'.format(task.get("args")),
+                            'kwargs: {}'.format(task.get("kwargs")),
+                        ])
+                    redacted_active_tasks.setdefault(
+                        task["hostname"], []).append([
+                            'task: {}'.format(task.get("name")),
+                            'args: REDACTED',
+                            'kwargs: REDACTED',
+                        ])
+    except Exception as e:
+        print("Exception in get_active_tasks()", e)
+    return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
+
+
 @click.command()
 @click.option('--host', '-h', default='localhost',
               help='Hostname of redis server', required=True)
@@ -300,6 +338,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
+    celery_client = celery_connection(host, port)
     queue_names = set([k.decode() for k in redis_client.keys()
                        if (redis_client.type(k) == b'list' and
                            not k.decode().endswith(".pidbox") and
@@ -336,7 +375,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
             ret_val = 1
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
-        active_tasks, redacted_active_tasks = get_active_tasks(host, port, queue_name)
+        active_tasks, redacted_active_tasks = get_active_tasks(celery_client, queue_name)
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
         info = generate_info(
@@ -383,44 +422,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
 
     sys.exit(ret_val)
-
-def connection(host, port):
-    from celery import Celery
-    celery_app = " "
-    try:
-        broker_url = "redis://" + host + ":" + str(port)
-        celery_app = Celery(broker=broker_url)
-    except Exception as e:
-        print("Exception in connection()", e)
-    return celery_app
-
-
-# Functionality added to get list of currently running tasks
-# because Redis returns only the next tasks in the list
-def get_active_tasks(host, port, queue, redacted=True):
-    active_tasks = dict()
-    redacted_active_tasks = dict()
-    celery_app = connection(host, port)
-    celery_obj = celery_app.control.inspect()
-    try:
-        for worker, data in celery_obj.active().items():
-            if queue in worker.split('@')[1]:
-                for task in data:
-                    active_tasks.setdefault(
-                        task["hostname"], []).append([
-                            'task: {}'.format(task.get("name")),
-                            'args: {}'.format(task.get("args")),
-                            'kwargs: {}'.format(task.get("kwargs")),
-                        ])
-                    redacted_active_tasks.setdefault(
-                        task["hostname"], []).append([
-                            'task: {}'.format(task.get("name")),
-                            'args: REDACTED',
-                            'kwargs: REDACTED',
-                        ])
-    except Exception as e:
-        print("Exception in get_active_tasks()", e)
-    return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
 if __name__ == '__main__':
