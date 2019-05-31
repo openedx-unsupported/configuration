@@ -7,6 +7,7 @@ import zlib
 import redis
 import click
 import backoff
+from celery import Celery
 from textwrap import dedent
 from pprint import pprint
 
@@ -131,67 +132,22 @@ def generate_info(
     return output
 
 
-@click.command()
-@click.option('--host', '-h', default='localhost',
-              help='Hostname of redis server', required=True)
-@click.option('--port', '-p', default=6379, help='Port of redis server')
-@click.option('--queue', '-q', required=True)
-@click.option('--items', '-i', default=1, help='Number of items to print')
-def check_queues(host, port, queue, items):
-    queue_name = queue
-    ret_val = 0
-
-    timeout = 1
-    redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
-                                socket_connect_timeout=timeout)
-
-    for count in range(items):
-        print("Count: {}".format(count))
-        queue_first_item = redis_client.lindex(queue_name, count)
-        # Check that queue_first_item is not None which is the case if the queue is empty
-        if queue_first_item is not None:
-            queue_first_item_decoded = json.loads(queue_first_item.decode("utf-8"))
-    
-            correlation_id = queue_first_item_decoded['properties']
-    
-            body = {}
-            try:
-                body = extract_body(queue_first_item_decoded)
-            except Exception as error:
-                print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
-                ret_val = 1
-            active_tasks, redacted_active_tasks = get_active_tasks(host, port, queue_name)
-    
-            info = generate_info(
-                queue_name,
-                correlation_id,
-                body,
-                active_tasks,
-            )
-            print(info)
-            print("BODY")
-            pprint(body)
-    
-    sys.exit(ret_val)
-
-def connection(host, port):
-    from celery import Celery
-    celery_app = " "
+def celery_connection(host, port):
+    celery_client = " "
     try:
         broker_url = "redis://" + host + ":" + str(port)
-        celery_app = Celery(broker=broker_url)
+        celery_client = Celery(broker=broker_url)
     except Exception as e:
         print("Exception in connection()", e)
-    return celery_app
+    return celery_client
 
 
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
-def get_active_tasks(host, port, queue, redacted=True):
+def get_active_tasks(celery_client, queue):
     active_tasks = dict()
     redacted_active_tasks = dict()
-    celery_app = connection(host, port)
-    celery_obj = celery_app.control.inspect()
+    celery_obj = celery_client.control.inspect()
     try:
         for worker, data in celery_obj.active().items():
             if queue in worker.split('@')[1]:
@@ -211,6 +167,51 @@ def get_active_tasks(host, port, queue, redacted=True):
     except Exception as e:
         print("Exception in get_active_tasks()", e)
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
+
+
+@click.command()
+@click.option('--host', '-h', default='localhost',
+              help='Hostname of redis server', required=True)
+@click.option('--port', '-p', default=6379, help='Port of redis server')
+@click.option('--queue', '-q', required=True)
+@click.option('--items', '-i', default=1, help='Number of items to print')
+def check_queues(host, port, queue, items):
+    queue_name = queue
+    ret_val = 0
+
+    timeout = 1
+    redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
+                                socket_connect_timeout=timeout)
+    celery_client = celery_connection(host, port)
+
+    for count in range(items):
+        print("Count: {}".format(count))
+        queue_first_item = redis_client.lindex(queue_name, count)
+        # Check that queue_first_item is not None which is the case if the queue is empty
+        if queue_first_item is not None:
+            queue_first_item_decoded = json.loads(queue_first_item.decode("utf-8"))
+    
+            correlation_id = queue_first_item_decoded['properties']
+    
+            body = {}
+            try:
+                body = extract_body(queue_first_item_decoded)
+            except Exception as error:
+                print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
+                ret_val = 1
+            active_tasks, redacted_active_tasks = get_active_tasks(celery_client, queue_name)
+    
+            info = generate_info(
+                queue_name,
+                correlation_id,
+                body,
+                active_tasks,
+            )
+            print(info)
+            print("BODY")
+            pprint(body)
+    
+    sys.exit(ret_val)
 
 
 if __name__ == '__main__':
