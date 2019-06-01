@@ -312,7 +312,10 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     current_time = datetime.datetime.now()
 
     for queue_name in queue_names:
-        queue_first_item = redis_client.lindex(queue_name, 0)
+        # Use -1 to get end of queue, running redis monitor shows that celery
+        # uses BRPOP to pull items off the right end of the queue, so that's
+        # what we should be monitoring
+        queue_first_item = redis_client.lindex(queue_name, -1)
         # Check that queue_first_item is not None which is the case if the queue is empty
         if queue_first_item is not None:
             queue_first_items[queue_name] = json.loads(queue_first_item.decode("utf-8"))
