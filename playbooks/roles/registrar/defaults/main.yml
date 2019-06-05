@@ -22,6 +22,7 @@ registrar_app_dir: "{{ COMMON_APP_DIR }}/{{ registrar_service_name }}"
 registrar_code_dir: "{{ registrar_app_dir }}/{{ registrar_service_name }}"
 registrar_venvs_dir: "{{ registrar_app_dir }}/venvs"
 registrar_venv_dir: "{{ registrar_venvs_dir }}/registrar"
+registrar_celery_default_queue: 'registrar.default'
 
 REGISTRAR_CELERY_BROKER_TRANSPORT: ''
 REGISTRAR_CELERY_BROKER_USER: ''
@@ -36,6 +37,9 @@ registrar_environment:
   CELERY_BROKER_PASSWORD: '{{ REGISTRAR_CELERY_BROKER_PASSWORD }}'
   CELERY_BROKER_HOSTNAME: '{{ REGISTRAR_CELERY_BROKER_HOSTNAME }}'
   CELERY_BROKER_VHOST: '{{ REGISTRAR_CELERY_BROKER_VHOST }}'
+  CELERY_DEFAULT_EXCHANGE: 'registrar'
+  CELERY_DEFAULT_ROUTING_KEY: 'registrar'
+  CELERY_DEFAULT_QUEUE: '{{ registrar_celery_default_queue }}'
 
 registrar_gunicorn_port: 8734
 
@@ -139,7 +143,7 @@ REGISTRAR_CELERY_HEARTBEAT_ENABLED: true
 REGISTRAR_NEWRELIC_WORKERS_APPNAME: registrar-workers
 worker_django_settings_module: "{{ REGISTRAR_DJANGO_SETTINGS_MODULE }}"
 REGISTRAR_CELERY_WORKERS:
-  - queue: registrar
+  - queue: '{{ registrar_celery_default_queue }}'
     service_variant: registrar
     concurrency: 1
     monitor: True
