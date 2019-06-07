@@ -211,7 +211,7 @@ def extract_body(task):
     if task.get('content-type') == 'application/json':
         body_dict = json.loads(body.decode("utf-8"))
     elif task.get('content-type') == 'application/x-python-serialize':
-        body_dict = pickle.loads(body, encoding='bytes')
+        body_dict = {k.decode("utf-8"): v for k, v in pickle.loads(body, encoding='bytes').items()}
     return body_dict
 
 
@@ -295,8 +295,13 @@ def get_active_tasks(celery_client, queue):
     redacted_active_tasks = dict()
     celery_obj = celery_client.control.inspect()
     try:
-        for worker, data in celery_obj.active().items():
-            if queue in worker.split('@')[1]:
+        workers = []
+        for worker, data in celery_obj.active_queues().items():
+            for worker_queue in data:
+                if worker_queue['name'] == queue:
+                     workers.append(worker)
+        if len(workers) > 0:
+            for worker, data in celery_client.control.inspect(workers).active().items():
                 for task in data:
                     active_tasks.setdefault(
                         task["hostname"], []).append([
