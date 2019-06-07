@@ -86,7 +86,7 @@ def extract_body(task):
     if task.get('content-type') == 'application/json':
         body_dict = json.loads(body.decode("utf-8"))
     elif task.get('content-type') == 'application/x-python-serialize':
-        body_dict = pickle.loads(body, encoding='bytes')
+        body_dict = {k.decode("utf-8"): v for k, v in pickle.loads(body, encoding='bytes').items()}
     return body_dict
 
 
