@@ -175,7 +175,8 @@ def get_active_tasks(celery_control, queue_workers, queue_name):
 @click.option('--port', '-p', default=6379, help='Port of redis server')
 @click.option('--queue', '-q', required=True)
 @click.option('--items', '-i', default=1, help='Number of items to print')
-def check_queues(host, port, queue, items):
+@click.option('--body/--no-body', default=False, help='Print full body of tasks')
+def check_queues(host, port, queue, items, body):
     queue_name = queue
     ret_val = 0
 
@@ -217,8 +218,9 @@ def check_queues(host, port, queue, items):
                 active_tasks,
             )
             print(info)
-#            print("BODY")
-#            pprint(body)
+            if body:
+                print("BODY")
+                pprint(body)
 
     sys.exit(ret_val)
 
