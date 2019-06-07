@@ -195,9 +195,9 @@ def check_queues(host, port, queue, items):
         # Check that queue_first_item is not None which is the case if the queue is empty
         if queue_first_item is not None:
             queue_first_item_decoded = json.loads(queue_first_item.decode("utf-8"))
-    
+
             correlation_id = queue_first_item_decoded['properties']
-    
+
             body = {}
             try:
                 body = extract_body(queue_first_item_decoded)
@@ -205,7 +205,7 @@ def check_queues(host, port, queue, items):
                 print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
                 ret_val = 1
             active_tasks, redacted_active_tasks = get_active_tasks(celery_client, queue_name)
-    
+
             info = generate_info(
                 queue_name,
                 correlation_id,
@@ -215,7 +215,7 @@ def check_queues(host, port, queue, items):
             print(info)
             print("BODY")
             pprint(body)
-    
+
     sys.exit(ret_val)
 
 
