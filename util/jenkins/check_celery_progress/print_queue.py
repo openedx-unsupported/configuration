@@ -196,7 +196,7 @@ def check_queues(host, port, queue, items):
         if queue_first_item is not None:
             queue_first_item_decoded = json.loads(queue_first_item.decode("utf-8"))
 
-            correlation_id = queue_first_item_decoded['properties']
+            correlation_id = queue_first_item_decoded['properties']['correlation_id']
 
             body = {}
             try:
