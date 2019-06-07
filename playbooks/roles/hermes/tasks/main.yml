@@ -144,10 +144,18 @@
 
   # This command and the subsequent check in the when condition are related
   # to this bug: https://github.com/ansible/ansible-modules-core/issues/593
-- name: Are we in a Docker container
-  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+- name: Check if in a Docker container
+  when: "'docker' in ansible_virtualization_type"
   ignore_errors: yes
   register: docker_container
+  tags:
+    - install
+    - install:base
+
+- name: Check if in AWS
+  when: "'Amazon EC2' in ansible_system_vendor"
+  ignore_errors: yes
+  register: aws
   tags:
     - install
     - install:base
@@ -156,10 +164,19 @@
   service:
     name: "{{ hermes_service_name }}.service"
     enabled: yes
-  when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic') and docker_container.stdout != 'yes'
+  when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic') and docker_container
   tags:
     - install
     - install:base
+
+- name: Write the pre_hermes python script
+  copy:
+    src: pre_hermes_checks.sh
+    dest: "{{ hermes_app_dir }}/pre_hermes_checks.sh"
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: "0750"
+  when: aws
 
 - name: reload systemd configuration
   command: systemctl daemon-reload
