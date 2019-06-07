@@ -169,7 +169,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                 "Name": dimension,
                 "Value": queue_name
             }],
-            'Value': redis_client.llen(queue_name)
+            'Value': redis_client.llen(queue_name),
+            'Unit': 'Count',
         })
 
     if len(metric_data) > 0:
