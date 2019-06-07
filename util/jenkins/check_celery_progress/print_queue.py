@@ -217,8 +217,8 @@ def check_queues(host, port, queue, items):
                 active_tasks,
             )
             print(info)
-            print("BODY")
-            pprint(body)
+#            print("BODY")
+#            pprint(body)
 
     sys.exit(ret_val)
 
