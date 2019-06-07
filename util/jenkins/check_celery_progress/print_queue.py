@@ -138,7 +138,7 @@ def celery_connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_client = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception in connection()", e)
+        print("Exception in connection():", e)
     return celery_client
 
 
@@ -170,7 +170,7 @@ def get_active_tasks(celery_client, queue):
                             'kwargs: REDACTED',
                         ])
     except Exception as e:
-        print("Exception in get_active_tasks()", e)
+        print("Exception in get_active_tasks():", e)
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
