@@ -134,10 +134,10 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     thresholds = dict(queue_threshold)
 
     timeout = 1
-    namespace = "celery/{}-{}".format(environment, deploy)
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
     cloudwatch = CwBotoWrapper()
+    namespace = "celery/{}-{}".format(environment, deploy)
     metric_name = 'queue_length'
     dimension = 'queue'
     response = cloudwatch.list_metrics(Namespace=namespace,
