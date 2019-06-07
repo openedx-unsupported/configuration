@@ -9,7 +9,6 @@
 # This script is run before hermes is started, preventing it from booting during builds.
 
 
-# This is a hack to
-# return 1 if build box, 0 otherwise
+# This is a hack to return 1 if build box, 0 otherwise
 # If abbey is removed you will need to look for whatever the name of the new role is changed to.
 ! aws sts get-caller-identity | grep Arn | grep -i abbey
