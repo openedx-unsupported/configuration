@@ -1,3 +1,6 @@
+- Role: registrar
+  - Change default celery queue to `registrar.default`, explicitly set default exchange and routing key.
+
 - Role: designer
   - Create role
 
