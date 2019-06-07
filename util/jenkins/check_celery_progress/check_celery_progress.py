@@ -284,23 +284,18 @@ def celery_connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_client = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception in connection()", e)
+        print("Exception in connection():", e)
     return celery_client
 
 
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
-def get_active_tasks(celery_client, queue):
+def get_active_tasks(celery_client, queue_workers, queue_name):
     active_tasks = dict()
     redacted_active_tasks = dict()
-    celery_obj = celery_client.control.inspect()
-    try:
-        workers = []
-        for worker, data in celery_obj.active_queues().items():
-            for worker_queue in data:
-                if worker_queue['name'] == queue:
-                     workers.append(worker)
-        if len(workers) > 0:
+    if queue_name in queue_workers:
+        workers = queue_workers[queue_name]
+        try:
             for worker, data in celery_client.control.inspect(workers).active().items():
                 for task in data:
                     active_tasks.setdefault(
@@ -315,8 +310,8 @@ def get_active_tasks(celery_client, queue):
                             'args: REDACTED',
                             'kwargs: REDACTED',
                         ])
-    except Exception as e:
-        print("Exception in get_active_tasks()", e)
+        except Exception as e:
+            print("Exception in get_active_tasks():", e)
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
@@ -343,12 +338,22 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
-    celery_client = celery_connection(host, port)
+    celery_control = celery_connection(host, port).control
     queue_names = set([k.decode() for k in redis_client.keys()
                        if (redis_client.type(k) == b'list' and
                            not k.decode().endswith(".pidbox") and
                            not k.decode().startswith("_kombu"))])
     queue_age_hash = redis_client.hgetall(QUEUE_AGE_HASH_NAME)
+
+    # key: queue name, value: list of worker nodes for each queue
+    queue_workers = {}
+    try:
+        for worker, data in celery_control.inspect().active_queues().items():
+             for queue in data:
+                 queue_workers.setdefault(queue['name'], []).append(worker)
+    except Exception as e:
+        print("Exception while getting queue to worker mappings:", e)
+
     old_state = unpack_state(queue_age_hash)
     # Temp debugging
     print("DEBUG: old_state\n{}\n".format(pretty_state(old_state)))
@@ -383,7 +388,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
             ret_val = 1
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
-        active_tasks, redacted_active_tasks = get_active_tasks(celery_client, queue_name)
+        active_tasks, redacted_active_tasks = get_active_tasks(celery_control, queue_workers, queue_name)
         do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
         info = generate_info(

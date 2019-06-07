@@ -138,24 +138,19 @@ def celery_connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_client = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception in connection()", e)
+        print("Exception in connection():", e)
     return celery_client
 
 
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
-def get_active_tasks(celery_client, queue):
+def get_active_tasks(celery_control, queue_workers, queue_name):
     active_tasks = dict()
     redacted_active_tasks = dict()
-    celery_obj = celery_client.control.inspect()
-    try:
-        workers = []
-        for worker, data in celery_obj.active_queues().items():
-            for worker_queue in data:
-                if worker_queue['name'] == queue:
-                     workers.append(worker)
-        if len(workers) > 0:
-            for worker, data in celery_client.control.inspect(workers).active().items():
+    if queue_name in queue_workers:
+        workers = queue_workers[queue_name]
+        try:
+            for worker, data in celery_control.inspect(workers).active().items():
                 for task in data:
                     active_tasks.setdefault(
                         task["hostname"], []).append([
@@ -169,8 +164,8 @@ def get_active_tasks(celery_client, queue):
                             'args: REDACTED',
                             'kwargs: REDACTED',
                         ])
-    except Exception as e:
-        print("Exception in get_active_tasks()", e)
+        except Exception as e:
+            print("Exception in get_active_tasks():", e)
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
@@ -180,14 +175,24 @@ def get_active_tasks(celery_client, queue):
 @click.option('--port', '-p', default=6379, help='Port of redis server')
 @click.option('--queue', '-q', required=True)
 @click.option('--items', '-i', default=1, help='Number of items to print')
-def check_queues(host, port, queue, items):
+@click.option('--body/--no-body', default=False, help='Print full body of tasks')
+def check_queues(host, port, queue, items, body):
     queue_name = queue
     ret_val = 0
 
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
-    celery_client = celery_connection(host, port)
+    celery_control = celery_connection(host, port).control
+
+    # key: queue name, value: list of worker nodes for each queue
+    queue_workers = {}
+    try:
+        for worker, data in celery_control.inspect().active_queues().items():
+             for queue in data:
+                 queue_workers.setdefault(queue['name'], []).append(worker)
+    except Exception as e:
+        print("Exception while getting queue to worker mappings:", e)
 
     for count in range(items):
         print("Count: {}".format(count))
@@ -196,7 +201,7 @@ def check_queues(host, port, queue, items):
         if queue_first_item is not None:
             queue_first_item_decoded = json.loads(queue_first_item.decode("utf-8"))
 
-            correlation_id = queue_first_item_decoded['properties']
+            correlation_id = queue_first_item_decoded['properties']['correlation_id']
 
             body = {}
             try:
@@ -204,7 +209,7 @@ def check_queues(host, port, queue, items):
             except Exception as error:
                 print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
                 ret_val = 1
-            active_tasks, redacted_active_tasks = get_active_tasks(celery_client, queue_name)
+            active_tasks, redacted_active_tasks = get_active_tasks(celery_control, queue_workers, queue_name)
 
             info = generate_info(
                 queue_name,
@@ -213,8 +218,9 @@ def check_queues(host, port, queue, items):
                 active_tasks,
             )
             print(info)
-            print("BODY")
-            pprint(body)
+            if body:
+                print("BODY")
+                pprint(body)
 
     sys.exit(ret_val)
 
