@@ -149,8 +149,13 @@ def get_active_tasks(celery_client, queue):
     redacted_active_tasks = dict()
     celery_obj = celery_client.control.inspect()
     try:
-        for worker, data in celery_obj.active().items():
-            if queue in worker.split('@')[1]:
+        workers = []
+        for worker, data in celery_obj.active_queues().items():
+            for worker_queue in data:
+                if worker_queue['name'] == queue:
+                     workers.append(worker)
+        if len(workers) > 0:
+            for worker, data in celery_client.control.inspect(workers).active().items():
                 for task in data:
                     active_tasks.setdefault(
                         task["hostname"], []).append([
