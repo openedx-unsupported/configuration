@@ -771,16 +771,15 @@ EDXAPP_PROCTORING_BACKENDS:
   # null is a language independent type in YAML
   "null": {}
 
+# Configuration needed for the retirement service
+EDXAPP_RETIREMENT_SERVICE_USER_EMAIL: "retirement_worker@example.com"
+EDXAPP_RETIREMENT_SERVICE_USER_NAME: "retirement_worker"
 EDXAPP_RETIRED_USERNAME_PREFIX: "retired__user_"
 EDXAPP_RETIRED_EMAIL_PREFIX: "retired__user_"
 EDXAPP_RETIRED_EMAIL_DOMAIN: "retired.invalid"
 EDXAPP_RETIRED_USER_SALTS:
   - "OVERRIDE ME WITH A RANDOM VALUE"
   - "ROTATE SALTS BY APPENDING NEW VALUES"
-# Leave username commented to throw error if provisioning retirement service
-# whitout setting up username
-# EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME: "OVERRIDE THIS WITH A VALID LMS USERNAME"
-
 # These get loaded into database models per environment via management command
 # These are the required states, environmental overrides are in edx-internal.
 EDXAPP_RETIREMENT_STATES:
@@ -1406,6 +1405,7 @@ generic_env_config:  &edxapp_generic_env
   RETIRED_EMAIL_PREFIX: "{{ EDXAPP_RETIRED_EMAIL_PREFIX }}"
   RETIRED_EMAIL_DOMAIN: "{{ EDXAPP_RETIRED_EMAIL_DOMAIN }}"
   RETIRED_USER_SALTS: "{{ EDXAPP_RETIRED_USER_SALTS }}"
+  RETIREMENT_SERVICE_WORKER_USERNAME: "{{ EDXAPP_RETIREMENT_SERVICE_USER_NAME }}"
   RETIREMENT_STATES: "{{ EDXAPP_RETIREMENT_STATES }}"
 
   USERNAME_REPLACEMENT_WORKER: "{{ EDXAPP_USERNAME_REPLACEMENT_WORKER }}"
@@ -1691,8 +1691,8 @@ SERVICE_WORKER_USERS:
     username: "{{ REGISTRAR_SERVICE_USER_NAME }}"
     is_staff: true
     is_superuser: false
-  - email: "{{ RETIREMENT_SERVICE_USER_EMAIL }}"
-    username: "{{ EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME }}"
+  - email: "{{ EDXAPP_RETIREMENT_SERVICE_USER_EMAIL }}"
+    username: "{{ EDXAPP_RETIREMENT_SERVICE_USER_NAME }}"
     is_staff: true
     is_superuser: false
     enabled: "{{ RETIREMENT_SERVICE_SETUP | default(false) }}"
