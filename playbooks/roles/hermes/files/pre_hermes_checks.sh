@@ -10,4 +10,4 @@
 
 
 # This is a hack to return 1 if build box, 0 otherwise
-! aws sts get-caller-identity | grep Arn | grep -i abbey
+! aws sts get-caller-identity | grep Arn | grep -i gocd
