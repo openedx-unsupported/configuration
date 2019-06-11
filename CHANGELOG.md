@@ -1,3 +1,9 @@
+- Role: edx_notes_api
+  - Added `EDX_NOTES_API_HOSTNAME` to set a hostname for the edx-notes-api IDA.
+
+- Open edX
+  - Added `SANDBOX_ENABLE_NOTES` to enable/disable setting up the edx-notes-api IDA.
+
 - Role: registrar
   - Change default celery queue to `registrar.default`, explicitly set default exchange and routing key.
 
