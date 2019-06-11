@@ -1,5 +1,5 @@
 FROM uhopper/hadoop:2.7.2
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ENV HDFS_CONF_dfs_datanode_data_dir=file:///hadoop/dfs/data \
     MYSQL_VERSION=5.6 \

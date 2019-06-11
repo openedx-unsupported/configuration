@@ -1,5 +1,5 @@
 FROM bde2020/spark-base:2.1.0-hadoop2.7
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ADD docker/build/analytics_pipeline_spark_master/master.sh /
 ENV SPARK_MASTER_PORT=7077 \

@@ -1,5 +1,5 @@
 FROM edxops/trusty-common:latest
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 USER root
 RUN apt-get update

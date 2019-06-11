@@ -1,5 +1,5 @@
 FROM uhopper/hadoop:2.7.2
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ENV MYSQL_VERSION=5.6 DEBIAN_FRONTEND=noninteractive
 WORKDIR /tmp
