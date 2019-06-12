@@ -1,3 +1,6 @@
+- Role: oauth_client_setup
+  - Ensure that created DOT applications have corresponding ApplicationAccess records with user_id scope.
+
 - Role: edx_notes_api
   - Added `EDX_NOTES_API_HOSTNAME` to set a hostname for the edx-notes-api IDA.
 
