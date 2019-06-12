@@ -7,9 +7,6 @@ import zlib
 import redis
 import click
 import backoff
-import boto3
-import botocore
-from itertools import zip_longest
 from celery import Celery
 from opsgenie.swagger_client import AlertApi
 from opsgenie.swagger_client import configuration
@@ -84,17 +81,6 @@ class RedisWrapper(object):
         return self.redis.hmset(*args)
 
 
-class CwBotoWrapper(object):
-    def __init__(self):
-        self.client = boto3.client('cloudwatch')
-
-    @backoff.on_exception(backoff.expo,
-                          (botocore.exceptions.ClientError),
-                          max_tries=MAX_TRIES)
-    def put_metric_data(self, *args, **kwargs):
-        return self.client.put_metric_data(*args, **kwargs)
-
-
 def pretty_json(obj):
     return json.dumps(obj, indent=4, sort_keys=True)
 
@@ -167,6 +153,11 @@ def build_new_state(old_state, queue_first_items, current_time):
     return new_state
 
 
+def should_create_alert(first_occurance_time, current_time, threshold):
+    time_delta = current_time - first_occurance_time
+    return time_delta.total_seconds() > threshold
+
+
 def generate_alert_message(environment, deploy, queue_name, threshold):
     return str.format("{}-{} {} queue is stale. Stationary for over {}s", environment, deploy, queue_name, threshold)
 
@@ -232,11 +223,11 @@ def generate_info(
     do_alert,
     first_occurance_time,
     current_time,
-    next_task_age,
     threshold,
     default_threshold,
     jenkins_build_url,
 ):
+    time_delta = (current_time - first_occurance_time).seconds
     next_task = "Key missing"
     args = "Key missing"
     kwargs = "Key missing"
@@ -254,37 +245,35 @@ def generate_info(
         dedent("""
             =============================================
             queue_name = {}
-            ---------------------------------------------
+            correlation_id = {}
             do_alert = {}
+            first_occurance_time = {}
+            current_time = {}
+            time_delta = {} seconds
             threshold = {} seconds
             default_threshold = {} seconds
             jenkins_build_url = {}
-            current_time = {}
-            ---------------------------------------------
-            Next Task:
-            first_occurance_time = {}
-            age = {} seconds
-            correlation_id = {}
-            task_name = {}
-            args = {}
-            kwargs = {}
             ---------------------------------------------
             active_tasks = {}
+            ---------------------------------------------
+            next_task = {}
+            args = {}
+            kwargs = {}
             =============================================
         """),
         queue_name,
+        correlation_id,
         do_alert,
+        first_occurance_time,
+        current_time,
+        time_delta,
         threshold,
         default_threshold,
         jenkins_build_url,
-        current_time,
-        first_occurance_time,
-        next_task_age,
-        correlation_id,
+        active_tasks,
         next_task,
         args,
         kwargs,
-        active_tasks,
     )
     return output
 
@@ -340,10 +329,7 @@ def get_active_tasks(celery_client, queue_workers, queue_name):
               + ' {queue_name} {threshold}. May be used multiple times.')
 @click.option('--opsgenie-api-key', '-k', envvar='OPSGENIE_API_KEY', required=True)
 @click.option('--jenkins-build-url', '-j', envvar='BUILD_URL', required=False)
-@click.option('--max-metrics', default=20,
-              help='Maximum number of CloudWatch metrics to publish')
-def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key,
-                 jenkins_build_url, max_metrics):
+def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key, jenkins_build_url):
     ret_val = 0
     thresholds = dict(queue_threshold)
     print("Default Threshold (seconds): {}".format(default_threshold))
@@ -353,13 +339,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
     celery_control = celery_connection(host, port).control
-    cloudwatch = CwBotoWrapper()
-
-    namespace = "celery/{}-{}".format(environment, deploy)
-    metric_name = 'next_task_age'
-    dimension = 'queue'
-    next_task_age_metric_data = []
-
     queue_names = set([k.decode() for k in redis_client.keys()
                        if (redis_client.type(k) == b'list' and
                            not k.decode().endswith(".pidbox") and
@@ -410,18 +389,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             ret_val = 1
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         active_tasks, redacted_active_tasks = get_active_tasks(celery_control, queue_workers, queue_name)
-        next_task_age = (current_time - first_occurance_time).total_seconds()
-        do_alert = next_task_age > threshold
-
-        next_task_age_metric_data.append({
-            'MetricName': metric_name,
-            'Dimensions': [{
-                "Name": dimension,
-                "Value": queue_name
-            }],
-            'Value': next_task_age,
-            'Unit': 'Seconds',
-        })
+        do_alert = should_create_alert(first_occurance_time, current_time, threshold)
 
         info = generate_info(
             queue_name,
@@ -431,7 +399,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             do_alert,
             first_occurance_time,
             current_time,
-            next_task_age,
             threshold,
             default_threshold,
             jenkins_build_url,
@@ -444,7 +411,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             do_alert,
             first_occurance_time,
             current_time,
-            next_task_age,
             threshold,
             default_threshold,
             jenkins_build_url,
@@ -457,7 +423,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
             new_state[queue_name]['alert_created'] = False
 
-
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
         print("DEBUG: Checking cleared queue {}".format(queue_name))
         if old_state[queue_name]['alert_created']:
@@ -469,25 +434,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         # Temp Debugging
         print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
 
-    # Push next_task_age data to cloudwatch for tracking
-    if len(next_task_age_metric_data) > 0:
-        for metric_data_grouped in grouper(next_task_age_metric_data, max_metrics):
-            print("next_task_age_metric_data {}".format(next_task_age_metric_data))
-            cloudwatch.put_metric_data(Namespace=namespace, MetricData=next_task_age_metric_data)
-
     sys.exit(ret_val)
-
-
-# Stolen right from the itertools recipes
-# https://docs.python.org/3/library/itertools.html#itertools-recipes
-def grouper(iterable, n, fillvalue=None):
-    "Collect data into fixed-length chunks or blocks"
-    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    chunks = zip_longest(*args, fillvalue=fillvalue)
-    # Remove Nones in function
-    for chunk in chunks:
-        yield [v for v in chunk if v is not None]
 
 
 if __name__ == '__main__':
