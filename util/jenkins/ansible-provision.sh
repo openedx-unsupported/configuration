@@ -593,9 +593,8 @@ cd $WORKSPACE/ansible-private
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
 ansible-playbook -vvvv -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
-cd $WORKSPACE/configuration/playbooks/edx-east
 
-ansible-playbook -vvvv -i "${deploy_host}," mckinseyapros.yml  $extra_var_arg --user ubuntu
+ansible-playbook -vvvv -i mckinseyapros.yml "${deploy_host}," $extra_var_arg --user ubuntu
 
 
 extra_var_arg+=' -e migrate_db="yes"'
