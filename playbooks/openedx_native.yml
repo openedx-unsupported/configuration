@@ -32,6 +32,7 @@
     SANDBOX_ENABLE_INSIGHTS: true
     SANDBOX_ENABLE_RABBITMQ: true
     JOURNALS_ENABLED: false
+    SANDBOX_ENABLE_NOTES: false
   roles:
     - role: swapfile
       SWAPFILE_SIZE: 4GB
@@ -67,7 +68,14 @@
       when: SANDBOX_ENABLE_ANALYTICS_API
     - role: insights
       when: SANDBOX_ENABLE_INSIGHTS
-    # not ready yet: - edx_notes_api
+    - role: edx_notes_api
+      when: SANDBOX_ENABLE_NOTES
+      # Run the nginx role to install edx_notes_api config since the app role
+      # currently doesn't do that.
+    - role: nginx
+      nginx_sites:
+      - edx_notes_api
+      when: SANDBOX_ENABLE_NOTES
     - demo
     - oauth_client_setup
     - oraclejdk
