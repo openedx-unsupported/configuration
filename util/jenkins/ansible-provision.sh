@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#!/bin/bash -x
 
 # Ansible provisioning wrapper script that
 # assumes the following parameters set
@@ -93,9 +94,13 @@ InstanceNameTag=$dns_name
 ForumConfigurationVersion="master"
 cd $WORKSPACE
 chmod -R 0777 private_vars/
+rm -rf private_vars/
+git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
+chmod -R 0777 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
+pip install -r requirements.txt
 
 declare -A sso=("saml-idp-mckinsey")
 declare -A langs
@@ -236,10 +241,8 @@ testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
-EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
-mcka_apros_source_repo: "git@github.com:mckinseyacademy/mcka_apros.git"
-mcka_apros_version: "development"
+EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
@@ -326,6 +329,7 @@ MCKA_APROS_MYSQL_PASSWORD: "apros"
 MCKINSEY_APROS_MYSQL_PASSWORD: "apros"
 MCKINSEY_APROS_MYSQL_USER: "apros"
 db_root_user: "root"
+COMMON_ENABLE_SPLUNKFORWARDER: False
 DBPassword: ""
 MCKA_APROS_WORKERS: 6
 WORKER_DEFAULT_CONCURRENCY: 1
@@ -339,6 +343,8 @@ EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
 EDXAPP_CELERY_USER: ''
 EDXAPP_CELERY_BROKER_VHOST: 0
 celery_worker: false
+NO_PREREQ_INSTALL: 0
+EDXAPP_NO_PREREQ_INSTALL: 0
 EDXAPP_CELERY_WORKERS:
     - concurrency: 3
       monitor: true
@@ -588,7 +594,7 @@ cd $WORKSPACE/ansible-private
 
 ansible-playbook -vvvv -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-ansible-playbook -vvvv -i "${deploy_host}," mckinseyapros.yml  $extra_var_arg --user ubuntu
+ansible-playbook -vvvv mckinseyapros.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
 extra_var_arg+=' -e migrate_db="yes"'
