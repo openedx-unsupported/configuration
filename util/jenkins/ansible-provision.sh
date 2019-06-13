@@ -595,7 +595,7 @@ cd $WORKSPACE/ansible-private
 
 ansible-playbook -vvvv -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-ansible-playbook -vvvv -i mckinseyapros.yml "${deploy_host}," $extra_var_arg --user ubuntu
+ansible-playbook -vvvv mckinseyapros.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
 extra_var_arg+=' -e migrate_db="yes"'
