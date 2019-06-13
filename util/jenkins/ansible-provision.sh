@@ -99,6 +99,7 @@ git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars
 chmod -R 0777 private_vars/
 private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
+git clone https://hamzamunir7300:hamza123@github.com/mckinseyacademy/mcka-ansible.git
 cd $WORKSPACE/configuration
 pip install -r requirements.txt
 
