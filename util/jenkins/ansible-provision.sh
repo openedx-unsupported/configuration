@@ -238,6 +238,9 @@ edx_platform_repo: ${edx_platform_repo}
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
+mcka_apros_source_repo: "git@github.com:mckinseyacademy/mcka_apros.git"
+mcka_apros_version: "development"
+
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_CMS_NGINX_PORT: 80
