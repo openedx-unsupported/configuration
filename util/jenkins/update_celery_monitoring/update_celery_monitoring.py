@@ -10,7 +10,6 @@ from collections import defaultdict
 
 MAX_TRIES = 5
 
-
 # Queues that should be gone. Inclusion in this list will stop this script from
 # zero filling them, but if they are >0 they will still get tracked
 queue_blacklist = ['celery', 'ecommerce']
@@ -43,7 +42,8 @@ class RedisWrapper(object):
 
 
 class CwBotoWrapper(object):
-    def __init__(self):
+    def __init__(self, dev_test_mode=True):
+        self.dev_test_mode = dev_test_mode
         self.client = boto3.client('cloudwatch')
 
     @backoff.on_exception(backoff.expo,
@@ -56,7 +56,10 @@ class CwBotoWrapper(object):
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
-        return self.client.put_metric_data(*args, **kwargs)
+        if self.dev_test_mode:
+            print("Test Mode: would have run put_metric_data({},{})".format(args, kwargs))
+        else:
+            return self.client.put_metric_data(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
@@ -68,7 +71,10 @@ class CwBotoWrapper(object):
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_alarm(self, *args, **kwargs):
-        return self.client.put_metric_alarm(*args, **kwargs)
+        if self.dev_test_mode:
+            print("Test Mode: would have run put_metric_alarm({},{})".format(args, kwargs))
+        else:
+            return self.client.put_metric_alarm(*args, **kwargs)
 
 
 class Ec2BotoWrapper(object):
@@ -138,15 +144,16 @@ def count_workers(environment, deploy, cluster):
               help='Threshold per queue in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times')
 @click.option('--sns-arn', '-s', help='ARN for SNS alert topic', required=True)
+@click.option('--dev-test-mode', is_flag=True, help='Enable dev (no-op) mode')
 def check_queues(host, port, environment, deploy, max_metrics, threshold,
-                 queue_threshold, sns_arn):
+                 queue_threshold, sns_arn, dev_test_mode):
 
     thresholds = dict(queue_threshold)
 
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
                                 socket_connect_timeout=timeout)
-    cloudwatch = CwBotoWrapper()
+    cloudwatch = CwBotoWrapper(dev_test_mode=dev_test_mode)
     namespace = "celery/{}-{}".format(environment, deploy)
     metric_name = 'queue_length'
     dimension = 'queue'

@@ -23,9 +23,9 @@ QUEUE_AGE_HASH_NAME = "queue_age_monitoring"
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
-
 class RedisWrapper(object):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, dev_test_mode=True, *args, **kwargs):
+        self.dev_test_mode = dev_test_mode
         self.redis = redis.StrictRedis(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
@@ -68,32 +68,45 @@ class RedisWrapper(object):
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
     def delete(self, key):
-        return self.redis.delete(key)
+        if self.dev_test_mode:
+            print("Test Mode: would have run redis.delete({})".format(key))
+        else:
+            return self.redis.delete(key)
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
     def hset(self, *args):
-        return self.redis.hset(*args)
+        if self.dev_test_mode:
+            print("Test Mode: would have run redis.hset({})".format(args))
+        else:
+            return self.redis.hset(*args)
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
     def hmset(self, *args):
-        return self.redis.hmset(*args)
+        if self.dev_test_mode:
+            print("Test Mode: would have run redis.hmset({})".format(args))
+        else:
+            return self.redis.hmset(*args)
 
 
 class CwBotoWrapper(object):
-    def __init__(self):
+    def __init__(self, dev_test_mode=True):
+        self.dev_test_mode = dev_test_mode
         self.client = boto3.client('cloudwatch')
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
-        return self.client.put_metric_data(*args, **kwargs)
+        if self.dev_test_mode:
+            print("Test Mode: would have run put_metric_data({},{})".format(args, kwargs))
+        else:
+            return self.client.put_metric_data(*args, **kwargs)
 
 
 def pretty_json(obj):
@@ -179,7 +192,7 @@ def generate_alert_alias(environment, deploy, queue_name):
 @backoff.on_exception(backoff.expo,
                       (ApiException),
                       max_tries=MAX_TRIES)
-def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, info):
+def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, info, dev_test_mode=True):
 
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
@@ -187,28 +200,35 @@ def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, i
     alert_message = generate_alert_message(environment, deploy, queue_name, threshold)
     alias = generate_alert_alias(environment, deploy, queue_name)
 
-    print("Creating Alert: {}".format(alias))
-    response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias, description=info))
-    print('request id: {}'.format(response.request_id))
-    print('took: {}'.format(response.took))
-    print('result: {}'.format(response.result))
+    if dev_test_mode:
+        print("Test Mode: would have created Alert: {}".format(alias))
+    else:
+        print("Creating Alert: {}".format(alias))
+        response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias, description=info))
+        print('request id: {}'.format(response.request_id))
+        print('took: {}'.format(response.took))
+        print('result: {}'.format(response.result))
 
 
 @backoff.on_exception(backoff.expo,
                       (ApiException),
                       max_tries=MAX_TRIES)
-def close_alert(opsgenie_api_key, environment, deploy, queue_name):
+def close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode=True):
 
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
 
     alias = generate_alert_alias(environment, deploy, queue_name)
-    print("Closing Alert: {}".format(alias))
-    # Need body=CloseAlertRequest(source="") otherwise OpsGenie API complains that bdoy must be a json object
-    response = AlertApi().close_alert(identifier=alias, identifier_type='alias', body=CloseAlertRequest(source=""))
-    print('request id: {}'.format(response.request_id))
-    print('took: {}'.format(response.took))
-    print('result: {}'.format(response.result))
+
+    if dev_test_mode:
+        print("Test Mode: would have closed Alert: {}".format(alias))
+    else:
+        print("Closing Alert: {}".format(alias))
+        # Need body=CloseAlertRequest(source="") otherwise OpsGenie API complains that bdoy must be a json object
+        response = AlertApi().close_alert(identifier=alias, identifier_type='alias', body=CloseAlertRequest(source=""))
+        print('request id: {}'.format(response.request_id))
+        print('took: {}'.format(response.took))
+        print('result: {}'.format(response.result))
 
 
 def extract_body(task):
@@ -343,8 +363,9 @@ def get_active_tasks(celery_client, queue_workers, queue_name):
 @click.option('--jenkins-build-url', '-j', envvar='BUILD_URL', required=False)
 @click.option('--max-metrics', default=20,
               help='Maximum number of CloudWatch metrics to publish')
+@click.option('--dev-test-mode', is_flag=True, help='Enable dev (no-op) mode')
 def check_queues(host, port, environment, deploy, default_threshold, queue_threshold, opsgenie_api_key,
-                 jenkins_build_url, max_metrics):
+                 jenkins_build_url, max_metrics, dev_test_mode):
     ret_val = 0
     thresholds = dict(queue_threshold)
     print("Default Threshold (seconds): {}".format(default_threshold))
@@ -352,9 +373,9 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
-                                socket_connect_timeout=timeout)
+                                socket_connect_timeout=timeout, dev_test_mode=dev_test_mode)
     celery_control = celery_connection(host, port).control
-    cloudwatch = CwBotoWrapper()
+    cloudwatch = CwBotoWrapper(dev_test_mode=dev_test_mode)
 
     namespace = "celery/{}-{}".format(environment, deploy)
     metric_name = 'next_task_age'
@@ -452,7 +473,8 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         )
         print(info)
         if not new_state[queue_name]['alert_created'] and do_alert:
-            create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, redacted_info)
+            create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, redacted_info,
+                         dev_test_mode=dev_test_mode)
             new_state[queue_name]['alert_created'] = True
         elif new_state[queue_name]['alert_created'] and not do_alert:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
