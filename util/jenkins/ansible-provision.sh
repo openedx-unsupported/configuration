@@ -189,6 +189,14 @@ if [[ -z $registrar_version ]]; then
   registrar_version="master"
 fi
 
+if [[ -z $learner_portal ]]; then
+  learner_portal="false"
+fi
+
+if [[ -z $learner_portal_version ]]; then
+  learner_portal_version="master"
+fi
+
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
@@ -209,6 +217,7 @@ demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
 registrar_version: $registrar_version
+learner_portal_version: $learner_portal_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -242,6 +251,12 @@ REGISTRAR_SSL_NGINX_PORT: 443
 REGISTRAR_VERSION: $registrar_version
 REGISTRAR_ENABLED: $registrar
 REGISTRAR_SANDBOX_BUILD: True
+
+LEARNER_PORTAL_NGINX_PORT: 80
+LEARNER_PORTAL_SSL_NGINX_PORT: 443
+LEARNER_PORTAL_VERSION: $learner_portal_version
+LEARNER_PORTAL_ENABLED: $learner_portal
+LEARNER_PORTAL_SANDBOX_BUILD: True
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -360,6 +375,10 @@ REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
 REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+LEARNER_PORTAL_URL_ROOT: "https://learner_portal-${deploy_host}"
+LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
+
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
@@ -426,7 +445,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar"
+plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
