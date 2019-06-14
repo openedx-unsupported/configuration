@@ -1,3 +1,4 @@
+import re
 import redis
 import click
 import boto3
@@ -91,11 +92,13 @@ def count_workers(environment, deploy, cluster):
 
     for reservation in reservations:
         for instance in reservation["Instances"]:
-            tag_play = None
+            tag_asg = None
             for tag in instance['Tags']:
-                if tag.get('Key') == 'play':
-                    tag_play = tag.get('Value')
-                    counts_by_play[tag_play] += 1
+                if tag.get('Key') == 'aws:autoscaling:groupName':
+                    # Reduce number of metrics from 1000 to 10 by changing first 2 numbers of ASG version to stars
+                    # This reduces the cloudwatch cost
+                    tag_asg = re.sub('-v[0-9]{2}', '-v**', tag.get('Value'))
+                    counts_by_play[tag_asg] += 1
 
     metric_data = []
 
