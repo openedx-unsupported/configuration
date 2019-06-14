@@ -95,6 +95,7 @@ def generate_dashboard(environment, deploy):
 
     dashboard_name = "{}-{}-queues".format(environment, deploy)
     celery_namespace = "celery/{}-{}".format(environment, deploy)
+    xqueue_namespace = "xqueue/{}-{}".format(environment, deploy)
 
     widgets = []
     width = 24
@@ -133,8 +134,17 @@ def generate_dashboard(environment, deploy):
     height = 9
 
     widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
-        title="{}-{} All Queues".format(environment, deploy),
+        title="{}-{} All Celery Queues".format(environment, deploy),
         namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
+        right_axis_items=right_axis_items
+    ))
+
+    y_cord += height
+    height = 9
+
+    widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
+        title="{}-{} All Queues Next Task Age".format(environment, deploy),
+        namespace=celery_namespace, metric_name="next_task_age", dimension_name="queue",
         right_axis_items=right_axis_items
     ))
 
@@ -158,10 +168,19 @@ def generate_dashboard(environment, deploy):
         right_axis_items=right_axis_items
     ))
 
-    y_cord += height
-    height = 9
+    if deploy == 'edx' and environment == 'prod':
+        y_cord += height
+        height = 9
+
+        widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
+            title="{}-{} Xqueue Queues".format(environment, deploy),
+            namespace=xqueue_namespace, metric_name="queue_length", dimension_name="queue",
+        ))
+
 
     if deploy in ["edx", "edge"]:
+        y_cord += height
+        height = 9
         widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
             title="{}-{} Notifier/Ecommerce".format(environment, deploy),
             namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
