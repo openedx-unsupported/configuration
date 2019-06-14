@@ -181,8 +181,27 @@ def generate_dashboard(environment, deploy):
     if deploy in ["edx", "edge"]:
         y_cord += height
         height = 9
+
         widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
-            title="{}-{} Notifier/Ecommerce".format(environment, deploy),
+            title="{}-{} Ecommerce".format(environment, deploy),
+            namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
+            include_filter="^ecommerce\.",
+        ))
+
+        y_cord += height
+        height = 9
+
+        widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
+            title="{}-{} Notifier".format(environment, deploy),
+            namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
+            include_filter="^notifier\.",
+        ))
+
+        y_cord += height
+        height = 9
+
+        widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
+            title="{}-{} Legacy Celery (Notifier/Ecommerce) should be 0".format(environment, deploy),
             namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
             include_filter="celery",
         ))
