@@ -11,6 +11,10 @@ from collections import defaultdict
 MAX_TRIES = 5
 
 
+# Queues that should be gone. Inclusion in this list will stop this script from
+# zero filling them, but if they are >0 they will still get tracked
+queue_blacklist = ['celery', 'ecommerce']
+
 class RedisWrapper(object):
     def __init__(self, *args, **kwargs):
         self.redis = redis.StrictRedis(*args, **kwargs)
@@ -152,6 +156,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         existing_queues.extend(
             [d['Value'] for d in m["Dimensions"] if (
                 d['Name'] == dimension and
+                not d['Value'] in queue_blacklist and
                 not d['Value'].endswith(".pidbox") and
                 not d['Value'].startswith("_kombu"))])
 
@@ -180,7 +185,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     if len(metric_data) > 0:
         for metric_data_grouped in grouper(metric_data, max_metrics):
             print("metric_data:")
-            pprint(metric_data)
+            pprint(metric_data, width=120)
             cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
 
     for queue in all_queues:
@@ -218,7 +223,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
     # Track number of worker instances so it can be graphed in CloudWatch
     workers_metric_data = count_workers(environment, deploy, 'worker')
     print("workers_metric_data:")
-    pprint(workers_metric_data)
+    pprint(workers_metric_data, width=120)
     cloudwatch.put_metric_data(Namespace=namespace, MetricData=workers_metric_data)
 
 
