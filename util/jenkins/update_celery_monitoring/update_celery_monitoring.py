@@ -4,6 +4,7 @@ import click
 import boto3
 import botocore
 import backoff
+from pprint import pprint
 from itertools import zip_longest
 from collections import defaultdict
 
@@ -178,7 +179,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
 
     if len(metric_data) > 0:
         for metric_data_grouped in grouper(metric_data, max_metrics):
-            print("metric_data {}".format(metric_data))
+            print("metric_data:")
+            pprint(metric_data)
             cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
 
     for queue in all_queues:
@@ -215,7 +217,8 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
 
     # Track number of worker instances so it can be graphed in CloudWatch
     workers_metric_data = count_workers(environment, deploy, 'worker')
-    print("workers_metric_data {}".format(workers_metric_data))
+    print("workers_metric_data:")
+    pprint(workers_metric_data)
     cloudwatch.put_metric_data(Namespace=namespace, MetricData=workers_metric_data)
 
 
