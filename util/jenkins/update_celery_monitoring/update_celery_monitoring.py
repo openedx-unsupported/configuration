@@ -60,8 +60,8 @@ class CwBotoWrapper(object):
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
                           max_tries=MAX_TRIES)
-    def describe_alarms_for_metric(self, *args, **kwargs):
-        return self.client.describe_alarms_for_metric(*args, **kwargs)
+    def describe_alarms(self, *args, **kwargs):
+        return self.client.describe_alarms(*args, **kwargs)
 
     @backoff.on_exception(backoff.expo,
                           (botocore.exceptions.ClientError),
@@ -204,21 +204,59 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                                                                    deploy,
                                                                    queue)
 
-        print('Creating or updating alarm "{}"'.format(alarm_name))
-        cloudwatch.put_metric_alarm(AlarmName=alarm_name,
-                                    AlarmDescription=alarm_name,
-                                    Namespace=namespace,
-                                    MetricName=metric_name,
-                                    Dimensions=dimensions,
-                                    Period=period,
-                                    EvaluationPeriods=evaluation_periods,
-                                    TreatMissingData=treat_missing_data,
-                                    Threshold=queue_threshold,
-                                    ComparisonOperator=comparison_operator,
-                                    Statistic=statistic,
-                                    InsufficientDataActions=actions,
-                                    OKActions=actions,
-                                    AlarmActions=actions)
+        existing_alarms = cloudwatch.describe_alarms(AlarmNames=[alarm_name])['MetricAlarms']
+        do_put_alarm = False
+        if len(existing_alarms) > 1:
+            print("WARNINING: found multiple existing alarms for {}".format(alarm_name))
+            pprint(existing_alarms)
+            do_put_alarm = True
+        elif len(existing_alarms) == 1:
+            existing_alarm = existing_alarms[0]
+
+            if (existing_alarm.get('Threshold') != queue_threshold or
+               existing_alarm.get('AlarmDescription') != alarm_name or
+               existing_alarm.get('Namespace') != namespace or
+               existing_alarm.get('MetricName') != metric_name or
+               existing_alarm.get('Dimensions') != dimensions or
+               existing_alarm.get('Period') != period or
+               existing_alarm.get('EvaluationPeriods') != evaluation_periods or
+               existing_alarm.get('TreatMissingData') != treat_missing_data or
+               existing_alarm.get('ComparisonOperator') != comparison_operator or
+               existing_alarm.get('Statistic') != statistic):
+                do_put_alarm = True
+                print("1")
+            elif not (len(existing_alarm.get('InsufficientDataActions')) == 1 and
+                      existing_alarm.get('InsufficientDataActions')[0] == actions[0]):
+                do_put_alarm = True
+            elif not (len(existing_alarm.get('OKActions')) == 1 and
+                      existing_alarm.get('OKActions')[0] == actions[0]):
+                do_put_alarm = True
+            elif not (len(existing_alarm.get('AlarmActions')) == 1 and
+                      existing_alarm.get('AlarmActions')[0] == actions[0]):
+                do_put_alarm = True
+            if do_put_alarm:
+                print('Updating existing alarm "{}"'.format(alarm_name))
+        else:
+            do_put_alarm = True
+            print('Creating new alarm "{}"'.format(alarm_name))
+        if not do_put_alarm:
+            print('Not updating alarm "{}", no changes'.format(alarm_name))
+        else:
+            print('put_alarm_metric: {}'.format(alarm_name))
+            cloudwatch.put_metric_alarm(AlarmName=alarm_name,
+                                        AlarmDescription=alarm_name,
+                                        Namespace=namespace,
+                                        MetricName=metric_name,
+                                        Dimensions=dimensions,
+                                        Period=period,
+                                        EvaluationPeriods=evaluation_periods,
+                                        TreatMissingData=treat_missing_data,
+                                        Threshold=queue_threshold,
+                                        ComparisonOperator=comparison_operator,
+                                        Statistic=statistic,
+                                        InsufficientDataActions=actions,
+                                        OKActions=actions,
+                                        AlarmActions=actions)
 
     # Track number of worker instances so it can be graphed in CloudWatch
     workers_metric_data = count_workers(environment, deploy, 'worker')
