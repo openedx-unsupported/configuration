@@ -15,6 +15,7 @@ MAX_TRIES = 5
 # zero filling them, but if they are >0 they will still get tracked
 queue_blacklist = ['celery', 'ecommerce']
 
+
 class RedisWrapper(object):
     def __init__(self, *args, **kwargs):
         self.redis = redis.StrictRedis(*args, **kwargs)
@@ -119,6 +120,7 @@ def count_workers(environment, deploy, cluster):
         )
 
     return metric_data
+
 
 @click.command()
 @click.option('--host', '-h', default='localhost',
@@ -275,6 +277,7 @@ def grouper(iterable, n, fillvalue=None):
     # Remove Nones in function
     for chunk in chunks:
         yield [v for v in chunk if v is not None]
+
 
 if __name__ == '__main__':
     check_queues()
