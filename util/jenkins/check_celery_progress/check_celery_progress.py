@@ -322,13 +322,13 @@ def celery_connection(host, port):
 
 # Functionality added to get list of currently running tasks
 # because Redis returns only the next tasks in the list
-def get_active_tasks(celery_client, queue_workers, queue_name):
+def get_active_tasks(celery_control, queue_workers, queue_name):
     active_tasks = dict()
     redacted_active_tasks = dict()
     if queue_name in queue_workers:
         workers = queue_workers[queue_name]
         try:
-            for worker, data in celery_client.control.inspect(workers).active().items():
+            for worker, data in celery_control.inspect(workers).active().items():
                 for task in data:
                     active_tasks.setdefault(
                         task["hostname"], []).append([
