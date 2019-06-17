@@ -197,14 +197,14 @@ def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, i
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
 
-    alert_message = generate_alert_message(environment, deploy, queue_name, threshold)
+    alert_msg = generate_alert_message(environment, deploy, queue_name, threshold)
     alias = generate_alert_alias(environment, deploy, queue_name)
 
     if dev_test_mode:
         print("Test Mode: would have created Alert: {}".format(alias))
     else:
         print("Creating Alert: {}".format(alias))
-        response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_message, alias=alias, description=info))
+        response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_msg, alias=alias, description=info))
         print('request id: {}'.format(response.request_id))
         print('took: {}'.format(response.took))
         print('result: {}'.format(response.result))
@@ -235,7 +235,11 @@ def extract_body(task):
     body = base64.b64decode(task['body'])
     body_dict = {}
 
-    if 'headers' in task and 'compression' in task['headers'] and task['headers']['compression'] == 'application/x-gzip':
+    if (
+        'headers' in task and
+        'compression' in task['headers'] and
+        task['headers']['compression'] == 'application/x-gzip'
+    ):
         body = zlib.decompress(body)
 
     if task.get('content-type') == 'application/json':
@@ -392,8 +396,8 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     queue_workers = {}
     try:
         for worker, data in celery_control.inspect().active_queues().items():
-             for queue in data:
-                 queue_workers.setdefault(queue['name'], []).append(worker)
+            for queue in data:
+                queue_workers.setdefault(queue['name'], []).append(worker)
     except Exception as e:
         print("Exception while getting queue to worker mappings:", e)
 
@@ -479,7 +483,6 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         elif new_state[queue_name]['alert_created'] and not do_alert:
             close_alert(opsgenie_api_key, environment, deploy, queue_name)
             new_state[queue_name]['alert_created'] = False
-
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
         print("DEBUG: Checking cleared queue {}".format(queue_name))
