@@ -46,9 +46,17 @@
 
 - name: Retrieve incommon server CA
   get_url:
-    url: "https://www.incommon.org/cert/repository/InCommonServerCA.txt"
+    url: "http://crt.incommon-rsa.org/InCommonRSAServerCA_2.crt"
     dest: "/usr/share/ca-certificates/incommon/InCommonServerCA.crt"
   when: incommon_present|failed
+  register: incommon_retrieved
+  tags:
+    - "install"
+    - "install:base"
+
+- name: Convert incommon server CA to usable format
+  command: "openssl x509 -inform DER -in /usr/share/ca-certificates/incommon/InCommonServerCA.crt -out /usr/share/ca-certificates/incommon/InCommonServerCA.crt"
+  when: incommon_retrieved|success
   tags:
     - "install"
     - "install:base"
