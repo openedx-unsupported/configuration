@@ -11,7 +11,7 @@ def check_for_yaml_key_collisions(files):
         content = None
         if file_path.endswith(".yml") or file_path.endswith(".yaml"):
             stream = file(file_path, 'r')
-            content = yaml.load(stream)
+            content = yaml.safe_load(stream)
         elif file_path.endswith(".json"):
             with open(file_path, "r") as read_file:
                 content = json.load(read_file)

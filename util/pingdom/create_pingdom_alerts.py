@@ -28,7 +28,7 @@ def main(noop, pingdom_email, pingdom_password,
          pingdom_api_key,
          alert_config_file):
     with open(alert_config_file, 'r') as stream:
-        config_file_content = yaml.load(stream)
+        config_file_content = yaml.safe_load(stream)
     config_file_content = replace_user_names_with_userids(pingdom_email,
                                                           pingdom_password,
                                                           pingdom_api_key,
