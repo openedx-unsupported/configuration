@@ -49,7 +49,7 @@ def refresh_cache():
     path = dirname(abspath(__file__))
     try:
         with open(join(path, 'orgs.yml')) as f:
-            orgs = yaml.load(f)
+            orgs = yaml.safe_load(f)
     except IOError:
         print "Unable to read {}/orgs.yml, does it exist?".format(path)
         sys.exit(1)

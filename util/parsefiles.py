@@ -145,7 +145,7 @@ def _open_yaml_file(file_str):
 
     with (file_str.open(mode='r')) as file:
         try:
-            yaml_file = yaml.load(file)
+            yaml_file = yaml.safe_load(file)
             return yaml_file
         except yaml.YAMLError, exc:
             LOGGER.error("error in configuration file: %s" % str(exc))
