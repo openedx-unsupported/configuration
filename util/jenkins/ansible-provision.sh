@@ -282,7 +282,7 @@ COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 
 # Todo: Uncomment these temp if found any related error otherwise, remove these below after testing
-#NGINX_ENABLE_SSL: false
+NGINX_ENABLE_SSL: false
 #_local_git_identity: $ssh_key
 EDXAPP_USE_GIT_IDENTITY: true
 EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
