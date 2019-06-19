@@ -592,9 +592,9 @@ cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
-ansible-playbook -vvvv -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
+run_ansible -vvvv -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-ansible-playbook -vvvv $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible -vvvv $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
 extra_var_arg+=' -e migrate_db="yes"'
@@ -604,8 +604,8 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 
 #git checkout $ForumConfigurationVersion
 
-ansible-playbook -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
-ansible-playbook -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+run_ansible -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
+run_ansible -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
