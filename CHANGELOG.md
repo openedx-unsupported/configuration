@@ -1,4 +1,7 @@
 - Role: registrar
+  - Changed `REGISTRAR_CELERY_ALWAYS_EAGER` default to `false`.
+
+- Role: registrar
   - Added `REGISTRAR_CELERY_ALWAYS_EAGER` with default `True`.
   - Injected above settings as environment variable for Registrar.
 
