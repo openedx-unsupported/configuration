@@ -214,6 +214,9 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
     cosnumed_keys_percentage = 100 - current_consumption
     days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
                                                                  last_max_reading)
+    if days_remaining_before_exhaustion < 365:
+        sys.exit(1)
+
 
 
 @click.command()
@@ -233,8 +236,4 @@ def controller(username, password, environment, deployment):
     # get list of all the RDSes across all the regions and deployments
     rds_list = get_rds_from_all_regions()
     table_list = check_primary_keys(rds_list, username, password, environment, deployment)
-    cloudwatch = CwBotoWrapper()
-    response = cloudwatch.list_metrics(Namespace=NAMESPACE,
-                                       MetricName=METRIC_NAME)
-
-    exit(0)
+    sys.exit(0)
