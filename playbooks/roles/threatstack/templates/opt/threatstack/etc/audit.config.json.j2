@@ -1,0 +1,45 @@
+{
+  "threatstack": {
+    "auditd": {
+      "cpumon": {
+        "inc-by": 300,
+        "dec-by": 50,
+        "avg-after": 5,
+        "ival-sec": 1,
+        "ival-usec": 0
+      },
+      "extra-netinfo": true,
+      "max-eoe-flush": 100,
+      "noop": 3,
+      "nnsleep": 1,
+      "filter": "/opt/threatstack/etc/tsauditd.lua",
+      "processors": [
+        {
+          "output": {
+            "config": {
+              "threads": 1,
+              "uri": "ipc:///opt/threatstack/tmp/.tsaudit",
+              "channel": "auditd"
+            },
+            "enable-noop": true,
+            "type": "zeromq"
+          }
+        },
+        {
+          "output": {
+            "config": {
+              "num_logs": {{ THREATSTACK_LOGS_TO_KEEP }},
+              "log_file": "/opt/threatstack/cloudsight/logs/tsaudit.log",
+              "max_log_file_action": "rotate",
+              "max_log_file": {{ THREATSTACK_LOGS_MAX_SIZE }},
+              "flush": true,
+              "flush_increment" : 4
+            },
+            "type": "auemu"
+          }
+        }
+      ]
+    }
+  }
+}
+

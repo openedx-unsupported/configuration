@@ -1,0 +1,160 @@
+# variables common to the mcka_apros role, automatically loaded
+# when the role is included
+---
+# mcka_apros_LOGGING_ENV: sandbox
+# mcka_apros_S3_BUCKET : 'sandbox-bucket'
+# mcka_apros_S3_PATH_PREFIX: 'sandbox-mcka_apros'
+# mcka_apros_AWS_ACCESS_KEY_ID : ''
+# mcka_apros_AWS_SECRET_ACCESS_KEY : ''
+# mcka_apros_BASIC_AUTH_USER: 'edx'
+# mcka_apros_BASIC_AUTH_PASSWORD: 'edx'
+# mcka_apros_DJANGO_USERS:
+#   lms: 'password'
+MCKA_APROS_LANG: 'en_US.UTF-8'
+#
+MCKA_APROS_MYSQL_DB_NAME: 'mcka_apros'
+MCKA_APROS_MYSQL_USER: 'mcka_apros001'
+MCKA_APROS_MYSQL_PASSWORD: 'password'
+MCKA_APROS_MYSQL_HOST: 'localhost'
+MCKA_APROS_MYSQL_PORT: 3306
+MCKA_APROS_API_SERVER_ADDRESS: 'http://127.0.0.1:8000'
+MCKA_APROS_STUDIO_SERVER_ADDRESS: 'http://127.0.0.1:8010'
+
+MCKA_APROS_ALLOW_EMBED_URL:
+  - "https://example.com"
+
+MCKA_APROS_CELERY_BROKER_TRANSPORT: "{{ EDXAPP_CELERY_BROKER_TRANSPORT }}"
+MCKA_APROS_CELERY_BROKER_USER: "{{ EDXAPP_CELERY_USER }}"
+MCKA_APROS_CELERY_BROKER_PASSWORD: "{{ EDXAPP_CELERY_PASSWORD }}"
+MCKA_APROS_CELERY_BROKER_HOSTNAME: "{{ EDXAPP_CELERY_BROKER_HOSTNAME }}"
+MCKA_APROS_CELERY_BROKER_VHOST: "{{ EDXAPP_CELERY_BROKER_VHOST }}"
+
+APROS_CELERY_BROKER_URL: "{{ MCKA_APROS_CELERY_BROKER_TRANSPORT }}://{{ MCKA_APROS_CELERY_BROKER_USER }}:{{ MCKA_APROS_CELERY_BROKER_PASSWORD }}@{{ MCKA_APROS_CELERY_BROKER_HOSTNAME }}//{{ MCKA_APROS_CELERY_BROKER_VHOST }}"
+APROS_WORKER_LMS_BASE: "https://{{ LMS_ELB }}/"
+
+APROS_OAUTH2_OPENEDX_CLIENT_ID: 'open'
+APROS_OAUTH2_OPENEDX_CLIENT_SECRET: 'secret'
+APROS_OAUTH2_MOBILE_CLIENT_ID: 'responsible'
+APROS_OAUTH2_MOBILE_CLIENT_SECRET: 'silk'
+
+# Internal vars below this line
+#############################################
+
+mcka_apros_app_dir: "{{ COMMON_APP_DIR }}/mcka_apros"
+mcka_apros_code_dir: "{{ mcka_apros_app_dir }}/mcka_apros"
+mcka_apros_data_dir: "{{ mcka_apros_app_dir }}/mcka_apros"
+mcka_apros_venvs_dir: "{{ mcka_apros_app_dir }}/venvs"
+mcka_apros_rbenv_root: "{{ mcka_apros_app_dir }}"
+mcka_apros_venv_dir: "{{ mcka_apros_venvs_dir }}/mcka_apros"
+mcka_apros_venv_bin: "{{ mcka_apros_venv_dir }}/bin"
+mcka_apros_user: "mcka_apros"
+mcka_apros_git_identity: "{{ mcka_apros_app_dir }}/mcka-apros-git-identity"
+mcka_apros_git_ssh: "/tmp/mcka_apros_git_ssh.sh"
+
+# Ruby Specific Vars
+mcka_apros_ruby_version: "2.4.1"
+mcka_apros_sass_version: '3.3.10'
+
+# Default nginx listen port
+# These should be overriden if you want
+# to serve all content on port 80
+mcka_apros_gunicorn_port: 8100
+mcka_apros_gunicorn_host: 127.0.0.1
+mcka_apros_gunicorn_timeout: 300
+nginx_apros_gunicorn_hosts:
+  - 127.0.0.1
+MCKA_APROS_WORKERS: 2
+WORKER_DEFAULT_CONCURRENCY: 1
+WORKER_HIGH_CONCURRENCY: 10
+
+MCKA_APROS_BASIC_AUTH: true
+MCKA_APROS_SESSION_COOKIE_DOMAIN: ".{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
+APROS_NGINX_PORT: 18100
+#
+MCKA_APROS_GA_TRACKING_ID: 'None'
+MCKA_APROS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-apros"
+MCKA_APROS_DJANGO_DEBUG: 'True'
+MCKA_APROS_LOCAL_LOGLEVEL: 'INFO'
+MCKA_APROS_SYSLOG_SERVER: 'localhost'
+
+MCKA_APROS_TA_EMAIL_GROUP: 'tas@mckinseyacademy.com'
+
+MCKA_APROS_GUNICORN_EXTRA_CONF: ''
+MCKA_APROS_GUNICORN_EXTRA: ''
+MCKA_APROS_GUNICORN_MAX_REQUESTS: !!null
+
+mcka_apros_env_config:
+  LOGGING_ENV : "{{ COMMON_ENVIRONMENT }}"
+  SYSLOG_SERVER: "{{ MCKA_APROS_SYSLOG_SERVER }}"
+  LOG_DIR : "{{ COMMON_DATA_DIR }}/log/mcka_apros"
+  LOCAL_LOGLEVEL: "{{ MCKA_APROS_LOCAL_LOGLEVEL }}"
+  SESSION_TIMEOUT_SECONDS: 1800
+  GA_TRACKING_ID: "{{ MCKA_APROS_GA_TRACKING_ID }}"
+  TA_EMAIL_GROUP: "{{ MCKA_APROS_TA_EMAIL_GROUP }}"
+
+
+mcka_apros_environment:
+  LANG: "{{ MCKA_APROS_LANG }}"
+  SKIP_WS_MIGRATIONS: 1
+  CONFIG_ROOT: "{{ mcka_apros_app_dir }}"
+  PATH: "{{ mcka_apros_rbenv_root }}/.rbenv/versions/{{ mcka_apros_ruby_version }}/bin:{{mcka_apros_venv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+mcka_apros_auth_config:
+  AWS_ACCESS_KEY_ID:  "{{ MCKA_APROS_AWS_ACCESS_KEY_ID }}"
+  AWS_SECRET_ACCESS_KEY: "{{ MCKA_APROS_AWS_SECRET_ACCESS_KEY }}"
+  SECRET_KEY: "{{ MCKA_APROS_DJANGO_SECRET_KEY }}"
+  THIRD_PARTY_AUTH_API_SECRET: "{{ MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET }}"
+  DATABASES:
+    default:
+      ENGINE: "django.db.backends.mysql"
+      NAME: "{{ MCKA_APROS_MYSQL_DB_NAME }}"
+      USER: "{{ MCKA_APROS_MYSQL_USER }}"
+      PASSWORD: "{{ MCKA_APROS_MYSQL_PASSWORD }}"
+      HOST: "{{ MCKA_APROS_MYSQL_HOST }}"
+      PORT: "{{ MCKA_APROS_MYSQL_PORT }}"
+#
+MCKA_APROS_FEATURE_NOTES: "False"
+
+mcka_apros_features:
+    notes: "{{MCKA_APROS_FEATURE_NOTES}}"
+
+mcka_apros_source_repo: "git@github.com:mckinseyacademy/mcka_apros.git"
+mcka_apros_version: 'master'
+mcka_apros_requirements_file:   "{{ mcka_apros_code_dir }}/requirements.txt"
+mcka_apros_prerequirements_file:   "{{ mcka_apros_code_dir }}/pre-requirements.txt"
+#
+
+
+# These packages are required for the mcka_apros server,
+# copied from the xqueue role for now since there is a lot
+# of overlap
+mcka_apros_debian_pkgs:
+  # for compiling the virtualenv
+  # (only needed if wheel files aren't available)
+  - build-essential
+  - s3cmd
+  - pkg-config
+  - graphviz-dev
+  - graphviz
+  - libmysqlclient-dev
+  # apparmor
+  - apparmor-utils
+  # misc
+  - curl
+  - ipython
+  # npm
+  - ntp
+  # for shapely
+  - libgeos-dev
+  # Needed to be able to create the mcka_apros mysqldb.
+  - python-mysqldb
+  - libjpeg-turbo8-dev
+  - zlib1g-dev
+
+
+##################################################################
+#
+# Enable Internationalization Flag
+#
+MCKA_APROS_ENABLE_INTERNATIONALIZATION : True
+

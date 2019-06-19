@@ -1,0 +1,93 @@
+
+---
+#
+# Tasks for role threatstack
+# 
+# Overview:
+#
+# Installs and configures the threatstack system monitoring agent.
+#
+# Example play:
+#
+# - name: Install threatstack system agent
+#   hosts: all
+#   sudo: True
+#   roles:
+#     - threatstack
+
+- name: Install setup dependency.
+  apt:
+    name: python-apt
+    update_cache: yes
+    state: installed
+
+- name: Download Threat Stack apt repository key
+  shell: curl -L "{{ THREATSTACK_KEY_URL }}" -o /var/tmp/threatstack_key.gpg
+  args:
+    creates: /var/tmp/threatstack_key.gpg
+
+- name: Add Threat Stack apt repository key.
+  apt_key:
+    file: "/var/tmp/threatstack_key.gpg"
+    state: present
+    validate_certs: no
+
+- name: Add Threat Stack apt repository.
+  apt_repository:
+    repo: "deb {{ THREATSTACK_REPO }}/Ubuntu {{ ansible_distribution_release }} main"
+    state: present
+    update_cache: yes
+
+- name: Ensure Threat Stack is installed.
+  apt:
+    name: threatstack-agent
+    state: installed
+
+- name: Install get_instance_role.py helper
+  copy: 
+    src: get_instance_role.py 
+    dest: /edx/bin/get_instance_role.py
+    owner: root 
+    group: root
+    mode: 0755
+
+  # this is purposely not run from ansible - we want this to be run on boot by upstart to register each instance uniquely
+- name: Create threatstack upstart job
+  template:
+    src: etc/init/threatstack-setup.conf.j2 
+    dest: /etc/init/threatstack-setup.conf
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
+
+- name: Add threatstack systemd configuration
+  template: 
+    src: etc/systemd/system/threatstack-setup.service.j2
+    dest: /etc/systemd/system/threatstack-setup.service
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'xenial' and THREATSTACK_LICENSE_KEY is defined
+
+- name: Enable threatstack configuration on boot
+  command: "systemctl enable threatstack-setup.service"
+  when: ansible_distribution_release == 'xenial' and THREATSTACK_LICENSE_KEY is defined
+
+- name: Copy the modified builtin log rotate configuration for threatstack
+  template:
+    src: opt/threatstack/etc/audit.config.json.j2 
+    dest: /opt/threatstack/etc/audit.config.json
+    owner: root
+    group: root
+  register: modified_config
+
+- name: Set up log rotation
+  template:
+    src: "etc/logrotate.d/threatstack_logrotate.j2"
+    dest: "/etc/logrotate.d/threatstack"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Restart the threatstack agent 
+  command: cloudsight restart
+  when: modified_config.changed

@@ -1,0 +1,190 @@
+upstream apros_app_server {
+    {% for host in nginx_apros_gunicorn_hosts %}
+        server {{ host }}:{{ mcka_apros_gunicorn_port }} fail_timeout=0;
+    {% endfor %}
+}
+
+map $http_origin $cors_origin {
+  default "null";
+  {% for host in EDXAPP_CORS_ORIGIN_WHITELIST %}
+    "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+  {% endfor %}
+}
+
+
+server {
+  listen {{ APROS_NGINX_PORT }};
+  server_name {{ APROS_ELB }};
+  merge_slashes off;
+  client_max_body_size 20M;
+
+  server_tokens off;
+  error_page 500 /static/pages/500.html;
+  error_page 503 /static/pages/503.html;
+  proxy_intercept_errors on;
+
+  location / {
+    if (-f {{ mcka_apros_data_dir }}/maintenance.lock) {
+        return 503;
+    }
+    {% if MCKA_APROS_BASIC_AUTH %}
+    auth_basic "Restricted";
+    auth_basic_user_file {{ mcka_apros_app_dir }}/htpasswd;
+    {% endif %}
+
+    try_files $uri @proxy_to_appros;
+  }
+
+  if ($args !~ "ajax=1") {
+      rewrite ^/courses/([^/]+)/([^/]+)/([^/]+)/discussion/forum/([^/]+/threads/[^/]+)/?$ https://$host/courses/slashes:$1+$2+$3/discussion/$4 redirect;
+  }
+
+  location ~ ^/courses/.*/discussion/forum/users/\d+/?$ {
+    try_files $uri @proxy_to_appros;
+  }
+
+  #shortcut course discussion backbone navigation to apros
+
+  location ~ "^/courses/.*/discussion/[\w\-]+/threads/[0-9a-f]{24}/?$" {
+    try_files $uri @proxy_to_appros;
+  }
+
+  # XBlock content from LMS
+
+  location /api/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /heartbeat {
+    # If in maintenance mode, serve an
+    # empty 200 so the instance stays in the load balancer to serve the
+    # maintenance page
+    if (-f {{ mcka_apros_data_dir }}/maintenance.lock) {
+        return 200;
+    }
+    try_files $uri @proxy_to_appros;
+  }
+
+  location /mcka-api/ {
+    try_files $uri @proxy_to_appros;
+  }
+
+  location /.well-known/ {
+    try_files $uri @proxy_to_appros;
+  }
+
+  #pass xblocks through to the LMS
+
+  location /xblock/resource/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location ~ ^/courses/.*/xblock/ {
+    try_files $uri @proxy_to_lms_app;
+    add_header 'Access-Control-Allow-Origin' $cors_origin;
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+
+  }
+
+  #pass discussions through to the LMS
+
+  location ~ ^/courses/.*/discussion/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /notification_prefs/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /assets/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  location /c4x/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # serve generated static content from cache
+
+  location ~ /static/(?P<file>.*) {
+    expires 30m;
+    add_header Cache-Control "public";
+    root {{ mcka_apros_data_dir }};
+    try_files /static_cache/$file /static/$file @proxy_to_lms_nginx;
+
+  }
+
+  # This rule is needed for third party auth to work
+  location /auth/ {
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header Host $http_host;
+
+    # These two are used by the LMS to workaround the issue with running on a non-standard port behind the reverse
+    # proxy. In short, python-social-auth detects that it runs on non-standard port and fails SAML Assertion
+    # check because it was sent to default HTTP port. LMS custom TPA strategy makes use of these headers
+    # to override host and port to check against
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header X-Forwarded-Port $server_port;
+
+    proxy_redirect off;
+    proxy_pass http://lms-backend;
+  }
+
+  # Needed for mobile SSO-based auth to work
+  location /oauth2/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # Needed for xblock reporting work
+  location /instructor_task_status {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+
+location @proxy_to_lms_nginx {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://localhost:{{EDXAPP_LMS_NGINX_PORT}};
+}
+
+location @proxy_to_lms_app {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://lms-backend;
+ }
+
+location @proxy_to_appros {
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://apros_app_server;
+
+  if ($host ~* beta\.(.*)) {
+    set $www_host www.$1;
+    rewrite ^(.*)$ https://$www_host$1 permanent;
+  }
+
+ # Forward to HTTPS if we're an HTTP request...
+  if ($http_x_forwarded_proto = "http") {
+    set $do_redirect "true";
+  }
+
+  # Run our actual redirect...
+  if ($do_redirect = "true") {
+    rewrite ^ https://$host$request_uri? permanent;
+  } }
+
+}

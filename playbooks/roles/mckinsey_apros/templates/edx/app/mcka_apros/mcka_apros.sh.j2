@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% if COMMON_ENABLE_NEWRELIC %}
+{% set executable = mcka_apros_venv_bin + '/newrelic-admin run-program ' + mcka_apros_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = mcka_apros_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ MCKA_APROS_NEWRELIC_APPNAME }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+export PID=/var/tmp/mcka_apros.pid
+export PORT={{ mcka_apros_gunicorn_port }}
+export ADDRESS={{ mcka_apros_gunicorn_host }}
+export LANG={{ MCKA_APROS_LANG }}
+
+{{ executable }} -c {{ mcka_apros_app_dir  }}/mcka_apros_gunicorn.py {{ MCKA_APROS_GUNICORN_EXTRA }} mcka_apros.wsgi:application

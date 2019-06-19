@@ -1,0 +1,12 @@
+[Unit]
+Description=Register and start threatstack
+Before=cloudsight.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/rm -f /opt/threatstack/cloudsight/config/.secret
+ExecStartPre=/bin/bash -c "/bin/systemctl set-environment THREATSTACK_ROLE=$(/edx/bin/get_instance_role.py)"
+ExecStart=/usr/bin/cloudsight setup --deploy-key={{ THREATSTACK_LICENSE_KEY }} --ruleset=$THREATSTACK_ROLE
+
+[Install]
+WantedBy=multi-user.target

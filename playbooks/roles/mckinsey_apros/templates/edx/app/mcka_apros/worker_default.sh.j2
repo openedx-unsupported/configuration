@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% if COMMON_ENABLE_NEWRELIC %}
+{% set executable = mcka_apros_venv_bin + '/newrelic-admin run-program ' + mcka_apros_venv_bin + '/python' %}
+{% else %}
+{% set executable = mcka_apros_venv_bin + '/python' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ MCKA_APROS_NEWRELIC_APPNAME }}"
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+export PID=/var/tmp/mcka_apros_celery_worker.pid
+export LANG={{ MCKA_APROS_LANG }}
+
+{{ executable }} {{ mcka_apros_code_dir  }}/manage.py celery worker -Ofair --settings=mcka_apros.worker --loglevel=info --queues=default --concurrency={{ WORKER_DEFAULT_CONCURRENCY }} --hostname=apros_default@%h --maxtasksperchild 1

@@ -1,0 +1,124 @@
+# -*- coding: utf-8 -*-
+
+import os, json
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+# Pull config from generated json.
+
+# CONFIG_ROOT specifies the directory where the JSON configuration
+# files are expected to be found.
+CONFIG_ROOT = "{{ mcka_apros_app_dir }}"
+
+with open(CONFIG_ROOT + "/mcka_apros.auth.json") as auth_file:
+    AUTH_TOKENS = json.load(auth_file)
+
+with open(CONFIG_ROOT + "/mcka_apros.env.json") as env_file:
+    APROS_ENV = json.load(env_file)
+
+try:
+  from logsettings import get_logger_config
+  LOGGING = get_logger_config(APROS_ENV['LOG_DIR'],
+                            logging_env=APROS_ENV['LOGGING_ENV'],
+                            tracking_filename="mcka_apros.log",
+                            dev_env=False,
+                            debug=True)
+except ImportError:
+  pass
+
+try:
+  import memcache
+  CACHES = {
+      'default': {
+          'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+          'LOCATION': {{ EDXAPP_MEMCACHE }},
+      }
+  }
+except ImportError:
+  pass
+
+DATABASES = AUTH_TOKENS['DATABASES']
+
+SECRET_KEY = AUTH_TOKENS['SECRET_KEY']
+EDX_SSO_DATA_HMAC_KEY = AUTH_TOKENS['THIRD_PARTY_AUTH_API_SECRET']
+
+API_SERVER_ADDRESS = '{{ MCKA_APROS_API_SERVER_ADDRESS }}'
+STUDIO_SERVER_ADDRESS = '{{ MCKA_APROS_STUDIO_SERVER_ADDRESS }}'
+
+HAMLPY_ATTR_WRAPPER = '"'
+
+DEBUG = {{ MCKA_APROS_DJANGO_DEBUG }}
+SHOW_DEBUG_TOOLBAR_ALL_IPS = True
+ALLOWED_HOSTS = [
+    '*',
+    ]
+ASSETS_ROOT = 'static'
+
+EDX_API_KEY = '{{ MCKA_APROS_API_KEY }}'
+
+SESSION_TIMEOUT_SECONDS = {{ mcka_apros_env_config.SESSION_TIMEOUT_SECONDS }}
+
+# LMS
+LMS_BASE_DOMAIN = '{{ EDXAPP_BASE }}'
+LMS_SUB_DOMAIN = '{{ EDXAPP_LMS_SUBDOMAIN }}'
+
+VERTICAL_USAGE_ID = 'i4x:;_;_edX;_Open_DemoX;_vertical;_d6cee45205a449369d7ef8f159b22bdf'
+GA_TRACKING_ID = APROS_ENV['GA_TRACKING_ID']
+TA_EMAIL_GROUP = APROS_ENV['TA_EMAIL_GROUP']
+
+EMAIL_BACKEND = "django_ses.SESBackend"
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+AWS_ACCESS_KEY_ID = "{{ MCKA_APROS_AWS_ACCESS_KEY_ID }}"
+AWS_SECRET_ACCESS_KEY = "{{ MCKA_APROS_AWS_SECRET_ACCESS_KEY }}"
+AWS_STORAGE_BUCKET_NAME = "{{ MCKA_APROS_AWS_STORAGE_BUCKET_NAME }}"
+
+SESSION_COOKIE_SECURE = True
+LMS_SESSION_COOKIE_DOMAIN = "{{ MCKA_APROS_SESSION_COOKIE_DOMAIN }}"
+USE_SESSION_COURSEWARE_CACHING = True
+
+PROGRESS_IGNORE_COMPONENTS = [
+'discussion-course',
+'group-project',
+'discussion-forum',
+'discussion',
+]
+FEATURES = {
+  'notes': {{MCKA_APROS_FEATURE_NOTES}}
+  }
+
+IGNORE_ROLES = [
+'instructor',
+'staff',
+]
+
+SSO_AUTOPROVISION_PROVIDERS = "{{ MCKA_APROS_SSO_AUTOPROVISION_PROVIDERS }}"
+LEARNER_DASHBOARD_ENABLED = True
+MILESTONES_ENABLED = "{{ MCKA_APROS_MILESTONES_ENABLED }}"
+
+ALLOW_EMBED_URL = "{{ MCKA_APROS_ALLOW_EMBED_URL | join(' ') }}"
+
+BROKER_URL = "{{ APROS_CELERY_BROKER_URL }}"
+
+# When the broker is behind an ELB, use a heartbeat to refresh the
+# connection and to detect if it has been dropped.
+BROKER_HEARTBEAT = 10.0
+BROKER_HEARTBEAT_CHECKRATE = 2
+
+# Apros OAuth2 client settings
+OAUTH2_OPENEDX_CLIENT_ID = "{{ APROS_OAUTH2_OPENEDX_CLIENT_ID }}"
+OAUTH2_OPENEDX_CLIENT_SECRET = "{{ APROS_OAUTH2_OPENEDX_CLIENT_SECRET }}"
+
+# OAuth2 Credentials for Mobile
+OAUTH2_MOBILE_CLIENT_ID = "{{ APROS_OAUTH2_MOBILE_CLIENT_ID }}"
+OAUTH2_MOBILE_CLIENT_SECRET = "{{ APROS_OAUTH2_MOBILE_CLIENT_SECRET }}"
+
+# Internationalization
+USE_I18N = {{ MCKA_APROS_ENABLE_INTERNATIONALIZATION }}
+LANGUAGES = [
+    {% for key, value in MCKA_APROS_SUPPORTED_LANGUAGES.items() %}
+        ("{{ key }}", u"{{ value }}"),
+    {% endfor %}
+]
+
+# Heap Analytics
+HEAP_ENV_ID = "{{ HEAP_APP_ID }}"
+

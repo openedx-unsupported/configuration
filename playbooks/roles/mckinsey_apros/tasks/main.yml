@@ -1,0 +1,336 @@
+- name: put apros into maintenance mode
+  copy: >
+    dest="{{ mcka_apros_data_dir }}/maintenance.lock"
+    content=""
+  when: not MCKA_APROS_DJANGO_DEBUG
+
+- name: create application user
+  user: >
+    name="{{ mcka_apros_user }}"
+    home="{{ mcka_apros_app_dir }}"
+    createhome=no
+    shell=/bin/false
+  tags: mcka_apros
+
+- name: create mcka_apros app venv and log dir
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ mcka_apros_app_dir }}"
+    - "{{ mcka_apros_venvs_dir }}"
+    - "{{ COMMON_DATA_DIR }}/log/mcka_apros"
+  tags: mcka_apros
+
+- name: install a bunch of system packages on which mcka_apros relies
+  apt: pkg={{','.join(mcka_apros_debian_pkgs)}} state=present
+  tags: mcka_apros
+
+- name: symlink {{ item }} into /usr/lib
+  file: >
+    src=/usr/lib/x86_64-linux-gnu/{{ item }}.so
+    dest=/usr/lib/{{ item }}.so
+    state=link
+  with_items:
+    - libjpeg
+    - libz
+
+- name: "add gunicorn configuration file"
+  template: >
+    src=edx/app/mcka_apros/mcka_apros_gunicorn.py.j2
+    dest={{ mcka_apros_app_dir }}/mcka_apros_gunicorn.py
+    mode=0644
+  sudo_user: "{{ mcka_apros_user }}"
+
+- name: "write out the supervisor wrapper"
+  template:
+    src: edx/app/mcka_apros/{{ item }}.sh.j2
+    dest: "{{ mcka_apros_app_dir }}/{{ item }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  with_items:
+    - mcka_apros
+    - worker_default
+    - worker_high
+
+- name: "write out the migration wrapper"
+  template:
+    src: "edx/app/mcka_apros/mcka_apros_env.j2"
+    dest: "{{ mcka_apros_app_dir }}/mcka_apros_env"
+    mode: 0650
+    owner: "{{ mcka_apros_user }}"
+    group: "{{ common_web_user }}"
+
+- name: "writing supervisor scripts - mcka apros"
+  template:
+    src: "edx/app/supervisor/conf.available.d/{{ item }}.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ item }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+  with_items: 
+    - mcka_apros
+    - celery_worker
+  tags: mcka_apros
+
+- name: "enabling supervisor scripts - mcka_apros"
+  file: >
+    src={{ supervisor_available_dir }}/{{ item }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ item }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }}
+    mode=0644 state=link force=yes
+  with_items: 
+    - mcka_apros
+    - celery_worker
+  when: not disable_edx_services
+  tags: mcka_apros
+
+- name: create mcka apros application config
+  template: src=edx/app/mcka_apros/mcka_apros.env.json.j2 dest={{ mcka_apros_app_dir }}/mcka_apros.env.json mode=0644
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+- name: create mcka apros auth file
+  template: src=edx/app/mcka_apros/mcka_apros.auth.json.j2 dest={{ mcka_apros_app_dir }}/mcka_apros.auth.json mode=0644
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+- name: create ssh script for git (authenticated)
+  template: >
+    src=tmp/git_ssh_auth.sh.j2 dest={{ mcka_apros_git_ssh }}
+    owner={{ mcka_apros_user }} mode=750
+  when: MCKA_APROS_USE_GIT_IDENTITY
+  tags: mcka_apros
+
+- name: install read-only ssh key
+  copy: >
+    content="{{ EDXAPP_GIT_IDENTITY }}" dest={{ mcka_apros_git_identity }}
+    force=yes owner={{ mcka_apros_user }} mode=0600
+  when: MCKA_APROS_USE_GIT_IDENTITY
+  tags: mcka_apros
+
+- name: create mcka_apros user ssh directory
+  file: >
+    path="{{ mcka_apros_app_dir }}/.ssh"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+  tags: mcka_apros
+
+- name: git checkout apros repo into mcka_apros_code_dir
+  git: dest={{ mcka_apros_code_dir }} repo={{ mcka_apros_source_repo }} version={{ mcka_apros_version }} accept_hostkey=true
+  sudo_user: "{{ mcka_apros_user }}"
+  environment:
+    GIT_SSH: "{{ mcka_apros_git_ssh }}"
+  register: mcka_apros_checkout
+  tags: mcka_apros
+
+- name: git clean after checking out mckinsey apros
+  shell: cd {{ mcka_apros_code_dir }} && git clean -xdf
+  become_user: "{{ mcka_apros_user }}"
+  tags:
+    - install
+    - install:code
+
+- name: "writing local_config template"
+  template: 
+    src: "edx/app/mcka_apros/mcka_apros/mcka_apros/{{item}}.j2" 
+    dest: "{{ mcka_apros_code_dir }}/mcka_apros/{{item}}.py"
+    mode: 0644
+    owner: "{{ mcka_apros_user }}"
+    group: "{{ common_web_user }}"
+  with_items:
+    - local_settings
+    - worker
+  tags: mcka_apros
+
+- name: "writing htpasswd file"
+  template: src=edx/app/mcka_apros/htpasswd.j2 dest={{ mcka_apros_app_dir }}/htpasswd mode=0644
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+
+# Install sass
+
+- name: install sass
+  shell: gem install sass -v '{{ mcka_apros_sass_version}}' -f
+  args: 
+    chdir: "{{ mcka_apros_code_dir }}"
+    executable: /bin/bash
+  environment: "{{ mcka_apros_environment }}"
+  become_user: "{{ mcka_apros_user }}"
+
+- name: install python requirements
+  pip: >
+    requirements="{{ item }}"
+    virtualenv="{{ mcka_apros_venv_dir }}"
+    state=present
+  sudo_user: "{{ mcka_apros_user }}"
+  with_items:
+    - "{{ mcka_apros_prerequirements_file }}"
+    - "{{ mcka_apros_requirements_file }}"
+  tags: mcka_apros
+
+- name: create a symlink for venv python
+  file: >
+    src="{{ mcka_apros_venv_bin }}/{{ item }}"
+    dest={{ COMMON_BIN_DIR }}/{{ item }}.mcka_apros
+    state=link
+  with_items:
+  - python
+  - pip
+  tags: mcka_apros
+
+- name: create a symlink for manage.py
+  file: >
+    src="{{ mcka_apros_code_dir }}/manage.py"
+    dest={{ COMMON_BIN_DIR }}/manage.mcka_apros
+    state=link
+  tags: mcka_apros
+
+- name: create assets directory
+  file: >
+    path="{{ mcka_apros_code_dir }}/static/gen"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+
+- name: create pages directory
+  file: >
+    path="{{ mcka_apros_code_dir }}/static/pages"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+
+# assets compilation
+- name: compile css (sass)
+  shell: >
+    ./manage.py assets build
+      chdir={{ mcka_apros_code_dir }}
+      executable=/bin/bash
+  environment: "{{ mcka_apros_environment }}"
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+- name: compile custom error pages
+  shell: >
+    ./manage.py generate_error_pages
+      chdir={{ mcka_apros_code_dir }}
+      executable=/bin/bash
+  environment: "{{ mcka_apros_environment }}"
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+
+# assets gathering
+- name: gather assets
+  shell: >
+    ./manage.py collectstatic --noinput
+      chdir={{ mcka_apros_code_dir }}
+      executable=/bin/bash
+  environment: "{{ mcka_apros_environment }}"
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+- name: set permissions on assets directory
+  file: >
+    path="{{ mcka_apros_code_dir }}/static/gen"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+    recurse=true
+    mode="0775"
+
+- name: set permissions on pages directory
+  file: >
+    path="{{ mcka_apros_code_dir }}/static/pages"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+    mode="0775"
+
+- name: set permissions on images directory
+  file: >
+    path="{{ mcka_apros_code_dir }}/images"
+    state=directory
+    owner="{{ mcka_apros_user }}"
+    group="{{ common_web_group }}"
+    mode="0775"
+
+- name: syncdb and migrate
+  shell: >
+    SERVICE_VARIANT=mcka_apros {{ mcka_apros_venv_bin }}/django-admin.py syncdb --migrate --noinput --settings=mcka_apros.aws_settings --pythonpath={{ mcka_apros_code_dir }}
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  sudo_user: "{{ mcka_apros_user }}"
+  tags: mcka_apros
+
+  # call supervisorctl update. this reloads
+  # the supervisorctl config and restarts
+  # the services if any of the configurations
+  # have changed.
+  #
+- name: update supervisor configuration for mcka_apros
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout != ""
+  when: not disable_edx_services
+  tags: mcka_apros
+
+- name: ensure mcka_apros is running
+  supervisorctl: >
+    name={{ item }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=started
+  with_items:
+  - mcka_apros
+  when: not disable_edx_services
+  tags: mcka_apros
+
+- name: Copying nginx configs for mcka_apros
+  template: >
+    src=edx/app/nginx/sites-available/mcka_apros.j2
+    dest={{ nginx_sites_available_dir }}/mcka_apros
+    owner=root group={{ common_web_user }} mode=0640
+  notify: reload nginx
+  tags: mcka_apros
+
+- name: Linking nginx configs for mcka_apros
+  file: >
+    src={{ nginx_sites_available_dir }}/mcka_apros
+    dest={{ nginx_sites_enabled_dir }}/mcka_apros
+    state=link owner=root group=root
+  notify: reload nginx
+  tags: mcka_apros
+
+- include: tag_ec2.yml tags=deploy
+  when: COMMON_TAG_EC2_INSTANCE
+
+- set_fact: mcka_apros_installed=true
+
+- name: restart mcka_apros
+  supervisorctl: >
+    name={{ item }}
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    state=restarted
+  when: mcka_apros_installed is defined and not disable_edx_services
+  with_items:
+  - mcka_apros
+  - celery_worker_default
+  - celery_worker_high
+  tags:
+    - manage
+    - manage:start
+
+- name: take apros out of maintenance mode
+  file: >
+    dest="{{ mcka_apros_data_dir }}/maintenance.lock"
+    state=absent
+  tags:
+    - manage
+    - manage:start
+
