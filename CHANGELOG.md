@@ -1,3 +1,7 @@
+- Role: registrar
+  - Added `REGISTRAR_CELERY_ALWAYS_EAGER` with default `True`.
+  - Injected above settings as environment variable for Registrar.
+
 - Role: xserver
   - Remove xserver from sandbox builds.
 
