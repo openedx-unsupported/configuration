@@ -19,6 +19,55 @@
 - Role: designer
   - Create role
 
+- Role: supervisor
+  - Add registrar to `pre_supervisor_checks.py`
+
+- Role: registrar
+  - Added `registrar-workers.conf.j2`
+  - Add task to generate `registrar-workers.conf` from `registrar-workers.conf.j2`
+  - Added `REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING`
+  - Added `REGISTRAR_WORKER_DEFAULT_STOPWAITSECS`
+  - Added `REGISTRAR_CELERY_HEARTBEAT_ENABLED`
+  - Added `REGISTRAR_NEWRELIC_WORKERS_APPNAME`
+  - Added `REGISTRAR_CELERY_WORKERS`
+
+- Role: registrar
+  - Added `REGISTRAR_CELERY_BROKER_TRANSPORT`.
+  - Added `REGISTRAR_CELERY_BROKER_USER`.
+  - Added `REGISTRAR_CELERY_BROKER_PASSWORD`.
+  - Added `REGISTRAR_CELERY_BROKER_HOSTNAME`.
+  - Added `REGISTRAR_CELERY_BROKER_VHOST`.
+  - Injected all above settings as environment variables for Registrar.
+
+- Role: registrar
+  - Added `REGISTRAR_API_ROOT`
+  - Modified `REGISTRAR_MEDIA_URL`.
+
+- Role: edx_django_service
+  - Added new overridable variable `edx_django_service_api_root`
+
+- Role: registrar
+  - Replaced `REGISTRAR_MEDIA_ROOT`.
+  - Added `REGISTRAR_MEDIA_STORAGE_BACKEND`.
+
+- Role: registrar
+  - Replaced `REGISTRAR_LMS_URL_ROOT` with `REGISTRAR_LMS_BASE_URL`.
+  - Replaced `REGISTRAR_DISCOVERY_API_URL` with `REGISTRAR_DISCOVERY_BASE_URL`.
+
+- Role: registrar
+  - Added `REGISTRAR_SEGMENT_KEY` for segment.io event tracking.
+
+- Role: registrar
+  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_KEY` for oauth2.
+  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_SECRET` for oauth2.
+  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_KEY` for backend auth.
+  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_SECRET` for backend auth.
+  - Added `REGISTRAR_SERVICE_USER_EMAIL` to have a registrar service user on LMS
+  - Added `REGISTRAR_SERVICE_USER_NAME` to have a registrar service user on LMS
+
+- Role: registrar
+  - Create role
+
 - Role: edxapp
   - Added ENTERPRISE_MARKETING_FOOTER_QUERY_PARAMS to allow for edx specific query params to be added for business marketing footer.
 
@@ -738,51 +787,3 @@
   - Added `WHITELABEL_DNS` for DNS settings of themes.
   - Added `WHITELABEL_ORG` for whitelabel organization settings.
 
-- Role: registrar
-  - Create role
-
-- Role: registrar
-  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_KEY` for oauth2.
-  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_SECRET` for oauth2.
-  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_KEY` for backend auth.
-  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_SECRET` for backend auth.
-  - Added `REGISTRAR_SERVICE_USER_EMAIL` to have a registrar service user on LMS
-  - Added `REGISTRAR_SERVICE_USER_NAME` to have a registrar service user on LMS
-
-- Role: registrar
-  - Added `REGISTRAR_SEGMENT_KEY` for segment.io event tracking.
-
-- Role: registrar
-  - Replaced `REGISTRAR_LMS_URL_ROOT` with `REGISTRAR_LMS_BASE_URL`.
-  - Replaced `REGISTRAR_DISCOVERY_API_URL` with `REGISTRAR_DISCOVERY_BASE_URL`.
-
-- Role: registrar
-  - Replaced `REGISTRAR_MEDIA_ROOT`.
-  - Added `REGISTRAR_MEDIA_STORAGE_BACKEND`.
-
-- Role: edx_django_service
-  - Added new overridable variable `edx_django_service_api_root`
-
-- Role: registrar
-  - Added `REGISTRAR_API_ROOT`
-  - Modified `REGISTRAR_MEDIA_URL`.
-
-- Role: registrar
-  - Added `REGISTRAR_CELERY_BROKER_TRANSPORT`.
-  - Added `REGISTRAR_CELERY_BROKER_USER`.
-  - Added `REGISTRAR_CELERY_BROKER_PASSWORD`.
-  - Added `REGISTRAR_CELERY_BROKER_HOSTNAME`.
-  - Added `REGISTRAR_CELERY_BROKER_VHOST`.
-  - Injected all above settings as environment variables for Registrar.
-
-- Role: registrar
-  - Added `registrar-workers.conf.j2`
-  - Add task to generate `registrar-workers.conf` from `registrar-workers.conf.j2`
-  - Added `REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING`
-  - Added `REGISTRAR_WORKER_DEFAULT_STOPWAITSECS`
-  - Added `REGISTRAR_CELERY_HEARTBEAT_ENABLED`
-  - Added `REGISTRAR_NEWRELIC_WORKERS_APPNAME`
-  - Added `REGISTRAR_CELERY_WORKERS`
-
-- Role: supervisor
-  - Add registrar to `pre_supervisor_checks.py`
