@@ -135,7 +135,7 @@ def controller(username, password, threshold, rdsthreshold, rdsignore):
     """
     rds_threshold = dict(rdsthreshold)
     rds_list = rds_extractor()
-    filtered_rds_list = list(filter(lambda x: x not in rdsignore, rds_list))
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
     table_list = check_table_growth(filtered_rds_list, username, password, threshold, rds_threshold)
     if len(table_list) > 0:
         format_string = "{:<40}{:<20}{:<50}{}"
