@@ -101,7 +101,8 @@ def generate_dashboard(environment, deploy):
     width = 24
     y_cord = 0
     region = "us-east-1"
-    right_axis_items=["edx.lms.core.ace", "edx.lms.core.background_process",  "celery"]
+    right_axis_items=["edx.lms.core.ace", "edx.lms.core.background_process", "notifier.default"]
+    right_axis_items_age=["notifier.default"]
 
     height = 9
 
@@ -145,7 +146,7 @@ def generate_dashboard(environment, deploy):
     widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
         title="{}-{} All Queues Next Task Age".format(environment, deploy),
         namespace=celery_namespace, metric_name="next_task_age", dimension_name="queue",
-        right_axis_items=right_axis_items
+        right_axis_items=right_axis_items_age
     ))
 
     y_cord += height
