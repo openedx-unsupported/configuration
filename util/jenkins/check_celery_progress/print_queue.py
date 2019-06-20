@@ -203,9 +203,9 @@ def check_queues(host, port, queue, items, body):
 
             correlation_id = queue_first_item_decoded['properties']['correlation_id']
 
-            body = {}
+            extracted_body = {}
             try:
-                body = extract_body(queue_first_item_decoded)
+                extracted_body = extract_body(queue_first_item_decoded)
             except Exception as error:
                 print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
                 ret_val = 1
@@ -214,13 +214,13 @@ def check_queues(host, port, queue, items, body):
             info = generate_info(
                 queue_name,
                 correlation_id,
-                body,
+                extracted_body,
                 active_tasks,
             )
             print(info)
             if body:
                 print("BODY")
-                pprint(body)
+                pprint(extracted_body)
 
     sys.exit(ret_val)
 
