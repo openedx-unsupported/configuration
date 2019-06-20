@@ -228,7 +228,7 @@ def close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode
         print("Test Mode: would have closed Alert: {}".format(alias))
     else:
         print("Closing Alert: {}".format(alias))
-        # Need body=CloseAlertRequest(source="") otherwise OpsGenie API complains that bdoy must be a json object
+        # Need body=CloseAlertRequest(source="") otherwise OpsGenie API complains that body must be a json object
         response = AlertApi().close_alert(identifier=alias, identifier_type='alias', body=CloseAlertRequest(source=""))
         print('request id: {}'.format(response.request_id))
         print('took: {}'.format(response.took))
