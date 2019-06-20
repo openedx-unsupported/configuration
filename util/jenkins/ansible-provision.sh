@@ -594,7 +594,7 @@ cd $WORKSPACE/ansible-private
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
 run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mysql.yml $extra_var_arg --user ubuntu
-run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/create_db_and_users.yml $extra_var_arg --user ubuntu
+run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/create_db_and_users.yml $extra_var_arg -e  "ansible_python_interpreter=$(which python)" --user ubuntu
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
