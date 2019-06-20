@@ -24,7 +24,8 @@ DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
 class RedisWrapper(object):
-    def __init__(self, dev_test_mode=True, *args, **kwargs):
+    def __init__(self, dev_test_mode=None, *args, **kwargs):
+        assert isinstance(dev_test_mode, bool)
         self.dev_test_mode = dev_test_mode
         self.redis = redis.StrictRedis(*args, **kwargs)
 
@@ -95,7 +96,8 @@ class RedisWrapper(object):
 
 
 class CwBotoWrapper(object):
-    def __init__(self, dev_test_mode=True):
+    def __init__(self, dev_test_mode=None):
+        assert isinstance(dev_test_mode, bool)
         self.dev_test_mode = dev_test_mode
         self.client = boto3.client('cloudwatch')
 
@@ -192,7 +194,8 @@ def generate_alert_alias(environment, deploy, queue_name):
 @backoff.on_exception(backoff.expo,
                       (ApiException),
                       max_tries=MAX_TRIES)
-def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, info, dev_test_mode=True):
+def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, info, dev_test_mode=None):
+    assert isinstance(dev_test_mode, bool)
 
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
@@ -213,7 +216,8 @@ def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, i
 @backoff.on_exception(backoff.expo,
                       (ApiException),
                       max_tries=MAX_TRIES)
-def close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode=True):
+def close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode=None):
+    assert isinstance(dev_test_mode, bool)
 
     configuration.api_key['Authorization'] = opsgenie_api_key
     configuration.api_key_prefix['Authorization'] = 'GenieKey'
