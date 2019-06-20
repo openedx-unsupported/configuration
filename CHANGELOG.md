@@ -1,3 +1,6 @@
+- Playbook: masters_sandbox
+  - Added playbook to setup user and api access
+
 - Role: registrar
   - Changed `REGISTRAR_CELERY_ALWAYS_EAGER` default to `false`.
 
