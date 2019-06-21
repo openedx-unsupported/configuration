@@ -19,6 +19,15 @@
 # Example play:
 #
 #
+- name: Set default is_aws to false
+  set_fact:
+    is_aws: false
+
+- name: Check if running in aws
+  set_fact:
+      is_aws: true 
+  when: '"amazon-ssm-agent" in item.mount' 
+  with_items: "{{ansible_mounts}}" 
 
 # The deadsnakes PPA is required to install python3.6 on Xenial.
 # Bionic comes with python3.6 installed.
@@ -168,7 +177,7 @@
     owner: "{{ hermes_user }}"
     group: "{{ hermes_user }}"
     mode: "0750"
-  when: ansible_system_vendor == "Amazon EC2"
+  when: is_aws
 
 - name: reload systemd configuration
   command: systemctl daemon-reload
