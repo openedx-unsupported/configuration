@@ -601,7 +601,7 @@ run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mys
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-extra_var_arg+=' -e migrate_db="no"'
+extra_var_arg+=' -e migrate_db="yes"'
 run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
@@ -612,7 +612,7 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 
 #git checkout $ForumConfigurationVersion
 
-run_ansible -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
+#run_ansible -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
 run_ansible -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 PATTERN='all'
