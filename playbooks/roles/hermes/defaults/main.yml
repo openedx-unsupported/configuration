@@ -56,6 +56,9 @@ HERMES_LOCAL_FILE_PATH: "{{ hermes_download_dir }}/{{ hermes_target_service }}.y
 # How to copy the downloaded file to the config path the application expects
 HERMES_COPY_COMMAND: /bin/cp {{ hermes_download_dir }}/{{ hermes_target_service }}.yml {{ COMMON_CFG_DIR }}/{{ hermes_target_service }}.yml
 
+# How to diff the downloaded file and the config path the application expects to prevent reloading an unchanged config
+HERMES_DIFF_COMMAND: "diff -q {{ hermes_download_dir }}/{{ hermes_target_service }}.yml {{ COMMON_CFG_DIR }}/{{ hermes_target_service }}.yml"
+
 # How to restart the application
 HERMES_RELOAD_COMMAND: /edx/bin/supervisorctl signal HUP all
 
@@ -65,7 +68,7 @@ HERMES_RELOAD_COMMAND: /edx/bin/supervisorctl signal HUP all
 hermes_service_config: 
   - url: '{{ HERMES_REMOTE_FILE_PATH }}'
     filename: '{{ HERMES_LOCAL_FILE_PATH }}'
-    command:  'sudo {{ HERMES_COPY_COMMAND }} && sudo {{ HERMES_RELOAD_COMMAND }}'
+    command:  'if ! {{ HERMES_DIFF_COMMAND }}; then sudo {{ HERMES_COPY_COMMAND }} && sudo {{ HERMES_RELOAD_COMMAND }}; fi'
 
 # These are dropped into sudoers for the user that runs this program, care should be taken to ensure they are safe
 # to run. By default we assume the 1 service per box and restart supervisor model. If you did something custom with
