@@ -601,10 +601,11 @@ run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mys
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
+extra_var_arg+=' -e migrate_db="no"'
 run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
-extra_var_arg+=' -e migrate_db="yes"'
+
 
 cd $WORKSPACE/configuration/playbooks/edx-east
 
