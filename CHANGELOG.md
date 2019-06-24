@@ -1,3 +1,7 @@
+- Role: common_vars
+  - Default `COMMON_JWT_PUBLIC_SIGNING_JWK_SET` to `''`
+   instead of `!!null`
+
 - Role: registrar
   - Changed `REGISTRAR_CELERY_ALWAYS_EAGER` default to `false`.
 
