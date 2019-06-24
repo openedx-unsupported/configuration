@@ -89,7 +89,6 @@ def get_rds_from_all_regions():
                 temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
                 temp_dict["Port"] = instance.get("Port")
                 rds_list.append(temp_dict)
-    # x = rds_list.remove("prod-copy-for-gh-ost-test-ops-3915-3916")
     return rds_list
 
 
@@ -119,8 +118,6 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
 
         for item in rds_list:
             rds_host_endpoint = item["Endpoint"]
-            print(rds_host_endpoint)
-            print(username)
             rds_port = item["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
                                          port=rds_port,
@@ -173,10 +170,9 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            print("RDS RESULT", rds_result)
+            tables_reaching_exhaustion_limit = {}
             for table in rds_result:
                 if table[6] > 70:
-
                     metric_data.append({
                         'MetricName': metric_name,
                         'Dimensions': [{
@@ -186,10 +182,13 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                         'Value': table[6],  # percentage of the usage of primary keys
                         'Unit': UNIT
                     })
+                    tables_reaching_exhaustion_limit["database_name"] = item['name']
+                    tables_reaching_exhaustion_limit["table_name"] = table[1]
+                    tables_reaching_exhaustion_limit["percentage_of_PKs_consumed"] = table[6]
                     get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
             if len(metric_data) > 0:
-                print("putting data in cloudwatch", metric_data)
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+                sys.exit(1)
         return table_list
     except Exception as e:
         print("Please see the following exception ", e)
@@ -223,7 +222,8 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
         if current_consumption > last_max_reading:
             days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
                                                                          last_max_reading)
-            print("days remaining for {db} db are {da}".format(db=value,da=days_remaining_before_exhaustion))
+            print("days remaining for {db} db are {days}".format(db=value,
+                                                                 days=days_remaining_before_exhaustion))
         if days_remaining_before_exhaustion < 365:
             sys.exit(1)
 
@@ -242,9 +242,6 @@ def controller(username, password, environment, deploy):
     :param password: password for the RDS.
     :return: None
     """
-    lss = ["prod-copy-for-gh-ost-test-ops-3915-3916"]
-    print(environment)
-    print("deployemntsitoo", deploy)
     # get list of all the RDSes across all the regions and deployments
     rds_list = get_rds_from_all_regions()
     table_list = check_primary_keys(rds_list, username, password, environment, deploy)
