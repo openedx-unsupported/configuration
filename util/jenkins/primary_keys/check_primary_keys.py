@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 MAX_TRIES = 5
 PERIOD = 360
-UNIT = 'percent'
+UNIT = 'Percent'
 
 class EC2BotoWrapper:
     def __init__(self):
@@ -83,11 +83,13 @@ def get_rds_from_all_regions():
         client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            temp_dict = dict()
-            temp_dict["name"] = instance["DBInstanceIdentifier"]
-            temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-            temp_dict["Port"] = instance.get("Port")
-            rds_list.append(temp_dict)
+            if "prod-copy-for-gh-ost-test-ops" not in instance["DBInstanceIdentifier"]:
+                temp_dict = dict()
+                temp_dict["name"] = instance["DBInstanceIdentifier"]
+                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                temp_dict["Port"] = instance.get("Port")
+                rds_list.append(temp_dict)
+    # x = rds_list.remove("prod-copy-for-gh-ost-test-ops-3915-3916")
     return rds_list
 
 
@@ -114,8 +116,11 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
     try:
         table_list = []
         metric_data = []
+
         for item in rds_list:
             rds_host_endpoint = item["Endpoint"]
+            print(rds_host_endpoint)
+            print(username)
             rds_port = item["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
                                          port=rds_port,
@@ -168,9 +173,10 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-
+            print("RDS RESULT", rds_result)
             for table in rds_result:
                 if table[6] > 70:
+
                     metric_data.append({
                         'MetricName': metric_name,
                         'Dimensions': [{
@@ -178,10 +184,11 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                             "Value": table[1]
                         }],
                         'Value': table[6],  # percentage of the usage of primary keys
-                        'Unit': 'percent'
+                        'Unit': UNIT
                     })
-
+                    get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
             if len(metric_data) > 0:
+                print("putting data in cloudwatch", metric_data)
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
         return table_list
     except Exception as e:
@@ -191,8 +198,8 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
 
 def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, current_consumption):
     cloudwatch = CwBotoWrapper()
-    time = datetime.now() - timedelta(days=1)
-    delta = time.strftime("%Y, %m, %d")
+    print("called get metrics fucnton")
+    print("valuee day kana", value, current_consumption, dimension)
     res = cloudwatch.get_metric_stats(
         Namespace=namespace,
         MetricName=metric_name,
@@ -202,19 +209,27 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
                 'Value': value
             },
         ],
-        StartTime=datetime(int(delta)),
-        EndTime=datetime.now().strftime("%Y, %m, %d"),
-        Period=360,
+        StartTime=datetime.utcnow() - timedelta(days=5),
+        EndTime=datetime.utcnow(),
+        Period=86400,
         Statistics=[
             'Maximum',
         ],
-        Unit='Count'
+        Unit=UNIT
     )
-    last_max_reading = res["Datapoints"][0]["Maximum"]
-    cosnumed_keys_percentage = 100 - current_consumption
-    days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
+    print(res)
+    # if len(res["Datapoints"] > 0):
+    ss = res["Datapoints"]
+    print(type(ss))
+    days_remaining_before_exhaustion = ''
+    if len(ss) > 0:
+        last_max_reading = res["Datapoints"][0]["Maximum"]
+        cosnumed_keys_percentage = 100 - current_consumption
+        if current_consumption > last_max_reading:
+            days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
                                                                  last_max_reading)
-    if days_remaining_before_exhaustion < 365:
+        if days_remaining_before_exhaustion < 365:
+            print("days reaming for {db} db are {da}".format(db=value,da=days_remaining_before_exhaustion))
         sys.exit(1)
 
 
@@ -225,15 +240,21 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-def controller(username, password, environment, deployment):
+def controller(username, password, environment, deploy):
     """
     calls other function and calculate the results
     :param username: username for the RDS.
     :param password: password for the RDS.
     :return: None
     """
-
+    lss = ["prod-copy-for-gh-ost-test-ops-3915-3916"]
+    print(environment)
+    print("deployemntsitoo", deploy)
     # get list of all the RDSes across all the regions and deployments
     rds_list = get_rds_from_all_regions()
-    table_list = check_primary_keys(rds_list, username, password, environment, deployment)
+    table_list = check_primary_keys(rds_list, username, password, environment, deploy)
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    controller()
