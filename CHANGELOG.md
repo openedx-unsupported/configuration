@@ -1,3 +1,13 @@
+- Role: common_vars
+  - Default `COMMON_JWT_PUBLIC_SIGNING_JWK_SET` to `''`
+    instead of `!!null`. Because of how this setting is handled,
+    `!!null` ends up rendering as the literal string `None` instead
+    of the value `null`, which causes JSON decoding to fail
+    wherever the default value is used (as `'None'` is not valid JSON).
+    By setting the default to a Falsy value like the
+    empty string, edx-drf-extensions does not attempt to JSON-
+    decode it.
+
 - Role: registrar
   - Changed `REGISTRAR_CELERY_ALWAYS_EAGER` default to `false`.
 
