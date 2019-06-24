@@ -55,6 +55,38 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
+def send_an_email(toaddr, fromaddr, primary_keys_message, region):
+    client = boto3.client('ses', region_name=region)
+
+    message = """
+    <p>Hello,</p>
+    <p>These Tables primary keys soon exhausted</p>
+    """
+    for item in range(0, len(di):
+        message += """
+            <p>{item}</p>"""
+    client.send_email(
+        Source=fromaddr,
+        Destination={
+            'ToAddresses': [
+                toaddr
+            ]
+        },
+        Message={
+            'Subject': {
+                'Data': 'Primary keys of these table exhausted soon',
+                'Charset': 'utf-8'
+            },
+            'Body': {
+                'Html':{
+                    'Data': message,
+                    'Charset': 'utf-8'
+                }
+            }
+        }
+    )
+
+
 def get_rds_from_all_regions():
     """
     Gets a list of RDS instances across all the regions and deployments in AWS
@@ -115,7 +147,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
     try:
         table_list = []
         metric_data = []
-
+        tables_reaching_exhaustion_limit = []
         for item in rds_list:
             rds_host_endpoint = item["Endpoint"]
             rds_port = item["Port"]
@@ -170,9 +202,10 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            tables_reaching_exhaustion_limit = []
-            table_data = {}
+            #tables_reaching_exhaustion_limit = []
+            #table_data = {}
             for table in rds_result:
+                table_data = {}
                 if table[6] > 70:
                     metric_data.append({
                         'MetricName': metric_name,
@@ -191,7 +224,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
                 sys.exit(1)
-        return table_list
+        return tables_reaching_exhaustion_limit
     except Exception as e:
         print("Please see the following exception ", e)
         sys.exit(1)
@@ -237,7 +270,8 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-def controller(username, password, environment, deploy):
+@click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
+def controller(username, password, environment, deploy, rdsignore):
     """
     calls other function and calculate the results
     :param username: username for the RDS.
@@ -246,7 +280,10 @@ def controller(username, password, environment, deploy):
     """
     # get list of all the RDSes across all the regions and deployments
     rds_list = get_rds_from_all_regions()
-    table_list = check_primary_keys(rds_list, username, password, environment, deploy)
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
+    if len(table_list) > 0:
+        send_an_email("ihassan@edx.org", "daemon@edx.org", table_list, "us-east-1")
     sys.exit(0)
 
 
