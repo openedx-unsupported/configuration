@@ -198,8 +198,6 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
 
 def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, current_consumption):
     cloudwatch = CwBotoWrapper()
-    print("called get metrics fucnton")
-    print("valuee day kana", value, current_consumption, dimension)
     res = cloudwatch.get_metric_stats(
         Namespace=namespace,
         MetricName=metric_name,
@@ -217,20 +215,17 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
         ],
         Unit=UNIT
     )
-    print(res)
-    # if len(res["Datapoints"] > 0):
-    ss = res["Datapoints"]
-    print(type(ss))
+    datapoints = res["Datapoints"]
     days_remaining_before_exhaustion = ''
-    if len(ss) > 0:
+    if len(datapoints) > 0:
         last_max_reading = res["Datapoints"][0]["Maximum"]
         cosnumed_keys_percentage = 100 - current_consumption
         if current_consumption > last_max_reading:
             days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
-                                                                 last_max_reading)
+                                                                         last_max_reading)
+            print("days remaining for {db} db are {da}".format(db=value,da=days_remaining_before_exhaustion))
         if days_remaining_before_exhaustion < 365:
-            print("days reaming for {db} db are {da}".format(db=value,da=days_remaining_before_exhaustion))
-        sys.exit(1)
+            sys.exit(1)
 
 
 
