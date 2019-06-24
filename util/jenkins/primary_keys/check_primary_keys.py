@@ -170,7 +170,8 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            tables_reaching_exhaustion_limit = {}
+            tables_reaching_exhaustion_limit = []
+            table_data = {}
             for table in rds_result:
                 if table[6] > 70:
                     metric_data.append({
@@ -182,9 +183,10 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                         'Value': table[6],  # percentage of the usage of primary keys
                         'Unit': UNIT
                     })
-                    tables_reaching_exhaustion_limit["database_name"] = item['name']
-                    tables_reaching_exhaustion_limit["table_name"] = table[1]
-                    tables_reaching_exhaustion_limit["percentage_of_PKs_consumed"] = table[6]
+                    table_data["database_name"] = item['name']
+                    table_data["table_name"] = table[1]
+                    table_data["percentage_of_PKs_consumed"] = table[6]
+                    tables_reaching_exhaustion_limit.append(table_data)
                     get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
