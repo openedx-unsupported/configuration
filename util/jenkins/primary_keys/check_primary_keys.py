@@ -221,14 +221,9 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     table_data["percentage_of_PKs_consumed"] = table[6]
                     tables_reaching_exhaustion_limit.append(table_data)
                     get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
-            print(len(metric_data))
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
-                print("+++++++++++++++")
-                print(metric_data)
-                print("+++++++++++++++++++")
                 #sys.exit(1)
-        print(tables_reaching_exhaustion_limit)
         return tables_reaching_exhaustion_limit
     except Exception as e:
         print("Please see the following exception ", e)
@@ -264,8 +259,8 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
                                                                          last_max_reading)
             print("days remaining for {db} db are {days}".format(db=value,
                                                                  days=days_remaining_before_exhaustion))
-        if days_remaining_before_exhaustion < 365:
-            sys.exit(1)
+        #if days_remaining_before_exhaustion < 365:
+            #sys.exit(1)
 
 
 
@@ -287,9 +282,8 @@ def controller(username, password, environment, deploy, rdsignore):
     rds_list = get_rds_from_all_regions()
     filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
     table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
-    #if len(table_list) > 0:
-    print(table_list)
-        #send_an_email("ihassan@edx.org", "daemon@edx.org", table_list, "us-east-1")
+    if len(table_list) > 0:
+        send_an_email("ihassan@edx.org", "daemon@edx.org", table_list, "us-east-1")
     sys.exit(0)
 
 
