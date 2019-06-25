@@ -61,10 +61,17 @@ def send_an_email(toaddr, fromaddr, primary_keys_message, region):
     message = """
     <p>Hello,</p>
     <p>Primary keys of these table exhausted soon</p>
+    <table>
+      <tr>
+        <th>Database</th>
+        <th>Table</th>
+        <th>Usage Percentage</th>
+      </tr>
     """
     for item in range(len(primary_keys_message)):
         message += """
-            <p>{Database}    {Table}    {UsePercentage}</p>""".format(Database=primary_keys_message[item]['database_name'], Table=primary_keys_message[item]['table_name'], UsePercentage=primary_keys_message[item]['percentage_of_PKs_consumed'])
+            <tr><td>{Database}</td><td>{Table}</td><td>{UsePercentage}</td></tr>""".format(Database=primary_keys_message[item]['database_name'], Table=primary_keys_message[item]['table_name'], UsePercentage=primary_keys_message[item]['percentage_of_PKs_consumed'])
+    message += """</table>"""
     client.send_email(
         Source=fromaddr,
         Destination={
