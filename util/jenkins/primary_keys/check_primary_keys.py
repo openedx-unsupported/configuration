@@ -289,15 +289,11 @@ def controller(username, password, environment, deploy, region, recipient, sende
     :return: None
     """
     # get list of all the RDSes across all the regions and deployments
-    print("+++++++++++++++++")
-    print(type(region))
-    print(str(region))
-    print("++++++++++++++++++")
     rds_list = get_rds_from_all_regions()
     filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
     table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
     if len(table_list) > 0:
-        send_an_email(recipient, sender, table_list, region)
+        send_an_email(recipient, sender, table_list, region[0])
     sys.exit(0)
 
 
