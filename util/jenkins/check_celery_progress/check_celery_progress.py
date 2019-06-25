@@ -485,13 +485,13 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
                          dev_test_mode=dev_test_mode)
             new_state[queue_name]['alert_created'] = True
         elif new_state[queue_name]['alert_created'] and not do_alert:
-            close_alert(opsgenie_api_key, environment, deploy, queue_name)
+            close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode=dev_test_mode)
             new_state[queue_name]['alert_created'] = False
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
         print("DEBUG: Checking cleared queue {}".format(queue_name))
         if old_state[queue_name]['alert_created']:
-            close_alert(opsgenie_api_key, environment, deploy, queue_name)
+            close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode=dev_test_mode)
 
     redis_client.delete(QUEUE_AGE_HASH_NAME)
     if new_state:
