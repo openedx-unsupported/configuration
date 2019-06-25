@@ -279,7 +279,7 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
               help="Deployment (i.e. edx or edge)")
 @click.option('--region', multiple=True, help='Default AWS region')
 @click.option('--recipient', multiple=True, help='Recipient Email address')
-@click.option('--from-email', multiple=True, help='Sender email address')
+@click.option('--sender', multiple=True, help='Sender email address')
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
 def controller(username, password, environment, deploy, region, recipient, sender, rdsignore):
     """
