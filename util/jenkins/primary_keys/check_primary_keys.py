@@ -207,7 +207,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             for table in rds_result:
                 table_data = {}
                 print("+++++++++++++++")
-                print(table[6])
+                print(type(table[6]))
                 print("+++++++++++++++++++")
                 if table[6] > 70:
                     metric_data.append({
