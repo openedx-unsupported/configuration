@@ -424,7 +424,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
 
     # Temp debugging
     print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
-    for queue_name in queue_names:
+    for queue_name, first_item in queue_first_items.items():
         redacted_body = ""
         threshold = default_threshold
         if queue_name in thresholds:
@@ -434,7 +434,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         first_occurance_time = new_state[queue_name]['first_occurance_time']
         body = {}
         try:
-            body = extract_body(queue_first_items[queue_name])
+            body = extract_body(first_item)
         except Exception as error:
             print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
             ret_val = 1
