@@ -64,7 +64,7 @@ def send_an_email(toaddr, fromaddr, primary_keys_message, region):
     """
     for item in range(len(primary_keys_message)):
         message += """
-            <p>{Database}{Table}{UsePercentage}</p>""".format(Database=item['database_name'], Table=item['table_name'], UsePercentage=item['percentage_of_PKs_consumed'])
+            <p>{Database}    {Table}    {UsePercentage}</p>""".format(Database=primary_keys_message[item]['database_name'], Table=primary_keys_message[item]['table_name'], UsePercentage=primary_keys_message[item]['percentage_of_PKs_consumed']))
     client.send_email(
         Source=fromaddr,
         Destination={
