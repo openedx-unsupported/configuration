@@ -61,7 +61,7 @@ def send_an_email(toaddr, fromaddr, primary_keys_message, region):
     message = """
     <p>Hello,</p>
     <p>Primary keys of these table exhausted soon</p>
-    <table>
+    <table style='width:100%'>
       <tr>
         <th>Database</th>
         <th>Table</th>
