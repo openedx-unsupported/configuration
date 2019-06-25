@@ -206,9 +206,6 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             #table_data = {}
             for table in rds_result:
                 table_data = {}
-                print("+++++++++++++++")
-                print(type(table[6]))
-                print("+++++++++++++++++++")
                 if table[6] > 70:
                     metric_data.append({
                         'MetricName': metric_name,
@@ -223,10 +220,13 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     table_data["table_name"] = table[1]
                     table_data["percentage_of_PKs_consumed"] = table[6]
                     tables_reaching_exhaustion_limit.append(table_data)
+                    print("+++++++++++++++")
+                    print(type(table[6]))
+                    print("+++++++++++++++++++")
                     get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
-                sys.exit(1)
+                #sys.exit(1)
         return tables_reaching_exhaustion_limit
     except Exception as e:
         print("Please see the following exception ", e)
