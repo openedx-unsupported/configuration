@@ -60,11 +60,11 @@ def send_an_email(toaddr, fromaddr, primary_keys_message, region):
 
     message = """
     <p>Hello,</p>
-    <p>These Tables primary keys soon exhausted</p>
+    <p>Primary keys of these table exhausted soon</p>
     """
-    for item in range(0, len(di):
+    for item in range(len(primary_keys_message)):
         message += """
-            <p>{item}</p>"""
+            <p>{Database}{Table}{UsePercentage}</p>""".format(Database=item['database_name'], Table=item['table_name'], UsePercentage=item['percentage_of_PKs_consumed'])
     client.send_email(
         Source=fromaddr,
         Destination={
