@@ -234,7 +234,6 @@ THEMES_VERSION: $themes_version
 journals_version: $journals_version
 edxapp_user_shell: '/bin/bash'
 edxapp_user_createhome: 'yes'
-migrate_db: false
 mongo_enable_journal: false
 #service_variants_enabled: []
 testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
@@ -275,7 +274,6 @@ DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
-migrate_db: "yes"
 dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
@@ -601,7 +599,6 @@ run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mys
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
-extra_var_arg+=' -e migrate_db="yes"'
 run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 
