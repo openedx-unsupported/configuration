@@ -283,7 +283,8 @@ def controller(username, password, environment, deploy, rdsignore):
     filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
     table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
     if len(table_list) > 0:
-        send_an_email("ihassan@edx.org", "daemon@edx.org", table_list, "us-east-1")
+        print(table_list)
+        #send_an_email("ihassan@edx.org", "daemon@edx.org", table_list, "us-east-1")
     sys.exit(0)
 
 
