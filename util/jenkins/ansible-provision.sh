@@ -239,7 +239,7 @@ mongo_enable_journal: false
 testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
-
+migrate_db: "no"
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
@@ -272,7 +272,7 @@ DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
-NGINX_REDIRECT_TO_HTTPS: True
+NGINX_REDIRECT_TO_HTTPS: false
 EDX_ANSIBLE_DUMP_VARS: true
 dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
@@ -280,7 +280,7 @@ COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 
 # Todo: Uncomment these temp if found any related error otherwise, remove these below after testing
-NGINX_ENABLE_SSL: false
+NGINX_ENABLE_SSL: true
 #_local_git_identity: $ssh_key
 EDXAPP_USE_GIT_IDENTITY: true
 EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
@@ -288,7 +288,7 @@ EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
 #EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
 COMMON_EDXAPP_SETTINGS: 'aws'
 EDXAPP_SETTINGS: 'aws'
-#migrate_db: 'no'
+
 #mcka_apros_git_ssh: _local_git_identity
 MCKA_APROS_AWS_STORAGE_BUCKET_NAME: 'qa-group-work'
 MCKA_APROS_SSO_AUTOPROVISION_PROVIDERS: $sso
@@ -300,10 +300,11 @@ MCKA_APROS_API_KEY: "edx-api-key"
 BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
 EDXAPP_LMS_SUBDOMAIN: "apros"
+COMMON_MYSQL_MIGRATE_PASS: "password"
 EDXAPP_LMS_BASE: "{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
 EDXAPP_CORS_ORIGIN_WHITELIST:
   - "{{ EDXAPP_LMS_BASE }}"
-EDXAPP_SESSION_COOKIE_DOMAIN: ".{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
+EDXAPP_SESSION_COOKIE_DOMAIN: ".{{EDXAPP_BASE}}"
 EDXAPP_PREVIEW_LMS_BASE: "preview.{{EDXAPP_LMS_BASE}}"
 EDXAPP_SITE_NAME: "{{EDXAPP_LMS_BASE}}"
 LMS_ELB: "courses.{{BASE_DOMAIN}}"
@@ -318,7 +319,7 @@ MCKA_APROS_AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
 MCKA_APROS_DJANGO_SECRET_KEY: "DUMMY KEY"
 #MMCKA_APROS_MYSQL_DB_NAME: "mcka_apros"
 MCKINSEY_APROS_MYSQL_DB_NAME: "mcka_apros"
-MCKA_APROS_MYSQL_USER: "apros"
+MCKA_APROS_MYSQL_USER: "root"
 EDXAPP_MYSQL_DB_NAME: "edxapp"
 EDXAPP_MYSQL_USER: "edxapp001"
 EDXAPP_MYSQL_PASSWORD: 'password'
@@ -326,9 +327,9 @@ MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
 MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
 #MCKA_APROS_MYSQL_HOST: "localhost"
 MCKINSEY_APROS_MYSQL_HOST: "localhost"
-MCKA_APROS_MYSQL_PASSWORD: "apros"
-MCKINSEY_APROS_MYSQL_PASSWORD: "apros"
-MCKINSEY_APROS_MYSQL_USER: "apros"
+MCKA_APROS_MYSQL_PASSWORD: ""
+MCKINSEY_APROS_MYSQL_PASSWORD: ""
+MCKINSEY_APROS_MYSQL_USER: "root"
 #db_root_user: "root"
 COMMON_ENABLE_SPLUNKFORWARDER: False
 DBPassword: ""
@@ -344,9 +345,11 @@ EDXAPP_CELERY_BROKER_HOSTNAME: 'localhost'
 EDXAPP_CELERY_BROKER_TRANSPORT: 'redis'
 EDXAPP_CELERY_USER: ''
 EDXAPP_CELERY_BROKER_VHOST: 0
-celery_worker: false
 NO_PREREQ_INSTALL: 0
 EDXAPP_NO_PREREQ_INSTALL: 0
+NGINX_ENABLE_SSL: True
+NGINX_SSL_CERTIFICATE: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.pem'
+NGINX_SSL_KEY: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.key'
 EDXAPP_CELERY_WORKERS:
     - concurrency: 3
       monitor: true
@@ -385,8 +388,27 @@ MCKA_APROS_GUNICORN_EXTRA_CONF: 'preload_app = True'
 MCKA_APROS_GUNICORN_MAX_REQUESTS: 1000
 nginx_default_sites:
   - lms
-
+mcka_apros_service_name: 'mcka-apros'
+MCKA_APROS_SERVICE_USER_NAME : 'mcka_admin_user'
+MCKA_APROS_URL_ROOT: 'https://apros-${deploy_host}'
+MCKA_APROS_OAUTH2_CLIENT_ID: 'umJTteyU8k9no3FykQsabwRg6w6XO5hc9phlJvFg'
+MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwGbgTSoax6ZwFssk20us5ADLJ5A1mnaQi7Ih6EwZGQVss3ydiF45BZ3uZrqIzz0dgh3JFih1Z1bDp25CyLbw'
+oauth_client_setup_oauth2_clients:
+    - {
+        name: "{{ mcka_apros_service_name | default('None') }}",
+        url_root: "{{ MCKA_APROS_URL_ROOT | default('None') }}",
+        id: "{{ MCKA_APROS_BACKEND_SERVICE_EDX_OAUTH2_KEY | default('None') }}",
+        secret: "{{ MCKA_APROS_BACKEND_SERVICE_EDX_OAUTH2_SECRET | default('None') }}",
+        sso_id: "{{ MCKA_APROS_SOCIAL_AUTH_EDX_OAUTH2_KEY | default('None') }}",
+        sso_secret: "{{ MCKA_APROS_SOCIAL_AUTH_EDX_OAUTH2_SECRET | default('None') }}",
+        backend_service_id: "{{ MCKA_APROS_OAUTH2_CLIENT_ID | default('None') }}",
+        backend_service_secret: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET | default('None') }}",
+        logout_uri: "{{ MCKA_APROS_LOGOUT_URL | default('None') }}",
+        username: "{{ MCKA_APROS_SERVICE_USER_NAME | default('None') }}",
+      }
 # User provided extra vars
+EDXAPP_EDX_API_KEY: 'edx_api_key'
+MCKA_APROS_API_KEY: 'edx_api_key'
 $extra_vars
 EOF
 
@@ -396,6 +418,8 @@ if [[ $basic_auth == "true" ]]; then
 COMMON_ENABLE_BASIC_AUTH: True
 COMMON_HTPASSWD_USER: $auth_user
 COMMON_HTPASSWD_PASS: $auth_pass
+APROS_OAUTH2_OPENEDX_CLIENT_ID: "{{ MCKA_APROS_OAUTH2_CLIENT_ID }}"
+APROS_OAUTH2_OPENEDX_CLIENT_SECRET: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET }}"
 XQUEUE_BASIC_AUTH_USER: $auth_user
 XQUEUE_BASIC_AUTH_PASSWORD: $auth_pass
 EOF_AUTH
@@ -436,8 +460,8 @@ COMMON_USER_INFO:
     github: true
     type: admin
 USER_CMD_PROMPT: '[$name_tag] '
-COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
-COMMON_ENABLE_DATADOG: $enable_datadog
+COMMON_ENABLE_NEWRELIC_APP: false
+COMMON_ENABLE_DATADOG: false
 COMMON_OAUTH_BASE_URL: "https://${deploy_host}"
 FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 ENABLE_PERFORMANCE_COURSE: $performance_course
@@ -455,7 +479,7 @@ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
 EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
-
+FORUM_REBUILD_INDEX: true
 ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
@@ -588,7 +612,7 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version="development" -e forum_version="master"'
+extra_var_arg+=' -e edx_platform_version="sandbox_release" -e forum_version="master"'
 
 cd $WORKSPACE/ansible-private
 
@@ -610,19 +634,20 @@ cd $WORKSPACE/configuration/playbooks/edx-east
 #git checkout $ForumConfigurationVersion
 
 #run_ansible -vvvv mongo_3_2.yml -i "${deploy_host},"  $extra_var_arg --user ubuntu
-run_ansible -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#run_ansible -vvvv forum.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
 PATTERN='all'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --settings aws --noinput'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u www-data /edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --settings aws --noinput'
 ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py migrate --noinput'
+ansible ${PATTERN} -i "${deploy_host}," -u ubuntu -m shell -a 'sudo -u mcka_apros /edx/app/mcka_apros/venvs/mcka_apros/bin/python /edx/app/mcka_apros/mcka_apros/manage.py load_seed_data'
 
 
 
-#if [[ $run_oauth == "true" ]]; then
-    # Setup the OAuth2 clients
-#    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-#fi
+if [[ $run_oauth == "true" ]]; then
+#     Setup the OAuth2 clients
+    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
 
 # set the hostname
 #run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
