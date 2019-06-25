@@ -221,7 +221,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     table_data["percentage_of_PKs_consumed"] = table[6]
                     tables_reaching_exhaustion_limit.append(table_data)
                     get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
-            print(type(metric_data))
+            print(len(metric_data))
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
                 print("+++++++++++++++")
