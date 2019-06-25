@@ -277,8 +277,11 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
+@click.option('--region', multiple=True, help='Default AWS region')
+@click.option('--recipient', multiple=True, help='Recipient Email address')
+@click.option('--from-email', multiple=True, help='Sender email address')
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
-def controller(username, password, environment, deploy, rdsignore):
+def controller(username, password, environment, deploy, region, recipient, sender, rdsignore):
     """
     calls other function and calculate the results
     :param username: username for the RDS.
@@ -290,7 +293,7 @@ def controller(username, password, environment, deploy, rdsignore):
     filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
     table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
     if len(table_list) > 0:
-        send_an_email("ihassan@edx.org", "daemon@edx.org", table_list, "us-east-1")
+        send_an_email(recipient, sender, table_list, region)
     sys.exit(0)
 
 
