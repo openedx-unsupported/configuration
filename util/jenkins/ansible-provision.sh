@@ -590,7 +590,7 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version="development" -e forum_version="master" -e migrate_db="yes"'
+extra_var_arg+=' -e edx_platform_version="development" -e forum_version="master"'
 
 cd $WORKSPACE/ansible-private
 
