@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 MAX_TRIES = 5
 PERIOD = 360
-UNIT = 'percent'
+UNIT = 'Percent'
 
 class EC2BotoWrapper:
     def __init__(self):
@@ -53,6 +53,51 @@ class RDSBotoWrapper:
                           max_tries=MAX_TRIES)
     def describe_db_instances(self):
         return self.client.describe_db_instances()
+
+
+def send_email(toaddr, fromaddr, primary_keys_message, region):
+    client = boto3.client('ses', region_name=region)
+
+    message = """
+    <p>Hello,</p>
+    <p>Primary keys of these table exhausted soon</p>
+    <table style='width:100%'>
+      <tr style='text-align: left'>
+        <th>Database</th>
+        <th>Table</th>
+        <th>Usage Percentage</th>
+      </tr>
+    """
+    for item in range(len(primary_keys_message)):
+        message += """
+            <tr><td>{Database}</td><td>
+            {Table}</td><td>
+            {UsedPercentage}</td></tr>""".format(
+            Database=primary_keys_message[item]['database_name'],
+            Table=primary_keys_message[item]['table_name'],
+            UsedPercentage=primary_keys_message[item]['percentage_of_PKs_consumed'])
+
+    message += """</table>"""
+    client.send_email(
+        Source=fromaddr,
+        Destination={
+            'ToAddresses': [
+                toaddr
+            ]
+        },
+        Message={
+            'Subject': {
+                'Data': 'The following table/tables are reaching their Primary Key exhaustion limit',
+                'Charset': 'utf-8'
+            },
+            'Body': {
+                'Html':{
+                    'Data': message,
+                    'Charset': 'utf-8'
+                }
+            }
+        }
+    )
 
 
 def get_rds_from_all_regions():
@@ -114,6 +159,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
     try:
         table_list = []
         metric_data = []
+        tables_reaching_exhaustion_limit = []
         for item in rds_list:
             rds_host_endpoint = item["Endpoint"]
             rds_port = item["Port"]
@@ -168,8 +214,8 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-
             for table in rds_result:
+                table_data = {}
                 if table[6] > 70:
                     metric_data.append({
                         'MetricName': metric_name,
@@ -178,12 +224,16 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                             "Value": table[1]
                         }],
                         'Value': table[6],  # percentage of the usage of primary keys
-                        'Unit': 'percent'
+                        'Unit': UNIT
                     })
-
+                    table_data["database_name"] = item['name']
+                    table_data["table_name"] = table[1]
+                    table_data["percentage_of_PKs_consumed"] = table[6]
+                    tables_reaching_exhaustion_limit.append(table_data)
+                    get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
-        return table_list
+        return tables_reaching_exhaustion_limit
     except Exception as e:
         print("Please see the following exception ", e)
         sys.exit(1)
@@ -191,8 +241,6 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
 
 def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, current_consumption):
     cloudwatch = CwBotoWrapper()
-    time = datetime.now() - timedelta(days=1)
-    delta = time.strftime("%Y, %m, %d")
     res = cloudwatch.get_metric_stats(
         Namespace=namespace,
         MetricName=metric_name,
@@ -202,20 +250,26 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
                 'Value': value
             },
         ],
-        StartTime=datetime(int(delta)),
-        EndTime=datetime.now().strftime("%Y, %m, %d"),
-        Period=360,
+        StartTime=datetime.utcnow() - timedelta(days=5),
+        EndTime=datetime.utcnow(),
+        Period=86400,
         Statistics=[
             'Maximum',
         ],
-        Unit='Count'
+        Unit=UNIT
     )
-    last_max_reading = res["Datapoints"][0]["Maximum"]
-    cosnumed_keys_percentage = 100 - current_consumption
-    days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
-                                                                 last_max_reading)
-    if days_remaining_before_exhaustion < 365:
-        sys.exit(1)
+    datapoints = res["Datapoints"]
+    days_remaining_before_exhaustion = ''
+    if len(datapoints) > 0:
+        last_max_reading = res["Datapoints"][0]["Maximum"]
+        cosnumed_keys_percentage = 100 - current_consumption
+        if current_consumption > last_max_reading:
+            days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
+                                                                         last_max_reading)
+            print("days remaining for {db} db are {days}".format(db=value,
+                                                                 days=days_remaining_before_exhaustion))
+        #if days_remaining_before_exhaustion < 365:
+            #sys.exit(1)
 
 
 
@@ -225,15 +279,25 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
 @click.option('--environment', '-e', required=True)
 @click.option('--deploy', '-d', required=True,
               help="Deployment (i.e. edx or edge)")
-def controller(username, password, environment, deployment):
+@click.option('--region', multiple=True, help='Default AWS region')
+@click.option('--recipient', multiple=True, help='Recipient Email address')
+@click.option('--sender', multiple=True, help='Sender email address')
+@click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
+def controller(username, password, environment, deploy, region, recipient, sender, rdsignore):
     """
     calls other function and calculate the results
     :param username: username for the RDS.
     :param password: password for the RDS.
     :return: None
     """
-
     # get list of all the RDSes across all the regions and deployments
     rds_list = get_rds_from_all_regions()
-    table_list = check_primary_keys(rds_list, username, password, environment, deployment)
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
+    if len(table_list) > 0:
+        send_email(recipient[0], sender[0], table_list, region[0])
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    controller()
