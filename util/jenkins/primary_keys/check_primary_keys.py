@@ -290,7 +290,8 @@ def controller(username, password, environment, deploy, region, recipient, sende
     """
     # get list of all the RDSes across all the regions and deployments
     print("+++++++++++++++++")
-    print(region)
+    print(type(region))
+    print(str(region))
     print("++++++++++++++++++")
     rds_list = get_rds_from_all_regions()
     filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
