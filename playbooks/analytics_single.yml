@@ -7,14 +7,29 @@
     disable_edx_services: false
     ENABLE_DATADOG: False
     ENABLE_NEWRELIC: False
+    SANDBOX_ENABLE_ANALYTICS_API: True
+    SANDBOX_ENABLE_ANALYTICS_PIPELINE: True
+    SANDBOX_ENABLE_INSIGHTS: True
+    POSTFIX_QUEUE_EXTERNAL_SMTP_HOST: ''
   roles:
     - aws
-    - mysql
     - edxlocal
+      when: EDXAPP_MYSQL_HOST == 'localhost'
     - memcache
+      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
     - analytics_api
+      when: SANDBOX_ENABLE_ANALYTICS_API
+    - role: nginx
+      nginx_sites:
+        - analytics_api
+      when: SANDBOX_ENABLE_ANALYTICS_API
     - analytics_pipeline
+      when: SANDBOX_ENABLE_ANALYTICS_PIPELINE
     - role: nginx
       nginx_sites:
         - insights
+      when: SANDBOX_ENABLE_INSIGHTS
     - insights
+      when: SANDBOX_ENABLE_INSIGHTS
+    - role: postfix_queue
+      when: POSTFIX_QUEUE_EXTERNAL_SMTP_HOST != ''
