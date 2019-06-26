@@ -111,7 +111,8 @@ def check_queries_running(rds_list, username, password):
 @click.option('--username', envvar='USERNAME', required=True)
 @click.option('--password', envvar='PASSWORD', required=True)
 @click.option('--environment', required=True, help='Use to identify the environment')
-def controller(username, password, environment):
+@click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
+def controller(username, password, environment, rdsignore):
     """
     Control execution of all other functions
     Arguments:
@@ -125,7 +126,8 @@ def controller(username, password, environment):
             Get this from cli args
     """
     rds_list = rds_extractor(environment)
-    process_list = check_queries_running(rds_list, username, password)
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    process_list = check_queries_running(filtered_rds_list, username, password)
     if len(process_list) > 0:
         format_string = "{:<20}{:<20}{:<30}{:<20}{:<20}{:<70}{}"
         print(format_string.format("Query ID", "User Name", "Host", "Command", "Time Executed", "State", "Info"))

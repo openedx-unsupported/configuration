@@ -135,9 +135,11 @@ def rds_controller(rds_list, username, password):
 @click.option('--username', envvar='USERNAME', required=True)
 @click.option('--password', envvar='PASSWORD', required=True)
 @click.option('--environment', required=True, help='Use to identify the environment')
-def main(username, password, environment):
+@click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
+def main(username, password, environment, rdsignore):
     rds_list = rds_extractor(environment)
-    rds_controller(rds_list, username, password)
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    rds_controller(filtered_rds_list, username, password)
 
 
 if __name__ == '__main__':

@@ -109,9 +109,11 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
 @click.option('--splunkpassword', envvar='SPLUNKPASSWORD', required=True)
 @click.option('--port', required=True, help='Use to identify the splunk port')
 @click.option('--indexname', required=True, help='Use to identify the splunk index name')
-def main(username, password, environment, hostname, splunkusername, splunkpassword, port, indexname):
+@click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
+def main(username, password, environment, hostname, splunkusername, splunkpassword, port, indexname, rdsignore):
     rds_list = rds_extractor(environment)
-    rds_controller(rds_list, username, password, hostname, splunkusername, splunkpassword, port, indexname)
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    rds_controller(filtered_rds_list, username, password, hostname, splunkusername, splunkpassword, port, indexname)
 
 
 if __name__ == '__main__':
