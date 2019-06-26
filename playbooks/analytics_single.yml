@@ -10,26 +10,28 @@
     SANDBOX_ENABLE_ANALYTICS_API: True
     SANDBOX_ENABLE_ANALYTICS_PIPELINE: True
     SANDBOX_ENABLE_INSIGHTS: True
+    EDXAPP_MYSQL_HOST: ''
+    EDXAPP_MEMCACHE: ''
     POSTFIX_QUEUE_EXTERNAL_SMTP_HOST: ''
   roles:
     - aws
-    - edxlocal
+    - role: edxlocal
       when: EDXAPP_MYSQL_HOST == 'localhost'
-    - memcache
+    - role: memcache
       when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
-    - analytics_api
+    - role: analytics_api
       when: SANDBOX_ENABLE_ANALYTICS_API
     - role: nginx
       nginx_sites:
         - analytics_api
       when: SANDBOX_ENABLE_ANALYTICS_API
-    - analytics_pipeline
+    - role: analytics_pipeline
       when: SANDBOX_ENABLE_ANALYTICS_PIPELINE
     - role: nginx
       nginx_sites:
         - insights
       when: SANDBOX_ENABLE_INSIGHTS
-    - insights
+    - role: insights
       when: SANDBOX_ENABLE_INSIGHTS
     - role: postfix_queue
       when: POSTFIX_QUEUE_EXTERNAL_SMTP_HOST != ''
