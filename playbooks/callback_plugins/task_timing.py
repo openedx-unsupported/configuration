@@ -17,11 +17,9 @@ except ImportError:
     # Support Ansible 1.9.x
     CallbackBase = object
 
-import datadog
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logging.getLogger("requests").setLevel(logging.WARNING)
-logging.getLogger("dd").setLevel(logging.WARNING)
 LOGGER = logging.getLogger(__name__)
 
 """
@@ -74,62 +72,6 @@ class TimingLogger(object):
                 to Timestamps that measure how long each task took.
         """
         pass
-
-
-class DatadogTimingLogger(TimingLogger):
-    """
-    Record ansible task and play timing to Datadog.
-
-    Requires that the environment variable DATADOG_API_KEY be set in order
-    to log any data.
-    """
-    def __init__(self):
-        super(DatadogTimingLogger, self).__init__()
-
-        self.datadog_api_key = os.getenv('DATADOG_API_KEY')
-        self.datadog_api_initialized = False
-
-        if self.datadog_api_key:
-            datadog.initialize(
-                api_key=self.datadog_api_key,
-                app_key=None
-            )
-            self.datadog_api_initialized = True
-
-    def clean_tag_value(self, value):
-        """
-        Remove any characters that aren't allowed in Datadog tags.
-
-        Arguments:
-            value: the string to be cleaned.
-        """
-        return value.replace(" | ", ".").replace(" ", "-").lower()
-
-    def log_play(self, playbook_name, playbook_timestamp, results):
-        if not self.datadog_api_initialized:
-            return
-
-        datadog_tasks_metrics = []
-        for name, timestamp in results.items():
-            datadog_tasks_metrics.append({
-                'metric': 'edx.ansible.task_duration',
-                'date_happened': time.mktime(timestamp.start.timetuple()),
-                'points': timestamp.duration.total_seconds(),
-                'tags': [
-                    'task:{0}'.format(self.clean_tag_value(name)),
-                    'playbook:{0}'.format(self.clean_tag_value(playbook_name))
-                ]
-            })
-        try:
-            datadog.api.Metric.send(datadog_tasks_metrics)
-            datadog.api.Metric.send(
-                metric="edx.ansible.playbook_duration",
-                date_happened=time.mktime(playbook_timestamp.start.timetuple()),
-                points=playbook_timestamp.duration.total_seconds(),
-                tags=["playbook:{0}".format(self.clean_tag_value(playbook_name))]
-            )
-        except Exception:
-            LOGGER.exception("Failed to log timing data to datadog")
 
 
 class JsonTimingLogger(TimingLogger):
@@ -229,7 +171,6 @@ class CallbackModule(CallbackBase):
         self.play = None
 
         self.loggers = [
-            DatadogTimingLogger(),
             LoggingTimingLogger(),
             JsonTimingLogger(),
         ]

@@ -146,10 +146,6 @@ if [[ -z $enable_newrelic ]]; then
   enable_newrelic="false"
 fi
 
-if [[ -z $enable_datadog ]]; then
-  enable_datadog="false"
-fi
-
 if [[ -z $performance_course ]]; then
   performance_course="false"
 fi
@@ -337,7 +333,6 @@ COMMON_USER_INFO:
     type: admin
 USER_CMD_PROMPT: '[$name_tag] '
 COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
-COMMON_ENABLE_DATADOG: $enable_datadog
 COMMON_OAUTH_BASE_URL: "https://${deploy_host}"
 FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 ENABLE_PERFORMANCE_COURSE: $performance_course
@@ -433,7 +428,6 @@ instance_tags:
     source: jenkins
     owner: $BUILD_USER
     instance_termination_time: $TERMINATION_DATE_TIME
-    datadog: monitored
 root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 dns_zone: $dns_zone
