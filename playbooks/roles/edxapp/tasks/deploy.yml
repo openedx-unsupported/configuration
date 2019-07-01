@@ -271,12 +271,15 @@
 - name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip:
     chdir: "{{ edxapp_code_dir }}"
-    requirements: "{{ sandbox_base_requirements }}"
+    requirements: "{{ item }}"
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
+  with_tiems:
+    - "{{ sandbox_pre_requirements }}"
+    - "{{ sandbox_base_requirements }}"
   tags:
     - edxapp-sandbox
     - install
