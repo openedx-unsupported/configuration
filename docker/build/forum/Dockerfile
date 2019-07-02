@@ -23,6 +23,6 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook forum.yml \
     --extra-vars="forum_version=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
 WORKDIR /edx/app
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+ENTRYPOINT ["/edx/app/forum/devstack.sh"]
 CMD ["start"]
 EXPOSE 4567

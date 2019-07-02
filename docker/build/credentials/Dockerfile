@@ -11,7 +11,7 @@ ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
 USER root
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+ENTRYPOINT ["/edx/app/credentials/devstack.sh"]
 CMD ["start"]
 
 ADD . /edx/app/edx_ansible/edx_ansible
