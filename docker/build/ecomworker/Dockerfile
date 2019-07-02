@@ -20,5 +20,6 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook ecomworker.
     -t "install:base,install:system-requirements,install:configuration,install:app-requirements,install:code" \
     --extra-vars="@/ansible_overrides.yml"
 
-USER root 
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+USER root
+ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+CMD ["start"]

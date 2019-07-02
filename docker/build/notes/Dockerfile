@@ -29,4 +29,5 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook notes.yml \
     --extra-vars="COMMON_GIT_PATH=$REPO_OWNER"
 
 USER root
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+CMD ["start"]

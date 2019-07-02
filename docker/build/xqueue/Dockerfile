@@ -10,7 +10,8 @@
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+CMD ["start"]
 
 USER root
 RUN apt-get update
