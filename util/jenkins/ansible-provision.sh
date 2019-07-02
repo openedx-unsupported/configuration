@@ -127,7 +127,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-00015b8ecd3a6fb0d"
+    ami="ami-01f65220538bf9b3a"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-04169656fea786776"
   fi
