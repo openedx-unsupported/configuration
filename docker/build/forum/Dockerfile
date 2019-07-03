@@ -19,7 +19,7 @@ ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
 RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook forum.yml \
     -i '127.0.0.1,' -c local \
-    -t "install:base,install:configuration,install:app-requirements,install:code" \
+    -t "install:base,install:configuration,install:app-requirements,install:code,devstack:install" \
     --extra-vars="forum_version=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
 WORKDIR /edx/app
