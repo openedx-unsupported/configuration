@@ -28,6 +28,6 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook analytics_api.ym
     --extra-vars="ANALYTICS_API_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
 WORKDIR /edx/app/
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+ENTRYPOINT ["/edx/app/analytics_api/devstack.sh"]
 CMD ["start"]
 EXPOSE 443 80

@@ -29,5 +29,5 @@ RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook notes.yml \
     --extra-vars="COMMON_GIT_PATH=$REPO_OWNER"
 
 USER root
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+ENTRYPOINT ["/edx/app/notes/devstack.sh"]
 CMD ["start"]

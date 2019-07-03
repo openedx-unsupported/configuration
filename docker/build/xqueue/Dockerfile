@@ -10,7 +10,7 @@
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+ENTRYPOINT ["/edx/app/xqueue/devstack.sh"]
 CMD ["start"]
 
 USER root

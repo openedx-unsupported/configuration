@@ -9,5 +9,5 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook notifier.yml \
     -t 'install' \
     -e@/ansible_overrides.yml
 WORKDIR /edx/app
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+ENTRYPOINT ["/edx/app/notifier/devstack.sh"]
 CMD ["start"]
