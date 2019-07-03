@@ -4,7 +4,7 @@ import sys
 import backoff
 import pymysql
 import click
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 MAX_TRIES = 5
 PERIOD = 360
@@ -55,7 +55,7 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
-def send_email(toaddr, fromaddr, primary_keys_message, region):
+def send_an_email(to_addr, from_addr, primary_keys_message, region):
     client = boto3.client('ses', region_name=region)
 
     message = """
@@ -66,28 +66,33 @@ def send_email(toaddr, fromaddr, primary_keys_message, region):
         <th>Database</th>
         <th>Table</th>
         <th>Usage Percentage</th>
+        <th>Remaining Days</th>
       </tr>
     """
     for item in range(len(primary_keys_message)):
         message += """
-            <tr><td>{Database}</td><td>
-            {Table}</td><td>
-            {UsedPercentage}</td></tr>""".format(
+            <tr><td>{Database}</td>
+            <td>{Table}</td>
+            <td>{UsedPercentage}</td>
+            <td>{DaysRemaining}</td>
+            </tr>""".format(
             Database=primary_keys_message[item]['database_name'],
             Table=primary_keys_message[item]['table_name'],
-            UsedPercentage=primary_keys_message[item]['percentage_of_PKs_consumed'])
+            UsedPercentage=primary_keys_message[item]['percentage_of_PKs_consumed'],
+            DaysRemaining=primary_keys_message[item]['remaining_days'] if "remaining_days" in primary_keys_message[item] else ''
+        )
 
     message += """</table>"""
     client.send_email(
-        Source=fromaddr,
+        Source=from_addr,
         Destination={
             'ToAddresses': [
-                toaddr
+                to_addr
             ]
         },
         Message={
             'Subject': {
-                'Data': 'The following table/tables are reaching their Primary Key exhaustion limit',
+                'Data': 'Primary keys of these table would be exhausted soon',
                 'Charset': 'utf-8'
             },
             'Body': {
@@ -229,8 +234,10 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     table_data["database_name"] = item['name']
                     table_data["table_name"] = table[1]
                     table_data["percentage_of_PKs_consumed"] = table[6]
+                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
+                    if remaining_days:
+                        table_data["remaining_days"] = remaining_days
                     tables_reaching_exhaustion_limit.append(table_data)
-                    get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
             if len(metric_data) > 0:
                 cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
         return tables_reaching_exhaustion_limit
@@ -250,7 +257,7 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
                 'Value': value
             },
         ],
-        StartTime=datetime.utcnow() - timedelta(days=5),
+        StartTime=datetime.utcnow() - timedelta(days=180),
         EndTime=datetime.utcnow(),
         Period=86400,
         Statistics=[
@@ -261,15 +268,19 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
     datapoints = res["Datapoints"]
     days_remaining_before_exhaustion = ''
     if len(datapoints) > 0:
-        last_max_reading = res["Datapoints"][0]["Maximum"]
-        cosnumed_keys_percentage = 100 - current_consumption
+        max_value = max(datapoints, key=lambda x: x['Timestamp'])
+        time_diff = datetime.now(timezone.utc) - max_value["Timestamp"]
+        last_max_reading = max_value["Maximum"]
+        consumed_keys_percentage = 100 - current_consumption
         if current_consumption > last_max_reading:
-            days_remaining_before_exhaustion = cosnumed_keys_percentage/(current_consumption -
-                                                                         last_max_reading)
+            current_usage = current_consumption - last_max_reading
+            no_of_days = time_diff.days
+            increase_over_time_period = current_usage/no_of_days
+            days_remaining_before_exhaustion = consumed_keys_percentage/increase_over_time_period
             print("days remaining for {db} db are {days}".format(db=value,
                                                                  days=days_remaining_before_exhaustion))
-        #if days_remaining_before_exhaustion < 365:
-            #sys.exit(1)
+    return days_remaining_before_exhaustion
+
 
 
 
@@ -295,7 +306,7 @@ def controller(username, password, environment, deploy, region, recipient, sende
     filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
     table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
     if len(table_list) > 0:
-        send_email(recipient[0], sender[0], table_list, region[0])
+        send_an_email(recipient[0], sender[0], table_list, region[0])
     sys.exit(0)
 
 
