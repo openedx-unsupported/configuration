@@ -11,8 +11,7 @@ ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
 USER root
-ENTRYPOINT ["/edx/app/registrar/devstack.sh"]
-CMD ["start"]
+CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
 
 ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
