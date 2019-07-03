@@ -23,5 +23,4 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook xqwatcher.yml \
     --extra-vars="XQWATCHER_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
 WORKDIR /edx/app
-ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
-CMD ["start"]
+CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
