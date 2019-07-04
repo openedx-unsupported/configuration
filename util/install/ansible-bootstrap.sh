@@ -108,9 +108,9 @@ fi
 
 # Required for add-apt-repository
 apt-get install -y software-properties-common
-if [[ "${SHORT_DIST}" != bionic ]] ;then
-  apt-get install -y python-software-properties
-fi
+# if [[ "${SHORT_DIST}" != bionic ]] ;then
+#   apt-get install -y software-properties-common
+# fi
 
 # Add git PPA
 add-apt-repository -y ppa:git-core/ppa
