@@ -109,7 +109,7 @@ fi
 # Required for add-apt-repository
 apt-get install -y software-properties-common
 if [[ "${SHORT_DIST}" != bionic ]] ;then
-  apt-get install -y python-software-properties
+  apt-get install -y software-properties-common
 fi
 
 # Add git PPA
