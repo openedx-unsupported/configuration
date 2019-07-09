@@ -1,3 +1,6 @@
+- Role: discovery
+  - Add mysql replica settings to env config.
+
 - Role: common_vars
   - Default `COMMON_JWT_PUBLIC_SIGNING_JWK_SET` to `''`
     instead of `!!null`. Because of how this setting is handled,
