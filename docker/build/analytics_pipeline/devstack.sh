@@ -18,9 +18,9 @@ case $COMMAND in
         . /edx/app/analytics_pipeline/venvs/analytics_pipeline/bin/activate
         cd /edx/app/analytics_pipeline/analytics_pipeline
 
-        /bin/bash -c "$*"
+        "$@"
         ;;
     *)
-        /bin/bash -c "$*"
+        "$@"
         ;;
 esac
