@@ -22,5 +22,6 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook insights.yml \
     -t "install:base,install:system-requirements,install:configuration,install:app-requirements,install:code" \
     --extra-vars="INSIGHTS_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+ENTRYPOINT ["/edx/app/insights/devstack.sh"]
+CMD ["start"]
 EXPOSE 8110 18110

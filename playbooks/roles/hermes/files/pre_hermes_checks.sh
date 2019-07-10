@@ -5,7 +5,7 @@
 # the best practice is to reboot the instance since if you do not do this reboot the instance's
 # file system integrity cannot be guaranteed.
 # Since we monitor hermes, this causes errors that are not a problem to be logged when hermes fails to run correctly
-# on build boxes. 
+# on build boxes.
 # This script is run before hermes is started, preventing it from booting during builds.
 
 # Default startup timeout in systemd is 60 seconds, sleep 50 means we should return before the timeout

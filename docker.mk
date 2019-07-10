@@ -79,8 +79,13 @@ $(docker_push)%: $(docker_pkg)%
 
 .build/%/Dockerfile.d: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	$(eval FROM=$(shell grep "^\s*FROM" $< | sed -E "s/FROM //" | sed -E "s/:/@/g"))
+	$(eval BASE_IMAGE_TAG=$(shell grep "^\s*ARG BASE_IMAGE_TAG" $< | sed -E "s/ARG BASE_IMAGE_TAG=//"))
+	@# I have no idea why the final sed is eating the first character of the substitution...
+	$(eval FROM=$(shell grep "^\s*FROM" docker/build/ecommerce/Dockerfile  | sed -E "s/FROM //" | sed -E "s/:/@/g" | sed -E 's/\$\{BASE_IMAGE_TAG\}/ $(BASE_IMAGE_TAG)/'))
 	$(eval EDXOPS_FROM=$(shell echo "$(FROM)" | sed -E "s#edxops/([^@]+)(@.*)?#\1#"))
+	@echo "Base Image Tag: $(BASE_IMAGE_TAG)"
+	@echo $(FROM)
+	@echo $(EDXOPS_FROM)
 	@echo "$(docker_build)$*: $(docker_pull)$(FROM)" > $@
 	@if [ "$(EDXOPS_FROM)" != "$(FROM)" ]; then \
 	echo "$(docker_test)$*: $(docker_test)$(EDXOPS_FROM:@%=)" >> $@; \

@@ -469,6 +469,18 @@ fi
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
+# master's integration environment setup
+if [[ $registrar == "true" ]]; then
+  # vars specific to master's integration environment
+  cat << EOF >> $extra_vars_file
+username: $registrar_user_email
+email: $registrar_user_email
+organization_key: $registrar_org_key
+registrar_role: "organization_read_write_enrollments"
+EOF
+  run_ansible masters_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
+
 if [[ $set_whitelabel == "true" ]]; then
     # Setup Whitelabel themes
     run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu

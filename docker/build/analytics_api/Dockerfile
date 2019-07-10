@@ -28,5 +28,6 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook analytics_api.ym
     --extra-vars="ANALYTICS_API_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
 WORKDIR /edx/app/
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+ENTRYPOINT ["/edx/app/analytics_api/devstack.sh"]
+CMD ["start"]
 EXPOSE 443 80
