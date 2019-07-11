@@ -1,3 +1,6 @@
+- Role: discovery
+  - Override DISCOVERY_MYSQL_REPLICA_HOST to `edx.devstack.mysql` in docker.
+
 - Playbook: masters_sandbox
   - Include call to create_api_access_request
 
