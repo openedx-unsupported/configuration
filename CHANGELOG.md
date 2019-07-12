@@ -1,3 +1,12 @@
+- Playbook: program_manager
+  - Added playbook to setup program-manager micro-frontend application on sandboxes
+
+- Role: program_manager
+  - Created the program-manager role for micro-frontend application to be setup
+
+- Role: registrar
+  - Set CSRF_TRUSTED_ORIGINS.
+
 - Role: registrar
   - Set CORS_ORIGIN_WHITELIST.	
 
