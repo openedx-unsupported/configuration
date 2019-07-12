@@ -5,6 +5,9 @@
   - Created the program-manager role for micro-frontend application to be setup
 
 - Role: registrar
+  - Set CSRF_TRUSTED_ORIGINS.
+
+- Role: registrar
   - Set CORS_ORIGIN_WHITELIST.	
 
 - Role: discovery
