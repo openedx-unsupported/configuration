@@ -222,11 +222,8 @@ demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
 registrar_version: $registrar_version
-<<<<<<< HEAD
 learner_portal_version: $learner_portal_version
-=======
 program_manager_version: $program_manager_version
->>>>>>> 4533b8e4f8bdae4568e6049304f10ad1ab532b44
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -261,19 +258,17 @@ REGISTRAR_VERSION: $registrar_version
 REGISTRAR_ENABLED: $registrar
 REGISTRAR_SANDBOX_BUILD: True
 
-<<<<<<< HEAD
 LEARNER_PORTAL_NGINX_PORT: 80
 LEARNER_PORTAL_SSL_NGINX_PORT: 443
 LEARNER_PORTAL_VERSION: $learner_portal_version
 LEARNER_PORTAL_ENABLED: $learner_portal
 LEARNER_PORTAL_SANDBOX_BUILD: True
-=======
+
 PROGRAM_MANAGER_NGINX_PORT: 80
 PROGRAM_MANAGER_SSL_NGINX_PORT: 443
 PROGRAM_MANAGER_VERSION: $program_manager_version
 PROGRAM_MANAGER_ENABLED: $program_manager
 PROGRAM_MANAGER_SANDBOX_BUILD: True
->>>>>>> 4533b8e4f8bdae4568e6049304f10ad1ab532b44
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -392,16 +387,14 @@ REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
 REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
-<<<<<<< HEAD
 LEARNER_PORTAL_URL_ROOT: "https://learner_portal-${deploy_host}"
 LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
-=======
+
 PROGRAM_MANAGER_URL_ROOT: "https://program-manager-${deploy_host}"
 PROGRAM_MANAGER_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
 PROGRAM_MANAGER_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
->>>>>>> 4533b8e4f8bdae4568e6049304f10ad1ab532b44
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
@@ -469,11 +462,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-<<<<<<< HEAD
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar learner_portal"
-=======
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager"
->>>>>>> 4533b8e4f8bdae4568e6049304f10ad1ab532b44
+plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
