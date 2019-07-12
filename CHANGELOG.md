@@ -1,3 +1,6 @@
+- Role: registrar
+  - Set CORS_ORIGIN_WHITELIST.	
+
 - Role: discovery
   - Override DISCOVERY_MYSQL_REPLICA_HOST to `edx.devstack.mysql` in docker.
 
