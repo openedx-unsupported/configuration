@@ -461,6 +461,13 @@ veda_pipeline_worker=${video_pipeline:-false}
 veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
+# ansible overrides for master's integration environment setup
+if [[ $registrar == "true" ]]; then
+    cat << EOF >> $extra_vars_file
+COMMON_ENABLE_SPLUNKFORWARDER: true
+EOF
+fi
+
 declare -A deploy
 plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
 
