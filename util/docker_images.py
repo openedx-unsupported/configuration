@@ -20,7 +20,7 @@ def get_used_images(images):
 
     with (config_file_path.open(mode='r')) as file:
         try:
-            config = yaml.load(file)
+            config = yaml.safe_load(file)
         except yaml.YAMLError, exc:
             LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)

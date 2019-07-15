@@ -118,7 +118,8 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
 @click.option('--password', envvar='PASSWORD', required=True)
 @click.option('--threshold', required=True, help='Threshold for tables')
 @click.option('--rdsthreshold', type=(str, int), multiple=True, help='Specific RDS threshold')
-def controller(username, password, threshold, rdsthreshold):
+@click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
+def controller(username, password, threshold, rdsthreshold, rdsignore):
     """
     Control execution of all other functions
     Arguments:
@@ -134,7 +135,8 @@ def controller(username, password, threshold, rdsthreshold):
     """
     rds_threshold = dict(rdsthreshold)
     rds_list = rds_extractor()
-    table_list = check_table_growth(rds_list, username, password, threshold, rds_threshold)
+    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    table_list = check_table_growth(filtered_rds_list, username, password, threshold, rds_threshold)
     if len(table_list) > 0:
         format_string = "{:<40}{:<20}{:<50}{}"
         print(format_string.format("RDS Name","Database Name", "Table Name", "Size"))

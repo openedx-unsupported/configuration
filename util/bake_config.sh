@@ -34,7 +34,7 @@ do
     do
         if [ "$PLAY" == "edxapp" ]; then
             # LMS / CMS for Environment/Deployment
-            ansible-playbook --become-user=$(whoami) -vvv -c local -i 'localhost,' --tags edxapp_cfg ./edxapp.yml $VARS -e edxapp_user=$(whoami) -e common_web_group=$(whoami) -e edxapp_app_dir=$CONFIG_RENDERING_TARGET/$ENVIRONMENT_DEPLOYMENT -e edxapp_code_dir=$WORKSPACE/edx-platform -e COMMON_CFG_DIR=$CONFIG_RENDERING_TARGET/$ENVIRONMENT_DEPLOYMENT
+            ansible-playbook --become-user=$(whoami) -vvv -c local -i 'localhost,' --tags edxapp_cfg_yaml_only ./edxapp.yml $VARS -e edxapp_user=$(whoami) -e common_web_group=$(whoami) -e COMMON_CFG_DIR=$CONFIG_RENDERING_TARGET/$ENVIRONMENT_DEPLOYMENT
         else
             # All other IDAs
             ansible-playbook --become-user=$(whoami) -vvv -c local -i 'localhost,' --tags install:app-configuration ./$PLAY.yml $VARS -e COMMON_CFG_DIR=$CONFIG_RENDERING_TARGET/$ENVIRONMENT_DEPLOYMENT

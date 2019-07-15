@@ -10,7 +10,7 @@
 # Run the edxapp play with custom ansible overrides
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
-MAINTAINER edxops
+LABEL maintainer="edxops"
 USER root
 
 ADD . /edx/app/edx_ansible/edx_ansible

@@ -16,4 +16,5 @@ export NEW_RELIC_LICENSE_KEY='{{ NEWRELIC_LICENSE_KEY }}'
 {% endif -%}
 
 source {{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}_env
-{{ executable }} -A ecommerce_worker worker --app ecommerce_worker.celery_app:app --concurrency={{ ECOMMERCE_WORKER_CONCURRENCY }} --loglevel=info --queue=fulfillment,email_marketing
+# We exec so that celery is the child of supervisor and can be managed properly
+exec {{ executable }} -A ecommerce_worker worker --app ecommerce_worker.celery_app:app --concurrency={{ ECOMMERCE_WORKER_CONCURRENCY }} --loglevel=info --hostname=ecomworker.%%h --queue=ecommerce.fulfillment,ecommerce.email_marketing

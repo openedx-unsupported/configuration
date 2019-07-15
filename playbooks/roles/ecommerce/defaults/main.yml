@@ -14,13 +14,13 @@
 ECOMMERCE_GIT_IDENTITY: !!null
 
 ECOMMERCE_REPOS:
-  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
-    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
-    PATH: '{{ COMMON_GIT_PATH }}'
-    REPO: 'ecommerce.git'
-    VERSION: '{{ ECOMMERCE_VERSION }}'
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: "ecommerce.git"
+    VERSION: "{{ ECOMMERCE_VERSION }}"
     DESTINATION: "{{ ecommerce_code_dir }}"
-    SSH_KEY: '{{ ECOMMERCE_GIT_IDENTITY }}'
+    SSH_KEY: "{{ ECOMMERCE_GIT_IDENTITY }}"
 
 # depends upon Newrelic being enabled via COMMON_ENABLE_NEWRELIC
 # and a key being provided via NEWRELIC_LICENSE_KEY
@@ -61,14 +61,22 @@ ECOMMERCE_JWT_ISSUERS:
 
 ECOMMERCE_JWT_LEEWAY: 1
 
+# Needed to link to the payment micro-frontend.
+ECOMMERCE_PAYMENT_MICROFRONTEND_URL: !!null
+
 # Sailthru
 ECOMMERCE_SAILTHRU_KEY: 'sailthru key here'
 ECOMMERCE_SAILTHRU_SECRET: 'sailthru secret here'
 
 # Used to automatically configure OAuth2 Client
+ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'ecommerce-sso-key'
+ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'ecommerce-sso-secret'
+ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'ecommerce-backend-service-key'
+ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'ecommerce-backend-service-secret'
+ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+# NOTE: Deprecate these OIDC settings post-DOP-removal for ecommerce.
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY: 'ecommerce-key'
 ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET: 'ecommerce-secret'
-ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 # Settings for affiliate cookie tracking
 ECOMMERCE_AFFILIATE_COOKIE_NAME: '{{ EDXAPP_AFFILIATE_COOKIE_NAME | default("dev_affiliate_id") }}'
@@ -144,6 +152,16 @@ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
       cancel_url: '{{ ECOMMERCE_PAYPAL_CANCEL_URL }}'
       error_url: '{{ ECOMMERCE_PAYPAL_ERROR_URL }}'
 
+# JWT payload user attribute mapping
+ECOMMERCE_EDX_DRF_EXTENSIONS:
+  JWT_PAYLOAD_USER_ATTRIBUTE_MAPPING:
+    administrator: 'is_staff'
+    email: 'email'
+    full_name: 'full_name'
+    tracking_context: 'tracking_context'
+    user_id: 'lms_user_id'
+  OAUTH2_USER_INFO_URL: '{{ edx_django_service_oidc_url_root }}/user_info'
+
 # Theming
 ECOMMERCE_PLATFORM_NAME: 'Your Platform Name Here'
 ECOMMERCE_THEME_SCSS: 'sass/themes/default.scss'
@@ -193,6 +211,8 @@ ecommerce_service_config_overrides:
     JWT_AUTH_COOKIE_SIGNATURE: '{{ COMMON_JWT_AUTH_COOKIE_SIGNATURE }}'
     JWT_AUTH_REFRESH_COOKIE: '{{ COMMON_JWT_AUTH_REFRESH_COOKIE }}'
 
+  EDX_DRF_EXTENSIONS: '{{ ECOMMERCE_EDX_DRF_EXTENSIONS }}'
+
   AFFILIATE_COOKIE_KEY: '{{ ECOMMERCE_AFFILIATE_COOKIE_NAME }}'
 
   PAYMENT_PROCESSOR_CONFIG: '{{ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG }}'
@@ -217,6 +237,8 @@ ecommerce_service_config_overrides:
   CORS_ALLOW_CREDENTIALS: "{{ ECOMMERCE_CORS_ALLOW_CREDENTIALS }}"
 
   USERNAME_REPLACEMENT_WORKER: "{{ ECOMMERCE_USERNAME_REPLACEMENT_WORKER }}"
+
+  PAYMENT_MICROFRONTEND_URL: "{{ ECOMMERCE_PAYMENT_MICROFRONTEND_URL}}"
 
 ECOMMERCE_GUNICORN_WORKER_CLASS: "gevent"
 ECOMMERCE_GUNICORN_MAX_REQUESTS: 3000
@@ -269,13 +291,14 @@ ecommerce_debian_pkgs:
   - libjpeg-dev
   - libssl-dev
   - libffi-dev
+  - libsqlite3-dev
 
 ecommerce_redhat_pkgs: []
 
 ecommerce_post_migrate_commands:
   - command: './manage.py oscar_populate_countries --initial-only'
     when: true
-  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }} --client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/ --journals_api_url={{ JOURNALS_API_URL|default("") }}'
+  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }} --client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }} --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }} --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }} --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }} --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/ --journals_api_url={{ JOURNALS_API_URL|default("") }}'
     when: '{{ ecommerce_create_demo_data }}'
   - command: './manage.py create_demo_data --partner=edX'
     when: '{{ ecommerce_create_demo_data }}'

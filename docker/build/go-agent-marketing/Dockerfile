@@ -12,11 +12,11 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash - && \
 
 # Install php
 RUN apt-get update && apt-get install -y \
-    php5-common \
-    php5-cli
+    php-common \
+    php-cli
 
 # Install drush (drupal shell) for access to Drupal commands/Acquia
-RUN php -r "readfile('http://files.drush.org/drush.phar');" > drush && \
+RUN php -r "readfile('https://github.com/drush-ops/drush/releases/download/8.2.3/drush.phar');" > drush && \
     chmod +x drush && \
     sudo mv drush /usr/local/bin
 

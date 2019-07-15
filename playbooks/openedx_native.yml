@@ -15,7 +15,7 @@
   gather_facts: True
   vars:
     migrate_db: "yes"
-    EDXAPP_PREVIEW_LMS_BASE: EDXAPP_LMS_BASE
+    EDXAPP_PREVIEW_LMS_BASE: '{{ EDXAPP_LMS_BASE }}'
     EDXAPP_LOGIN_REDIRECT_WHITELIST: [ "{{ EDXAPP_CMS_BASE }}" ]
     EDXAPP_LMS_BASE_SCHEME: http
     EDXAPP_LMS_NGINX_PORT: '80'
@@ -26,12 +26,14 @@
     COMMON_ENABLE_AWS_ROLE: false
     ecommerce_create_demo_data: true
     credentials_create_demo_data: true
+    SANDBOX_ENABLE_BLOCKSTORE: false
     SANDBOX_ENABLE_DISCOVERY: true
     SANDBOX_ENABLE_ECOMMERCE: true
     SANDBOX_ENABLE_ANALYTICS_API: true
     SANDBOX_ENABLE_INSIGHTS: true
     SANDBOX_ENABLE_RABBITMQ: true
     JOURNALS_ENABLED: false
+    SANDBOX_ENABLE_NOTES: false
   roles:
     - role: swapfile
       SWAPFILE_SIZE: 4GB
@@ -58,6 +60,8 @@
     - role: edxapp
       celery_worker: True
     - edxapp
+    - role: blockstore
+      when: SANDBOX_ENABLE_BLOCKSTORE
     - role: ecommerce
       when: SANDBOX_ENABLE_ECOMMERCE
     - role: ecomworker
@@ -67,7 +71,14 @@
       when: SANDBOX_ENABLE_ANALYTICS_API
     - role: insights
       when: SANDBOX_ENABLE_INSIGHTS
-    # not ready yet: - edx_notes_api
+    - role: edx_notes_api
+      when: SANDBOX_ENABLE_NOTES
+      # Run the nginx role to install edx_notes_api config since the app role
+      # currently doesn't do that.
+    - role: nginx
+      nginx_sites:
+      - edx_notes_api
+      when: SANDBOX_ENABLE_NOTES
     - demo
     - oauth_client_setup
     - oraclejdk

@@ -1,6 +1,6 @@
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 USER root
 ENV BOTO_CONFIG=/dev/null \

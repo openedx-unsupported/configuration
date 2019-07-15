@@ -20,6 +20,7 @@ requirements:
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements.txt --exists-action w
 
+upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
 upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements/pip-tools.txt

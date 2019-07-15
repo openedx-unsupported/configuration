@@ -94,7 +94,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Create necessary folders
@@ -115,7 +115,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Download Jenkins war file
@@ -166,7 +166,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Run gradle libs
@@ -181,7 +181,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Copy init scripts into init.groovy.d
@@ -193,7 +193,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
 
 - name: Copy all init scripts other than oauth and security for local dev
   command: 'cp {{ jenkins_common_git_home }}/jenkins-configuration/{{ jenkins_common_configuration_src_path }}/{{ item }} {{ jenkins_common_home }}/init.groovy.d/'
@@ -218,7 +218,7 @@
   tags:
      - install
      - install:base
-     - install:jenkins-configuration
+     - install:plugins
      - jenkins:local-dev
 
 - name: Copy non plugins template files
@@ -232,7 +232,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
 
 - name: For local dev, copy any config files other than oauth and security
   template:
@@ -265,7 +265,6 @@
     - install
     - install:base
     - install:plugins
-    - install:jenkins-configuration
     - jenkins:local-dev
 
 - name: Copy ec2 config files
@@ -279,7 +278,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Copy xml config files
@@ -293,7 +292,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Copy splunk config script
@@ -307,7 +306,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Run plugins.gradle
@@ -323,7 +322,6 @@
     - install
     - install:base
     - install:plugins
-    - install:jenkins-configuration
     - jenkins:local-dev
 
 - name: Copy secret file credentials
@@ -335,7 +333,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Copy ec2 key
@@ -348,7 +346,7 @@
   tags:
     - install
     - install:base
-    - install:jenkins-configuration
+    - install:plugins
     - jenkins:local-dev
 
 - name: Start Jenkins Service
@@ -361,7 +359,6 @@
     - manage
     - manage:start
     - install:plugins
-    - install:jenkins-configuration
     - jenkins:promote-to-production
 
 - name: Wait until the Jenkins service has fully initialized
@@ -370,12 +367,11 @@
     status_code: 200
   register: result
   until: result.status == 200
-  retries: 30
+  retries: 60
   delay: 1
   tags:
     - install:base
     - install:plugins
-    - install:jenkins-configuration
 
 - name: Delete any existing jenkins-configuration folders to avoid unwanted configuration
   file:
@@ -389,4 +385,3 @@
   tags:
     - install:base
     - install:plugins
-    - install:jenkins-configuration

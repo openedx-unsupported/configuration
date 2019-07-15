@@ -89,6 +89,7 @@ extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
+program_manager="false"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -127,7 +128,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-0b7431fd58e78be07"
+    ami="ami-01f65220538bf9b3a"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-04169656fea786776"
   fi
@@ -181,6 +182,26 @@ if [[ -z $journals_version ]]; then
   journals_version="master"
 fi
 
+if [[ -z $registrar ]]; then
+  registrar="false"
+fi
+
+if [[ -z $registrar_version ]]; then
+  registrar_version="master"
+fi
+
+if [[ -z $learner_portal ]]; then
+  learner_portal="false"
+fi
+
+if [[ -z $learner_portal_version ]]; then
+  learner_portal_version="master"
+fi 
+
+if [[ $registrar == 'true' ]]; then
+  program_manager="true"
+fi
+
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
@@ -195,12 +216,14 @@ edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
 XQUEUE_VERSION: $xqueue_version
-xserver_version: $xserver_version
 certs_version: $certs_version
 configuration_version: $configuration_version
 demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
+registrar_version: $registrar_version
+learner_portal_version: $learner_portal_version
+program_manager_version: $program_manager_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -229,6 +252,24 @@ JOURNALS_VERSION: $journals_version
 JOURNALS_ENABLED: $journals
 JOURNALS_SANDBOX_BUILD: True
 
+REGISTRAR_NGINX_PORT: 80
+REGISTRAR_SSL_NGINX_PORT: 443
+REGISTRAR_VERSION: $registrar_version
+REGISTRAR_ENABLED: $registrar
+REGISTRAR_SANDBOX_BUILD: True
+
+LEARNER_PORTAL_NGINX_PORT: 80
+LEARNER_PORTAL_SSL_NGINX_PORT: 443
+LEARNER_PORTAL_VERSION: $learner_portal_version
+LEARNER_PORTAL_ENABLED: $learner_portal
+LEARNER_PORTAL_SANDBOX_BUILD: True
+
+PROGRAM_MANAGER_NGINX_PORT: 80
+PROGRAM_MANAGER_SSL_NGINX_PORT: 443
+PROGRAM_MANAGER_VERSION: $program_manager_version
+PROGRAM_MANAGER_ENABLED: $program_manager
+PROGRAM_MANAGER_SANDBOX_BUILD: True
+
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
@@ -243,6 +284,7 @@ dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
+COMMON_LMS_BASE_URL: https://${deploy_host}
 
 nginx_default_sites:
   - lms
@@ -281,9 +323,6 @@ EOF_PROFILING
 fi
 
 if [[ $edx_internal == "true" ]]; then
-    # if this isn't a public server add the github
-    # user and set edx_internal to True so that
-    # xserver is installed
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
@@ -341,6 +380,21 @@ journals_create_demo_data: true
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+REGISTRAR_URL_ROOT: "https://registrar-${deploy_host}"
+REGISTRAR_API_ROOT: "https://registrar-${deploy_host}/api"
+REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
+REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+LEARNER_PORTAL_URL_ROOT: "https://learner_portal-${deploy_host}"
+LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
+
+PROGRAM_MANAGER_URL_ROOT: "https://program-manager-${deploy_host}"
+PROGRAM_MANAGER_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
+PROGRAM_MANAGER_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
@@ -408,7 +462,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue xserver certs demo testcourses"
+plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
@@ -450,6 +504,18 @@ fi
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+
+# master's integration environment setup
+if [[ $registrar == "true" ]]; then
+  # vars specific to master's integration environment
+  cat << EOF >> $extra_vars_file
+username: $registrar_user_email
+email: $registrar_user_email
+organization_key: $registrar_org_key
+registrar_role: "organization_read_write_enrollments"
+EOF
+  run_ansible masters_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
 
 if [[ $set_whitelabel == "true" ]]; then
     # Setup Whitelabel themes

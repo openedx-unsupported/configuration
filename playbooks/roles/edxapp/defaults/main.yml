@@ -654,10 +654,14 @@ EDXAPP_CORS_ORIGIN_ALLOW_ALL: false
 EDXAPP_CROSS_DOMAIN_CSRF_COOKIE_DOMAIN: ""
 EDXAPP_CROSS_DOMAIN_CSRF_COOKIE_NAME: ""
 EDXAPP_CSRF_COOKIE_SECURE: false
+EDXAPP_CSRF_TRUSTED_ORIGINS: []
 EDXAPP_LOGIN_REDIRECT_WHITELIST: []
 
 # edx-rbac Related Settings
 EDXAPP_SYSTEM_WIDE_ROLE_CLASSES: []
+
+# Setting for enterprise marketing footer query params
+EDXAPP_ENTERPRISE_MARKETING_FOOTER_QUERY_PARAMS: {}
 
 # E-Commerce Related Settings
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "http://localhost:8002"
@@ -671,6 +675,11 @@ EDXAPP_CREDENTIALS_PUBLIC_SERVICE_URL: "http://localhost:8005"
 # Journals Related Settings
 EDXAPP_JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
 EDXAPP_JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
+# Learner portal settings
+EDXAPP_LEARNER_PORTAL_URL_ROOT: "https://learner-portal-{{ EDXAPP_LMS_BASE }}"
+# Blockstore Related Settings
+EDXAPP_BLOCKSTORE_PUBLIC_URL_ROOT: "http://localhost:18250"
+EDXAPP_BLOCKSTORE_API_URL: "http://localhost:18250/api/v1"
 
 # List of all logout URIs for IDAs which have been converted from using DOP to using DOT.
 EDXAPP_IDA_LOGOUT_URI_LIST: []
@@ -882,6 +891,10 @@ INSIGHTS_SERVICE_USER_NAME: "insights_worker"
 REGISTRAR_SERVICE_USER_EMAIL: "registrar_worker@example.com"
 REGISTRAR_SERVICE_USER_NAME: "registrar_worker"
 
+# Configuration needed for LMS to communicate with the Designer service
+DESIGNER_SERVICE_USER_EMAIL: "designer_worker@example.com"
+DESIGNER_SERVICE_USER_NAME: "designer_worker"
+
 
 # Configuration settings needed for the LMS to communicate with the Enterprise service.
 EDXAPP_ENTERPRISE_API_URL: "{{ EDXAPP_LMS_INTERNAL_ROOT_URL }}/enterprise/api/v1"
@@ -911,6 +924,7 @@ EDXAPP_ENTERPRISE_TAGLINE: ''
 
 # The assigned ICP license number for display in the platform footer
 EDXAPP_ICP_LICENSE: !!null
+EDXAPP_ICP_LICENSE_INFO: {}
 
 # Base Cookie Domain to share cookie across edx domains
 EDXAPP_BASE_COOKIE_DOMAIN: "{{ EDXAPP_LMS_SITE_NAME }}"
@@ -949,6 +963,9 @@ EDXAPP_ORDER_HISTORY_MICROFRONTEND_URL: null
 
 # Needed to link to the new account micro-frontend.
 EDXAPP_ACCOUNT_MICROFRONTEND_URL: null
+
+# Needed to link to the new program manager micro-frontend.
+EDXAPP_PROGRAM_MANAGER_MICROFRONTEND_URL: null
 
 # Remote config
 EDXAPP_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
@@ -1165,6 +1182,9 @@ generic_env_config:  &edxapp_generic_env
   ECOMMERCE_API_URL: "{{ EDXAPP_ECOMMERCE_API_URL }}"
   JOURNALS_URL_ROOT: "{{ EDXAPP_JOURNALS_URL_ROOT }}"
   JOURNALS_API_URL: "{{ EDXAPP_JOURNALS_API_URL }}"
+  BLOCKSTORE_PUBLIC_URL_ROOT: "{{ EDXAPP_BLOCKSTORE_PUBLIC_URL_ROOT }}"
+  BLOCKSTORE_API_URL: "{{ EDXAPP_BLOCKSTORE_API_URL }}"
+  LEARNER_PORTAL_URL_ROOT: "{{ EDXAPP_LEARNER_PORTAL_URL_ROOT }}" 
   EDX_PLATFORM_REVISION: "{{ edx_platform_version }}"
   ENTERPRISE_API_URL: "{{ EDXAPP_ENTERPRISE_API_URL }}"
   COURSE_CATALOG_API_URL: "{{ EDXAPP_COURSE_CATALOG_API_URL }}"
@@ -1179,6 +1199,7 @@ generic_env_config:  &edxapp_generic_env
   CROSS_DOMAIN_CSRF_COOKIE_DOMAIN: "{{ EDXAPP_CROSS_DOMAIN_CSRF_COOKIE_DOMAIN }}"
   CROSS_DOMAIN_CSRF_COOKIE_NAME: "{{ EDXAPP_CROSS_DOMAIN_CSRF_COOKIE_NAME }}"
   CSRF_COOKIE_SECURE: "{{ EDXAPP_CSRF_COOKIE_SECURE  }}"
+  CSRF_TRUSTED_ORIGINS: "{{ EDXAPP_CSRF_TRUSTED_ORIGINS  }}"
   VIDEO_UPLOAD_PIPELINE: "{{ EDXAPP_VIDEO_UPLOAD_PIPELINE }}"
   DEPRECATED_ADVANCED_COMPONENT_TYPES: "{{ EDXAPP_DEPRECATED_ADVANCED_COMPONENT_TYPES }}"
   OAUTH_OIDC_ISSUER: "{{ EDXAPP_LMS_ISSUER }}"
@@ -1251,6 +1272,8 @@ generic_env_config:  &edxapp_generic_env
 
   # edx-rbac Setting
   SYSTEM_WIDE_ROLE_CLASSES: "{{ EDXAPP_SYSTEM_WIDE_ROLE_CLASSES }}"
+
+  ENTERPRISE_MARKETING_FOOTER_QUERY_PARAMS: "{{ EDXAPP_ENTERPRISE_MARKETING_FOOTER_QUERY_PARAMS }}"
 
   #must end in slash (https://docs.djangoproject.com/en/1.4/ref/settings/#media-url)
   MEDIA_URL:  "{{ EDXAPP_MEDIA_URL }}/"
@@ -1358,6 +1381,7 @@ generic_env_config:  &edxapp_generic_env
   HELP_TOKENS_BOOKS: "{{ EDXAPP_HELP_TOKENS_BOOKS }}"
   # License for serving content in China
   ICP_LICENSE: "{{ EDXAPP_ICP_LICENSE }}"
+  ICP_LICENSE_INFO: "{{ EDXAPP_ICP_LICENSE_INFO }}"
   # Base Cookie Domain to share cookie across edx domains
   BASE_COOKIE_DOMAIN: "{{ EDXAPP_BASE_COOKIE_DOMAIN }}"
 
@@ -1483,6 +1507,7 @@ lms_env_config:
   ORDER_HISTORY_MICROFRONTEND_URL: "{{ EDXAPP_ORDER_HISTORY_MICROFRONTEND_URL }}"
   PROGRAM_CERTIFICATES_ROUTING_KEY: "{{ EDXAPP_PROGRAM_CERTIFICATES_ROUTING_KEY }}"
   ACCOUNT_MICROFRONTEND_URL: "{{ EDXAPP_ACCOUNT_MICROFRONTEND_URL }}"
+  PROGRAM_MANAGER_MICROFRONTEND_URL: "{{ EDXAPP_PROGRAM_MANAGER_MICROFRONTEND_URL}}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
@@ -1645,6 +1670,14 @@ SERVICE_WORKER_USERS:
     is_superuser: false
   - email: "{{ CREDENTIALS_SERVICE_USER_EMAIL }}"
     username: "{{ CREDENTIALS_SERVICE_USER_NAME }}"
+    is_staff: true
+    is_superuser: false
+  - email: "{{ DESIGNER_SERVICE_USER_EMAIL }}"
+    username: "{{ DESIGNER_SERVICE_USER_NAME }}"
+    is_staff: true
+    is_superuser: false
+  - email: "{{ REGISTRAR_SERVICE_USER_EMAIL }}"
+    username: "{{ REGISTRAR_SERVICE_USER_NAME }}"
     is_staff: true
     is_superuser: false
 

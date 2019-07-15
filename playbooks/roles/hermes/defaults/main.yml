@@ -9,7 +9,7 @@
 #
 ##
 # Defaults for role hermes
-# 
+#
 
 #
 # vars are namespaced with the module name.
@@ -19,9 +19,9 @@ hermes_user: hermes
 hermes_role_name: hermes
 hermes_service_name: hermes
 hermes_source_repo: https://github.com/edx/hermes.git
-hermes_version: coryleeio/hermes-role
-hermes_download_dir: "{{hermes_app_dir}}/downloads"
+hermes_version: master
 hermes_app_dir: "{{ COMMON_APP_DIR }}/{{ hermes_service_name }}"
+hermes_download_dir: "{{ hermes_app_dir }}/downloads"
 hermes_code_dir: "{{ hermes_app_dir }}/{{ hermes_service_name }}"
 hermes_venv_dir: "{{ hermes_app_dir }}/venvs/{{ hermes_service_name }}"
 hermes_venv_bin: "{{ hermes_venv_dir }}/bin"
@@ -41,6 +41,9 @@ hermes_redhat_pkgs: []
 # this is usually the play used to configure the service, but not always.
 hermes_target_service: "Not configured"
 
+# Enable pre_hermes_checks.sh in systemd service file
+HERMES_ENABLE_PRE_CHECK_SCRIPT: False
+
 # Where to download config file from, start with s3:// or https://
 HERMES_REMOTE_FILE_LOCATION: "Not configured"
 
@@ -54,12 +57,12 @@ HERMES_LOCAL_FILE_PATH: "{{ hermes_download_dir }}/{{ hermes_target_service }}.y
 HERMES_COPY_COMMAND: /bin/cp {{ hermes_download_dir }}/{{ hermes_target_service }}.yml {{ COMMON_CFG_DIR }}/{{ hermes_target_service }}.yml
 
 # How to restart the application
-HERMES_RELOAD_COMMAND: /edx/bin/supervisorctl reload
+HERMES_RELOAD_COMMAND: /edx/bin/supervisorctl signal HUP all
 
 # Hermes typically reloads one config file and reloads all the services on that box, typically 1 service for us
 # if you need to do something more complex like reloading multiple services, running additional commands etc
 # you could overwrite hermes_service_config directly and ignore these defaults
-hermes_service_config: 
+hermes_service_config:
   - url: '{{ HERMES_REMOTE_FILE_PATH }}'
     filename: '{{ HERMES_LOCAL_FILE_PATH }}'
     command:  'sudo {{ HERMES_COPY_COMMAND }} && sudo {{ HERMES_RELOAD_COMMAND }}'

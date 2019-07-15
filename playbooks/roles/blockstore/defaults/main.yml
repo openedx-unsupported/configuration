@@ -1,0 +1,72 @@
+---
+# Role to deploy Blockstore, the next-generation Open edX Learning Object Repository
+#
+# github: https://github.com/open-craft/blockstore
+#
+
+blockstore_service_name: 'blockstore'
+blockstore_user: '{{ blockstore_service_name }}'
+blockstore_home: '{{ COMMON_APP_DIR }}/{{ blockstore_service_name }}'
+blockstore_code_dir: '{{ blockstore_home }}/{{ blockstore_service_name }}'
+blockstore_venv_dir: '{{ blockstore_home }}/venvs/{{ blockstore_service_name }}'
+
+BLOCKSTORE_GIT_PATH: 'open-craft'
+BLOCKSTORE_VERSION: 'master'
+BLOCKSTORE_GIT_IDENTITY: !!null
+
+BLOCKSTORE_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ BLOCKSTORE_GIT_PATH }}'
+    REPO: 'blockstore.git'
+    VERSION: '{{ BLOCKSTORE_VERSION }}'
+    DESTINATION: '{{ blockstore_code_dir }}'
+    SSH_KEY: '{{ BLOCKSTORE_GIT_IDENTITY }}'
+
+blockstore_gunicorn_host: '127.0.0.1'
+blockstore_gunicorn_port: '8250'
+blockstore_gunicorn_timeout: '300'
+
+BLOCKSTORE_GUNICORN_WORKERS: '2'
+BLOCKSTORE_GUNICORN_EXTRA: ''
+BLOCKSTORE_GUNICORN_EXTRA_CONF: ''
+BLOCKSTORE_GUNICORN_WORKER_CLASS: 'gevent'
+BLOCKSTORE_GUNICORN_MAX_REQUESTS: null
+
+BLOCKSTORE_NGINX_HOSTNAME: '~^((stage|prod)-)?{{ blockstore_service_name }}.*'
+BLOCKSTORE_NGINX_PORT: '1{{ blockstore_gunicorn_port }}'
+BLOCKSTORE_SSL_NGINX_PORT: '4{{ blockstore_gunicorn_port }}'
+
+BLOCKSTORE_DEFAULT_DB_NAME: 'blockstore'
+BLOCKSTORE_DATABASE_USER: 'blkstr01'
+BLOCKSTORE_DATABASE_PASSWORD: 'password'
+BLOCKSTORE_DATABASE_HOST: 'localhost'
+BLOCKSTORE_DATABASE_PORT: 3306
+
+BLOCKSTORE_DJANGO_SETTINGS_MODULE: 'blockstore.settings.production'
+BLOCKSTORE_SECRET_KEY: !!null
+
+
+# See edx_django_service_automated_users for an example of what this should be
+BLOCKSTORE_AUTOMATED_USERS: {}
+
+# Rather than adding extra wiring for each var under here.
+# Just override this whole config dictionary
+BLOCKSTORE_SERVICE_CONFIG_OVERRIDES:
+  BLOCKSTORE_URL_ROOT: 'http://localhost:{{ blockstore_gunicorn_port }}'
+
+blockstore_environment:
+  BLOCKSTORE_CFG: '{{ COMMON_CFG_DIR }}/{{ blockstore_service_name }}.yml'
+  VIRTUAL_ENV: '{{ blockstore_venv_dir }}'
+
+#
+# OS packages
+#
+
+blockstore_debian_pkgs:
+  - libmysqlclient-dev
+  - libjpeg-dev
+  - libssl-dev
+  - libffi-dev
+
+blockstore_redhat_pkgs: []

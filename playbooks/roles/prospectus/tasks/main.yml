@@ -20,13 +20,6 @@
     state: absent
     path: "{{ PROSPECTUS_DATA_DIR }}"
 
-- name: Create ssh script for git
-  template:
-    src: "{{ prospectus_git_ssh | basename }}.j2"
-    dest: "{{ prospectus_git_ssh }}"
-    owner: "{{ prospectus_user }}"
-    mode: "0750"
-
 - name: Create prospectus app folder
   file:
     path: "{{ prospectus_app_dir }}"
@@ -51,9 +44,8 @@
     repo: "{{ prospectus_repo }}"
     version: "{{ prospectus_version }}"
     accept_hostkey: yes
+    key_file: "{{ prospectus_git_identity }}"
   become_user: "{{ prospectus_user }}"
-  environment:
-    GIT_SSH: "{{ prospectus_git_ssh }}"
   register: prospectus_checkout
   when: PROSPECTUS_GIT_IDENTITY != "none"
 
