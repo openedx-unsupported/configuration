@@ -190,6 +190,14 @@ if [[ -z $registrar_version ]]; then
   registrar_version="master"
 fi
 
+if [[ -z $learner_portal ]]; then
+  learner_portal="false"
+fi
+
+if [[ -z $learner_portal_version ]]; then
+  learner_portal_version="master"
+fi 
+
 if [[ $registrar == 'true' ]]; then
   program_manager="true"
 fi
@@ -214,6 +222,7 @@ demo_version: $demo_version
 THEMES_VERSION: $themes_version
 journals_version: $journals_version
 registrar_version: $registrar_version
+learner_portal_version: $learner_portal_version
 program_manager_version: $program_manager_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
@@ -248,6 +257,12 @@ REGISTRAR_SSL_NGINX_PORT: 443
 REGISTRAR_VERSION: $registrar_version
 REGISTRAR_ENABLED: $registrar
 REGISTRAR_SANDBOX_BUILD: True
+
+LEARNER_PORTAL_NGINX_PORT: 80
+LEARNER_PORTAL_SSL_NGINX_PORT: 443
+LEARNER_PORTAL_VERSION: $learner_portal_version
+LEARNER_PORTAL_ENABLED: $learner_portal
+LEARNER_PORTAL_SANDBOX_BUILD: True
 
 PROGRAM_MANAGER_NGINX_PORT: 80
 PROGRAM_MANAGER_SSL_NGINX_PORT: 443
@@ -372,6 +387,10 @@ REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
 REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+LEARNER_PORTAL_URL_ROOT: "https://learner_portal-${deploy_host}"
+LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
+
 PROGRAM_MANAGER_URL_ROOT: "https://program-manager-${deploy_host}"
 PROGRAM_MANAGER_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
@@ -443,7 +462,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager"
+plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
