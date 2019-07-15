@@ -1,3 +1,6 @@
+- Playbook: masters_sandbox_update
+  - Create edx partner
+
 - Playbook: program_manager
   - Added playbook to setup program-manager micro-frontend application on sandboxes
 
