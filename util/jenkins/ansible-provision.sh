@@ -394,7 +394,7 @@ LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
 PROGRAM_MANAGER_URL_ROOT: "https://program-manager-${deploy_host}"
 PROGRAM_MANAGER_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
-PROGRAM_MANAGER_REGISTRAR_BASE_URL: "https://registrar-${deploy_host}"
+PROGRAM_MANAGER_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
