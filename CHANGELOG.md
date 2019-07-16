@@ -1,6 +1,3 @@
-- Role: program_manager
-  - Updated the login and logout URLs so they point to Registrar service
-
 - Playbook: masters_sandbox_update
   - Create edx partner
 
