@@ -37,8 +37,29 @@
 
 - name: Write out atlantis repo-config.yml file
   template:
-    src: "repo-config.yml.j2"
+    src: "templates/repo-config.yml.j2"
     dest: "{{ atlantis_repo_config_path }}"
+    mode: "0644"
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Create atlantis .kube dir
+  file:
+    path: "{{ atlantis_app_dir }}/.kube"
+    state: directory
+    owner: "{{ atlantis_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
+
+- name: Write out atlantis .kube/config file
+  template:
+    src: "templates/kube_config.yml.j2"
+    dest: "{{ atlantis_app_dir }}/.kube/config"
     mode: "0644"
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
   tags:
