@@ -176,10 +176,9 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
         table_list = []
         metric_data = []
         tables_reaching_exhaustion_limit = []
-        for item in rds_list:
-            print("Checking rds endpoint {}".format(item["Endpoint"]))
-            rds_host_endpoint = item["Endpoint"]
-            rds_port = item["Port"]
+        for rds_instance in rds_list:
+            rds_host_endpoint = rds_instance["Endpoint"]
+            rds_port = rds_instance["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
                                          port=rds_port,
                                          user=username,
@@ -237,16 +236,16 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     metric_data.append({
                         'MetricName': metric_name,
                         'Dimensions': [{
-                            "Name": item["name"],
+                            "Name": rds_instance["name"],
                             "Value": table[1]
                         }],
                         'Value': table[6],  # percentage of the usage of primary keys
                         'Unit': UNIT
                     })
-                    table_data["database_name"] = item['name']
+                    table_data["database_name"] = rds_instance['name']
                     table_data["table_name"] = table[1]
                     table_data["percentage_of_PKs_consumed"] = table[6]
-                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
+                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, rds_instance["name"], table[1], table[6])
                     if remaining_days:
                         table_data["remaining_days"] = remaining_days
                     tables_reaching_exhaustion_limit.append(table_data)
