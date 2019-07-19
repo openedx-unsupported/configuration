@@ -234,23 +234,28 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            for table in rds_result:
+            for result_table in rds_result:
                 table_data = {}
-                if table[6] > 70:
-                    print("RDS {} Table {}: Primary keys {}% full".format(rds_instance["name"], table[1], table[6]))
+                db_name = result_table[0]
+                table_name = result_table[1]
+                table_name_combined = "{}.{}".format(db_name, table_name)
+                table_percent = result_table[6]
+                if table_percent > 70:
+                    print("RDS {} Table {}: Primary keys {}% full".format(
+                        rds_instance["name"], table_name_combined, table_percent))
                     metric_data.append({
                         'MetricName': metric_name,
                         'Dimensions': [{
                             "Name": rds_instance["name"],
-                            "Value": table[1]
+                            "Value": table_name
                         }],
-                        'Value': table[6],  # percentage of the usage of primary keys
+                        'Value': table_percent,  # percentage of the usage of primary keys
                         'Unit': UNIT
                     })
                     table_data["database_name"] = rds_instance['name']
-                    table_data["table_name"] = table[1]
-                    table_data["percentage_of_PKs_consumed"] = table[6]
-                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, rds_instance["name"], table[1], table[6])
+                    table_data["table_name"] = table_name_combined
+                    table_data["percentage_of_PKs_consumed"] = table_percent
+                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, rds_instance["name"], table_name, table_percent)
                     if remaining_days:
                         table_data["remaining_days"] = remaining_days
                     tables_reaching_exhaustion_limit.append(table_data)
