@@ -55,8 +55,19 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
+class SESBotoWrapper:
+    def __init__(self, **kwargs):
+        self.client = boto3.client("ses", **kwargs)
+
+    @backoff.on_exception(backoff.expo,
+                          ClientError,
+                          max_tries=MAX_TRIES)
+    def send_email(self, *args, **kwargs):
+        return self.client.send_email(*args, **kwargs)
+
+
 def send_an_email(to_addr, from_addr, primary_keys_message, region):
-    client = boto3.client('ses', region_name=region)
+    ses_client = SESBotoWrapper(region_name=region)
 
     message = """
     <p>Hello,</p>
@@ -83,7 +94,9 @@ def send_an_email(to_addr, from_addr, primary_keys_message, region):
         )
 
     message += """</table>"""
-    client.send_email(
+    print("Sending the following as email to {}".format(to_addr))
+    print(message)
+    ses_client.send_email(
         Source=from_addr,
         Destination={
             'ToAddresses': [
@@ -122,16 +135,17 @@ def get_rds_from_all_regions():
     Endpoint (string)
     Port (string)
     """
-    client_region = EC2BotoWrapper()
+    ec2_client = EC2BotoWrapper()
     rds_list = []
     try:
-        regions_list = client_region.describe_regions()
+        regions_list = ec2_client.describe_regions()
     except ClientError as e:
         print("Unable to connect to AWS with error :{}".format(e))
         sys.exit(1)
     for region in regions_list["Regions"]:
-        client = RDSBotoWrapper(region_name=region["RegionName"])
-        response = client.describe_db_instances()
+        print("Getting RDS instances in region {}".format(region["RegionName"]))
+        rds_client = RDSBotoWrapper(region_name=region["RegionName"])
+        response = rds_client.describe_db_instances()
         for instance in response.get('DBInstances'):
             temp_dict = dict()
             temp_dict["name"] = instance["DBInstanceIdentifier"]
@@ -165,9 +179,10 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
         table_list = []
         metric_data = []
         tables_reaching_exhaustion_limit = []
-        for item in rds_list:
-            rds_host_endpoint = item["Endpoint"]
-            rds_port = item["Port"]
+        for rds_instance in rds_list:
+            print("Checking rds instance {}".format(rds_instance["name"]))
+            rds_host_endpoint = rds_instance["Endpoint"]
+            rds_port = rds_instance["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
                                          port=rds_port,
                                          user=username,
@@ -219,22 +234,28 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            for table in rds_result:
+            for result_table in rds_result:
                 table_data = {}
-                if table[6] > 70:
+                db_name = result_table[0]
+                table_name = result_table[1]
+                table_name_combined = "{}.{}".format(db_name, table_name)
+                table_percent = result_table[6]
+                if table_percent > 70:
+                    print("RDS {} Table {}: Primary keys {}% full".format(
+                        rds_instance["name"], table_name_combined, table_percent))
                     metric_data.append({
                         'MetricName': metric_name,
                         'Dimensions': [{
-                            "Name": item["name"],
-                            "Value": table[1]
+                            "Name": rds_instance["name"],
+                            "Value": table_name
                         }],
-                        'Value': table[6],  # percentage of the usage of primary keys
+                        'Value': table_percent,  # percentage of the usage of primary keys
                         'Unit': UNIT
                     })
-                    table_data["database_name"] = item['name']
-                    table_data["table_name"] = table[1]
-                    table_data["percentage_of_PKs_consumed"] = table[6]
-                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, item["name"], table[1], table[6])
+                    table_data["database_name"] = rds_instance['name']
+                    table_data["table_name"] = table_name_combined
+                    table_data["percentage_of_PKs_consumed"] = table_percent
+                    remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, rds_instance["name"], table_name, table_percent)
                     if remaining_days:
                         table_data["remaining_days"] = remaining_days
                     tables_reaching_exhaustion_limit.append(table_data)
@@ -277,7 +298,8 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
             no_of_days = time_diff.days
             increase_over_time_period = current_usage/no_of_days
             days_remaining_before_exhaustion = consumed_keys_percentage/increase_over_time_period
-            print("days remaining for {db} db are {days}".format(db=value,
+            print("Days remaining for {table} table on db {db}: {days}".format(table=value,
+                                                                 db=dimension,
                                                                  days=days_remaining_before_exhaustion))
     return days_remaining_before_exhaustion
 
