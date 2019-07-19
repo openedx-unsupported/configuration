@@ -276,8 +276,8 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     if remaining_days:
                         table_data["remaining_days"] = remaining_days
                     tables_reaching_exhaustion_limit.append(table_data)
-            if len(metric_data) > 0:
-                cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+        if len(metric_data) > 0:
+            cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
         return tables_reaching_exhaustion_limit
     except Exception as e:
         print("Please see the following exception ", e)
