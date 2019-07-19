@@ -133,16 +133,16 @@ def get_rds_from_all_regions():
     Endpoint (string)
     Port (string)
     """
-    client_region = EC2BotoWrapper()
+    ec2_client = EC2BotoWrapper()
     rds_list = []
     try:
-        regions_list = client_region.describe_regions()
+        regions_list = ec2_client.describe_regions()
     except ClientError as e:
         print("Unable to connect to AWS with error :{}".format(e))
         sys.exit(1)
     for region in regions_list["Regions"]:
-        client = RDSBotoWrapper(region_name=region["RegionName"])
-        response = client.describe_db_instances()
+        rds_client = RDSBotoWrapper(region_name=region["RegionName"])
+        response = rds_client.describe_db_instances()
         for instance in response.get('DBInstances'):
             temp_dict = dict()
             temp_dict["name"] = instance["DBInstanceIdentifier"]
