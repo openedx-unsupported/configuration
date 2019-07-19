@@ -94,6 +94,8 @@ def send_an_email(to_addr, from_addr, primary_keys_message, region):
         )
 
     message += """</table>"""
+    print("Sending the following as email to {}".format(to_addr))
+    print(message)
     ses_client.send_email(
         Source=from_addr,
         Destination={
@@ -141,6 +143,7 @@ def get_rds_from_all_regions():
         print("Unable to connect to AWS with error :{}".format(e))
         sys.exit(1)
     for region in regions_list["Regions"]:
+        print("Getting RDS instances in region {}".format(region["RegionName"]))
         rds_client = RDSBotoWrapper(region_name=region["RegionName"])
         response = rds_client.describe_db_instances()
         for instance in response.get('DBInstances'):
@@ -177,6 +180,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
         metric_data = []
         tables_reaching_exhaustion_limit = []
         for rds_instance in rds_list:
+            print("Checking rds instance {}".format(rds_instance["name"]))
             rds_host_endpoint = rds_instance["Endpoint"]
             rds_port = rds_instance["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
@@ -233,6 +237,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
             for table in rds_result:
                 table_data = {}
                 if table[6] > 70:
+                    print("RDS {} Table {}: Primary keys {}% full".format(rds_instance["name"], table[1], table[6]))
                     metric_data.append({
                         'MetricName': metric_name,
                         'Dimensions': [{
