@@ -293,7 +293,8 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
             no_of_days = time_diff.days
             increase_over_time_period = current_usage/no_of_days
             days_remaining_before_exhaustion = consumed_keys_percentage/increase_over_time_period
-            print("days remaining for {db} db are {days}".format(db=value,
+            print("Days remaining for {table} table on db {db}: {days}".format(table=value,
+                                                                 db=dimension,
                                                                  days=days_remaining_before_exhaustion))
     return days_remaining_before_exhaustion
 
