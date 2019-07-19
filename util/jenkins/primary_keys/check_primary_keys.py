@@ -247,7 +247,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                         'MetricName': metric_name,
                         'Dimensions': [{
                             "Name": rds_instance["name"],
-                            "Value": table_name
+                            "Value": table_name_combined
                         }],
                         'Value': table_percent,  # percentage of the usage of primary keys
                         'Unit': UNIT
@@ -255,6 +255,23 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     table_data["database_name"] = rds_instance['name']
                     table_data["table_name"] = table_name_combined
                     table_data["percentage_of_PKs_consumed"] = table_percent
+                    remaining_days_table_name = table_name_combined
+                    # Hack to transition to metric names with db prepended
+                    if table_name == "courseware_studentmodule" and rds_instance["name"] in [
+                        "prod-edx-edxapp-us-east-1b-2",
+                        "prod-edx-edxapp-us-east-1c-2",
+                    ]:
+                        remaining_days_table_name = table_name
+                        metric_data.append({
+                            'MetricName': metric_name,
+                            'Dimensions': [{
+                                "Name": rds_instance["name"],
+                                "Value": table_name
+                            }],
+                            'Value': table_percent,  # percentage of the usage of primary keys
+                            'Unit': UNIT
+                        })
+
                     remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, rds_instance["name"], table_name, table_percent)
                     if remaining_days:
                         table_data["remaining_days"] = remaining_days
