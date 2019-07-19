@@ -177,6 +177,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
         metric_data = []
         tables_reaching_exhaustion_limit = []
         for item in rds_list:
+            print("Checking rds endpoint {}".format(item["Endpoint"]))
             rds_host_endpoint = item["Endpoint"]
             rds_port = item["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
