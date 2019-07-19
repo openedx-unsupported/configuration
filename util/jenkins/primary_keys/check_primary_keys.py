@@ -55,8 +55,19 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
+class SESBotoWrapper:
+    def __init__(self, **kwargs):
+        self.client = boto3.client("ses", **kwargs)
+
+    @backoff.on_exception(backoff.expo,
+                          ClientError,
+                          max_tries=MAX_TRIES)
+    def send_email(self, *args, **kwargs):
+        return self.client.send_email(*args, **kwargs)
+
+
 def send_an_email(to_addr, from_addr, primary_keys_message, region):
-    client = boto3.client('ses', region_name=region)
+    ses_client = SESBotoWrapper(region_name=region)
 
     message = """
     <p>Hello,</p>
@@ -83,7 +94,7 @@ def send_an_email(to_addr, from_addr, primary_keys_message, region):
         )
 
     message += """</table>"""
-    client.send_email(
+    ses_client.send_email(
         Source=from_addr,
         Destination={
             'ToAddresses': [
