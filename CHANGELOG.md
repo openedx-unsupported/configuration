@@ -1,3 +1,6 @@
+- Role: jwt_signature
+  - Added role to inject JWT signing keys into application config, used from edxapp, worker, and registrar.
+
 - Playbook: masters_sandbox_update
   - Create edx partner
 
