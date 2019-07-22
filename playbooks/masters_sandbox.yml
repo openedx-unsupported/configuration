@@ -12,6 +12,7 @@
     - registrar_venv_dir: /edx/app/registrar/venvs/registrar
     - registrar_code_dir: /edx/app/registrar/registrar
     - lms_config_file: /edx/etc/lms.yml
+    - registrar_config_file: /edx/etc/registrar.yml
     - jwt_signature_file: /tmp/lms_jwt_signature.yml
 
   tasks:
@@ -77,7 +78,7 @@
         minute: "0"
 
     - name: create JWT signature settings
-      shell: . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms generate_jwt_signing_key --output-file {{ jwt_signature_file }}
+      shell: . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms generate_jwt_signing_key --output-file {{ jwt_signature_file }} --strip-key-prefix
       args:
         chdir: "{{ edxapp_code_dir }}"
 
@@ -103,6 +104,17 @@
         file: "/tmp/{{ inventory_hostname }}/{{ lms_config_file }}"
         name: lms_config_vars
 
+    - name: fetch registrar settings from host
+      fetch:
+        src: "{{ registrar_config_file }}"
+        # this will save into /tmp/{{ inventory_hostname }}/{{ registrar_config_file }} on jenkins node
+        dest: /tmp
+
+    - name: read registrar config into variable
+      include_vars:
+        file: "/tmp/{{ inventory_hostname }}/{{ registrar_config_file }}"
+        name: registrar_config_vars
+
     - name: combine lms config with jwt_signature config
       set_fact:
         lms_combined_config: '{{ lms_config_vars|combine(lms_jwt_signature, recursive=True) }}'
@@ -116,6 +128,19 @@
         mode: 0640
       become: true
 
+    - name: combine registrar config with jwt_signature config
+      set_fact:
+        registrar_combined_config: '{{ registrar_config_vars|combine(lms_jwt_signature, recursive=True) }}'
+
+    - name: render registrar yml config with jwt signature
+      template:
+        src: "roles/registrar/templates/registrar.yml.j2"
+        dest: "{{ registrar_config_file }}"
+        owner: "root"
+        group: "root"
+        mode: 0644
+      become: true
+
     - name: delete JWT signature file on jenkins
       file:
         path: "/tmp/{{ inventory_hostname }}/{{ jwt_signature_file }}"
@@ -124,4 +149,9 @@
     - name: delete LMS config file on jenkins
       file:
         path: "/tmp/{{ inventory_hostname }}/{{ lms_config_file }}"
+        state: absent
+
+    - name: delete registrar config file on jenkins
+      file:
+        path: "/tmp/{{ inventory_hostname }}/{{ registrar_config_file }}"
         state: absent
