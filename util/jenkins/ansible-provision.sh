@@ -387,7 +387,7 @@ REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
 REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
-LEARNER_PORTAL_URL_ROOT: "https://learner_portal-${deploy_host}"
+LEARNER_PORTAL_URL_ROOT: "https://learner-portal-${deploy_host}"
 LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
 
