@@ -71,7 +71,7 @@ def send_an_email(to_addr, from_addr, primary_keys_message, region):
 
     message = """
     <p>Hello,</p>
-    <p>Primary keys of these table exhausted soon</p>
+    <p>Primary keys of these tables exhausted soon</p>
     <table style='width:100%'>
       <tr style='text-align: left'>
         <th>Database</th>
@@ -247,7 +247,7 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                         'MetricName': metric_name,
                         'Dimensions': [{
                             "Name": rds_instance["name"],
-                            "Value": table_name
+                            "Value": table_name_combined
                         }],
                         'Value': table_percent,  # percentage of the usage of primary keys
                         'Unit': UNIT
@@ -255,12 +255,29 @@ def check_primary_keys(rds_list, username, password, environment, deploy):
                     table_data["database_name"] = rds_instance['name']
                     table_data["table_name"] = table_name_combined
                     table_data["percentage_of_PKs_consumed"] = table_percent
+                    remaining_days_table_name = table_name_combined
+                    # Hack to transition to metric names with db prepended
+                    if table_name == "courseware_studentmodule" and rds_instance["name"] in [
+                        "prod-edx-edxapp-us-east-1b-2",
+                        "prod-edx-edxapp-us-east-1c-2",
+                    ]:
+                        remaining_days_table_name = table_name
+                        metric_data.append({
+                            'MetricName': metric_name,
+                            'Dimensions': [{
+                                "Name": rds_instance["name"],
+                                "Value": table_name
+                            }],
+                            'Value': table_percent,  # percentage of the usage of primary keys
+                            'Unit': UNIT
+                        })
+
                     remaining_days = get_metrics_and_calcuate_diff(namespace, metric_name, rds_instance["name"], table_name, table_percent)
                     if remaining_days:
                         table_data["remaining_days"] = remaining_days
                     tables_reaching_exhaustion_limit.append(table_data)
-            if len(metric_data) > 0:
-                cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
+        if len(metric_data) > 0:
+            cloudwatch.put_metric_data(Namespace=namespace, MetricData=metric_data)
         return tables_reaching_exhaustion_limit
     except Exception as e:
         print("Please see the following exception ", e)
