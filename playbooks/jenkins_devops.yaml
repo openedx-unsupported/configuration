@@ -1,0 +1,29 @@
+---
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    COMMON_ENABLE_DATADOG: False
+    COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE: True
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+
+  roles:
+    - aws
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - jenkins_build
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+      tags:
+        - newreliconly
