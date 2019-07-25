@@ -109,12 +109,13 @@
 
 - name: install private key
   copy:
-    content: "{{ HERMES_PRIVATE_KEY }}"
-    dest: "{{ hermes_private_key_file_path }}"
+    content: "{{ item.value }}"
+    dest: "{{ hermes_app_dir }}/{{ hermes_service_name }}-{{ item.key }}"
     force: yes
     owner: "{{ hermes_user }}"
     mode: "0600"
-  when: HERMES_PRIVATE_KEY is defined
+  with_dict: "{{ HERMES_PRIVATE_KEYS_DICT }}"
+  when: HERMES_PRIVATE_KEYS_DICT is defined
   tags:
     - install
     - install:base
