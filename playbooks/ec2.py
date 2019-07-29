@@ -306,8 +306,8 @@ class Ec2Inventory(object):
             sys.exit(1)
 
     def get_rds_instances_by_region(self, region):
-	''' Makes an AWS API call to the list of RDS instances in a particular
-        region '''
+	    ''' Makes an AWS API call to the list of RDS instances in a particular
+            region '''
 
         try:
             conn = rds.connect_to_region(region)
