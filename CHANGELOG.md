@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `ENABLE_ENROLLMENT_RESET` feature flag for masters integration sandboxes
+
 - Playbook: masters_sandbox_update
   - Create edx partner
 
