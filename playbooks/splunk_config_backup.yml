@@ -11,6 +11,8 @@
         date: "{{ lookup('pipe', 'date +%Y-%m-%dT%H%M') }}"
     - name: archive splunk configuration dir
       command: sudo tar -cpzf  "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" {{ splunk_config_dir }}
+      register: tar_result
+      failed_when: tar_result.rc > 1
     - name: copy tarball to s3 bucket
       command: sudo aws s3 cp "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" s3://{{ splunk_s3_bucket }}
     - name: cleanup backup file
