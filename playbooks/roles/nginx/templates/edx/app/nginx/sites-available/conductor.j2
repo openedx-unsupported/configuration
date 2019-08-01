@@ -1,0 +1,37 @@
+{%- if "conductor" in nginx_default_sites -%}
+  {%- set default_site = "default_server" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+server {
+  # Conductor configuration file for nginx, templated by ansible
+
+  {% if NGINX_CONDUCTOR_PROXY_INTERCEPT_ERRORS %}
+  proxy_intercept_errors on;
+  {% endif %}
+
+  listen {{ CONDUCTOR_NGINX_PORT }} {{ default_site }};
+
+  # CONDUCTOR_STATIC_SITES will be a list of dictionaries which have a:
+  #   - router_path: The path you will go to on the router to access the content
+  #   - proxied_path: The path to proxy the requests to
+  {% for static_site in CONDUCTOR_STATIC_SITES %}
+
+    # Matches: <router>/<organization>
+    location = /{{ static_site.router_path }}/ {
+        proxy_pass {{ static_site.proxied_path }}/index.html;
+    }
+
+    # Matches: <router>/<organization>/[.../]<file.ext>
+    location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
+        proxy_pass {{ static_site.proxied_path }}/$1$2;
+    }
+
+    # Matches: <router>/<organization>/<subpage>/[.../]
+    location ~ ^/{{ static_site.router }}/([a-z0-9-]+)[/]? {
+        proxy_pass {{ static_site.proxied_path }}/$1/index.html;
+    }
+
+  {% endfor %}
+}

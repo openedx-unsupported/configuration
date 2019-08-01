@@ -1,3 +1,6 @@
+- Role: conductor
+  - New role added to configure the conductor service
+
 - Role: jwt_signature
   - Added role to inject JWT signing keys into application config, used from edxapp, worker, and registrar.
 
@@ -14,7 +17,7 @@
   - Set CSRF_TRUSTED_ORIGINS.
 
 - Role: registrar
-  - Set CORS_ORIGIN_WHITELIST.	
+  - Set CORS_ORIGIN_WHITELIST.
 
 - Role: discovery
   - Override DISCOVERY_MYSQL_REPLICA_HOST to `edx.devstack.mysql` in docker.
