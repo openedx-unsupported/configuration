@@ -1,20 +1,19 @@
 - name: Backup splunk configurations
   hosts: all
-  become: True
   vars:
     splunk_config_dir: "/opt/splunk/etc"
     splunk_host: "{{ splunk_host_id }}"
     splunk_config_archive: "{{ splunk_host }}-{{ date }}.tar.gz"
-    splunk_s3_backup_tempdir: "/var/tmp"
+    splunk_s3_backup_tempdir: "{{ splunk_backup_dir }}"
     splunk_s3_bucket: "{{ splunk_s3_backups_bucket }}"
   tasks:
     - set_fact:
         date: "{{ lookup('pipe', 'date +%Y-%m-%dT%H%M') }}"
     - name: archive splunk configuration dir
-      command: tar -cpzf  "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" {{ splunk_config_dir }}
+      command: sudo tar -cpzf  "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" {{ splunk_config_dir }}
+      register: tar_result
+      failed_when: tar_result.rc > 1
     - name: copy tarball to s3 bucket
-      command: aws s3 cp "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" s3://{{ splunk_s3_bucket }}
+      command: sudo aws s3 cp "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}" s3://{{ splunk_s3_bucket }}
     - name: cleanup backup file
-      file:
-        path: "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}"
-        state: absent
+      shell: sudo rm "{{ splunk_s3_backup_tempdir }}/{{ splunk_config_archive }}"
