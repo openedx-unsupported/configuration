@@ -465,7 +465,8 @@ video_pipeline_integration=${video_pipeline:-false}
 # ansible overrides for master's integration environment setup
 if [[ $registrar == "true" ]]; then
     cat << EOF >> $extra_vars_file
-COMMON_ENABLE_SPLUNKFORWARDER: true
+COMMON_ENABLE_SPLUNKFORWARDER: true,
+EDXAPP_ENABLE_ENROLLMENT_RESET: true,
 EOF
 fi
 

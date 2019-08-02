@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `ENABLE_ENROLLMENT_RESET` feature flag for masters integration sandboxes
+
 - Role: conductor
   - New role added to configure the conductor service
 
