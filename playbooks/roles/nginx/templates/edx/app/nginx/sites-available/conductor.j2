@@ -20,15 +20,24 @@ server {
 
   listen {{ CONDUCTOR_NGINX_PORT }} {{ default_site }};
 
+  # Catches all responses > 300 from S3 and returns an nginx response page instead.
+  proxy_intercept_errors on;
+
   # CONDUCTOR_STATIC_SITES will be a list of dictionaries which have a:
   #   - router_path: The path you will go to on the router to access the content
   #   - proxied_path: The path to proxy the requests to
   {% for static_site in CONDUCTOR_STATIC_SITES %}
 
-    # Matches: <router>/<organization>[/]
-    location ~ ^/{{ static_site.router_path }}[/]?$ {
+    # Matches: <router>/<organization>/
+    location = /{{ static_site.router_path }}/ {
         proxy_pass {{ static_site.proxied_path }}/index.html;
     }
+
+    # Matches: <router>/<organization> (required so nginx doesn't 301 to the internal port #)
+    location = /{{ static_site.router_path }} {
+        proxy_pass {{ static_site.proxied_path }}/index.html;
+    }
+
 
     # Matches: <router>/<organization>/[.../]<file.ext>
     location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
