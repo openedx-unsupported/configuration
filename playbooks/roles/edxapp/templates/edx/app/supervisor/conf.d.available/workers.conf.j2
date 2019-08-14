@@ -18,5 +18,22 @@ autorestart=true
 
 {% endfor %}
 
+[program:lms_beat_default_1]
+
+environment=CONCURRENCY=1,LOGLEVEL=info,DJANGO_SETTINGS_MODULE=production,LANG=en_US.UTF-8,PYTHONPATH=/edx/app/edxapp/edx-platform,SERVICE_VARIANT=lms,BOTO_CONFIG="/edx/app/edxapp/.boto,EDX_REST_API_CLIENT_NAME=edx.lms.core.default,"
+user=www-data
+directory=/edx/app/edxapp/edx-platform
+stdout_logfile=/edx/var/log/supervisor/%(program_name)s-stdout.log
+stderr_logfile=/edx/var/log/supervisor/%(program_name)s-stderr.log
+
+command=/edx/app/edxapp/worker.sh lms --settings=production celerybeat --loglevel=info --schedule="/tmp/celerybeat-schedule" --pidfile="/tmp/celerybeat_cms.pid" --scheduler djcelery.schedulers.DatabaseScheduler
+killasgroup=true
+stopwaitsecs=432000
+; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
+; with an exit code of zero for certain types of unrecoverable errors, so we must make sure that the workers
+; are auto restarted even when exiting with code 0.
+; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
+autorestart=true
+
 [group:edxapp_worker]
-programs={%- for w in edxapp_workers %}{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %}
+programs={%- for w in edxapp_workers %}{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %},lms_beat_default_1
