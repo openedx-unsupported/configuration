@@ -11,6 +11,13 @@ server {
   proxy_intercept_errors on;
   {% endif %}
 
+  # Catches 404s from S3 and returns the default nginx 404 page instead
+  error_page 404 @error404;
+
+  location @error404 {
+    return 404;
+  }
+
   {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
 
   {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
@@ -19,9 +26,6 @@ server {
   {% endif %}
 
   listen {{ CONDUCTOR_NGINX_PORT }} {{ default_site }};
-
-  # Catches all responses > 300 from S3 and returns an nginx response page instead.
-  proxy_intercept_errors on;
 
   # CONDUCTOR_STATIC_SITES will be a list of dictionaries which have a:
   #   - router_path: The path you will go to on the router to access the content
