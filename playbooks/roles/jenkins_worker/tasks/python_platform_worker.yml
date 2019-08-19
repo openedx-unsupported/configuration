@@ -22,6 +22,13 @@
   with_items: "{{ jenkins_worker_python_versions }}"
   become_user: "{{ jenkins_user }}"
 
+# Combine testing and django requirements files for single virtualenv invocation
+- name: cat
+  command: "cat shallow-clone/requirements/edx/testing.txt shallow-clone/requirements/edx/django.txt shallow-clone/requirements/edx/jenkins.txt"
+  args:
+    chdir: "{{ jenkins_home }}"
+  become_user: "{{ jenkins_user }}"
+
 # Install the platform requirements using pip.
 - name: Install edx-platform requirements using pip
   pip:
@@ -38,7 +45,7 @@
 # The edx-venv-x directory is deleted and then recreated
 # cleanly from the archive by the jenkins build scripts.
 - name: Create a clean virtualenv archive
-  command: "tar -cpzf edx-venv_clean-{{ item }}.tar.gz edx-venv-{{ item }}/edx-venv"
+  command: "tar -C edx-venv-{{ item }} -cpzf edx-venv_clean-{{ item }}.tar.gz edx-venv"
   args:
     chdir: "{{ jenkins_home }}"
   with_items: "{{ jenkins_worker_python_versions }}"
