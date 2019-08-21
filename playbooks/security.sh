@@ -2,6 +2,7 @@
 
 set -ex
 
+
 # https://alas.aws.amazon.com/ALAS-2015-473.html
 
 check_vulnerability() {
