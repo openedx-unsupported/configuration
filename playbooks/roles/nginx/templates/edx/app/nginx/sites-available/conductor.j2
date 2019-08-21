@@ -27,6 +27,10 @@ server {
 
   listen {{ CONDUCTOR_NGINX_PORT }} {{ default_site }};
 
+  # Redirects using the client port instead of the port the service is running
+  # on. This prevents redirects to the local 8000 port.
+  port_in_redirect off;
+
   {% if CONDUCTOR_REDIRECT_ROOT %}
     location = / {
       return 302 {{ CONDUCTOR_ROOT_REDIRECT_PATH }};
@@ -42,12 +46,6 @@ server {
     location = /{{ static_site.router_path }}/ {
         proxy_pass {{ static_site.proxied_path }}/index.html;
     }
-
-    # Matches: <router>/<organization> (required so nginx doesn't 301 to the internal port #)
-    location = /{{ static_site.router_path }} {
-        proxy_pass {{ static_site.proxied_path }}/index.html;
-    }
-
 
     # Matches: <router>/<organization>/[.../]<file.ext>
     location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
