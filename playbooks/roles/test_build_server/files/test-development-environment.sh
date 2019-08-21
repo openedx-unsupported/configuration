@@ -28,6 +28,9 @@ case "$1" in
         paver test_lib -t common/lib/xmodule/xmodule/tests/test_stringify.py
 
         # Generate some coverage reports
+        # Since `TEST_SUITE` is not set, change the coverage file written by the
+        # previous test to a generic one.
+        cp reports/common_lib_xmodule.coverage reports/.coverage
         paver coverage
 
         # Run some of the djangoapp unit tests
