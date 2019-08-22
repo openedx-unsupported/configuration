@@ -134,25 +134,6 @@
     - install
     - install:app-requirements
 
-# Show installed packages for debugging
-- name: show installed packages
-  shell: "{{ prospectus_nodeenv_bin }}/npm ls --json --prod 2>/dev/null"
-  register: "npm_ls_out"
-  args:
-    chdir: "{{ prospectus_code_dir }}"
-  environment: "{{ prospectus_env_vars }}"
-  become_user: "{{ prospectus_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: print installed package output
-  debug: msg="{{ npm_ls_out.stdout }}"
-  when: npm_ls_out.stdout is defined
-  tags:
-    - "install"
-    - "install:app-requirements"
-
 # Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: run prospectus build
   shell: "{{ prospectus_nodeenv_bin }}/npm run build"
