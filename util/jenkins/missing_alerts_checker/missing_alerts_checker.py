@@ -3,6 +3,7 @@ import requests
 import click
 from botocore.exceptions import ClientError
 import sys
+import re
 
 
 class NewRelic:
@@ -207,7 +208,8 @@ class BrowserAlerts:
 
 @click.command()
 @click.option('--new-relic-api-key', required=True, help='API Key to use to speak with NewRelic.')
-def controller(new_relic_api_key):
+@click.option('--ignore', '-i', multiple=True, help='App name regex to filter out, can be specified multiple times')
+def controller(new_relic_api_key,ignore):
     """
     Control execution of all other functions
     Arguments:
@@ -224,9 +226,10 @@ def controller(new_relic_api_key):
     alert_policies = new_relic_obj.new_relic_policies_extractor()
     # Get list of all instances without alerts
     missing_alerts_list = infracheck.missing_alerts_checker(instance_list, alert_policies)
+    filtered_missing_alerts_list = list(filter(lambda x: not any(re.search(r, x['name']) for r in ignore), missing_alerts_list))
     format_string = "{:<30}{}"
-    print(format_string.format("Instnace ID","Instance Name"))
-    for instance_wo_alerts in missing_alerts_list:
+    print(format_string.format("Instance ID", "Instance Name"))
+    for instance_wo_alerts in filtered_missing_alerts_list:
         print(format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"]))
         flag = 1
 
@@ -237,10 +240,11 @@ def controller(new_relic_api_key):
     apps_list = appcheck.new_relic_app_extractor()
     # Get list of all applications without alerts
     missing_alerts_list_app = appcheck.missing_alerts_checker(apps_list, alert_policies)
+    filtered_missing_alerts_list_app = list(filter(lambda x: not any(re.search(r, x['name']) for r in ignore), missing_alerts_list_app))
     format_string = "{:<20}{}"
     print("")
     print(format_string.format("Application ID", "Application Name"))
-    for instance_wo_alerts in missing_alerts_list_app:
+    for instance_wo_alerts in filtered_missing_alerts_list_app:
         print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
         flag = 1
 
@@ -251,10 +255,11 @@ def controller(new_relic_api_key):
     browser_list = browsercheck.new_relic_browser_extractor()
     # Get list of all browser applications without alerts
     missing_alerts_list_browser = browsercheck.missing_alerts_checker(browser_list, alert_policies)
+    filtered_missing_alerts_list_browser = list(filter(lambda x: not any(re.search(r, x['name']) for r in ignore), missing_alerts_list_browser))
     format_string = "{:<20}{}"
     print("")
     print(format_string.format("Browser ID", "Browser Name"))
-    for instance_wo_alerts in missing_alerts_list_browser:
+    for instance_wo_alerts in filtered_missing_alerts_list_browser:
         print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
         flag = 1
     sys.exit(flag)
