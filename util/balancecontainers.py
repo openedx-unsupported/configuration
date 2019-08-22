@@ -102,4 +102,4 @@ if __name__ == '__main__':
         conts = [x[0] for x in shard["images"]]
 
         line = middle.join(conts)
-        print line
+        print (line)
