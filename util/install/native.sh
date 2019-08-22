@@ -161,6 +161,7 @@ sudo -H pip install -r requirements.txt
 ##
 ## Run the openedx_native.yml playbook in the configuration/playbooks directory
 ##
+git checkout master
 cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./openedx_native.yml -i "localhost," $EXTRA_VARS "$@"
 ansible_status=$?
 
