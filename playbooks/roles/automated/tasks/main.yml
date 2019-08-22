@@ -89,3 +89,22 @@
     owner: "{{ item.key }}"
     group: "{{ item.key }}"
   with_dict: "{{ AUTOMATED_USERS }}"
+
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+
+- name: Allow automated users to ssh
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '#automated_users_allowed_to_ssh'
+    line: "AllowUsers {{ AUTOMATED_USERS.keys() | list | join(' ') }} #automated_users_allowed_to_ssh"
+  when: ( AUTOMATED_USERS|length > 0 ) and docker_container.stdout != 'yes'
+  register: users_ssh_access
+
+- name: restart ssh
+  service:
+    name: ssh
+    state: restarted
+  when: users_ssh_access.changed
