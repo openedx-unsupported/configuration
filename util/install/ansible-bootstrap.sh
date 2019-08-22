@@ -13,6 +13,8 @@
 
 set -xe
 
+echo "ANSIBLE_RUN"
+
 if [[ -z "${ANSIBLE_REPO}" ]]; then
   ANSIBLE_REPO="https://github.com/edx/ansible.git"
 fi
@@ -20,6 +22,8 @@ fi
 if [[ -z "${ANSIBLE_VERSION}" ]]; then
   ANSIBLE_VERSION="master"
 fi
+
+echo "CONFIGURATION REPO"
 
 if [[ -z "${CONFIGURATION_REPO}" ]]; then
   CONFIGURATION_REPO="https://github.com/Makavura/configuration.git"
@@ -29,9 +33,13 @@ if [[ -z "${CONFIGURATION_VERSION}" ]]; then
     CONFIGURATION_VERSION=${OPENEDX_RELEASE-master}
 fi
 
+echo "OS UPGRADE"
+
 if [[ -z "${UPGRADE_OS}" ]]; then
   UPGRADE_OS=false
 fi
+
+echo "ANSIBLE RUN"
 
 if [[ -z "${RUN_ANSIBLE}" ]]; then
   RUN_ANSIBLE=true
