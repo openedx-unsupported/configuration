@@ -18,6 +18,7 @@ main.help:
 
 requirements:
 	pip install -qr pre-requirements.txt --exists-action w
+	
 	pip install -qr requirements.txt --exists-action w
 
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
