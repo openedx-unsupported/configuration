@@ -85,6 +85,10 @@ RUN apt-get update && apt-get install zlib1g-dev wget lsb-core -qy && cd /opt &&
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install 'awscli>=1.11.58'
 
+# Install pip on python3.6 to install asym-crypto-yaml which requires python >= 3.6
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3.6 get-pip.py
+
 # !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace go_github_key.pem with the REAL key material
 # that can checkout private github repositories used as pipeline materials. The key material here is faked and is only
 # used to pass CI!
