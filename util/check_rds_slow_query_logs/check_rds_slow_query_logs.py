@@ -94,7 +94,7 @@ def cli(db_engine, whitelist):
             exit_status = 1
             slow_query_logs_disabled_rds.append(db_identifier)
 
-    print("Slow query logs are disabled for RDS Instances\n{0}").format(slow_query_logs_disabled_rds)
+    print("Slow query logs are disabled for RDS Instances\n{0}".format(slow_query_logs_disabled_rds))
     exit(exit_status)
 
 if __name__ == '__main__':
