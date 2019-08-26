@@ -840,3 +840,5 @@
   - Added `WHITELABEL_DNS` for DNS settings of themes.
   - Added `WHITELABEL_ORG` for whitelabel organization settings.
 
+- Role: ecommerce
+  - Added `ECOMMERCE_SECURE_PROXY_SSL_HEADER` to set up Django's `SECURE_PROXY_SSL_HEADER`.
