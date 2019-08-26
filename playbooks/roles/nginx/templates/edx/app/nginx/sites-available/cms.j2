@@ -28,21 +28,21 @@ upstream cms-backend {
 
 server {
   # CMS configuration file for nginx, templated by ansible
-      
+
   # Proxy to a remote maintanence page
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
 
-  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # Do not include a 502 error in NGINX_ERROR_PAGES when
   # NGINX_EDXAPP_ENABLE_S3_MAINTENANCE is enabled.
 
   error_page 502 @maintenance;
 
     {% include "s3_maintenance.j2" %}
-  
+
   {% endif %}
 
   # error pages
-  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
+  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.items() %}
 error_page {{ k }} {{ v }};
   {% endfor %}
 
@@ -61,7 +61,7 @@ error_page {{ k }} {{ v }};
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
   {% endif %}
-  
+
   {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
   add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
@@ -80,11 +80,11 @@ error_page {{ k }} {{ v }};
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
   error_log {{ nginx_log_dir }}/error.log error;
 
-  # CS184 requires uploads of up to 4MB for submitting screenshots. 
-  # CMS requires larger value for course assest, values provided 
+  # CS184 requires uploads of up to 4MB for submitting screenshots.
+  # CMS requires larger value for course assest, values provided
   # via hiera.
   client_max_body_size 100M;
-  
+
   rewrite ^(.*)/favicon.ico$ {{ NGINX_EDXAPP_FAVICON_PATH }} last;
 
   {% include "python_lib.zip.j2" %}

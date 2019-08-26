@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -43,7 +45,7 @@ def rds_extractor(environment):
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print("Unable to connect to AWS with error :{}".format(e))
+        print(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
     for region in regions_list["Regions"]:
         client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -103,7 +105,7 @@ def check_queries_running(rds_list, username, password):
                 process_list.append(temp_dict)
         return process_list
     except Exception as ex:
-        print ex
+        print(ex)
         sys.exit(1)
 
 
@@ -126,14 +128,14 @@ def controller(username, password, environment, rdsignore):
             Get this from cli args
     """
     rds_list = rds_extractor(environment)
-    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     process_list = check_queries_running(filtered_rds_list, username, password)
     if len(process_list) > 0:
         format_string = "{:<20}{:<20}{:<30}{:<20}{:<20}{:<70}{}"
-        print(format_string.format("Query ID", "User Name", "Host", "Command", "Time Executed", "State", "Info"))
+        print((format_string.format("Query ID", "User Name", "Host", "Command", "Time Executed", "State", "Info")))
         for items in process_list:
-            print(format_string.format(items["id"], items["user"], items["host"], items["command"],
-                                       str(items["time"]) + " sec", items["state"], items["info"]))
+            print((format_string.format(items["id"], items["user"], items["host"], items["command"],
+                                       str(items["time"]) + " sec", items["state"], items["info"])))
     exit(0)
 
 

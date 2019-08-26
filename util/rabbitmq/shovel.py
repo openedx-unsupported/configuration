@@ -1,9 +1,12 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import subprocess
 import requests
 from requests.exceptions import HTTPError
 import sys
+import six
 
 parser=argparse.ArgumentParser(description='Shovels between RabbitMQ Clusters')
 parser.add_argument('--src_host',action='store',dest='src_host')
@@ -26,7 +29,7 @@ def list_vhosts():
         response.raise_for_status()
         vhosts=[v['name'] for v in response.json() if v['name'].startswith('/')]
     except Exception as ex:
-        print "Failed to get vhosts: {}".format(ex)
+        print("Failed to get vhosts: {}".format(ex))
         sys.exit(1)
     return vhosts
 
@@ -38,7 +41,7 @@ def list_queues():
             response.raise_for_status()
             queues=[q['name'] for q in response.json()]
         except Exception as ex:
-            print "Failed to get queues: {}".format(ex)
+            print("Failed to get queues: {}".format(ex))
             sys.exit(1)
         return queues
 
@@ -65,10 +68,10 @@ if __name__=='__main__':
         q=queue.split('.')
         if (q[0]!='celeryev' and q[-1]!='pidbox'):
             args='{{"src-uri": "{}", "src-queue": "{}","dest-uri": "{}","dest-queue": "{}"}}'.format(src_uri,queue,dest_uri,queue)
-            print "Running shovel for queue:{}".format(queue)
+            print("Running shovel for queue:{}".format(queue))
             shovel_output=create_shovel(queue,args)
             if shovel_output is not None:
-               content=unicode(shovel_output,"utf-8")
+               content=six.text_type(shovel_output,"utf-8")
                output[queue]=content
     for k,v in output.items():
-          print k,v
+          print(k,v)

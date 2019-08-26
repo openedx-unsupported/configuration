@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import boto.ec2
 from boto.utils import get_instance_metadata, get_instance_identity
@@ -177,7 +179,7 @@ if __name__ == '__main__':
                 instance_id=instance_id)
             break
         except Exception as e:
-            print("Failed to get EDP for {}: {}".format(instance_id, str(e)))
+            print(("Failed to get EDP for {}: {}".format(instance_id, str(e))))
             # With the time limit being 2 minutes we will
             # try 5 times before giving up.
             time.sleep(backoff)
