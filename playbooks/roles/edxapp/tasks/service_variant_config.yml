@@ -20,7 +20,7 @@
   set_fact:
     lms_combined_config: '{{lms_env_config|combine(lms_auth_config)}}'
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
-  when: '"lms" in service_variants_enabled'
+  when: '"lms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
   tags:
     - install
     - install:configuration
@@ -38,7 +38,7 @@
   become: true
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
   with_items: "{{ service_variants_enabled }}"
-  when: '"lms" in service_variants_enabled'
+  when: '"lms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
   tags:
     - install
     - install:configuration
@@ -50,7 +50,7 @@
   set_fact:
     cms_combined_config: '{{cms_env_config|combine(cms_auth_config)}}'
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
-  when: '"cms" in service_variants_enabled'
+  when: '"cms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
   tags:
     - install
     - install:configuration
@@ -68,13 +68,70 @@
   become: true
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
   with_items: "{{ service_variants_enabled }}"
-  when: '"cms" in service_variants_enabled'
+  when: '"cms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
   tags:
     - install
     - install:configuration
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
     - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
+
+- name: Decrypt lms config
+  local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/lms.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/lms.yml
+  with_items: "{{ service_variants_enabled }}"
+  when: '"lms" in service_variants_enabled and EDXAPP_DECRYPT_CONFIG_ENABLED'
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+    - edxapp_cfg_yaml_only
+
+- name: Decrypt cms config
+  local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/studio.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/studio.yml
+  with_items: "{{ service_variants_enabled }}"
+  when: '"cms" in service_variants_enabled and EDXAPP_DECRYPT_CONFIG_ENABLED'
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: Copy lms config file
+  copy:
+    src: "{{ EDXAPP_LMS_LOCAL_CONFIG_FILE }}"
+    dest: "{{ COMMON_CFG_DIR }}/lms.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  with_items: "{{ service_variants_enabled }}"
+  when: '"lms" in service_variants_enabled and EDXAPP_COPY_CONFIG_ENABLED'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: Copy cms config file
+  copy:
+    src: "{{ EDXAPP_CMS_LOCAL_CONFIG_FILE }}"
+    dest: "{{ COMMON_CFG_DIR }}/studio.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  with_items: "{{ service_variants_enabled }}"
+  when: '"cms" in service_variants_enabled and EDXAPP_COPY_CONFIG_ENABLED'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
 
 # write the supervisor scripts for the service variants
 - name: "writing {{ item }} supervisor script"
