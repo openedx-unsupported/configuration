@@ -19,6 +19,13 @@ DISCOVERY_GIT_IDENTITY: !!null
 discovery_service_name: "discovery"
 discovery_gunicorn_port: 8381
 
+DISCOVERY_DEFAULT_DB_NAME: 'discovery'
+DISCOVERY_MYSQL: 'localhost'
+# MySQL usernames are limited to 16 characters
+DISCOVERY_MYSQL_USER: 'discov001'
+DISCOVERY_MYSQL_PASSWORD: 'password'
+DISCOVERY_MYSQL_REPLICA_HOST: 'localhost'
+
 discovery_environment:
   DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
 
@@ -38,12 +45,6 @@ discovery_debian_pkgs:
 
 DISCOVERY_NGINX_PORT: "1{{ discovery_gunicorn_port }}"
 DISCOVERY_SSL_NGINX_PORT: "4{{ discovery_gunicorn_port }}"
-
-DISCOVERY_DEFAULT_DB_NAME: 'discovery'
-DISCOVERY_MYSQL: 'localhost'
-# MySQL usernames are limited to 16 characters
-DISCOVERY_MYSQL_USER: 'discov001'
-DISCOVERY_MYSQL_PASSWORD: 'password'
 
 # Using SSL? See https://www.elastic.co/guide/en/shield/current/ssl-tls.html.
 # Using AWS? Use the AWS-provided host (e.g. https://search-test-abc123.us-east-1.es.amazonaws.com/).
@@ -77,6 +78,11 @@ DISCOVERY_DEFAULT_PARTNER_ID: 1
 DISCOVERY_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
 
 # Used to automatically configure OAuth2 Client
+DISCOVERY_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'discovery-sso-key'
+DISCOVERY_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'discovery-sso-secret'
+DISCOVERY_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'discovery-backend-service-key'
+DISCOVERY_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'discovery-backend-service-secret'
+# NOTE: Deprecate these OIDC settings post-DOP-removal for credentials.
 DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY : 'discovery-key'
 DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET : 'discovery-secret'
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
@@ -117,6 +123,8 @@ DISCOVERY_GUNICORN_EXTRA: ''
 
 DISCOVERY_EXTRA_APPS: []
 
+DISCOVERY_USERNAME_REPLACEMENT_WORKER: "OVERRIDE THIS WITH A VALID USERNAME"
+
 DISCOVERY_REPOS:
   - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
     DOMAIN: "{{ COMMON_GIT_MIRROR }}"
@@ -154,6 +162,21 @@ discovery_service_config_overrides:
   LANGUAGE_CODE: '{{DISCOVERY_LANGUAGE_CODE}}'
   PARLER_DEFAULT_LANGUAGE_CODE: '{{DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE}}'
   PARLER_LANGUAGES : '{{DISCOVERY_PARLER_LANGUAGES}}'
+  CSRF_COOKIE_SECURE: "{{ DISCOVERY_CSRF_COOKIE_SECURE }}"
+  CORS_ORIGIN_WHITELIST: "{{ DISCOVERY_CORS_ORIGIN_WHITELIST }}"
+
+  USERNAME_REPLACEMENT_WORKER: "{{ DISCOVERY_USERNAME_REPLACEMENT_WORKER }}"
 
 # See edx_django_service_automated_users for an example of what this should be
 DISCOVERY_AUTOMATED_USERS: {}
+
+DISCOVERY_CSRF_COOKIE_SECURE: false
+DISCOVERY_CORS_ORIGIN_WHITELIST: []
+
+DISCOVERY_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+# Remote config
+DISCOVERY_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+DISCOVERY_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+DISCOVERY_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"

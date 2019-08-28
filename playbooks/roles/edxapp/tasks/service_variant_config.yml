@@ -78,7 +78,6 @@
 
 - name: Decrypt lms config
   local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/lms.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/lms.yml
-  become: false
   with_items: "{{ service_variants_enabled }}"
   when: '"lms" in service_variants_enabled and EDXAPP_DECRYPT_CONFIG_ENABLED'
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
@@ -91,26 +90,9 @@
 
 - name: Decrypt cms config
   local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/studio.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/studio.yml
-  become: false
   with_items: "{{ service_variants_enabled }}"
   when: '"cms" in service_variants_enabled and EDXAPP_DECRYPT_CONFIG_ENABLED'
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
-  tags:
-    - install
-    - install:configuration
-    - install:app-configuration
-    - edxapp_cfg # Old deprecated tag, will remove when possible
-
-- name: Replace deploy host to sandbox dns name
-  replace:
-    path: "{{ UNENCRYPTED_CFG_DIR }}/{{ item }}.yml"
-    regexp: 'deploy_host'
-    replace: "{{ COMMON_DEPLOY_HOSTNAME }}"
-  with_items: ['lms','studio']
-  when: EDXAPP_DECRYPT_CONFIG_ENABLED and SANDBOX_CONFIG
-  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
-  become: false
-  delegate_to: localhost
   tags:
     - install
     - install:configuration
@@ -150,21 +132,6 @@
     - install:configuration
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
-
-- name: Write the revisions config file
-  template:
-    src: "revisions.yml.j2"
-    dest: "{{ edxapp_revision_cfg }}"
-    owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
-    mode: 0640
-  become: true
-  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
-  tags:
-    - install
-    - install:configuration
-    - install:app-configuration
-    - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
 
 # write the supervisor scripts for the service variants
 - name: "writing {{ item }} supervisor script"
@@ -215,40 +182,6 @@
   tags:
     - install
     - install:configuration
-
-# write the supervisor script for mongod and sshd
-# this should only be run when provisioning a jenkins-worker container
-- name: Set ignore_jenkins_worker_command when no tags present
-  set_fact: ignore_jenkins_worker_command=true
-
-- name: writing mongod and sshd supervisor scripts
-  template:
-    src: "edx/app/supervisor/conf.d.available/{{ item }}.j2"
-    dest: "{{ supervisor_available_dir }}/{{ item }}"
-    owner: "{{ supervisor_user }}"
-    group: "{{ supervisor_user }}"
-    mode: 0644
-  become_user: "{{ supervisor_user }}"
-  with_items:
-    - mongod.conf
-    - sshd.conf
-  when: 'ignore_jenkins_worker_command is not defined'
-  tags:
-    - jenkins-worker
-
-- name: "enable mongod and sshd supervisor script"
-  file:
-    src: "{{ supervisor_available_dir }}/{{ item }}.conf"
-    dest: "{{ supervisor_cfg_dir }}/{{ item }}.conf"
-    state: link
-    force: yes
-  become_user: "{{ supervisor_user }}"
-  with_items:
-    - mongod
-    - sshd
-  when: 'ignore_jenkins_worker_command is not defined'
-  tags:
-    - jenkins-worker
 
 # Enable the supervisor jobs
 - name: "enable {{ item }} supervisor script"
