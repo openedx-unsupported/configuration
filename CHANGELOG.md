@@ -1,4 +1,10 @@
 - Role: edxapp
+  - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
+
+- Role: discovery
+  - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
+
+- Role: edxapp
   - Added `ENABLE_ENROLLMENT_RESET` feature flag for masters integration sandboxes
 
 - Role: conductor
