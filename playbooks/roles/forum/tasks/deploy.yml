@@ -27,6 +27,47 @@
     - install
     - install:configuration
 
+- name: create the watchdog config
+  template:
+    src: watchdog.conf.j2
+    dest: "{{ supervisor_available_dir }}/forum-watchdog.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  when: not devstack
+  tags:
+    - install
+    - install:configuration
+    - install:forum-watchdog
+
+- name: enable the watchdog config
+  file:
+    src: "{{ supervisor_available_dir }}/forum-watchdog.conf"
+    dest: "{{ supervisor_cfg_dir }}/forum-watchdog.conf"
+    owner: "{{ supervisor_user }}"
+    state: link
+    force: yes
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  when: not disable_edx_services and not devstack
+  tags:
+    - install
+    - install:configuration
+    - install:forum-watchdog
+
+- name: configure the watchdog script
+  template:
+    src: "{{ forum_watchdog|basename }}.j2"
+    dest: "{{ forum_watchdog }}"
+    mode: 0755
+  become_user: "{{ forum_user }}"
+  when: not devstack
+  tags:
+    - install
+    - install:configuration
+    - install:forum-watchdog
+
 - name: create the supervisor wrapper
   template:
     src: "{{ forum_supervisor_wrapper|basename }}.j2"
@@ -97,6 +138,7 @@
   tags:
     - manage
     - manage:update
+    - install:forum-watchdog
 
 - name: ensure forum is started
   supervisorctl:
@@ -107,6 +149,17 @@
   when: not disable_edx_services
   tags:
     - manage
+
+- name: ensure watchdog is started
+  supervisorctl:
+    name: forum-watchdog
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: started
+  when: not disable_edx_services and not devstack
+  tags:
+    - manage
+    - install:forum-watchdog
 
 - include: test.yml
   tags:

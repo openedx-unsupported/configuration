@@ -1,0 +1,13 @@
+#!/bin/bash
+
+dt=`date '+%d/%m/%Y %H:%M:%S'`
+echo "[$dt] Forum WatchDog service started"
+
+tail -f {{ supervisor_log_dir }}/forum-stderr.log |
+grep --line-buffered 'Mongo::Error::OperationFailure - not master and slaveOk=false (13435)' |
+while read
+do
+  dt=`date '+%d/%m/%Y %H:%M:%S'`
+  echo "[$dt] Forum Failure detected - Restarting forum service..."
+  {{ supervisor_ctl }} restart forum
+done
