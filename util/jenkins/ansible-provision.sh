@@ -174,14 +174,6 @@ if [[ -z $set_whitelabel ]]; then
   set_whitelabel="true"
 fi
 
-if [[ -z $journals ]]; then
-  journals="false"
-fi
-
-if [[ -z $journals_version ]]; then
-  journals_version="master"
-fi
-
 if [[ -z $registrar ]]; then
   registrar="false"
 fi
@@ -196,7 +188,7 @@ fi
 
 if [[ -z $learner_portal_version ]]; then
   learner_portal_version="master"
-fi 
+fi
 
 if [[ $registrar == 'true' ]]; then
   program_manager="true"
@@ -220,7 +212,6 @@ certs_version: $certs_version
 configuration_version: $configuration_version
 demo_version: $demo_version
 THEMES_VERSION: $themes_version
-journals_version: $journals_version
 registrar_version: $registrar_version
 learner_portal_version: $learner_portal_version
 program_manager_version: $program_manager_version
@@ -246,12 +237,6 @@ CREDENTIALS_VERSION: $credentials_version
 ANALYTICS_API_NGINX_PORT: 80
 ANALYTICS_API_SSL_NGINX_PORT: 443
 ANALYTICS_API_VERSION: $analytics_api_version
-
-JOURNALS_NGINX_PORT: 80
-JOURNALS_SSL_NGINX_PORT: 443
-JOURNALS_VERSION: $journals_version
-JOURNALS_ENABLED: $journals
-JOURNALS_SANDBOX_BUILD: True
 
 REGISTRAR_NGINX_PORT: 80
 REGISTRAR_SSL_NGINX_PORT: 443
@@ -366,19 +351,6 @@ ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
 
-JOURNALS_URL_ROOT: "https://journals-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_FRONTEND_URL: "https://journalsapp-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_API_URL: "https://journals-{{ EDXAPP_LMS_BASE }}/api/v1/"
-JOURNALS_DISCOVERY_SERVICE_URL: "https://discovery-{{ EDXAPP_LMS_BASE }}"
-JOURNALS_LMS_URL_ROOT: "https://{{ EDXAPP_LMS_BASE }}"
-JOURNALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-JOURNALS_DISCOVERY_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/api/v1/"
-JOURNALS_DISCOVERY_JOURNALS_API_URL: "{{ JOURNALS_DISCOVERY_SERVICE_URL }}/journal/api/v1/"
-JOURNALS_ECOMMERCE_BASE_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
-JOURNALS_ECOMMERCE_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/api/v2/"
-JOURNALS_ECOMMERCE_JOURNALS_API_URL: "{{ JOURNALS_ECOMMERCE_BASE_URL }}/journal/api/v1"
-journals_create_demo_data: true
-
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
@@ -471,7 +443,7 @@ EOF
 fi
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery journals analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
+plays="edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
