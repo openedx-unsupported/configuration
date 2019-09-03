@@ -112,9 +112,9 @@ sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/dev
 extra_var_arg="-e@${extra_vars_file}"
 
 
-mckinsey_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/mckinsey.yml"
-qa_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/qa-mckinsey.yml"
-extra_var_arg+=" -e@${mckinsey_vars_file} -e@${qa_vars_file}"
+#mckinsey_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/mckinsey.yml"
+#qa_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/qa-mckinsey.yml"
+#extra_var_arg+=" -e@${mckinsey_vars_file} -e@${qa_vars_file}"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -298,7 +298,6 @@ MCKA_APROS_SUPPORTED_LANGUAGES:
     en: English
 HEAP_APP_ID: 123123432
 MCKA_APROS_MILESTONES_ENABLED: false
-MCKA_APROS_API_KEY: "edx-api-key"
 BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
 EDXAPP_LMS_SUBDOMAIN: "apros"
@@ -326,20 +325,21 @@ MCKA_APROS_USE_GIT_IDENTITY: true
 MCKA_APROS_AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
 MCKA_APROS_AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
 MCKA_APROS_DJANGO_SECRET_KEY: "DUMMY KEY"
-#MMCKA_APROS_MYSQL_DB_NAME: "mcka_apros"
-MCKINSEY_APROS_MYSQL_DB_NAME: "mcka_apros"
+MCKA_APROS_MYSQL_DB_NAME: "mcka_apros"
+#MCKINSEY_APROS_MYSQL_DB_NAME: "mcka_apros"
 MCKA_APROS_MYSQL_USER: "root"
+MCKA_APROS_MYSQL_PASSWORD: ""
 EDXAPP_MYSQL_DB_NAME: "edxapp"
 EDXAPP_MYSQL_USER: "edxapp001"
 EDXAPP_MYSQL_PASSWORD: 'password'
 MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
 MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
-# why this is commented as it is being used in apros.
+# Same value is defined in defaults.
 #MCKA_APROS_MYSQL_HOST: "localhost"
-MCKINSEY_APROS_MYSQL_HOST: "localhost"
-MCKA_APROS_MYSQL_PASSWORD: ""
-MCKINSEY_APROS_MYSQL_PASSWORD: ""
-MCKINSEY_APROS_MYSQL_USER: "root"
+# Remove this below after testing
+#MCKINSEY_APROS_MYSQL_HOST: "localhost"
+#MCKINSEY_APROS_MYSQL_PASSWORD: ""
+#MCKINSEY_APROS_MYSQL_USER: "root"
 #db_root_user: "root"
 COMMON_ENABLE_SPLUNKFORWARDER: False
 DBPassword: ""
