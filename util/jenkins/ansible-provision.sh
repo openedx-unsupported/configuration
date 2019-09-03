@@ -244,8 +244,10 @@ migrate_db: "no"
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
-EDXAPP_LMS_NGINX_PORT: 80
-EDXAPP_CMS_NGINX_PORT: 80
+EDXAPP_LMS_NGINX_PORT: 18000
+EDXAPP_LMS_SSL_NGINX_PORT: 443
+EDXAPP_CMS_NGINX_PORT: 18000
+EDXAPP_CMS_SSL_NGINX_PORT: 443
 
 ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
@@ -272,7 +274,7 @@ DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
 NGINX_SET_X_FORWARDED_HEADERS: True
-NGINX_REDIRECT_TO_HTTPS: false
+NGINX_REDIRECT_TO_HTTPS: true
 EDX_ANSIBLE_DUMP_VARS: true
 dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
@@ -301,16 +303,23 @@ BASE_DOMAIN: $deploy_host
 EDXAPP_BASE: $deploy_host
 EDXAPP_LMS_SUBDOMAIN: "apros"
 COMMON_MYSQL_MIGRATE_PASS: "password"
-EDXAPP_LMS_BASE: "{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
+#EDXAPP_LMS_BASE: "{{EDXAPP_LMS_SUBDOMAIN}}.{{EDXAPP_BASE}}"
+# need to check this if adding below to nginx makes site available through api.
 EDXAPP_CORS_ORIGIN_WHITELIST:
   - "{{ EDXAPP_LMS_BASE }}"
-EDXAPP_SESSION_COOKIE_DOMAIN: ".{{EDXAPP_BASE}}"
-EDXAPP_PREVIEW_LMS_BASE: "preview.{{EDXAPP_LMS_BASE}}"
-EDXAPP_SITE_NAME: "{{EDXAPP_LMS_BASE}}"
+EDXAPP_SESSION_COOKIE_DOMAIN: ".${dns_zone}"
+MCKA_APROS_SESSION_COOKIE_DOMAIN: ".${dns_zone}"
+# We have used "-" above
+#EDXAPP_PREVIEW_LMS_BASE: "preview.{{EDXAPP_LMS_BASE}}"
+#EDXAPP_SITE_NAME: "{{EDXAPP_LMS_BASE}}"
 LMS_ELB: "courses.{{BASE_DOMAIN}}"
 CMS_ELB: "studio.{{BASE_DOMAIN}}"
-CMS_HOSTNAME: "studio.{{BASE_DOMAIN}}"
+XQUEUE_ELB: "xqueue.{{BASE_DOMAIN}}"
+XSERVER_ELB: "xserver.{{BASE_DOMAIN}}"
+RABBIT_ELB: "rabbit.{{BASE_DOMAIN}}"
+FORUM_ELB: "forum.{{BASE_DOMAIN}}"
 APROS_ELB: "{{BASE_DOMAIN}}"
+CMS_HOSTNAME: "studio-{{BASE_DOMAIN}}"
 APROS_WORKER_LMS_BASE: "https://{{ LMS_ELB }}/"
 APROS_WORKER_CMS_BASE: "https://{{ CMS_ELB }}/"
 MCKA_APROS_USE_GIT_IDENTITY: true
@@ -325,6 +334,7 @@ EDXAPP_MYSQL_USER: "edxapp001"
 EDXAPP_MYSQL_PASSWORD: 'password'
 MCKA_APROS_THIRD_PARTY_AUTH_API_SECRET: "third_party_secret"
 MCKA_APROS_MYSQL_PORT:  "{{ EDXAPP_MYSQL_PORT }}"
+# why this is commented as it is being used in apros.
 #MCKA_APROS_MYSQL_HOST: "localhost"
 MCKINSEY_APROS_MYSQL_HOST: "localhost"
 MCKA_APROS_MYSQL_PASSWORD: ""
@@ -347,7 +357,6 @@ EDXAPP_CELERY_USER: ''
 EDXAPP_CELERY_BROKER_VHOST: 0
 NO_PREREQ_INSTALL: 0
 EDXAPP_NO_PREREQ_INSTALL: 0
-NGINX_ENABLE_SSL: True
 NGINX_SSL_CERTIFICATE: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.pem'
 NGINX_SSL_KEY: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.key'
 EDXAPP_CELERY_WORKERS:
@@ -389,7 +398,7 @@ MCKA_APROS_GUNICORN_MAX_REQUESTS: 1000
 nginx_default_sites:
   - lms
 mcka_apros_service_name: 'mcka-apros'
-MCKA_APROS_SERVICE_USER_NAME : 'mcka_admin_user'
+MCKA_APROS_SERVICE_USER_NAME: 'mcka_admin_user'
 MCKA_APROS_URL_ROOT: 'https://apros-${deploy_host}'
 MCKA_APROS_OAUTH2_CLIENT_ID: 'umJTteyU8k9no3FykQsabwRg6w6XO5hc9phlJvFg'
 MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwGbgTSoax6ZwFssk20us5ADLJ5A1mnaQi7Ih6EwZGQVss3ydiF45BZ3uZrqIzz0dgh3JFih1Z1bDp25CyLbw'
@@ -449,9 +458,9 @@ if [[ $edx_internal == "true" ]]; then
     # xserver is installed
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
-#EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: "{{ CMS_ELB }}"
-#EDXAPP_SITE_NAME: ${deploy_host}
+EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_internal: True
