@@ -406,7 +406,7 @@ MCKA_APROS_OAUTH2_CLIENT_ID: 'umJTteyU8k9no3FykQsabwRg6w6XO5hc9phlJvFg'
 MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwGbgTSoax6ZwFssk20us5ADLJ5A1mnaQi7Ih6EwZGQVss3ydiF45BZ3uZrqIzz0dgh3JFih1Z1bDp25CyLbw'
 APROS_OAUTH2_OPENEDX_CLIENT_ID: "{{ MCKA_APROS_OAUTH2_CLIENT_ID }}"
 APROS_OAUTH2_OPENEDX_CLIENT_SECRET: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET }}"
-MCKA_APROS_BASIC_AUTH = false
+MCKA_APROS_BASIC_AUTH: false
 oauth_client_setup_oauth2_clients:
     - {
         name: "{{ mcka_apros_service_name | default('None') }}",
