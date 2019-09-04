@@ -94,7 +94,7 @@ program_manager="false"
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
+    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file} -e DECRYPT_CONFIG_PRIVATE_KEY=$WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key -e ENCRYPTED_CFG_DIR=$WORKSPACE/configuration-internal/sandbox-remote-config/sandbox -e UNENCRYPTED_CFG_DIR=$WORKSPACE"
 fi
 
 if [[ -z $region ]]; then
@@ -387,6 +387,17 @@ VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 EOF
 fi
 
+encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar journals edx_notes_api)
+
+for app in ${encrypted_config_apps[@]}; do
+     eval app_decrypt_and_copy_config_enabled=\${${app}_decrypt_and_copy_config_enabled}
+     if [[ ${app_decrypt_and_copy_config_enabled} == "true" ]]; then
+         cat << EOF >> $extra_vars_file
+${app^^}_DECRYPT_CONFIG_ENABLED: true
+${app^^}_COPY_CONFIG_ENABLED: true
+EOF
+     fi
+done
 
 if [[ $recreate == "true" ]]; then
     # vars specific to provisioning added to $extra-vars
