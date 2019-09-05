@@ -98,7 +98,7 @@ if [ "${UPGRADE_OS}" = true ]; then
 fi
 
 # Required for add-apt-repository
-apt-get install -y software-properties-common python-software-properties
+apt-get install -y software-properties-common
 
 # Add git PPA
 add-apt-repository -y ppa:git-core/ppa
