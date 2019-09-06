@@ -18,7 +18,6 @@ MIGRATION_COMMANDS = {
         'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
         'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
         'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
-        'journals':     ". {env_file}; sudo -E -u journals {python} {code_dir}/manage.py showmigrations",
         'registrar':     ". {env_file}; sudo -E -u registrar {python} {code_dir}/manage.py showmigrations",
     }
 NGINX_ENABLE = {
@@ -118,15 +117,6 @@ if __name__ == '__main__':
         help="Location of the discovery environment file.")
     discovery_migration_args.add_argument("--discovery-code-dir",
         help="Location of the discovery code.")
-
-    journals_migration_args = parser.add_argument_group("journals_migrations",
-            "Args for running journals migration checks.")
-    journals_migration_args.add_argument("--journals-python",
-        help="Path to python to use for executing migration check.")
-    journals_migration_args.add_argument("--journals-env",
-        help="Location of the journals environment file.")
-    journals_migration_args.add_argument("--journals-code-dir",
-        help="Location of the journals code.")
 
     registrar_migration_args = parser.add_argument_group("registrar_migrations",
             "Args for running registrar migration checks.")
@@ -235,7 +225,6 @@ if __name__ == '__main__':
                     "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
                     "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
                     "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
-                    "journals": {'python': args.journals_python, 'env_file': args.journals_env, 'code_dir': args.journals_code_dir},                    
                     "registrar": {'python': args.registrar_python, 'env_file': args.registrar_env, 'code_dir': args.registrar_code_dir},
                     "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
                     "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir},
