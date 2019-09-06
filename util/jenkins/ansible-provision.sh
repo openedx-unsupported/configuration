@@ -312,7 +312,9 @@ if [[ $edx_internal == "true" ]]; then
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
+EDXAPP_LMS_CONFIG_FILE_NAME: $edxapp_lms_config_file_name
 EDXAPP_CMS_BASE: studio-${deploy_host}
+EDXAPP_CMS_CONFIG_FILE_NAME: $edxapp_studio_config_file_name
 EDXAPP_SITE_NAME: ${deploy_host}
 CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
 CERTS_VERIFY_URL: "http://${deploy_host}:18090"
@@ -343,6 +345,7 @@ EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
 EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
 
 ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
+ANALYTICS_API_CONFIG_FILE_NAME: $analytics_api_config_file_name
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below
 ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
@@ -350,15 +353,18 @@ ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 ecommerce_create_demo_data: true
+ECOMMERCE_CONFIG_FILE_NAME: $ecommerce_config_file_name
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+DISCOVERY_CONFIG_FILE_NAME: $discovery_config_file_name
 
 REGISTRAR_URL_ROOT: "https://registrar-${deploy_host}"
 REGISTRAR_API_ROOT: "https://registrar-${deploy_host}/api"
 REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
 REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+REGISTRAR_CONFIG_FILE_NAME: $registrar_config_file_name
 
 LEARNER_PORTAL_URL_ROOT: "https://learner-portal-${deploy_host}"
 LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
@@ -375,6 +381,7 @@ CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
+CREDENTIALS_CONFIG_FILE_NAME: $credentials_config_file_name
 
 VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
 VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
@@ -383,6 +390,10 @@ VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
 VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
 VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
 VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
+
+ECOMMERCE_WORKER_CONFIG_FILE_NAME: $ecommerce_worker_config_file_name
+
+INSIGHTS_CONFIG_FILE_NAME: $insights_config_file_name
 
 EOF
 fi
