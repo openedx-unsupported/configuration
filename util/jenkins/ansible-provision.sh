@@ -92,12 +92,12 @@ AWS_DEFAULT_REGION=$region
 
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="master"
-cd $WORKSPACE
-chmod -R 0777 private_vars/
-rm -rf private_vars/
-git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
-chmod -R 0777 private_vars/
-private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
+#cd $WORKSPACE
+#chmod -R 0777 private_vars/
+#rm -rf private_vars/
+#git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
+#chmod -R 0777 private_vars/
+#private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
 pip install -r requirements.txt
@@ -120,7 +120,7 @@ if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
     extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
-    extra_var_arg+=" -e@${private_vars_file}"
+#    extra_var_arg+=" -e@${private_vars_file}"
 fi
 
 if [[ -z $region ]]; then
@@ -424,6 +424,9 @@ oauth_client_setup_oauth2_clients:
 # User provided extra vars
 EDXAPP_EDX_API_KEY: 'edx_api_key'
 MCKA_APROS_API_KEY: 'edx_api_key'
+# Remove below and revert mcka cloning task.
+git_user: 'shafqatfarhan'
+git_pass: 'person-github13'
 $extra_vars
 EOF
 
