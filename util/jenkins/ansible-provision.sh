@@ -220,7 +220,7 @@ cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 forum_ruby_version: '2.3.7'
-mcka_apros_ruby_version: '2.4.1'
+#mcka_apros_ruby_version: '2.4.1'
 forum_source_repo: 'https://github.com/edx-solutions/cs_comments_service.git'
 ansible_distribution: 'Ubuntu'
 ansible_distribution_release: 'xenial'
@@ -240,6 +240,7 @@ testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 migrate_db: "no"
+migrate_forum_db: "yes"
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
@@ -624,7 +625,8 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-extra_var_arg+=' -e edx_platform_version="sandbox_release" -e forum_version="master"'
+# Make these as default values in if conditions as above.
+#extra_var_arg+=' -e edx_platform_version="sandbox_release" -e forum_version="master"'
 
 cd $WORKSPACE/ansible-private
 
