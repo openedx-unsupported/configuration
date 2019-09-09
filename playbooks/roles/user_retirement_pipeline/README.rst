@@ -27,7 +27,7 @@ except when running inside "edxapp" role.
 
 When running this role, you'll need to set:
 
-* `RETIREMENT_SERVICE_SETUP`: Set to true to configure the retirement service pipeline
+* `COMMON_RETIREMENT_SERVICE_SETUP`: Set to true to configure the retirement service pipeline
 * `RETIREMENT_SERVICE_COOL_OFF_DAYS`: Number of days that an account stays  marked for deletion before being picked up be the retirement service
 * `RETIREMENT_SERVICE_ENABLE_CRON_JOB`: Set to true if you want to set up a daily cron job for the retirement service
 * `EDXAPP_RETIREMENT_SERVICE_USER_EMAIL`: Email of the retirement worker user set up on LMS
@@ -125,7 +125,7 @@ ansible-playbook \
   -e configuration_version=master \
   -e edx_platform_version=master \
   -e edxapp_user=root \
-  -e RETIREMENT_SERVICE_SETUP=true \
+  -e COMMON_RETIREMENT_SERVICE_SETUP=true \
   -e RETIREMENT_SERVICE_COOL_OFF_DAYS=0 \
   -e RETIREMENT_SERVICE_ENABLE_CRON_JOB=true \
   -e EDXAPP_RETIREMENT_SERVICE_USER_EMAIL=retirement_service_worker@example.com \
