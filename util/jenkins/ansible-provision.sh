@@ -344,7 +344,7 @@ MCKINSEY_APROS_MYSQL_USER: "root"
 db_root_user: "root"
 COMMON_ENABLE_SPLUNKFORWARDER: False
 DBPassword: ""
-MCKA_APROS_WORKERS: 6
+MCKA_APROS_WORKERS: 5
 WORKER_DEFAULT_CONCURRENCY: 1
 WORKER_HIGH_CONCURRENCY: 5
 #CELERY_HEARTBEAT_ENABLED: false
@@ -408,6 +408,7 @@ MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwG
 APROS_OAUTH2_OPENEDX_CLIENT_ID: "{{ MCKA_APROS_OAUTH2_CLIENT_ID }}"
 APROS_OAUTH2_OPENEDX_CLIENT_SECRET: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET }}"
 MCKA_APROS_BASIC_AUTH: false
+MCKA_APROS_DJANGO_DEBUG: false
 oauth_client_setup_oauth2_clients:
     - {
         name: "{{ mcka_apros_service_name | default('None') }}",
@@ -427,6 +428,13 @@ MCKA_APROS_API_KEY: 'edx_api_key'
 # Remove below and revert mcka cloning task.
 git_user: 'shafqatfarhan'
 git_pass: 'person-github13'
+# Overridden mcka_apros_environment to remove rbenv dir path.
+mcka_apros_environment:
+  LANG: "{{ MCKA_APROS_LANG }}"
+  SKIP_WS_MIGRATIONS: 1
+  CONFIG_ROOT: "{{ mcka_apros_app_dir }}"
+  PATH: "{{mcka_apros_venv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 $extra_vars
 EOF
 
