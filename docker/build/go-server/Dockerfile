@@ -1,5 +1,5 @@
 ARG BASE_IMAGE_TAG=latest
-FROM edxops/bionic-common:${BASE_IMAGE_TAG}
+FROM edxops/xenial-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
