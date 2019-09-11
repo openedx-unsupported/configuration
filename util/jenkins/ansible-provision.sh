@@ -408,6 +408,9 @@ MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwG
 APROS_OAUTH2_OPENEDX_CLIENT_ID: "{{ MCKA_APROS_OAUTH2_CLIENT_ID }}"
 APROS_OAUTH2_OPENEDX_CLIENT_SECRET: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET }}"
 MCKA_APROS_BASIC_AUTH: false
+# Remove below and revert mcka cloning task.
+git_user: 'shafqatfarhan'
+git_pass: 'person-github13'
 oauth_client_setup_oauth2_clients:
     - {
         name: "{{ mcka_apros_service_name | default('None') }}",
@@ -424,16 +427,6 @@ oauth_client_setup_oauth2_clients:
 # User provided extra vars
 EDXAPP_EDX_API_KEY: 'edx_api_key'
 MCKA_APROS_API_KEY: 'edx_api_key'
-# Remove below and revert mcka cloning task.
-git_user: 'shafqatfarhan'
-git_pass: 'person-github13'
-# Overridden mcka_apros_environment to remove rbenv dir path.
-mcka_apros_environment:
-  LANG: "{{ MCKA_APROS_LANG }}"
-  SKIP_WS_MIGRATIONS: 1
-  CONFIG_ROOT: "{{ mcka_apros_app_dir }}"
-  PATH: "{{mcka_apros_venv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
 $extra_vars
 EOF
 
