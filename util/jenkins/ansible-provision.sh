@@ -387,7 +387,7 @@ VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 EOF
 fi
 
-encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar journals edx_notes_api)
+encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api)
 
 for app in ${encrypted_config_apps[@]}; do
      eval app_decrypt_and_copy_config_enabled=\${${app}_decrypt_and_copy_config_enabled}
