@@ -286,7 +286,15 @@ COMMON_ENVIRONMENT: sandbox
 NGINX_ENABLE_SSL: true
 #_local_git_identity: $ssh_key
 EDXAPP_USE_GIT_IDENTITY: true
-EDXAPP_ENABLE_COMPREHENSIVE_THEMING: false
+
+# MckA Theme
+EDXAPP_ENABLE_COMPREHENSIVE_THEMING: true
+EDXAPP_COMPREHENSIVE_THEME_DIRS:
+  - "/edx/app/edxapp/themes"
+EDXAPP_DEFAULT_SITE_THEME: 'mcka-theme'
+edxapp_theme_name: 'mcka-theme'
+edxapp_theme_source_repo: 'git@github.com:mckinseyacademy/mcka-theme.git'
+edxapp_theme_version: 'master'
 
 #EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
 COMMON_EDXAPP_SETTINGS: 'aws'
