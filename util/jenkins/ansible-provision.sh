@@ -92,12 +92,6 @@ AWS_DEFAULT_REGION=$region
 
 InstanceNameTag=$dns_name
 ForumConfigurationVersion="master"
-#cd $WORKSPACE
-#chmod -R 0777 private_vars/
-#rm -rf private_vars/
-#git clone https://hamzamunir7300:hamza123@github.com/hamzamunir7300/private_vars.git
-#chmod -R 0777 private_vars/
-#private_vars_file="${WORKSPACE}/private_vars/top_secret.yml"
 
 cd $WORKSPACE/configuration
 pip install -r requirements.txt
@@ -120,7 +114,6 @@ if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
     extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
-#    extra_var_arg+=" -e@${private_vars_file}"
 fi
 
 if [[ -z $region ]]; then
@@ -416,9 +409,6 @@ MCKA_APROS_OAUTH2_CLIENT_SECRET: 'wgeacXRx6TuJPH67YXkNzrRpz6xDdsG1zlwwCJ0xGayKwG
 APROS_OAUTH2_OPENEDX_CLIENT_ID: "{{ MCKA_APROS_OAUTH2_CLIENT_ID }}"
 APROS_OAUTH2_OPENEDX_CLIENT_SECRET: "{{ MCKA_APROS_OAUTH2_CLIENT_SECRET }}"
 MCKA_APROS_BASIC_AUTH: false
-# Remove below and revert mcka cloning task.
-git_user: 'shafqatfarhan'
-git_pass: 'person-github13'
 oauth_client_setup_oauth2_clients:
     - {
         name: "{{ mcka_apros_service_name | default('None') }}",
