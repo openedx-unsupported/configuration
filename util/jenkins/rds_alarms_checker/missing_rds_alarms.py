@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -51,7 +53,7 @@ def rds_extractor():
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print("Unable to connect to AWS with error :{}".format(e))
+        print(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
     for region in regions_list["Regions"]:
         client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -92,8 +94,8 @@ def controller(whitelist):
             if alarms_count < 1:
                 missing_alarm.append(db["name"])
     if len(missing_alarm) > 0:
-        print "RDS Name"
-        print '\n'.join(str(p) for p in missing_alarm)
+        print("RDS Name")
+        print('\n'.join(str(p) for p in missing_alarm))
         sys.exit(1)
     sys.exit(0)
 

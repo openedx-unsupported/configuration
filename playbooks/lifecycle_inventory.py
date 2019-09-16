@@ -28,6 +28,8 @@ group and state.
 
 }
 """
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import boto3
 import json
@@ -93,7 +95,7 @@ class LifecycleInventory():
                     inventory[group['AutoScalingGroupName'] + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
                     inventory[instance['LifecycleState'].replace(":","_")].append(private_ip_address)
 
-        print json.dumps(inventory, sort_keys=True, indent=2)
+        print(json.dumps(inventory, sort_keys=True, indent=2))
 
 if __name__=="__main__":
 

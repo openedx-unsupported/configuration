@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -43,7 +45,7 @@ def rds_extractor():
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print("Unable to connect to AWS with error :{}".format(e))
+        print(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
     for region in regions_list["Regions"]:
         client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -109,7 +111,7 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
                     table_list.append(temp_dict)
         return table_list
     except Exception as ex:
-        print ex
+        print(ex)
         sys.exit(1)
 
 
@@ -135,13 +137,13 @@ def controller(username, password, threshold, rdsthreshold, rdsignore):
     """
     rds_threshold = dict(rdsthreshold)
     rds_list = rds_extractor()
-    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     table_list = check_table_growth(filtered_rds_list, username, password, threshold, rds_threshold)
     if len(table_list) > 0:
         format_string = "{:<40}{:<20}{:<50}{}"
-        print(format_string.format("RDS Name","Database Name", "Table Name", "Size"))
+        print((format_string.format("RDS Name","Database Name", "Table Name", "Size")))
         for items in table_list:
-            print(format_string.format(items["rds"], items["db"], items["table"], str(items["size"]) + " MB"))
+            print((format_string.format(items["rds"], items["db"], items["table"], str(items["size"]) + " MB")))
         exit(1)
     exit(0)
 

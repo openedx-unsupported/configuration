@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import re
 import redis
 import click
@@ -24,7 +26,7 @@ class RedisWrapper(object):
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
     def keys(self):
-        return self.redis.keys()
+        return list(self.redis.keys())
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
@@ -57,7 +59,7 @@ class CwBotoWrapper(object):
                           max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
         if self.dev_test_mode:
-            print("Test Mode: would have run put_metric_data({},{})".format(args, kwargs))
+            print(("Test Mode: would have run put_metric_data({},{})".format(args, kwargs)))
         else:
             return self.client.put_metric_data(*args, **kwargs)
 
@@ -72,7 +74,7 @@ class CwBotoWrapper(object):
                           max_tries=MAX_TRIES)
     def put_metric_alarm(self, *args, **kwargs):
         if self.dev_test_mode:
-            print("Test Mode: would have run put_metric_alarm({},{})".format(args, kwargs))
+            print(("Test Mode: would have run put_metric_alarm({},{})".format(args, kwargs)))
         else:
             return self.client.put_metric_alarm(*args, **kwargs)
 
@@ -216,7 +218,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         existing_alarms = cloudwatch.describe_alarms(AlarmNames=[alarm_name])['MetricAlarms']
         do_put_alarm = False
         if len(existing_alarms) > 1:
-            print("WARNINING: found multiple existing alarms for {}".format(alarm_name))
+            print(("WARNINING: found multiple existing alarms for {}".format(alarm_name)))
             pprint(existing_alarms)
             do_put_alarm = True
         elif len(existing_alarms) == 1:
@@ -244,14 +246,14 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
                       existing_alarm.get('AlarmActions')[0] == actions[0]):
                 do_put_alarm = True
             if do_put_alarm:
-                print('Updating existing alarm "{}"'.format(alarm_name))
+                print(('Updating existing alarm "{}"'.format(alarm_name)))
         else:
             do_put_alarm = True
-            print('Creating new alarm "{}"'.format(alarm_name))
+            print(('Creating new alarm "{}"'.format(alarm_name)))
         if not do_put_alarm:
-            print('Not updating alarm "{}", no changes'.format(alarm_name))
+            print(('Not updating alarm "{}", no changes'.format(alarm_name)))
         else:
-            print('put_alarm_metric: {}'.format(alarm_name))
+            print(('put_alarm_metric: {}'.format(alarm_name)))
             cloudwatch.put_metric_alarm(AlarmName=alarm_name,
                                         AlarmDescription=alarm_name,
                                         Namespace=namespace,

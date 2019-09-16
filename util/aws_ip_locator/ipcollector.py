@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 import click
 import socket
@@ -19,13 +21,13 @@ def collect_ips(file_name):
         print_header(entry['title'])
 
         external_hostnames_key = 'external_hostnames'
-        if entry.has_key(external_hostnames_key):
+        if external_hostnames_key in entry:
             external_hostnames = entry[external_hostnames_key]
             for hostname in external_hostnames:
                 print_line_item(hostname, get_ip_for_hostname(hostname))
 
         ec2_instance_name_tags_key = 'ec2_instance_name_tags'
-        if entry.has_key(ec2_instance_name_tags_key):
+        if ec2_instance_name_tags_key in entry:
             ec2_name_tags = entry[ec2_instance_name_tags_key]
             for pair in ec2_name_tags:
                 display_name = pair['display_name']
@@ -34,7 +36,7 @@ def collect_ips(file_name):
                 print_line_item(display_name, ip)
 
         ec2_elb_name_tags_key = 'ec2_elb_name_tags'
-        if entry.has_key(ec2_elb_name_tags_key):
+        if ec2_elb_name_tags_key in entry:
             ec2_elb_name_tags = entry[ec2_elb_name_tags_key]
             for pair in ec2_elb_name_tags:
                 display_name = pair['display_name']
@@ -43,7 +45,7 @@ def collect_ips(file_name):
                 print_line_item(display_name, ip)
 
         elasticache_clusters_key = 'elasticache_clusters'
-        if entry.has_key(elasticache_clusters_key):
+        if elasticache_clusters_key in entry:
             elasticache_clusters = entry[elasticache_clusters_key]
             for cluster in elasticache_clusters:
                 display_name = cluster['display_name']
@@ -51,15 +53,15 @@ def collect_ips(file_name):
                 print_line_item(display_name, get_elasticache_ip_by_cluster_id(cluster_id))
 
         rds_instances_key = 'rds_instances'
-        if entry.has_key(rds_instances_key):
+        if rds_instances_key in entry:
             rds_instances = entry[rds_instances_key]
             for instance in rds_instances:
                 display_name = instance['display_name']
                 instance_id = None
-                if instance.has_key('instance_id'):
+                if 'instance_id' in instance:
                     instance_id   = instance['instance_id']
                     print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
-                elif instance.has_key('cluster_id'):
+                elif 'cluster_id' in instance:
                     cluster_id    = instance['cluster_id']
                     instance_id   = get_writer_instance_id_by_cluster_id(cluster_id)
                     print_line_item(display_name, get_rds_ip_by_instance_id(instance_id))
@@ -67,7 +69,7 @@ def collect_ips(file_name):
                     raise ValueError('Cant locate RDS instance without instance_id or cluster_id')
 
         static_entries_key = 'static_entries'
-        if entry.has_key(static_entries_key):
+        if static_entries_key in entry:
             static_entries = entry[static_entries_key]
             for item in static_entries:
                 display_name = item['display_name']
@@ -85,11 +87,11 @@ def print_header(name):
 ============================
 {0}
 ============================"""
-    print(header.format(name))
+    print((header.format(name)))
 
 def print_line_item(target, ip):
     line = "[ * ] {0} - {1}"
-    print(line.format(target, ip))
+    print((line.format(target, ip)))
 
 def get_instance_ip_by_name_tag(value):
     client = boto3.client('ec2')

@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
+from six.moves import filter
+from six.moves import map
+from six.moves import range
+from six.moves import zip
 DOCUMENTATION = """
 ---
 module: mongodb_replica_set
@@ -92,7 +97,7 @@ else:
     pymongo_found = True
 
 import json, copy
-from urllib import quote_plus
+from six.moves.urllib.parse import quote_plus
 from operator import itemgetter
 
 ########### Mongo API calls ###########
@@ -282,7 +287,7 @@ def update_replset(rs_config):
 def get_mongo_uri(host, port, username, password, auth_database):
     mongo_uri = 'mongodb://'
     if username and password:
-        mongo_uri += "{}:{}@".format(*map(quote_plus, [username,password]))
+        mongo_uri += "{}:{}@".format(*list(map(quote_plus, [username,password])))
 
     mongo_uri += "{}:{}".format(quote_plus(host), port)
 
@@ -308,7 +313,7 @@ def primary_client(some_host, some_port, username, password, auth_database):
     status = client.admin.command("replSetGetStatus")
 
     # Find out who the primary is.
-    rs_primary = filter(lambda member: member['stateStr']=='PRIMARY', status['members'])[0]
+    rs_primary = [member for member in status['members'] if member['stateStr']=='PRIMARY'][0]
     primary_host, primary_port = rs_primary['name'].split(':')
 
     # Connect to the primary if this is not the primary.

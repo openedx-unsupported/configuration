@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import pickle
 import json
@@ -34,7 +36,7 @@ class RedisWrapper(object):
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
     def keys(self):
-        return self.redis.keys()
+        return list(self.redis.keys())
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
@@ -70,7 +72,7 @@ class RedisWrapper(object):
                           max_tries=MAX_TRIES)
     def delete(self, key):
         if self.dev_test_mode:
-            print("Test Mode: would have run redis.delete({})".format(key))
+            print(("Test Mode: would have run redis.delete({})".format(key)))
         else:
             return self.redis.delete(key)
 
@@ -80,7 +82,7 @@ class RedisWrapper(object):
                           max_tries=MAX_TRIES)
     def hset(self, *args):
         if self.dev_test_mode:
-            print("Test Mode: would have run redis.hset({})".format(args))
+            print(("Test Mode: would have run redis.hset({})".format(args)))
         else:
             return self.redis.hset(*args)
 
@@ -90,7 +92,7 @@ class RedisWrapper(object):
                           max_tries=MAX_TRIES)
     def hmset(self, *args):
         if self.dev_test_mode:
-            print("Test Mode: would have run redis.hmset({})".format(args))
+            print(("Test Mode: would have run redis.hmset({})".format(args)))
         else:
             return self.redis.hmset(*args)
 
@@ -106,7 +108,7 @@ class CwBotoWrapper(object):
                           max_tries=MAX_TRIES)
     def put_metric_data(self, *args, **kwargs):
         if self.dev_test_mode:
-            print("Test Mode: would have run put_metric_data({},{})".format(args, kwargs))
+            print(("Test Mode: would have run put_metric_data({},{})".format(args, kwargs)))
         else:
             return self.client.put_metric_data(*args, **kwargs)
 
@@ -204,13 +206,13 @@ def create_alert(opsgenie_api_key, environment, deploy, queue_name, threshold, i
     alias = generate_alert_alias(environment, deploy, queue_name)
 
     if dev_test_mode:
-        print("Test Mode: would have created Alert: {}".format(alias))
+        print(("Test Mode: would have created Alert: {}".format(alias)))
     else:
-        print("Creating Alert: {}".format(alias))
+        print(("Creating Alert: {}".format(alias)))
         response = AlertApi().create_alert(body=CreateAlertRequest(message=alert_msg, alias=alias, description=info))
-        print('request id: {}'.format(response.request_id))
-        print('took: {}'.format(response.took))
-        print('result: {}'.format(response.result))
+        print(('request id: {}'.format(response.request_id)))
+        print(('took: {}'.format(response.took)))
+        print(('result: {}'.format(response.result)))
 
 
 @backoff.on_exception(backoff.expo,
@@ -225,14 +227,14 @@ def close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode
     alias = generate_alert_alias(environment, deploy, queue_name)
 
     if dev_test_mode:
-        print("Test Mode: would have closed Alert: {}".format(alias))
+        print(("Test Mode: would have closed Alert: {}".format(alias)))
     else:
-        print("Closing Alert: {}".format(alias))
+        print(("Closing Alert: {}".format(alias)))
         # Need body=CloseAlertRequest(source="") otherwise OpsGenie API complains that body must be a json object
         response = AlertApi().close_alert(identifier=alias, identifier_type='alias', body=CloseAlertRequest(source=""))
-        print('request id: {}'.format(response.request_id))
-        print('took: {}'.format(response.took))
-        print('result: {}'.format(response.result))
+        print(('request id: {}'.format(response.request_id)))
+        print(('took: {}'.format(response.took)))
+        print(('result: {}'.format(response.result)))
 
 
 def extract_body(task):
@@ -324,7 +326,7 @@ def celery_connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_client = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception in connection():", e)
+        print(("Exception in connection():", e))
     return celery_client
 
 
@@ -351,7 +353,7 @@ def get_active_tasks(celery_control, queue_workers, queue_name):
                             'kwargs: REDACTED',
                         ])
         except Exception as e:
-            print("Exception in get_active_tasks():", e)
+            print(("Exception in get_active_tasks():", e))
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
@@ -376,8 +378,8 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
                  jenkins_build_url, max_metrics, dev_test_mode):
     ret_val = 0
     thresholds = dict(queue_threshold)
-    print("Default Threshold (seconds): {}".format(default_threshold))
-    print("Per Queue Thresholds (seconds):\n{}".format(pretty_json(thresholds)))
+    print(("Default Threshold (seconds): {}".format(default_threshold)))
+    print(("Per Queue Thresholds (seconds):\n{}".format(pretty_json(thresholds))))
 
     timeout = 1
     redis_client = RedisWrapper(host=host, port=port, socket_timeout=timeout,
@@ -403,11 +405,11 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             for queue in data:
                 queue_workers.setdefault(queue['name'], []).append(worker)
     except Exception as e:
-        print("Exception while getting queue to worker mappings:", e)
+        print(("Exception while getting queue to worker mappings:", e))
 
     old_state = unpack_state(queue_age_hash)
     # Temp debugging
-    print("DEBUG: old_state\n{}\n".format(pretty_state(old_state)))
+    print(("DEBUG: old_state\n{}\n".format(pretty_state(old_state))))
     queue_first_items = {}
     current_time = datetime.datetime.now()
 
@@ -423,7 +425,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     new_state = build_new_state(old_state, queue_first_items, current_time)
 
     # Temp debugging
-    print("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state)))
+    print(("DEBUG: new_state from new_state() function\n{}\n".format(pretty_state(new_state))))
     for queue_name, first_item in queue_first_items.items():
         redacted_body = ""
         threshold = default_threshold
@@ -436,7 +438,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
         try:
             body = extract_body(first_item)
         except Exception as error:
-            print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
+            print(("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error)))
             ret_val = 1
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         active_tasks, redacted_active_tasks = get_active_tasks(celery_control, queue_workers, queue_name)
@@ -489,7 +491,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             new_state[queue_name]['alert_created'] = False
 
     for queue_name in set(old_state.keys()) - set(new_state.keys()):
-        print("DEBUG: Checking cleared queue {}".format(queue_name))
+        print(("DEBUG: Checking cleared queue {}".format(queue_name)))
         if old_state[queue_name]['alert_created']:
             close_alert(opsgenie_api_key, environment, deploy, queue_name, dev_test_mode=dev_test_mode)
 
@@ -497,12 +499,12 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
     if new_state:
         redis_client.hmset(QUEUE_AGE_HASH_NAME, pack_state(new_state))
         # Temp Debugging
-        print("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state)))
+        print(("DEBUG: new_state pushed to redis\n{}\n".format(pretty_state(new_state))))
 
     # Push next_task_age data to cloudwatch for tracking
     if len(next_task_age_metric_data) > 0:
         for metric_data_grouped in grouper(next_task_age_metric_data, max_metrics):
-            print("next_task_age_metric_data {}".format(next_task_age_metric_data))
+            print(("next_task_age_metric_data {}".format(next_task_age_metric_data)))
             cloudwatch.put_metric_data(Namespace=namespace, MetricData=next_task_age_metric_data)
 
     sys.exit(ret_val)
