@@ -105,11 +105,6 @@ sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/develop
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 
-
-#mckinsey_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/mckinsey.yml"
-#qa_vars_file="${WORKSPACE}/configuration/playbooks/edx-east/mcka_vars/qa-mckinsey.yml"
-#extra_var_arg+=" -e@${mckinsey_vars_file} -e@${qa_vars_file}"
-
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
