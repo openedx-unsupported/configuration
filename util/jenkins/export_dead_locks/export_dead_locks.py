@@ -96,7 +96,7 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
             mysocket = myindex.attach(host=rds_host_endpoint, source="INNODB STATUS", sourcetype="RDS")
 
             # Send events to it
-            mysocket.send(global_str)
+            mysocket.send(str.encode(global_str))
 
             # Close the socket
             mysocket.close()

@@ -103,7 +103,7 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
                 threshold_limit = threshold
             for tables in rds_result:
                 temp_dict = {}
-                if tables[2] > float(threshold_limit):
+                if tables[2] is not None and tables[2] > float(threshold_limit):
                     temp_dict["rds"] = item["name"]
                     temp_dict["db"] = tables[0]
                     temp_dict["table"] = tables[1]
