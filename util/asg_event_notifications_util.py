@@ -47,7 +47,7 @@ def show_asg_event_notifications():
                         asg)))
             else:
                 print(("No Event Notifications found for ASG {}".format(asg)))
-    except(Exception, e):
+    except Exception as e:
 
         print(e)
 
@@ -89,7 +89,7 @@ def create_asg_event_notifications(
 
                 print(("Created {0} event notifications for auto scaling group {1}").format(event,
                        asg))
-        except(Exception, e):
+        except Exception as e:
             print(e)
 
 cli.add_command(show_asg_event_notifications)
