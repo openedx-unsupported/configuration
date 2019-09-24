@@ -170,4 +170,25 @@
   tags:
     - to-remove
 
+- name: install python3
+  apt:
+    name: "{{ item }}"
+  when: edx_service_use_python3
+  with_items:
+    - python3-pip
+    - python3-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3
+  command: "virtualenv --python=python3 {{ edx_service_home }}/venvs"
+  args:
+    creates: "{{ edx_service_home }}/venvs/bin/pip"
+  become_user: "{{ edx_service_user }}"
+  when: edx_service_use_python3
+  tags:
+    - install
+    - install:system-requirements
+
 #TODO: restart supervisor- depends on supervisor being refactored into this role
