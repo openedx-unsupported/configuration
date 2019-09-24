@@ -420,7 +420,6 @@ oauth_client_setup_oauth2_clients:
 # User provided extra vars
 EDXAPP_EDX_API_KEY: 'edx_api_key'
 MCKA_APROS_API_KEY: 'edx_api_key'
-git_id: '154fa57ab214eefc5317517df8ec4d114a5f8d6b'
 $extra_vars
 EOF
 
