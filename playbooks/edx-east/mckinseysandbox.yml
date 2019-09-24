@@ -3,32 +3,51 @@
   sudo: True
   gather_facts: True
   roles:
-    - aws
+    #- aws
+#    - role: automated
+#      AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}"
+    - role: aws
     - role: automated
-      AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}"
+      AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}" # This needs to be updated as in qa-mckinsey.yml
+#    - role: user
+#      user_info: "{{ COMMON_USER_INFO }}"
     - role: nginx
       nginx_sites:
       - lms
       - cms
-      - forum
+      #- forum
       nginx_default_sites:
       - lms
+#      nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
+#      nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
+    - role: mysql
+    - role: memcache
+    - role: redis
+    #- role: mongo
+    - role: mongo_3_2 # role edxlocal is not included as it was in mysql.yml
+    - role: 'edxapp'
+      celery_worker: True
+    - role: elasticsearch
+#    - role: notifier
+#      NOTIFIER_DIGEST_TASK_INTERVAL: "5"
     - role: mckinsey_apros
-    - { role: 'edxapp', celery_worker: True }
-    - edxapp # check if we need this
+    - role: edxapp
+    #- { role: 'edxapp', celery_worker: True }
+    #- edxapp # check if we need this
     #- testcourses
     #- { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
-    - role: redis
-    - oraclejdk
-    - elasticsearch
-    - forum
-    - role: datadog
-      when: COMMON_ENABLE_DATADOG
-    - role: splunkforwarder
-      when: COMMON_ENABLE_SPLUNKFORWARDER
-    - role: newrelic_infrastructure
-      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
-    - role: threatstack
-      when: THREATSTACK_LICENSE_KEY is defined
-    - role: datadog-uninstall
-      when: not COMMON_ENABLE_DATADOG
+    #- role: redis
+    #- oraclejdk
+    #- elasticsearch
+#    - forum
+#      when: COMMON_ENABLE_FORUM
+#    - role: datadog
+#      when: COMMON_ENABLE_DATADOG
+##    - role: splunkforwarder
+##      when: COMMON_ENABLE_SPLUNKFORWARDER
+##    - role: newrelic_infrastructure
+##      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+##    - role: threatstack
+##      when: THREATSTACK_LICENSE_KEY is defined
+#    - role: datadog-uninstall
+#      when: not COMMON_ENABLE_DATADOG

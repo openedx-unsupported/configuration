@@ -228,7 +228,7 @@ testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 migrate_db: "no"
-migrate_forum_db: "yes"
+#migrate_forum_db: "yes"
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
@@ -420,6 +420,7 @@ oauth_client_setup_oauth2_clients:
 # User provided extra vars
 EDXAPP_EDX_API_KEY: 'edx_api_key'
 MCKA_APROS_API_KEY: 'edx_api_key'
+git_id: '154fa57ab214eefc5317517df8ec4d114a5f8d6b'
 $extra_vars
 EOF
 
@@ -628,17 +629,21 @@ cd $WORKSPACE/ansible-private
 
 #IpAddress=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=$InstanceNameTag" --output text --query 'Reservations[*].Instances[*].[PrivateIpAddress]')
 
-run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mysql.yml $extra_var_arg --user ubuntu
+#run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mysql.yml $extra_var_arg --user ubuntu
 #run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/create_db_and_users.yml $extra_var_arg  --user ubuntu
 
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
 run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 
-
-
-
 cd $WORKSPACE/configuration/playbooks/edx-east
+
+extra_var_arg+=' -e migrate_db="yes"'
+run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
+
+
+
+#cd $WORKSPACE/configuration/playbooks/edx-east
 
 
 #git checkout $ForumConfigurationVersion
