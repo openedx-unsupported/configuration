@@ -637,8 +637,8 @@ run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "
 
 cd $WORKSPACE/configuration/playbooks/edx-east
 
-extra_var_arg+=' -e migrate_db="yes"'
-run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
+#extra_var_arg+=' -e migrate_db="yes"'
+#run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
 
 
 

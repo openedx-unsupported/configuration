@@ -7,19 +7,19 @@
 #    - role: automated
 #      AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}"
     - role: aws
-    - role: automated
-      AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}" # This needs to be updated as in qa-mckinsey.yml
-#    - role: user
-#      user_info: "{{ COMMON_USER_INFO }}"
+#    - role: automated
+#      AUTOMATED_USERS: "{{ EDXAPP_AUTOMATED_USERS | default({}) }}" # This needs to be updated as in qa-mckinsey.yml
+    - role: user
+      user_info: "{{ COMMON_USER_INFO }}"
     - role: nginx
       nginx_sites:
       - lms
       - cms
-      #- forum
+      - forum
       nginx_default_sites:
       - lms
-#      nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
-#      nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
+      nginx_extra_sites: "{{ NGINX_EDXAPP_EXTRA_SITES }}"
+      nginx_extra_configs: "{{ NGINX_EDXAPP_EXTRA_CONFIGS }}"
     - role: mysql
     - role: memcache
     - role: redis
@@ -28,9 +28,9 @@
     - role: 'edxapp'
       celery_worker: True
     - role: elasticsearch
-#    - role: notifier
-#      NOTIFIER_DIGEST_TASK_INTERVAL: "5"
-    - role: mckinsey_apros
+    - role: notifier
+      NOTIFIER_DIGEST_TASK_INTERVAL: "5"
+    #- role: mckinsey_apros
     - role: edxapp
     #- { role: 'edxapp', celery_worker: True }
     #- edxapp # check if we need this
@@ -39,15 +39,15 @@
     #- role: redis
     #- oraclejdk
     #- elasticsearch
-#    - forum
-#      when: COMMON_ENABLE_FORUM
-#    - role: datadog
-#      when: COMMON_ENABLE_DATADOG
-##    - role: splunkforwarder
-##      when: COMMON_ENABLE_SPLUNKFORWARDER
-##    - role: newrelic_infrastructure
-##      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
-##    - role: threatstack
-##      when: THREATSTACK_LICENSE_KEY is defined
-#    - role: datadog-uninstall
-#      when: not COMMON_ENABLE_DATADOG
+    - forum
+      migrate_db: "yes"
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: threatstack
+      when: THREATSTACK_LICENSE_KEY is defined
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
