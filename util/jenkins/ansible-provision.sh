@@ -631,10 +631,9 @@ cd $WORKSPACE/ansible-private
 #run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/mysql.yml $extra_var_arg --user ubuntu
 #run_ansible -i "${deploy_host}," $WORKSPACE/configuration/playbooks/edx-east/create_db_and_users.yml $extra_var_arg  --user ubuntu
 
-run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 
 run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-
+run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 cd $WORKSPACE/configuration/playbooks/edx-east
 
 #extra_var_arg+=' -e migrate_db="yes"'
