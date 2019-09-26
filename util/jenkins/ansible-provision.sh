@@ -229,7 +229,7 @@ edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 migrate_db: "no"
 #migrate_forum_db: "yes"
-
+forum_migrate_db: "yes"
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
@@ -354,8 +354,99 @@ EDXAPP_CELERY_USER: ''
 EDXAPP_CELERY_BROKER_VHOST: 0
 NO_PREREQ_INSTALL: 0
 EDXAPP_NO_PREREQ_INSTALL: 0
-EDXAPP_MONGO_CMS_READ_PREFERENCE: 'primary'
-EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: 'secondaryPreferred'
+#EDXAPP_MONGO_CMS_READ_PREFERENCE: 'primary'
+#EDXAPP_MONGO_LMS_READ_PREFERENCE: ''
+#EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: 'secondaryPreferred'
+EDX_SOLUTIONS_API: true
+MARK_PROGRESS_ON_GRADING_EVENT: true
+SIGNAL_ON_SCORE_CHANGED: true
+ORGANIZATIONS_APP: true
+ENABLE_XBLOCK_VIEW_ENDPOINT: true
+ENABLE_NOTIFICATIONS: true
+EDXAPP_LMS_AUTH_EXTRA:
+    MODULESTORE:
+      default:
+        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+      direct:
+        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+EDXAPP_CMS_AUTH_EXTRA:
+    MODULESTORE:
+      default:
+        ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
+      direct:
+        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+        OPTIONS:
+          collection:  'modulestore'
+          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
+          default_class:  'xmodule.hidden_module.HiddenDescriptor'
+          fs_root:  '{{ edxapp_course_data_dir }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          render_template:  'edxmako.shortcuts.render_to_string'
+          # Needed for the CMS to be able to run update_templates
+          user: '{{ EDXAPP_MONGO_USER }}'
+        DOC_STORE_CONFIG:
+          db: '{{ EDXAPP_MONGO_DB_NAME }}'
+          host: '{{ EDXAPP_MONGO_HOSTS }}'
+          password: '{{ EDXAPP_MONGO_PASSWORD }}'
+          port: '{{ EDXAPP_MONGO_PORT }}'
+          user: '{{ EDXAPP_MONGO_USER }}'
+          collection:  'modulestore'
 NGINX_SSL_CERTIFICATE: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.pem'
 NGINX_SSL_KEY: '${WORKSPACE}/configuration-secure/ansible/certs/wildcard.sandbox.edx.org.key'
 EDXAPP_CELERY_WORKERS:

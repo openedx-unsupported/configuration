@@ -74,13 +74,13 @@ EDXAPP_MONGO_DB_NAME: 'edxapp'
 EDXAPP_MONGO_USE_SSL: False
 EDXAPP_MONGO_REPLICA_SET: ''
 # Used only if EDXAPP_MONGO_REPLICA_SET is provided.
-EDXAPP_MONGO_CMS_READ_PREFERENCE: ''
-EDXAPP_MONGO_LMS_READ_PREFERENCE: ''
+EDXAPP_MONGO_CMS_READ_PREFERENCE: 'primary'
+EDXAPP_MONGO_LMS_READ_PREFERENCE: 'secondaryPreferred'
 # We use the CMS read_preference here because the draft docstore's view of
 # the modulestore should mirror Studio's, so that instructors can check their
 # changes in Preview mode.
-EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: ''
-EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: ''
+EDXAPP_LMS_DRAFT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_CMS_READ_PREFERENCE }}'
+EDXAPP_LMS_SPLIT_DOC_STORE_READ_PREFERENCE: '{{ EDXAPP_MONGO_LMS_READ_PREFERENCE }}'
 
 EDXAPP_MYSQL_DB_NAME: 'edxapp'
 EDXAPP_MYSQL_USER: 'edxapp001'
@@ -221,7 +221,6 @@ EDXAPP_ENABLE_SYSADMIN_DASHBOARD: false
 # handled in the play.
 EDXAPP_ENABLE_CSMH_EXTENDED: True
 EDXAPP_ENABLE_READING_FROM_MULTIPLE_HISTORY_TABLES: True
-migrate_db: "yes"
 
 EDXAPP_GIT_REPO_DIR: '/edx/var/edxapp/course_repos'
 EDXAPP_GIT_REPO_EXPORT_DIR: '/edx/var/edxapp/export_course_repos'
@@ -297,12 +296,6 @@ EDXAPP_FEATURES:
   ENABLE_READING_FROM_MULTIPLE_HISTORY_TABLES: "{{ EDXAPP_ENABLE_READING_FROM_MULTIPLE_HISTORY_TABLES }}"
   SHOW_HEADER_LANGUAGE_SELECTOR: "{{ EDXAPP_SHOW_HEADER_LANGUAGE_SELECTOR }}"
   SHOW_FOOTER_LANGUAGE_SELECTOR: "{{ EDXAPP_SHOW_FOOTER_LANGUAGE_SELECTOR }}"
-  EDX_SOLUTIONS_API: true,
-  MARK_PROGRESS_ON_GRADING_EVENT: true,
-  SIGNAL_ON_SCORE_CHANGED: true,
-  ORGANIZATIONS_APP: true,
-  ENABLE_XBLOCK_VIEW_ENDPOINT: true,
-  ENABLE_NOTIFICATIONS: true
 
 # This needs to be set to localhost
 # if xqueue is run on the same server
@@ -1251,66 +1244,25 @@ lms_auth_config:
   TRACKING_SEGMENTIO_WEBHOOK_SECRET: "{{ EDXAPP_TRACKING_SEGMENTIO_WEBHOOK_SECRET }}"
   PROFILE_IMAGE_SECRET_KEY: "{{ EDXAPP_PROFILE_IMAGE_SECRET_KEY }}"
   MODULESTORE:
-      default:
-        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
+    default:
+        ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
         OPTIONS:
-          collection:  'modulestore'
-          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
-          default_class:  'xmodule.hidden_module.HiddenDescriptor'
-          fs_root:  '{{ edxapp_course_data_dir }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          render_template:  'edxmako.shortcuts.render_to_string'
-          # Needed for the CMS to be able to run update_templates
-          user: '{{ EDXAPP_MONGO_USER }}'
-        DOC_STORE_CONFIG:
-          db: '{{ EDXAPP_MONGO_DB_NAME }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password: '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          user: '{{ EDXAPP_MONGO_USER }}'
-          collection:  'modulestore'
-      direct:
-        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
-        OPTIONS:
-          collection:  'modulestore'
-          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
-          default_class:  'xmodule.hidden_module.HiddenDescriptor'
-          fs_root:  '{{ edxapp_course_data_dir }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          render_template:  'edxmako.shortcuts.render_to_string'
-          # Needed for the CMS to be able to run update_templates
-          user: '{{ EDXAPP_MONGO_USER }}'
-        DOC_STORE_CONFIG:
-          db: '{{ EDXAPP_MONGO_DB_NAME }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password: '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          user: '{{ EDXAPP_MONGO_USER }}'
-          collection:  'modulestore'
-#  MODULESTORE:
-#    default:
-#        ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
-#        OPTIONS:
-#          mappings: {}
-#          stores:
-#            - NAME: 'split'
-#              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
-#              DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
-#              OPTIONS:
-#                default_class: 'xmodule.hidden_module.HiddenDescriptor'
-#                fs_root:  "{{ edxapp_course_data_dir }}"
-#                render_template: 'edxmako.shortcuts.render_to_string'
-#            - NAME: 'draft'
-#              ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
-#              DOC_STORE_CONFIG: "{{ EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG }}"
-#              OPTIONS:
-#                default_class: 'xmodule.hidden_module.HiddenDescriptor'
-#                fs_root:  "{{ edxapp_course_data_dir }}"
-#                render_template: 'edxmako.shortcuts.render_to_string'
+          mappings: {}
+          stores:
+            - NAME: 'split'
+              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
+              DOC_STORE_CONFIG: "{{ EDXAPP_LMS_SPLIT_DOC_STORE_CONFIG }}"
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  "{{ edxapp_course_data_dir }}"
+                render_template: 'edxmako.shortcuts.render_to_string'
+            - NAME: 'draft'
+              ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+              DOC_STORE_CONFIG: "{{ EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG }}"
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  "{{ edxapp_course_data_dir }}"
+                render_template: 'edxmako.shortcuts.render_to_string'
   PROCTORING_BACKEND_PROVIDER: "{{ EDXAPP_PROCTORING_BACKEND_PROVIDER }}"
   SOCIAL_AUTH_OAUTH_SECRETS: "{{ EDXAPP_SOCIAL_AUTH_OAUTH_SECRETS }}"
   ACE_CHANNEL_SAILTHRU_API_KEY: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_KEY }}"
@@ -1381,66 +1333,25 @@ cms_auth_config:
     DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
   DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
   MODULESTORE:
-      default:
-        ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+    default:
+        ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
         OPTIONS:
-          collection:  'modulestore'
-          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
-          default_class:  'xmodule.hidden_module.HiddenDescriptor'
-          fs_root:  '{{ edxapp_course_data_dir }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          render_template:  'edxmako.shortcuts.render_to_string'
-          # Needed for the CMS to be able to run update_templates
-          user: '{{ EDXAPP_MONGO_USER }}'
-        DOC_STORE_CONFIG:
-          db: '{{ EDXAPP_MONGO_DB_NAME }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password: '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          user: '{{ EDXAPP_MONGO_USER }}'
-          collection:  'modulestore'
-      direct:
-        ENGINE: 'xmodule.modulestore.mongo.MongoModuleStore'
-        OPTIONS:
-          collection:  'modulestore'
-          db:  '{{ EDXAPP_MONGO_DB_NAME }}'
-          default_class:  'xmodule.hidden_module.HiddenDescriptor'
-          fs_root:  '{{ edxapp_course_data_dir }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password:  '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          render_template:  'edxmako.shortcuts.render_to_string'
-          # Needed for the CMS to be able to run update_templates
-          user: '{{ EDXAPP_MONGO_USER }}'
-        DOC_STORE_CONFIG:
-          db: '{{ EDXAPP_MONGO_DB_NAME }}'
-          host: '{{ EDXAPP_MONGO_HOSTS }}'
-          password: '{{ EDXAPP_MONGO_PASSWORD }}'
-          port: '{{ EDXAPP_MONGO_PORT }}'
-          user: '{{ EDXAPP_MONGO_USER }}'
-          collection:  'modulestore'
-#  MODULESTORE:
-#    default:
-#        ENGINE: 'xmodule.modulestore.mixed.MixedModuleStore'
-#        OPTIONS:
-#          mappings: {}
-#          stores:
-#            - NAME: 'split'
-#              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
-#              DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
-#              OPTIONS:
-#                default_class: 'xmodule.hidden_module.HiddenDescriptor'
-#                fs_root:  "{{ edxapp_course_data_dir }}"
-#                render_template: 'edxmako.shortcuts.render_to_string'
-#            - NAME: 'draft'
-#              ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
-#              DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
-#              OPTIONS:
-#                default_class: 'xmodule.hidden_module.HiddenDescriptor'
-#                fs_root:  "{{ edxapp_course_data_dir }}"
-#                render_template: 'edxmako.shortcuts.render_to_string'
+          mappings: {}
+          stores:
+            - NAME: 'split'
+              ENGINE: 'xmodule.modulestore.split_mongo.split_draft.DraftVersioningModuleStore'
+              DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  "{{ edxapp_course_data_dir }}"
+                render_template: 'edxmako.shortcuts.render_to_string'
+            - NAME: 'draft'
+              ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
+              DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
+              OPTIONS:
+                default_class: 'xmodule.hidden_module.HiddenDescriptor'
+                fs_root:  "{{ edxapp_course_data_dir }}"
+                render_template: 'edxmako.shortcuts.render_to_string'
   SEGMENT_KEY: "{{ EDXAPP_CMS_SEGMENT_KEY }}"
   PARSE_KEYS: "{{ EDXAPP_PARSE_KEYS }}"
 
