@@ -227,7 +227,7 @@ mongo_enable_journal: false
 testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
-migrate_db: "yes"
+migrate_db: "no"
 #migrate_forum_db: "yes"
 forum_migrate_db: "yes"
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
