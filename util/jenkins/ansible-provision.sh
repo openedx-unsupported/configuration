@@ -229,7 +229,7 @@ edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 migrate_db: "no"
 #migrate_forum_db: "yes"
-forum_migrate_db: "yes"
+#forum_migrate_db: "yes"
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
@@ -511,6 +511,7 @@ oauth_client_setup_oauth2_clients:
 # User provided extra vars
 EDXAPP_EDX_API_KEY: 'edx_api_key'
 MCKA_APROS_API_KEY: 'edx_api_key'
+COMMON_ENABLE_FORUM: true
 $extra_vars
 EOF
 
@@ -727,8 +728,8 @@ run_ansible $WORKSPACE/configuration/playbooks/edx-east/mckinseysandbox.yml -i "
 run_ansible -i "${deploy_host}," mckinsey-create-dbs.yml $extra_var_arg --user ubuntu
 cd $WORKSPACE/configuration/playbooks/edx-east
 
-#extra_var_arg+=' -e migrate_db="yes"'
-#run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
+extra_var_arg+=' -e migrate_db="yes"'
+run_ansible -i "${deploy_host}," forum.yml $extra_var_arg --user ubuntu
 
 
 
