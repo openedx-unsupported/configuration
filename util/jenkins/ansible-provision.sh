@@ -227,7 +227,7 @@ mongo_enable_journal: false
 testing_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/testing.txt"
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
-migrate_db: "no"
+migrate_db: "yes"
 #migrate_forum_db: "yes"
 forum_migrate_db: "yes"
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
@@ -579,7 +579,7 @@ EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
 EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
 EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
-FORUM_REBUILD_INDEX: true
+#FORUM_REBUILD_INDEX: true
 ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
 
 # NOTE: This is the same as DISCOVERY_URL_ROOT below

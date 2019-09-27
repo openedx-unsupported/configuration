@@ -15,20 +15,18 @@ map $http_origin $cors_origin {
 server {
   listen {{ APROS_NGINX_PORT }};
 
-  {% if NGINX_ENABLE_SSL %}
+  {% if NGINX_ENABLE_SSL is defined %}
   listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} ssl;
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
-  {% endif %}
 
-  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
   add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
-  {% endif %}
 
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
+  {% endif %}
 
   server_name {{ APROS_ELB }};
   merge_slashes off;
