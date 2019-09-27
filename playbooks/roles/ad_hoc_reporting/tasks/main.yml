@@ -76,6 +76,15 @@
     - scripts
     - install:base
 
+- name: Get the AWS rds ca certificate to connect db using SSL
+  shell: "curl {{ aws_rds_ca_cert_key_url }} -o rds-ca-2015-root.pem"
+  args:
+    chdir: /edx/bin
+  when: AWS_RDS_IAM_AUTHENTICATION
+  tags:
+    - scripts
+    - install:base
+
 #These templates rely on there being a global
 # read_only mysql user, you must override the default
 # in order for these templates to be written out.
@@ -88,7 +97,21 @@
     mode: 0755
     owner: root
     group: root
-  when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on
+  when: COMMON_MYSQL_READ_ONLY_PASS is defined and item.depends_on and not AWS_RDS_IAM_AUTHENTICATION
+  tags:
+    - scripts
+    - scripts:mysql
+    - install:code
+  with_items: "{{ AD_HOC_REPORTING_REPLICA_DB_HOSTS }}"
+
+- name: install common rds iam replica scripts
+  template:
+    src: edx/bin/rds-iam.sh.j2
+    dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode: 0755
+    owner: root
+    group: root
+  when: item.db_host|length>0 and AWS_RDS_IAM_AUTHENTICATION
   tags:
     - scripts
     - scripts:mysql
