@@ -63,6 +63,15 @@
     - install:app-requirements
   environment: "{{ insights_environment }}"
 
+- name: add registry bower
+  shell: jq '. + { "registry": "https://registry.bower.io" }' .bowerrc > out && mv out .bowerrc
+  args:
+    chdir: "{{ insights_code_dir }}"
+  become_user: "{{ insights_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: install bower dependencies
   shell: ". {{ insights_venv_dir }}/bin/activate && . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false"
   args:
