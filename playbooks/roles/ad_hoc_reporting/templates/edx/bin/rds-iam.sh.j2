@@ -16,4 +16,14 @@ export AWS_SESSION_TOKEN=${AWS_SECURITY_TOKEN}
 
 TOKEN="$(aws rds generate-db-auth-token --hostname {{ item.db_host }} --port 3306 --region us-east-1 --username {{ COMMON_MYSQL_READ_ONLY_USER }} )"
 
-mysql -u {{ COMMON_MYSQL_READ_ONLY_USER }} -h {{ item.db_host }} --enable-cleartext-plugin --ssl-ca=/edx/bin/rds-ca-2015-root.pem --password=$TOKEN {{ item.db_name }}
+if [[ "$1" == "generate-db-auth-token" ]]; then
+    echo $TOKEN
+elif [[  -z "$1" ]]; then
+    mysql -u {{ COMMON_MYSQL_READ_ONLY_USER }} -h {{ item.db_host }} --enable-cleartext-plugin --ssl-ca=/edx/bin/rds-ca-2015-root.pem --password=$TOKEN {{ item.db_name }}
+else
+    echo "USAGE:"
+    echo "  Generates an auth token:"
+    echo "       /edx/bin/db_iam_auth_script generate-db-auth-token"
+    echo "  Connect to a db with IAM auth token:"
+    echo "       /edx/bin/db_iam_auth_script" 
+fi
