@@ -1,6 +1,6 @@
 FROM edxops/go-agent:latest
 
-RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash - && \
+RUN curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash - && \
     apt-get update && apt-get install -y nodejs
 
 # !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace go_github_key.pem with the REAL key material
