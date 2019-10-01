@@ -29,9 +29,11 @@ def get_used_images(images):
     # get container weights
     weights = config.get("weights")
 
+    ignore_list = config.get("docker_ignore_list")
+
     # convert all images in config file to a list of tuples (<image>, <weight>)
     weights_list = [list(x.items()) for x in weights]
     weights_list = list(itertools.chain.from_iterable(weights_list))
 
     # performs intersection between weighted images and input images
-    return [x for x in weights_list if x[0] in images]
+    return [x for x in weights_list if x[0] in images and x[0] not in ignore_list]
