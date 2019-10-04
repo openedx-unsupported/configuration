@@ -68,25 +68,27 @@
     become_user: "{{ APPLICATION_USER }}"
     when: APPLICATION_NAME != "edxapp"
 
-  - name: migrate to apply any edxapp unapplied migrations
-    shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_migrations --database "{{ item }}" --settings "{{ EDX_PLATFORM_SETTINGS }}" --output_file "{{ temp_output_dir.stdout }}/{{ item }}_{{ migration_result }}"'
-    become_user: "{{ APPLICATION_USER }}"
-    when: APPLICATION_NAME == "edxapp" and item != "read_replica"
-    with_items: "{{ edxapp_databases.keys() }}"
-
-  - name: List all migration files
-    action: "command ls -1 {{ temp_output_dir.stdout }}"
-    register: migration_files
-
-  - name: Transfer artifacts to the proper place.
-    fetch:
-      src: "{{ temp_output_dir.stdout }}/{{ item }}"
-      dest: "{{ ARTIFACT_PATH }}/"
-      flat: True
-      fail_on_missing: True
-      mode: 0700
-    with_items:
-      - "{{ migration_files.stdout_lines }}"
+ tasks:
+   - name: migrate to apply any edxapp unapplied migrations
+     block:
+       - name: run the migrations
+         shell: '{{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_migrations --database "{{ item }}" --settings "{{ EDX_PLATFORM_SETTINGS }}" --output_file "{{ temp_output_dir.stdout }}/{{ item }}_{{ migration_result }}"'
+     always:
+      - name: List all migration files
+        action: "command ls -1 {{ temp_output_dir.stdout }}"
+        register: migration_files
+      - name: Transfer artifacts to the proper place.
+        fetch:
+          src: "{{ temp_output_dir.stdout }}/{{ item }}"
+          dest: "{{ ARTIFACT_PATH }}/"
+          flat: True
+          fail_on_missing: True
+          mode: 0700
+        with_items:
+          - "{{ migration_files.stdout_lines }}"
+     become_user: "{{ APPLICATION_USER }}"
+     when: APPLICATION_NAME == "edxapp" and item != "read_replica"
+     with_items: "{{ edxapp_databases.keys() }}"
 
   - name: Send Hipchat notification cleanup has finished
     hipchat:
