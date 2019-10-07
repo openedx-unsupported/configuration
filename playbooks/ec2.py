@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''
+"""
 EC2 external inventory script
 =================================
 
@@ -87,7 +87,7 @@ variable named:
 
 Security groups are comma-separated in 'ec2_security_group_ids' and
 'ec2_security_group_names'.
-'''
+"""
 
 # (c) 2012, Peter Sankauskas
 #
@@ -299,7 +299,7 @@ class Ec2Inventory(object):
 
             reservations = conn.get_all_instances()
             for reservation in reservations:
-                instances = sorted(reservation.instances)
+                instances = sorted(reservation.instances, key=lambda x: x.id)
                 for instance in instances:
                     self.add_instance(instance, region)
 
@@ -310,7 +310,7 @@ class Ec2Inventory(object):
             sys.exit(1)
 
     def get_rds_instances_by_region(self, region):
-	''' Makes an AWS API call to the list of RDS instances in a particular
+        ''' Makes an AWS API call to the list of RDS instances in a particular
         region '''
 
         try:
