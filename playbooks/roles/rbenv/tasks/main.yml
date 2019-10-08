@@ -106,7 +106,7 @@
   command: mktemp -d
   register: tempdir
   become_user: "{{ rbenv_user }}"
-  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  when: rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
     - install
     - install:base
@@ -116,7 +116,7 @@
     repo: https://github.com/sstephenson/ruby-build.git
     dest: "{{ tempdir.stdout }}/ruby-build"
     accept_hostkey: yes
-  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  when: tempdir.stdout is defined and (rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   become_user: "{{ rbenv_user }}"
   tags:
     - install
@@ -124,14 +124,14 @@
 
 - name: install ruby-build
   command: ./install.sh chdir={{ tempdir.stdout }}/ruby-build
-  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  when: tempdir.stdout is defined and (rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   tags:
     - install
     - install:base
 
 - name: remove temporary directory
   file: path={{ tempdir.stdout }} state=absent
-  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  when: tempdir.stdout is defined and (rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   tags:
     - install
     - install:base
@@ -148,7 +148,7 @@
 
 - name: install ruby {{ rbenv_ruby_version }}
   shell: "rbenv install {{ rbenv_ruby_version }} creates={{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}"
-  when: ruby_installed|failed
+  when: ruby_installed is failed
   become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
@@ -184,7 +184,7 @@
   when: jenkins_worker is not defined or not jenkins_worker
   tags:
     - install
-    - install:base  
+    - install:base
 
 - name: install rake gem
   shell: "gem install rake -v {{ rbenv_rake_version }}"
