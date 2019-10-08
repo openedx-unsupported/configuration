@@ -131,12 +131,15 @@ except ImportError:
 
 
 class Ec2Inventory(object):
+    def _empty_inventory(self):
+        return {"_meta": {"hostvars": {}}}
+
     def __init__(self):
         ''' Main execution path '''
 
         # Inventory grouped by instance IDs, tags, security groups, regions,
         # and availability zones
-        self.inventory = {}
+        self.inventory = self._empty_inventory()
 
         # Index of hostname (address) to instance ID
         self.index = {}
@@ -150,7 +153,6 @@ class Ec2Inventory(object):
             self.do_api_calls_update_cache()
         elif not self.is_cache_valid():
             self.do_api_calls_update_cache()
-
         # Data to print
         if self.args.host:
             data_to_print = self.get_host_info()
@@ -523,7 +525,6 @@ class Ec2Inventory(object):
         for key in vars(instance):
             value = getattr(instance, key)
             key = self.to_safe('ec2_' + key)
-
             # Handle complex types
             if type(value) in [int, bool]:
                 instance_vars[key] = value
