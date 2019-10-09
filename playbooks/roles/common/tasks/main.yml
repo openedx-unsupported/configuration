@@ -51,13 +51,6 @@
     repo: "{{ common_git_ppa }}"
   when: ansible_distribution in common_debian_variants
 
-- name: Check for expired edx key
-  command: "apt-key list | grep {{ COMMON_EDX_PPA_KEY_ID }}"
-  register: ppa_key_status
-
-- name: remove expired edx key
-  command: "sudo apt-key remove {{ COMMON_EDX_PPA_KEY_ID }}"
-  when: "'expired' in  ppa_key_status.stdout"
 
 # Ensure that we can install old software if need be.
 - name: Add edX PPA apt key
@@ -66,7 +59,15 @@
     keyserver: "{{ COMMON_EDX_PPA_KEY_SERVER }}"
     state: "present"
   when: >
-    ansible_distribution in common_debian_variants
+    ansible_distribution in common_debian_variants and
+    ansible_distribution_release != 'bionic'
+
+- name: Update expired apt keys
+  shell: apt-key adv --recv-keys --keyserver {{ COMMON_EDX_PPA_KEY_SERVER }} {{ COMMON_EDX_PPA_KEY_ID }}
+  when: >
+    ansible_distribution in common_debian_variants and
+    ansible_distribution_release != 'bionic'
+
 
 - name: Add custom edX PPA
   # Ensure that we get the latest version of python 2.7
@@ -74,7 +75,8 @@
   apt_repository:
     repo: "{{ COMMON_EDX_PPA }}"
   when: >
-    ansible_distribution in common_debian_variants
+    ansible_distribution in common_debian_variants and
+    ansible_distribution_release != 'bionic'
 
 
 - name: Install role-independent useful system packages
@@ -96,7 +98,8 @@
   with_items: "{{ old_python_debian_pkgs }}"
   when: >
     ansible_distribution in common_debian_variants and
-    ansible_distribution_release in old_python_ppa_releases
+    ansible_distribution_release in old_python_ppa_releases and
+    ansible_distribution_release != 'bionic'
 
 - name: Install role-independent useful system packages
   yum:
@@ -115,6 +118,10 @@
     group: "{{ item.group | default('root') }}"
     mode: "0755"
   with_items: "{{ common_directories }}"
+  tags:
+    - install
+    - install:configuration
+    - common_directories
 
 - name: upload sudo config for key forwarding as root
   copy:
@@ -194,7 +201,7 @@
     - install
     - install:configuration
 
-- name: Set up a cron job to run the script
+- name: Set up a cron job to run the log-ntp-alerts script
   cron:
     name: "log-ntp-alerts"
     job: "{{ COMMON_BIN_DIR }}/log-ntp-alerts.sh >/dev/null 2>&1"
