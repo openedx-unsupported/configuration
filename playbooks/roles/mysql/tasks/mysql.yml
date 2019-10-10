@@ -35,15 +35,20 @@
 
 - name: Install mysql-5.6 and dependencies
   apt:
-    name: "{{ item }}"
+    name: "{{ mysql_debian_pkgs }}"
     install_recommends: yes
     state: present
-  with_items: "{{ mysql_debian_pkgs }}"
 
-- name: Start mysql
-  service:
-    name: mysql
-    state: started
+- name: Set default character sets and collations
+  template:
+    src: default_character_sets_and_collations.cnf.j2
+    dest: "{{ mysql_dir }}/mysql.conf.d/default_character_sets_and_collations.cnf"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: restart mysql
+  command: service mysql restart
 
 - name: Ensure Anonymous user(s) does not exist
   mysql_user:
