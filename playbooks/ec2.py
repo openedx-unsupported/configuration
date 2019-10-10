@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''
+"""
 EC2 external inventory script
 =================================
 
@@ -87,7 +87,7 @@ variable named:
 
 Security groups are comma-separated in 'ec2_security_group_ids' and
 'ec2_security_group_names'.
-'''
+"""
 
 # (c) 2012, Peter Sankauskas
 #
@@ -131,12 +131,15 @@ except ImportError:
 
 
 class Ec2Inventory(object):
+    def _empty_inventory(self):
+        return {"_meta": {"hostvars": {}}}
+
     def __init__(self):
         ''' Main execution path '''
 
         # Inventory grouped by instance IDs, tags, security groups, regions,
         # and availability zones
-        self.inventory = {}
+        self.inventory = self._empty_inventory()
 
         # Index of hostname (address) to instance ID
         self.index = {}
@@ -150,7 +153,6 @@ class Ec2Inventory(object):
             self.do_api_calls_update_cache()
         elif not self.is_cache_valid():
             self.do_api_calls_update_cache()
-
         # Data to print
         if self.args.host:
             data_to_print = self.get_host_info()
@@ -299,7 +301,7 @@ class Ec2Inventory(object):
 
             reservations = conn.get_all_instances()
             for reservation in reservations:
-                instances = sorted(reservation.instances)
+                instances = sorted(reservation.instances, key=lambda x: x.id)
                 for instance in instances:
                     self.add_instance(instance, region)
 
@@ -310,7 +312,7 @@ class Ec2Inventory(object):
             sys.exit(1)
 
     def get_rds_instances_by_region(self, region):
-	''' Makes an AWS API call to the list of RDS instances in a particular
+        ''' Makes an AWS API call to the list of RDS instances in a particular
         region '''
 
         try:
@@ -523,7 +525,6 @@ class Ec2Inventory(object):
         for key in vars(instance):
             value = getattr(instance, key)
             key = self.to_safe('ec2_' + key)
-
             # Handle complex types
             if type(value) in [int, bool]:
                 instance_vars[key] = value
