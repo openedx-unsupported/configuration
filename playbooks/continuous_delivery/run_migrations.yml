@@ -17,9 +17,6 @@
 #   - DB_MIGRATION_PASS               - the database password
 #
 # Other variables:
-#   - HIPCHAT_TOKEN                   - API token to send messages to hipchat
-#   - HIPCHAT_ROOM                    - ID or name of the room to send the notification
-#   - HIPCHAT_URL                     - URL of the hipchat API  (defaults to v1 of the api)
 #   - migration_plan                  - the filename where the unapplied migration YAML output is stored
 #   - migration_result                - the filename where the migration output is saved
 #   - SUB_APPLICATION_NAME            - used for migrations in edxapp {lms|cms}, must be specified
@@ -38,7 +35,6 @@
   vars:
     migration_plan: migration_plan.yml
     migration_result: migration_result.yml
-    HIPCHAT_URL: https://api.hipchat.com/v2/
     EDX_PLATFORM_SETTINGS: "production"
     COMMAND_PREFIX: " . {{ APPLICATION_PATH }}/{{ APPLICATION_NAME }}_env; DB_MIGRATION_USER={{ DB_MIGRATION_USER }} DB_MIGRATION_PASS={{ DB_MIGRATION_PASS }} /edx/bin/python.{{ APPLICATION_NAME }} /edx/bin/manage.{{ APPLICATION_NAME }}"
   vars_files:
@@ -87,12 +83,3 @@
       mode: 0700
     with_items:
       - "{{ migration_files.stdout_lines }}"
-
-  - name: Send Hipchat notification cleanup has finished
-    hipchat:
-      api: "{{ HIPCHAT_URL }}"
-      token: "{{ HIPCHAT_TOKEN }}"
-      room: "{{ HIPCHAT_ROOM }}"
-      msg: "Migrations have completed."
-    ignore_errors: yes
-    when: HIPCHAT_TOKEN is defined
