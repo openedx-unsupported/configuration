@@ -1,0 +1,78 @@
+---
+#
+# Open edX Retirement Pipeline Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+# Deploy the User Retirement Pipeline
+#
+# See documentation in README.rst
+
+#
+# This file contains the variables you'll need to pass to the role, and some
+# example values.
+
+retirement_service_name: "retirement-service"
+retirement_service_user: "edx_retirement_worker"
+retirement_service_home: "{{ COMMON_APP_DIR }}/retirement_service"
+retirement_service_app_dir: "{{ retirement_service_home }}/tubular"
+retirement_service_data_dir: "{{ COMMON_DATA_DIR }}/retirement_service"
+retirement_service_log_dir: "{{ COMMON_LOG_DIR }}/retirement_service"
+retirement_service_venv_dir: "{{ retirement_service_home }}/venv"
+retirement_service_user_shell: "/bin/bash"
+retirement_service_script_path: "{{ retirement_service_app_dir }}/scripts"
+
+retirement_service_pip_version: "19.0.3"
+
+retirement_service_environment:
+  PATH: '{{ retirement_service_venv_dir }}/bin:{{ ansible_env.PATH }}'
+
+# Set up git repos
+RETIREMENT_SERVICE_GIT_IDENTITY: !!null
+RETIREMENT_SERVICE_GIT_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: "tubular.git"
+    VERSION: "master"
+    DESTINATION: "{{ retirement_service_app_dir }}"
+    SSH_KEY: "{{ RETIREMENT_SERVICE_GIT_IDENTITY }}"
+
+# Enable the setup and configuration of the retirement service
+# The setup is handled by COMMON_RETIREMENT_SERVICE_SETUP on common vars
+RETIREMENT_SERVICE_COOL_OFF_DAYS: 5
+
+# Enable the configuration of a cron job to run this periodically
+RETIREMENT_SERVICE_ENABLE_CRON_JOB: false
+RETIREMENT_SERVICE_CRON_JOB_HOURS: 0
+RETIREMENT_SERVICE_CRON_JOB_MINUTES: 0
+
+# Configuration needed for LMS and OAuth
+# The retirement LMS username should be set on edxapp role through
+# EDXAPP_RETIREMENT_SERVICE_USER_EMAIL and EDXAPP_RETIREMENT_SERVICE_USER_NAME
+RETIREMENT_SERVICE_EDX_OAUTH2_KEY: "PLEASE-SET-THIS-RETIREMENT-CLIENT-ID"
+RETIREMENT_SERVICE_EDX_OAUTH2_SECRET: "PLEASE-SET-THIS-RETIREMENT-CLIENT-SECRET"
+
+# LMS, Ecommerce and Credentials base URL
+RETIREMENT_LMS_BASE_URL: 'http://edx.devstack.lms:18000'
+RETIREMENT_ECOMMERCE_BASE_BASE_URL: 'http://edx.devstack.ecommerce:18000'
+RETIREMENT_CREDENTIALS_BASE_URL: 'http://edx.devstack.credentials:18000'
+
+# Retirement Pipeline configuration
+RETIREMENT_SERVICE_PIPELINE_CONFIGURATION:
+  - NAME: "RETIRING_ENROLLMENTS"
+    NAME_COMPLETE: "ENROLLMENTS_COMPLETE"
+    SERVICE: "LMS"
+    FUNCTION: "retirement_unenroll"
+  - NAME: "RETIRING_LMS_MISC"
+    NAME_COMPLETE: "LMS_MISC_COMPLETE"
+    SERVICE: "LMS"
+    FUNCTION: "retirement_lms_retire_misc"
+  - NAME: "RETIRING_LMS"
+    NAME_COMPLETE: "LMS_COMPLETE"
+    SERVICE: "LMS"
+    FUNCTION: "retirement_lms_retire"
