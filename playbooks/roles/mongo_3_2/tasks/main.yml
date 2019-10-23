@@ -172,6 +172,19 @@
     - "manage:db-replication"
     - "mongodb_key"
 
+- name: install prereqs for backup script
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - jq
+  tags:
+    - "backup:mongo"
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+
 # If skip_replica_set is true, this template will not contain a replica set stanza
 # because of the fact above.
 - name: copy configuration template
@@ -192,9 +205,44 @@
     src: mongo_logrotate.j2
     dest: /etc/logrotate.d/hourly/mongo
   tags:
+    - "backup:mongo"
     - "install"
     - "install:app-configuration"
     - "logrotate"
+
+- name: install backup script
+  template:
+    src: backup-mongo.sh.j2
+    dest: "{{ mongo_backup_script_path }}"
+    mode: 0700
+  tags:
+    - "backup:mongo"
+    - "install"
+
+- name: add mongo backup script to cron
+  cron:
+    name: mongo backup job
+    minute: "{{ mongo_backup_cron.minute | default('12') }}"
+    hour: "{{ mongo_backup_cron.hour | default('*/12') }}"
+    day: "{{ mongo_backup_cron.day | default('*') }}"
+    month: "{{ mongo_backup_cron.month | default('*') }}"
+    weekday: "{{ mongo_backup_cron.weekday | default('*') }}"
+    job: "{{ mongo_backup_script_path }} >> {{ mongo_log_dir }}/mongo-backup.log 2>&1"
+  become: yes
+  tags:
+    - "backup:mongo"
+    - "install"
+
+- name: format mongo backup volume
+  filesystem:
+    dev: "{{ MONGO_BACKUP_EBS_VOLUME_DEVICE }}"
+    fstype: ext4
+    force: true
+  ignore_errors: true
+  when: "'{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'"
+  tags:
+    - "backup:mongo"
+    - "install"
 
 - name: restart mongo service if we changed our configuration
   service:
