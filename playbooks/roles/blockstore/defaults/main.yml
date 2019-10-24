@@ -48,17 +48,123 @@ BLOCKSTORE_SECRET_KEY: !!null
 
 
 # See edx_django_service_automated_users for an example of what this should be
-BLOCKSTORE_AUTOMATED_USERS: {}
+BLOCKSTORE_AUTOMATED_USERS:
+  automated_user:
+    sudo_commands:
+      - command: '{{ blockstore_venv_dir }}/python {{ blockstore_code_dir }}/manage.py showmigrations'
+        sudo_user: '{{ blockstore_user }}'
+    authorized_keys:
+      - 'SSH authorized key'
+
+# Variables moved from edx_django_service role
+blockstore_language_code: 'en-us'
+blockstore_static_root: '{{ COMMON_DATA_DIR }}/{{ blockstore_service_name }}/staticfiles'
+blockstore_staticfiles_storage: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+blockstore_memcache: [ 'memcache' ]
+blockstore_caches:
+  default:
+    BACKEND: 'django.core.cache.backends.memcached.MemcachedCache'
+    KEY_PREFIX: '{{ blockstore_service_name }}'
+    LOCATION: '{{ blockstore_memcache }}'
+blockstore_db_options:
+  connect_timeout: 10
+  init_command: "SET sql_mode='STRICT_TRANS_TABLES'"
+blockstore_databases:
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ BLOCKSTORE_DEFAULT_DB_NAME }}'
+    USER: '{{ BLOCKSTORE_DATABASE_USER }}'
+    PASSWORD: '{{ BLOCKSTORE_DATABASE_PASSWORD }}'
+    HOST: '{{ BLOCKSTORE_DATABASE_HOST }}'
+    PORT: '3306'
+    ATOMIC_REQUESTS: true
+    CONN_MAX_AGE: 60
+    OPTIONS: '{{ blockstore_db_options }}'
+blockstore_social_auth_edx_oauth2_key: '{{ blockstore_service_name }}-sso-key'
+blockstore_social_auth_edx_oauth2_secret: '{{ blockstore_service_name }}-sso-secret'
+blockstore_oauth2_issuer: '{{ COMMON_LMS_BASE_URL }}'
+blockstore_oauth2_url_root: '{{ COMMON_LMS_BASE_URL }}'
+blockstore_oauth2_logout_url: '{{ COMMON_OAUTH_LOGOUT_URL }}'
+blockstore_jwt_auth:
+  JWT_ISSUERS:
+    - AUDIENCE: '{{ COMMON_JWT_AUDIENCE }}'
+      ISSUER: '{{ COMMON_JWT_ISSUER }}'
+      SECRET_KEY: '{{ COMMON_JWT_SECRET_KEY }}'
+  JWT_PUBLIC_SIGNING_JWK_SET: '{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET|string }}'
+  JWT_AUTH_COOKIE_HEADER_PAYLOAD: '{{ COMMON_JWT_AUTH_COOKIE_HEADER_PAYLOAD }}'
+  JWT_AUTH_COOKIE_SIGNATURE: '{{ COMMON_JWT_AUTH_COOKIE_SIGNATURE }}'
+  JWT_AUTH_REFRESH_COOKIE: '{{ COMMON_JWT_AUTH_REFRESH_COOKIE }}'
+
+blockstore_name: ' NOT-SET '
+blockstore_repo: '{{ blockstore_service_name }}'
+blockstore_use_python3: true
+blockstore_is_devstack: false
+blockstore_nodeenv_bin: '{{ blockstore_home }}/nodeenvs/{{ blockstore_service_name }}/bin'
+blockstore_node_version: '8.9.3'
+blockstore_environment_default:
+  DJANGO_SETTINGS_MODULE: '{{ BLOCKSTORE_DJANGO_SETTINGS_MODULE }}'
+  PATH: '{{ blockstore_nodeenv_bin }}:{{ blockstore_venv_dir }}/bin:{{ ansible_env.PATH }}'
+blockstore_migration_environment_default:
+  DB_MIGRATION_USER: '{{ COMMON_MYSQL_MIGRATE_USER }}'
+  DB_MIGRATION_PASS: '{{ COMMON_MYSQL_MIGRATE_PASS }}'
+blockstore_post_migrate_commands: []
+blockstore_name_devstack_logs:
+  - '{{ supervisor_log_dir }}/{{ blockstore_service_name }}-stdout.log'
+  - '{{ supervisor_log_dir }}/{{ blockstore_service_name }}-stderr.log'
+blockstore_has_static_assets: true
+blockstore_sandbox_build: false
 
 # Rather than adding extra wiring for each var under here.
 # Just override this whole config dictionary
 BLOCKSTORE_SERVICE_CONFIG_OVERRIDES:
   BLOCKSTORE_URL_ROOT: 'http://localhost:{{ blockstore_gunicorn_port }}'
+  LANGUAGE_CODE: '{{ blockstore_language_code }}'
+  SECRET_KEY: '{{ BLOCKSTORE_SECRET_KEY }}'
+  TIME_ZONE: 'UTC'
+
+  STATIC_ROOT: '{{ blockstore_static_root }}'
+  # MEDIA_STORAGE_BACKEND: '{{ edx_django_service_media_storage_backend }}'
+  STATICFILES_STORAGE: '{{ blockstore_staticfiles_storage }}'
+
+  CACHES: '{{ blockstore_caches }}'
+  DATABASES: '{{ blockstore_databases }}'
+
+  # SOCIAL_AUTH_EDX_OIDC_KEY: '{{ edx_django_service_social_auth_edx_oidc_key }}'
+  # SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ edx_django_service_social_auth_edx_oidc_secret }}'
+  # SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ edx_django_service_social_auth_edx_oidc_secret }}'
+  # SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ edx_django_service_oidc_url_root }}'
+  # SOCIAL_AUTH_EDX_OIDC_PUBLIC_URL_ROOT: '{{ edx_django_service_oidc_public_url_root }}'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+  # SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ edx_django_service_oidc_logout_url }}'
+  # SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ edx_django_service_oidc_issuer }}'
+
+  SOCIAL_AUTH_EDX_OAUTH2_KEY: '{{ blockstore_social_auth_edx_oauth2_key }}'
+  SOCIAL_AUTH_EDX_OAUTH2_SECRET: '{{ blockstore_social_auth_edx_oauth2_secret }}'
+  SOCIAL_AUTH_EDX_OAUTH2_ISSUER: '{{ blockstore_oauth2_issuer }}'
+  SOCIAL_AUTH_EDX_OAUTH2_URL_ROOT: '{{ blockstore_oauth2_url_root }}'
+  SOCIAL_AUTH_EDX_OAUTH2_LOGOUT_URL: '{{ blockstore_oauth2_logout_url }}'
+
+  # BACKEND_SERVICE_EDX_OAUTH2_KEY: '{{ edx_django_service_backend_service_edx_oauth2_key }}'
+  # BACKEND_SERVICE_EDX_OAUTH2_SECRET: '{{ edx_django_service_backend_service_edx_oauth2_secret }}'
+  # BACKEND_SERVICE_EDX_OAUTH2_PROVIDER_URL: '{{ edx_django_service_oauth2_provider_url }}'
+
+  JWT_AUTH: '{{ blockstore_jwt_auth }}'
+
+  EXTRA_APPS: []
+
+  EDX_DRF_EXTENSIONS:
+    OAUTH2_USER_INFO_URL: '{{ COMMON_OAUTH_URL_ROOT }}/user_info'
+
+  SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+  # API_ROOT: '{{ edx_django_service_api_root }}'
 
 blockstore_environment:
   BLOCKSTORE_CFG: '{{ COMMON_CFG_DIR }}/{{ blockstore_service_name }}.yml'
   VIRTUAL_ENV: '{{ blockstore_venv_dir }}'
 
+blockstore_environment_combine: '{{ blockstore_environment_default | combine(blockstore_environment) }}'
+blockstore_migration_environment: '{{ blockstore_environment_combine|combine(blockstore_migration_environment_default) }}'
 #
 # OS packages
 #
@@ -68,6 +174,8 @@ blockstore_debian_pkgs:
   - libjpeg-dev
   - libssl-dev
   - libffi-dev
+  - gettext
+  - libmemcached-dev
 
 blockstore_redhat_pkgs: []
 
