@@ -106,7 +106,7 @@ if [[ -z $zone ]]; then
 fi
 
 if [[ -z $vpc_subnet_id ]]; then
-  vpc_subnet_id="subnet-cd867aba"
+  vpc_subnet_id="subnet-ed7c8f9a"
 fi
 
 if [[ -z $elb ]]; then
