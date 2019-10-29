@@ -339,6 +339,7 @@ root_ebs_size: $root_ebs_size
 name_tag: $name_tag
 dns_zone: $dns_zone
 elb: $elb
+ec2_vpc_subnet_id: $vpc_subnet_id
 EOF
 
 
