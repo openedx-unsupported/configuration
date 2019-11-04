@@ -77,6 +77,7 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
     try:
         table_list = []
         for db in rds_list:
+            print("Checking table sizes for {}".format(db["Endpoint"]))
             rds_host_endpoint = db["Endpoint"]
             rds_port = db["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
