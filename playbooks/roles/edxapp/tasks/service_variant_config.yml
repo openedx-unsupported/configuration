@@ -101,6 +101,22 @@
     - install:app-configuration
     - edxapp_cfg # Old deprecated tag, will remove when possible
 
+- name: Replace deploy host to sandbox dns name
+  replace:
+    path: "{{ UNENCRYPTED_CFG_DIR }}/{{ item }}.yml"
+    regexp: 'deploy_host'
+    replace: "{{ COMMON_DEPLOY_HOSTNAME }}"
+  with_items: ['lms','studio']
+  when: EDXAPP_DECRYPT_CONFIG_ENABLED and COMMON_SANDBOX_BUILD
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  become: false
+  delegate_to: localhost
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
 - name: Copy lms config file
   copy:
     src: "{{ EDXAPP_LMS_LOCAL_CONFIG_FILE }}"
