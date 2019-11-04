@@ -76,9 +76,9 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
         """
     try:
         table_list = []
-        for item in rds_list:
-            rds_host_endpoint = item["Endpoint"]
-            rds_port = item["Port"]
+        for db in rds_list:
+            rds_host_endpoint = db["Endpoint"]
+            rds_port = db["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
                                          port=rds_port, user=username, password=password)
             # prepare a cursor object using cursor() method
@@ -97,14 +97,14 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            if item["name"] in rds_threshold:
-                threshold_limit = rds_threshold[item["name"]]
+            if db["name"] in rds_threshold:
+                threshold_limit = rds_threshold[db["name"]]
             else:
                 threshold_limit = threshold
             for tables in rds_result:
                 temp_dict = {}
                 if tables[2] is not None and tables[2] > float(threshold_limit):
-                    temp_dict["rds"] = item["name"]
+                    temp_dict["rds"] = db["name"]
                     temp_dict["db"] = tables[0]
                     temp_dict["table"] = tables[1]
                     temp_dict["size"] = tables[2]
