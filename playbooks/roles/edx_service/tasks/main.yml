@@ -115,6 +115,20 @@
     - install:configuration
     - install:app-configuration
 
+- name: Replace deploy host to sandbox dns name
+  replace:
+    path: "{{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml"
+    regexp: 'deploy_host'
+    replace: "{{ COMMON_DEPLOY_HOSTNAME }}"
+  when: edx_service_decrypt_config_enabled and COMMON_SANDBOX_BUILD
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  become: false
+  delegate_to: localhost
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
 - name: Copy app config file
   copy:
     src: "{{ edx_service_local_config_file }}"
