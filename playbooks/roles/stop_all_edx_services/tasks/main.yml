@@ -33,11 +33,23 @@
     state: stopped
   ignore_errors: yes
 
-- name: Stop supervisor
+- name: Stop supervisor children
   stat:
     path: /etc/init/supervisor.conf
   register: stat_out
   changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - stop supervisor children
+
+- name: Get supervisorctl output
+  shell: "/edx/bin/supervisorctl status"
+  register: supervisorctl_command_result
+
+- name: Stop supervisor
+  stat:
+    path: /etc/init/supervisor.conf
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists and 'RUNNING' not in supervisorctl_command_result.stdout
   notify:
     - stop supervisor
 
@@ -77,7 +89,7 @@
   stat:
     path: /etc/systemd/system/supervisor.service
   register: stat_out
-  changed_when: stat_out is defined and stat_out.stat.exists
+  changed_when: stat_out is defined and stat_out.stat.exists and 'RUNNING' not in supervisorctl_command_result.stdout
   notify:
     - stop supervisor
 
