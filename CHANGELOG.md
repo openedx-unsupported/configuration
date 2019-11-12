@@ -1,3 +1,6 @@
+- Role: ecommerce
+  - Fixed paypal payment processor default configuration
+
 - Role: edxapp
   - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
 
