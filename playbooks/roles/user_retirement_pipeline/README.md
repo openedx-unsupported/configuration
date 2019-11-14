@@ -1,6 +1,5 @@
 
-User Retirement Pipeline.
-############
+# User Retirement Pipeline.
 
 In the Open edX platform, the user experience is enabled by several services,
 such as LMS, Studio, ecommerce, credentials, discovery, and more.
@@ -15,8 +14,8 @@ driver scripts, see Setting Up the User Retirement Driver Scripts.
 
 [More info here.](https://edx.readthedocs.io/projects/edx-installing-configuring-and-running/en/latest/configuration/user_retire/implementation_overview.html)
 
-Configuration & Deployment
-*************************
+## Configuration & Deployment
+
 The user retirement pipeline can be deployed together with the edxapp role, on
 small deployments that use a single AppServer to host all services, or
 standalone, which is the default for bigger installs.
