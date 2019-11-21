@@ -50,6 +50,28 @@ server {
     try_files $uri @index;
   }
 
+  # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
+  #   - router_path: The path you will go to on the router to access the content
+  #   - proxied_path: The path to proxy the requests to
+  {% for static_site in PROSPECTUS_STATIC_SITES %}
+
+    # Matches: /<route>/
+    location = /{{ static_site.router_path }}/ {
+        proxy_pass {{ static_site.proxied_path }}/index.html;
+    }
+
+    # Matches: <route>/[.../]<file.ext>
+    location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
+        proxy_pass {{ static_site.proxied_path }}/$1$2;
+    }
+
+    # Matches: <route>/<subpage>/[.../]
+    location ~ ^/{{ static_site.router_path }}/([a-z0-9-]+)[/]? {
+        proxy_pass {{ static_site.proxied_path }}/$1/index.html;
+    }
+
+  {% endfor %}
+
   location @index {
     add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
     try_files $uri/index.html @drupal;
