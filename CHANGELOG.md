@@ -1,3 +1,201 @@
+- Role: ecommerce
+  - Fixed paypal payment processor default configuration
+
+- Role: edxapp
+  - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
+
+- Role: discovery
+  - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
+
+- Role: edxapp
+  - Added `ENABLE_ENROLLMENT_RESET` feature flag for masters integration sandboxes
+
+- Role: conductor
+  - New role added to configure the conductor service
+
+- Role: jwt_signature
+  - Added role to inject JWT signing keys into application config, used from edxapp, worker, and registrar.
+
+- Playbook: masters_sandbox_update
+  - Create edx partner
+
+- Playbook: program_manager
+  - Added playbook to setup program-manager micro-frontend application on sandboxes
+
+- Role: program_manager
+  - Created the program-manager role for micro-frontend application to be setup
+
+- Role: registrar
+  - Set CSRF_TRUSTED_ORIGINS.
+
+- Role: registrar
+  - Set CORS_ORIGIN_WHITELIST.
+
+- Role: discovery
+  - Override DISCOVERY_MYSQL_REPLICA_HOST to `edx.devstack.mysql` in docker.
+
+- Playbook: masters_sandbox
+  - Include call to create_api_access_request
+
+- Role: discovery
+  - Add mysql replica settings to env config.
+
+- Role: common_vars
+  - Default `COMMON_JWT_PUBLIC_SIGNING_JWK_SET` to `''`
+    instead of `!!null`. Because of how this setting is handled,
+    `!!null` ends up rendering as the literal string `None` instead
+    of the value `null`, which causes JSON decoding to fail
+    wherever the default value is used (as `'None'` is not valid JSON).
+    By setting the default to a Falsy value like the
+    empty string, edx-drf-extensions does not attempt to JSON-
+    decode it.
+
+- Playbook: masters_sandbox
+  - Added playbook to setup user and api access
+
+- Role: registrar
+  - Changed `REGISTRAR_CELERY_ALWAYS_EAGER` default to `false`.
+
+- Role: registrar
+  - Added `REGISTRAR_CELERY_ALWAYS_EAGER` with default `True`.
+  - Injected above settings as environment variable for Registrar.
+
+- Role: xserver
+  - Remove xserver from sandbox builds.
+
+- Role: oauth_client_setup
+  - Ensure that created DOT applications have corresponding ApplicationAccess records with user_id scope.
+
+- Role: edx_notes_api
+  - Added `EDX_NOTES_API_HOSTNAME` to set a hostname for the edx-notes-api IDA.
+
+- Open edX
+  - Added `SANDBOX_ENABLE_NOTES` to enable/disable setting up the edx-notes-api IDA.
+
+- Role: registrar
+  - Add registrar to sandbox builds.
+
+- Role: registrar
+  - Change default celery queue to `registrar.default`, explicitly set default exchange and routing key.
+
+- Role: designer
+  - Create role
+
+- Role: supervisor
+  - Add registrar to `pre_supervisor_checks.py`
+
+- Role: registrar
+  - Added `registrar-workers.conf.j2`
+  - Add task to generate `registrar-workers.conf` from `registrar-workers.conf.j2`
+  - Added `REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING`
+  - Added `REGISTRAR_WORKER_DEFAULT_STOPWAITSECS`
+  - Added `REGISTRAR_CELERY_HEARTBEAT_ENABLED`
+  - Added `REGISTRAR_NEWRELIC_WORKERS_APPNAME`
+  - Added `REGISTRAR_CELERY_WORKERS`
+
+- Role: registrar
+  - Added `REGISTRAR_CELERY_BROKER_TRANSPORT`.
+  - Added `REGISTRAR_CELERY_BROKER_USER`.
+  - Added `REGISTRAR_CELERY_BROKER_PASSWORD`.
+  - Added `REGISTRAR_CELERY_BROKER_HOSTNAME`.
+  - Added `REGISTRAR_CELERY_BROKER_VHOST`.
+  - Injected all above settings as environment variables for Registrar.
+
+- Role: registrar
+  - Added `REGISTRAR_API_ROOT`
+  - Modified `REGISTRAR_MEDIA_URL`.
+
+- Role: edx_django_service
+  - Added new overridable variable `edx_django_service_api_root`
+
+- Role: registrar
+  - Replaced `REGISTRAR_MEDIA_ROOT`.
+  - Added `REGISTRAR_MEDIA_STORAGE_BACKEND`.
+
+- Role: registrar
+  - Replaced `REGISTRAR_LMS_URL_ROOT` with `REGISTRAR_LMS_BASE_URL`.
+  - Replaced `REGISTRAR_DISCOVERY_API_URL` with `REGISTRAR_DISCOVERY_BASE_URL`.
+
+- Role: registrar
+  - Added `REGISTRAR_SEGMENT_KEY` for segment.io event tracking.
+
+- Role: registrar
+  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_KEY` for oauth2.
+  - Added `REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_SECRET` for oauth2.
+  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_KEY` for backend auth.
+  - Added `REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_SECRET` for backend auth.
+  - Added `REGISTRAR_SERVICE_USER_EMAIL` to have a registrar service user on LMS
+  - Added `REGISTRAR_SERVICE_USER_NAME` to have a registrar service user on LMS
+
+- Role: registrar
+  - Create role
+
+- Role: edxapp
+  - Added ENTERPRISE_MARKETING_FOOTER_QUERY_PARAMS to allow for edx specific query params to be added for business marketing footer.
+
+- Role: edxapp
+  - Removed the OfficeMix XBlock (the service that it uses has been dead for months).
+
+- Role: edxapp
+  - Added 'SYSTEM_WIDE_ROLE_CLASSES' for use of edx-rbac roles in the jwt in the lms
+
+- Open edX
+  - Renamed edx_sandbox.yml to openedx_native.yml
+
+- Role: ecomworker
+  - Added `assignment_email` default template value in `SAILTHRU` config to send offer assignment emails.
+
+- Role: nginx
+  - Added CORS Access-Control-Allow-Origin for static assets.
+  - Replaced wildcard Access-Control-Allow-Origin header for fonts. Make sure you set EDXAPP_CORS_ORIGIN_WHITELIST to include all your domains.
+
+- Role: nginx
+  - Modified robots.txt.j2 to accept the Allow rule.
+  - Modified robots.txt.j2 to accept either a single string or a list of strings for agent, disallow, and allow.
+
+- Role: ecommerce
+  - Added CORS_ORIGIN_WHITELIST and CORS_URLS_REGEX to allow selective CORS whitelisting of origins/urls.
+
+- common_vars
+  - Added new overridable variable `COMMON_LMS_BASE_URL`.
+
+- Role: discovery
+  - Added `DISCOVERY_CORS_ORIGIN_WHITELIST` to allow CORS whitelisting of origins.
+
+- abbey.py
+  - Removed abbey.py
+
+- Role: edxapp
+  - Renamed proctoring backend setting to work with edx-proctoring 1.5.0
+  - Render auth and env config to a single yml file
+
+- Role: edxapp
+  - Remove low priority queue, use default instead.
+
+- Role: ecommerce
+  - Remove unused JWT_SECRET_KEYS.
+
+- Role: ecommerce
+  - Transformed the JWT_ISSUERS to match the format expected by edx-drf-extensions jwt_decode_handler.
+
+- Role: edxapp
+  - Added `ENTERPRISE_CUSTOMER_SUCCESS_EMAIL` to lms_env_config for configuring emails to the customer success team.
+
+- Role: edx_django_service
+  - Added new overridable variable `edx_django_service_gunicorn_max_requests`
+
+- Role: edxapp
+  - `EDXAPP_EDXAPP_SECRET_KEY` no longer has a default value
+
+- Role: ecommerce
+  - Set default max_requests to 3000.(eg. restart gunicorn process every 3000 requests.)
+
+- Role: edx_notes_api
+  - Added `JWT_AUTH` to edx-notes-api that is used in other IDAs.
+
+- Role: edxapp
+  - Removed `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`, and `PASSWORD_COMPLEXITY` in favor of specifying these in `AUTH_PASSWORD_VALIDATORS`.
+
 - Role: edxapp
   - Added `AUTH_PASSWORD_VALIDATORS` to utilize Django's password validation. Base validators included in configuration are UserAttributeSimilarity to test the password against the username and email using the default similarity threshold of 0.7 (1.0 fails exact matches only), MinimumLength to test password minimum length, and MaximumLength to test password maximum length.
 
@@ -650,3 +848,4 @@
   - Added `WHITELABEL_ADMIN_USER` to specify an admin user.
   - Added `WHITELABEL_DNS` for DNS settings of themes.
   - Added `WHITELABEL_ORG` for whitelabel organization settings.
+

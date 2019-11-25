@@ -24,9 +24,8 @@
 # Install Splunk Forwarder for common_debian_variants
 - name: Install splunkforwarder specific system packages
   apt:
-    name: "{{ item }}"
+    name: "{{ splunk_debian_pkgs }}"
     state: present
-  with_items: "{{ splunk_debian_pkgs }}"
   tags:
     - splunk
     - install
@@ -38,7 +37,7 @@
     dest: "/tmp/{{ SPLUNKFORWARDER_DEB }}"
     url: "{{ SPLUNKFORWARDER_PACKAGE_URL }}"
   register: download_deb
-  until: download_deb|succeeded
+  until: download_deb is succeeded
   retries: 5
   when: ansible_distribution in common_debian_variants
 
@@ -52,7 +51,7 @@
     dest: "/tmp/{{ SPLUNKFORWARDER_RPM }}"
     url: "{{ SPLUNKFORWARDER_PACKAGE_URL }}"
   register: download_rpm
-  until: download_rpm|succeeded
+  until: download_rpm is succeeded
   retries: 5
   when: ansible_distribution in common_redhat_variants
 
@@ -69,29 +68,32 @@
     groups: syslog,adm
   when: download_rpm.changed or download_deb.changed
 
-# Need to start splunk manually so that it can create various files
-# and directories that aren't created till the first run and are needed
-# to run some of the below commands.
-- name: Start splunk manually
-  shell: "{{ splunkforwarder_output_dir }}/bin/splunk start --accept-license --answer-yes --no-prompt"
-  args:
-    creates: "{{ splunkforwarder_output_dir }}/var/lib/splunk"
-  when: download_rpm.changed or download_deb.changed
-  register: started_manually
-
-- name: Stop splunk manually
-  shell: "{{ splunkforwarder_output_dir }}/bin/splunk stop --accept-license --answer-yes --no-prompt"
-  when: (download_rpm.changed or download_deb.changed) and started_manually.changed
-
 - name: Create boot script
-  shell: "{{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -user splunk --accept-license --answer-yes --no-prompt"
+  shell: "{{ splunkforwarder_output_dir }}/bin/splunk enable boot-start -systemd-unit-file-name SplunkForwarder.service -user splunk --accept-license --answer-yes --no-prompt"
   args:
-    creates: /etc/init.d/splunk
+    creates: /etc/systemd/system/SplunkForwarder.service
   register: create_boot_script
   when: download_rpm.changed or download_deb.changed
+
+- name: Remove old boot script
+  file:
+    path: /etc/init.d/splunk
+    state: absent
+  when: (download_rpm.changed or download_deb.changed) and create_boot_script.changed
+
+- name: Accept the Splunk license automatically when starting
+  lineinfile:
+    dest: /etc/systemd/system/SplunkForwarder.service
+    regexp: '^ExecStart='
+    line: 'ExecStart=/opt/splunkforwarder/bin/splunk _internal_launch_under_systemd --accept-license --no-prompt --answer-yes'
+  when: (download_rpm.changed or download_deb.changed) and create_boot_script.changed
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  when: (download_rpm.changed or download_deb.changed) and create_boot_script.changed
   notify: restart splunkforwarder
 
-- name: Ensure splunk forder permissions
+- name: Ensure splunk forwader permissions
   file:
     path: "{{ splunkforwarder_output_dir }}"
     state: directory
@@ -99,21 +101,6 @@
     owner: splunk
     group: splunk
   when: download_rpm.changed or download_deb.changed
-  notify: restart splunkforwarder
-
-- name: Update admin pasword
-  shell: "{{ splunkforwarder_output_dir }}/bin/splunk edit user admin -password '{{ SPLUNKFORWARDER_PASSWORD }}' -auth admin:changeme --accept-license --answer-yes --no-prompt"
-  when: download_rpm.changed or download_deb.changed
-  notify: restart splunkforwarder
-
-- name: Add chkconfig to init script
-  lineinfile:
-    dest: /etc/init.d/splunk
-    regexp: "^# chkconfig: 235 98 55"
-    line: "# chkconfig: 235 98 55"
-    insertafter: "#!/bin/sh"
-    state: present
-  when: (download_rpm.changed or download_deb.changed) and create_boot_script.changed
   notify: restart splunkforwarder
 
 - name: Make sure necessary dirs exist
@@ -146,7 +133,7 @@
   when: item.ssl_cert is defined
   with_items: "{{ SPLUNKFORWARDER_SERVERS }}"
 
-- name: Create inputs and outputs configuration
+- name: Create inputs, outputs and server configuration
   template:
     src: "opt/splunkforwarder/etc/system/local/{{ item }}.conf.j2"
     dest: "/opt/splunkforwarder/etc/system/local/{{ item }}.conf"
@@ -156,4 +143,5 @@
   with_items:
     - inputs
     - outputs
+    - server
   notify: restart splunkforwarder

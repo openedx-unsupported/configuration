@@ -13,15 +13,17 @@ job('{{ jenkins_seed_job.name }}') {
       remote {
         url('{{ scm.url }}')
         branch("{{ scm.branch | default('master') }}")
-        {% if scm.dest %}
-          relativeTargetDir('{{ scm.dest }}')
-        {% endif %}
         {% if scm.credential_id %}
           credentials('{{ scm.credential_id }}')
         {% endif %}
       }
-      clean(true)
-      pruneBranches(true)
+      extensions {
+        {% if scm.dest %}
+          relativeTargetDirectory('{{ scm.dest }}')
+        {% endif %}
+        cleanAfterCheckout()
+        pruneBranches()
+      }
     }
     {% endif %}
   {% endfor %}

@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import logging
 import os
 import sys
+from six.moves import range
 
 try:
     # This script is used by docker.mk at parse-time, which means when you run
@@ -102,4 +105,4 @@ if __name__ == '__main__':
         conts = [x[0] for x in shard["images"]]
 
         line = middle.join(conts)
-        print line
+        print(line)

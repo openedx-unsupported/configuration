@@ -42,10 +42,9 @@
 
 - name: Install needed packages
   apt:
-    name: "{{ item }}"
+    name: "{{ nginx_debian_pkgs }}"
     state: present
   notify: restart nginx
-  with_items: "{{ nginx_debian_pkgs }}"
   tags:
     - install
     - install:system-requirements
@@ -124,7 +123,6 @@
     group: "{{ common_web_user }}"
     mode: 0644
   notify: reload nginx
-  when: NGINX_ROBOT_RULES|length > 0
   tags:
     - install
     - install:configuration
@@ -203,6 +201,9 @@
     owner: root
     group: "{{ common_web_user }}"
     mode: "0640"
+    # Ansible 2.4 changed follow symlinks default to "no". We need this for edx-east symlink
+    # https://docs.ansible.com/ansible/latest/modules/template_module.html
+    follow: yes
   with_items: "{{ nginx_extra_configs }}"
   notify: reload nginx
   tags:
@@ -360,6 +361,14 @@
     owner: root
     group: root
     mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+# Test the nginx configs before restarting nginx so that any errors are visible and not hidden in
+# the service logs.
+- name: Test nginx configs
+  command: nginx -t
   tags:
     - install
     - install:configuration

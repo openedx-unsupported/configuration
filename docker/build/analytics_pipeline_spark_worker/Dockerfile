@@ -1,5 +1,8 @@
 FROM bde2020/spark-base:2.1.0-hadoop2.7
-MAINTAINER edxops
+LABEL maintainer="edxops"
+
+RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list
+RUN sed -i '/deb http:\/\/deb.debian.org\/debian jessie-updates main/d' /etc/apt/sources.list
 
 ADD docker/build/analytics_pipeline_spark_worker/worker.sh /
 ENV SPARK_WORKER_WEBUI_PORT=8081 \
@@ -27,6 +30,9 @@ ENV SPARK_WORKER_WEBUI_PORT=8081 \
     YARN_CONF_yarn_resourcemanager_scheduler_address=resourcemanager:8030 \
     YARN_CONF_yarn_resourcemanager_resource__tracker_address=resourcemanager:8031
 
-RUN apt-get -y update && apt-get -y install --reinstall python-pkg-resources
+RUN ( apt-key adv --keyserver keyserver.ubuntu.com --recv-key 04EE7237B7D453EC \
+      || apt-key adv --keyserver keyserver.ubuntu.com --recv-key 648ACFD622F3D138)
+
+RUN apt-get -o Acquire::Check-Valid-Until=false update && apt-get -y install --reinstall python-pkg-resources
 CMD ["/bin/bash", "/worker.sh"]
 EXPOSE 8081

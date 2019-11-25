@@ -1,6 +1,6 @@
 ARG BASE_IMAGE_TAG=latest
-FROM edxops/bionic-common:${BASE_IMAGE_TAG}
-MAINTAINER edxops
+FROM edxops/xenial-common:${BASE_IMAGE_TAG}
+LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /var/lib/go-server

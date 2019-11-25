@@ -79,6 +79,26 @@
         login_user: "{{ item.login_user }}"
         login_password: "{{ item.login_password }}"
         append_privs: yes
+      when: item.mysql_plugin is not defined
+      with_items: "{{ database_users }}"
+      tags:
+        - users
+
+    # If plugin is AWSAuthenticationPlugin, then we can’t create mysql user using the mysql_user module
+    # to create user for AWS RDS IAM authentication as it does not support plugin as parameter
+
+    - name: create mysql users for AWS RDS IAM authentication
+      shell: |
+         mysql -u"{{ item.login_user }}" -p"{{ item.login_password }}" -h"{{ item.login_host }}" -e "SET @sql := CASE WHEN (SELECT count(*) FROM mysql.user WHERE User='{{ item.name }}') = 0 THEN 'CREATE USER {{ item.name }} IDENTIFIED WITH AWSAuthenticationPlugin as \'RDS\'' ELSE 'Select 0' END;PREPARE stmt FROM @sql;EXECUTE stmt;DEALLOCATE PREPARE stmt"
+      when: item.mysql_plugin is defined and item.state == 'present' and item.mysql_plugin == 'AWSAuthenticationPlugin'
+      with_items: "{{ database_users }}"
+      tags:
+        - users
+
+    - name: assign privileges to AWS RDS IAM users
+      shell: |
+         mysql -u"{{ item.login_user }}" -p"{{ item.login_password }}" -h"{{ item.login_host }}" -e "GRANT {{ item.privileges }} to '{{ item.name }}'@'{{ item.host }}'REQUIRE SSL"
+      when: item.mysql_plugin is defined and item.state == 'present' and item.mysql_plugin == 'AWSAuthenticationPlugin'
       with_items: "{{ database_users }}"
       tags:
         - users

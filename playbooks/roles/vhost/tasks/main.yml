@@ -31,6 +31,15 @@
     mode: "{{ item.value.mode }}"
   with_dict: "{{ vhost_dirs }}"
 
+- name: Add script for syncing logs on exit
+  template:
+    src: sync-logs-on-exit.j2
+    dest: "{{ COMMON_OBJECT_STORE_LOG_SYNC_ON_EXIT }}"
+    owner: root
+    group: root
+    mode: 0744
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
 - name: Force logrotate on supervisor stop
   template:
     src: etc/init/sync-on-stop.conf.j2
@@ -39,6 +48,27 @@
     group: root
     mode: 0644
   when: COMMON_OBJECT_STORE_LOG_SYNC
+        and (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
+
+# With systemd, log rotation should be run before the `rsyslog` service exits
+# to ensure that all logs are compressed and synced before shutting down the server.
+- name: Add systemd service for syncing logs on exit
+  template:
+    src: etc/systemd/system/sync-logs-on-exit.service.j2
+    dest: /etc/systemd/system/sync-logs-on-exit.service
+    owner: root
+    group: root
+    mode: 0644
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+        and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
+
+- name: Enable systemd service for syncing logs on exit
+  systemd:
+    name: sync-logs-on-exit
+    enabled: yes
+    daemon_reload: yes
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+        and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
 
 - name: Update /etc/dhcp/dhclient.conf
   template:
@@ -84,7 +114,7 @@
     line: "PasswordAuthentication {{ COMMON_SSH_PASSWORD_AUTH }}"
   register: sshd_config_line2
 
-- name: Restart ssh
+- name: Restart ssh (ubuntu/debian)
   service:
     name: ssh
     state: restarted
@@ -93,7 +123,7 @@
     (sshd_config_line1.changed or sshd_config_line2.changed) and
     ansible_distribution in common_debian_variants
 
-- name: Restart ssh
+- name: Restart ssh (redhat)
   service:
     name: sshd
     state: restarted

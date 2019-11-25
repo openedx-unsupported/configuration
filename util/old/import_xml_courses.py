@@ -13,6 +13,8 @@
 #    version:
 #}
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 from os.path import basename
 import yaml
@@ -63,4 +65,4 @@ if __name__ == '__main__':
         "EDXAPP_XML_MAPPINGS": all_xml_mappings,
         "EDXAPP_XML_FROM_GIT": True
     }
-    print yaml.safe_dump(edxapp_xml_courses, default_flow_style=False)
+    print(yaml.safe_dump(edxapp_xml_courses, default_flow_style=False))

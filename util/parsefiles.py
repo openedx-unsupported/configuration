@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import pathlib2
 import logging
@@ -6,6 +8,7 @@ import sys
 import networkx as nx
 from collections import namedtuple
 import argparse
+import six
 
 TRAVIS_BUILD_DIR = os.environ.get("TRAVIS_BUILD_DIR")
 DOCKER_PATH_ROOT = pathlib2.Path(TRAVIS_BUILD_DIR, "docker", "build")
@@ -145,9 +148,9 @@ def _open_yaml_file(file_str):
 
     with (file_str.open(mode='r')) as file:
         try:
-            yaml_file = yaml.load(file)
+            yaml_file = yaml.safe_load(file)
             return yaml_file
-        except yaml.YAMLError, exc:
+        except yaml.YAMLError as exc:
             LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
 
@@ -333,7 +336,7 @@ def _get_role_name(role):
     """
     if isinstance(role, dict):
         return role['role']
-    elif isinstance(role, basestring):
+    elif isinstance(role, six.string_types):
         return role
     else:
         LOGGER.warning("role %s could not be resolved to a role name." % role)
@@ -464,4 +467,4 @@ if __name__ == '__main__':
 
     all_plays = set(set(docker_plays) | set( modified_docker_files) | set(docker_plays_dir))
 
-    print " ".join(all_plays)
+    print(" ".join(all_plays))

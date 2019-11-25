@@ -6,11 +6,26 @@ source {{ edx_django_service_home }}/{{ edx_django_service_name }}_env
 COMMAND=$1
 
 case $COMMAND in
+    start)
+        /edx/app/supervisor/venvs/supervisor/bin/supervisord -n --configuration /edx/app/supervisor/supervisord.conf
+        ;;
     open)
         . {{ edx_django_service_nodeenv_bin }}/activate
         . {{ edx_django_service_venv_bin_dir }}/activate
         cd {{ edx_django_service_code_dir }}
 
         /bin/bash
+        ;;
+    exec)
+        shift
+
+        . {{ edx_django_service_nodeenv_bin }}/activate
+        . {{ edx_django_service_venv_bin_dir }}/activate
+        cd {{ edx_django_service_code_dir }}
+
+        "$@"
+        ;;
+    *)
+        "$@"
         ;;
 esac

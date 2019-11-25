@@ -1,3 +1,9 @@
+{%- if "edx_notes_api" in nginx_default_sites -%}
+  {%- set default_site = "default_server" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
 upstream {{ edx_notes_api_service_name }}_app_server {
     {% for host in nginx_edx_notes_api_gunicorn_hosts %}
         server {{ host }}:{{ edx_notes_api_gunicorn_port }} fail_timeout=0;
@@ -5,7 +11,7 @@ upstream {{ edx_notes_api_service_name }}_app_server {
 }
 
 server {
-  listen {{ edx_notes_api_nginx_port }} default_server;
+  listen {{ edx_notes_api_nginx_port }} {{ default_site }};
 
   {% if NGINX_ENABLE_SSL %}
 
@@ -17,7 +23,7 @@ server {
 
   {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
   {% endif %}
 
   {% include "common-settings.j2" %}
@@ -26,7 +32,9 @@ server {
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
 
   {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
-  
+
+  server_name {{ EDX_NOTES_API_HOSTNAME }};
+
   location / {
     try_files $uri @proxy_to_app;
   }
@@ -47,4 +55,3 @@ location @proxy_to_app {
     proxy_pass http://{{ edx_notes_api_service_name }}_app_server;
   }
 }
-

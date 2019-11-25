@@ -22,11 +22,51 @@
 #       - stop_all_edx_services
 #
 #
-- name: Stop supervisor
+
+# Hermes is not used everywhere, try to stop it if it is running.
+# We ignore errors here because of the various states the process
+# and machine could be in and because we do not install Hermes
+# on everything.
+- name: stop Hermes if it exists
+  service:
+    name: "hermes"
+    state: stopped
+  ignore_errors: yes
+
+- name: supervisorctl stop all
   stat:
     path: /etc/init/supervisor.conf
   register: stat_out
   changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - supervisorctl_stop_all
+
+- name: supervisorctl stop all systemd
+  stat:
+    path: /etc/systemd/system/supervisor.service
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists
+  notify:
+    - supervisorctl_stop_all
+
+- name: Get supervisorctl output
+  shell: "/edx/bin/supervisorctl status"
+  register: supervisorctl_command_result
+  ignore_errors: True
+
+- name: Stop supervisor
+  stat:
+    path: /etc/init/supervisor.conf
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists and 'RUNNING' not in supervisorctl_command_result.stdout
+  notify:
+    - stop supervisor
+
+- name: Stop supervisor systemd
+  stat:
+    path: /etc/systemd/system/supervisor.service
+  register: stat_out
+  changed_when: stat_out is defined and stat_out.stat.exists and 'RUNNING' not in supervisorctl_command_result.stdout
   notify:
     - stop supervisor
 
@@ -61,14 +101,6 @@
   changed_when: stat_out is defined and stat_out.stat.exists
   notify:
     - stop mongodb
-
-- name: Stop supervisor systemd
-  stat:
-    path: /etc/systemd/system/supervisor.service
-  register: stat_out
-  changed_when: stat_out is defined and stat_out.stat.exists
-  notify:
-    - stop supervisor
 
 - shell: "true"
   notify: kill processes by user

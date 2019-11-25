@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 DOCUMENTATION = '''
 ---
 module: ec2_lookup
@@ -82,7 +85,7 @@ try:
     import boto.ec2
     from boto.ec2 import connect_to_region
 except ImportError:
-    print "failed=True msg='boto required for this module'"
+    print("failed=True msg='boto required for this module'")
     sys.exit(1)
 
 
@@ -110,14 +113,14 @@ def main():
         try:
             ec2 = connect_to_region(region, aws_access_key_id=aws_access_key,
                                     aws_secret_access_key=aws_secret_key)
-        except boto.exception.NoAuthHandlerFound, e:
+        except boto.exception.NoAuthHandlerFound as e:
             module.fail_json(msg=str(e))
     # If we specified an ec2_url then try connecting to it
     elif ec2_url:
         try:
             ec2 = boto.connect_ec2_endpoint(ec2_url, aws_access_key,
                                             aws_secret_key)
-        except boto.exception.NoAuthHandlerFound, e:
+        except boto.exception.NoAuthHandlerFound as e:
             module.fail_json(msg=str(e))
     else:
         module.fail_json(msg="Either region or ec2_url must be specified")
@@ -125,11 +128,11 @@ def main():
     instances = []
     instance_ids = []
     for res in ec2.get_all_instances(filters={'tag:' + tag: value
-                                     for tag, value in module.params.get('tags').iteritems()}):
+                                     for tag, value in six.iteritems(module.params.get('tags'))}):
         for inst in res.instances:
             if inst.state == "running":
-                instances.append({k: v for k, v in inst.__dict__.iteritems()
-                                  if isinstance(v, (basestring))})
+                instances.append({k: v for k, v in six.iteritems(inst.__dict__)
+                                  if isinstance(v, (six.string_types))})
                 instance_ids.append(inst.id)
     module.exit_json(changed=False, instances=instances,
                      instance_ids=instance_ids)

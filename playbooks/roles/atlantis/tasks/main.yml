@@ -1,0 +1,170 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role atlantis
+#
+# Overview:
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+# Add kubernetes PPA key
+- name: Add Kubernetes repository signing key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+  retries: 3
+  tags:
+    - kubectl
+    - install
+    - install:app-requirements
+
+# The kubernetes PPA is required to install kubectl on Xenial.
+- name: Add Kubernetes repository
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+  tags:
+    - kubectl
+    - install
+    - install:system-requirements
+
+- name: Install kubectl
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - kubectl
+  tags:
+    - kubectl
+    - install
+    - install:system-requirements
+
+- name: Download Atlantis
+  get_url:
+    url: "{{ ATLANTIS_INSTALL_URL }}"
+    dest: "/var/tmp/{{ atlantis_install_file }}"
+
+- name: Install atlantis into {{ atlantis_app_dir }}
+  unarchive:
+    src: "/var/tmp/{{ atlantis_install_file }}"
+    dest: "{{ atlantis_app_dir }}"
+    copy: no
+  become_user: "{{ atlantis_user }}"
+  tags:
+    - install
+    - install:code
+
+- name: Write out atlantis repo-config.yml file
+  template:
+    src: "templates/repo-config.yml.j2"
+    dest: "{{ atlantis_repo_config_path }}"
+    mode: "0644"
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Create atlantis .kube dir
+  file:
+    path: "{{ atlantis_app_dir }}/.kube"
+    state: directory
+    owner: "{{ atlantis_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
+
+- name: Write out atlantis .kube/config files
+  template:
+    src: "templates/kube_config.yml.j2"
+    dest: "{{ atlantis_app_dir }}/.kube/{{ item.key }}"
+    mode: "0644"
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  with_dict: "{{ ATLANTIS_KUBE_CONFIG }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: setup the atlantis env file
+  template:
+    src: "templates/atlantis_env.j2"
+    dest: "{{ atlantis_app_dir }}/{{ atlantis_service_name }}_env"
+    owner: "{{ atlantis_user }}"
+    group: "{{ atlantis_user }}"
+    mode: 0644
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: write out the service wrapper
+  template:
+    src: "templates/atlantis.sh.j2"
+    dest: "{{ atlantis_app_dir }}/{{ atlantis_service_name }}.sh"
+    mode: 0700
+    owner: "{{ atlantis_user }}"
+    group: "{{ atlantis_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Create atlantis systemd job
+  template:
+    src: "atlantis-systemd.service.j2"
+    dest: "/etc/systemd/system/{{ atlantis_service_name }}.service"
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic'
+  tags:
+    - install
+    - install:base
+
+  # This command and the subsequent check in the when condition are related
+  # to this bug: https://github.com/ansible/ansible-modules-core/issues/593
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+  tags:
+    - install
+    - install:base
+
+- name: Enable atlantis to start on boot
+  service:
+    name: "{{ atlantis_service_name }}.service"
+    enabled: yes
+  when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic') and docker_container.stdout != 'yes'
+  tags:
+    - install
+    - install:base
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: Start atlantis
+  service:
+    name: "{{ atlantis_service_name }}"
+    state: restarted
+  register: start_atlantis
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start

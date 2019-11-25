@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import yaml
 import os
 import pathlib2
@@ -48,7 +49,21 @@ if __name__ == '__main__':
     for i in args.images.split():
         images.append(i)
 
-    # get images that are used and described in configuration file
-    used_images = docker_images.get_used_images(images)
 
-    check_coverage(images, used_images)
+    config_file_path = pathlib2.Path(CONFIG_FILE_PATH)
+
+    with (config_file_path.open(mode='r')) as file:
+        try:
+            config = yaml.safe_load(file)
+        except yaml.YAMLError as exc:
+            LOGGER.error("error in configuration file: %s" % str(exc))
+            sys.exit(1)
+
+    docker_ignore_list = config.get("docker_ignore_list")
+
+    filtered_images = [img for img in images if img not in docker_ignore_list]
+
+    # get images that are used and described in configuration file
+    used_images = docker_images.get_used_images(filtered_images)
+
+    check_coverage(filtered_images, used_images)

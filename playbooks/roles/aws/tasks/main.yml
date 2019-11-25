@@ -25,8 +25,9 @@
 # Start dealing with Jumbo frames issue in mixed MTU deployements in AWS
 #
 - name: Gather ec2 facts for use in other roles
-  action: ec2_facts
+  action: ec2_metadata_facts
   no_log: True
+  when: AWS_GATHER_FACTS
   tags:
     - deploy
 
@@ -48,10 +49,9 @@
 
 - name: Install system packages
   apt:
-    name: "{{ item }}"
+    name: "{{ aws_debian_pkgs }}"
     state: present
     update_cache: yes
-  with_items: "{{ aws_debian_pkgs }}"
   when: ansible_distribution in common_debian_variants
 
 - name: Copy the Python requirements file

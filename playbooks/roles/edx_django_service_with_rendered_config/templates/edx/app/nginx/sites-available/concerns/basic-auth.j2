@@ -1,0 +1,17 @@
+{% if edx_django_service_with_rendered_config_enable_basic_auth|bool %}     
+  satisfy any;
+
+  allow 127.0.0.1;
+
+  {% for cidr in COMMON_BASIC_AUTH_EXCEPTIONS %}
+      allow {{ cidr }};
+  {% endfor %}
+
+  deny all;
+
+  auth_basic            "Restricted";
+  auth_basic_user_file  {{ nginx_htpasswd_file }};
+
+  index index.html
+  proxy_set_header X-Forwarded-Proto https;
+{% endif %}

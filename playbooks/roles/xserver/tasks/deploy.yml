@@ -62,7 +62,8 @@
   template:
     src: xserver.env.json.j2
     dest: "{{ xserver_app_dir }}/env.json"
-  become_user: "{{ xserver_user }}"
+    owner: "{{ xserver_user }}"
+    group: "{{ common_web_group }}"
   notify:
     - restart xserver
 
@@ -76,24 +77,14 @@
   notify:
     - restart xserver
 
-- name: Upload ssh script
-  template:
-    src: git_ssh.sh.j2
-    dest: "/tmp/git_ssh.sh"
-    owner: "{{ xserver_user }}"
-    mode: "0750"
-  notify:
-    - restart xserver
-
 - name: Checkout grader code
   git:
     dest: "{{ XSERVER_GRADER_DIR }}"
     repo: "{{ XSERVER_GRADER_SOURCE }}"
     version: "{{ xserver_grader_version }}"
     accept_hostkey: yes
-  environment:
-    GIT_SSH: "/tmp/git_ssh.sh"
-  notify: 
+    key_file: "{{ xserver_git_identity }}"
+  notify:
     - restart xserver
   register: xserver_grader_checkout
   become_user: "{{ xserver_user }}"

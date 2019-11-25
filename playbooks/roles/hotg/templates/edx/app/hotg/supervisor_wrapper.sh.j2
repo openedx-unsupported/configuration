@@ -1,0 +1,29 @@
+#!/bin/bash
+# Source: https://confluence.atlassian.com/plugins/viewsource/viewpagesrc.action?pageId=252348917
+
+export CATALINA_HOME={{ HOTG_TOMCAT_HOME }}
+export TOMCAT_HOME={{ HOTG_TOMCAT_HOME }}
+export ASGARD_HOME={{ hotg_app_dir }}
+export CATALINA_OUT={{ hotg_log_dir }}/catalina.out
+
+export CATALINA_OPTS="-Djava.awt.headless=true -Xms{{ HOTG_JAVA_MIN_HEAP }} -Xmx{{ HOTG_JAVA_MAX_HEAP }} -verbose:sizes -XX:MaxPermSize={{ HOTG_JAVA_MAX_PERM }} -XX:+HeapDumpOnOutOfMemoryError -XX:-UseGCOverheadLimit -XX:+ExplicitGCInvokesConcurrent -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC -DonlyRegions={%- for region in HOTG_AWS_REGIONS -%}{{region}}{%- if not loop.last -%},{%- endif -%}{%- endfor -%}"
+export CATALINA_PID=/tmp/$$
+export LD_LIBRARY_PATH=/usr/local/apr/lib
+
+function shutdown()
+{
+    date
+    echo "Shutting down Tomcat"
+    $TOMCAT_HOME/bin/catalina.sh stop -force
+}
+
+date
+echo "Starting Tomcat"
+
+. $TOMCAT_HOME/bin/catalina.sh start
+
+# Allow any signal which would kill a process to stop Tomcat
+trap shutdown HUP INT QUIT ABRT KILL ALRM TERM TSTP
+
+echo "Waiting for `cat $CATALINA_PID`"
+wait `cat $CATALINA_PID`
