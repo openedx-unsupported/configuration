@@ -8,7 +8,7 @@
 # with the currently checked-out configuration repo.
 
 FROM edxops/xenial-common:latest
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ENV REPO_OWNER=edx
 

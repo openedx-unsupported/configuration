@@ -1,5 +1,5 @@
 FROM ubuntu:trusty
-MAINTAINER edxops 
+LABEL maintainer="edxops" 
 ENV ANSIBLE_REPO="https://github.com/edx/ansible"
 ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
 ENV CONFIGURATION_VERSION="master"

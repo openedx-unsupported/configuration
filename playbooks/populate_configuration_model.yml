@@ -36,6 +36,7 @@
   vars:
     python_path: /edx/bin/python.edxapp
     manage_path: /edx/bin/manage.edxapp
+    lms_env: /edx/app/edxapp/edxapp_env
   become_user: www-data
   become: true
   tasks:
@@ -48,7 +49,7 @@
         dest: "{{ xblock_config_temp_directory.stdout }}/{{ file | basename }}"
       register: xblock_config_file
     - name: Manage xblock configurations
-      shell: "{{ python_path }} {{ manage_path }} lms --settings=aws populate_model -f {{ xblock_config_file.dest | quote }} -u {{ user }}"
+      shell: ". {{lms_env}} && {{ python_path }} {{ manage_path }} lms --settings=production populate_model -f {{ xblock_config_file.dest | quote }} -u {{ user }}"
       register: command_result
       changed_when: "'Import complete, 0 new entries created' not in command_result.stdout"
     - debug: msg="{{ command_result.stdout }}"

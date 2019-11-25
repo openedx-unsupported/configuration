@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set edx_django_service_with_rendered_config_venv_bin = edx_django_service_with_rendered_config_venv_dir + "/bin" %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = edx_django_service_with_rendered_config_venv_bin + '/newrelic-admin run-program ' + edx_django_service_with_rendered_config_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = edx_django_service_with_rendered_config_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ edx_django_service_with_rendered_config_enable_newrelic_distributed_tracing }}"
+export NEW_RELIC_APP_NAME="{{ edx_django_service_with_rendered_config_newrelic_appname }}"
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  HOSTNAME=$(hostname)
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+export EDX_REST_API_CLIENT_NAME="{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_with_rendered_config_service_name }}"
+
+source {{ edx_django_service_with_rendered_config_home }}/{{ edx_django_service_with_rendered_config_service_name }}_env
+exec {{ executable }} -c {{ edx_django_service_with_rendered_config_home }}/{{ edx_django_service_with_rendered_config_service_name }}_gunicorn.py {{ edx_django_service_with_rendered_config_gunicorn_extra }} {{ edx_django_service_with_rendered_config_wsgi_name }}.wsgi:application

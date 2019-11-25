@@ -2,6 +2,10 @@
 # xenial+ cloud images don't have python2.7 installed, and ansible doesn't yet
 # support python3.
 
+- name: Wait until cloud-init has finished running
+  raw: test -e /usr/bin/cloud-init && cloud-init status --wait
+  ignore_errors: yes
+
 - name: Update apt-get
   raw: apt-get update -qq
   register: python_update_result
@@ -12,3 +16,5 @@
 - name: Install packages
   raw: "apt-get install -qq {{ item }}"
   with_items: "{{ python_packages }}"
+  retries: 10
+  delay: 10

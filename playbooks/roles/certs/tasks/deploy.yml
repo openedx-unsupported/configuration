@@ -35,13 +35,6 @@
     mode: "0644"
   when: not disable_edx_services
 
-- name: Create ssh script for git
-  template:
-    src: "{{ certs_git_ssh | basename }}.j2"
-    dest: "{{ certs_git_ssh }}"
-    owner: "{{ certs_user }}"
-    mode: "0750"
-
 # This key is only needed if you are pulling down a private
 # certificates repo
 - name: Install read-only ssh key for the certs repo
@@ -59,9 +52,8 @@
     repo: "{{ CERTS_REPO }}"
     version: "{{ certs_version }}"
     accept_hostkey: yes
+    key_file: "{{ certs_git_identity }}"
   become_user: "{{ certs_user }}"
-  environment:
-    GIT_SSH: "{{ certs_git_ssh }}"
   register: certs_checkout
   when: CERTS_GIT_IDENTITY != "none"
 

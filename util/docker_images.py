@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import yaml
 import os
 import pathlib2
@@ -20,8 +21,8 @@ def get_used_images(images):
 
     with (config_file_path.open(mode='r')) as file:
         try:
-            config = yaml.load(file)
-        except yaml.YAMLError, exc:
+            config = yaml.safe_load(file)
+        except yaml.YAMLError as exc:
             LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
 
@@ -29,7 +30,7 @@ def get_used_images(images):
     weights = config.get("weights")
 
     # convert all images in config file to a list of tuples (<image>, <weight>)
-    weights_list = [x.items() for x in weights]
+    weights_list = [list(x.items()) for x in weights]
     weights_list = list(itertools.chain.from_iterable(weights_list))
 
     # performs intersection between weighted images and input images

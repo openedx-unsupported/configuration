@@ -11,29 +11,6 @@
     - "install"
     - "install:code"
 
-# Optional auth for git
-- name: Create ssh script for git (not authenticated)
-  template:
-    src: "git_ssh_noauth.sh.j2"
-    dest: "{{ notifier_git_ssh }}"
-    owner: "{{ notifier_user }}"
-    mode: "0750"
-  when: NOTIFIER_GIT_IDENTITY == ""
-  tags:
-    - "install"
-    - "install:code"
-
-- name: Create ssh script for git (authenticated)
-  template:
-    src: "git_ssh_auth.sh.j2"
-    dest: "{{ notifier_git_ssh }}"
-    owner: "{{ notifier_user }}"
-    mode: "0750"
-  when: NOTIFIER_GIT_IDENTITY != ""
-  tags:
-    - "install"
-    - "install:code"
-
 - name: Install read-only ssh key
   copy:
     content: "{{ NOTIFIER_GIT_IDENTITY }}"
@@ -52,10 +29,9 @@
     repo: "{{ NOTIFIER_THEME_REPO }}"
     version: "{{ NOTIFIER_THEME_VERSION }}"
     accept_hostkey: yes
+    key_file: "{% if NOTIFIER_GIT_IDENTITY != '' %}{{ notifier_git_identity }}{% endif %}"
   when: NOTIFIER_THEME_NAME != ''
   become_user: "{{ notifier_user }}"
-  environment:
-    GIT_SSH: "{{ notifier_git_ssh }}"
   tags:
     - "install"
     - "install:code"
@@ -65,7 +41,6 @@
     src: "settings_local.py.j2"
     dest: "{{ NOTIFIER_CODE_DIR }}/notifier/settings_local.py"
     mode: "0555"
-  when: NOTIFIER_THEME_NAME != ''
   tags:
     - "install"
     - "install:configuration"

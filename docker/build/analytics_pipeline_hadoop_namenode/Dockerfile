@@ -1,16 +1,20 @@
 FROM uhopper/hadoop:2.7.2
-MAINTAINER edxops
+LABEL maintainer="edxops"
+
+RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/backports.list
+
+RUN \
+echo "deb http://mirrors.linode.com/debian/ stretch main" > /etc/apt/sources.list && \
+echo "deb-src http://mirrors.linode.com/debian/ stretch main" >> /etc/apt/sources.list && \
+echo "deb http://mirrors.linode.com/debian-security/ stretch/updates main" >> /etc/apt/sources.list && \
+echo "deb-src http://mirrors.linode.com/debian-security/ stretch/updates main" >> /etc/apt/sources.list && \
+echo "deb http://mirrors.linode.com/debian/ stretch-updates main" >> /etc/apt/sources.list && \
+echo "deb-src http://mirrors.linode.com/debian/ stretch-updates main" >> /etc/apt/sources.list
 
 ENV HDFS_CONF_dfs_namenode_name_dir=file:///hadoop/dfs/name \
     MYSQL_VERSION=5.6 \
     DEBIAN_FRONTEND=noninteractive
 WORKDIR /tmp
-RUN \
-  echo "deb http://ftp.de.debian.org/debian/ stretch main non-free contrib\n" > /etc/apt/sources.list && \
-  echo "deb-src http://ftp.de.debian.org/debian/ stretch main non-free contrib\n" >> /etc/apt/sources.list && \
-  echo "deb http://security.debian.org/ stretch/updates main contrib non-free\n" >> /etc/apt/sources.list && \
-  echo "deb-src http://security.debian.org/ stretch/updates main contrib non-free" >> /etc/apt/sources.list
-
 RUN apt-get -y update
 RUN apt-get -yqq install apt-transport-https lsb-release ca-certificates gnupg2
 RUN ( apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys A4A9406876FCBD3C456770C88C718D3B5072E1F5 \

@@ -9,7 +9,7 @@
 #
 #
 # Tasks for role edx-notes-api
-# 
+#
 # Overview:
 #
 # Role for installing the edx-notes-api Django application, https://github.com/edx/edx-notes-api.
@@ -36,7 +36,7 @@
 #     nginx_sites:
 #       - edx-notes-api
 #   - aws
-#   - edx-notes-api 
+#   - edx-notes-api
 #   - role: datadog
 #     when: COMMON_ENABLE_DATADOG
 #   - role: splunkforwarder
@@ -48,11 +48,24 @@
     virtualenv: "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
     state: present
     extra_args: "--exists-action w"
+    virtualenv_python: 'python3.5'
   become_user: "{{ edx_notes_api_user }}"
   with_items: "{{ edx_notes_api_requirements }}"
   tags:
     - install
     - install:system-requirements
+
+- name: write devstack script
+  template:
+    src: "edx/app/edx_notes_api/devstack.sh.j2"
+    dest: "{{ edx_notes_api_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  when: devstack is defined and devstack
+  tags:
+    - devstack
+    - devstack:install
 
 - name: Migrate
   shell: >

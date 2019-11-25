@@ -21,6 +21,7 @@ COMMON_OBJECT_STORE_LOG_SYNC: False
 COMMON_OBJECT_STORE_LOG_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
 COMMON_OBJECT_STORE_LOG_SYNC_PREFIX: "logs/tracking/"
 COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-object-store"
+COMMON_OBJECT_STORE_LOG_SYNC_ON_EXIT: "{{ COMMON_BIN_DIR }}/sync-logs-on-exit"
 
 COMMON_BASE_DIR: /edx
 COMMON_DATA_DIR: "{{ COMMON_BASE_DIR}}/var"
@@ -65,6 +66,7 @@ COMMON_GIT_PATH: 'edx'  # git path prefix
 
 # override this var to set a different hostname
 COMMON_HOSTNAME: ""
+COMMON_DEPLOY_HOSTNAME: ""
 
 # Set to true to customize DNS search domains
 COMMON_CUSTOM_DHCLIENT_CONFIG: false
@@ -81,6 +83,8 @@ COMMON_SECURITY_UPDATES: no
 
 COMMON_MYSQL_READ_ONLY_USER: 'read_only'
 COMMON_MYSQL_READ_ONLY_PASS: 'password'
+COMMON_ANALYTICS_MYSQL_READ_ONLY_USER: 'read_only'
+COMMON_ANALYTICS_MYSQL_READ_ONLY_PASS: 'password'
 COMMON_MYSQL_ADMIN_USER: 'admin'
 COMMON_MYSQL_ADMIN_PASS: 'password'
 COMMON_MYSQL_MIGRATE_USER: 'migrate'
@@ -99,7 +103,7 @@ COMMON_ENABLE_NEWRELIC_APP: False
 COMMON_ENABLE_MINOS: False
 COMMON_TAG_EC2_INSTANCE: False
 common_boto_version: '2.48.0'
-common_node_version: '8.9.3'
+common_node_version: '12.13.0'
 common_redhat_pkgs:
   - ntp
   - lynx
@@ -133,6 +137,7 @@ common_pip_pkgs:
   - setuptools==39.0.1
   - virtualenv==15.2.0
   - virtualenvwrapper==4.8.2
+  - boto3
 
 common_web_user: www-data
 common_web_group: www-data
@@ -218,7 +223,8 @@ COMMON_TRACKING_LOG_ROTATION:
 COMMON_EXTRA_CONFIGURATION_SOURCES_CHECKING: false
 COMMON_EXTRA_CONFIGURATION_SOURCES: []
 
-COMMON_OAUTH_BASE_URL: 'http://127.0.0.1:8000'
+COMMON_LMS_BASE_URL: 'http://127.0.0.1:8000'
+COMMON_OAUTH_BASE_URL: '{{ COMMON_LMS_BASE_URL }}'
 COMMON_OAUTH_PUBLIC_URL_ROOT: '{{ COMMON_OAUTH_BASE_URL }}/oauth2'
 COMMON_OAUTH_URL_ROOT: '{{ COMMON_OAUTH_PUBLIC_URL_ROOT }}'
 COMMON_OAUTH_LOGOUT_URL: '{{ COMMON_OAUTH_BASE_URL }}/logout'
@@ -234,7 +240,11 @@ COMMON_JWT_ISSUER: '{{ COMMON_OIDC_ISSUER }}'
 # The following should be the string representation of a JSON Web Key Set (JWK set)
 # containing active public keys for signing JWTs.
 # See https://github.com/edx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0008-use-asymmetric-jwts.rst
-COMMON_JWT_PUBLIC_SIGNING_JWK_SET: !!null
+COMMON_JWT_PUBLIC_SIGNING_JWK_SET: ''
+
+COMMON_JWT_AUTH_COOKIE_HEADER_PAYLOAD: 'edx-jwt-cookie-header-payload'
+COMMON_JWT_AUTH_COOKIE_SIGNATURE: 'edx-jwt-cookie-signature'
+COMMON_JWT_AUTH_REFRESH_COOKIE: 'edx-jwt-refresh-cookie'
 
 # To be deprecated, in favor of the above COMMON_JWT_PUBLIC_SIGNING_JWK_SET.
 COMMON_JWT_SECRET_KEY: 'SET-ME-PLEASE'
@@ -244,3 +254,18 @@ COMMON_JWT_SECRET_KEY: 'SET-ME-PLEASE'
 CREATE_SERVICE_WORKER_USERS: True
 
 COMMON_ENABLE_AWS_ROLE: true
+
+# Remote config
+COMMON_HERMES_ENABLED: false
+
+COMMON_DECRYPT_CONFIG_ENABLED: false
+COMMON_COPY_CONFIG_ENABLED: false
+
+# Disable logging of config rendering which has secrets
+COMMON_CONFIG_NO_LOGGING: True
+
+# Default sandbox build flag to false
+COMMON_SANDBOX_BUILD: False
+
+# Variable to control setting up the retirement services
+COMMON_RETIREMENT_SERVICE_SETUP: false

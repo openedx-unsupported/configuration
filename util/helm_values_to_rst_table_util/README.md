@@ -1,0 +1,61 @@
+
+Converts a helm charts' values.yaml file into an RST table.
+
+Example:
+
+
+	python helm_values_to_rst_table_util.py --values ../../../edx-notes-api/helmcharts/notes/values.yaml --subcharts mysql --subcharts elasticsearch
+	===================================================================================================  ===================================================================================================  ===================================================================================================
+	Parameter                                                                                            Description                                                                                          Default                                                                                            
+	===================================================================================================  ===================================================================================================  ===================================================================================================
+	app.replicaCount                                                                                     TODO                                                                                                 1
+	app.image.repository                                                                                 TODO                                                                                                 edxops/notes
+	app.image.tag                                                                                        TODO                                                                                                 latest
+	app.image.pullPolicy                                                                                 TODO                                                                                                 IfNotPresent
+	app.imagePullSecrets                                                                                 TODO                                                                                                 []
+	app.nameOverride                                                                                     TODO                                                                                                 
+	app.fullnameOverride                                                                                 TODO                                                                                                 
+	app.service.type                                                                                     TODO                                                                                                 ClusterIP
+	app.service.port                                                                                     TODO                                                                                                 80
+	app.ingress.enabled                                                                                  TODO                                                                                                 False
+	app.ingress.hosts                                                                                    TODO                                                                                                 [{'host': 'notes.local', 'paths': []}]
+	app.ingress.tls                                                                                      TODO                                                                                                 []
+	app.tolerations                                                                                      TODO                                                                                                 []
+	app.extraInitContainers                                                                              TODO                                                                                                 []
+	app.config.ALLOWED_HOSTS                                                                             TODO                                                                                                 ['*']
+	app.config.CLIENT_ID                                                                                 TODO                                                                                                 
+	app.config.CLIENT_SECRET                                                                             TODO                                                                                                 
+	app.config.DATABASES.default.ENGINE                                                                  TODO                                                                                                 django.db.backends.mysql
+	app.config.DATABASES.default.HOST                                                                    TODO                                                                                                 notes-mysql
+	app.config.DATABASES.default.NAME                                                                    TODO                                                                                                 notes-db
+	app.config.DATABASES.default.OPTIONS.connect_timeout                                                 TODO                                                                                                 10
+	app.config.DATABASES.default.PASSWORD                                                                TODO                                                                                                 
+	app.config.DATABASES.default.PORT                                                                    TODO                                                                                                 3306
+	app.config.DATABASES.default.USER                                                                    TODO                                                                                                 notes-db-user
+	app.config.DISABLE_TOKEN_CHECK                                                                       TODO                                                                                                 False
+	app.config.ELASTICSEARCH_INDEX                                                                       TODO                                                                                                 edx_notes
+	app.config.ELASTICSEARCH_URL                                                                         TODO                                                                                                 http://notes-elasticsearch-client:9200
+	app.config.HAYSTACK_CONNECTIONS.default.ENGINE                                                       TODO                                                                                                 notesserver.highlight.ElasticsearchSearchEngine
+	app.config.HAYSTACK_CONNECTIONS.default.INDEX_NAME                                                   TODO                                                                                                 notes
+	app.config.HAYSTACK_CONNECTIONS.default.URL                                                          TODO                                                                                                 http://notes-elasticsearch-client:9200/
+	app.config.JWT_AUTH.JWT_AUTH_COOKIE_HEADER_PAYLOAD                                                   TODO                                                                                                 stage-edx-jwt-cookie-header-payload
+	app.config.JWT_AUTH.JWT_AUTH_COOKIE_SIGNATURE                                                        TODO                                                                                                 stage-edx-jwt-cookie-signature
+	app.config.JWT_AUTH.JWT_AUTH_REFRESH_COOKIE                                                          TODO                                                                                                 stage-edx-jwt-refresh-cookie
+	app.config.JWT_AUTH.JWT_ISSUERS                                                                      TODO                                                                                                 []
+	app.config.JWT_AUTH.JWT_PUBLIC_SIGNING_JWK_SET                                                       TODO                                                                                                 
+	app.config.RESULTS_DEFAULT_SIZE                                                                      TODO                                                                                                 25
+	app.config.RESULTS_MAX_SIZE                                                                          TODO                                                                                                 250
+	app.config.SECRET_KEY                                                                                TODO                                                                                                 
+	app.config.USERNAME_REPLACEMENT_WORKER                                                               TODO                                                                                                 username_replacement_service_worker
+	app.config.LOG_SETTINGS_LOG_DIR                                                                      TODO                                                                                                 /var/tmp
+	app.config.LOG_SETTINGS_LOGGING_ENV                                                                  TODO                                                                                                 no_env
+	app.config.LOG_SETTINGS_DEV_ENV                                                                      TODO                                                                                                 True
+	app.config.LOG_SETTINGS_DEBUG                                                                        TODO                                                                                                 True
+	app.config.LOG_SETTINGS_LOCAL_LOGLEVEL                                                               TODO                                                                                                 INFO
+	app.config.LOG_SETTINGS_EDX_FILENAME                                                                 TODO                                                                                                 edx.log
+	app.config.LOG_SETTINGS_SERVICE_VARIANT                                                              TODO                                                                                                 edx-notes-api
+	elasticsearch.enabled                                                                                TODO                                                                                                 True
+	mysql.enabled                                                                                        TODO                                                                                                 True
+	migrations.enabled                                                                                   TODO                                                                                                 True
+	migrations.migrationContainerName                                                                    TODO                                                                                                 notes-migrations
+	===================================================================================================  ===================================================================================================  ===================================================================================================

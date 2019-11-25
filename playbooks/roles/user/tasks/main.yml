@@ -120,7 +120,7 @@
   when: item.get('state', 'present') == 'present' and item.github is defined
   with_items: "{{ user_info }}"
   register: github_users_return
-  until: github_users_return|succeeded
+  until: github_users_return is succeeded
   retries: 5
 
 - name: Print warning if github user(s) missing ssh key
@@ -144,7 +144,7 @@
     key: "https://github.com/{{ item.name }}.keys"
   when: item.github is defined and item.get('state', 'present') == 'present'
   register: task_result
-  until: task_result|succeeded
+  until: task_result is succeeded
   retries: 5
   with_items: "{{ user_info }}"
 
@@ -225,3 +225,17 @@
   with_nested:
     - "{{ user_info }}"
     - "{{ user_rbash_links }}"
+
+- name: Allow users to ssh
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "#users_allowed_to_ssh {{ vars['user_info'] }}"
+    line: "AllowUsers {{ (( user_info | map(attribute='name') | list ) + [ ansible_ssh_user ]) | join(' ') }} #users_allowed_to_ssh {{ vars['user_info'] }}"
+  when: user_info|length > 0
+  register: users_ssh_access
+
+- name: restart ssh
+  service:
+    name: ssh
+    state: restarted
+  when: users_ssh_access.changed

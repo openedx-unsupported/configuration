@@ -1,5 +1,8 @@
 FROM bde2020/spark-base:2.1.0-hadoop2.7
-MAINTAINER edxops
+LABEL maintainer="edxops"
+
+RUN echo "deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list
+RUN sed -i '/deb http:\/\/deb.debian.org\/debian jessie-updates main/d' /etc/apt/sources.list
 
 ADD docker/build/analytics_pipeline_spark_master/master.sh /
 ENV SPARK_MASTER_PORT=7077 \
@@ -29,7 +32,7 @@ ENV SPARK_MASTER_PORT=7077 \
     YARN_CONF_yarn_resourcemanager_scheduler_address=resourcemanager:8030 \
     YARN_CONF_yarn_resourcemanager_resource__tracker_address=resourcemanager:8031
 
-RUN apt-get -y update && apt-get -y install --reinstall python-pkg-resources \
+RUN apt-get -o Acquire::Check-Valid-Until=false update && apt-get -y install --reinstall python-pkg-resources \
     && echo 'spark.master  spark://sparkmaster:7077\nspark.eventLog.enabled  true\nspark.eventLog.dir  hdfs://namenode:8020/tmp/spark-events\nspark.history.fs.logDirectory  hdfs://namenode:8020/tmp/spark-events' > /spark/conf/spark-defaults.conf
 
 CMD ["/bin/bash", "/master.sh"]

@@ -10,10 +10,12 @@
 {% endif %}
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ INSIGHTS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }}"
 export NEW_RELIC_APP_NAME="{{ INSIGHTS_NEWRELIC_APPNAME }}"
 export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
 {% endif -%}
 
 source {{ insights_app_dir }}/insights_env
 
-{{ executable }} --pythonpath={{ insights_python_path }} -b {{ insights_gunicorn_host }}:{{ insights_gunicorn_port }} -w {{ INSIGHTS_GUNICORN_WORKERS }} --timeout={{ insights_gunicorn_timeout }} {{ INSIGHTS_GUNICORN_EXTRA }} {{ insights_wsgi }}
+# We exec so that gunicorn is the child of supervisor and can be managed properly
+exec {{ executable }} --pythonpath={{ insights_python_path }} -b {{ insights_gunicorn_host }}:{{ insights_gunicorn_port }} -w {{ INSIGHTS_GUNICORN_WORKERS }} --timeout={{ insights_gunicorn_timeout }} {{ INSIGHTS_GUNICORN_EXTRA }} {{ insights_wsgi }}

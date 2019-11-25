@@ -2,6 +2,8 @@
 
 # This script is used by the monioring/check-seslimits Jenkins job
 
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 import argparse
 import sys
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     if args.warning and args.warning >= args.critical:
         warn_str = "Warning threshold ({})".format(args.warning)
         crit_str = "Critical threshold ({})".format(args.critical)
-        print("ERROR: {} >= {}".format(warn_str, crit_str))
+        print(("ERROR: {} >= {}".format(warn_str, crit_str)))
         sys.exit(1)
 
     exit_code = 0
@@ -49,8 +51,8 @@ if __name__ == "__main__":
             level = "WARNING"
 
         if level:
-            print("{} {}/{} ({}%) - {}".format(region, current, limit, percent,
-                  level))
+            print(("{} {}/{} ({}%) - {}".format(region, current, limit, percent,
+                  level)))
             exit_code += 1
 
     sys.exit(exit_code)

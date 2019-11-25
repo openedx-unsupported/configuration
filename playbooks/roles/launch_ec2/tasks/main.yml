@@ -68,7 +68,7 @@
     record: "{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item.public_dns_name }}"
   register: task_result
-  until: task_result|succeeded
+  until: task_result is succeeded
   retries: 5
   delay: 30
   with_items: "{{ ec2.instances }}"
@@ -84,12 +84,12 @@
     record: "{{ item[1] }}-{{ dns_name }}.{{ dns_zone }}"
     value: "{{ item[0].public_dns_name }}"
   register: task_result
-  until: task_result|succeeded
+  until: task_result is succeeded
   retries: 5
   delay: 30
   with_nested:
     - "{{ ec2.instances }}"
-    - ['studio', 'ecommerce', 'preview', 'discovery', 'journals', 'credentials', 'veda', 'analytics-api']
+    - ['studio', 'ecommerce', 'preview', 'discovery', 'credentials', 'veda', 'analytics-api', 'registrar', 'program-manager', 'learner-portal']
 
 - name: Add DNS name for whitelabel sites
   local_action:
@@ -102,7 +102,7 @@
     record: "{{ item[1] }}"
     value: "{{ item[0].public_dns_name }}"
   register: task_result
-  until: task_result|succeeded
+  until: task_result is succeeded
   retries: 5
   delay: 30
   with_nested:

@@ -3,6 +3,7 @@
 For a given aws account, go through all un-attached volumes and tag them.
 
 """
+from __future__ import absolute_import
 import boto
 import boto.utils
 import argparse
@@ -14,6 +15,7 @@ from os.path import join, exists, isdir, islink, realpath, basename, dirname
 import yaml
 # needs to be pip installed
 import netaddr
+from six.moves import filter
 
 LOG_FORMAT = "%(asctime)s %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
 TIMEOUT = 300
@@ -50,13 +52,13 @@ def potential_devices(root_device):
     relevant_devices = lambda x: x.startswith(basename(root_device))
 
     all_devices = os.listdir(device_dir)
-    all_devices = filter(relevant_devices, all_devices)
+    all_devices = list(filter(relevant_devices, all_devices))
 
     logging.info("Potential devices on {}: {}".format(root_device, all_devices))
     if len(all_devices) > 1:
         all_devices.remove(basename(root_device))
 
-    return map(lambda x: join(device_dir, x), all_devices)
+    return [join(device_dir, x) for x in all_devices]
 
 def get_tags_for_disk(mountpoint):
     tag_data = {}

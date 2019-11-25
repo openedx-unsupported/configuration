@@ -1,5 +1,5 @@
 FROM selenium/standalone-chrome-debug:3.14.0-arsenic
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 USER root
 

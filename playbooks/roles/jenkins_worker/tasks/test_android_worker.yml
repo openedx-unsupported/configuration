@@ -1,47 +1,88 @@
 ---
-# Test that the Android sdk has been installed to the correct location
-- name: Verify Android SDK is installed
+# Verify Android Platform
+- name: Verify that Android Platform is installed
+  shell: "stat {{ android_home }}/platforms/android-28"
+  register: android_plateform
+- assert:
+    that:
+        - "android_plateform.rc == 0"
+
+# Verify Android Platform Tools
+- name: Verify that Android Platform Tools are installed
+  shell: "stat {{ android_home }}/platform-tools"
+  register: android_plateform_tools
+- assert:
+    that:
+        - "android_plateform_tools.rc == 0"
+
+# Verify Android Build Tools
+- name: Verify that Android Build Tools are installed
+  shell: "stat {{ android_home }}/build-tools"
+  register: android_build_tools
+- assert:
+    that:
+        - "android_build_tools.rc == 0"
+
+# Verify Android Google Repository 
+- name: Verify that Android Google Repository is installed
+  shell: "stat {{ android_home }}/extras/google/m2repository"
+  register: android_google_repo
+- assert:
+    that:
+        - "android_google_repo.rc == 0"
+
+# Verify Android Repository 
+- name: Verify that Android Repository is installed
+  shell: "stat {{ android_home }}/extras/android/m2repository"
+  register: android_repo
+- assert:
+    that:
+        - "android_repo.rc == 0"        
+
+# Verify system image
+- name: Verify that Android sys image is installed
+  shell: "stat {{ android_home }}/system-images/android-28"
+  register: android_27_image
+- assert:
+    that:
+        - "android_27_image.rc == 0"
+
+# Verify Android tool
+- name: Verify Android tool is installed
   shell: "stat {{ android_home }}/tools/android"
   register: android_version
 - assert:
     that:
       - "android_version.rc == 0"
-# Test that the necessary build targets for building the edx app have
-# been installed.
-- name: Verify correct Android build targets installed
-  shell: "{{ android_home }}/tools/android list target |tr '\n' ' '"
-  register: build_targets
-- with_items: "{{ android_build_targets }}"
-  assert:
-    that:
-      - "'{{ item }}' in build_targets.stdout"
-# Put the paths of downloaded packages into a list, so they can be iterated over
-# in an assert block
-- name: Gather paths of installed Android packages into a list
-  util_map:
-    function: 'zip_to_list'
-    input: "{{ android_tools }}"
-    args:
-      - "android_test_path"
-  register: android_test_paths
-# Test that the correct android tools are installed
-- name: Verify build tools installed
-  stat: path={{ android_home }}/{{ item }}
-  register: android_package_stats
-  # When this task is skipped, ansible still tries to resolve the variable
-  # returned from zip_to_list, but cannot. Add a default value to avoid these
-  # failures when other tasks are run, but not mask true failures when this
-  # task is run.
-  with_items: "{{ android_test_paths.function_output | default(['non-existent-package']) }}"
-- with_items: "{{ android_package_stats.results }}"
-  assert:
-    that:
-      - "item.stat.exists == True"
-# TEMP: until we either change to using a different system image OR google hosts
-# the android 23 image again
-- name: Verify that cached Android sys image is installed
-  shell: "stat {{ android_home }}/system-images/android-23"
-  register: android_23_stat
+
+# Verify Emulator tool
+- name: Verify Emulator tool is installed
+  shell: "stat {{ android_home }}/tools/emulator"
+  register: emulator_version
 - assert:
     that:
-        - "android_23_stat.rc == 0"
+      - "emulator_version.rc == 0"      
+
+# Verify AVD Manager tool
+- name: Verify AVD Manager tool is installed
+  shell: "stat {{ android_home }}/tools/bin/avdmanager"
+  register: avdmanager_version
+- assert:
+    that:
+      - "avdmanager_version.rc == 0"      
+
+# Verify SDK Manager tool
+- name: Verify SDK Manager tool is installed
+  shell: "stat {{ android_home }}/tools/bin/sdkmanager"
+  register: sdkmanager_version
+- assert:
+    that:
+      - "sdkmanager_version.rc == 0"      
+
+# Verify adb tool
+- name: Verify adb tool is installed
+  shell: "stat {{ android_home }}/platform-tools/adb"
+  register: adb_version
+- assert:
+    that:
+      - "adb_version.rc == 0"

@@ -8,8 +8,9 @@
 # It can read from the same config as create_dbs_and_users.yml and needs this
 # part of that config
 # database_connection:
+#   login_host: "{{ database_name }}......rds.amazonaws.com" # This is pretty predictable for our accounts.
 #   login_user: "root"
-#   login_password: "super-secure-password" #
+#   login_password: "" # max 41 characters, Only printable ASCII characters besides '/', '@', '\"', ' ' may be used.
 # database_name: your-database-name
 # database_size: number of gigabytes (integer)
 # instance_type: Choose an AWS RDS instance type such as "db.t2.medium"
@@ -23,7 +24,7 @@
 # backup_retention: Days to keep backups (integer)
 # multi_zone: yes or no (whether this RDS is multi-az)
 # performance_insights: yes or no (or unset) whether to enable Performance Insights (must be 5.6.40 or greater and not a t2)
-# tags: "Key=Value,Key=Value,environment=environment,deployment=deployment,cluster=cluster"
+# tags: "[{'Key': 'environment', 'Value': 'TBD'}, {'Key': 'deployment', 'Value': 'TBD'}, {'Key': 'deployment', 'Value': 'TBD'}]"
  
 
 - name: Create databases and users
@@ -54,7 +55,7 @@
               --preferred-backup-window {{ backup_window }}
               --{{ '' if multi_zone == 'yes' else 'no-' }}multi-az
               {{ '--enable-performance-insights' if performance_insights is defined and performance_insights == 'yes' else '' }}
-              --tags {{ tags }}
+              --tags '{{ tags }}'
               "
     register: result
     failed_when: >
@@ -70,3 +71,6 @@
     until: result.instance.status == "available"
     retries: 20
     delay: 60
+
+- include: create_db_and_users.yml
+  when: database_connection.login_host is defined

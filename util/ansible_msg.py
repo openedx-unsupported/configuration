@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.6
 """Simple utility for deciphering Ansible jsonized task output."""
 
+from __future__ import absolute_import
+from __future__ import print_function
 import json
 import sys
 
@@ -17,7 +19,7 @@ junk = f.read()
 # junk:
 # '==> default: failed: [localhost] (item=/edx/app/edx_ansible/edx_ansible/requirements.txt) => {"cmd": "/edx/app/edx...'
 
-print("Stdin is {} chars: {!r}...{!r}".format(len(junk), junk[:40], junk[-40:]))
+print(("Stdin is {} chars: {!r}...{!r}".format(len(junk), junk[:40], junk[-40:])))
 
 junk = junk.replace('\n', '')
 junk = junk[junk.index('=> {')+3:]
@@ -29,7 +31,7 @@ GOOD_KEYS = ['cmd', 'msg', 'stdout', 'stderr', 'module_stdout', 'module_stderr',
 for key in GOOD_KEYS:
     if data.get(key):
         print(f"== {key} ===========================")
-        print(data[key])
+        print((data[key]))
 
 BAD_KEYS = ['stdout_lines', 'start', 'end', 'delta', 'changed', 'failed', 'rc', 'item']
 

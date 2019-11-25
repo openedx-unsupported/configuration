@@ -20,13 +20,6 @@
     state: absent
     path: "{{ PROSPECTUS_DATA_DIR }}"
 
-- name: Create ssh script for git
-  template:
-    src: "{{ prospectus_git_ssh | basename }}.j2"
-    dest: "{{ prospectus_git_ssh }}"
-    owner: "{{ prospectus_user }}"
-    mode: "0750"
-
 - name: Create prospectus app folder
   file:
     path: "{{ prospectus_app_dir }}"
@@ -51,9 +44,8 @@
     repo: "{{ prospectus_repo }}"
     version: "{{ prospectus_version }}"
     accept_hostkey: yes
+    key_file: "{{ prospectus_git_identity }}"
   become_user: "{{ prospectus_user }}"
-  environment:
-    GIT_SSH: "{{ prospectus_git_ssh }}"
   register: prospectus_checkout
   when: PROSPECTUS_GIT_IDENTITY != "none"
 
@@ -87,7 +79,7 @@
 - name: Add prospectus configuration file
   template:
     src: ".env.environment.j2"
-    dest: "{{ prospectus_code_dir }}/config/.env.{{ PROSPECTUS_ENVIRONMENT }}"
+    dest: "{{ prospectus_code_dir }}/config/.env.keys"
     mode: "0644"
     owner: "{{ prospectus_user }}"
     group: "{{ prospectus_user }}"
@@ -131,7 +123,7 @@
     - install
     - install:app-requirements
 
-#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+# Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: install node dependencies
   shell: "{{ prospectus_nodeenv_bin }}/npm install --unsafe-perm=true --allow-root"
   args:
@@ -142,7 +134,7 @@
     - install
     - install:app-requirements
 
-#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+# Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: run prospectus build
   shell: "{{ prospectus_nodeenv_bin }}/npm run build"
   args:
@@ -152,6 +144,19 @@
   tags:
     - install
     - install:app-requirements
+
+- name: Install pngquant
+  apt:
+    name: "pngquant"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Compress images
+  shell: "find public -name '*.png' -exec pngquant --skip-if-larger --quality 50-75 --ext .png --force -- {} \\;"
+  args:
+    chdir: "{{ prospectus_code_dir }}"
+  become_user: "{{ prospectus_user }}"
 
 # Copy over the target from the previous build to where it needs to be
 - name: Create data folder
