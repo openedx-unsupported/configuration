@@ -20,7 +20,7 @@ test.syntax: test.syntax.yml test.syntax.json test.syntax.dockerfiles
 test.syntax.yml: $(patsubst %,test.syntax.yml/%,$(yml_files))
 
 test.syntax.yml/%:
-	python -c "import sys,yaml; yaml.load(open(sys.argv[1]))" $* >/dev/null
+	python -c "import sys,yaml; yaml.safe_load(open(sys.argv[1]))" $* >/dev/null
 
 test.syntax.json: $(patsubst %,test.syntax.json/%,$(json_files))
 

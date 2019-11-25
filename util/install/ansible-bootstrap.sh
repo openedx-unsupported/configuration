@@ -26,7 +26,7 @@ if [[ -z "${CONFIGURATION_REPO}" ]]; then
 fi
 
 if [[ -z "${CONFIGURATION_VERSION}" ]]; then
-  CONFIGURATION_VERSION="master"
+    CONFIGURATION_VERSION=${OPENEDX_RELEASE-master}
 fi
 
 if [[ -z "${UPGRADE_OS}" ]]; then
@@ -108,7 +108,7 @@ fi
 
 # Required for add-apt-repository
 apt-get install -y software-properties-common
-if [[ "${SHORT_DIST}" != bionic ]] ;then
+if [[ "${SHORT_DIST}" != bionic ]] && [[ "${SHORT_DIST}" != xenial ]];then
   apt-get install -y python-software-properties
 fi
 

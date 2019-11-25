@@ -41,9 +41,8 @@
     repo: "{{ edx_platform_repo }}"
     version: "{{ edx_platform_version }}"
     accept_hostkey: yes
+    key_file: "{% if EDXAPP_USE_GIT_IDENTITY %}{{ edxapp_git_identity }}{% endif %}"
   become_user: "{{ edxapp_user }}"
-  environment:
-    GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_platform_checkout
   tags:
     - install
@@ -68,10 +67,9 @@
     repo: "{{ edxapp_theme_source_repo }}"
     version: "{{ edxapp_theme_version }}"
     accept_hostkey: yes
+    key_file: "{% if EDXAPP_USE_GIT_IDENTITY %}{{ edxapp_git_identity }}{% endif %}"
   when: edxapp_theme_name != ''
   become_user: "{{ edxapp_user }}"
-  environment:
-    GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_theme_checkout
   tags:
     - install
@@ -217,12 +215,6 @@
     - install
     - install:app-requirements
 
-- name: create nodeenv
-  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt --force"
-  tags:
-    - install
-    - install:system-requirements
-
 # Set the npm registry
 # This needs to be done as root since npm is weird about
 # chown - https://github.com/npm/npm/issues/3565
@@ -247,7 +239,7 @@
 
 #install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: install node dependencies
-  shell: "{{ edxapp_nodeenv_bin }}/npm install"
+  shell: "npm install"
   args:
     chdir: "{{ edxapp_code_dir }}"
   environment: "{{ edxapp_environment }}"
@@ -321,6 +313,8 @@
     - "lms.sh"
     - "cms.sh"
     - "worker.sh"
+    - "reload_lms_config.sh"
+    - "reload_cms_config.sh"
   tags:
     - install
     - install:configuration
@@ -431,7 +425,7 @@
     - manage
 
 - name: create service worker users
-  shell: "{{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
@@ -442,7 +436,7 @@
     - manage:db
 
 - name: reindex all courses
-  shell: "{{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
@@ -455,8 +449,22 @@
   cron:
     name: "clear expired Django sessions"
     user: "{{ edxapp_user }}"
-    job: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
+    job: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
     hour: "{{ EDXAPP_CLEARSESSIONS_CRON_HOURS }}"
     minute: "{{ EDXAPP_CLEARSESSIONS_CRON_MINUTES }}"
     day: "*"
   when: EDXAPP_CLEARSESSIONS_CRON_ENABLED
+
+- name: install additional cron jobs
+  cron: "{{ item }}"
+  with_items: "{{ EDXAPP_ADDITIONAL_CRON_JOBS }}"
+
+- name: populate retirement states
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} populate_retirement_states"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: COMMON_RETIREMENT_SERVICE_SETUP | default(false)
+  tags:
+    - manage
+    - manage:db

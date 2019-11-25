@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+source {{ edx_notes_api_home }}/edx_notes_api_env
+COMMAND=$1
+
+case $COMMAND in
+    start)
+        /edx/app/supervisor/venvs/supervisor/bin/supervisord -n --configuration /edx/app/supervisor/supervisord.conf
+        ;;
+    open)
+        . {{ edx_notes_api_venv_bin }}/activate
+        cd {{ edx_notes_api_code_dir }}
+
+        /bin/bash
+        ;;
+    exec)
+        shift
+
+        . {{ edx_notes_api_venv_bin }}/activate
+        cd {{ edx_notes_api_code_dir }}
+
+        "$@"
+        ;;
+    *)
+        "$@"
+        ;;
+esac

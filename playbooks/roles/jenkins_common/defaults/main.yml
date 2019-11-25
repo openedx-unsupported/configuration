@@ -1,5 +1,6 @@
 jenkins_common_user: jenkins
 jenkins_common_group: jenkins
+jenkins_common_groups: '{{ jenkins_common_group }}'
 jenkins_common_home: /var/lib/jenkins
 jenkins_common_config_path: '{{ jenkins_common_home }}/init-configs'
 jenkins_common_port: 8080
@@ -9,6 +10,7 @@ jenkins_common_nginx_port: 80
 jenkins_common_protocol_https: true
 
 JENKINS_SERVER_NAME: jenkins.example.org
+jenkins_node_usage: EXCLUSIVE
 
 jenkins_common_debian_pkgs:
   - nginx
@@ -47,9 +49,13 @@ jenkins_common_non_plugin_template_files:
   - seed_config
   - slack_config
   - splunk_config
+  - timestamper_config
 
 # Jenkins default config values
 jenkins_common_jvm_args: ''
+
+# Users
+JENKINS_USER_LIST: []
 
 # main
 jenkins_common_main_system_message: ''
@@ -97,8 +103,9 @@ jenkins_common_instance_cap: ''
 
 JENKINS_EC2_PRIVATE_KEY: ''
 JENKINS_EC2_REGION: ''
-JENKINS_EC2_ACCESS_KEY_ID: ''
-JENKINS_EC2_SECRET_ACCESS_KEY: ''
+JENKINS_EC2_CREDENTIAL_ID: ''
+JENKINS_EC2_ROLE_ARN: ''
+JENKINS_EC2_ROLE_SESSION_NAME: ''
 JENKINS_EC2_AMIS: []
 
 # ghprb
@@ -142,6 +149,7 @@ JENKINS_USERNAME_PASSWORD_LIST: []
 JENKINS_SECRET_TEXT_LIST: []
 JENKINS_CERTIFICATES_LIST: []
 JENKINS_SSH_LIST: []
+JENKINS_AWS_LIST: []
 
 # security
 jenkins_common_dsl_script_security_enabled: true
@@ -182,6 +190,7 @@ JENKINS_HIPCHAT_API_TOKEN: ''
 # seed
 jenkins_common_seed_name: 'seed_job'
 jenkins_common_seed_path: '{{ jenkins_common_config_path }}/xml/seed_job.xml'
+jenkins_common_seed_job_source: '{{ role_path }}/files/xml/*'
 
 # logs
 jenkins_common_log_list:
@@ -242,6 +251,21 @@ jenkins_common_email_default_postsend_script_path: ''
 JENKINS_MASK_PASSWORDS_CLASSES: []
 JENKINS_MASK_PASSWORDS_PAIRS: []
 
+# SAML
+JENKINS_SAML_IDP_METADATA: |
+    <xml> dummy data </xml>
+JENKINS_SAML_DISPLAY_NAME_ATTRIBUTE: ''
+JENKINS_SAML_GROUP_ATTRIBUTE: ''
+JENKINS_SAML_MAX_AUTH_LIFETIME_SECONDS: 60
+JENKINS_SAML_USERNAME_ATTRIBUTE: ''
+JENKINS_SAML_EMAIL_ATTRIBUTE: ''
+JENKINS_SAML_LOGOUT_URL: ''
+JENKINS_SAML_ADVANCED_CONFIGURATION: {}
+JENKINS_SAML_ENCRYPTION_DATA: {}
+JENKINS_SAML_USERNAME_CASE_CONVENTION: 'None'
+JENKINS_SAML_BINDING: 'POST'
+JENKINS_SAML_CUSTOM_ATTRIBUTES: []
+
 # SLACK
 JENKINS_SLACK_BASE_URL: ''
 JENKINS_IS_SLACK_BOT: 'true'
@@ -261,11 +285,13 @@ jenkins_common_splunk_event_source: ''
 jenkins_common_splunk_script_type: 'path'
 jenkins_common_splunk_script_path: ''
 jenkins_common_splunk_file_path: '{{ role_path }}/files/splunk/*'
-jenkins_common_splunk_metadata:
-    - data_source: 'Default'
-      config_item: 'Source Type'
-      value: 'json:jenkins:old'
+jenkins_common_splunk_metadata: []
 JENKINS_SPLUNK_HOSTNAME: ''
 JENKINS_SPLUNK_PORT: 8088
 JENKINS_SPLUNK_APP_URL: ''
 JENKINS_SPLUNK_TOKEN: ''
+
+# timestamper
+jenkins_common_timestamper_system_clock_format: "'<b>'HH:mm:ss'</b> '"
+jenkins_common_timestamper_elapsed_time_format: "'<b>'HH:mm:ss.S'</b> '"
+jenkins_common_timestamper_enabled_on_pipelines: true

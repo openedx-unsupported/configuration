@@ -1,8 +1,9 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import boto.ec2
 from boto.utils import get_instance_metadata, get_instance_identity
 from boto.exception import AWSConnectionError
-import hipchat
 import os
 import subprocess
 import traceback
@@ -19,13 +20,12 @@ MIGRATION_COMMANDS = {
         'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
         'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
         'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
-        'journals':     ". {env_file}; sudo -E -u journals {python} {code_dir}/manage.py showmigrations",
+        'registrar':     ". {env_file}; sudo -E -u registrar {python} {code_dir}/manage.py showmigrations",
     }
 NGINX_ENABLE = {
         'lms':  "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
         'cms':  "sudo ln -sf /edx/app/nginx/sites-available/cms /etc/nginx/sites-enabled/cms",
     }
-HIPCHAT_USER = "PreSupervisor"
 
 # Max amount of time to wait for tags to be applied.
 MAX_BACKOFF = 120
@@ -120,15 +120,14 @@ if __name__ == '__main__':
     discovery_migration_args.add_argument("--discovery-code-dir",
         help="Location of the discovery code.")
 
-    journals_migration_args = parser.add_argument_group("journals_migrations",
-            "Args for running journals migration checks.")
-    journals_migration_args.add_argument("--journals-python",
+    registrar_migration_args = parser.add_argument_group("registrar_migrations",
+            "Args for running registrar migration checks.")
+    registrar_migration_args.add_argument("--registrar-python",
         help="Path to python to use for executing migration check.")
-    journals_migration_args.add_argument("--journals-env",
-        help="Location of the journals environment file.")
-    journals_migration_args.add_argument("--journals-code-dir",
-        help="Location of the journals code.")
-
+    registrar_migration_args.add_argument("--registrar-env",
+        help="Location of the registrar environment file.")
+    registrar_migration_args.add_argument("--registrar-code-dir",
+        help="Location of the registrar code.")
 
     insights_migration_args = parser.add_argument_group("insights_migrations",
             "Args for running insights migration checks.")
@@ -148,41 +147,10 @@ if __name__ == '__main__':
     analyticsapi_migration_args.add_argument("--analytics-api-code-dir",
         help="Location of the analytics_api code.")
 
-    hipchat_args = parser.add_argument_group("hipchat",
-            "Args for hipchat notification.")
-    hipchat_args.add_argument("-c","--hipchat-api-key",
-        help="Hipchat token if you want to receive notifications via hipchat.")
-    hipchat_args.add_argument("-r","--hipchat-room",
-        help="Room to send messages to.")
-
     args = parser.parse_args()
 
     report = []
     prefix = None
-    notify = None
-
-    try:
-        if args.hipchat_api_key:
-            hc = hipchat.HipChat(token=args.hipchat_api_key)
-            def notify(message):
-               RETRIES = 3
-               last_exception = None
-               for _ in range(RETRIES):
-                    try:
-                        hc.message_room(
-                            room_id=args.hipchat_room,
-                            message_from=HIPCHAT_USER, message=message
-                        )
-                        break
-                    except Exception as e:
-                        last_exception = e
-               else:
-                   print("Failed to send message on HipChat, {}".format(last_exception))
-                   traceback.print_exc()
-
-    except Exception as e:
-        print("Failed to initialize hipchat, {}".format(e))
-        traceback.print_exc()
 
     instance_id = get_instance_metadata()['instance-id']
     prefix = instance_id
@@ -211,7 +179,7 @@ if __name__ == '__main__':
                 instance_id=instance_id)
             break
         except Exception as e:
-            print("Failed to get EDP for {}: {}".format(instance_id, str(e)))
+            print(("Failed to get EDP for {}: {}".format(instance_id, str(e))))
             # With the time limit being 2 minutes we will
             # try 5 times before giving up.
             time.sleep(backoff)
@@ -221,12 +189,12 @@ if __name__ == '__main__':
     if environment is None or deployment is None or play is None:
         msg = "Unable to retrieve environment, deployment, or play tag."
         print(msg)
-        if notify:
-            notify("{} : {}".format(prefix, msg))
-        exit(0)
+        exit(1)
 
     #get the hostname of the sandbox
     hostname = socket.gethostname()
+
+    ami_id = get_instance_metadata()['ami-id']
 
     try:
         #get the list of the volumes, that are attached to the instance
@@ -238,12 +206,11 @@ if __name__ == '__main__':
                              "deployment": deployment,
                              "cluster": play,
                              "instance-id": instance_id,
+                             "ami-id": ami_id,
                              "created": volume.create_time })
     except Exception as e:
         msg = "Failed to tag volumes associated with {}: {}".format(instance_id, str(e))
         print(msg)
-        if notify:
-            notify(msg)
 
     try:
         for service in services_for_instance(instance_id):
@@ -260,7 +227,7 @@ if __name__ == '__main__':
                     "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
                     "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
                     "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
-                    "journals": {'python': args.journals_python, 'env_file': args.journals_env, 'code_dir': args.journals_code_dir},                    
+                    "registrar": {'python': args.registrar_python, 'env_file': args.registrar_env, 'code_dir': args.registrar_code_dir},
                     "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
                     "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir},
                     "xqueue": {'python': args.xqueue_python, 'env_file': args.xqueue_env, 'code_dir': args.xqueue_code_dir},
@@ -289,19 +256,12 @@ if __name__ == '__main__':
 
     except AWSConnectionError as ae:
         msg = "{}: ERROR : {}".format(prefix, ae)
-        if notify:
-            notify(msg)
-            notify(traceback.format_exc())
         raise ae
     except Exception as e:
         msg = "{}: ERROR : {}".format(prefix, e)
         print(msg)
-        if notify:
-            notify(msg)
         traceback.print_exc()
         raise e
     else:
         msg = "{}: {}".format(prefix, " | ".join(report))
         print(msg)
-        if notify:
-            notify(msg)

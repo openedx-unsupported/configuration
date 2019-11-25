@@ -8,6 +8,7 @@
   become: True
   gather_facts: True
   vars:
+    - env_path: /edx/app/edxapp/edxapp_env
     - edxapp_venv_dir: "/edx/app/edxapp/venvs/edxapp"
     - edxapp_code_dir: "/edx/app/edxapp/edx-platform"
     - edxapp_deploy_path: "{{ edxapp_venv_dir }}/bin:{{ edxapp_code_dir }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -31,7 +32,7 @@
 
     - name: migrate
       shell: >
-        {{ edxapp_venv_dir }}/bin/python manage.py lms migrate --settings=aws --noinput
+        . {{env_path}} && {{ edxapp_venv_dir }}/bin/python manage.py lms migrate --settings=production --noinput
         chdir={{ edxapp_code_dir }}
       environment:
         DB_MIGRATION_USER: "{{ edxapp_mysql_user }}"

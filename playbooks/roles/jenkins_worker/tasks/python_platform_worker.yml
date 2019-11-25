@@ -13,25 +13,73 @@
     depth: 1
   become_user: "{{ jenkins_user }}"
 
+# In order to create multiple virtualenvs with the same name,
+# put them into separate directories
+- name: Create directories for virtualenvs to avoid naming collisions
+  file:
+    path: "{{ jenkins_home }}/edx-venv-{{ item }}"
+    state: directory
+  with_items: "{{ jenkins_worker_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
+# Combine testing and django requirements files for single virtualenv invocation
+- name: Combine requirements files
+  shell: "cat {{ jenkins_home }}/shallow-clone/requirements/edx/testing.txt {{ jenkins_home }}/shallow-clone/requirements/edx/django.txt > {{ jenkins_home }}/shallow-clone/requirements/edx/jenkins.txt"
+  become_user: "{{ jenkins_user }}"
+
 # Install the platform requirements using pip.
 - name: Install edx-platform requirements using pip
   pip:
     chdir: "{{ jenkins_home }}/shallow-clone"
-    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/jenkins.txt"
     extra_args: "--exists-action=w"
-    virtualenv: "{{ jenkins_home }}/edx-venv"
+    virtualenv: "{{ jenkins_home }}/edx-venv-{{ item }}/edx-venv"
     virtualenv_command: virtualenv
-  with_items:
-    - django.txt
-    - testing.txt
+    virtualenv_python: "python{{ item }}"
+  with_items: "{{ jenkins_worker_python_versions }}"
   become_user: "{{ jenkins_user }}"
 
-# Archive the current state of the virtualenv
+# Archive the current state of each of the virtualenvs
 # as a starting point for new builds.
-# The edx-venv directory is deleted and then recreated
+# The edx-venv-x directory is deleted and then recreated
 # cleanly from the archive by the jenkins build scripts.
 - name: Create a clean virtualenv archive
-  command: "tar -cpzf edx-venv_clean.tar.gz edx-venv"
+  command: "tar -C edx-venv-{{ item }} -cpzf edx-venv_clean-{{ item }}.tar.gz edx-venv"
+  args:
+    chdir: "{{ jenkins_home }}"
+  with_items: "{{ jenkins_worker_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
+# Temporary fix: make a copy of the python 2.7 virtualenv with a
+# generic name to avoid breaking older PRs
+- name: Make copy of py2.7 virtualenv tarball
+  command: "cp edx-venv_clean-2.7.tar.gz edx-venv_clean.tar.gz"
+  args:
+    chdir: "{{ jenkins_home }}"
+  become_user: "{{ jenkins_user }}"
+
+- name: Add script to set install node packages
+  template:
+    src: jenkins_nodeenv.j2
+    dest: "{{ jenkins_home }}/jenkins_nodeenv"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "0500"
+  when: platform_worker is defined
+
+# Using the nodeenv package, install the version of node used in
+# the platform CI tests, then install the platform npm packages.
+- name: Install node packages for caching
+  command: "bash {{ jenkins_home }}/jenkins_nodeenv"
+  become_user: "{{ jenkins_user }}"
+
+# Archive the current state of the npm cache as a starting
+# point for new builds. Most builds don't introduce package
+# changes, so npm won't need to fetch anything from a remote
+# registry. This should reduce the frequency of hanging
+# npm installs (see https://openedx.atlassian.net/browse/TE-2732)
+- name: Create a clean npm cache archive
+  command: "tar -cpzf edx-npm-cache_clean.tar.gz .npm"
   args:
     chdir: "{{ jenkins_home }}"
   become_user: "{{ jenkins_user }}"

@@ -1,39 +1,11 @@
 Configuration Management
 ########################
 
-Introduction
-************
-
-The goal of the edx/configuration project is to provide a simple, but flexible,
-way for anyone to stand up an instance of Open edX that is fully configured and
-ready-to-go.
-
-Before getting started, please look at the `Open EdX Installation options`_, to
-see which method for deploying OpenEdX is right for you.
-
-Building the platform takes place in two phases:
-
--  Infrastructure provisioning
--  Service configuration
-
-As much as possible, we have tried to keep a clean distinction between
-provisioning and configuration. You are not obliged to use our tools and are
-free to use one, but not the other. The provisioning phase stands-up the
-required resources and tags them with role identifiers so that the
-configuration tool can come in and complete the job.
-
-**Note**: The Cloudformation templates used for infrastructure provisioning are
-no longer maintained. We are working to move to a more modern and flexible
-tool.
-
-The reference platform is provisioned using an Amazon `CloudFormation`_
-template. When the stack has been fully created you will have a new AWS Virtual
-Private Cloud with hosts for the core Open edX services. This template will
-build quite a number of AWS resources that cost money, so please consider this
-before you start.
-
-The configuration phase is managed by `Ansible`_. We have provided a number of
-playbooks that will configure each of the Open edX services.
+This repository is a collection of tools and scripts that edx.org uses to deploy 
+openedx. The purpose of this repository is to share portions of our toolchain
+with the community. This repository is *not* the best way to get started running 
+openedx. For that, please look at `Open EdX Installation options`_, which contains
+links to the recommended paths for new installations.
 
 **Important**: The Open edX configuration scripts need to be run as root on
 your servers and will make changes to service configurations including, but not
@@ -44,13 +16,54 @@ them against your servers. We also recommend against running them against
 servers that are hosting other applications. No warranty is expressed or
 implied.
 
-For more information including installation instruction please see the `OpenEdX
+For more information including installation instructions please see the `OpenEdX
 Wiki`_.
 
 For info on any large recent changes please see the `change log`_.
 
+What is in this Repo?
+*********************
+
+* `playbooks </playbooks>`__: This directory contains ansible playbooks that can
+  be used to configure individual services in the openedx platform. See
+  `Open EdX Installation options`_ before trying to use any of the scripts in
+  this directory.
+* `docker </docker>`__: This directory contains dockerfiles that can be used to 
+  test that playbooks execute cleanly.  See `Makefiles <Makefiles.rst>`__ for
+  Documentation on how to run these containers.
+* `requirements </requirements>`__ : inputs for `pip-compile <https://github.com/jazzband/pip-tools>`__
+  Update files in this directory and then run ``make upgrade`` to update
+  ``requirements.txt``
+* `tests </tests>`__: scripts used by travis-ci to test changes to this repo
+* `util </util>`__: one-off scripts or tools used to perform certain functions
+  related to openedx management.
+* `vagrant </vagrant>`__: vagrant tooling for testing changes to this repo.
+
+
+Roadmap
+*******
+
+This repository is in ``sustained`` status.  The goal is to deprecate this codebase
+and move the deployment code into the repos with the application code. 
+
+With the adoption of containerized application platforms like `Kubernetes 
+<https://kubernetes.io/>`__, the tools in this repository are complex 
+and inappropriate for building small single purpose containers.
+
+At edx.org, we are focusing on deployment of applications using `Terraform 
+<https://www.terraform.io/>`__ and `Kubernetes <https://kubernetes.io/>`__.  We
+hope to provide open source tooling for this soon.
+
+
+Contributing
+************
+
+* Bugfixes: If you would like to contribute a bugfix to this codebase, please open
+  a pull request. A bot will automatically walk your contribution through the 
+  `Open Source Contribution process <https://edx-developer-guide.readthedocs.io/en/latest/process/overview.html>`__.
+
+
 .. _Open EdX Installation options: https://open.edx.org/installation-options
-.. _CloudFormation: http://aws.amazon.com/cloudformation/
 .. _Ansible: http://ansible.com/
 .. _OpenEdX Wiki: https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home
 .. _change log: https://github.com/edx/configuration/blob/master/CHANGELOG.md

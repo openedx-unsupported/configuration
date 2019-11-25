@@ -1,13 +1,18 @@
 FROM uhopper/hadoop:2.7.2
-MAINTAINER edxops
+LABEL maintainer="edxops"
+
+RUN echo "deb http://deb.debian.org/debian buster-backports main" > /etc/apt/sources.list.d/backports.list
+
+RUN \
+echo "deb http://mirrors.linode.com/debian/ stretch main" > /etc/apt/sources.list && \
+echo "deb-src http://mirrors.linode.com/debian/ stretch main" >> /etc/apt/sources.list && \
+echo "deb http://mirrors.linode.com/debian-security/ stretch/updates main" >> /etc/apt/sources.list && \
+echo "deb-src http://mirrors.linode.com/debian-security/ stretch/updates main" >> /etc/apt/sources.list && \
+echo "deb http://mirrors.linode.com/debian/ stretch-updates main" >> /etc/apt/sources.list && \
+echo "deb-src http://mirrors.linode.com/debian/ stretch-updates main" >> /etc/apt/sources.list
 
 ENV MYSQL_VERSION=5.6 DEBIAN_FRONTEND=noninteractive
 WORKDIR /tmp
-RUN \
-  echo "deb http://ftp.de.debian.org/debian/ stretch main non-free contrib\n" > /etc/apt/sources.list && \
-  echo "deb-src http://ftp.de.debian.org/debian/ stretch main non-free contrib\n" >> /etc/apt/sources.list && \
-  echo "deb http://security.debian.org/ stretch/updates main contrib non-free\n" >> /etc/apt/sources.list && \
-  echo "deb-src http://security.debian.org/ stretch/updates main contrib non-free" >> /etc/apt/sources.list
 
 RUN apt-get -y update
 RUN apt-get -yqq install apt-transport-https lsb-release ca-certificates gnupg2

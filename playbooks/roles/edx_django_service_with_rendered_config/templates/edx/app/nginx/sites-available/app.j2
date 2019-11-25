@@ -1,0 +1,34 @@
+#
+# {{ ansible_managed }}
+#
+
+{% include "concerns/upstream.j2"%}
+{% include "concerns/cors-build-map.j2" %}
+
+server {
+  server_name {{ edx_django_service_with_rendered_config_hostname }};
+  listen {{ edx_django_service_with_rendered_config_nginx_port }};
+
+{% if NGINX_ENABLE_SSL %}
+  {% include "concerns/handle-ip-disclosure.j2" %}
+  rewrite ^ https://$host$request_uri? permanent;
+{% else %}  
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+    {% include "concerns/handle-tls-terminated-elsewhere-ip-disclosure.j2" %}
+    {% include "concerns/handle-tls-terminated-elsewhere-redirect.j2" %}
+  {% endif %}
+  {% include "concerns/app-common.j2" %}
+{% endif %}
+}
+
+{% if NGINX_ENABLE_SSL %}
+server {
+  server_name {{ edx_django_service_with_rendered_config_hostname }};
+  listen {{ edx_django_service_with_rendered_config_ssl_nginx_port }} ssl;
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% include "concerns/app-common.j2" %}
+}
+{% endif %}

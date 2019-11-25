@@ -9,7 +9,7 @@
 
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/xqwatcher/ansible_overrides.yml /
@@ -23,4 +23,5 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook xqwatcher.yml \
     --extra-vars="XQWATCHER_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
 WORKDIR /edx/app
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+CMD ["start"]

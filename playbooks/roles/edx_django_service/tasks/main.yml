@@ -88,6 +88,16 @@
     - install
     - install:system-requirements
 
+- name: upgrade npm
+  command: "npm install -g npm@{{ edx_django_service_npm_version }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+  when: edx_django_service_npm_version is defined
+
+
 - name: install production requirements
   command: make production-requirements
   args:
@@ -130,7 +140,7 @@
   become_user: "{{ edx_django_service_user }}"
   environment: "{{ edx_django_service_environment }}"
   with_items: '{{ edx_django_service_post_migrate_commands }}'
-  when: migrate_db is defined and migrate_db|lower == "yes" and item.when | bool
+  when: migrate_db is defined and migrate_db|lower == "yes" and item.when|bool
   run_once: yes
   tags:
     - migrate
@@ -283,3 +293,14 @@
   tags:
     - install
     - install:vhosts
+
+- name: Include JWT signature setting in the app config file
+  include_role:
+    name: jwt_signature
+  when: edx_django_service_sandbox_build
+  vars:
+     app_name: '{{ edx_django_service_name }}'
+     app_config_file: "{{ COMMON_CFG_DIR  }}/{{ edx_django_service_name }}.yml"
+     app_config_owner: root
+     app_config_group: root
+     app_config_mode: 0644

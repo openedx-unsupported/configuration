@@ -8,6 +8,8 @@ all_images:=$(patsubst docker/build/%/Dockerfile,%,$(dockerfiles))
 
 # Used in the test.mk file as well.
 images:=$(if $(TRAVIS_COMMIT_RANGE),$(shell git diff --name-only $(TRAVIS_COMMIT_RANGE) | python util/parsefiles.py),$(all_images))
+# Only use images that actually contain a Dockerfile
+images:=$(shell echo "$(all_images) $(images)" | tr " " "\n" | sort | uniq -d)
 
 docker_build=docker.build.
 docker_test=docker.test.
@@ -77,8 +79,13 @@ $(docker_push)%: $(docker_pkg)%
 
 .build/%/Dockerfile.d: docker/build/%/Dockerfile Makefile
 	@mkdir -p .build/$*
-	$(eval FROM=$(shell grep "^\s*FROM" $< | sed -E "s/FROM //" | sed -E "s/:/@/g"))
+	$(eval BASE_IMAGE_TAG=$(shell grep "^\s*ARG BASE_IMAGE_TAG" $< | sed -E "s/ARG BASE_IMAGE_TAG=//"))
+	@# I have no idea why the final sed is eating the first character of the substitution...
+	$(eval FROM=$(shell grep "^\s*FROM" docker/build/ecommerce/Dockerfile  | sed -E "s/FROM //" | sed -E "s/:/@/g" | sed -E 's/\$\{BASE_IMAGE_TAG\}/ $(BASE_IMAGE_TAG)/'))
 	$(eval EDXOPS_FROM=$(shell echo "$(FROM)" | sed -E "s#edxops/([^@]+)(@.*)?#\1#"))
+	@echo "Base Image Tag: $(BASE_IMAGE_TAG)"
+	@echo $(FROM)
+	@echo $(EDXOPS_FROM)
 	@echo "$(docker_build)$*: $(docker_pull)$(FROM)" > $@
 	@if [ "$(EDXOPS_FROM)" != "$(FROM)" ]; then \
 	echo "$(docker_test)$*: $(docker_test)$(EDXOPS_FROM:@%=)" >> $@; \

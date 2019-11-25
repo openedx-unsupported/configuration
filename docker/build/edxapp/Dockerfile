@@ -9,16 +9,17 @@
 
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
-MAINTAINER edxops
+LABEL maintainer="edxops"
 USER root
-CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configuration", "/edx/app/supervisor/supervisord.conf"]
+ENTRYPOINT ["/edx/app/edxapp/devstack.sh"]
+CMD ["start"]
 
 ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/edxapp/ansible_overrides.yml /
 COPY docker/build/edxapp/devstack.yml /
-COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
+COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}

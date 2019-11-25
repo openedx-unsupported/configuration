@@ -9,7 +9,7 @@
 
 ARG BASE_IMAGE_TAG=latest
 FROM edxops/xenial-common:${BASE_IMAGE_TAG}
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
 ARG ARG_DEVPI_SERVER_VERSION=4.4.0
 ARG ARG_DEVPI_WEB_VERSION=3.2.2
@@ -21,7 +21,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 RUN apt-get update
 
-COPY docker/build/devstack/ansible_overrides.yml /devstack/ansible_overrides.yml
+COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.yml
 
 RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook devpi.yml \
     -c local -i '127.0.0.1,' \

@@ -3,7 +3,7 @@
 # Read a list of Ansible variables that should have generated values, and make
 # a new file just like it, with the generated values.
 
-TARGET=${OPENEDX_RELEASE-master}
+TARGET=${CONFIGURATION_VERSION-${OPENEDX_RELEASE-master}}
 wget -q "https://raw.githubusercontent.com/edx/configuration/$TARGET/playbooks/sample_vars/passwords.yml" -O passwords-template.yml
 
 while IFS= read -r line; do

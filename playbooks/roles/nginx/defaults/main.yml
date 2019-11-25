@@ -13,6 +13,11 @@ nginx_extra_configs: []
 NGINX_EDXAPP_EXTRA_SITES: []
 NGINX_EDXAPP_EXTRA_CONFIGS: []
 
+# Override these vars to alter the memory allocated to map_hash
+NGINX_OVERRIDE_DEFAULT_MAP_HASH_SIZE: False
+NGINX_MAP_HASH_MAX_SIZE: 2048
+NGINX_MAP_HASH_BUCKET_SIZE: 64
+
 # Override these vars for adding user to nginx.htpasswd
 NGINX_USERS:
   - name: "{{ COMMON_HTPASSWD_USER }}"
@@ -42,6 +47,10 @@ NGINX_SSL_PROTOCOLS: "TLSv1 TLSv1.1 TLSv1.2"
 NGINX_DH_PARAMS_PATH: "/etc/ssl/private/dhparams.pem"
 NGINX_DH_KEYSIZE: 2048
 
+# This can be one of 'p_combined' or 'ssl_combined' by default. If you
+# wish to specify your own format then define it in a configuration file
+# located under `nginx_conf_dir` and then use the format name specified
+# in your configuration file.
 NGINX_LOG_FORMAT_NAME: 'p_combined'
 # When set to False, nginx will pass X-Forwarded-For, X-Forwarded-Port,
 # and X-Forwarded-Proto headers through to the backend unmodified.
@@ -91,6 +100,10 @@ NGINX_SERVER_HTML_FILES:
     style_p: "{{ NGINX_SERVER_ERROR_STYLE_P }}"
     style_div: "{{ NGINX_SERVER_ERROR_STYLE_DIV }}"
 
+195
+NGINX_DJANGO_ADMIN_ACCESS_CIDRS: []
+196
+​
 NGINX_SERVER_STATIC_FILES: []
 
 NGINX_APT_REPO: deb http://nginx.org/packages/ubuntu/ {{ ansible_distribution_release }} nginx
@@ -117,6 +130,8 @@ NGINX_EDXAPP_ERROR_PAGES:
   "504": "{{ nginx_default_error_page }}"
 
 NGINX_EDXAPP_PROXY_INTERCEPT_ERRORS: false
+
+NGINX_EDXAPP_FAVICON_PATH: "/static/{{ NGINX_EDXAPP_DEFAULT_SITE_THEME }}images/favicon.ico"
 
 CMS_HOSTNAME: '~^((stage|prod)-)?studio.*'
 
@@ -180,10 +195,14 @@ NGINX_EDXAPP_CMS_APP_EXTRA: ""
 # Extra settings to add to site configuration for LMS
 NGINX_EDXAPP_LMS_APP_EXTRA: ""
 
-NGINX_DJANGO_ADMIN_ACCESS_CIDRS: []
-
 # If comprehensive theme enabled, write down the name of
 # the theme as in EDXAPP_DEFAULT_SITE_THEME ending with /
 # to allow to override favicon properly.
 # Example: "your-site-theme/"
 NGINX_EDXAPP_DEFAULT_SITE_THEME: ""
+
+# List of subnet or IP addressess to allow to access admin endpoints
+NGINX_ADMIN_ACCESS_CIDRS: []
+
+# Set trusted network subnets or IP addresses to send correct replacement addresses
+NGINX_TRUSTED_IP_CIDRS: "0.0.0.0/0"

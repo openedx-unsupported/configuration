@@ -1,0 +1,118 @@
+---
+# Tasks for role jenkins_data_engineering
+#
+# Overview:
+#
+# This role sets up a Jenkins Instance for analytics tasks.
+
+- name: Setting the hostname
+  hostname:
+    name: "{{ jenkins_host_name }}"
+
+- name: install jenkins analytics extra system packages
+  apt:
+    pkg={{ item }} state=present update_cache=yes
+  with_items: "{{ JENKINS_DATA_ENGINEERING_EXTRA_PKGS }}"
+  tags:
+  - jenkins
+
+- name: Create /edx/var/edxapp dir
+  file:
+    path: "/edx/var/edxapp"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 0755
+  tags:
+    - jenkins-edxapp
+
+- name: create directory
+  file:
+    path: "/home/{{ jenkins_user }}/.ssh"
+    state: directory
+    owner: '{{ jenkins_user }}'
+    group: '{{ jenkins_group }}'
+  tags:
+    - jenkins-auth
+
+- copy:
+    src: '{{ JENKINS_DATA_ENGINEERING_AUTOMATION_PRIVATE_KEY_SOURCE_PATH }}'
+    dest: '{{ jenkins_private_keyfile }}'
+    owner: '{{ jenkins_user }}'
+    group: '{{ jenkins_group }}'
+    mode: 0600
+  tags:
+    - jenkins-auth
+
+- copy:
+    src: '{{ JENKINS_DATA_ENGINEERING_AUTOMATION_PUBLIC_KEY_SOURCE_PATH }}'
+    dest: '{{ jenkins_public_keyfile }}'
+    owner: '{{ jenkins_user }}'
+    group: '{{ jenkins_group }}'
+    mode: 0600
+  tags:
+    - jenkins-auth
+
+- name: jenkins user config dir
+  file:
+    name: "{{ jenkins_home }}/users/{{ jenkins_user }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  tags:
+    - jenkins-auth
+
+- name: template jenkins user config.xml
+  template:
+    src: jenkins.user.config.xml
+    dest: "{{ jenkins_home }}/users/{{ jenkins_user }}/config.xml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    force: no  # don't overwrite if already there
+  tags:
+    - jenkins-auth
+
+- name: fetch jenkins user public key
+  shell: "cat {{ jenkins_public_keyfile }}"
+  register: jenkins_public_key
+  tags:
+    - jenkins-auth
+
+- name: add jenkins user public key
+  lineinfile:
+    dest: "{{ jenkins_home }}/users/{{ jenkins_user }}/config.xml"
+    state: present
+    regexp: "^\\s*<authorizedKeys>"
+    line: "<authorizedKeys>{{ jenkins_public_key.stdout }}</authorizedKeys>"
+  tags:
+    - jenkins-auth
+
+- name: Wait for Jenkins to start up before proceeding.
+  shell: "curl -D - --silent --max-time 5 {{ JENKINS_MAIN_URL }}cli/"
+  register: result
+  until: (result.stdout.find("403 Forbidden") != -1) or (result.stdout.find("200 OK") != -1) and (result.stdout.find("Please wait while") == -1)
+  retries: 60
+  delay: 10
+  changed_when: false
+  check_mode: no
+  tags:
+    - jenkins-auth
+
+- name: wipe initialization scripts from jenkins_commons
+  file:
+    path: '{{ jenkins_home }}/init.groovy.d/'
+    state: absent
+  tags:
+    - jenkins-auth
+
+- name: wipe initialization configuration files from jenkins_commons
+  file:
+    path: '{{ jenkins_home }}/init-configs/'
+    state: absent
+  tags:
+    - jenkins-auth
+
+- name: restart Jenkins
+  service: name=jenkins state=restarted
+  tags:
+    - jenkins-auth

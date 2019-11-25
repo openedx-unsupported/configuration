@@ -25,6 +25,8 @@ from __future__ import (absolute_import, division, print_function)
 from ansible import errors
 from copy import copy
 import re
+import six
+from six.moves import map
 
 
 def _str_is_bool(data):
@@ -167,7 +169,7 @@ def encode_apache(
 
     elif block_type == 'options':
         for o in data:
-            for key, val in sorted(o.iteritems()):
+            for key, val in sorted(six.iteritems(o)):
                 rv += "%s%s " % (indent * (level-1), key)
                 rv += encode_apache(
                     val,
@@ -195,7 +197,7 @@ def encode_apache(
             else:
                 rv += str(data)
 
-        elif isinstance(data, basestring):
+        elif isinstance(data, six.string_types):
             # Value is a string
             if (
                     quote_all_strings or
@@ -242,7 +244,7 @@ def encode_erlang(
 
         rv += "\n"
 
-        for key, val in sorted(data.iteritems()):
+        for key, val in sorted(six.iteritems(data)):
             rv += "%s{%s," % (indent*level, key)
 
             if not isinstance(val, dict):
@@ -266,7 +268,7 @@ def encode_erlang(
 
         rv += str(data).lower()
 
-    elif isinstance(data, basestring):
+    elif isinstance(data, six.string_types):
         # It's a string
 
         atom_len = len(atom_value_indicator)
@@ -287,7 +289,7 @@ def encode_erlang(
 
         for val in data:
             if (
-                    isinstance(val, basestring) or
+                    isinstance(val, six.string_types) or
                     _is_num(val)):
                 rv += "\n%s" % (indent*level)
 
@@ -336,10 +338,10 @@ def encode_haproxy(data, indent="  "):
 
         if isinstance(section, dict):
             # It's a section
-            rv += "%s\n" % section.keys()[0]
+            rv += "%s\n" % list(section.keys())[0]
 
             # Process all parameters of the section
-            for param in section.values()[0]:
+            for param in list(section.values())[0]:
                 rv += "%s%s\n" % (indent, param)
         else:
             # It's a comment of a parameter
@@ -358,7 +360,7 @@ def encode_ini(
     rv = ""
 
     # First process all standalone properties
-    for prop, val in sorted(data.iteritems()):
+    for prop, val in sorted(six.iteritems(data)):
         if ucase_prop:
             prop = prop.upper()
 
@@ -375,7 +377,7 @@ def encode_ini(
                     prop, delimiter, quote, _escape(item, quote), quote)
 
     # Then process all sections
-    for section, props in sorted(data.iteritems()):
+    for section, props in sorted(six.iteritems(data)):
         if isinstance(props, dict):
             if rv != "":
                 rv += "\n"
@@ -411,7 +413,7 @@ def encode_json(
         if len(data) > 0:
             rv += "\n"
 
-        items = sorted(data.iteritems())
+        items = sorted(six.iteritems(data))
 
         for key, val in items:
             rv += '%s"%s": ' % (indent * (level+1), key)
@@ -445,7 +447,7 @@ def encode_json(
 
         rv += str(data).lower()
 
-    elif isinstance(data, basestring):
+    elif isinstance(data, six.string_types):
         # It's a string
 
         rv += '"%s"' % _escape(_escape(data), format='control')
@@ -495,7 +497,7 @@ def encode_logstash(
         if prevtype in ('value', 'value_hash', 'array'):
             rv += "{\n"
 
-        items = sorted(data.iteritems())
+        items = sorted(six.iteritems(data))
 
         for key, val in items:
             if key[0] == section_prefix:
@@ -511,11 +513,11 @@ def encode_logstash(
                 # Last item of the loop
                 if items[-1] == (key, val):
                     if (
-                            isinstance(val, basestring) or
+                            isinstance(val, six.string_types) or
                             _is_num(val) or
                             isinstance(val, bool) or (
                                 isinstance(val, dict) and
-                                val.keys()[0][0] != section_prefix)):
+                                list(val.keys())[0][0] != section_prefix)):
                         rv += "\n%s}\n" % (indent * level)
                     else:
                         rv += "%s}\n" % (indent * level)
@@ -538,7 +540,7 @@ def encode_logstash(
 
             if (
                     items[-1] != (key, val) and (
-                        isinstance(val, basestring) or
+                        isinstance(val, six.string_types) or
                         _is_num(val) or
                         isinstance(val, bool))):
                 rv += "\n"
@@ -558,7 +560,7 @@ def encode_logstash(
 
         rv += str(data).lower()
 
-    elif isinstance(data, basestring):
+    elif isinstance(data, six.string_types):
         # It's a string
 
         rv += '"%s"' % _escape(data)
@@ -567,7 +569,7 @@ def encode_logstash(
         # It's a list
 
         for val in data:
-            if isinstance(val, dict) and val.keys()[0][0] == section_prefix:
+            if isinstance(val, dict) and list(val.keys())[0][0] == section_prefix:
                 # Value is a block
 
                 rv += encode_logstash(
@@ -614,16 +616,16 @@ def encode_nginx(data, indent="  ", level=0, block_semicolon=False):
             if item_type in ('section', 'line'):
                 rv += "\n"
 
-            rv += "%s%s {\n" % (level*indent, item.keys()[0])
+            rv += "%s%s {\n" % (level*indent, list(item.keys())[0])
             rv += encode_nginx(
-                item.values()[0],
+                list(item.values())[0],
                 level=level+1,
                 block_semicolon=block_semicolon)
             rv += "%s}%s\n" % (level*indent, ';' if block_semicolon else '')
 
             item_type = 'section'
 
-        elif isinstance(item, basestring):
+        elif isinstance(item, six.string_types):
             # Normal line
             if item_type == 'section':
                 rv += "\n"
@@ -654,7 +656,7 @@ def encode_pam(
     # Remember previous type to make newline between type blocks
     prev_type = None
 
-    for label, rule in sorted(data.iteritems()):
+    for label, rule in sorted(six.iteritems(data)):
         if separate_types:
             # Add extra newline to separate blocks of the same type
             if prev_type is not None and prev_type != rule['type']:
@@ -676,9 +678,7 @@ def encode_pam(
         if isinstance(rule['control'], list):
             rv += "[%s]%s" % (
                 " ".join(
-                    map(
-                        lambda k: "=".join(map(str, k)),
-                        map(lambda x: x.items()[0], rule['control']))),
+                    ["=".join(map(str, k)) for k in [list(x.items())[0] for x in rule['control']]]),
                 separator)
         else:
             rv += "%s%s" % (rule['control'], separator)
@@ -693,7 +693,7 @@ def encode_pam(
                     rv += ' '
 
                 if isinstance(arg, dict):
-                    rv += "=".join(map(str, arg.items()[0]))
+                    rv += "=".join(map(str, list(arg.items())[0]))
                 else:
                     rv += arg
 
@@ -714,9 +714,9 @@ def encode_toml(
         # It's a dict
 
         # First process all standalone strings, numbers, booleans and lists
-        for key, val in sorted(data.iteritems()):
+        for key, val in sorted(six.iteritems(data)):
             if (
-                    isinstance(val, basestring) or
+                    isinstance(val, six.string_types) or
                     _is_num(val) or
                     isinstance(val, bool) or (
                         isinstance(val, list) and
@@ -737,7 +737,7 @@ def encode_toml(
                 first = False
 
         # Then process all data structures
-        for key, val in sorted(data.iteritems()):
+        for key, val in sorted(six.iteritems(data)):
             if (
                     isinstance(val, dict) or
                     isinstance(val, list) and isinstance(val[0], dict)):
@@ -798,7 +798,7 @@ def encode_toml(
         if prevtype != 'list':
             rv += "\n"
 
-    elif isinstance(data, basestring):
+    elif isinstance(data, six.string_types):
         # It's a string
 
         rv += "%s%s%s" % (
@@ -858,7 +858,7 @@ def encode_xml(
             if (
                     not (
                         isinstance(item, dict) and
-                        item.keys()[0].startswith(attribute_sign))):
+                        list(item.keys())[0].startswith(attribute_sign))):
                 rv += encode_xml(
                     item,
                     attribute_sign=attribute_sign,
@@ -868,7 +868,7 @@ def encode_xml(
     elif isinstance(data, dict):
         # It's eiher an attribute or an element
 
-        key, val = data.items()[0]
+        key, val = list(data.items())[0]
 
         if key.startswith(attribute_sign):
             # Process attribute
@@ -884,7 +884,7 @@ def encode_xml(
                 for item in val:
                     if (
                             isinstance(item, dict) and
-                            item.keys()[0].startswith(attribute_sign)):
+                            list(item.keys())[0].startswith(attribute_sign)):
                         num_attrs += 1
                         rv += encode_xml(
                             item,
@@ -907,7 +907,7 @@ def encode_xml(
                     for item in val:
                         if (
                                 isinstance(item, dict) and
-                                not item.keys()[0].startswith(attribute_sign)):
+                                not list(item.keys())[0].startswith(attribute_sign)):
                             val_not_text = True
                             break
                 elif isinstance(val, dict):
@@ -947,14 +947,14 @@ def encode_yaml(
     if isinstance(data, dict):
         # It's a dictionary
 
-        if len(data.keys()) == 0:
+        if len(list(data.keys())) == 0:
             rv += "{}\n"
         else:
-            for i, (key, val) in enumerate(sorted(data.iteritems())):
+            for i, (key, val) in enumerate(sorted(six.iteritems(data))):
                 # Skip indentation only for the first pair
                 rv += "%s%s:" % ("" if i == 0 and skip_indent else level*indent, key)
 
-                if isinstance(val, dict) and len(val.keys()) == 0:
+                if isinstance(val, dict) and len(list(val.keys())) == 0:
                     rv += " {}\n"
                 else:
                     if (
@@ -1042,12 +1042,11 @@ def template_replace(data, replacement):
 
     # Walk through the data structure and try to replace all special strings
     if isinstance(local_data, list):
-        local_data = map(
-            lambda x: template_replace(x, replacement), local_data)
+        local_data = [template_replace(x, replacement) for x in local_data]
     elif isinstance(local_data, dict):
-        for key, val in local_data.iteritems():
+        for key, val in six.iteritems(local_data):
             local_data[key] = template_replace(val, replacement)
-    elif isinstance(local_data, basestring):
+    elif isinstance(local_data, six.string_types):
         # Replace the special string by it's evaluated value
         p = re.compile(r'\{\[\{\s*(\w+)([^}\s]+|)\s*\}\]\}')
         local_data = p.sub(__eval_replace, local_data)

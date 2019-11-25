@@ -1,0 +1,25 @@
+{% if EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ENABLE_S3_MAINTENANCE %}
+  # Do not include a 502 error in NGINX_ERROR_PAGES when 
+  # EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ENABLE_S3_MAINTENANCE is enabled.
+
+  error_page 502 @maintenance;
+
+  # This section of the file was copied from playbooks/roles/nginx/templates/edx/app/nginx/sites-available/
+  # modifications should be made to both files if necessary.
+
+  {% if EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ENABLE_S3_MAINTENANCE %}
+  location @maintenance {
+    rewrite  ^(.*) {{ EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_S3_MAINTENANCE_FILE }} break;
+    proxy_http_version     1.1;
+    proxy_set_header       Host s3.amazonaws.com;
+    proxy_set_header       Authorization '';
+    proxy_hide_header      x-amz-id-2;
+    proxy_hide_header      x-amz-request-id;
+    proxy_hide_header      Set-Cookie;
+    proxy_ignore_headers   "Set-Cookie";
+    proxy_buffering        off;
+    proxy_intercept_errors on;
+    proxy_pass https://s3.amazonaws.com;
+  }
+  {% endif %}
+{% endif %}
