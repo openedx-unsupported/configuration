@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 import requests
 import click
 from botocore.exceptions import ClientError
 import sys
+import re
 
 
 class NewRelic:
@@ -31,7 +34,7 @@ class NewRelic:
         try:
             alert_policies = response.json()
         except ValueError:
-            print("Failed to parse response json. Got:\n{}".format(response.text))
+            print(("Failed to parse response json. Got:\n{}".format(response.text)))
             sys.exit(1)
         return alert_policies
 
@@ -71,7 +74,7 @@ class InfraAlerts:
         try:
             regions_list = client_region.describe_regions()
         except ClientError as e:
-            print("Unable to connect to AWS with error :{}".format(e))
+            print(("Unable to connect to AWS with error :{}".format(e)))
             sys.exit(1)
         for region in regions_list['Regions']:
             client = boto3.resource('ec2', region_name=region['RegionName'])
@@ -131,7 +134,7 @@ class AppAlerts:
         try:
             apps_list = response.json()
         except ValueError:
-            print("Failed to parse response json. Got:\n{}".format(response.text))
+            print(("Failed to parse response json. Got:\n{}".format(response.text)))
             sys.exit(1)
         return apps_list["applications"]
 
@@ -207,7 +210,8 @@ class BrowserAlerts:
 
 @click.command()
 @click.option('--new-relic-api-key', required=True, help='API Key to use to speak with NewRelic.')
-def controller(new_relic_api_key):
+@click.option('--ignore', '-i', multiple=True, help='App name regex to filter out, can be specified multiple times')
+def controller(new_relic_api_key,ignore):
     """
     Control execution of all other functions
     Arguments:
@@ -224,10 +228,11 @@ def controller(new_relic_api_key):
     alert_policies = new_relic_obj.new_relic_policies_extractor()
     # Get list of all instances without alerts
     missing_alerts_list = infracheck.missing_alerts_checker(instance_list, alert_policies)
+    filtered_missing_alerts_list = list([x for x in missing_alerts_list if not any(re.search(r, x['name']) for r in ignore)])
     format_string = "{:<30}{}"
-    print(format_string.format("Instnace ID","Instance Name"))
-    for instance_wo_alerts in missing_alerts_list:
-        print(format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"]))
+    print((format_string.format("Instance ID", "Instance Name")))
+    for instance_wo_alerts in filtered_missing_alerts_list:
+        print((format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"])))
         flag = 1
 
     # Initializing object of classes
@@ -237,11 +242,12 @@ def controller(new_relic_api_key):
     apps_list = appcheck.new_relic_app_extractor()
     # Get list of all applications without alerts
     missing_alerts_list_app = appcheck.missing_alerts_checker(apps_list, alert_policies)
+    filtered_missing_alerts_list_app = list([x for x in missing_alerts_list_app if not any(re.search(r, x['name']) for r in ignore)])
     format_string = "{:<20}{}"
     print("")
-    print(format_string.format("Application ID", "Application Name"))
-    for instance_wo_alerts in missing_alerts_list_app:
-        print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
+    print((format_string.format("Application ID", "Application Name")))
+    for instance_wo_alerts in filtered_missing_alerts_list_app:
+        print((format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"])))
         flag = 1
 
     # Initializing object of classes
@@ -251,11 +257,12 @@ def controller(new_relic_api_key):
     browser_list = browsercheck.new_relic_browser_extractor()
     # Get list of all browser applications without alerts
     missing_alerts_list_browser = browsercheck.missing_alerts_checker(browser_list, alert_policies)
+    filtered_missing_alerts_list_browser = list([x for x in missing_alerts_list_browser if not any(re.search(r, x['name']) for r in ignore)])
     format_string = "{:<20}{}"
     print("")
-    print(format_string.format("Browser ID", "Browser Name"))
-    for instance_wo_alerts in missing_alerts_list_browser:
-        print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
+    print((format_string.format("Browser ID", "Browser Name")))
+    for instance_wo_alerts in filtered_missing_alerts_list_browser:
+        print((format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"])))
         flag = 1
     sys.exit(flag)
 

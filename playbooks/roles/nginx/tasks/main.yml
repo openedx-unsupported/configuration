@@ -42,10 +42,9 @@
 
 - name: Install needed packages
   apt:
-    name: "{{ item }}"
+    name: "{{ nginx_debian_pkgs }}"
     state: present
   notify: restart nginx
-  with_items: "{{ nginx_debian_pkgs }}"
   tags:
     - install
     - install:system-requirements
@@ -362,6 +361,14 @@
     owner: root
     group: root
     mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+# Test the nginx configs before restarting nginx so that any errors are visible and not hidden in
+# the service logs.
+- name: Test nginx configs
+  command: nginx -t
   tags:
     - install
     - install:configuration

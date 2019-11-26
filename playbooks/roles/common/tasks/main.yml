@@ -82,20 +82,18 @@
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
   apt:
-    name: "{{ item }}"
+    name: "{{ common_debian_pkgs }}"
     install_recommends: yes
     state: present
     update_cache: yes
-  with_items: "{{ common_debian_pkgs }}"
   when: ansible_distribution in common_debian_variants
 
 - name: Install role-independent useful system packages from custom PPA
   apt:
-    name: "{{ item }}"
+    name: "{{ old_python_debian_pkgs }}"
     install_recommends: yes
     state: present
     update_cache: yes
-  with_items: "{{ old_python_debian_pkgs }}"
   when: >
     ansible_distribution in common_debian_variants and
     ansible_distribution_release in old_python_ppa_releases and
@@ -103,10 +101,9 @@
 
 - name: Install role-independent useful system packages
   yum:
-    name: "{{ item }}"
+    name: "{{ common_redhat_pkgs }}"
     state: present
     update_cache: yes
-  with_items: "{{ common_redhat_pkgs }}"
   when: ansible_distribution in common_redhat_variants
 
 
@@ -134,10 +131,9 @@
 
 - name: pip install virtualenv
   pip:
-    name: "{{ item }}"
+    name: "{{ common_pip_pkgs }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
-  with_items: "{{ common_pip_pkgs }}"
   when: ansible_distribution in common_debian_variants
 
 

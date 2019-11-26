@@ -22,7 +22,9 @@
     - name: setup edx partner
       shell: >
         . {{ discovery_env_path }} && {{ discovery_venv_dir }}/bin/python manage.py
-        create_or_update_partner --site-domain {{dns_name}}.sandbox.edx.org --code edx --name edX
+        create_or_update_partner --site-domain discovery-{{dns_name}}.sandbox.edx.org --code edx --name edX
+      args:
+        chdir: "{{ discovery_code_dir }}"
 
     - name: pull production discovery data
       shell: >
@@ -49,10 +51,9 @@
       args:
         chdir: "{{ edxapp_code_dir }}"
 
-# TODO un-comment this as part of https://openedx.atlassian.net/browse/EDUCATOR-4450
-#    - name: load discovery programs into registrar
-#      shell: >
-#        . {{ registrar_env_path }} && {{ registrar_venv_dir }}/bin/python manage.py
-#        INSERT_COMMAND_NAME_HERE {{ program_uuids }}
-#      args:
-#        chdir: "{{ registrar_code_dir }}"
+    - name: load discovery programs into registrar
+      shell: >
+        . {{ registrar_env_path }} && {{ registrar_venv_dir }}/bin/python manage.py
+        manage_programs {{ program_uuids }}
+      args:
+        chdir: "{{ registrar_code_dir }}"

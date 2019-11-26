@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -62,7 +64,7 @@ def rds_extractor(environment):
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print("Unable to connect to AWS with error :{}".format(e))
+        print(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
     for region in regions_list["Regions"]:
         client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -102,9 +104,9 @@ def rds_controller(rds_list, username, password):
             loggroupname= "/slowlogs/" + rds_host_endpoint
             try:
                 client.create_log_group(logGroupName=loggroupname)
-                print('Created CloudWatch log group named "%s"', loggroupname)
+                print(('Created CloudWatch log group named "%s"', loggroupname))
             except ClientError:
-                print('CloudWatch log group named "%s" already exists', loggroupname)
+                print(('CloudWatch log group named "%s" already exists', loggroupname))
             LOG_STREAM = time.strftime('%Y-%m-%d') + "/[$LATEST]" + uuid.uuid4().hex
             client.create_log_stream(logGroupName=loggroupname, logStreamName=LOG_STREAM)
             for tables in rds_result:
@@ -138,7 +140,7 @@ def rds_controller(rds_list, username, password):
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
 def main(username, password, environment, rdsignore):
     rds_list = rds_extractor(environment)
-    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     rds_controller(filtered_rds_list, username, password)
 
 

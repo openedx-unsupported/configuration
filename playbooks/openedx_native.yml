@@ -32,8 +32,8 @@
     SANDBOX_ENABLE_ANALYTICS_API: true
     SANDBOX_ENABLE_INSIGHTS: true
     SANDBOX_ENABLE_RABBITMQ: true
-    JOURNALS_ENABLED: false
     SANDBOX_ENABLE_NOTES: false
+    DEMO_ROLE_ENABLED: true
   roles:
     - role: swapfile
       SWAPFILE_SIZE: 4GB
@@ -79,7 +79,8 @@
       nginx_sites:
       - edx_notes_api
       when: SANDBOX_ENABLE_NOTES
-    - demo
+    - role: demo
+      when: DEMO_ROLE_ENABLED
     - oauth_client_setup
     - oraclejdk
     - role: elasticsearch
@@ -87,8 +88,6 @@
     - forum
     - role: discovery
       when: SANDBOX_ENABLE_DISCOVERY
-    - role: journals
-      when: JOURNALS_ENABLED
     - role: notifier
       NOTIFIER_DIGEST_TASK_INTERVAL: 5
     - role: xqueue
@@ -103,3 +102,5 @@
       when: POSTFIX_QUEUE_EXTERNAL_SMTP_HOST != ''
     - role: datadog-uninstall
       when: not COMMON_ENABLE_DATADOG
+    - role: user_retirement_pipeline
+      when: COMMON_RETIREMENT_SERVICE_SETUP

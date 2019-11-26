@@ -99,6 +99,43 @@
     dest: "{{ COMMON_CFG_DIR  }}/{{ edx_service_name }}.yml"
     mode: "0644"
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: not edx_service_decrypt_config_enabled
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Decrypt app config file
+  local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml
+  become: false
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: edx_service_decrypt_config_enabled
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Replace deploy host to sandbox dns name
+  replace:
+    path: "{{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml"
+    regexp: 'deploy_host'
+    replace: "{{ COMMON_DEPLOY_HOSTNAME }}"
+  when: edx_service_decrypt_config_enabled and COMMON_SANDBOX_BUILD
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  become: false
+  delegate_to: localhost
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Copy app config file
+  copy:
+    src: "{{ edx_service_local_config_file }}"
+    dest: "{{ COMMON_CFG_DIR }}/{{ edx_service_name }}.yml"
+    mode: 0644
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: edx_service_copy_config_enabled
   tags:
     - install
     - install:configuration
@@ -106,11 +143,10 @@
 
 - name: Install a bunch of system packages on which edx_service relies
   apt:
-    name: "{{ item }}"
+    name: "{{ edx_service_packages.debian }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
-  with_items: "{{ edx_service_packages.debian }}"
   when: ansible_distribution in common_debian_variants
   tags:
     - install
@@ -118,9 +154,8 @@
 
 - name: Install a bunch of system packages on which edx_service relies
   yum:
-    name: "{{ item }}"
+    name: "{{ edx_service_packages.redhat }}"
     state: present
-  with_items: "{{ edx_service_packages.redhat }}"
   when: ansible_distribution in common_redhat_variants
   tags:
     - install

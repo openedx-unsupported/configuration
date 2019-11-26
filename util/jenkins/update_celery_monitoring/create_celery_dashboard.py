@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import pprint
 import re
 
@@ -126,10 +128,14 @@ def generate_dashboard(environment, deploy):
     y_cord += height
     height = 6
 
-    widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
+    worker_count_widget = generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
         title="{}-{}-Worker Count".format(environment, deploy),
         namespace=celery_namespace, metric_name="count", dimension_name="workers"
-    ))
+    )
+
+    worker_count_widget['properties']['stacked'] = True
+
+    widgets.append(worker_count_widget)
 
     y_cord += height
     height = 9

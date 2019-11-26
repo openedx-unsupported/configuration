@@ -1,5 +1,6 @@
 # From https://github.com/ansible/ansible/issues/31527#issuecomment-335495855
 from __future__ import (absolute_import, division, print_function)
+import six
 __metaclass__ = type
 
 import collections
@@ -193,8 +194,8 @@ class LoggingTimingLogger(TimingLogger):
 
         # Sort the tasks by their running time
         sorted_results = sorted(
-            results.items(),
-            key=lambda (task, timestamp): timestamp.duration,
+            list(results.items()),
+            key=lambda task_timestamp: task_timestamp[1].duration,
             reverse=True
         )
 
@@ -275,7 +276,7 @@ class CallbackModule(CallbackBase):
         # Flatten the stats so that multiple runs of the same task get listed
         # individually.
         flat_stats = {}
-        for task_name, task_runs in self.stats.iteritems():
+        for task_name, task_runs in six.iteritems(self.stats):
             if len(task_runs) == 1:
                 flat_stats[task_name] = task_runs[0]
             else:

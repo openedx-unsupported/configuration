@@ -20,6 +20,37 @@
 #
 #
 
+# Add kubernetes PPA key
+- name: Add Kubernetes repository signing key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+  retries: 3
+  tags:
+    - kubectl
+    - install
+    - install:app-requirements
+
+# The kubernetes PPA is required to install kubectl on Xenial.
+- name: Add Kubernetes repository
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+  tags:
+    - kubectl
+    - install
+    - install:system-requirements
+
+- name: Install kubectl
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - kubectl
+  tags:
+    - kubectl
+    - install
+    - install:system-requirements
+
 - name: Download Atlantis
   get_url:
     url: "{{ ATLANTIS_INSTALL_URL }}"
@@ -37,10 +68,32 @@
 
 - name: Write out atlantis repo-config.yml file
   template:
-    src: "repo-config.yml.j2"
+    src: "templates/repo-config.yml.j2"
     dest: "{{ atlantis_repo_config_path }}"
     mode: "0644"
   no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Create atlantis .kube dir
+  file:
+    path: "{{ atlantis_app_dir }}/.kube"
+    state: directory
+    owner: "{{ atlantis_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
+
+- name: Write out atlantis .kube/config files
+  template:
+    src: "templates/kube_config.yml.j2"
+    dest: "{{ atlantis_app_dir }}/.kube/{{ item.key }}"
+    mode: "0644"
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  with_dict: "{{ ATLANTIS_KUBE_CONFIG }}"
   tags:
     - install
     - install:configuration
@@ -109,7 +162,7 @@
 - name: Start atlantis
   service:
     name: "{{ atlantis_service_name }}"
-    state: started
+    state: restarted
   register: start_atlantis
   when: not disable_edx_services
   tags:

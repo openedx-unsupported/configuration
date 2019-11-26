@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -43,7 +45,7 @@ def rds_extractor():
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print("Unable to connect to AWS with error :{}".format(e))
+        print(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
     for region in regions_list["Regions"]:
         client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -74,9 +76,10 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
         """
     try:
         table_list = []
-        for item in rds_list:
-            rds_host_endpoint = item["Endpoint"]
-            rds_port = item["Port"]
+        for db in rds_list:
+            print("Checking table sizes for {}".format(db["Endpoint"]))
+            rds_host_endpoint = db["Endpoint"]
+            rds_port = db["Port"]
             connection = pymysql.connect(host=rds_host_endpoint,
                                          port=rds_port, user=username, password=password)
             # prepare a cursor object using cursor() method
@@ -95,21 +98,21 @@ def check_table_growth(rds_list, username, password, threshold, rds_threshold):
             rds_result = cursor.fetchall()
             cursor.close()
             connection.close()
-            if item["name"] in rds_threshold:
-                threshold_limit = rds_threshold[item["name"]]
+            if db["name"] in rds_threshold:
+                threshold_limit = rds_threshold[db["name"]]
             else:
                 threshold_limit = threshold
             for tables in rds_result:
                 temp_dict = {}
-                if tables[2] > float(threshold_limit):
-                    temp_dict["rds"] = item["name"]
+                if tables[2] is not None and tables[2] > float(threshold_limit):
+                    temp_dict["rds"] = db["name"]
                     temp_dict["db"] = tables[0]
                     temp_dict["table"] = tables[1]
                     temp_dict["size"] = tables[2]
                     table_list.append(temp_dict)
         return table_list
     except Exception as ex:
-        print ex
+        print(ex)
         sys.exit(1)
 
 
@@ -135,13 +138,13 @@ def controller(username, password, threshold, rdsthreshold, rdsignore):
     """
     rds_threshold = dict(rdsthreshold)
     rds_list = rds_extractor()
-    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     table_list = check_table_growth(filtered_rds_list, username, password, threshold, rds_threshold)
     if len(table_list) > 0:
         format_string = "{:<40}{:<20}{:<50}{}"
-        print(format_string.format("RDS Name","Database Name", "Table Name", "Size"))
+        print((format_string.format("RDS Name","Database Name", "Table Name", "Size")))
         for items in table_list:
-            print(format_string.format(items["rds"], items["db"], items["table"], str(items["size"]) + " MB"))
+            print((format_string.format(items["rds"], items["db"], items["table"], str(items["size"]) + " MB")))
         exit(1)
     exit(0)
 

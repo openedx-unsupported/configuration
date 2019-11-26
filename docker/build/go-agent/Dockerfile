@@ -63,6 +63,7 @@ RUN usermod -aG docker go
 # Assign the go user root privlidges
 RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip, /usr/local/bin/pip\n" >> /etc/sudoers
 RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3, /usr/local/bin/pip3\n" >> /etc/sudoers
+RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3.6\n" >> /etc/sudoers
 
 # Upgrade pip and setup tools. Needed for Ansible 2.x
 RUN \
@@ -84,6 +85,9 @@ RUN apt-get update && apt-get install zlib1g-dev wget lsb-core -qy && cd /opt &&
 
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install 'awscli>=1.11.58'
+
+# Install pip on python3.6 to install asym-crypto-yaml which requires python >= 3.6
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.6 get-pip.py
 
 # !!!!NOTICE!!!! ---- Runner of this pipeline take heed!! You must replace go_github_key.pem with the REAL key material
 # that can checkout private github repositories used as pipeline materials. The key material here is faked and is only

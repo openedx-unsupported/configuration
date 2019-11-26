@@ -3,6 +3,8 @@
 Verifies that an index was correctly copied from one ES host to another.
 """
 
+from __future__ import absolute_import
+from __future__ import print_function
 import itertools
 import pprint
 import random
@@ -56,7 +58,7 @@ def grouper(iterable, n):
     """
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
     args = [iter(iterable)] * n
-    return itertools.izip_longest(*args)
+    return itertools.zip_longest(*args)
 
 
 def docs_match(old_doc, new_doc):
@@ -122,8 +124,8 @@ def docs_match(old_doc, new_doc):
 
     #if this fails something is horribly wrong
     if set(diff_doc.keys()) != set(diff_types):
-        print 'ERROR: expected to be diffing dictionaries, got something else! id: {}'.format(
-            new_doc['_id'])
+        print('ERROR: expected to be diffing dictionaries, got something else! id: {}'.format(
+            new_doc['_id']))
 
     for diff_type in diff_types:
         for field in ignorable_fields:
@@ -163,13 +165,13 @@ def find_matching_ids(es, index, ids, docs):
             if docs_match(docs[elt['_id']], elt):
                 matching += 1
             else:
-                print 'FAILURE: Documents with id {id} do not match: '.format(
+                print('FAILURE: Documents with id {id} do not match: '.format(
                     id=elt['_id']
-                ) + repr({'diff': DeepDiff(docs[elt['_id']], elt), 'new': elt, 'old': docs[elt['_id']]})
+                ) + repr({'diff': DeepDiff(docs[elt['_id']], elt), 'new': elt, 'old': docs[elt['_id']]}))
         else:
-            print 'ERROR: Document with id {id} missing: {doc}'.format(
+            print('ERROR: Document with id {id} missing: {doc}'.format(
                 id=elt['_id'], doc=docs[elt['_id']]
-            )
+            ))
     return matching
 
 
@@ -198,12 +200,12 @@ def scan_documents(old_es, new_es, old_index, new_index):
         matching += find_matching_ids(new_es, new_index, old_elt_ids, old_elt_docs)
         total += len(old_elt_ids)
         if total % 100 == 0:
-            print 'processed {} items'.format(total)
+            print('processed {} items'.format(total))
 
     ratio = float(matching)/total
-    print "{}: scanned documents matching ({} out of {}, {:.6}%)".format(
+    print("{}: scanned documents matching ({} out of {}, {:.6}%)".format(
         'OK' if ratio > SCAN_MATCH_THRESHOLD else 'FAILURE', matching, total, ratio * 100
-    )
+    ))
 
 
 def random_checks(old_es, new_es, old_index, new_index, total_document_count, check_percentage):
@@ -249,12 +251,12 @@ def random_checks(old_es, new_es, old_index, new_index, total_document_count, ch
         current_offset += num_elts
 
         if total % 100 == 0:
-            print 'processed {} items'.format(total)
+            print('processed {} items'.format(total))
 
     ratio = float(matching) / total
-    print "{}: random documents matching ({} out of {}, {}%)".format(
+    print("{}: random documents matching ({} out of {}, {}%)".format(
         'OK' if ratio > SCAN_MATCH_THRESHOLD else 'FAILURE', matching, total, int(ratio * 100)
-    )
+    ))
 
 
 def check_mappings(old_mapping, new_mapping):
@@ -267,10 +269,10 @@ def check_mappings(old_mapping, new_mapping):
 
     deep_diff = DeepDiff(old_mapping, new_mapping)
     if deep_diff != {}:
-        print "FAILURE: Index mappings do not match"
+        print("FAILURE: Index mappings do not match")
         pprint.pprint(deep_diff)
     else:
-        print "OK: Index mappings match"
+        print("OK: Index mappings match")
 
 
 def main():
@@ -284,26 +286,26 @@ def main():
     old_index = args.old[1]
     new_index = args.new[1]
 
-    old_stats = old_es.indices.stats(index=old_index)['indices'].values()[0]['primaries']
-    new_stats = new_es.indices.stats(index=new_index)['indices'].values()[0]['primaries']
+    old_stats = list(old_es.indices.stats(index=old_index)['indices'].values())[0]['primaries']
+    new_stats = list(new_es.indices.stats(index=new_index)['indices'].values())[0]['primaries']
 
     #compare document count
     old_count = old_stats['docs']['count']
     new_count = new_stats['docs']['count']
 
-    print "{}: Document count ({} = {})".format(
+    print("{}: Document count ({} = {})".format(
         'OK' if old_count == new_count else 'FAILURE', old_count, new_count
-    )
+    ))
 
     old_size = old_stats['store']['size_in_bytes']
     new_size = new_stats['store']['size_in_bytes']
-    print "{}: Index size ({} = {})".format(
+    print("{}: Index size ({} = {})".format(
         'OK' if old_count == new_count else 'FAILURE', old_size, new_size
-    )
+    ))
 
     def get_mappings(es, index):
         # for 1.5.x, there is an extra 'mappings' field that holds the mappings.
-        mappings = es.indices.get_mapping(index=index).values()[0]
+        mappings = list(es.indices.get_mapping(index=index).values())[0]
         new_style = mappings.get('mappings', None)
         return new_style if new_style is not None else mappings
 

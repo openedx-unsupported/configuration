@@ -61,6 +61,10 @@ ECOMMERCE_JWT_ISSUERS:
 
 ECOMMERCE_JWT_LEEWAY: 1
 
+ECOMMERCE_ENROLLMENT_FULFILLMENT_TIMEOUT: 7
+ECOMMERCE_LOGGING_ROOT_OVERRIDES: {}
+ECOMMERCE_LOGGING_SUBSECTION_OVERRIDES: {}
+
 # Needed to link to the payment micro-frontend.
 ECOMMERCE_PAYMENT_MICROFRONTEND_URL: !!null
 
@@ -149,7 +153,7 @@ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
       client_id: '{{ ECOMMERCE_PAYPAL_CLIENT_ID }}'
       client_secret: '{{ ECOMMERCE_PAYPAL_CLIENT_SECRET }}'
       receipt_url: '{{ ECOMMERCE_PAYPAL_RECEIPT_URL }}'
-      cancel_url: '{{ ECOMMERCE_PAYPAL_CANCEL_URL }}'
+      cancel_checkout_path: '{{ ECOMMERCE_PAYPAL_CANCEL_URL }}'
       error_url: '{{ ECOMMERCE_PAYPAL_ERROR_URL }}'
 
 # JWT payload user attribute mapping
@@ -160,6 +164,8 @@ ECOMMERCE_EDX_DRF_EXTENSIONS:
     full_name: 'full_name'
     tracking_context: 'tracking_context'
     user_id: 'lms_user_id'
+  JWT_PAYLOAD_MERGEABLE_USER_ATTRIBUTES:
+    - 'tracking_context'
   OAUTH2_USER_INFO_URL: '{{ edx_django_service_oidc_url_root }}/user_info'
 
 # Theming
@@ -240,7 +246,11 @@ ecommerce_service_config_overrides:
 
   PAYMENT_MICROFRONTEND_URL: "{{ ECOMMERCE_PAYMENT_MICROFRONTEND_URL}}"
 
-ECOMMERCE_GUNICORN_WORKER_CLASS: "gevent"
+  ENROLLMENT_FULFILLMENT_TIMEOUT: "{{ ECOMMERCE_ENROLLMENT_FULFILLMENT_TIMEOUT }}"
+  LOGGING_ROOT_OVERRIDES: "{{ ECOMMERCE_LOGGING_ROOT_OVERRIDES }}"
+  LOGGING_SUBSECTION_OVERRIDES: "{{ ECOMMERCE_LOGGING_SUBSECTION_OVERRIDES }}"
+
+ECOMMERCE_GUNICORN_WORKER_CLASS: "sync"
 ECOMMERCE_GUNICORN_MAX_REQUESTS: 3000
 ECOMMERCE_GUNICORN_EXTRA: ""
 ECOMMERCE_GUNICORN_WORKERS: 2
@@ -254,6 +264,9 @@ ECOMMERCE_AUTOMATED_USERS: {}
 
 # Remote config
 ECOMMERCE_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+ECOMMERCE_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+ECOMMERCE_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
 
 #
 # vars are namespace with the module name.
@@ -282,6 +295,9 @@ ECOMMERCE_ADMIN_URLS:
 
 ECOMMERCE_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
 
+# Python 3 conversion
+ECOMMERCE_USE_PYTHON3: true
+
 #
 # OS packages
 #
@@ -292,13 +308,15 @@ ecommerce_debian_pkgs:
   - libssl-dev
   - libffi-dev
   - libsqlite3-dev
+  - python-dev
+  - python3-dev
 
 ecommerce_redhat_pkgs: []
 
 ecommerce_post_migrate_commands:
   - command: './manage.py oscar_populate_countries --initial-only'
     when: true
-  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }} --client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }} --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }} --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }} --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }} --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/ --journals_api_url={{ JOURNALS_API_URL|default("") }}'
+  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }} --client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }} --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }} --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }} --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }} --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/'
     when: '{{ ecommerce_create_demo_data }}'
   - command: './manage.py create_demo_data --partner=edX'
     when: '{{ ecommerce_create_demo_data }}'

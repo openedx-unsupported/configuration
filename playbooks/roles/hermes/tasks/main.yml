@@ -107,6 +107,20 @@
     - install
     - install:base
 
+- name: install private key
+  copy:
+    content: "{{ item.value }}"
+    dest: "{{ hermes_app_dir }}/{{ hermes_service_name }}-{{ item.key }}"
+    force: yes
+    owner: "{{ hermes_user }}"
+    mode: "0600"
+  no_log: True
+  with_dict: "{{ HERMES_PRIVATE_KEYS_DICT }}"
+  when: HERMES_PRIVATE_KEYS_DICT is defined
+  tags:
+    - install
+    - install:base
+
 - name: Add sudoers entry
   template:
     src: "templates/sudoers.j2"

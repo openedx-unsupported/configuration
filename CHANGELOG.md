@@ -1,6 +1,23 @@
 - Role: common
   - Added `COMMON_FALLBACK_DNS_SERVERS`, which optionally adds additional `nameserver` entries to the resolvconf tail
-  - Explicitly added `resolvconf` as a dependency
+
+- Role: ecommerce
+  - Fixed paypal payment processor default configuration
+
+- Role: edxapp
+  - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
+
+- Role: discovery
+  - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
+
+- Role: edxapp
+  - Added `ENABLE_ENROLLMENT_RESET` feature flag for masters integration sandboxes
+
+- Role: conductor
+  - New role added to configure the conductor service
+
+- Role: jwt_signature
+  - Added role to inject JWT signing keys into application config, used from edxapp, worker, and registrar.
 
 - Playbook: masters_sandbox_update
   - Create edx partner
@@ -15,7 +32,7 @@
   - Set CSRF_TRUSTED_ORIGINS.
 
 - Role: registrar
-  - Set CORS_ORIGIN_WHITELIST.	
+  - Set CORS_ORIGIN_WHITELIST.
 
 - Role: discovery
   - Override DISCOVERY_MYSQL_REPLICA_HOST to `edx.devstack.mysql` in docker.
@@ -214,6 +231,10 @@
 
 - Role: edxapp
   - `EDXAPP_X_FRAME_OPTIONS` added in studio to prevent clickjacking.
+
+- Role: nginx
+  - Added `NGINX_EDXAPP_DEFAULT_SITE_THEME` to allow to completely
+  override `favicon.ico` file when Comprehensive Theme is enabled.
 
 - Role: edxapp
   - Added `EDXAPP_X_FRAME_OPTIONS` to prevent click jacking in LMS.

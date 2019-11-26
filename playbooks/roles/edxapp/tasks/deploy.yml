@@ -215,12 +215,6 @@
     - install
     - install:app-requirements
 
-- name: create nodeenv
-  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt --force"
-  tags:
-    - install
-    - install:system-requirements
-
 # Set the npm registry
 # This needs to be done as root since npm is weird about
 # chown - https://github.com/npm/npm/issues/3565
@@ -245,7 +239,7 @@
 
 #install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: install node dependencies
-  shell: "{{ edxapp_nodeenv_bin }}/npm install"
+  shell: "npm install"
   args:
     chdir: "{{ edxapp_code_dir }}"
   environment: "{{ edxapp_environment }}"
@@ -464,3 +458,13 @@
 - name: install additional cron jobs
   cron: "{{ item }}"
   with_items: "{{ EDXAPP_ADDITIONAL_CRON_JOBS }}"
+
+- name: populate retirement states
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} populate_retirement_states"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: COMMON_RETIREMENT_SERVICE_SETUP | default(false)
+  tags:
+    - manage
+    - manage:db

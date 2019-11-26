@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 import click
 import datetime
@@ -62,12 +64,12 @@ def get_elb_names():
 
 def print_header(header):
     print("\n\n----------------------------------------------")
-    print("[   ] {0}".format(header))
+    print(("[   ] {0}".format(header)))
     print("----------------------------------------------")
 
 
 def print_line_item(line_item):
-    print("[ * ] {0}".format(line_item))
+    print(("[ * ] {0}".format(line_item)))
 
 
 def print_list(name, items_list):
@@ -198,7 +200,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
     else:
         for elb_name in elb_names_to_update:
             tls_policy_name = create_tls_policy(elb_name, policy_version)
-            print("Trying to update...{0}".format(elb_name))
+            print(("Trying to update...{0}".format(elb_name)))
             client = get_client()
 
             # Determine which policies are actually active
@@ -266,7 +268,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
                 LoadBalancerPort=tls_port,
                 PolicyNames=policy_names
             )
-            print("Updated {0}\n".format(elb_name))
+            print(("Updated {0}\n".format(elb_name)))
 
 cli.add_command(show_available_policy_versions)
 cli.add_command(show_elb_policy_versions)

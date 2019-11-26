@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import pickle
 import json
@@ -10,6 +12,7 @@ import backoff
 from celery import Celery
 from textwrap import dedent
 from pprint import pprint
+from six.moves import range
 
 
 MAX_TRIES = 5
@@ -26,7 +29,7 @@ class RedisWrapper(object):
                            redis.exceptions.ConnectionError),
                           max_tries=MAX_TRIES)
     def keys(self):
-        return self.redis.keys()
+        return list(self.redis.keys())
 
     @backoff.on_exception(backoff.expo,
                           (redis.exceptions.TimeoutError,
@@ -138,7 +141,7 @@ def celery_connection(host, port):
         broker_url = "redis://" + host + ":" + str(port)
         celery_client = Celery(broker=broker_url)
     except Exception as e:
-        print("Exception in connection():", e)
+        print(("Exception in connection():", e))
     return celery_client
 
 
@@ -165,7 +168,7 @@ def get_active_tasks(celery_control, queue_workers, queue_name):
                             'kwargs: REDACTED',
                         ])
         except Exception as e:
-            print("Exception in get_active_tasks():", e)
+            print(("Exception in get_active_tasks():", e))
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
@@ -192,10 +195,10 @@ def check_queues(host, port, queue, items, body):
              for queue in data:
                  queue_workers.setdefault(queue['name'], []).append(worker)
     except Exception as e:
-        print("Exception while getting queue to worker mappings:", e)
+        print(("Exception while getting queue to worker mappings:", e))
 
     for count in range(items):
-        print("Count: {}".format(count))
+        print(("Count: {}".format(count)))
         queue_first_item = redis_client.lindex(queue_name, count)
         # Check that queue_first_item is not None which is the case if the queue is empty
         if queue_first_item is not None:
@@ -207,7 +210,7 @@ def check_queues(host, port, queue, items, body):
             try:
                 extracted_body = extract_body(queue_first_item_decoded)
             except Exception as error:
-                print("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error))
+                print(("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error)))
                 ret_val = 1
             active_tasks, redacted_active_tasks = get_active_tasks(celery_control, queue_workers, queue_name)
 

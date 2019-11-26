@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -47,7 +49,7 @@ def rds_extractor(environment):
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print("Unable to connect to AWS with error :{}".format(e))
+        print(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
     for region in regions_list["Regions"]:
         rds_client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -94,7 +96,7 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
             mysocket = myindex.attach(host=rds_host_endpoint, source="INNODB STATUS", sourcetype="RDS")
 
             # Send events to it
-            mysocket.send(global_str)
+            mysocket.send(str.encode(global_str))
 
             # Close the socket
             mysocket.close()
@@ -112,7 +114,7 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
 def main(username, password, environment, hostname, splunkusername, splunkpassword, port, indexname, rdsignore):
     rds_list = rds_extractor(environment)
-    filtered_rds_list = list(filter(lambda x: x['name'] not in rdsignore, rds_list))
+    filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     rds_controller(filtered_rds_list, username, password, hostname, splunkusername, splunkpassword, port, indexname)
 
 
