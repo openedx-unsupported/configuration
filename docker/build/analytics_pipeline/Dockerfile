@@ -27,7 +27,7 @@ ENV BOTO_CONFIG=/dev/null \
     ANALYTICS_PIPELINE_VENV=/edx/app/analytics_pipeline/venvs \
     BOOTSTRAP=/etc/bootstrap.sh \
     COMMON_BASE_DIR=/edx \
-    COMMON_PIP_PACKAGES_PIP='pip==9.0.3' \
+    COMMON_PIP_PACKAGES_PIP='pip==19.3.1' \
     COMMON_PIP_PACKAGES_SETUPTOOLS='setuptools==39.0.1' \
     COMMON_PIP_PACKAGES_VIRTUALENV='virtualenv==15.2.0' \
     COMMON_PIP_PACKAGES_VIRTUALENVWRAPPER='virtualenvwrapper==4.8.2' \
