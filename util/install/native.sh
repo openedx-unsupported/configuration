@@ -100,7 +100,7 @@ sudo apt-get upgrade -y
 ## Install system pre-requisites
 ##
 sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python-pip libmysqlclient-dev python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc g++
-sudo pip install --upgrade pip==9.0.3
+sudo pip install --upgrade pip==19.3.1
 sudo pip install --upgrade setuptools==39.0.1
 sudo -H pip install --upgrade virtualenv==15.2.0
 
