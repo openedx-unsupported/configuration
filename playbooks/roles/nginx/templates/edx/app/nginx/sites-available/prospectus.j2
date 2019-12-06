@@ -29,6 +29,13 @@ server {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
   }
 
+  location /preview/ {
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %}
+  }
+
   location / {
     location ~ \.(js|css)$ {
       add_header 'Cache-Control' 'public, max-age=31536000, immutable';
