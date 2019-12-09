@@ -1,3 +1,6 @@
+- Role: blockstore
+  - Increased upload limit to 10M
+
 - Role: ecommerce
   - Fixed paypal payment processor default configuration
 
