@@ -172,19 +172,6 @@
     - "manage:db-replication"
     - "mongodb_key"
 
-- name: install prereqs for backup script
-  apt:
-    pkg: "{{ item }}"
-    state: present
-    update_cache: yes
-  with_items:
-    - jq
-  tags:
-    - "backup:mongo"
-    - "install"
-    - "install:app-requirements"
-    - "mongo_packages"
-
 # If skip_replica_set is true, this template will not contain a replica set stanza
 # because of the fact above.
 - name: copy configuration template
@@ -200,21 +187,44 @@
     - "manage:db-replication"
     - "update_mongod_conf"
 
+- name: check mongo backups enabled
+  set_fact:
+    enable_mongo_backups: MONGO_BACKUP_ENABLED and '{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'
+
 - name: install logrotate configuration
   template:
     src: mongo_logrotate.j2
     dest: /etc/logrotate.d/hourly/mongo
+  vars:
+    include_backup_log: enable_mongo_backups
   tags:
     - "backup:mongo"
     - "install"
     - "install:app-configuration"
     - "logrotate"
 
+- name: install prereqs for backup script
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - jq
+  when:
+    - enable_mongo_backups
+  tags:
+    - "backup:mongo"
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+
 - name: install backup script
   template:
     src: backup-mongo.sh.j2
     dest: "{{ mongo_backup_script_path }}"
     mode: 0700
+  when:
+    - enable_mongo_backups
   tags:
     - "backup:mongo"
     - "install"
@@ -229,6 +239,8 @@
     weekday: "{{ mongo_backup_cron.weekday | default('*') }}"
     job: "{{ mongo_backup_script_path }} >> {{ mongo_log_dir }}/mongo-backup.log 2>&1"
   become: yes
+  when:
+    - enable_mongo_backups
   tags:
     - "backup:mongo"
     - "install"
@@ -239,7 +251,8 @@
     fstype: ext4
     force: true
   ignore_errors: true
-  when: "'{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'"
+  when:
+    - enable_mongo_backups
   tags:
     - "backup:mongo"
     - "install"
