@@ -187,11 +187,12 @@
     - "manage:db-replication"
     - "update_mongod_conf"
 
-# this sets the enable_mongo_backups var if mongo backups are enabled AND we're currently running against the designated
-# mongo backup node.
+# This sets the is_backup_node var by checking whether
+# mongo backups are enabled AND we're currently running against the designated mongo backup node.
+# This allows backup-related tasks below to determine whether or not they should run on the current mongo node.
 - name: check mongo backups enabled
   set_fact:
-    enable_mongo_backups: MONGO_BACKUP_ENABLED and '{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'
+    is_backup_node: MONGO_BACKUP_ENABLED and '{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'
   tags:
     - "backup:mongo"
 
@@ -213,7 +214,7 @@
   with_items:
     - jq
   when:
-    - enable_mongo_backups
+    - is_backup_node
   tags:
     - "backup:mongo"
     - "install"
@@ -226,7 +227,7 @@
     dest: "{{ mongo_backup_script_path }}"
     mode: 0700
   when:
-    - enable_mongo_backups
+    - is_backup_node
   tags:
     - "backup:mongo"
     - "install"
@@ -242,7 +243,7 @@
     job: "{{ mongo_backup_script_path }} >> {{ mongo_log_dir }}/mongo-backup.log 2>&1"
   become: yes
   when:
-    - enable_mongo_backups
+    - is_backup_node
   tags:
     - "backup:mongo"
     - "install"
@@ -254,7 +255,7 @@
     force: true
   ignore_errors: true
   when:
-    - enable_mongo_backups
+    - is_backup_node
   tags:
     - "backup:mongo"
     - "install"
