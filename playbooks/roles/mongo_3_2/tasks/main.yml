@@ -187,6 +187,8 @@
     - "manage:db-replication"
     - "update_mongod_conf"
 
+# this sets the enable_mongo_backups var if mongo backups are enabled AND we're currently running against the designated
+# mongo backup node.
 - name: check mongo backups enabled
   set_fact:
     enable_mongo_backups: MONGO_BACKUP_ENABLED and '{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'
@@ -197,8 +199,6 @@
   template:
     src: mongo_logrotate.j2
     dest: /etc/logrotate.d/hourly/mongo
-  vars:
-    include_backup_log: enable_mongo_backups
   tags:
     - "backup:mongo"
     - "install"
