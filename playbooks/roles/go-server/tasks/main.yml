@@ -195,12 +195,14 @@
   tags:
     - git_identity
 
-# Setup environment variables to cleanup the git config repository
-- name: Set go-server environment variables
-  lineinfile:
-    destfile: /etc/default/go-server
-    regexp: "^export GO_SERVER_SYSTEM_PROPERTIES=*"
-    line: "export GO_SERVER_SYSTEM_PROPERTIES='-Xmx{{GO_SERVER_MAX_MEM}} -Dgo.config.repo.gc.cron=\"0 0 2 ? * SAT\" -Dgo.config.repo.gc.periodic=\"Y\"'"
+- name: Install wrapper-properties.conf
+  template:
+    src: edx/app/go-server/cruise-config.xml.j2
+    dest: /usr/share/go-server/wrapper-config/wrapper-properties.conf
+    mode: 0600
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+    force: no
   tags:
     - install
     - install:app-configuration
