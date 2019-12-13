@@ -221,7 +221,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
             load_balancer_description = load_balancer_descriptions[0]
 
             listeners = load_balancer_description['ListenerDescriptions']
-            
+
             active_policy_names = list()
             tls_port = None
             for listener in listeners:
@@ -234,7 +234,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
                 print("""Skipped updating this ELB because it does not have a listener
                 on the specified override port\n""")
                 continue
-            
+
             # Now remove the active TLS related policy from that list,
             # this requires querying a different endpoint
             # as there is no way to know which policies are active
@@ -269,6 +269,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
                 PolicyNames=policy_names
             )
             print(("Updated {0}\n".format(elb_name)))
+        return elb_names_to_update
 
 cli.add_command(show_available_policy_versions)
 cli.add_command(show_elb_policy_versions)
