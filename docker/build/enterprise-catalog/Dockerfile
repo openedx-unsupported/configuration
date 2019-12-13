@@ -21,11 +21,11 @@ COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.ym
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
-RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook enterprise-catalog.yml \
+RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook enterprise_catalog.yml \
     -c local -i "127.0.0.1," \
     -t "install,assets,devstack" \
     --extra-vars="ENTERPRISE_CATALOG_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml" \
     --extra-vars="@/devstack/ansible_overrides.yml"
 
-EXPOSE 18808
+EXPOSE 18160
