@@ -2,7 +2,7 @@
 #
 # From the root of configuration:
 #
-# docker build -f docker/build/enterprise-catalog/Dockerfile .
+# docker build -f docker/build/enterprise_catalog/Dockerfile .
 #
 # This allows the dockerfile to update /edx/app/edx_ansible/edx_ansible
 # with the currently checked-out configuration repo.
@@ -16,7 +16,7 @@ CMD ["/edx/app/supervisor/venvs/supervisor/bin/supervisord", "-n", "--configurat
 ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
-COPY docker/build/enterprise-catalog/ansible_overrides.yml /
+COPY docker/build/enterprise_catalog/ansible_overrides.yml /
 COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.yml
 
 ARG OPENEDX_RELEASE=master
