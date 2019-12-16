@@ -1,3 +1,6 @@
+- Role: enterprise_catalog
+  - Create role
+
 - Role: blockstore
   - Increased upload limit to 10M
 

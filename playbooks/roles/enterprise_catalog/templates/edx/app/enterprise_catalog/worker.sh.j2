@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set enterprise_catalog_venv_bin = enterprise_catalog_venv_dir + "/bin" %}
+source {{ enterprise_catalog_app_dir }}/enterprise_catalog_env
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = enterprise_catalog_venv_bin + '/newrelic-admin run-program ' + enterprise_catalog_venv_bin + '/celery' %}
+{% else %}
+{% set executable = enterprise_catalog_venv_bin + '/celery' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  HOSTNAME=$(hostname)
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
+{% endif %}
+
+# We exec so that celery is the child of supervisor and can be managed properly
+exec {{ executable }} $@
