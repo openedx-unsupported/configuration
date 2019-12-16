@@ -17,6 +17,22 @@
 #
 enterprise_catalog_service_name: 'enterprise_catalog'
 
+enterprise_catalog_user: "{{ enterprise_catalog_service_name }}"
+enterprise_catalog_home: "{{ COMMON_APP_DIR }}/{{ enterprise_catalog_service_name }}"
+enterprise_catalog_app_dir: "{{ COMMON_APP_DIR }}/{{ enterprise_catalog_service_name }}"
+enterprise_catalog_code_dir: "{{ enterprise_catalog_app_dir }}/{{ enterprise_catalog_service_name }}"
+enterprise_catalog_venvs_dir: "{{ enterprise_catalog_app_dir }}/venvs"
+enterprise_catalog_venv_dir: "{{ enterprise_catalog_venvs_dir }}/enterprise_catalog"
+
+enterprise_catalog_celery_default_queue: 'enterprise_catalog.default'
+
+ENTERPRISE_CATALOG_CELERY_ALWAYS_EAGER: false
+ENTERPRISE_CATALOG_CELERY_BROKER_TRANSPORT: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_USER: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_PASSWORD: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_HOSTNAME: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_VHOST: ''
+
 enterprise_catalog_environment:
   ENTERPRISE_CATALOG_CFG: '{{ COMMON_CFG_DIR }}/{{ enterprise_catalog_service_name }}.yml'
 
@@ -84,6 +100,15 @@ enterprise_catalog_service_config_overrides:
   ENTERPRISE_CATALOG_SERVICE_USER: '{{ ENTERPRISE_CATALOG_SERVICE_USER }}'
   LANGUAGE_COOKIE_NAME: '{{ ENTERPRISE_CATALOG_LANGUAGE_COOKIE_NAME }}'
   CSRF_COOKIE_SECURE: "{{ ENTERPRISE_CATALOG_CSRF_COOKIE_SECURE }}"
+  CELERY_ALWAYS_EAGER: '{{ ENTERPRISE_CATALOG_CELERY_ALWAYS_EAGER }}'
+  CELERY_BROKER_TRANSPORT: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_TRANSPORT }}'
+  CELERY_BROKER_USER: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_USER }}'
+  CELERY_BROKER_PASSWORD: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_PASSWORD }}'
+  CELERY_BROKER_HOSTNAME: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_HOSTNAME }}'
+  CELERY_BROKER_VHOST: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_VHOST }}'
+  CELERY_DEFAULT_EXCHANGE: 'enterprise_catalog'
+  CELERY_DEFAULT_ROUTING_KEY: 'enterprise_catalog'
+  CELERY_DEFAULT_QUEUE: '{{ enterprise_catalog_celery_default_queue }}'
 
 # See edx_django_service_automated_users for an example of what this should be
 ENTERPRISE_CATALOG_AUTOMATED_USERS: {}
@@ -106,9 +131,6 @@ ENTERPRISE_CATALOG_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 ENTERPRISE_CATALOG_GIT_IDENTITY: !!null
 
-enterprise_catalog_home: "{{ COMMON_APP_DIR }}/{{ enterprise_catalog_service_name }}"
-enterprise_catalog_code_dir: "{{ enterprise_catalog_home }}/{{ enterprise_catalog_service_name }}"
-
 ENTERPRISE_CATALOG_REPOS:
   - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
     DOMAIN: '{{ COMMON_GIT_MIRROR }}'
@@ -125,3 +147,15 @@ ENTERPRISE_CATALOG_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
 
 ENTERPRISE_CATALOG_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
 ENTERPRISE_CATALOG_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+# Worker settings
+ENTERPRISE_CATALOG_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+ENTERPRISE_CATALOG_WORKER_DEFAULT_STOPWAITSECS: 432000
+ENTERPRISE_CATALOG_CELERY_HEARTBEAT_ENABLED: true
+ENTERPRISE_CATALOG_NEWRELIC_WORKERS_APPNAME: enterprise-catalog-workers
+worker_django_settings_module: "{{ ENTERPRISE_CATALOG_DJANGO_SETTINGS_MODULE }}"
+ENTERPRISE_CATALOG_CELERY_WORKERS:
+  - queue: '{{ enterprise_catalog_celery_default_queue }}'
+    concurrency: 1
+    monitor: True
+enterprise_catalog_workers: "{{ ENTERPRISE_CATALOG_CELERY_WORKERS }}"
