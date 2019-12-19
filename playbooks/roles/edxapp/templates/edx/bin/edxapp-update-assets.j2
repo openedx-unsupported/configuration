@@ -1,7 +1,9 @@
 {% include "edxapp_common.j2" %}
 
-# Collect assets to the local disk
-sudo -E -H -u {{ edxapp_user }} env "PATH=$PATH" "STATICFILES_STORAGE=openedx.core.storage.ProductionStorage" {{ edxapp_venv_bin }}/paver update_assets --settings $EDX_PLATFORM_SETTINGS
-
-# Collect assets to S3
-sudo -E -H -u {{ edxapp_user }} env "PATH=$PATH" "STATICFILES_STORAGE=openedx.core.storage.ProductionS3Storage" {{ edxapp_venv_bin }}/paver update_assets --settings $EDX_PLATFORM_SETTINGS
+{% if edxapp_staticfiles_storage_overrides %}
+{% for override in edxapp_staticfiles_storage_overrides %}
+sudo -E -H -u {{ edxapp_user }} env "PATH=$PATH" "STATICFILES_STORAGE={{ override }}" {{ edxapp_venv_bin }}/paver update_assets --settings $EDX_PLATFORM_SETTINGS
+{% endfor %}}
+{% else %}
+sudo -E -H -u {{ edxapp_user }} env "PATH=$PATH" {{ edxapp_venv_bin }}/paver update_assets --settings $EDX_PLATFORM_SETTINGS
+{% endif %}
