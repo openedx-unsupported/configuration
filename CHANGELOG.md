@@ -1,3 +1,6 @@
+- Open edX
+  - native.sh needed to uninstall pyyaml to proceed
+
 - Role: enterprise_catalog
   - Create role
 
