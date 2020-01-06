@@ -1,3 +1,6 @@
+- Role: insights
+  - add DOT config (deprecate DOP)
+
 - Open edX
   - native.sh needed to uninstall pyyaml to proceed
   - no longer install certs
