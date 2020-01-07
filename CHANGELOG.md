@@ -1,4 +1,7 @@
 - Role: insights
+  - install libssl-dev, needed for mysqlclient
+  
+- Role: insights
   - add DOT config (deprecate DOP)
 
 - Open edX
