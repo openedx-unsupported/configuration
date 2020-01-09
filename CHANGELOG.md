@@ -1,6 +1,12 @@
 - Role: edxapp
   - Added Celery worker `prefetch_optimization` option to allow switching from 'default' to 'fair' (only write to available worker processes)
 
+- Role: insights
+  - install libssl-dev, needed for mysqlclient
+  
+- Role: insights
+  - add DOT config (deprecate DOP)
+
 - Open edX
   - native.sh needed to uninstall pyyaml to proceed
   - no longer install certs
