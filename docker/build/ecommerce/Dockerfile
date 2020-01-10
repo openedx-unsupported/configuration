@@ -19,6 +19,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/ecommerce/ansible_overrides.yml /
 COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.yml
+COPY docker/build/ecommerce/ecommerce.yml /edx/etc/ecommerce.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
