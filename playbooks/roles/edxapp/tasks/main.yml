@@ -163,3 +163,15 @@
 - include: deploy.yml
   tags:
     - deploy
+
+- name: Include JWT signature setting in the app config file
+  include_role:
+    name: jwt_signature
+  when: COMMON_SANDBOX_BUILD and celery_worker is not defined
+  vars:
+     app_name: 'lms'
+     app_config_file: "{{ COMMON_CFG_DIR }}/lms.yml"
+     app_config_owner: "{{ edxapp_user }}"
+     app_config_group: root
+     app_config_mode: 0644
+     CAN_GENERATE_NEW_JWT_SIGNATURE: True
