@@ -112,6 +112,7 @@ sudo -H pip install --upgrade virtualenv==15.2.0
 ##
 VERSION_VARS=(
     edx_platform_version
+    certs_version
     forum_version
     xqueue_version
     configuration_version
