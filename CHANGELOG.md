@@ -1,3 +1,6 @@
+- Role: enterprise_catalog
+  - Added infrstructure to start up and deploy celery workers
+
 - Role: edxapp
   - Added Celery worker `prefetch_optimization` option to allow switching from 'default' to 'fair' (only write to available worker processes)
 
