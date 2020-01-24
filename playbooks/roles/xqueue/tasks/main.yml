@@ -1,4 +1,51 @@
 ---
+######## BEGIN PYTHON3 ########
+- name: install python3
+  apt:
+    name: "{{ item }}"
+  when: xqueue_use_python3
+  with_items:
+    - python3-pip
+    - python3-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3
+  command: "virtualenv --python=python3 {{ xqueue_venv_dir }}"
+  args:
+    creates: "{{ xqueue_venv_dir }}/bin/pip"
+  become_user: "{{ xqueue_user }}"
+  when: xqueue_use_python3
+  tags:
+    - install
+    - install:system-requirements
+
+- name: "Install python3 requirements"
+  pip:
+    requirements: "{{ xqueue_requirements_file }}"
+    virtualenv: "{{ xqueue_venv_dir }}"
+    virtualenv_python: 'python3.5'
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
+  become_user: "{{ xqueue_user }}"
+  when: xqueue_use_python3
+  tags:
+    - install
+    - install:app-requirements
+
+######## END PYTHON3 ########
+
+- name: build virtualenv with python2.7
+  command: "virtualenv --python=python2.7 {{ xqueue_venv_dir }}"
+  args:
+    creates: "{{ xqueue_venv_dir }}/bin/pip"
+  become_user: "{{ xqueue_user }}"
+  when: not xqueue_use_python3
+  tags:
+    - install
+    - install:system-requirements
+
 - name: write devstack script
   template:
     src: "devstack.sh.j2"
@@ -70,6 +117,7 @@
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   become_user: "{{ xqueue_user }}"
+  when: not xqueue_use_python3
   tags:
     - install
     - install:app-requirements

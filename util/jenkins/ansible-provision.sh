@@ -129,6 +129,8 @@ fi
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
     ami="ami-0d7c5de485513e2dd"
+  elif [[ $server_type == "ubuntu_18.04" ]]; then
+    ami="ami-07ebfd5b3428b6f4d"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-092546daafcc8bc0d"
   fi
@@ -207,7 +209,7 @@ cat << EOF > $extra_vars_file
 edx_platform_version: $edxapp_version
 forum_version: $forum_version
 notifier_version: $notifier_version
-XQUEUE_VERSION: $xqueue_version
+XQUEUE_VERSION: $XQUEUE_VERSION
 certs_version: $certs_version
 configuration_version: $configuration_version
 demo_version: $demo_version
@@ -242,7 +244,6 @@ REGISTRAR_NGINX_PORT: 80
 REGISTRAR_SSL_NGINX_PORT: 443
 REGISTRAR_VERSION: $registrar_version
 REGISTRAR_ENABLED: $registrar
-REGISTRAR_SANDBOX_BUILD: True
 
 LEARNER_PORTAL_NGINX_PORT: 80
 LEARNER_PORTAL_SSL_NGINX_PORT: 443

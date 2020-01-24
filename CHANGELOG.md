@@ -1,3 +1,27 @@
+- Open edX
+  - The wrong version of xqueue was being installed, fixed.
+
+- Role: enterprise_catalog
+  - Added infrstructure to start up and deploy celery workers
+
+- Role: edxapp
+  - Added Celery worker `prefetch_optimization` option to allow switching from 'default' to 'fair' (only write to available worker processes)
+
+- Role: insights
+  - install libssl-dev, needed for mysqlclient
+
+- Role: insights
+  - add DOT config (deprecate DOP)
+
+- Open edX
+  - native.sh needed to uninstall pyyaml to proceed
+
+- Role: enterprise_catalog
+  - Create role
+
+- Role: blockstore
+  - Increased upload limit to 10M
+
 - Role: ecommerce
   - Fixed paypal payment processor default configuration
 
