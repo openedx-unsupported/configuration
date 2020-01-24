@@ -1,3 +1,6 @@
+- Open edX
+  - The wrong version of xqueue was being installed, fixed.
+
 - Role: enterprise_catalog
   - Added infrstructure to start up and deploy celery workers
 
@@ -6,7 +9,7 @@
 
 - Role: insights
   - install libssl-dev, needed for mysqlclient
-  
+
 - Role: insights
   - add DOT config (deprecate DOP)
 
