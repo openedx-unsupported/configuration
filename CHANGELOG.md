@@ -1,3 +1,6 @@
+- Open edX
+  - The wrong version of xqueue was being installed, fixed.
+
 - Use Ansible 2.3.1.0 so that we can do shallow clones of tags.
 
 - Open edX
