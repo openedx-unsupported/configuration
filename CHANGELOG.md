@@ -1,4 +1,7 @@
 - Open edX
+  - The wrong version of xqueue was being installed, fixed.
+
+- Open edX
   - native.sh needed to uninstall pyyaml to proceed
 
 - Role: enterprise_catalog
