@@ -344,7 +344,7 @@
 
 - Role: edxapp
   - Added `EDXAPP_RETIRED_USERNAME_FMT`, `EDXAPP_RETIRED_EMAIL_FMT`, `EDXAPP_RETIRED_USER_SALTS`, and
-  `EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME` to generic_env_config to allow user retirement to be configurable.
+  `EDXAPP_RETIREMENT_SERVICE_USER_NAME` to generic_env_config to allow user retirement to be configurable.
 
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
