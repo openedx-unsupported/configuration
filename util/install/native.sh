@@ -114,7 +114,7 @@ VERSION_VARS=(
     edx_platform_version
     certs_version
     forum_version
-    xqueue_version
+    XQUEUE_VERSION
     configuration_version
     demo_version
     NOTIFIER_VERSION
