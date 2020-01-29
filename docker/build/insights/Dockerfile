@@ -13,6 +13,8 @@ LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/insights/ansible_overrides.yml /
+COPY docker/build/insights/insights.yml /edx/etc/insights.yml
+
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 ARG OPENEDX_RELEASE=master
