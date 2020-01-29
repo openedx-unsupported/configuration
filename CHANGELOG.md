@@ -2,6 +2,9 @@
   - Added Stanford-developed Qualtrics and In-Video Quiz XBlocks.
 
 - Open edX
+  - Don't use AWS_GATHER_FACTS, it was only for tagging which we don't need.
+
+- Open edX
   - The wrong version of xqueue was being installed, fixed.
 
 - Role: enterprise_catalog
