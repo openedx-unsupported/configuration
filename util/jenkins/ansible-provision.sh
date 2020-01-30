@@ -269,6 +269,7 @@ EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
+COMMON_DEPLOY_HOSTNAME: ${deploy_host}
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 COMMON_LMS_BASE_URL: https://${deploy_host}
