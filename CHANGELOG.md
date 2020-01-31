@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added Stanford-developed Free Text Response XBlock.
+
+- Role: edxapp
   - Added Stanford-developed Submit-and-Compare XBlock.
 
 - Role: edxapp
