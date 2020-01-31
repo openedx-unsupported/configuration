@@ -1,4 +1,7 @@
 - Role: edxapp
+  - Added Stanford-developed Submit-and-Compare XBlock.
+
+- Role: edxapp
   - Added Stanford-developed Qualtrics and In-Video Quiz XBlocks.
 
 - Open edX
