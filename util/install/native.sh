@@ -100,7 +100,9 @@ sudo apt-get upgrade -y
 ## Install system pre-requisites
 ##
 sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python-pip libmysqlclient-dev python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc g++
-sudo pip install --upgrade pip==9.0.3
+# ansible-bootstrap installs yaml that pip 19 can't uninstall.
+sudo apt-get remove -y python-yaml
+sudo pip install --upgrade pip==19.3.1
 sudo pip install --upgrade setuptools==39.0.1
 sudo -H pip install --upgrade virtualenv==15.2.0
 
@@ -112,7 +114,7 @@ VERSION_VARS=(
     edx_platform_version
     certs_version
     forum_version
-    xqueue_version
+    XQUEUE_VERSION
     configuration_version
     demo_version
     NOTIFIER_VERSION

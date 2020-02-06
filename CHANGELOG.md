@@ -1,3 +1,39 @@
+- Role: edxapp
+  - Added Stanford-developed Free Text Response XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed Submit-and-Compare XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed Qualtrics and In-Video Quiz XBlocks.
+
+- Open edX
+  - Don't use AWS_GATHER_FACTS, it was only for tagging which we don't need.
+
+- Open edX
+  - The wrong version of xqueue was being installed, fixed.
+
+- Role: enterprise_catalog
+  - Added infrstructure to start up and deploy celery workers
+
+- Role: edxapp
+  - Added Celery worker `prefetch_optimization` option to allow switching from 'default' to 'fair' (only write to available worker processes)
+
+- Role: insights
+  - install libssl-dev, needed for mysqlclient
+
+- Role: insights
+  - add DOT config (deprecate DOP)
+
+- Open edX
+  - native.sh needed to uninstall pyyaml to proceed
+
+- Role: enterprise_catalog
+  - Create role
+
+- Role: blockstore
+  - Increased upload limit to 10M
+
 - Role: ecommerce
   - Fixed paypal payment processor default configuration
 
@@ -332,7 +368,7 @@
 
 - Role: edxapp
   - Added `EDXAPP_RETIRED_USERNAME_FMT`, `EDXAPP_RETIRED_EMAIL_FMT`, `EDXAPP_RETIRED_USER_SALTS`, and
-  `EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME` to generic_env_config to allow user retirement to be configurable.
+  `EDXAPP_RETIREMENT_SERVICE_USER_NAME` to generic_env_config to allow user retirement to be configurable.
 
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.

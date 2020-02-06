@@ -67,8 +67,8 @@ RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3.6\n" >> /etc/sudoers
 
 # Upgrade pip and setup tools. Needed for Ansible 2.x
 RUN \
-  pip3 install --upgrade pip==9.0.3 && \
-  pip2 install --upgrade pip==9.0.3 && \
+  pip3 install --upgrade pip==19.3.1 && \
+  pip2 install --upgrade pip==19.3.1 && \
   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
   hash -r && \
   # upgrade setuptools early to avoid no distribution errors
