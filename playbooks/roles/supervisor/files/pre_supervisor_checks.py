@@ -252,7 +252,7 @@ if __name__ == '__main__':
                 subprocess.call("sudo -u supervisor ln -sf {} {}".format(available_file, link_location), shell=True)
                 report.append("Enabling service: {}".format(service))
             else:
-                raise Exception("No conf available for service: {}".format(link_location))
+                raise Exception("No conf available for service: {}".format(available_file))
 
     except AWSConnectionError as ae:
         msg = "{}: ERROR : {}".format(prefix, ae)
