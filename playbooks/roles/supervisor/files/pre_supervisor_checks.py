@@ -21,6 +21,7 @@ MIGRATION_COMMANDS = {
         'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
         'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
         'registrar':     ". {env_file}; sudo -E -u registrar {python} {code_dir}/manage.py showmigrations",
+        'enterprise_catalog': ". {env_file}; sudo -E -u enterprise_catalog {python} {code_dir}/manage.py showmigrations",
     }
 NGINX_ENABLE = {
         'lms':  "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
@@ -147,6 +148,15 @@ if __name__ == '__main__':
     analyticsapi_migration_args.add_argument("--analytics-api-code-dir",
         help="Location of the analytics_api code.")
 
+    enterprise_catalog_migration_args = parser.add_argument_group("enterprise_catalog_migrations",
+            "Args for running enterprise_catalog migration checks.")
+    enterprise_catalog_migration_args.add_argument("--enterprise-catalog-python",
+        help="Path to python to use for executing migration check.")
+    enterprise_catalog_migration_args.add_argument("--enterprise-catalog-env",
+        help="Location of the enterprise_catalog environment file.")
+    enterprise_catalog_migration_args.add_argument("--enterprise-catalog-code-dir",
+        help="Location of the enterprise_catalog code.")
+
     args = parser.parse_args()
 
     report = []
@@ -231,6 +241,7 @@ if __name__ == '__main__':
                     "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
                     "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir},
                     "xqueue": {'python': args.xqueue_python, 'env_file': args.xqueue_env, 'code_dir': args.xqueue_code_dir},
+                    "enterprise_catalog": {'python': args.enterprise_catalog_python, 'env_file': args.enterprise_catalog_env, 'code_dir': args.enterprise_catalog_code_dir},
                 }
 
                 if service in services and all(arg!=None for arg in services[service].values()) and service in MIGRATION_COMMANDS:
