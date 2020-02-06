@@ -11,17 +11,11 @@ import socket
 import time
 
 # Services that should be checked for migrations.
-MIGRATION_COMMANDS = {
-        'lms':                ".edx/bin/edxapp-migrate-lms --noinput --list",
-        'cms':                ".edx/bin/edxapp-migrate-cms --noinput --list",
-        'xqueue':             ". {env_file}; sudo -E -u xqueue {python} {code_dir}/manage.py showmigrations",
-        'ecommerce':          ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
-        'insights':           ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
-        'analytics_api':      ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
-        'credentials':        ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
-        'discovery':          ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
-        'registrar':          ". {env_file}; sudo -E -u registrar {python} {code_dir}/manage.py showmigrations",
-        'enterprise_catalog': ". {env_file}; sudo -E -u enterprise_catalog {python} {code_dir}/manage.py showmigrations",
+GENERIC_MIGRATION_COMMAND = ". {env_file}; sudo -E -u {service} {python} {code_dir}/manage.py showmigrations"
+EDXAPP_MIGRATION_COMMANDS = {
+        'lms':        "/edx/bin/edxapp-migrate-lms --noinput --list",
+        'cms':        "/edx/bin/edxapp-migrate-cms --noinput --list",
+        'workers':    "/edx/bin/edxapp-migrate-cms --noinput --list; /edx/bin/edxapp-migrate-lms --noinput --list",
     }
 NGINX_ENABLE = {
         'lms': "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
@@ -76,86 +70,18 @@ if __name__ == '__main__':
     parser.add_argument("-e","--enabled",
         help="The location of the enabled services.")
 
-    migration_args = parser.add_argument_group("edxapp_migrations",
-            "Args for running edxapp migration checks.")
-    migration_args.add_argument("--edxapp-code-dir",
-            help="Location of the edx-platform code.")
-    migration_args.add_argument("--edxapp-python",
-            help="Path to python to use for executing migration check.")
-    migration_args.add_argument("--edxapp-env",
-            help="Location of the edxapp environment file.")
-
-    xq_migration_args = parser.add_argument_group("xqueue_migrations",
-            "Args for running xqueue migration checks.")
-    xq_migration_args.add_argument("--xqueue-code-dir",
-            help="Location of the xqueue code.")
-    xq_migration_args.add_argument("--xqueue-python",
-            help="Path to python to use for executing migration check.")
-    migration_args.add_argument("--xqueue-env",
-            help="Location of the xqueue environment file.")
-
-    ecom_migration_args = parser.add_argument_group("ecommerce_migrations",
-            "Args for running ecommerce migration checks.")
-    ecom_migration_args.add_argument("--ecommerce-python",
+    app_migration_args = parser.add_argument_group("app_migrations",
+            "Args for running app migration checks.")
+    app_migration_args.add_argument("--check-migrations", action='store_true',
+        help="Enable checking migrations.")
+    app_migration_args.add_argument("--check-migrations-service-names",
+        help="Comma seperated list of service names that should be checked for migrations")
+    app_migration_args.add_argument("--app-python",
         help="Path to python to use for executing migration check.")
-    ecom_migration_args.add_argument("--ecommerce-env",
-        help="Location of the ecommerce environment file.")
-    ecom_migration_args.add_argument("--ecommerce-code-dir",
-        help="Location of the ecommerce code.")
-
-    credentials_migration_args = parser.add_argument_group("credentials_migrations",
-            "Args for running credentials migration checks.")
-    credentials_migration_args.add_argument("--credentials-python",
-        help="Path to python to use for executing migration check.")
-    credentials_migration_args.add_argument("--credentials-env",
-        help="Location of the credentials environment file.")
-    credentials_migration_args.add_argument("--credentials-code-dir",
-        help="Location of the credentials code.")
-
-    discovery_migration_args = parser.add_argument_group("discovery_migrations",
-            "Args for running discovery migration checks.")
-    discovery_migration_args.add_argument("--discovery-python",
-        help="Path to python to use for executing migration check.")
-    discovery_migration_args.add_argument("--discovery-env",
-        help="Location of the discovery environment file.")
-    discovery_migration_args.add_argument("--discovery-code-dir",
-        help="Location of the discovery code.")
-
-    registrar_migration_args = parser.add_argument_group("registrar_migrations",
-            "Args for running registrar migration checks.")
-    registrar_migration_args.add_argument("--registrar-python",
-        help="Path to python to use for executing migration check.")
-    registrar_migration_args.add_argument("--registrar-env",
-        help="Location of the registrar environment file.")
-    registrar_migration_args.add_argument("--registrar-code-dir",
-        help="Location of the registrar code.")
-
-    insights_migration_args = parser.add_argument_group("insights_migrations",
-            "Args for running insights migration checks.")
-    insights_migration_args.add_argument("--insights-python",
-        help="Path to python to use for executing migration check.")
-    insights_migration_args.add_argument("--insights-env",
-        help="Location of the insights environment file.")
-    insights_migration_args.add_argument("--insights-code-dir",
-        help="Location of the insights code.")
-
-    analyticsapi_migration_args = parser.add_argument_group("analytics_api_migrations",
-            "Args for running analytics_api migration checks.")
-    analyticsapi_migration_args.add_argument("--analytics-api-python",
-        help="Path to python to use for executing migration check.")
-    analyticsapi_migration_args.add_argument("--analytics-api-env",
-        help="Location of the analytics_api environment file.")
-    analyticsapi_migration_args.add_argument("--analytics-api-code-dir",
-        help="Location of the analytics_api code.")
-
-    enterprise_catalog_migration_args = parser.add_argument_group("enterprise_catalog_migrations",
-            "Args for running enterprise_catalog migration checks.")
-    enterprise_catalog_migration_args.add_argument("--enterprise-catalog-python",
-        help="Path to python to use for executing migration check.")
-    enterprise_catalog_migration_args.add_argument("--enterprise-catalog-env",
-        help="Location of the enterprise_catalog environment file.")
-    enterprise_catalog_migration_args.add_argument("--enterprise-catalog-code-dir",
-        help="Location of the enterprise_catalog code.")
+    app_migration_args.add_argument("--app-env",
+        help="Location of the app environment file.")
+    app_migration_args.add_argument("--app-code-dir",
+        help="Location of the app code.")
 
     args = parser.parse_args()
 
@@ -230,31 +156,28 @@ if __name__ == '__main__':
             # We have to reload the new config files
             subprocess.call("/bin/systemctl reload nginx", shell=True)
 
-            if service in MIGRATION_COMMANDS:
-                services = {
-                    "lms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
-                    "cms": {'python': args.edxapp_python, 'env_file': args.edxapp_env, 'code_dir': args.edxapp_code_dir},
-                    "ecommerce": {'python': args.ecommerce_python, 'env_file': args.ecommerce_env, 'code_dir': args.ecommerce_code_dir},
-                    "credentials": {'python': args.credentials_python, 'env_file': args.credentials_env, 'code_dir': args.credentials_code_dir},
-                    "discovery": {'python': args.discovery_python, 'env_file': args.discovery_env, 'code_dir': args.discovery_code_dir},
-                    "registrar": {'python': args.registrar_python, 'env_file': args.registrar_env, 'code_dir': args.registrar_code_dir},
-                    "insights": {'python': args.insights_python, 'env_file': args.insights_env, 'code_dir': args.insights_code_dir},
-                    "analytics_api": {'python': args.analytics_api_python, 'env_file': args.analytics_api_env, 'code_dir': args.analytics_api_code_dir},
-                    "xqueue": {'python': args.xqueue_python, 'env_file': args.xqueue_env, 'code_dir': args.xqueue_code_dir},
-                    "enterprise_catalog": {'python': args.enterprise_catalog_python, 'env_file': args.enterprise_catalog_env, 'code_dir': args.enterprise_catalog_code_dir},
-                }
+            if (args.check_migrations and
+                args.app_python != None and
+                args.app_env != None and
+                args.app_code_dir != None and
+                args.check_migrations_service_names != None and
+                service in args.check_migrations_service_names.split(',')):
+                cmd_vars = {
+                    'python': args.app_python,
+                    'env_file': args.app_env,
+                    'code_dir': args.app_code_dir,
+                    'service': service,
+                    }
+                cmd = GENERIC_MIGRATION_COMMAND.format(**cmd_vars)
+                if service in EDXAPP_MIGRATION_COMMANDS:
+                    cmd = EDXAPP_MIGRATION_COMMANDS[service]
 
-                if service in services and all(arg!=None for arg in services[service].values()) and service in MIGRATION_COMMANDS:
-                    serv_vars = services[service]
-
-                    cmd = MIGRATION_COMMANDS[service].format(**serv_vars)
-                    if os.path.exists(serv_vars['code_dir']):
-                        os.chdir(serv_vars['code_dir'])
-                        # Run migration check command.
-                        output = subprocess.check_output(cmd, shell=True, )
-                        if '[ ]' in output:
-                            raise Exception("Migrations have not been run for {}".format(service))
-
+                if os.path.exists(serv_vars['code_dir']):
+                    os.chdir(serv_vars['code_dir'])
+                    # Run migration check command.
+                    output = subprocess.check_output(cmd, shell=True, )
+                    if '[ ]' in output:
+                        raise Exception("Migrations have not been run for {}".format(service))
 
             # Link to available service.
             available_file = os.path.join(args.available, "{}.conf".format(service))
@@ -263,7 +186,7 @@ if __name__ == '__main__':
                 subprocess.call("sudo -u supervisor ln -sf {} {}".format(available_file, link_location), shell=True)
                 report.append("Enabling service: {}".format(service))
             else:
-                raise Exception("No conf available for service: {}".format(available_file))
+                raise Exception("No conf available for service: {}".format(link_location))
 
     except AWSConnectionError as ae:
         msg = "{}: ERROR : {}".format(prefix, ae)
