@@ -12,20 +12,20 @@ import time
 
 # Services that should be checked for migrations.
 MIGRATION_COMMANDS = {
-        'lms':     "/edx/bin/edxapp-migrate-lms --noinput --list",
-        'cms':     "/edx/bin/edxapp-migrate-cms --noinput --list",
-        'xqueue':        ". {env_file}; sudo -E -u xqueue {python} {code_dir}/manage.py showmigrations",
-        'ecommerce':     ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
-        'insights':      ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
-        'analytics_api': ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
-        'credentials':   ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
-        'discovery':     ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
-        'registrar':     ". {env_file}; sudo -E -u registrar {python} {code_dir}/manage.py showmigrations",
+        'lms':                ".edx/bin/edxapp-migrate-lms --noinput --list",
+        'cms':                ".edx/bin/edxapp-migrate-cms --noinput --list",
+        'xqueue':             ". {env_file}; sudo -E -u xqueue {python} {code_dir}/manage.py showmigrations",
+        'ecommerce':          ". {env_file}; sudo -E -u ecommerce {python} {code_dir}/manage.py showmigrations",
+        'insights':           ". {env_file}; sudo -E -u insights {python} {code_dir}/manage.py showmigrations",
+        'analytics_api':      ". {env_file}; sudo -E -u analytics_api {python} {code_dir}/manage.py showmigrations",
+        'credentials':        ". {env_file}; sudo -E -u credentials {python} {code_dir}/manage.py showmigrations",
+        'discovery':          ". {env_file}; sudo -E -u discovery {python} {code_dir}/manage.py showmigrations",
+        'registrar':          ". {env_file}; sudo -E -u registrar {python} {code_dir}/manage.py showmigrations",
         'enterprise_catalog': ". {env_file}; sudo -E -u enterprise_catalog {python} {code_dir}/manage.py showmigrations",
     }
 NGINX_ENABLE = {
-        'lms':  "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
-        'cms':  "sudo ln -sf /edx/app/nginx/sites-available/cms /etc/nginx/sites-enabled/cms",
+        'lms': "sudo ln -sf /edx/app/nginx/sites-available/lms /etc/nginx/sites-enabled/lms",
+        'cms': "sudo ln -sf /edx/app/nginx/sites-available/cms /etc/nginx/sites-enabled/cms",
     }
 
 # Max amount of time to wait for tags to be applied.
