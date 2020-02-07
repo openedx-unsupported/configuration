@@ -178,6 +178,8 @@ if __name__ == '__main__':
                     output = subprocess.check_output(cmd, shell=True, )
                     if '[ ]' in output:
                         raise Exception("Migrations have not been run for {}".format(service))
+                    else:
+                        report.append("Checked migrations: {}".format(service))
 
             # Link to available service.
             available_file = os.path.join(args.available, "{}.conf".format(service))
