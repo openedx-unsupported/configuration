@@ -172,8 +172,8 @@ if __name__ == '__main__':
                 if service in EDXAPP_MIGRATION_COMMANDS:
                     cmd = EDXAPP_MIGRATION_COMMANDS[service]
 
-                if os.path.exists(serv_vars['code_dir']):
-                    os.chdir(serv_vars['code_dir'])
+                if os.path.exists(cmd_vars['code_dir']):
+                    os.chdir(cmd_vars['code_dir'])
                     # Run migration check command.
                     output = subprocess.check_output(cmd, shell=True, )
                     if '[ ]' in output:
