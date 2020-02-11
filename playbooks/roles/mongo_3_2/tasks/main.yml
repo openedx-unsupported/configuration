@@ -57,6 +57,7 @@
     install_recommends: yes
     force: yes
     update_cache: yes
+  register: install_mongo_package
   with_items: "{{ mongodb_debian_pkgs }}"
   tags:
     - "install"
@@ -261,11 +262,11 @@
     - "backup:mongo"
     - "install"
 
-- name: restart mongo service if we changed our configuration
+- name: restart mongo service if we changed our configuration or upgraded mongo
   service:
     name: mongod
     state: restarted
-  when: update_mongod_conf.changed or update_mongod_key.changed
+  when: update_mongod_conf.changed or update_mongod_key.changed or install_mongo_package.changed
   tags:
     - "manage"
     - "manage:start"
