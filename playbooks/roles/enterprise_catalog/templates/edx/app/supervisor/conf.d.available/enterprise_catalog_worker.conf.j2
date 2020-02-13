@@ -18,5 +18,20 @@ autorestart=true
 
 {% endfor %}
 
+[program:msg_consumer]
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ ENTERPRISE_CATALOG_NEWRELIC_WORKERS_APPNAME }},NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ ENTERPRISE_CATALOG_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},PYTHONPATH={{ enterprise_catalog_code_dir }},BOTO_CONFIG="{{ enterprise_catalog_app_dir
+}}/.boto,EDX_REST_API_CLIENT_NAME={{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-enterprise-catalog-msg-consumer,"
+user={{ common_web_user }}
+directory={{ enterprise_catalog_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ enterprise_catalog_app_dir }}/consumer.sh
+killasgroup=true
+stopwaitsecs={{ ENTERPRISE_CATALOG_WORKER_DEFAULT_STOPWAITSECS }}
+autorestart=true
+
+
 [group:enterprise_catalog_worker]
-programs={%- for w in enterprise_catalog_workers %}{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %}
+programs={%- for w in enterprise_catalog_workers %}{{ w.queue }}_{{ w.concurrency }}{%- endfor %},msg_consumer
