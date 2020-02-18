@@ -79,29 +79,6 @@
     - "install"
     - "install:app-configuration"
 
-- name: add serverStatus logging script
-  template:
-    src: "log-mongo-serverStatus.sh.j2"
-    dest: "{{ COMMON_BIN_DIR }}/log-mongo-serverStatus.sh"
-    owner: "{{ mongo_user }}"
-    group: "{{ mongo_user }}"
-    mode: 0700
-  when: MONGO_LOG_SERVERSTATUS
-  tags:
-    - "install"
-    - "install:app-configuration"
-
-- name: add serverStatus logging script to cron
-  cron:
-    name: mongostat logging job
-    minute: "*/3"
-    job: /edx/bin/log-mongo-serverStatus.sh >> {{ mongo_log_dir }}/serverStatus.log 2>&1
-  become: yes
-  when: MONGO_LOG_SERVERSTATUS
-  tags:
-    - "install"
-    - "install:app-configuration"
-
 # This will error when run on a new replica set, so we ignore_errors
 # and connect anonymously next.
 - name: determine if there is a replica set already
@@ -401,3 +378,26 @@
   tags:
     - "manage"
     - "manage:start"
+
+- name: add serverStatus logging script
+  template:
+    src: "log-mongo-serverStatus.sh.j2"
+    dest: "{{ COMMON_BIN_DIR }}/log-mongo-serverStatus.sh"
+    owner: "{{ mongo_user }}"
+    group: "{{ mongo_user }}"
+    mode: 0700
+  when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:app-configuration"
+
+- name: add serverStatus logging script to cron
+  cron:
+    name: mongostat logging job
+    minute: "*/3"
+    job: /edx/bin/log-mongo-serverStatus.sh >> {{ mongo_log_dir }}/serverStatus.log 2>&1
+  become: yes
+  when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:app-configuration"
