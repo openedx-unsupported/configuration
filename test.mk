@@ -15,7 +15,7 @@ test.help:
 
 test: test.syntax test.playbooks
 
-test.syntax: test.syntax.yml test.syntax.json test.syntax.dockerfiles
+test.syntax: test.syntax.yml test.syntax.json
 
 test.syntax.yml: $(patsubst %,test.syntax.yml/%,$(yml_files))
 
@@ -26,9 +26,6 @@ test.syntax.json: $(patsubst %,test.syntax.json/%,$(json_files))
 
 test.syntax.json/%:
 	jsonlint -v $*
-
-test.syntax.dockerfiles:
-	python util/check_dockerfile_coverage.py "$(images)"
 
 test.playbooks:
 	tests/test_playbooks.sh
