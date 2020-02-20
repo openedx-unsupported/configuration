@@ -106,8 +106,7 @@ RUN curl -fSL "$SQOOP_URL" -o /var/tmp/$SQOOP_DIST_FILE \
     && cp /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE/$SQOOP_MYSQL_CONNECTOR_FILE-bin.jar $SQOOP_LIB \
     && cp /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE/$SQOOP_MYSQL_CONNECTOR_FILE-bin.jar $HIVE_HOME/lib/ \
     && cp /var/tmp/$SQOOP_VERTICA_CONNECTOR_FILE $SQOOP_LIB \
-    && rm -rf /var/tmp/$SQOOP_DIST_FILE /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE* \
-    && rm -rf /var/tmp/$SQOOP_DIST_FILE /var/tmp/$SQOOP_VERTICA_CONNECTOR_FILE*
+    && rm -rf /var/tmp/$SQOOP_DIST_FILE /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE* /var/tmp/$SQOOP_VERTICA_CONNECTOR_FILE*
 
 WORKDIR /var/tmp
 # Edx Hadoop Util Library
