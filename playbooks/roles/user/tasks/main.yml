@@ -254,8 +254,20 @@
   when: user_info|length > 0
   register: users_ssh_access
 
-- name: restart ssh
+- name: Restart ssh (ubuntu/debian)
   service:
     name: ssh
     state: restarted
-  when: users_ssh_access.changed
+  become: True
+  when: >
+    users_ssh_access.changed and
+    ansible_distribution in common_debian_variants
+
+- name: Restart ssh (redhat)
+  service:
+    name: sshd
+    state: restarted
+  become: True
+  when: >
+    users_ssh_access.changed and
+    ansible_distribution in common_redhat_variants
