@@ -1,3 +1,6 @@
+- Role: edxapp
+  - Added `ENTERPRISE_LEARNER_PORTAL_HOSTNAME` env var for lms.
+
 - Role: ecommerce
   - Added `ENTERPRISE_LEARNER_PORTAL_HOSTNAME` env var for ecommerce.
 
