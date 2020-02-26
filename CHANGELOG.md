@@ -889,3 +889,5 @@
   - Added `WHITELABEL_DNS` for DNS settings of themes.
   - Added `WHITELABEL_ORG` for whitelabel organization settings.
 
+- Role: all
+  - Removed the unused task timing callback plugin.
