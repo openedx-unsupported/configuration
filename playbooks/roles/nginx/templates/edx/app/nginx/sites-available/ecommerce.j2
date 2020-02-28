@@ -1,0 +1,75 @@
+#
+# This file is created and updated by ansible, edit at your peril
+#
+
+upstream ecommerce_app_server {
+    server 127.0.0.1:8130 fail_timeout=0;
+}
+
+# The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+# but only the server name (e.g. https://www.example.com).
+# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+
+# Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+# of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+
+map $http_origin $cors_origin {
+default "null";
+}
+server {
+  server_name ~^((stage|prod)-)?ecommerce.*;
+  listen 80;
+
+
+
+location ~ ^/static/(?P<file>.*) {
+  root /edx/var/ecommerce;
+      if ($request_method = 'OPTIONS') {
+        add_header 'Access-Control-Allow-Origin' $cors_origin;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+        add_header 'Access-Control-Allow-Headers' 'Authorization, USE-JWT-COOKIE';
+                add_header 'Access-Control-Max-Age' 86400;
+        add_header 'Content-Type' 'text/plain; charset=utf-8';
+        add_header 'Content-Length' 0;
+        return 204;
+    }
+
+    add_header 'Access-Control-Allow-Origin' $cors_origin always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+    add_header 'Access-Control-Allow-Credentials' true always;
+  # Inform downstream caches to take certain headers into account when reading/writing to cache.
+  add_header 'Vary' 'Accept-Encoding,Origin';
+
+  try_files /staticfiles/$file =404;
+}
+
+location ~ ^/media/(?P<file>.*) {
+  root /edx/var/ecommerce;
+  try_files /media/$file =404;
+}
+
+location / {
+    try_files $uri @proxy_to_app;
+}
+
+location ~ ^/(api|payment|\.well-known/apple-developer-merchantid-domain-association)/ {
+  try_files $uri @proxy_to_app;
+}
+
+
+
+location @proxy_to_app {
+
+
+  proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+  proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+  proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+
+  # newrelic-specific header records the time when nginx handles a request.
+  proxy_set_header X-Queue-Start "t=${msec}";
+
+  proxy_set_header Host $http_host;
+
+  proxy_redirect off;
+  proxy_pass http://ecommerce_app_server;
+}}
