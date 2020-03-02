@@ -897,3 +897,6 @@
 
 - Role: all
   - Removed the unused task timing callback plugin.
+
+- Role: all
+  - Removed all settings with OIDC in name
