@@ -17,9 +17,6 @@
 #   - ami_wait                        - (yes/no) should ansible pause while
 #   - no_reboot                       - (yes/no) should the instance not be rebooted during AMI creation
 #   - artifact_path                   - the path to where this ansible run stores the artifacts for the pipeline
-#   - hipchat_token                   - API token to send messages to hipchat
-#   - hipchat_room                    - ID or name of the room to send the notification
-#   - hipchat_url                     - URL of the hipchat API  (defaults to v1 of the api)
 #   - extra_name_identifier           - Makes each AMI unique if desired - Default: 0
 #   - version_tags                    - A mapping of {app: [repo, version], ...}, used to generate
 #                                       a "version:app = repo version" tag on the AMI
@@ -43,7 +40,6 @@
     ami_creation_timeout: 3600
     no_reboot: no
     artifact_path: /tmp/ansible-runtime
-    hipchat_url: https://api.hipchat.com/v2/
     extra_name_identifier: 0
   gather_facts: False
   connection: local
@@ -110,14 +106,3 @@
       src: templates/local/ami_template.yml.j2
       dest: "{{ artifact_path }}/ami.yml"
       mode: 0600
-
-  - name: Send Hipchat notification AMI is finished baking
-    hipchat:
-      api: "{{ hipchat_url }}"
-      token: "{{ hipchat_token }}"
-      room: "{{ hipchat_room }}"
-      msg: "Finished baking AMI for: {{ edx_environment }}-{{ deployment }}-{{ play }} \n
-            AMI-ID: {{ ami_register.image_id }} \n
-           "
-    ignore_errors: yes
-    when: hipchat_token is defined

@@ -21,30 +21,6 @@
 #
 #
 
-# TODO: Remove the DOP client creation post-DOP-removal.
-- name: Create OAuth2 django-oauth2-provider Clients
-  shell: >
-    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
-    create_oauth2_client
-    {{ item.url_root }}
-    "{{ item.url_root }}/complete/edx-oidc/"
-    confidential
-    --client_name {{ item.name }}
-    --client_id {{ item.id }}
-    --client_secret {{ item.secret }}
-    --trusted
-    --logout_uri {{ item.logout_uri | default("") }}
-    --username {{ item.username }}
-  become_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  with_items: "{{ oauth_client_setup_oauth2_clients }}"
-  when:
-    - item.name != 'None'
-    - item.id is defined
-    - item.id != 'None'
-    - item.secret is defined
-    - item.secret != 'None'
-
 - name: Create OAuth2 django-oauth-toolkit SSO Applications
   shell: >
     {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}

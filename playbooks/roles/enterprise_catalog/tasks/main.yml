@@ -1,0 +1,47 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role enterprise_catalog
+#
+# Overview: This role's tasks come from edx_django_service.
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+# write the supervisor script
+- name: "writing enterprise_catalog_worker supervisor script"
+  template:
+    src: "edx/app/supervisor/conf.d.available/enterprise_catalog_worker.conf.j2"
+    dest: "{{ supervisor_available_dir }}/enterprise_catalog_worker.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  tags:
+    - install
+    - install:configuration
+
+# write the worker wrapper
+- name: "writing worker.sh wrapper script"
+  template:
+    src: "edx/app/enterprise_catalog/worker.sh.j2"
+    dest: "{{ enterprise_catalog_app_dir }}/worker.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0650
+  tags:
+    - install
+    - install:configuration

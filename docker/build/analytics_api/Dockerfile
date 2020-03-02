@@ -18,6 +18,7 @@ COPY docker/build/analytics_api/ansible_overrides.yml /
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/analytics_api/ansible_overrides.yml /
+COPY docker/build/analytics_api/analytics_api.yml /edx/etc/analytics_api.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}

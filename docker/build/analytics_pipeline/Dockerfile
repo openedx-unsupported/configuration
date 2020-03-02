@@ -20,6 +20,8 @@ ENV BOTO_CONFIG=/dev/null \
     SQOOP_MYSQL_CONNECTOR_FILE=mysql-connector-java-5.1.29 \
     SQOOP_HOME=/edx/app/hadoop/sqoop \
     SQOOP_LIB=/edx/app/hadoop/sqoop/lib \
+    SQOOP_VERTICA_CONNECTOR_URL=https://vertica.com/client_drivers/9.1.x/9.1.1-0/vertica-jdbc-9.1.1-0.jar \
+    SQOOP_VERTICA_CONNECTOR_FILE=vertica-jdbc-9.1.1-0.jar \
     SPARK_URL=https://archive.apache.org/dist/spark/spark-2.1.0/spark-2.1.0-bin-hadoop2.7.tgz \
     SPARK_DIST_FILE=spark-2.1.0-bin-hadoop2.7.tgz \
     SPARK_HOME=/edx/app/hadoop/spark \
@@ -27,7 +29,7 @@ ENV BOTO_CONFIG=/dev/null \
     ANALYTICS_PIPELINE_VENV=/edx/app/analytics_pipeline/venvs \
     BOOTSTRAP=/etc/bootstrap.sh \
     COMMON_BASE_DIR=/edx \
-    COMMON_PIP_PACKAGES_PIP='pip==9.0.3' \
+    COMMON_PIP_PACKAGES_PIP='pip==19.3.1' \
     COMMON_PIP_PACKAGES_SETUPTOOLS='setuptools==39.0.1' \
     COMMON_PIP_PACKAGES_VIRTUALENV='virtualenv==15.2.0' \
     COMMON_PIP_PACKAGES_VIRTUALENVWRAPPER='virtualenvwrapper==4.8.2' \
@@ -98,11 +100,13 @@ RUN curl -fSL "$SPARK_URL" -o /var/tmp/$SPARK_DIST_FILE \
 # SQOOP
 RUN curl -fSL "$SQOOP_URL" -o /var/tmp/$SQOOP_DIST_FILE \
     && curl -fSL "$SQOOP_MYSQL_CONNECTOR_URL" -o /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE.tar.gz \
+    && curl -fSL "$SQOOP_VERTICA_CONNECTOR_URL" -o /var/tmp/$SQOOP_VERTICA_CONNECTOR_FILE \
     && tar -xzf /var/tmp/$SQOOP_DIST_FILE -C $SQOOP_HOME --strip-components=1 \
     && tar -xzf /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE.tar.gz -C /var/tmp/ \
     && cp /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE/$SQOOP_MYSQL_CONNECTOR_FILE-bin.jar $SQOOP_LIB \
     && cp /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE/$SQOOP_MYSQL_CONNECTOR_FILE-bin.jar $HIVE_HOME/lib/ \
-    && rm -rf /var/tmp/$SQOOP_DIST_FILE /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE*
+    && cp /var/tmp/$SQOOP_VERTICA_CONNECTOR_FILE $SQOOP_LIB \
+    && rm -rf /var/tmp/$SQOOP_DIST_FILE /var/tmp/$SQOOP_MYSQL_CONNECTOR_FILE* /var/tmp/$SQOOP_VERTICA_CONNECTOR_FILE*
 
 WORKDIR /var/tmp
 # Edx Hadoop Util Library

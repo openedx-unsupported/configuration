@@ -3,7 +3,7 @@ mongo_logappend: true
 #This way, when mongod receives a SIGUSR1, it'll close and reopen its log file handle
 mongo_logrotate: reopen
 
-mongo_version: 3.4.18
+mongo_version: 3.4.24
 mongo_port: "27017"
 mongo_extra_conf: ''
 mongo_key_file: '/etc/mongodb_key'
@@ -86,3 +86,28 @@ mongo_dbpath: "{{ mongo_data_dir }}/mongodb"
 mongo_enable_journal: true
 
 MONGO_LOG_SERVERSTATUS: true
+
+# Vars for configuring a mongo backup node. If enabled, this node will be provisioned with a script that uses mongodump
+# to backup the database to an ebs volume at a period set by mongo_backup_cron.
+# Set MONGO_BACKUP_ENABLED to true to enable. If enabled, all the other MONGO_BACKUP_ vars must be set according to your
+# setup.
+MONGO_BACKUP_ENABLED: false
+MONGO_BACKUP_NODE: "" # note: most likely the ip address of the instance on which to perform the backups
+MONGO_BACKUP_EBS_VOLUME_DEVICE: ""
+MONGO_BACKUP_EBS_VOLUME_ID: ""
+MONGO_BACKUP_AUTH_DATABASE: ""
+MONGO_BACKUP_PRUNE_OLDER_THAN_DATE: ""  # passed to `date -d`; should be a relative date like "-30days"
+MONGO_BACKUP_SNITCH_URL: "" # Optional URL that will be used to ping a monitoring service (such as Dead Man's Snitch) upon successful completion of a backup.
+MONGO_BACKUP_VOLUME_MOUNT_PATH: "/mnt/mongo-backup"
+MONGO_BACKUP_SNAPSHOT_DESC: "mongo-backup"
+mongo_backup_script_path: "/usr/local/sbin/backup-mongo.sh"
+mongo_backup_cron:
+  minute: '12'
+  hour: '*/12'
+  day: '*'
+  month: '*'
+  weekday: '*'
+
+# Internal variable set to true dynamically if backups enabled and playbook running on MONGO_BACKUP_NODE. Do not
+# manually override.
+is_backup_node: false

@@ -1,3 +1,4 @@
+ARG BASE_IMAGE_TAG=latest
 FROM ubuntu:xenial
 LABEL maintainer="edxops"
 

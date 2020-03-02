@@ -15,6 +15,8 @@ ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/ecomworker/ansible_overrides.yml /
+COPY docker/build/ecomworker/ecomworker.yml /edx/etc/ecomworker.yml
+
 RUN sudo /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook ecomworker.yml \
     -c local -i '127.0.0.1,' \
     -t "install:base,install:system-requirements,install:configuration,install:app-requirements,install:code" \

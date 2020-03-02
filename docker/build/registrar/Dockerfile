@@ -19,6 +19,7 @@ WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
 COPY docker/build/registrar/ansible_overrides.yml /
 COPY docker/devstack_common_ansible_overrides.yml /devstack/ansible_overrides.yml
+COPY docker/build/registrar/registrar.yml /edx/etc/registrar.yml
 
 ARG OPENEDX_RELEASE=master
 ENV OPENEDX_RELEASE=${OPENEDX_RELEASE}
