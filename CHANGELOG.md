@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
 - Role: all
+  - Removed OPENID settings
+
+- Role: all
   - Removed all settings with OIDC in name
 
 - Role: edxapp
