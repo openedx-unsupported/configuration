@@ -15,6 +15,16 @@
 # This role ensures that the correct EBS volumes are mounted to the right locations.
 # If the volumes are already mounted to the correct place, this role does nothing.
 
+# Newer AWS EC2 instances sometimes swap the order of the disks, resulting in a very small data volume and a very large
+# journal volume. This prevents that by confirming that the disk sizes are correct before proceeding. Rebooting seems to
+# fix the ordering
+- name: Check disk size
+  assert:
+    that:
+    - "{{ ansible_devices[item.device.split('/')[-1]]['size'] == item.size }}"
+    fail_msg: "Actual size {{ ansible_devices[item.device.split('/')[-1]]['size'] }} != Expected size {{ item.size }}. Rebooting the instance may fix the ordering issue"
+  with_items: "{{ volumes }}"
+
 # This task will be skipped if UNMOUNT_DISKS is false, causing the next task
 # to error if the disk has the wrong fstype but is already mounted
 - name: Unmount disk if fstype is wrong
