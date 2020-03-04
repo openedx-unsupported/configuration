@@ -30,7 +30,6 @@
 - name: Unmount disk if fstype is wrong
   mount:
     name: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'mount': None})).mount }}"
-    src: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'device': None})).device }}"
     fstype: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype }}"
     state: unmounted
   when: "UNMOUNT_DISKS and (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype != item.fstype"
@@ -66,7 +65,6 @@
 - name: Unmount disks mounted to the wrong place
   mount:
     name: "{{ item.mount }}"
-    src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
     state: unmounted
   when:
@@ -85,10 +83,11 @@
     (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
   with_items: "{{ ansible_mounts }}"
 
+# Use UUID to prevent issues with AWS EC2 swapping device order
 - name: Mount disks
   mount:
     name: "{{ item.mount }}"
-    src: "{{ item.device }}"
+    src: "UUID={{ ansible_devices[item.device.split('/')[-1]]['links']['uuids'][0] }}"
     state: mounted
     fstype: "{{ item.fstype }}"
     opts: "{{ item.options }}"
