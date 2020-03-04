@@ -7,6 +7,9 @@ Add any new changes to the top(right below this line).
   - This is to prevent mounting the wrong volumes when AWS swaps the order
 
 - Role: all
+  - Removed OPENID settings
+
+- Role: all
   - Removed all settings with OIDC in name
 
 - Role: edxapp
