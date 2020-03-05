@@ -147,6 +147,32 @@
   until: task_result is succeeded
   retries: 5
   with_items: "{{ user_info }}"
+  tags:
+    - tryharder
+
+- name: Create ~/.ssh directory
+  file:
+    path: "/home/{{ item.name }}/.ssh" 
+    state: directory 
+    mode: "0755"
+    owner: "{{ item.name }}" 
+    group: "{{ item.name }}"
+  when: item.authorized_keys is defined and item.get('state', 'present') == 'present'
+  with_items: "{{ user_info }}"
+  tags:
+    - tryharder
+
+- name: Build authorized_keys file for non github users
+  template:
+    src: "templates/authorized_keys.j2"
+    dest: "/home/{{ item.name }}/.ssh/authorized_keys"
+    mode: "0600"
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+  with_items: "{{ user_info }}"
+  when: item.authorized_keys is defined and item.get('state', 'present') == 'present'
+  tags:
+    - tryharder
 
 - name: Create bashrc file for normal users
   template: 
