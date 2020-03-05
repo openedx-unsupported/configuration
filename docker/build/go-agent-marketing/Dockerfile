@@ -6,8 +6,8 @@ RUN bash -c '\curl -sSL https://get.rvm.io | bash -s -- --ignore-dotfiles && \
     usermod -aG rvm go && source /etc/profile.d/rvm.sh && \
     rvm install ruby-2.4.1 && gem install bundler -v 1.16.0'
 
-# Installs node 8.9.3 and npm 5.5.1 as of 12/13/17. Unlikely to change much since node 9 is a stable version for other OS
-RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash - && \
+# Installs node 12 and npm 6 as of October 2019.
+RUN curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash - && \
     apt-get update && apt-get install -y nodejs
 
 # Install php
