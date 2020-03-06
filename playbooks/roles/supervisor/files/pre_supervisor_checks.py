@@ -11,7 +11,7 @@ import socket
 import time
 
 # Services that should be checked for migrations.
-GENERIC_MIGRATION_COMMAND = ". {env_file}; sudo -E -u {play} {python} {code_dir}/manage.py showmigrations"
+GENERIC_MIGRATION_COMMAND = ". {env_file}; sudo -E -u {user} {python} {code_dir}/manage.py showmigrations"
 EDXAPP_MIGRATION_COMMANDS = {
         'lms':        "/edx/bin/edxapp-migrate-lms --noinput --list",
         'cms':        "/edx/bin/edxapp-migrate-cms --noinput --list",
@@ -162,12 +162,19 @@ if __name__ == '__main__':
                 args.app_code_dir != None and
                 args.check_migrations_service_names != None and
                 service in args.check_migrations_service_names.split(',')):
+
+                user = play
+                # Legacy naming workaround
+                # Using the play works everywhere but here.
+                if user == "analyticsapi":
+                    user="analytics_api"
+
                 cmd_vars = {
                     'python': args.app_python,
                     'env_file': args.app_env,
                     'code_dir': args.app_code_dir,
                     'service': service,
-                    'play': play,
+                    'user': user,
                     }
                 cmd = GENERIC_MIGRATION_COMMAND.format(**cmd_vars)
                 if service in EDXAPP_MIGRATION_COMMANDS:
