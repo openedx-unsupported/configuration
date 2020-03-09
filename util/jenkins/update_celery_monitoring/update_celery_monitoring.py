@@ -139,11 +139,11 @@ def count_workers(environment, deploy, cluster):
               help="Deployment (i.e. edx or edge)")
 @click.option('--max-metrics', default=20,
               help='Maximum number of CloudWatch metrics to publish')
-@click.option('--threshold', default=50,
-              help='Default maximum queue length before alarm notification is'
-              + ' sent')
+@click.option('--threshold', default=2,
+              help='Default Standard deviation of Anomaly detection band to'
+              + ' raise alarm when metric is greater than the band')
 @click.option('--queue-threshold', type=(str, int), multiple=True,
-              help='Threshold per queue in format --queue-threshold'
+              help='Anomaly detection threshold per queue in format --queue-threshold'
               + ' {queue_name} {threshold}. May be used multiple times')
 @click.option('--sns-arn', '-s', help='ARN for SNS alert topic', required=True)
 @click.option('--dev-test-mode', is_flag=True, help='Enable dev (no-op) mode')
@@ -207,7 +207,7 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         # Period is in seconds
         period = 60
         evaluation_periods = 15
-        comparison_operator = "GreaterThanThreshold"
+        comparison_operator = "GreaterThanUpperThreshold"
         treat_missing_data = "notBreaching"
         statistic = "Maximum"
         actions = [sns_arn]
@@ -224,16 +224,16 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
         elif len(existing_alarms) == 1:
             existing_alarm = existing_alarms[0]
 
-            if (existing_alarm.get('Threshold') != queue_threshold or
+            if (existing_alarm.get('Metrics')[1]['Expression'] != 'ANOMALY_DETECTION_BAND({0}, {1})'.format(queue, queue_threshold) or
                existing_alarm.get('AlarmDescription') != alarm_name or
-               existing_alarm.get('Namespace') != namespace or
-               existing_alarm.get('MetricName') != metric_name or
-               existing_alarm.get('Dimensions') != dimensions or
-               existing_alarm.get('Period') != period or
+               existing_alarm.get('Metrics')[0]['MetricStat']['Metric']['Namespace'] != namespace or
+               existing_alarm.get('Metrics')[0]['MetricStat']['Metric']['MetricName'] != metric_name or
+               existing_alarm.get('Metrics')[0]['MetricStat']['Metric']['Dimensions'] != dimensions or
+               existing_alarm.get('Metrics')[0]['MetricStat']['Period'] != period or
                existing_alarm.get('EvaluationPeriods') != evaluation_periods or
                existing_alarm.get('TreatMissingData') != treat_missing_data or
                existing_alarm.get('ComparisonOperator') != comparison_operator or
-               existing_alarm.get('Statistic') != statistic):
+               existing_alarm.get('Metrics')[0]['MetricStat']['Stat'] != statistic):
                 do_put_alarm = True
                 print("1")
             elif not (len(existing_alarm.get('InsufficientDataActions')) == 1 and
@@ -254,27 +254,40 @@ def check_queues(host, port, environment, deploy, max_metrics, threshold,
             print(('Not updating alarm "{}", no changes'.format(alarm_name)))
         else:
             print(('put_alarm_metric: {}'.format(alarm_name)))
+            metrics = [{
+                'Id': queue,
+                'MetricStat': {
+                    'Metric': {
+                        'Namespace': namespace,
+                        'MetricName': metric_name,
+                        'Dimensions': dimensions
+                    },
+                    'Period': period,
+                    'Stat': statistic
+                }
+            },
+                {
+                    'Id': metric_name+"_expected_values",
+                    'Expression': 'ANOMALY_DETECTION_BAND({}, {})'.format(queue, queue_threshold)
+                }
+            ]
             cloudwatch.put_metric_alarm(AlarmName=alarm_name,
                                         AlarmDescription=alarm_name,
-                                        Namespace=namespace,
-                                        MetricName=metric_name,
-                                        Dimensions=dimensions,
-                                        Period=period,
+                                        Metrics=metrics,
                                         EvaluationPeriods=evaluation_periods,
                                         TreatMissingData=treat_missing_data,
-                                        Threshold=queue_threshold,
                                         ComparisonOperator=comparison_operator,
-                                        Statistic=statistic,
                                         InsufficientDataActions=actions,
                                         OKActions=actions,
-                                        AlarmActions=actions)
+                                        AlarmActions=actions,
+                                        ThresholdMetricId=metric_name+"_expected_values"
+                                        )
 
     # Track number of worker instances so it can be graphed in CloudWatch
     workers_metric_data = count_workers(environment, deploy, 'worker')
     print("workers_metric_data:")
     pprint(workers_metric_data, width=120)
     cloudwatch.put_metric_data(Namespace=namespace, MetricData=workers_metric_data)
-
 
 # Stolen right from the itertools recipes
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
