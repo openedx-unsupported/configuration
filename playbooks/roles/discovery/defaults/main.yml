@@ -25,6 +25,7 @@ DISCOVERY_MYSQL: 'localhost'
 DISCOVERY_MYSQL_USER: 'discov001'
 DISCOVERY_MYSQL_PASSWORD: 'password'
 DISCOVERY_MYSQL_REPLICA_HOST: 'localhost'
+DISCOVERY_MYSQL_CONN_MAX_AGE: 60
 
 discovery_environment:
   DISCOVERY_CFG: "{{ COMMON_CFG_DIR }}/{{ discovery_service_name }}.yml"
@@ -32,6 +33,9 @@ discovery_environment:
 discovery_user: "{{ discovery_service_name }}"
 discovery_home: "{{ COMMON_APP_DIR }}/{{ discovery_service_name }}"
 discovery_code_dir: "{{ discovery_home }}/{{ discovery_service_name }}"
+
+DISCOVERY_NODE_VERSION: '12.11.1'
+discovery_node_version: "{{ DISCOVERY_NODE_VERSION }}"
 
 #
 # OS packages
@@ -82,10 +86,6 @@ DISCOVERY_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'discovery-sso-key'
 DISCOVERY_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'discovery-sso-secret'
 DISCOVERY_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'discovery-backend-service-key'
 DISCOVERY_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'discovery-backend-service-secret'
-# NOTE: Deprecate these OIDC settings post-DOP-removal for credentials.
-DISCOVERY_SOCIAL_AUTH_EDX_OIDC_KEY : 'discovery-key'
-DISCOVERY_SOCIAL_AUTH_EDX_OIDC_SECRET : 'discovery-secret'
-DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 DISCOVERY_PLATFORM_NAME: 'Your Platform Name Here'
 
@@ -115,11 +115,14 @@ DISCOVERY_EMAIL_USE_TLS: False
 DISCOVERY_EMAIL_HOST_USER: ''
 DISCOVERY_EMAIL_HOST_PASSWORD: ''
 
+DISCOVERY_ENABLE_PUBLISHER: false
 DISCOVERY_PUBLISHER_FROM_EMAIL: !!null
 
 DISCOVERY_OPENEXCHANGERATES_API_KEY: ''
 
 DISCOVERY_GUNICORN_EXTRA: ''
+
+DISCOVERY_GUNICORN_WORKERS: 2
 
 DISCOVERY_EXTRA_APPS: []
 
@@ -155,6 +158,7 @@ discovery_service_config_overrides:
   EMAIL_HOST_USER: '{{ DISCOVERY_EMAIL_HOST_USER }}'
   EMAIL_HOST_PASSWORD: '{{ DISCOVERY_EMAIL_HOST_PASSWORD }}'
 
+  ENABLE_PUBLISHER:  '{{ DISCOVERY_ENABLE_PUBLISHER }}'
   PUBLISHER_FROM_EMAIL: '{{ DISCOVERY_PUBLISHER_FROM_EMAIL }}'
 
   OPENEXCHANGERATES_API_KEY: '{{ DISCOVERY_OPENEXCHANGERATES_API_KEY }}'
