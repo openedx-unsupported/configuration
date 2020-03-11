@@ -25,6 +25,7 @@ registrar_code_dir: "{{ registrar_app_dir }}/{{ registrar_service_name }}"
 registrar_venvs_dir: "{{ registrar_app_dir }}/venvs"
 registrar_venv_dir: "{{ registrar_venvs_dir }}/registrar"
 registrar_celery_default_queue: 'registrar.default'
+registrar_celery_queue: 'registrar'
 
 registrar_environment:
   REGISTRAR_CFG: '{{ COMMON_CFG_DIR }}/{{ registrar_service_name }}.yml'
@@ -99,6 +100,9 @@ REGISTRAR_NEWRELIC_WORKERS_APPNAME: registrar-workers
 worker_django_settings_module: "{{ REGISTRAR_DJANGO_SETTINGS_MODULE }}"
 REGISTRAR_CELERY_WORKERS:
   - queue: '{{ registrar_celery_default_queue }}'
+    concurrency: 1
+    monitor: True
+  - queue: '{{ registrar_celery_queue }}'
     concurrency: 1
     monitor: True
 registrar_workers: "{{ REGISTRAR_CELERY_WORKERS }}"
