@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-07-24
+    - Role: newrelic_mongo_monitor
+      - Added the new newrelic_mongo_monitor role and playbook for configuring newrelic infrastructure agent mongodb
+        integration.
+
  - 2020-06-30
     - Role: edxapp
       - Added COURSE_CATALOG_URL_ROOT that contains root url of course catalog service (discovery service).
