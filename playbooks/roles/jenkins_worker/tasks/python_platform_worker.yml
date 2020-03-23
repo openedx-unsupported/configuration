@@ -36,7 +36,7 @@
     virtualenv: "{{ jenkins_home }}/edx-venv-{{ item }}/edx-venv"
     virtualenv_command: virtualenv
     virtualenv_python: "python{{ item }}"
-  with_items: "{{ edx_platform_python_versions }}"
+  with_items: "{{ jenkins_worker_python_versions }}"
   become_user: "{{ jenkins_user }}"
 
 # Archive the current state of each of the virtualenvs
@@ -47,7 +47,15 @@
   command: "tar -C edx-venv-{{ item }} -cpzf edx-venv_clean-{{ item }}.tar.gz edx-venv"
   args:
     chdir: "{{ jenkins_home }}"
-  with_items: "{{ edx_platform_python_versions }}"
+  with_items: "{{ jenkins_worker_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
+# Temporary fix: make a copy of the python 2.7 virtualenv with a
+# generic name to avoid breaking older PRs
+- name: Make copy of py2.7 virtualenv tarball
+  command: "cp edx-venv_clean-2.7.tar.gz edx-venv_clean.tar.gz"
+  args:
+    chdir: "{{ jenkins_home }}"
   become_user: "{{ jenkins_user }}"
 
 - name: Add script to set install node packages
@@ -59,7 +67,8 @@
     mode: "0500"
   when: platform_worker is defined
 
-# Install node packages for platform.
+# Using the nodeenv package, install the version of node used in
+# the platform CI tests, then install the platform npm packages.
 - name: Install node packages for caching
   command: "bash {{ jenkins_home }}/jenkins_nodeenv"
   become_user: "{{ jenkins_user }}"
