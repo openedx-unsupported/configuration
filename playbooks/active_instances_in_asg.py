@@ -61,8 +61,9 @@ class ActiveInventory():
         # for all instances in all auto scaling groups
         for group in matching_groups:
             for instance in group['Instances']:
-                groups_to_instances[group['AutoScalingGroupName']].append(instance['InstanceId'])
-                instances_to_groups[instance['InstanceId']] = group['AutoScalingGroupName']
+                if instance['LifecycleState'] == 'InService':
+                    groups_to_instances[group['AutoScalingGroupName']].append(instance['InstanceId'])
+                    instances_to_groups[instance['InstanceId']] = group['AutoScalingGroupName']
 
 
         # We only need to check for ASGs in an ELB if we have more than 1.
