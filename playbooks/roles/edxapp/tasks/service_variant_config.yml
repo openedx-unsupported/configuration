@@ -1,4 +1,81 @@
 ---
+- name: create application and auth config
+  template:
+    src: "{{ item[0] }}.{{ item[1] }}.json.j2"
+    dest: "{{ edxapp_app_dir }}/{{ item[0] }}.{{ item[1] }}.json"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    - [ 'env', 'auth' ]
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
+- name: combined lms auth env for yml
+  set_fact:
+    lms_combined_config: '{{lms_env_config|combine(lms_auth_config)}}'
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: '"lms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+    - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
+
+- name: render lms yml config # meant to replace existing json config eventually
+  template:
+    src: "lms.yml.j2"
+    dest: "{{ COMMON_CFG_DIR }}/lms.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  with_items: "{{ service_variants_enabled }}"
+  when: '"lms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+    - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
+
+- name: combined cms auth env for yml
+  set_fact:
+    cms_combined_config: '{{cms_env_config|combine(cms_auth_config)}}'
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: '"cms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+    - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
+
+- name: render studio yml config # meant to replace existing json config eventually
+  template:
+    src: "studio.yml.j2"
+    dest: "{{ COMMON_CFG_DIR }}/studio.yml"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  with_items: "{{ service_variants_enabled }}"
+  when: '"cms" in service_variants_enabled and not EDXAPP_DECRYPT_CONFIG_ENABLED'
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+    - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
+
 - name: Decrypt lms config
   local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/lms.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/lms.yml
   become: false
