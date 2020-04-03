@@ -26,6 +26,7 @@
 # dependencies:
 #   - role: edx_service
 #     edx_service_name: "hotg"
+#     edx_service_config: "{{ structure_to_be_written_to_config_file_in_/edx/etc }}"
 #     edx_service_repos:
 #       - PROTOCOL: [https/ssh]
 #         DOMAIN: github.com
@@ -91,6 +92,18 @@
   tags:
     - install
     - install:base
+
+- name: Write out app config file
+  template:
+    src: "config.yml.j2"
+    dest: "{{ COMMON_CFG_DIR  }}/{{ edx_service_name }}.yml"
+    mode: "0644"
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: not edx_service_decrypt_config_enabled
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
 
 - name: Decrypt app config file
   local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml
