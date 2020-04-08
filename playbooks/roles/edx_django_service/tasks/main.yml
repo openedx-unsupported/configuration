@@ -21,11 +21,42 @@
 #
 #
 
+- name: Get service user numeric id for docker
+  command: "id -u {{ edx_django_service_user }}"
+  register: edx_django_service_user_id
+  when: edx_django_service_enable_experimental_docker_shim
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Docker build non-newrelic
+  when: edx_django_service_enable_experimental_docker_shim
+  command: docker build {{ edx_django_service_code_dir }} --target app -t {{ edx_django_service_docker_image_name }}:latest
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: Docker build newrelic
+  when: edx_django_service_enable_experimental_docker_shim and COMMON_ENABLE_NEWRELIC
+  command: docker build {{ edx_django_service_code_dir }} --target newrelic -t {{ edx_django_service_docker_image_name }}:latest-newrelic
+  args:
+    chdir: "{{ edx_django_service_code_dir }}"
+  become_user: "{{ edx_django_service_user }}"
+  environment: "{{ edx_django_service_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: add gunicorn configuration file
   template:
     src: "edx/app/app/app_gunicorn.py.j2"
     dest: "{{ edx_django_service_home }}/{{ edx_django_service_name }}_gunicorn.py"
   become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:configuration
@@ -33,7 +64,7 @@
 - name: install python3
   apt:
     name: "{{ item }}"
-  when: edx_django_service_use_python3
+  when: edx_django_service_use_python3 and not edx_django_service_enable_experimental_docker_shim
   with_items:
     - python3-pip
     - python3-dev
@@ -46,7 +77,7 @@
   args:
     creates: "{{ edx_django_service_venv_dir }}/bin/pip"
   become_user: "{{ edx_django_service_user }}"
-  when: edx_django_service_use_python3
+  when: edx_django_service_use_python3 and not edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:system-requirements
@@ -56,7 +87,7 @@
   args:
     creates: "{{ edx_django_service_venv_dir }}/bin/pip"
   become_user: "{{ edx_django_service_user }}"
-  when: not edx_django_service_use_python3
+  when: not edx_django_service_use_python3 and not edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:system-requirements
@@ -64,6 +95,7 @@
 - name: Pin pip to a specific version.
   command: "{{ edx_django_service_venv_dir }}/bin/pip install pip=={{ common_pip_version }}"
   become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:system-requirements
@@ -73,6 +105,7 @@
 - name: install nodenv
   command: pip install nodeenv
   become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_enable_experimental_docker_shim
   environment: "{{ edx_django_service_environment }}"
   tags:
     - install
@@ -83,6 +116,7 @@
   args:
     creates: "{{ edx_django_service_nodeenv_dir }}"
   become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_enable_experimental_docker_shim
   environment: "{{ edx_django_service_environment }}"
   tags:
     - install
@@ -91,18 +125,19 @@
 - name: upgrade npm
   command: "npm install -g npm@{{ edx_django_service_npm_version }}"
   become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_enable_experimental_docker_shim
   environment: "{{ edx_django_service_environment }}"
   tags:
     - install
     - install:system-requirements
-  when: edx_django_service_npm_version is defined
-
+  when: edx_django_service_npm_version is defined and not edx_django_service_enable_experimental_docker_shim
 
 - name: install production requirements
   command: make production-requirements
   args:
     chdir: "{{ edx_django_service_code_dir }}"
   become_user: "{{ edx_django_service_user }}"
+  when: not edx_django_service_enable_experimental_docker_shim
   environment: "{{ edx_django_service_environment }}"
   tags:
     - install
@@ -114,15 +149,35 @@
     chdir: "{{ edx_django_service_code_dir }}"
   become_user: "{{ edx_django_service_user }}"
   environment: "{{ edx_django_service_environment }}"
-  when: edx_django_service_is_devstack is defined and edx_django_service_is_devstack
+  when: edx_django_service_is_devstack is defined and edx_django_service_is_devstack and not edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:app-requirements
     - devstack
     - devstack:install
 
+- name: Check for existing make_migrate container
+  command: "docker ps -aq --filter name='{{ edx_django_service_name }}.make_migrate'"
+  register: edx_django_service_make_migrate_container
+  when: edx_django_service_enable_experimental_docker_shim
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Delete existing make_migrate container
+  when: edx_django_service_enable_experimental_docker_shim and edx_django_service_make_migrate_container.stdout != ""
+  command: "docker rm {{ edx_django_service_make_migrate_container.stdout }}"
+
+- name: Set edx_django_service_docker_run_make_migrate if docker shim enabled
+  set_fact:
+    edx_django_service_docker_run_migrate: "docker run --user root --name {{ edx_django_service_name }}.make_migrate --env DB_MIGRATION_USER --env DB_MIGRATION_PASS --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} {{ edx_django_service_docker_image_name }}:latest"
+  when: edx_django_service_enable_experimental_docker_shim
+  tags:
+    - install
+    - install:system-requirements
+
 - name: migrate database
-  command: make migrate
+  command: "{{ edx_django_service_docker_run_migrate }} make migrate"
   args:
     chdir: "{{ edx_django_service_code_dir }}"
   become_user: "{{ edx_django_service_user }}"
@@ -140,7 +195,7 @@
   become_user: "{{ edx_django_service_user }}"
   environment: "{{ edx_django_service_environment }}"
   with_items: '{{ edx_django_service_post_migrate_commands }}'
-  when: migrate_db is defined and migrate_db|lower == "yes" and item.when|bool
+  when: migrate_db is defined and migrate_db|lower == "yes" and item.when|bool and not edx_django_service_enable_experimental_docker_shim
   run_once: yes
   tags:
     - migrate
@@ -211,7 +266,7 @@
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
     mode: 0744
-  when: edx_django_service_is_devstack is defined and edx_django_service_is_devstack
+  when: edx_django_service_is_devstack is defined and edx_django_service_is_devstack and not edx_django_service_enable_experimental_docker_shim
   tags:
     - devstack
     - devstack:install
@@ -223,6 +278,7 @@
     owner: "{{ edx_django_service_user }}"
     group: "{{ edx_django_service_user }}"
     mode: 0644
+  when: not edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:configuration
@@ -250,6 +306,7 @@
     src: "{{ edx_django_service_venv_dir }}/bin/{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_django_service_name }}"
     state: link
+  when: not edx_django_service_enable_experimental_docker_shim
   with_items:
     - python
     - pip
@@ -263,14 +320,35 @@
     src: "{{ edx_django_service_code_dir }}/{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_django_service_name }}"
     state: link
+  when: not edx_django_service_enable_experimental_docker_shim
   with_items:
     - manage.py
   tags:
     - install
     - install:app-requirements
 
+- name: Check for existing make_static container
+  command: "docker ps -aq --filter name='{{ edx_django_service_name }}.make_static'"
+  register: edx_django_service_make_static_container
+  when: edx_django_service_enable_experimental_docker_shim
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Delete existing make_static container
+  when: edx_django_service_enable_experimental_docker_shim and edx_django_service_make_static_container.stdout != ""
+  command: "docker rm {{ edx_django_service_make_static_container.stdout }}"
+
+- name: Set edx_django_service_docker_run_make_static if docker shim enabled
+  set_fact:
+    edx_django_service_docker_run: "docker run --user root --name {{ edx_django_service_name }}.make_static --mount type=bind,src={{ edx_django_service_static_root }},dst={{ edx_django_service_static_root }} --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} {{ edx_django_service_docker_image_name }}:latest"
+  when: edx_django_service_enable_experimental_docker_shim
+  tags:
+    - install
+    - install:system-requirements
+
 - name: compile static assets
-  command: make static
+  command: "{{ edx_django_service_docker_run }} make static"
   args:
     chdir: "{{ edx_django_service_code_dir }}"
   become_user: "{{ edx_django_service_user }}"
@@ -318,13 +396,14 @@
     - install
     - install:vhosts
 
+#TODO jdmulloy docker build
 - name: Include JWT signature setting in the app config file
   include_role:
     name: jwt_signature
   when: COMMON_SANDBOX_BUILD
   vars:
      app_name: '{{ edx_django_service_name }}'
-     app_config_file: "{{ COMMON_CFG_DIR  }}/{{ edx_django_service_name }}.yml"
+     app_config_file: "{{ edx_django_service_name_app_config_file }}"
      app_config_owner: root
      app_config_group: root
      app_config_mode: 0644
