@@ -1,7 +1,19 @@
 ---
 dependencies:
   - common
-  - supervisor
+  - role: docker-tools
+    when: edx_django_service_enable_experimental_docker_shim
+    docker_users:
+      - "www-data"
+      - "{{ supervisor_user }}"
+      - "{{ edx_django_service_user }}"
+  - role: supervisor
+    supervisor_spec:
+      - service: "{{ edx_django_service_name }}"
+        migration_check_services: "{{ edx_django_service_migration_check_services }}"
+        python: "python.{{ edx_django_service_name }}"
+        code: "{{ edx_django_service_code_dir }}"
+        env: "{{ edx_django_service_home }}/{{ edx_django_service_name }}_env"
   - role: automated
     AUTOMATED_USERS: "{{ edx_django_service_automated_users }}"
   - role: edx_service
@@ -13,3 +25,5 @@ dependencies:
     edx_service_packages:
       debian: "{{ edx_django_service_debian_pkgs }}"
       redhat: []
+    edx_service_decrypt_config_enabled: "{{ edx_django_service_decrypt_config_enabled }}"
+    edx_service_copy_config_enabled: "{{ edx_django_service_copy_config_enabled }}"
