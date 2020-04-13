@@ -124,7 +124,7 @@ def rds_controller(rds_list, username, password):
                     logEvents=cw_logs
                 )
             except ClientError as e:
-                if e == "InvalidParameterException":
+                if e.response['Error']['Code'] == "InvalidParameterException":
                     for item in cw_logs:
                         temp_list = []
                         temp_list.append(item)
