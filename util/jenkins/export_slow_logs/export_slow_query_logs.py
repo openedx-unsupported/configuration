@@ -117,20 +117,34 @@ def rds_controller(rds_list, username, password):
                     " Rows_sent: " + str(tables[4]) + " Rows_examined: " + str(tables[5]) +\
                     "Slow Query: " + str(tables[10])
                 cw_logs.append(temp)
-            if sequencetoken == None:
-                response = client.put_log_events(
-                                        logGroupName=loggroupname,
-                                        logStreamName=LOG_STREAM,
-                                        logEvents=cw_logs
-                                        )
-            else:
+            try:
                 response = client.put_log_events(
                     logGroupName=loggroupname,
                     logStreamName=LOG_STREAM,
-                    logEvents=cw_logs,
-                    sequenceToken=sequencetoken
+                    logEvents=cw_logs
                 )
-            sequencetoken = response["nextSequenceToken"]
+            except ClientError as e:
+                if e == "InvalidParameterException":
+                    for item in cw_logs:
+                        temp_list = []
+                        temp_list.append(item)
+                        if sequencetoken == None:
+                            response = client.put_log_events(
+                                                    logGroupName=loggroupname,
+                                                    logStreamName=LOG_STREAM,
+                                                    logEvents=temp_list
+                                                    )
+                        else:
+                            response = client.put_log_events(
+                                logGroupName=loggroupname,
+                                logStreamName=LOG_STREAM,
+                                logEvents=temp_list,
+                                sequenceToken=sequencetoken
+                            )
+                        sequencetoken = response["nextSequenceToken"]
+                else:
+                    print(("Job failed due to this error:{}".format(e.text)))
+                    sys.exit(1)
 
 
 @click.command()
