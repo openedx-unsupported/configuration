@@ -169,10 +169,34 @@
     - install
     - install:configuration
 
+- name: write out the celery workers supervisor wrapper
+  when: edx_django_service_enable_celery_workers
+  template:
+    src: "edx/app/app/app-workers.sh.j2"
+    dest: "{{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
 - name: write supervisord config
   template:
     src: "edx/app/supervisor/conf.d.available/app.conf.j2"
     dest: "{{ supervisor_available_dir }}/{{ edx_django_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: write celery workers supervisord config
+  when: edx_django_service_enable_celery_workers
+  template:
+    src: "edx/app/supervisor/conf.d.available/app-workers.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ edx_django_service_name }}-workers.conf"
     owner: "{{ supervisor_user }}"
     group: "{{ common_web_user }}"
     mode: 0644
