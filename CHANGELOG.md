@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Docker: edxapp
+  - Disable install of private requirements for docker devstack. 
+
 - Roles: edx_django_service, registrar, enterprise_catalog
   - Moved celery worker supervisor config files/scripts into edx_django_service
   - Removed the following variables
