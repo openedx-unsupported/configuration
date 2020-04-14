@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Roles: edx_django_service, registrar, enterprise_catalog
+  - Moved celery worker supervisor config files/scripts into edx_django_service
+  - Removed the following variables
+    - ENTERPRISE_CATALOG_WORKER_DEFAULT_STOPWAITSECS
+    - ENTERPRISE_CATALOG_CELERY_HEARTBEAT_ENABLED
+    - REGISTRAR_WORKER_DEFAULT_STOPWAITSECS
+    - REGISTRAR_CELERY_HEARTBEAT_ENABLED
+
 - Role: edxapp
   - Added Stanford-developed Image Modal XBlock.
 

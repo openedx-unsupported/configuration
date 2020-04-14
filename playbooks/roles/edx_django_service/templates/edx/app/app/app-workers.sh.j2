@@ -2,13 +2,12 @@
 
 # {{ ansible_managed }}
 
-{% set enterprise_catalog_venv_bin = enterprise_catalog_venv_dir + "/bin" %}
-source {{ enterprise_catalog_app_dir }}/enterprise_catalog_env
+{% set edx_django_service_venv_bin = edx_django_service_venv_dir + "/bin" %}
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
-{% set executable = enterprise_catalog_venv_bin + '/newrelic-admin run-program ' + enterprise_catalog_venv_bin + '/celery' %}
+{% set executable = edx_django_service_venv_bin + '/newrelic-admin run-program ' + edx_django_service_venv_bin + '/celery' %}
 {% else %}
-{% set executable = enterprise_catalog_venv_bin + '/celery' %}
+{% set executable = edx_django_service_venv_bin + '/celery' %}
 {% endif %}
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
@@ -19,5 +18,6 @@ if command -v ec2metadata >/dev/null 2>&1; then
 fi
 {% endif %}
 
+source {{ edx_django_service_home }}/{{ edx_django_service_name }}_env
 # We exec so that celery is the child of supervisor and can be managed properly
 exec {{ executable }} $@
