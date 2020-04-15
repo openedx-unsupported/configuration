@@ -14,14 +14,49 @@
 INSIGHTS_LMS_BASE: 'http://127.0.0.1:8000'
 INSIGHTS_CMS_BASE: 'http://127.0.0.1:8010'
 INSIGHTS_BASE_URL: 'http://127.0.0.1:8110'
+INSIGHTS_MEMCACHE: [ '127.0.0.1:11211' ]
 INSIGHTS_MKTG_BASE: 'http://example.com'
 INSIGHTS_LOGOUT_URL: '{{ INSIGHTS_MKTG_BASE }}/accounts/logout/'
+INSIGHTS_PRIVACY_POLICY_URL: '{{ INSIGHTS_MKTG_BASE }}/privacy-policy'
+INSIGHTS_TERMS_OF_SERVICE_URL: '{{ INSIGHTS_MKTG_BASE }}/terms-service'
+INSIGHTS_SUPPORT_EMAIL: ''
+INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL: '{{ INSIGHTS_LMS_BASE }}/course'
+INSIGHTS_OAUTH2_SECRET: 'secret'
+INSIGHTS_OAUTH2_URL_ROOT: '{{ INSIGHTS_LMS_BASE }}/oauth2'
+INSIGHTS_OIDC_LOGOUT_URL: '{{ INSIGHTS_LMS_BASE }}/logout'
 INSIGHTS_OAUTH2_APP_CLIENT_NAME: insights
 INSIGHTS_OAUTH2_APP_USERNAME: staff
 INSIGHTS_OAUTH2_APP_COMPLETE_URL: '{{ INSIGHTS_BASE_URL }}/complete/edx-oidc/'
+INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+INSIGHTS_SECRET_KEY: 'YOUR_SECRET_KEY_HERE'
+INSIGHTS_OAUTH2_KEY: 'YOUR_OAUTH2_KEY'
+# This will not work on single instance sandboxes
+INSIGHTS_DOC_BASE: 'http://127.0.0.1/en/latest'
+ANALYTICS_API_ENDPOINT: 'http://127.0.0.1:8100/api/v0'
+INSIGHTS_DATA_API_AUTH_TOKEN: 'changeme'
+INSIGHTS_PLATFORM_NAME: 'edX'
+INSIGHTS_APPLICATION_NAME: 'Insights'
+INSIGHTS_SEGMENT_IO_KEY: 'YOUR_KEY'
+# should match the timezone of your map reduce pipeline
+INSIGHTS_TIME_ZONE: 'UTC'
+INSIGHTS_LANGUAGE_CODE: 'en-us'
+# email config
+INSIGHTS_EMAIL_HOST: 'smtp.example.com'
+INSIGHTS_EMAIL_HOST_PASSWORD: "mail_password"
+INSIGHTS_EMAIL_HOST_USER: "mail_user"
+INSIGHTS_EMAIL_PORT: 587
+INSIGHTS_ENABLE_AUTO_AUTH: false
+INSIGHTS_SEGMENT_IGNORE_EMAIL_REGEX: !!null
 INSIGHTS_THEME_SCSS: 'sass/themes/open-edx.scss'
+INSIGHTS_RESEARCH_URL: 'https://www.edx.org/research-pedagogy'
+INSIGHTS_OPEN_SOURCE_URL: 'http://set-me-please'
 
 INSIGHTS_DOMAIN: 'insights'
+
+# Comma-delimited list of field names to include in the Learner List CSV download
+# e.g., "username,segments,cohort,engagements.videos_viewed,last_updated"
+# Default (null) includes all available fields, in alphabetical order
+INSIGHTS_LEARNER_API_LIST_DOWNLOAD_FIELDS: !!null
 
 INSIGHTS_DATABASE_NAME: 'dashboard'
 INSIGHTS_DATABASE_USER: rosencrantz
@@ -43,6 +78,12 @@ INSIGHTS_DATABASES:
     PORT: '{{ INSIGHTS_DATABASE_PORT }}'
     OPTIONS: "{{ INSIGHTS_MYSQL_OPTIONS }}"
 
+INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL: "URL_FOR_LMS_COURSE_LIST_PAGE"
+
+INSIGHTS_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+INSIGHTS_CDN_DOMAIN: !!null
+
 INSIGHTS_CORS_ORIGIN_WHITELIST_EXTRA: []
 INSIGHTS_CORS_ORIGIN_WHITELIST_DEFAULT:
   - "{{ INSIGHTS_DOMAIN }}"
@@ -54,6 +95,74 @@ INSIGHTS_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
 INSIGHTS_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
 INSIGHTS_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
 
+#
+# This block of config is dropped into /edx/etc/insights.yml
+# and is read in by analytics_dashboard/settings/production.py
+INSIGHTS_CONFIG:
+  SUPPORT_EMAIL: '{{ INSIGHTS_SUPPORT_EMAIL }}'
+  DOCUMENTATION_LOAD_ERROR_URL: '{{ INSIGHTS_DOC_BASE }}/Reference.html#error-conditions'
+  SEGMENT_IO_KEY: '{{ INSIGHTS_SEGMENT_IO_KEY }}'
+  SEGMENT_IGNORE_EMAIL_REGEX: '{{ INSIGHTS_SEGMENT_IGNORE_EMAIL_REGEX }}'
+  PRIVACY_POLICY_URL: '{{ INSIGHTS_PRIVACY_POLICY_URL }}'
+  TERMS_OF_SERVICE_URL: '{{ INSIGHTS_TERMS_OF_SERVICE_URL }}'
+  HELP_URL: '{{ INSIGHTS_DOC_BASE }}'
+  SECRET_KEY: '{{ INSIGHTS_SECRET_KEY }}'
+  DATA_API_URL: '{{ ANALYTICS_API_ENDPOINT }}'
+  DATA_API_AUTH_TOKEN: '{{ INSIGHTS_DATA_API_AUTH_TOKEN }}'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
+
+  # Used to automatically configure OAuth2 Client
+  INSIGHTS_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'insights-sso-key'
+  INSIGHTS_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'insights-sso-secret'
+  INSIGHTS_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'insights-backend-service-key'
+  INSIGHTS_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'insights-backend-service-secret'
+  # NOTE: Deprecate these OIDC settings post-DOP-removal.
+  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ INSIGHTS_OAUTH2_KEY }}'
+  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ INSIGHTS_OAUTH2_SECRET }}'
+  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
+  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
+  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ INSIGHTS_OIDC_LOGOUT_URL }}'
+
+  # This value should be the same as SOCIAL_AUTH_EDX_OIDC_SECRET
+  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ INSIGHTS_OAUTH2_SECRET }}'
+  ENABLE_AUTO_AUTH: '{{ INSIGHTS_ENABLE_AUTO_AUTH }}'
+  PLATFORM_NAME: '{{ INSIGHTS_PLATFORM_NAME }}'
+  APPLICATION_NAME: '{{ INSIGHTS_APPLICATION_NAME }}'
+  CACHES:
+    default: &default_generic_cache
+      BACKEND:  'django.core.cache.backends.memcached.MemcachedCache'
+      KEY_PREFIX: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-insights'
+      LOCATION: "{{ INSIGHTS_MEMCACHE }}"
+  TIME_ZONE: '{{ INSIGHTS_TIME_ZONE }}'
+  LANGUAGE_CODE: '{{ INSIGHTS_LANGUAGE_CODE }}'
+  # email config
+  EMAIL_HOST: '{{ INSIGHTS_EMAIL_HOST }}'
+  EMAIL_HOST_PASSWORD: '{{ INSIGHTS_EMAIL_HOST_PASSWORD }}'
+  EMAIL_HOST_USER: '{{ INSIGHTS_EMAIL_HOST_USER }}'
+  EMAIL_PORT: '{{ INSIGHTS_EMAIL_PORT }}'
+  # static file config
+  STATICFILES_DIRS: ["{{ insights_static_path }}"]
+  STATIC_ROOT: "{{ COMMON_DATA_DIR }}/{{ insights_service_name }}/staticfiles"
+  RESEARCH_URL: '{{ INSIGHTS_RESEARCH_URL }}'
+  OPEN_SOURCE_URL: '{{ INSIGHTS_OPEN_SOURCE_URL }}'
+  # db config
+  DATABASES: "{{ INSIGHTS_DATABASES }}"
+  LMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL }}"
+  COURSE_API_URL: "{{ INSIGHTS_COURSE_API_URL }}"
+  GRADING_POLICY_API_URL: "{{ INSIGHTS_GRADING_POLICY_API_URL }}"
+  MODULE_PREVIEW_URL: "{{ INSIGHTS_MODULE_PREVIEW_URL }}"
+  # When insights is co-located with other django services, we need to ensure they don't all
+  # use the same cookie names.
+  SESSION_COOKIE_NAME:  "{{ INSIGHTS_SESSION_COOKIE_NAME | default('insights_sessionid') }}"
+  CSRF_COOKIE_NAME: "{{ INSIGHTS_CSRF_COOKIE_NAME | default('insights_csrftoken') }}"
+  LANGUAGE_COOKIE_NAME: "{{ INSIGHTS_LANGUAGE_COOKIE_NAME | default('insights_language') }}"
+  SESSION_EXPIRE_AT_BROWSER_CLOSE: "{{ INSIGHTS_SESSION_EXPIRE_AT_BROWSER_CLOSE }}"
+  CMS_COURSE_SHORTCUT_BASE_URL: "{{ INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL }}"
+  LEARNER_API_LIST_DOWNLOAD_FIELDS: "{{ INSIGHTS_LEARNER_API_LIST_DOWNLOAD_FIELDS }}"
+  # CDN url to serve assets from
+  CDN_DOMAIN: "{{ INSIGHTS_CDN_DOMAIN }}"
+  CSRF_COOKIE_SECURE: "{{ INSIGHTS_CSRF_COOKIE_SECURE }}"
+
 INSIGHTS_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-analytics-api"
 INSIGHTS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
 INSIGHTS_PIP_EXTRA_ARGS: "-i {{ COMMON_PYPI_MIRROR_URL }}"
@@ -61,6 +170,9 @@ INSIGHTS_NGINX_PORT: "18110"
 INSIGHTS_NGINX_SSL_PORT: "18113"
 INSIGHTS_GUNICORN_WORKERS: "2"
 INSIGHTS_GUNICORN_EXTRA: ""
+INSIGHTS_COURSE_API_URL: "{{ INSIGHTS_LMS_BASE }}/api/courses/v1/"
+INSIGHTS_GRADING_POLICY_API_URL: "{{ INSIGHTS_LMS_BASE }}/api/grades/v1/"
+INSIGHTS_MODULE_PREVIEW_URL: "{{ INSIGHTS_LMS_BASE }}/xblock"
 
 INSIGHTS_VERSION: "master"
 INSIGHTS_GIT_IDENTITY: !!null
@@ -73,6 +185,8 @@ INSIGHTS_REPOS:
     VERSION: "{{ INSIGHTS_VERSION }}"
     DESTINATION: "{{ insights_code_dir }}"
     SSH_KEY: "{{ INSIGHTS_GIT_IDENTITY }}"
+
+INSIGHTS_CSRF_COOKIE_SECURE: false
 #
 # vars are namespace with the module name.
 #
@@ -90,6 +204,7 @@ insights_app_dir: "{{ COMMON_APP_DIR }}/{{ insights_service_name }}"
 insights_home: "{{ COMMON_APP_DIR }}/{{ insights_service_name }}"
 insights_code_dir: "{{ insights_app_dir }}/edx_analytics_dashboard"
 insights_python_path: "{{ insights_code_dir }}/analytics_dashboard"
+insights_static_path: "{{ insights_code_dir }}/analytics_dashboard/static"
 insights_conf_dir: "{{ insights_home }}"
 insights_log_dir: "{{ COMMON_LOG_DIR }}/{{ insights_service_name }}"
 

@@ -52,6 +52,8 @@ DISCOVERY_SSL_NGINX_PORT: "4{{ discovery_gunicorn_port }}"
 # Using SSL? See https://www.elastic.co/guide/en/shield/current/ssl-tls.html.
 # Using AWS? Use the AWS-provided host (e.g. https://search-test-abc123.us-east-1.es.amazonaws.com/).
 # Assuming the port corresponds that of the protocol (e.g. http=80, https=443), there is no need to specify a port.
+DISCOVERY_ELASTICSEARCH_URL: 'http://127.0.0.1:9200/'
+DISCOVERY_ELASTICSEARCH_INDEX_NAME: 'catalog'
 
 DISCOVERY_MEMCACHE: [ 'memcache' ]
 
@@ -62,13 +64,68 @@ DISCOVERY_LOGOUT_URL: '{{ DISCOVERY_URL_ROOT }}/logout/'
 
 DISCOVERY_SECRET_KEY: 'Your secret key here'
 
+DISCOVERY_LANGUAGE_CODE: 'en'
+
+## Configuration for django-parler package. For more information visit
+## https://django-parler.readthedocs.io/en/latest/configuration.html#parler-languages
+DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE: '{{DISCOVERY_LANGUAGE_CODE}}'
+DISCOVERY_PARLER_LANGUAGES :
+  1:
+    - code: 'en'
+  default:
+    fallbacks:
+      - '{{DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE}}'
+    hide_untranslated: 'False'
+
+DISCOVERY_DEFAULT_PARTNER_ID: 1
+DISCOVERY_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+# Used to automatically configure OAuth2 Client
+DISCOVERY_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'discovery-sso-key'
+DISCOVERY_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'discovery-sso-secret'
+DISCOVERY_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'discovery-backend-service-key'
+DISCOVERY_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'discovery-backend-service-secret'
+
+DISCOVERY_PLATFORM_NAME: 'Your Platform Name Here'
+
 DISCOVERY_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ discovery_service_name }}'
 DISCOVERY_MEDIA_ROOT: '{{ DISCOVERY_DATA_DIR }}/media'
 DISCOVERY_MEDIA_URL: '/media/'
 
+DISCOVERY_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ DISCOVERY_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ DISCOVERY_MEDIA_URL }}'
+
+DISCOVERY_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+# You can set different email backends with django:
+# https://docs.djangoproject.com/en/1.9/topics/email/#email-backends
+DISCOVERY_EMAIL_BACKEND: 'django_ses.SESBackend'
+
+# For email backend django-ses, the following settings are required
+DISCOVERY_AWS_SES_REGION_NAME: 'us-east-1'
+DISCOVERY_AWS_SES_REGION_ENDPOINT: 'email.us-east-1.amazonaws.com'
+
+# For default email backend SMTP, following settings are required
+DISCOVERY_EMAIL_HOST: 'localhost'
+DISCOVERY_EMAIL_PORT: 25
+DISCOVERY_EMAIL_USE_TLS: False
+DISCOVERY_EMAIL_HOST_USER: ''
+DISCOVERY_EMAIL_HOST_PASSWORD: ''
+
+DISCOVERY_ENABLE_PUBLISHER: false
+DISCOVERY_PUBLISHER_FROM_EMAIL: !!null
+
+DISCOVERY_OPENEXCHANGERATES_API_KEY: ''
+
 DISCOVERY_GUNICORN_EXTRA: ''
 
 DISCOVERY_GUNICORN_WORKERS: 2
+
+DISCOVERY_EXTRA_APPS: []
+
+DISCOVERY_USERNAME_REPLACEMENT_WORKER: "OVERRIDE THIS WITH A VALID USERNAME"
 
 DISCOVERY_REPOS:
   - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
@@ -79,8 +136,45 @@ DISCOVERY_REPOS:
     DESTINATION: "{{ discovery_code_dir }}"
     SSH_KEY: "{{ DISCOVERY_GIT_IDENTITY }}"
 
+discovery_service_config_overrides:
+  ELASTICSEARCH_URL: '{{ DISCOVERY_ELASTICSEARCH_URL }}'
+  ELASTICSEARCH_INDEX_NAME: '{{ DISCOVERY_ELASTICSEARCH_INDEX_NAME }}'
+
+  PLATFORM_NAME: '{{ DISCOVERY_PLATFORM_NAME }}'
+
+  DEFAULT_PARTNER_ID: '{{ DISCOVERY_DEFAULT_PARTNER_ID }}'
+
+  EMAIL_BACKEND: '{{ DISCOVERY_EMAIL_BACKEND }}'
+
+  # Settings for django-ses email backend
+  AWS_SES_REGION_NAME: '{{ DISCOVERY_AWS_SES_REGION_NAME }}'
+  AWS_SES_REGION_ENDPOINT: '{{ DISCOVERY_AWS_SES_REGION_ENDPOINT }}'
+
+  # Settings for default django SMTP email backend
+  EMAIL_HOST: '{{ DISCOVERY_EMAIL_HOST }}'
+  EMAIL_PORT: '{{ DISCOVERY_EMAIL_PORT }}'
+  EMAIL_USE_TLS: '{{ DISCOVERY_EMAIL_USE_TLS }}'
+  EMAIL_HOST_USER: '{{ DISCOVERY_EMAIL_HOST_USER }}'
+  EMAIL_HOST_PASSWORD: '{{ DISCOVERY_EMAIL_HOST_PASSWORD }}'
+
+  ENABLE_PUBLISHER:  '{{ DISCOVERY_ENABLE_PUBLISHER }}'
+  PUBLISHER_FROM_EMAIL: '{{ DISCOVERY_PUBLISHER_FROM_EMAIL }}'
+
+  OPENEXCHANGERATES_API_KEY: '{{ DISCOVERY_OPENEXCHANGERATES_API_KEY }}'
+
+  LANGUAGE_CODE: '{{DISCOVERY_LANGUAGE_CODE}}'
+  PARLER_DEFAULT_LANGUAGE_CODE: '{{DISCOVERY_PARLER_DEFAULT_LANGUAGE_CODE}}'
+  PARLER_LANGUAGES : '{{DISCOVERY_PARLER_LANGUAGES}}'
+  CSRF_COOKIE_SECURE: "{{ DISCOVERY_CSRF_COOKIE_SECURE }}"
+  CORS_ORIGIN_WHITELIST: "{{ DISCOVERY_CORS_ORIGIN_WHITELIST }}"
+
+  USERNAME_REPLACEMENT_WORKER: "{{ DISCOVERY_USERNAME_REPLACEMENT_WORKER }}"
+
 # See edx_django_service_automated_users for an example of what this should be
 DISCOVERY_AUTOMATED_USERS: {}
+
+DISCOVERY_CSRF_COOKIE_SECURE: false
+DISCOVERY_CORS_ORIGIN_WHITELIST: []
 
 DISCOVERY_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
 
