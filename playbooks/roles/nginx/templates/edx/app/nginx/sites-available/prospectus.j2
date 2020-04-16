@@ -45,6 +45,18 @@ server {
     port_in_redirect off;
   }
 
+  # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
+  #   - from_path: The path of the course-about page that you want redirect
+  #   - to_path: URL to redirect to
+  {% for redirect in PROSPECTUS_TEMPORARY_REDIRECTS %}
+  location = {{ redirect.from_path }} {
+    include fastcgi_params;
+    fastcgi_params SERVER_PORT 80;
+    port_in_redirect off;
+    return 302 {{ redirect.to_path }};
+  }
+  {% endfor %}
+
   location / {
     location ~ \.(js|css)$ {
       add_header 'Cache-Control' 'public, max-age=31536000, immutable';
