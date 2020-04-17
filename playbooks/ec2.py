@@ -253,7 +253,7 @@ class Ec2Inventory(object):
                            help='List instances (default: True)')
         parser.add_argument('--host', action='store',
                            help='Get all the variables about a specific instance')
-        parser.add_argument('--refresh-cache', action='store_true', default=False,
+        parser.add_argument('--refresh-cache', action='store_true', default=True,
                            help='Force refresh of cache by making API requests to EC2 (default: False - use cache files)')
 
         default_inifile = os.environ.get("ANSIBLE_EC2_INI", os.path.dirname(os.path.realpath(__file__))+'/ec2.ini')
