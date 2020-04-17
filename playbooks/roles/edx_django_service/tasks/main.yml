@@ -168,16 +168,16 @@
   when: edx_django_service_enable_experimental_docker_shim and edx_django_service_make_migrate_container.stdout != ""
   command: "docker rm {{ edx_django_service_make_migrate_container.stdout }}"
 
-- name: Set edx_django_service_docker_run_make_migrate if docker shim enabled
+- name: Set edx_django_service_docker_run_command_make_migrate if docker shim enabled
   set_fact:
-    edx_django_service_docker_run_migrate: "docker run --user root --name {{ edx_django_service_name }}.make_migrate --env DB_MIGRATION_USER --env DB_MIGRATION_PASS --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} {{ edx_django_service_docker_image_name }}:latest"
+    edx_django_service_docker_run_command_make_migrate: "docker run --user root --name {{ edx_django_service_name }}.make_migrate --env DB_MIGRATION_USER --env DB_MIGRATION_PASS --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} {{ edx_django_service_docker_image_name }}:latest"
   when: edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:system-requirements
 
 - name: migrate database
-  command: "{{ edx_django_service_docker_run_migrate }} make migrate"
+  command: "{{ edx_django_service_docker_run_command_make_migrate }} make migrate"
   args:
     chdir: "{{ edx_django_service_code_dir }}"
   become_user: "{{ edx_django_service_user }}"
@@ -339,16 +339,16 @@
   when: edx_django_service_enable_experimental_docker_shim and edx_django_service_make_static_container.stdout != ""
   command: "docker rm {{ edx_django_service_make_static_container.stdout }}"
 
-- name: Set edx_django_service_docker_run_make_static if docker shim enabled
+- name: Set edx_django_service_docker_run_command_make_static if docker shim enabled
   set_fact:
-    edx_django_service_docker_run: "docker run --user root --name {{ edx_django_service_name }}.make_static --mount type=bind,src={{ edx_django_service_static_root }},dst={{ edx_django_service_static_root }} --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} {{ edx_django_service_docker_image_name }}:latest"
+    edx_django_service_docker_run_command_make_static: "docker run --user root --name {{ edx_django_service_name }}.make_static --mount type=bind,src={{ edx_django_service_static_root }},dst={{ edx_django_service_static_root }} --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} {{ edx_django_service_docker_image_name }}:latest"
   when: edx_django_service_enable_experimental_docker_shim
   tags:
     - install
     - install:system-requirements
 
 - name: compile static assets
-  command: "{{ edx_django_service_docker_run }} make static"
+  command: "{{ edx_django_service_docker_run_command_make_static }} make static"
   args:
     chdir: "{{ edx_django_service_code_dir }}"
   become_user: "{{ edx_django_service_user }}"
