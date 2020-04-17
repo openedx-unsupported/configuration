@@ -28,14 +28,14 @@ junk = junk[:junk.rindex('}')+1]
 data = json.loads(junk)
 
 GOOD_KEYS = ['cmd', 'msg', 'stdout', 'stderr', 'module_stdout', 'module_stderr', 'warnings']
+IGNORE_KEYS = ['stdout_lines', 'stderr_lines', 'start', 'end', 'delta', 'changed', 'failed', 'rc', 'item']
+
 for key in GOOD_KEYS:
     if data.get(key):
         print(f"== {key} ===========================")
         print((data[key]))
 
-BAD_KEYS = ['stdout_lines', 'start', 'end', 'delta', 'changed', 'failed', 'rc', 'item']
-
-unknown_keys = set(data) - set(GOOD_KEYS) - set(BAD_KEYS)
+unknown_keys = set(data) - set(GOOD_KEYS) - set(IGNORE_KEYS)
 if unknown_keys:
     print("== Unknown keys ======================")
     for key in unknown_keys:
