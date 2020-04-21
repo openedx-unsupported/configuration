@@ -1,3 +1,9 @@
+- Role: forum
+  - Added `FORUM_MONGO_AUTH_MECH` to allow the authentication mechanism to be configurable.
+    Must be set if user credentials are in the connection string.
+    Defaults to `":scram"`, which is supported by Mongo>=3.0, because `":mongodb_cr"` is removed in Mongo>=4.0.
+    Use `":mongodb_cr"` for mongo 2.6.
+
 - Role: edxapp
   - Added `EDX_PLATFORM_REVISION` (set from `edx_platform_version`). This is for
   edx-platform debugging purposes, and replaces calling dealer.git at startup.
