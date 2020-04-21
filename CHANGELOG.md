@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Role: forum
+  - Added `FORUM_MONGO_AUTH_MECH` to allow the authentication mechanism to be configurable.
+    Must be set if user credentials are in the connection string.
+    Defaults to `":scram"`, which is supported by Mongo>=3.0, because `":mongodb_cr"` is removed in Mongo>=4.0.
+    Use `":mongodb_cr"` for mongo 2.6.
+
 - Docker: edxapp
   - Disable install of private requirements for docker devstack. 
 
