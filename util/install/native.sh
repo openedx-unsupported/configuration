@@ -72,7 +72,7 @@ fi
 ##
 
 mkdir -p logs
-log_file=logs/install-$(date +%Y%m%d-%H%M%S).log
+log_file=$(realpath logs/install-$(date +%Y%m%d-%H%M%S).log)
 exec > >(tee $log_file) 2>&1
 echo "Capturing output to $log_file"
 echo "Installation started at $(date '+%Y-%m-%d %H:%M:%S')"
@@ -168,14 +168,22 @@ ansible_status=$?
 
 if [[ $ansible_status -ne 0 ]]; then
     echo " "
-    echo "========================================"
+    echo "============================================================"
     echo "Ansible failed!"
-    echo "----------------------------------------"
+    echo "------------------------------------------------------------"
+    echo " "
+    echo "Decoded error:"
+    # Find the FAILED line before the "to retry," line, and decode it.
+    awk '/to retry,/{if (bad) print bad} /FAILED/{bad=$0}' $log_file | python3 /var/tmp/configuration/util/ansible_msg.py
+    echo " "
+    echo "============================================================"
+    echo "Installation failed!"
+    echo "------------------------------------------------------------"
     echo "If you need help, see https://open.edx.org/getting-help ."
     echo "When asking for help, please provide as much information as you can."
     echo "These might be helpful:"
     echo "    Your log file is at $log_file"
     echo "    Your environment:"
     env | egrep -i 'version|release' | sed -e 's/^/        /'
-    echo "========================================"
+    echo "============================================================"
 fi
