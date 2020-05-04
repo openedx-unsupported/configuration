@@ -2,7 +2,8 @@
 language: python
 dist: xenial
 python:
-  - "3.6"
+  - 3.5
+  - 3.8
 
 branches:
   only:
@@ -23,7 +24,7 @@ before_install:
 install:
   - "pip install demjson"
   - "pip install -r requirements.txt"
-  - if [ "$TRAVIS_PYTHON_VERSION" = "3.6" ]; then pip install -r requirements3.txt; fi
+  - "pip install -r requirements3.txt"
 
 env:
   - MAKE_TARGET=test.syntax SHARD=0 SHARDS=1
@@ -33,3 +34,7 @@ script:
   - docker --version
   - make --version
   - travis_wait 90 make --keep-going $MAKE_TARGET SHARD=$SHARD SHARDS=$SHARDS
+
+matrix:
+  allow_failures:
+    - python: 3.8
