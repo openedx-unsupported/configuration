@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Role: edxapp
+  - enable paver autocomplete in docker devstack
+
 - Role: forum
   - Added `FORUM_MONGO_AUTH_MECH` to allow the authentication mechanism to be configurable.
     Must be set if user credentials are in the connection string, or use `""` if no user credentials required.
