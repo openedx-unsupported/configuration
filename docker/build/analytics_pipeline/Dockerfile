@@ -29,10 +29,9 @@ ENV BOTO_CONFIG=/dev/null \
     ANALYTICS_PIPELINE_VENV=/edx/app/analytics_pipeline/venvs \
     BOOTSTRAP=/etc/bootstrap.sh \
     COMMON_BASE_DIR=/edx \
-    COMMON_PIP_PACKAGES_PIP='pip==19.3.1' \
-    COMMON_PIP_PACKAGES_SETUPTOOLS='setuptools==39.0.1' \
-    COMMON_PIP_PACKAGES_VIRTUALENV='virtualenv==15.2.0' \
-    COMMON_PIP_PACKAGES_VIRTUALENVWRAPPER='virtualenvwrapper==4.8.2' \
+    COMMON_PIP_PACKAGES_PIP='pip==20.0.2' \
+    COMMON_PIP_PACKAGES_SETUPTOOLS='setuptools==46.1.3' \
+    COMMON_PIP_PACKAGES_VIRTUALENV='virtualenv==20.0.20' \
     COMMON_MYSQL_READ_ONLY_USER='read_only' \
     COMMON_MYSQL_READ_ONLY_PASS='password' \
     ANALYTICS_PIPELINE_OUTPUT_DATABASE_USER='pipeline001' \
@@ -132,7 +131,7 @@ RUN git clone https://github.com/edx/edx-analytics-pipeline \
     && cp -r /var/tmp/edx-analytics-pipeline/requirements /var/tmp/requirements \
     && rm -rf /var/tmp/edx-analytics-pipeline
 
-RUN pip install $COMMON_PIP_PACKAGES_PIP $COMMON_PIP_PACKAGES_SETUPTOOLS $COMMON_PIP_PACKAGES_VIRTUALENV $COMMON_PIP_PACKAGES_VIRTUALENVWRAPPER \
+RUN pip install $COMMON_PIP_PACKAGES_PIP $COMMON_PIP_PACKAGES_SETUPTOOLS $COMMON_PIP_PACKAGES_VIRTUALENV \
     && virtualenv $ANALYTICS_PIPELINE_VENV/analytics_pipeline/ \
     && chown -R hadoop:hadoop $ANALYTICS_PIPELINE_VENV/analytics_pipeline/ \
     && echo '[hadoop]\nversion: cdh4\ncommand: /edx/app/hadoop/hadoop/bin/hadoop\nstreaming-jar: /edx/app/hadoop/hadoop/share/hadoop/tools/lib/hadoop-streaming-2.7.2.jar' > /etc/luigi/client.cfg
