@@ -1,3 +1,62 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+Add any new changes to the top(right below this line).
+
+- Role: all
+  - Split the COMMON_SANDBOX_BUILD variable with its two components: SANDBOX_CONFIG and CONFIGURE_JWTS.
+
+- Role: edxapp
+  - enable paver autocomplete in docker devstack
+
+- Role: forum
+  - Added `FORUM_MONGO_AUTH_MECH` to allow the authentication mechanism to be configurable.
+    Must be set if user credentials are in the connection string, or use `""` if no user credentials required.
+    Defaults to `":scram"`, which is supported by Mongo>=3.0, because `":mongodb_cr"` is removed in Mongo>=4.0.
+    Use `":mongodb_cr"` for mongo 2.6.
+
+- Docker: edxapp
+  - Disable install of private requirements for docker devstack.
+
+- Roles: edx_django_service, registrar, enterprise_catalog
+  - Moved celery worker supervisor config files/scripts into edx_django_service
+  - Removed the following variables
+    - ENTERPRISE_CATALOG_WORKER_DEFAULT_STOPWAITSECS
+    - ENTERPRISE_CATALOG_CELERY_HEARTBEAT_ENABLED
+    - ENTERPRISE_CATALOG_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING
+    - ENTERPRISE_CATALOG_NEWRELIC_WORKERS_APPNAME
+    - REGISTRAR_WORKER_DEFAULT_STOPWAITSECS
+    - REGISTRAR_CELERY_HEARTBEAT_ENABLED
+    - REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING
+    - REGISTRAR_NEWRELIC_WORKERS_APPNAME
+
+- Role: edxapp
+  - Added Stanford-developed Image Modal XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed SQL Grader XBlock.
+
+- Role: mount_ebs
+  - Added check for disk size, size is now a required parameter in variables volumes and MONGO_VOLUMES
+  - This is to prevent mounting the wrong volumes when AWS swaps the order
+
+- Role: all
+  - Removed OPENID settings
+
+- Role: all
+  - Removed all settings with OIDC in name
+
+- Role: edxapp
+  - Added `ENTERPRISE_LEARNER_PORTAL_HOSTNAME` env var for lms.
+
+- Role: ecommerce
+  - Added `ENTERPRISE_LEARNER_PORTAL_HOSTNAME` env var for ecommerce.
+
+- Role: edxapp
+  - Added Stanford-developed Free Text Response XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed Submit-and-Compare XBlock.
+
 - Role: edxapp
   - Added Stanford-developed Qualtrics and In-Video Quiz XBlocks.
 
@@ -883,3 +942,5 @@
   - Added `WHITELABEL_DNS` for DNS settings of themes.
   - Added `WHITELABEL_ORG` for whitelabel organization settings.
 
+- Role: all
+  - Removed the unused task timing callback plugin.
