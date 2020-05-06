@@ -17,8 +17,8 @@ main.help:
 	@echo ''
 
 requirements:
-	pip install -qr pre-requirements.txt --exists-action w
-	pip install -qr requirements.txt --exists-action w
+	pip3 install -qr pre-requirements.txt --exists-action w
+	pip3 install -qr requirements.txt --exists-action w
 
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
 upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints

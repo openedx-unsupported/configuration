@@ -142,7 +142,7 @@ pip3 install virtualenv=="${VIRTUAL_ENV_VERSION}"
 
 if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     # create a new virtual env
-    /usr/local/bin/virtualenv "${VIRTUAL_ENV}"
+    /usr/local/bin/virtualenv --python=python3 "${VIRTUAL_ENV}"
 
     PATH="${PYTHON_BIN}":${PATH}
 
@@ -154,7 +154,7 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     make requirements
 
     cd "${CONFIGURATION_DIR}"/playbooks
-    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
+    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "ansible_python_interpreter=/usr/bin/python3 configuration_version=${CONFIGURATION_VERSION}"
 
     # cleanup
     rm -rf "${ANSIBLE_DIR}"
