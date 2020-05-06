@@ -73,7 +73,7 @@ RUN \
   hash -r && \
   # upgrade setuptools early to avoid no distribution errors
   pip install --upgrade setuptools==44.1.0 && \
-  pip3 install --upgrade setuptools==46.1.3
+  pip3 install --upgrade setuptools==44.1.0
 
 # Compile python 3.6 for Zappa, as zappa requires python 2.7 or 3.6.
 # There is no bionic GOCD official image published to base off of, and there is no official 3.6 python package for ubuntu 14.04 or 16.04

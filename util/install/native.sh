@@ -103,7 +103,7 @@ sudo apt-get install -y build-essential software-properties-common curl git-core
 # ansible-bootstrap installs yaml that pip 19 can't uninstall.
 sudo apt-get remove -y python3-yaml
 sudo pip3 install --upgrade pip==20.0.2
-sudo pip3 install --upgrade setuptools==46.1.3
+sudo pip3 install --upgrade setuptools==44.1.0
 sudo -H pip3 install --upgrade virtualenv==20.0.20
 
 ##
