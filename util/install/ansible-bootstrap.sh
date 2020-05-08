@@ -40,7 +40,7 @@ fi
 #
 # Bootstrapping constants
 #
-VIRTUAL_ENV_VERSION="20.0.20"
+VIRTUAL_ENV_VERSION="16.7.10"
 PIP_VERSION="20.0.2"
 SETUPTOOLS_VERSION="44.1.0"
 VIRTUAL_ENV="/tmp/bootstrap"
