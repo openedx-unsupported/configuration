@@ -67,13 +67,13 @@ RUN printf "\ngo      ALL=(ALL:ALL) NOPASSWD: /usr/bin/pip3.6\n" >> /etc/sudoers
 
 # Upgrade pip and setup tools. Needed for Ansible 2.x
 RUN \
-  pip3 install --upgrade pip==19.3.1 && \
-  pip2 install --upgrade pip==19.3.1 && \
+  pip3 install --upgrade pip==20.0.2 && \
+  pip2 install --upgrade pip==20.0.2 && \
   #pip may have moved from /usr/bin/ to /usr/local/bin/. This clears bash's path cache.
   hash -r && \
   # upgrade setuptools early to avoid no distribution errors
-  pip install --upgrade setuptools==39.0.1 && \
-  pip3 install --upgrade setuptools==39.0.1
+  pip install --upgrade setuptools==44.1.0 && \
+  pip3 install --upgrade setuptools==44.1.0
 
 # Compile python 3.6 for Zappa, as zappa requires python 2.7 or 3.6.
 # There is no bionic GOCD official image published to base off of, and there is no official 3.6 python package for ubuntu 14.04 or 16.04
