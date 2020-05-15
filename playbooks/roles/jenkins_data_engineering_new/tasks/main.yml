@@ -26,7 +26,7 @@
   tags:
     - jenkins-edxapp
 
-- name: create directory
+- name: create ssh directory for jenkins user
   file:
     path: "/home/{{ jenkins_user }}/.ssh"
     state: directory
@@ -35,7 +35,8 @@
   tags:
     - jenkins-auth
 
-- copy:
+- name: add jenkins private key
+  copy:
     src: '{{ JENKINS_DATA_ENGINEERING_AUTOMATION_PRIVATE_KEY_SOURCE_PATH }}'
     dest: '{{ jenkins_private_keyfile }}'
     owner: '{{ jenkins_user }}'
@@ -44,7 +45,8 @@
   tags:
     - jenkins-auth
 
-- copy:
+- name: add jenkins public key
+  copy:
     src: '{{ JENKINS_DATA_ENGINEERING_AUTOMATION_PUBLIC_KEY_SOURCE_PATH }}'
     dest: '{{ jenkins_public_keyfile }}'
     owner: '{{ jenkins_user }}'
@@ -53,7 +55,7 @@
   tags:
     - jenkins-auth
 
-- name: jenkins user config dir
+- name: create jenkins user config dir
   file:
     name: "{{ jenkins_home }}/users/{{ jenkins_user }}"
     state: directory
