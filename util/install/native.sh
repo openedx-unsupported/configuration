@@ -174,7 +174,7 @@ if [[ $ansible_status -ne 0 ]]; then
     echo " "
     echo "Decoded error:"
     # Find the FAILED line before the "to retry," line, and decode it.
-    awk '/to retry,/{if (bad) print bad} /FAILED/{bad=$0}' $log_file | python3 /var/tmp/configuration/util/ansible_msg.py
+    awk '/to +retry,/{if (bad) print bad} /FAILED/{bad=$0}' $log_file | python3 /var/tmp/configuration/util/ansible_msg.py
     echo " "
     echo "============================================================"
     echo "Installation failed!"
