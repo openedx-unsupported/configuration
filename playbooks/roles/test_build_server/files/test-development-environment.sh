@@ -18,6 +18,7 @@ cd edx-platform-clone
 
 # This will run all of the setup it usually runs, but none of the
 # tests because TEST_SUITE isn't defined.
+export PYTHON_VERSION=3.5
 source scripts/jenkins-common.sh
 
 case "$1" in
