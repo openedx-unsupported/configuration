@@ -745,7 +745,7 @@ EDXAPP_SOCIAL_SHARING_SETTINGS:
 # EDXAPP_PROFILE_IMAGE_BACKEND_CONFIG:
 #   class: storages.backends.s3boto.S3BotoStorage
 #   options:
-#     location: /path/to/images
+#     location: path/to/images  # Note: The location should not begin with a leading slash.
 #     bucket: mybucket
 #     custom_domain: mybucket.s3.amazonaws.com
 #     access_key: XXXAWS_ACCESS_KEYXXX
@@ -882,7 +882,7 @@ EDXAPP_VIDEO_IMAGE_SETTINGS:
   VIDEO_IMAGE_MAX_BYTES : 2097152
   VIDEO_IMAGE_MIN_BYTES : 2048
   STORAGE_KWARGS:
-    location: "{{ edxapp_media_dir }}/"
+    location: "{{ edxapp_media_dir_s3 }}/"
     base_url: "{{ EDXAPP_MEDIA_URL }}/"
   DIRECTORY_PREFIX: 'video-images/'
 
@@ -892,7 +892,7 @@ EDXAPP_VIDEO_TRANSCRIPTS_MAX_AGE: 31536000
 EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS:
   VIDEO_TRANSCRIPTS_MAX_BYTES : 3145728
   STORAGE_KWARGS:
-    location: "{{ edxapp_media_dir }}/"
+    location: "{{ edxapp_media_dir_s3 }}/"
     base_url: "{{ EDXAPP_MEDIA_URL }}/"
   DIRECTORY_PREFIX: 'video-transcripts/'
 
@@ -1045,6 +1045,7 @@ edxapp_user_shell: '/bin/false'
 edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:{{ edxapp_nodeenv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_media_dir: "{{ edxapp_data_dir }}/media"
+edxapp_media_dir_s3: "{{ edxapp_media_dir | regex_replace('^\\/', '') if edxapp_media_dir.startswith('/') else edxapp_media_dir }}"
 edxapp_course_static_dir: "{{ edxapp_data_dir }}/course_static"
 edxapp_course_data_dir: "{{ edxapp_data_dir }}/data"
 edxapp_upload_dir: "{{ edxapp_data_dir }}/uploads"
