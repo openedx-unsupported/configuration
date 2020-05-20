@@ -196,6 +196,14 @@ if [[ $registrar == 'true' ]]; then
   program_manager="true"
 fi
 
+if [[ $video_encode_manager == 'true' ]]; then
+  video_encode_manager="true"
+fi
+
+if [[ -z $video_encode_manager_version ]]; then
+  video_encode_manager_version="master"
+fi
+
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
