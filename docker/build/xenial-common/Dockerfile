@@ -23,7 +23,7 @@ ENV CONFIGURATION_VERSION="${OPENEDX_RELEASE}"
 # Add the deadsnakes PPA to install Python 3.8
 RUN apt-add-repository -y ppa:deadsnakes/ppa
 RUN apt-get update &&\
-    apt-get install -y python3.8-dev
+    apt-get install -y python3.8-dev python3.8-distutils
 
 ADD util/install/ansible-bootstrap.sh /tmp/ansible-bootstrap.sh
 RUN chmod +x /tmp/ansible-bootstrap.sh
