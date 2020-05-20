@@ -99,12 +99,12 @@ sudo apt-get upgrade -y
 ##
 ## Install system pre-requisites
 ##
-sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python-pip libmysqlclient-dev python-apt python-dev libxmlsec1-dev libfreetype6-dev swig gcc g++
+sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python3.8-pip libmysqlclient-dev python3.8-apt libxmlsec1-dev libfreetype6-dev swig gcc g++
 # ansible-bootstrap installs yaml that pip 19 can't uninstall.
 sudo apt-get remove -y python-yaml
-sudo pip install --upgrade pip==20.0.2
-sudo pip install --upgrade setuptools==44.1.0
-sudo -H pip install --upgrade virtualenv==16.7.10
+sudo pip3 install --upgrade pip==20.0.2
+sudo pip3 install --upgrade setuptools==44.1.0
+sudo -H pip3 install --upgrade virtualenv==16.7.10
 
 ##
 ## Overridable version variables in the playbooks. Each can be overridden
@@ -158,12 +158,12 @@ git pull
 ## Install the ansible requirements
 ##
 cd /var/tmp/configuration
-sudo -H pip install -r requirements.txt
+sudo -H pip3 install -r requirements.txt
 
 ##
 ## Run the openedx_native.yml playbook in the configuration/playbooks directory
 ##
-cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./openedx_native.yml -i "localhost," $EXTRA_VARS "$@"
+cd /var/tmp/configuration/playbooks && sudo -E ansible-playbook -c local ./openedx_native.yml -i "localhost," $EXTRA_VARS "$@" -e 'ansible_python_interpreter=/usr/bin/python3'
 ansible_status=$?
 
 if [[ $ansible_status -ne 0 ]]; then
