@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Role: edxapp
+  - Added a new config variable `edxapp_newrelic_monitor_gunicorn` which will let you turn on/off monitoring of gunicorn via newrelic.  It defaults to true which will result in the same default behaviour we've historically had.
+
 - Role: all
   - Split the COMMON_SANDBOX_BUILD variable with its two components: SANDBOX_CONFIG and CONFIGURE_JWTS.
 
