@@ -10,9 +10,35 @@
     - install
     - install:system-requirements
 
+# Certain versions of Python are not available as apt-packages,
+# depending on your distribution. Use the deadsnakes PPA to have
+# access to them
+- name: add deadsnakes PPA for newer Python versions
+  apt_repository:
+    repo: "ppa:deadsnakes/ppa"
+    update_cache: yes
+  tags:
+    - jenkins
+    - install
+    - install:system-requirements
+
+# Install newer versions of python for testing, but do not set them
+# as the default version
 - name: Install specific versions of python
   apt:
     name: '{{ item }}'
+    state: present
+    update_cache: yes
+  with_items: '{{ jenkins_common_python_versions }}'
+  tags:
+    - jenkins
+    - install
+    - install:system-requirements
+
+# Install 'dev' packages for each version of python that is installed
+- name: Install python dev packages
+  apt:
+    name: '{{ item }}-dev'
     state: present
     update_cache: yes
   with_items: '{{ jenkins_common_python_versions }}'
