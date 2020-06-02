@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Role: edxapp
+  - Add a new `edxapp_sandbox_python_version` variable that deterimens the python version of the edxapp sandbox
+  used for instructor python code.  This will default to `python3.5` but can be reverted to `python2.7` if necessary.
+
 - Role: all
   - Split the COMMON_SANDBOX_BUILD variable with its two components: SANDBOX_CONFIG and CONFIGURE_JWTS.
 
