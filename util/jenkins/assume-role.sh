@@ -15,6 +15,7 @@ assume-role() {
 
     RESULT=(`aws sts assume-role --role-arn $ROLE_ARN \
             --role-session-name $SESSIONID \
+	    --duration-seconds 7200 \
             --query '[Credentials.AccessKeyId,Credentials.SecretAccessKey,Credentials.SessionToken]' \
             --output text`)
 
