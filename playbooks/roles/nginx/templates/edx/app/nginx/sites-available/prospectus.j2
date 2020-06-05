@@ -29,6 +29,34 @@ server {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
   }
 
+  location /preview/ {
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %}
+    port_in_redirect off;
+  }
+
+  location /es/preview/ {
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %}
+    port_in_redirect off;
+  }
+
+  # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
+  #   - from_path: The path of the course-about page that you want redirect
+  #   - to_path: URL to redirect to
+  {% for redirect in PROSPECTUS_TEMPORARY_REDIRECTS %}
+  location = {{ redirect.from_path }} {
+    include fastcgi_params;
+    fastcgi_param SERVER_PORT 80;
+    port_in_redirect off;
+    return 302 {{ redirect.to_path }};
+  }
+  {% endfor %}
+
   location / {
     location ~ \.(js|css)$ {
       add_header 'Cache-Control' 'public, max-age=31536000, immutable';
@@ -40,11 +68,37 @@ server {
     }
 
    {% if prospectus_redirect_file is defined %}
+      	include	fastcgi_params;
+	fastcgi_param SERVER_PORT 80;
         include {{ prospectus_redirect_file }};
+	port_in_redirect off;
+	
    {% endif %}
 
     try_files $uri @index;
   }
+
+  # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
+  #   - router_path: The path you will go to on the router to access the content
+  #   - proxied_path: The path to proxy the requests to
+  {% for static_site in PROSPECTUS_STATIC_SITES %}
+
+    # Matches: /<route>/
+    location = /{{ static_site.router_path }}/ {
+        proxy_pass {{ static_site.proxied_path }}/index.html;
+    }
+
+    # Matches: <route>/[.../]<file.ext>
+    location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
+        proxy_pass {{ static_site.proxied_path }}/$1$2;
+    }
+
+    # Matches: <route>/<subpage>/[.../]
+    location ~ ^/{{ static_site.router_path }}/([a-z0-9-]+)[/]? {
+        proxy_pass {{ static_site.proxied_path }}/$1/index.html;
+    }
+
+  {% endfor %}
 
   location @index {
     add_header 'Cache-Control' 'public, max-age=0, must-revalidate';

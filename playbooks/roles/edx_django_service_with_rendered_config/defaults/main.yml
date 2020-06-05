@@ -1,0 +1,244 @@
+---
+edx_django_service_with_rendered_config_service_name: ' NOT-SET '
+edx_django_service_with_rendered_config_repo: '{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_home: '{{ COMMON_APP_DIR }}/{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_user: '{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_use_python3: true
+
+# This should be overwritten at the time Ansible is run.
+edx_django_service_with_rendered_config_is_devstack: false
+
+edx_django_service_with_rendered_config_has_static_assets: true
+
+edx_django_service_with_rendered_config_wsgi_name: '{{ edx_django_service_with_rendered_config_service_name }}'
+
+edx_django_service_with_rendered_config_name_devstack_logs:
+  - '{{ supervisor_log_dir }}/{{ edx_django_service_with_rendered_config_service_name }}-stdout.log'
+  - '{{ supervisor_log_dir }}/{{ edx_django_service_with_rendered_config_service_name }}-stderr.log'
+
+edx_django_service_with_rendered_config_git_protocol: '{{ COMMON_GIT_PROTOCOL }}'
+edx_django_service_with_rendered_config_git_domain: '{{ COMMON_GIT_MIRROR }}'
+edx_django_service_with_rendered_config_git_path: '{{ COMMON_GIT_PATH }}'
+edx_django_service_with_rendered_config_version: 'master'
+edx_django_service_with_rendered_config_git_identity: null
+edx_django_service_with_rendered_config_django_settings_module: null
+
+edx_django_service_with_rendered_config_code_dir: '{{ edx_django_service_with_rendered_config_home }}/{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_venv_dir: '{{ edx_django_service_with_rendered_config_home }}/venvs/{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_venv_bin_dir: '{{ edx_django_service_with_rendered_config_venv_dir }}/bin'
+
+edx_django_service_with_rendered_config_nodeenv_dir: '{{ edx_django_service_with_rendered_config_home }}/nodeenvs/{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_nodeenv_bin: '{{ edx_django_service_with_rendered_config_nodeenv_dir }}/bin'
+edx_django_service_with_rendered_config_node_modules_dir: '{{ edx_django_service_with_rendered_config_code_dir }}/node_modules'
+edx_django_service_with_rendered_config_node_bin: '{{ edx_django_service_with_rendered_config_node_modules_dir }}/.bin'
+edx_django_service_with_rendered_config_node_version: '12.11.1'
+
+edx_django_service_with_rendered_config_environment_default:
+  DJANGO_SETTINGS_MODULE: '{{ edx_django_service_with_rendered_config_django_settings_module }}'
+  PATH: '{{ edx_django_service_with_rendered_config_nodeenv_bin }}:{{ edx_django_service_with_rendered_config_venv_dir }}/bin:{{ ansible_env.PATH }}'
+edx_django_service_with_rendered_config_environment_extra: {}
+edx_django_service_with_rendered_config_environment: '{{ edx_django_service_with_rendered_config_environment_default | combine(edx_django_service_with_rendered_config_environment_extra) }}'
+
+edx_django_service_with_rendered_config_migration_environment_default:
+  DB_MIGRATION_USER: '{{ COMMON_MYSQL_MIGRATE_USER }}'
+  DB_MIGRATION_PASS: '{{ COMMON_MYSQL_MIGRATE_PASS }}'
+edx_django_service_with_rendered_config_migration_environment: '{{ edx_django_service_with_rendered_config_environment|combine(edx_django_service_with_rendered_config_migration_environment_default) }}'
+
+edx_django_service_with_rendered_config_debian_pkgs_default:
+  - gettext
+  - libffi-dev  # Needed to install the Python cryptography library for asymmetric JWT signing
+  - libmemcached-dev
+  - libmysqlclient-dev
+  - libssl-dev
+edx_django_service_with_rendered_config_debian_pkgs_extra: []
+edx_django_service_with_rendered_config_debian_pkgs: '{{ edx_django_service_with_rendered_config_debian_pkgs_default + edx_django_service_with_rendered_config_debian_pkgs_extra }}'
+
+edx_django_service_with_rendered_config_gunicorn_extra: ''
+edx_django_service_with_rendered_config_gunicorn_extra_conf: ''
+edx_django_service_with_rendered_config_gunicorn_host: '127.0.0.1'
+edx_django_service_with_rendered_config_gunicorn_port: null
+edx_django_service_with_rendered_config_gunicorn_timeout: 300
+edx_django_service_with_rendered_config_gunicorn_workers: 2
+edx_django_service_with_rendered_config_gunicorn_worker_class: 'gevent'
+edx_django_service_with_rendered_config_gunicorn_max_requests: null
+
+edx_django_service_with_rendered_config_cors_whitelist: []
+edx_django_service_with_rendered_config_allow_cors_headers: false
+edx_django_service_with_rendered_config_max_webserver_upload: !!null
+edx_django_service_with_rendered_config_allow_cors_credentials: false
+
+nginx_edx_django_service_with_rendered_config_gunicorn_hosts:
+  - 127.0.0.1
+
+edx_django_service_with_rendered_config_hostname: '~^((stage|prod)-)?{{ edx_django_service_with_rendered_config_service_name }}.*'
+edx_django_service_with_rendered_config_nginx_port: '1{{ edx_django_service_with_rendered_config_gunicorn_port }}'
+edx_django_service_with_rendered_config_nginx_read_timeout: !!null
+
+EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ENABLE_S3_MAINTENANCE: false
+EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_S3_MAINTENANCE_FILE: "/edx-static/maintenance/maintenance.html"
+
+edx_django_service_with_rendered_config_ssl_nginx_port: '4{{ edx_django_service_with_rendered_config_gunicorn_port }}'
+edx_django_service_with_rendered_config_enable_basic_auth: false
+edx_django_service_with_rendered_config_basic_auth_exempted_paths_default:
+  - api
+edx_django_service_with_rendered_config_basic_auth_exempted_paths_extra: []
+edx_django_service_with_rendered_config_basic_auth_exempted_paths: '{{ edx_django_service_with_rendered_config_basic_auth_exempted_paths_default + edx_django_service_with_rendered_config_basic_auth_exempted_paths_extra }}'
+
+edx_django_service_with_rendered_config_newrelic_appname: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_enable_newrelic_distributed_tracing: false
+
+edx_django_service_with_rendered_config_repos:
+  - PROTOCOL: '{{ edx_django_service_with_rendered_config_git_protocol }}'
+    DOMAIN: '{{ edx_django_service_with_rendered_config_git_domain }}'
+    PATH: '{{ edx_django_service_with_rendered_config_git_path }}'
+    REPO: '{{ edx_django_service_with_rendered_config_repo }}.git'
+    VERSION: '{{ edx_django_service_with_rendered_config_version }}'
+    DESTINATION: '{{ edx_django_service_with_rendered_config_code_dir }}'
+    SSH_KEY: '{{ edx_django_service_with_rendered_config_git_identity }}'
+
+edx_django_service_with_rendered_config_secret_key: null
+edx_django_service_with_rendered_config_language_code: 'en-us'
+
+edx_django_service_with_rendered_config_data_dir: '{{ COMMON_DATA_DIR }}/{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_media_root: '{{ edx_django_service_with_rendered_config_data_dir }}/media'
+edx_django_service_with_rendered_config_media_url: '/media/'
+
+edx_django_service_with_rendered_config_static_root: '{{ COMMON_DATA_DIR }}/{{ edx_django_service_with_rendered_config_service_name }}/staticfiles'
+edx_django_service_with_rendered_config_staticfiles_storage: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+edx_django_service_with_rendered_config_media_storage_backend:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ edx_django_service_with_rendered_config_media_root }}'
+  MEDIA_URL: '{{ edx_django_service_with_rendered_config_media_url }}'
+
+edx_django_service_with_rendered_config_memcache: [ 'memcache' ]
+
+edx_django_service_with_rendered_config_caches:
+  default:
+    BACKEND: 'django.core.cache.backends.memcached.MemcachedCache'
+    KEY_PREFIX: '{{ edx_django_service_with_rendered_config_service_name }}'
+    LOCATION: '{{ edx_django_service_with_rendered_config_memcache }}'
+
+edx_django_service_with_rendered_config_default_db_host: 'localhost'
+edx_django_service_with_rendered_config_default_db_name: '{{ edx_django_service_with_rendered_config_service_name }}'
+edx_django_service_with_rendered_config_default_db_atomic_requests: false
+edx_django_service_with_rendered_config_default_db_conn_max_age: 60
+edx_django_service_with_rendered_config_db_user: 'REPLACE-ME'
+edx_django_service_with_rendered_config_db_password: 'password'
+edx_django_service_with_rendered_config_db_options:
+  connect_timeout: 10
+  init_command: "SET sql_mode='STRICT_TRANS_TABLES'"
+
+edx_django_service_with_rendered_config_databases:
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ edx_django_service_with_rendered_config_default_db_name }}'
+    USER: '{{ edx_django_service_with_rendered_config_db_user }}'
+    PASSWORD: '{{ edx_django_service_with_rendered_config_db_password }}'
+    HOST: '{{ edx_django_service_with_rendered_config_default_db_host }}'
+    PORT: '3306'
+    ATOMIC_REQUESTS: '{{ edx_django_service_with_rendered_config_default_db_atomic_requests }}'
+    CONN_MAX_AGE: '{{ edx_django_service_with_rendered_config_default_db_conn_max_age }}'
+    OPTIONS: '{{ edx_django_service_with_rendered_config_db_options }}'
+
+edx_django_service_with_rendered_config_social_auth_edx_oauth2_key: '{{ edx_django_service_with_rendered_config_service_name }}-sso-key'
+edx_django_service_with_rendered_config_social_auth_edx_oauth2_secret: '{{ edx_django_service_with_rendered_config_service_name }}-sso-secret'
+edx_django_service_with_rendered_config_backend_service_edx_oauth2_key: '{{ edx_django_service_with_rendered_config_service_name }}-backend-service-key'
+edx_django_service_with_rendered_config_backend_service_edx_oauth2_secret: '{{ edx_django_service_with_rendered_config_service_name }}-backend-service-secret'
+edx_django_service_with_rendered_config_social_auth_redirect_is_https: false
+
+edx_django_service_with_rendered_config_oauth2_url_root: '{{ COMMON_LMS_BASE_URL }}'
+edx_django_service_with_rendered_config_oauth2_issuer: '{{ COMMON_LMS_BASE_URL }}'
+edx_django_service_with_rendered_config_oauth2_logout_url: '{{ COMMON_OAUTH_LOGOUT_URL }}'
+edx_django_service_with_rendered_config_oauth2_provider_url: '{{ COMMON_OAUTH_PUBLIC_URL_ROOT }}'
+
+edx_django_service_with_rendered_config_jwt_audience: '{{ COMMON_JWT_AUDIENCE }}'
+edx_django_service_with_rendered_config_jwt_issuer: '{{ COMMON_JWT_ISSUER }}'
+edx_django_service_with_rendered_config_jwt_secret_key: '{{ COMMON_JWT_SECRET_KEY }}'
+
+edx_django_service_with_rendered_config_session_expire_at_browser_close: false
+
+edx_django_service_with_rendered_config_jwt_auth:
+  JWT_ISSUERS:
+    - AUDIENCE: '{{ edx_django_service_with_rendered_config_jwt_audience }}'
+      ISSUER: '{{ edx_django_service_with_rendered_config_jwt_issuer }}'
+      SECRET_KEY: '{{ edx_django_service_with_rendered_config_jwt_secret_key }}'
+  JWT_PUBLIC_SIGNING_JWK_SET: '{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET|string }}'
+  JWT_AUTH_COOKIE_HEADER_PAYLOAD: '{{ COMMON_JWT_AUTH_COOKIE_HEADER_PAYLOAD }}'
+  JWT_AUTH_COOKIE_SIGNATURE: '{{ COMMON_JWT_AUTH_COOKIE_SIGNATURE }}'
+  JWT_AUTH_REFRESH_COOKIE: '{{ COMMON_JWT_AUTH_REFRESH_COOKIE }}'
+
+edx_django_service_with_rendered_config_extra_apps: []
+
+edx_django_service_with_rendered_config_api_root: !!null
+
+edx_django_service_with_rendered_config_service_config_default:
+  LANGUAGE_CODE: '{{ edx_django_service_with_rendered_config_language_code }}'
+  SECRET_KEY: '{{ edx_django_service_with_rendered_config_secret_key }}'
+  TIME_ZONE: 'UTC'
+
+  STATIC_ROOT: '{{ edx_django_service_with_rendered_config_static_root }}'
+  MEDIA_STORAGE_BACKEND: '{{ edx_django_service_with_rendered_config_media_storage_backend }}'
+  STATICFILES_STORAGE: '{{ edx_django_service_with_rendered_config_staticfiles_storage }}'
+
+  CACHES: '{{ edx_django_service_with_rendered_config_caches }}'
+  DATABASES: '{{ edx_django_service_with_rendered_config_databases }}'
+
+  SOCIAL_AUTH_EDX_OAUTH2_KEY: '{{ edx_django_service_with_rendered_config_social_auth_edx_oauth2_key }}'
+  SOCIAL_AUTH_EDX_OAUTH2_SECRET: '{{ edx_django_service_with_rendered_config_social_auth_edx_oauth2_secret }}'
+  SOCIAL_AUTH_EDX_OAUTH2_ISSUER: '{{ edx_django_service_with_rendered_config_oauth2_issuer }}'
+  SOCIAL_AUTH_EDX_OAUTH2_URL_ROOT: '{{ edx_django_service_with_rendered_config_oauth2_url_root }}'
+  SOCIAL_AUTH_EDX_OAUTH2_LOGOUT_URL: '{{ edx_django_service_with_rendered_config_oauth2_logout_url }}'
+  SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ edx_django_service_with_rendered_config_social_auth_redirect_is_https }}'
+
+  BACKEND_SERVICE_EDX_OAUTH2_KEY: '{{ edx_django_service_with_rendered_config_backend_service_edx_oauth2_key }}'
+  BACKEND_SERVICE_EDX_OAUTH2_SECRET: '{{ edx_django_service_with_rendered_config_backend_service_edx_oauth2_secret }}'
+  BACKEND_SERVICE_EDX_OAUTH2_PROVIDER_URL: '{{ edx_django_service_with_rendered_config_oauth2_provider_url }}'
+
+  JWT_AUTH: '{{ edx_django_service_with_rendered_config_jwt_auth }}'
+
+  EXTRA_APPS: '{{ edx_django_service_with_rendered_config_extra_apps }}'
+
+  EDX_DRF_EXTENSIONS:
+    OAUTH2_USER_INFO_URL: '{{ edx_django_service_with_rendered_config_oauth2_url_root }}/user_info'
+
+  SESSION_EXPIRE_AT_BROWSER_CLOSE: '{{ edx_django_service_with_rendered_config_session_expire_at_browser_close }}'
+
+  API_ROOT: '{{ edx_django_service_with_rendered_config_api_root }}'
+
+# NOTE: This should be overridden by inheriting service-specific role.
+edx_django_service_with_rendered_config_service_config_overrides: {}
+edx_django_service_with_rendered_config_service_config: '{{ edx_django_service_with_rendered_config_service_config_default|combine(edx_django_service_with_rendered_config_service_config_overrides) }}'
+
+edx_django_service_with_rendered_config_automated_users:
+  automated_user:
+    sudo_commands:
+      - command: '{{ edx_django_service_with_rendered_config_venv_dir }}/python {{ edx_django_service_with_rendered_config_code_dir }}/manage.py showmigrations'
+        sudo_user: '{{ edx_django_service_with_rendered_config_user }}'
+    authorized_keys:
+      - 'SSH authorized key'
+
+edx_django_service_with_rendered_config_sandbox_build: false
+
+# This array contains commands that should be run after migration.
+#
+# The commands will be executed from the code directory with the application's virtualenv activated. The migration
+# environment (e.g. migration DB username/password) will NOT be used, so commands should not rely on these values being
+# set. In other words, don't try to sneak in another run of the migrate management command.
+#
+# Example:
+#   edx_django_service_with_rendered_config_post_migrate_management_commands:
+#     - command: './manage.py conditional_command'
+#       when: '{{ foo }}'
+#     - command: './manage.py always_command'
+#       when: True
+#
+# In this example, the "conditional_command" will only be run when the variable `foo` is set to `True`. The
+# "always_command" will always be run because its conditional is set to `True`. To minimize surprises, the `when`
+# key *MUST* be supplied for all commands.
+#
+edx_django_service_with_rendered_config_post_migrate_commands: []
+
+EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ENABLE_ADMIN_URLS_RESTRICTION: false
+
+EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ADMIN_URLS: []

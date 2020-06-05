@@ -5,7 +5,6 @@
   vars:
     serial_count: 1
     CLUSTER_NAME: 'edxapp'
-    CAN_GENERATE_NEW_JWT_SIGNATURE: True
   serial: "{{ serial_count }}"
   roles:
    - role: aws
@@ -35,12 +34,13 @@
      when: not COMMON_ENABLE_DATADOG
    - role: hermes
      when: "EDXAPP_HERMES_ENABLED"
-     hermes_allowed_sudo_commands:
+     HERMES_JITTER: 600
+     HERMES_ALLOWED_SUDO_COMMANDS:
        - "/bin/cp {{ hermes_download_dir }}/lms.yml {{ COMMON_CFG_DIR }}/lms.yml"
        - "/bin/cp {{ hermes_download_dir }}/studio.yml {{ COMMON_CFG_DIR }}/studio.yml"
        - "/edx/app/edxapp/reload_lms_config.sh"
        - "/edx/app/edxapp/reload_cms_config.sh"
-     hermes_service_config:
+     HERMES_SERVICE_CONFIG:
        - url: '{{ HERMES_REMOTE_FILE_LOCATION }}/{{ COMMON_ENVIRONMENT }}/lms.yml'
          filename: '{{ hermes_download_dir }}/lms.yml'
          command:  "sudo /bin/cp {{ hermes_download_dir }}/lms.yml {{ COMMON_CFG_DIR }}/lms.yml && sudo /edx/app/edxapp/reload_lms_config.sh"
@@ -49,10 +49,3 @@
          filename: '{{ hermes_download_dir }}/studio.yml'
          command:  "sudo /bin/cp {{ hermes_download_dir }}/studio.yml {{ COMMON_CFG_DIR }}/studio.yml && sudo /edx/app/edxapp/reload_cms_config.sh"
          secret_key_files: "{{ HERMES_PRIVATE_KEYS_DICT | map('regex_replace','(.*)','/edx/app/hermes/hermes-\\1') | join(',') if HERMES_PRIVATE_KEYS_DICT is defined else None }}"
-   - role: jwt_signature
-     when: COMMON_SANDBOX_BUILD
-     app_name: lms
-     app_config_file: "{{ COMMON_CFG_DIR }}/lms.yml"
-     app_config_owner: "{{ edxapp_user }}"
-     app_config_group: "{{ common_web_group }}"
-     app_config_mode: 0640

@@ -23,10 +23,8 @@ INSIGHTS_SUPPORT_EMAIL: ''
 INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL: '{{ INSIGHTS_LMS_BASE }}/course'
 INSIGHTS_OAUTH2_SECRET: 'secret'
 INSIGHTS_OAUTH2_URL_ROOT: '{{ INSIGHTS_LMS_BASE }}/oauth2'
-INSIGHTS_OIDC_LOGOUT_URL: '{{ INSIGHTS_LMS_BASE }}/logout'
 INSIGHTS_OAUTH2_APP_CLIENT_NAME: insights
 INSIGHTS_OAUTH2_APP_USERNAME: staff
-INSIGHTS_OAUTH2_APP_COMPLETE_URL: '{{ INSIGHTS_BASE_URL }}/complete/edx-oidc/'
 INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 INSIGHTS_SECRET_KEY: 'YOUR_SECRET_KEY_HERE'
 INSIGHTS_OAUTH2_KEY: 'YOUR_OAUTH2_KEY'
@@ -110,13 +108,13 @@ INSIGHTS_CONFIG:
   DATA_API_URL: '{{ ANALYTICS_API_ENDPOINT }}'
   DATA_API_AUTH_TOKEN: '{{ INSIGHTS_DATA_API_AUTH_TOKEN }}'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS }}'
-  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ INSIGHTS_OAUTH2_KEY }}'
-  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ INSIGHTS_OAUTH2_SECRET }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
-  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ INSIGHTS_OAUTH2_URL_ROOT }}'
-  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ INSIGHTS_OIDC_LOGOUT_URL }}'
-  # This value should be the same as SOCIAL_AUTH_EDX_OIDC_SECRET
-  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ INSIGHTS_OAUTH2_SECRET }}'
+
+  # Used to automatically configure OAuth2 Client
+  INSIGHTS_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'insights-sso-key'
+  INSIGHTS_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'insights-sso-secret'
+  INSIGHTS_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'insights-backend-service-key'
+  INSIGHTS_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'insights-backend-service-secret'
+
   ENABLE_AUTO_AUTH: '{{ INSIGHTS_ENABLE_AUTO_AUTH }}'
   PLATFORM_NAME: '{{ INSIGHTS_PLATFORM_NAME }}'
   APPLICATION_NAME: '{{ INSIGHTS_APPLICATION_NAME }}'
@@ -204,7 +202,8 @@ insights_nodeenv_dir: "{{ insights_home }}/nodeenvs/{{ insights_service_name }}"
 insights_nodeenv_bin: "{{ insights_nodeenv_dir }}/bin"
 insights_node_modules_dir: "{{ insights_code_dir }}/node_modules"
 insights_node_bin: "{{ insights_node_modules_dir }}/.bin"
-insights_node_version: "12.11.1"
+INSIGHTS_NODE_VERSION: "12.11.1"
+insights_node_version: "{{ INSIGHTS_NODE_VERSION }}"
 
 insights_gunicorn_host: "127.0.0.1"
 insights_gunicorn_port: "8110"
@@ -223,9 +222,12 @@ insights_requirements:
 # OS packages
 #
 insights_debian_pkgs:
-  - 'libmysqlclient-dev'
-  - 'build-essential'
+  - libmysqlclient-dev
+  - libssl-dev # needed for mysqlclient python library
+  - build-essential
   - gettext
+  - python3-pip
+  - python3-dev
 
 insights_release_specific_debian_pkgs:
   xenial:

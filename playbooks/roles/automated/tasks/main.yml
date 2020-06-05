@@ -26,9 +26,11 @@
 # EDXAPP_AUTOMATED_USERS:
 #   ecom:
 #     sudo_commands:
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms showmigrations --settings=production"
+#       - command: "/edx/app/edxapp/edx-platform/manage.py lms showmigrations --settings=production"
+#         python_prefix: /edx/app/edxapp/venvs/edxapp/bin/python
 #         sudo_user: "edxapp"
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms showmigrations --settings=production"
+#       - command: "/edx/app/edxapp/edx-platform/manage.py cms showmigrations --settings=production"
+#         python_prefix: /edx/app/edxapp/venvs/edxapp/bin/python
 #         sudo_user: "edxapp"
 #     authorized_keys:
 #       - 'ssh-rsa <REDACTED> ecom+admin@example.com'
@@ -108,3 +110,8 @@
     name: ssh
     state: restarted
   when: users_ssh_access.changed
+
+- name: Add management command users to docker group
+  command: 'sudo usermod -aG docker "{{ item }}"'
+  when: ENABLE_DOCKER_ACCESS_FOR_AUTOMATED_USERS is defined and ENABLE_DOCKER_ACCESS_FOR_AUTOMATED_USERS
+  with_items: '{{ AUTOMATED_USERS }}'

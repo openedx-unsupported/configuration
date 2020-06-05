@@ -10,12 +10,22 @@
 
 # ubuntu
 - stat:
-    path: "/usr/sbin/update-ca-certificates"
+    path: "{{ item }}"
+  with_items:
+      - "/usr/local/share/ca-certificates"
+      - "/usr/sbin/update-ca-certificates"
   register: update_ca_certificates
+
+- name: Download digicert intermediate Certificate
+  get_url:
+    url: "{{ common_digicert_base_url }}/{{ common_digicert_name }}.pem"
+    dest: "/usr/local/share/ca-certificates/{{ common_digicert_name }}"
+    validate_certs: no
+  when: update_ca_certificates is defined and update_ca_certificates.results[0].stat.exists == True
 
 - name: Update CA Certificates
   shell: /usr/sbin/update-ca-certificates
-  when: update_ca_certificates is defined and update_ca_certificates.stat.exists == True
+  when: update_ca_certificates is defined and update_ca_certificates.results[1].stat.exists == True
 
 # ec2-linux
 - stat:
@@ -51,6 +61,14 @@
     repo: "{{ common_git_ppa }}"
   when: ansible_distribution in common_debian_variants
 
+- name: Add ppa for watchman package
+  apt_repository:
+    repo: "ppa:linuxuprising/apps"
+  when: >
+      ansible_distribution in common_debian_variants and 
+      ({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})
+  tags:
+    - "devstack"
 
 # Ensure that we can install old software if need be.
 - name: Add edX PPA apt key
@@ -87,6 +105,19 @@
     state: present
     update_cache: yes
   when: ansible_distribution in common_debian_variants
+
+- name: Install role-independent packages useful for devstack.
+  apt:
+    name: "{{ common_debian_devstack_pkgs }}"
+    install_recommends: yes
+    state: present
+    update_cache: yes
+  when: >
+      ansible_distribution in common_debian_variants and 
+      ({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})
+  tags:
+    - "devstack"
+
 
 - name: Install role-independent useful system packages from custom PPA
   apt:
@@ -155,7 +186,7 @@
   shell: hostname -F /etc/hostname
   when: COMMON_HOSTNAME|length >0 and (etc_hosts.changed or etc_hostname.changed)
 
-- name: Copy the templates to their respestive destination
+- name: Copy the templates to their respective destination
   template:
     dest: "{{ item.dest }}"
     src: "{{ item.src }}"

@@ -119,7 +119,7 @@
 # These templates rely on there being a global
 # read_only mongo user, you must override the default
 # in order for these templates to be written out
-- name: install mongodb replica scripts
+- name: install read_only user mongodb replica scripts
   template:
     src: edx/bin/mongo.sh.j2
     dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
@@ -131,11 +131,37 @@
       db_name: "{{ EDXAPP_MONGO_DB_NAME }}"
       db_port: "{{ EDXAPP_MONGO_PORT }}"
       script_name: edxapp-mongo.sh
+      read_only_access: "{{ EDXAPP_MONGO_READ_ONLY_ACCESS  }}"
     - db_hosts: "{{ FORUM_MONGO_HOSTS_FOR_AD_HOC_REPORTING }}"
       db_name: "{{ FORUM_MONGO_DATABASE }}"
       db_port: "{{ FORUM_MONGO_PORT }}"
       script_name: forum-mongo.sh
-  when: COMMON_MONGO_READ_ONLY_PASS is defined
+      read_only_access: "{{ FORUM_MONGO_READ_ONLY_ACCESS  }}"
+  when: COMMON_MONGO_READ_ONLY_PASS is defined and item.read_only_access
+  tags:
+    - scripts
+    - scripts:mongo
+    - install:code
+
+- name: install single user access mongodb replica scripts
+  template:
+    src: edx/bin/mongo-user-auth.sh.j2
+    dest: /edx/bin/{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ item.script_name }}
+    mode: 0755
+    owner: root
+    group: root
+  with_items:
+    - db_hosts: "{{ EDXAPP_MONGO_HOSTS }}"
+      db_name: "{{ EDXAPP_MONGO_DB_NAME }}"
+      db_port: "{{ EDXAPP_MONGO_PORT }}"
+      script_name: edxapp-mongo-user-auth.sh
+      read_only_access: "{{ EDXAPP_MONGO_READ_ONLY_ACCESS  }}"
+    - db_hosts: "{{ FORUM_MONGO_HOSTS_FOR_AD_HOC_REPORTING }}"
+      db_name: "{{ FORUM_MONGO_DATABASE }}"
+      db_port: "{{ FORUM_MONGO_PORT }}"
+      script_name: forum-mongo-user-auth.sh
+      read_only_access: "{{ FORUM_MONGO_READ_ONLY_ACCESS  }}"
+  when: not item.read_only_access
   tags:
     - scripts
     - scripts:mongo

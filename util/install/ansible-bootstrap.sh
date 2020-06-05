@@ -40,9 +40,9 @@ fi
 #
 # Bootstrapping constants
 #
-VIRTUAL_ENV_VERSION="15.2.0"
-PIP_VERSION="9.0.3"
-SETUPTOOLS_VERSION="39.0.1"
+VIRTUAL_ENV_VERSION="16.7.10"
+PIP_VERSION="20.0.2"
+SETUPTOOLS_VERSION="44.1.0"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
 ANSIBLE_DIR="/tmp/ansible"
@@ -128,7 +128,7 @@ fi
 # which may differ from what is pinned in virtualenvironments
 apt-get update -y
 
-apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
+apt-get install -y python2.7 python2.7-dev python-pip python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 
 
 pip install --upgrade pip=="${PIP_VERSION}"

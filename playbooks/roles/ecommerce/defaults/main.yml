@@ -36,6 +36,7 @@ ECOMMERCE_DATABASE_NAME: ecommerce
 ECOMMERCE_DATABASE_USER: ecomm001
 ECOMMERCE_DATABASE_PASSWORD: password
 ECOMMERCE_DATABASE_HOST: localhost
+ECOMMERCE_DATABASE_CONN_MAX_AGE: 60
 
 ECOMMERCE_VERSION: "master"
 ECOMMERCE_DJANGO_SETTINGS_MODULE: "ecommerce.settings.production"
@@ -78,9 +79,6 @@ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'ecommerce-sso-secret'
 ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'ecommerce-backend-service-key'
 ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'ecommerce-backend-service-secret'
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
-# NOTE: Deprecate these OIDC settings post-DOP-removal for ecommerce.
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY: 'ecommerce-key'
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET: 'ecommerce-secret'
 
 # Settings for affiliate cookie tracking
 ECOMMERCE_AFFILIATE_COOKIE_NAME: '{{ EDXAPP_AFFILIATE_COOKIE_NAME | default("dev_affiliate_id") }}'
@@ -153,7 +151,7 @@ ECOMMERCE_PAYMENT_PROCESSOR_CONFIG:
       client_id: '{{ ECOMMERCE_PAYPAL_CLIENT_ID }}'
       client_secret: '{{ ECOMMERCE_PAYPAL_CLIENT_SECRET }}'
       receipt_url: '{{ ECOMMERCE_PAYPAL_RECEIPT_URL }}'
-      cancel_url: '{{ ECOMMERCE_PAYPAL_CANCEL_URL }}'
+      cancel_checkout_path: '{{ ECOMMERCE_PAYPAL_CANCEL_URL }}'
       error_url: '{{ ECOMMERCE_PAYPAL_ERROR_URL }}'
 
 # JWT payload user attribute mapping
@@ -166,7 +164,7 @@ ECOMMERCE_EDX_DRF_EXTENSIONS:
     user_id: 'lms_user_id'
   JWT_PAYLOAD_MERGEABLE_USER_ATTRIBUTES:
     - 'tracking_context'
-  OAUTH2_USER_INFO_URL: '{{ edx_django_service_oidc_url_root }}/user_info'
+  OAUTH2_USER_INFO_URL: '{{ edx_django_service_oauth2_url_root }}/user_info'
 
 # Theming
 ECOMMERCE_PLATFORM_NAME: 'Your Platform Name Here'
@@ -296,7 +294,7 @@ ECOMMERCE_ADMIN_URLS:
 ECOMMERCE_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
 
 # Python 3 conversion
-ECOMMERCE_USE_PYTHON3: false
+ECOMMERCE_USE_PYTHON3: true
 
 #
 # OS packages
@@ -316,7 +314,7 @@ ecommerce_redhat_pkgs: []
 ecommerce_post_migrate_commands:
   - command: './manage.py oscar_populate_countries --initial-only'
     when: true
-  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY }} --client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET }} --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }} --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }} --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }} --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/'
+  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }} --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }} --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }} --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/'
     when: '{{ ecommerce_create_demo_data }}'
   - command: './manage.py create_demo_data --partner=edX'
     when: '{{ ecommerce_create_demo_data }}'

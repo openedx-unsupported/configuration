@@ -107,7 +107,7 @@
     - install:app-requirements
 
 - name: Create the virtualenv to install the Python requirements
-  command: "virtualenv {{ edxapp_venv_dir }}"
+  command: "virtualenv {{ edxapp_venv_dir }} -p {{ EDXAPP_PYTHON_VERSION }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
     creates: "{{ edxapp_venv_dir }}/bin/pip"
@@ -208,18 +208,12 @@
   args:
     chdir: "{{ edxapp_code_dir }}"
   with_items:
-  - "{{ sandbox_base_requirements }}"
+  - "{{ sandbox_py35_requirements }}"
   become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
     - install
     - install:app-requirements
-
-- name: create nodeenv
-  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --force"
-  tags:
-    - install
-    - install:system-requirements
 
 # Set the npm registry
 # This needs to be done as root since npm is weird about
@@ -245,7 +239,7 @@
 
 #install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: install node dependencies
-  shell: "{{ edxapp_nodeenv_bin }}/npm install"
+  shell: "npm install"
   args:
     chdir: "{{ edxapp_code_dir }}"
   environment: "{{ edxapp_environment }}"
@@ -260,6 +254,32 @@
 # to install anything
 - name: code sandbox | put sandbox apparmor profile in complain mode
   command: /usr/sbin/aa-complain /etc/apparmor.d/code.sandbox
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+    - edxapp-sandbox
+    - install
+    - install:app-requirements
+
+- name: Create the virtualenv to install the Python sandbox requirements
+  command: "virtualenv {{ edxapp_sandbox_venv_dir }} -p python2.7"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+    creates: "{{ edxapp_sandbox_venv_dir }}/bin/pip"
+  become_user: "{{ edxapp_sandbox_user }}"
+  environment: "{{ edxapp_environment }}"
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+    - edxapp-sandbox
+    - install
+    - install:app-requirements
+
+- name: Pin pip to a specific version.
+  # Not pinning to the same version as everything else because sandboxes are still python 2.7
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/pip install pip==20.0.2"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ edxapp_sandbox_user }}"
+  environment: "{{ edxapp_environment }}"
   when: EDXAPP_PYTHON_SANDBOX
   tags:
     - edxapp-sandbox

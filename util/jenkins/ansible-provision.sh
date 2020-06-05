@@ -128,9 +128,11 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-0010ced4e81b9297f"
+    ami="ami-0d7c5de485513e2dd"
+  elif [[ $server_type == "ubuntu_18.04" ]]; then
+    ami="ami-07ebfd5b3428b6f4d"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-04169656fea786776"
+    ami="ami-092546daafcc8bc0d"
   fi
 fi
 
@@ -220,7 +222,8 @@ edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
-COMMON_SANDBOX_BUILD: True
+SANDBOX_CONFIG: True
+CONFIGURE_JWTS: True
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
@@ -242,7 +245,6 @@ REGISTRAR_NGINX_PORT: 80
 REGISTRAR_SSL_NGINX_PORT: 443
 REGISTRAR_VERSION: $registrar_version
 REGISTRAR_ENABLED: $registrar
-REGISTRAR_SANDBOX_BUILD: True
 
 LEARNER_PORTAL_NGINX_PORT: 80
 LEARNER_PORTAL_SSL_NGINX_PORT: 443
@@ -268,6 +270,7 @@ EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
 dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
+COMMON_DEPLOY_HOSTNAME: ${deploy_host}
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 COMMON_LMS_BASE_URL: https://${deploy_host}
@@ -515,7 +518,7 @@ if [[ $set_whitelabel == "true" ]]; then
 fi
 
 if [[ $enable_newrelic == "true" ]]; then
-    run_ansible ../run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
+    run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
 rm -f "$extra_vars_file"

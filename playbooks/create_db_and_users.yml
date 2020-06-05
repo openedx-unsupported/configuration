@@ -102,3 +102,11 @@
       with_items: "{{ database_users }}"
       tags:
         - users
+
+    # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/mysql_rds_set_configuration.html
+    - name: Set binlog retention length
+      shell: |
+         mysql -u"{{ database_connection.login_user }}" -p"{{ database_connection.login_password }}" -h"{{ database_connection.login_host }}" -e "call mysql.rds_set_configuration('binlog retention hours', {{RDS_BINLOG_RETENTION_HOURS | default(168)}});"
+      when: RDS_BINLOG_RETENTION_HOURS is defined
+      tags:
+        - users

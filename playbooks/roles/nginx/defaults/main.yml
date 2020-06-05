@@ -24,6 +24,15 @@ NGINX_USERS:
     password: "{{ COMMON_HTPASSWD_PASS }}"
     state: present
 
+# Override these vars for adding user to nginx.htpasswd
+# for prospectus preview basic auth
+PROSPECTUS_PREVIEW_HTPASSWD_USER: "{{ COMMON_HTPASSWD_USER }}"
+PROSPECTUS_PREVIEW_HTPASSWD_PASS: "{{ COMMON_HTPASSWD_PASS }}"
+PROSPECTUS_PREVIEW_NGINX_USERS:
+  - name: "{{ PROSPECTUS_PREVIEW_HTPASSWD_USER }}"
+    password: "{{ PROSPECTUS_PREVIEW_HTPASSWD_PASS }}"
+    state: present
+
 NGINX_ENABLE_SSL: False
 NGINX_REDIRECT_TO_HTTPS: False
 NGINX_HSTS_MAX_AGE: 31536000
@@ -42,8 +51,8 @@ NGINX_HTTPS_REDIRECT_STRATEGY: "scheme"
 
 NGINX_SSL_CERTIFICATE: 'ssl-cert-snakeoil.pem'
 NGINX_SSL_KEY: 'ssl-cert-snakeoil.key'
-NGINX_SSL_CIPHERS: "'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA'"
-NGINX_SSL_PROTOCOLS: "TLSv1 TLSv1.1 TLSv1.2"
+NGINX_SSL_CIPHERS: "'ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA'"
+NGINX_SSL_PROTOCOLS: "TLSv1.1 TLSv1.2"
 NGINX_DH_PARAMS_PATH: "/etc/ssl/private/dhparams.pem"
 NGINX_DH_KEYSIZE: 2048
 
@@ -80,7 +89,7 @@ NGINX_SERVER_HTML_FILES:
   - file: rate-limit.html
     lang: "{{ NGINX_SERVER_ERROR_LANG }}"
     title: 'Rate limit exceeded'
-    msg: 'If think you have encountered this message in error please let us know at <a href="mailto:{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}">{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}</a>'
+    msg: 'We are aware of the error and are working to find a resolution.'
     img: "{{ NGINX_SERVER_ERROR_IMG }}"
     img_alt: "{{ NGINX_SERVER_ERROR_IMG_ALT }}"
     heading: 'Uh oh, we are having some server issues..'
@@ -91,7 +100,7 @@ NGINX_SERVER_HTML_FILES:
   - file: server-error.html
     lang: "{{ NGINX_SERVER_ERROR_LANG }}"
     title: 'Server error'
-    msg: 'We have been notified of the error, if it persists please let us know at <a href="mailto:{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}">{{ EDXAPP_TECH_SUPPORT_EMAIL|default("technical@example.com") }}</a>'
+    msg: 'We are aware of the error and are working to find a resolution.'
     img: "{{ NGINX_SERVER_ERROR_IMG }}"
     img_alt: "{{ NGINX_SERVER_ERROR_IMG_ALT }}"
     heading: 'Uh oh, we are having some server issues..'
@@ -99,6 +108,7 @@ NGINX_SERVER_HTML_FILES:
     style_p_h2: "{{ NGINX_SERVER_ERROR_STYLE_P_H2 }}"
     style_p: "{{ NGINX_SERVER_ERROR_STYLE_P }}"
     style_div: "{{ NGINX_SERVER_ERROR_STYLE_DIV }}"
+
 
 NGINX_SERVER_STATIC_FILES: []
 
@@ -127,7 +137,7 @@ NGINX_EDXAPP_ERROR_PAGES:
 
 NGINX_EDXAPP_PROXY_INTERCEPT_ERRORS: false
 
-NGINX_EDXAPP_FAVICON_PATH: "/static/images/favicon.ico"
+NGINX_EDXAPP_FAVICON_PATH: "/static/{{ NGINX_EDXAPP_DEFAULT_SITE_THEME }}images/favicon.ico"
 
 CMS_HOSTNAME: '~^((stage|prod)-)?studio.*'
 
@@ -171,6 +181,7 @@ EDXAPP_CMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 EDXAPP_LMS_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 EDXAPP_LMS_PREVIEW_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 KIBANA_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
+PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 XQUEUE_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 XSERVER_ENABLE_BASIC_AUTH: "{{ COMMON_ENABLE_BASIC_AUTH }}"
 
@@ -190,6 +201,12 @@ NGINX_CREATE_HTPASSWD_FILE: >
 NGINX_EDXAPP_CMS_APP_EXTRA: ""
 # Extra settings to add to site configuration for LMS
 NGINX_EDXAPP_LMS_APP_EXTRA: ""
+
+# If comprehensive theme enabled, write down the name of
+# the theme as in EDXAPP_DEFAULT_SITE_THEME ending with /
+# to allow to override favicon properly.
+# Example: "your-site-theme/"
+NGINX_EDXAPP_DEFAULT_SITE_THEME: ""
 
 # List of subnet or IP addressess to allow to access admin endpoints
 NGINX_ADMIN_ACCESS_CIDRS: []

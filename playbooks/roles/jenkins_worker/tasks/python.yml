@@ -4,7 +4,7 @@
 # newer
 - name: add deadsnakes PPA for newer Python versions
   apt_repository:
-    repo: "ppa:fkrull/deadsnakes"
+    repo: "ppa:deadsnakes/ppa"
     update_cache: yes
   when: ansible_distribution_release == 'xenial'
 
@@ -24,6 +24,14 @@
     state: present
     update_cache: yes
   with_items: '{{ jenkins_worker_python_versions }}'
+
+# Install 'distutils' packages for each installed version of python which has one
+- name: Install python distutils packages
+  apt:
+    name: 'python{{ item }}-distutils'
+    state: present
+    update_cache: yes
+  with_items: '{{ jenkins_worker_distutils_versions }}'
 
 # Requests library is required for the github status script.
 - name: Install requests Python library

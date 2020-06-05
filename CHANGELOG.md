@@ -1,3 +1,95 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+Add any new changes to the top(right below this line).
+
+- Role: all
+  - Split the COMMON_SANDBOX_BUILD variable with its two components: SANDBOX_CONFIG and CONFIGURE_JWTS.
+
+- Role: edxapp
+  - enable paver autocomplete in docker devstack
+
+- Role: forum
+  - Added `FORUM_MONGO_AUTH_MECH` to allow the authentication mechanism to be configurable.
+    Must be set if user credentials are in the connection string, or use `""` if no user credentials required.
+    Defaults to `":scram"`, which is supported by Mongo>=3.0, because `":mongodb_cr"` is removed in Mongo>=4.0.
+    Use `":mongodb_cr"` for mongo 2.6.
+
+- Docker: edxapp
+  - Disable install of private requirements for docker devstack.
+
+- Roles: edx_django_service, registrar, enterprise_catalog
+  - Moved celery worker supervisor config files/scripts into edx_django_service
+  - Removed the following variables
+    - ENTERPRISE_CATALOG_WORKER_DEFAULT_STOPWAITSECS
+    - ENTERPRISE_CATALOG_CELERY_HEARTBEAT_ENABLED
+    - ENTERPRISE_CATALOG_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING
+    - ENTERPRISE_CATALOG_NEWRELIC_WORKERS_APPNAME
+    - REGISTRAR_WORKER_DEFAULT_STOPWAITSECS
+    - REGISTRAR_CELERY_HEARTBEAT_ENABLED
+    - REGISTRAR_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING
+    - REGISTRAR_NEWRELIC_WORKERS_APPNAME
+
+- Role: edxapp
+  - Added Stanford-developed Image Modal XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed SQL Grader XBlock.
+
+- Role: mount_ebs
+  - Added check for disk size, size is now a required parameter in variables volumes and MONGO_VOLUMES
+  - This is to prevent mounting the wrong volumes when AWS swaps the order
+
+- Role: all
+  - Removed OPENID settings
+
+- Role: all
+  - Removed all settings with OIDC in name
+
+- Role: edxapp
+  - Added `ENTERPRISE_LEARNER_PORTAL_HOSTNAME` env var for lms.
+
+- Role: ecommerce
+  - Added `ENTERPRISE_LEARNER_PORTAL_HOSTNAME` env var for ecommerce.
+
+- Role: edxapp
+  - Added Stanford-developed Free Text Response XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed Submit-and-Compare XBlock.
+
+- Role: edxapp
+  - Added Stanford-developed Qualtrics and In-Video Quiz XBlocks.
+
+- Open edX
+  - Don't use AWS_GATHER_FACTS, it was only for tagging which we don't need.
+
+- Open edX
+  - The wrong version of xqueue was being installed, fixed.
+
+- Role: enterprise_catalog
+  - Added infrstructure to start up and deploy celery workers
+
+- Role: edxapp
+  - Added Celery worker `prefetch_optimization` option to allow switching from 'default' to 'fair' (only write to available worker processes)
+
+- Role: insights
+  - install libssl-dev, needed for mysqlclient
+
+- Role: insights
+  - add DOT config (deprecate DOP)
+
+- Open edX
+  - native.sh needed to uninstall pyyaml to proceed
+
+- Role: enterprise_catalog
+  - Create role
+
+- Role: blockstore
+  - Increased upload limit to 10M
+
+- Role: ecommerce
+  - Fixed paypal payment processor default configuration
+
 - Role: edxapp
   - Added `ENABLE_PUBLISHER` for indicating that the publisher frontend service is in use
 
@@ -225,6 +317,10 @@
 - Role: edxapp
   - `EDXAPP_X_FRAME_OPTIONS` added in studio to prevent clickjacking.
 
+- Role: nginx
+  - Added `NGINX_EDXAPP_DEFAULT_SITE_THEME` to allow to completely
+  override `favicon.ico` file when Comprehensive Theme is enabled.
+
 - Role: edxapp
   - Added `EDXAPP_X_FRAME_OPTIONS` to prevent click jacking in LMS.
 
@@ -325,7 +421,7 @@
 
 - Role: edxapp
   - Added `EDXAPP_RETIRED_USERNAME_FMT`, `EDXAPP_RETIRED_EMAIL_FMT`, `EDXAPP_RETIRED_USER_SALTS`, and
-  `EDXAPP_RETIREMENT_SERVICE_WORKER_USERNAME` to generic_env_config to allow user retirement to be configurable.
+  `EDXAPP_RETIREMENT_SERVICE_USER_NAME` to generic_env_config to allow user retirement to be configurable.
 
 - Role: edxapp
   - Added `ENTERPRISE_REPORTING_SECRET` to CMS auth settings to allow edx-enterprise migrations to run.
@@ -846,3 +942,5 @@
   - Added `WHITELABEL_DNS` for DNS settings of themes.
   - Added `WHITELABEL_ORG` for whitelabel organization settings.
 
+- Role: all
+  - Removed the unused task timing callback plugin.

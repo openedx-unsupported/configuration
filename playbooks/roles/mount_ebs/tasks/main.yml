@@ -15,12 +15,21 @@
 # This role ensures that the correct EBS volumes are mounted to the right locations.
 # If the volumes are already mounted to the correct place, this role does nothing.
 
+# Newer AWS EC2 instances sometimes swap the order of the disks, resulting in a very small data volume and a very large
+# journal volume. This prevents that by confirming that the disk sizes are correct before proceeding. Rebooting seems to
+# fix the ordering
+- name: Check disk size
+  assert:
+    that:
+    - "{{ ansible_devices[item.device.split('/')[-1]]['size'] == item.size }}"
+    fail_msg: "Actual size {{ ansible_devices[item.device.split('/')[-1]]['size'] }} != Expected size {{ item.size }}. Rebooting the instance may fix the ordering issue"
+  with_items: "{{ volumes }}"
+
 # This task will be skipped if UNMOUNT_DISKS is false, causing the next task
 # to error if the disk has the wrong fstype but is already mounted
 - name: Unmount disk if fstype is wrong
   mount:
     name: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'mount': None})).mount }}"
-    src: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'device': None})).device }}"
     fstype: "{{ (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype }}"
     state: unmounted
   when: "UNMOUNT_DISKS and (ansible_mounts | selectattr('device', 'equalto', item.device) | first | default({'fstype': None})).fstype != item.fstype"
@@ -46,6 +55,9 @@
     force: "{{ FORCE_REFORMAT_DISKS }}"
   with_items: "{{ volumes }}"
 
+- name: Regather facts to get UUIDs of freshly formatted disks
+  setup: ""
+
 # This can fail if one volume is mounted on a child directory as another volume
 # and it attempts to unmount the parent first.  This is generally fixable by rerunning.
 # Order is super dependent here, but we're iterating ansible_mounts (in order to identify
@@ -56,7 +68,6 @@
 - name: Unmount disks mounted to the wrong place
   mount:
     name: "{{ item.mount }}"
-    src: "{{ item.device }}"
     fstype: "{{ item.fstype }}"
     state: unmounted
   when:
@@ -75,10 +86,11 @@
     (volumes | selectattr('device', 'equalto', item.device) | first).mount != item.mount
   with_items: "{{ ansible_mounts }}"
 
+# Use UUID to prevent issues with AWS EC2 swapping device order
 - name: Mount disks
   mount:
     name: "{{ item.mount }}"
-    src: "{{ item.device }}"
+    src: "UUID={{ ansible_devices[item.device.split('/')[-1]]['links']['uuids'][0] }}"
     state: mounted
     fstype: "{{ item.fstype }}"
     opts: "{{ item.options }}"

@@ -1,3 +1,13 @@
 {% include "edxapp_common.j2" %}
 
-sudo -E -H -u {{ edxapp_user }} env "PATH=$PATH" {{ edxapp_venv_bin }}/paver update_assets --settings $EDX_PLATFORM_SETTINGS
+{% if edxapp_staticfiles_storage_overrides %}
+{% for override in edxapp_staticfiles_storage_overrides %}
+sudo -E -H -u {{ edxapp_user }} \
+    env "PATH=$PATH" "STATICFILES_STORAGE={{ override }}" \
+    {{ edxapp_venv_bin }}/paver update_assets --debug-collect --settings=$EDX_PLATFORM_SETTINGS
+{% endfor %}
+{% else %}
+sudo -E -H -u {{ edxapp_user }} \
+    env "PATH=$PATH" \
+    {{ edxapp_venv_bin }}/paver update_assets --debug-collect --settings $EDX_PLATFORM_SETTINGS
+{% endif %}

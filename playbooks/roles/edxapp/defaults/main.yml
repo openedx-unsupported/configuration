@@ -13,6 +13,8 @@
 # any secrets or host identifying information.
 #
 
+EDXAPP_PYTHON_VERSION: "python3.5"
+
 # Bucket used for xblock file storage
 EDXAPP_XBLOCK_FS_STORAGE_BUCKET: !!null
 EDXAPP_XBLOCK_FS_STORAGE_PREFIX: !!null
@@ -62,7 +64,7 @@ EDXAPP_DEFAULT_FILE_STORAGE:  "django.core.files.storage.FileSystemStorage"
 EDXAPP_XQUEUE_BASIC_AUTH: [ "{{ COMMON_HTPASSWD_USER }}", "{{ COMMON_HTPASSWD_PASS }}" ]
 EDXAPP_XQUEUE_DJANGO_AUTH:
   username: 'lms'
-  password: 'password'
+  password: "{{ COMMON_XQUEUE_LMS_PASSWORD }}"
 EDXAPP_XQUEUE_URL: 'http://localhost:18040'
 
 # Comma-separated list of hosts/ips
@@ -73,7 +75,7 @@ EDXAPP_MONGO_USER: 'edxapp'
 EDXAPP_MONGO_DB_NAME: 'edxapp'
 EDXAPP_MONGO_USE_SSL: False
 EDXAPP_MONGO_REPLICA_SET: ''
-EDXAPP_MONGO_AUTH_DB: !!null
+EDXAPP_MONGO_AUTH_DB: ''
 # Used only if EDXAPP_MONGO_REPLICA_SET is provided.
 EDXAPP_MONGO_CMS_READ_PREFERENCE: 'PRIMARY'
 EDXAPP_MONGO_LMS_READ_PREFERENCE: 'SECONDARY_PREFERRED'
@@ -314,6 +316,7 @@ EDXAPP_FEATURES:
 # as the lms (it's sent in the request)
 EDXAPP_SITE_NAME: 'localhost'
 EDXAPP_LMS_SITE_NAME: "{{ EDXAPP_SITE_NAME }}"
+EDXAPP_LMS_HTTPS: 'on'
 EDXAPP_CMS_SITE_NAME: 'localhost'
 EDXAPP_MEDIA_URL:  "/media"
 EDXAPP_FEEDBACK_SUBMISSION_EMAIL: ""
@@ -461,13 +464,13 @@ EDXAPP_SANDBOX_ENFORCE: true
 # over SSH and the fully qualified command that they can run via sudo to the
 # application user
 
-EDXAPP_AUTOMATED_USERS:
-  automated_user:
-    sudo_commands:
-      - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms showmigrations --settings={{ edxapp_settings }}"
-        sudo_user: "edxapp"
-    authorized_keys:
-      - "SSH authorized key"
+EDXAPP_AUTOMATED_USERS: {}
+  # automated_user:
+  #   sudo_commands:
+  #     - command: "{{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms showmigrations --settings={{ edxapp_settings }}"
+  #       sudo_user: "edxapp"
+  #   authorized_keys:
+  #     - "SSH authorized key"
 
 EDXAPP_USE_GIT_IDENTITY: false
 # Paste the contents of the git identity
@@ -502,35 +505,54 @@ EDXAPP_EXTRA_REQUIREMENTS: []
 #   - name: git+https://git.myproject.org/MyProject#egg=MyProject
 EDXAPP_PRIVATE_REQUIREMENTS:
     # For Harvard courses:
-    - name: xblock-problem-builder==3.1.3
+    - name: xblock-problem-builder==4.0.0
     # Oppia XBlock
-    - name: git+https://github.com/oppia/xblock.git@9f6b95b7eb7dbabb96b77198a3202604f96adf65#egg=oppia-xblock
+    # https://github.com/oppia/xblock/pull/4
+    - name: git+https://github.com/edx/oppia-xblock.git@1030adb3590ad2d32c93443cc8690db0985d76b6#egg=oppia-xblock
       extra_args: -e
     # This repository contains schoolyourself-xblock, which is used in
     # edX's "AlgebraX" and "GeometryX" courses.
-    - name: git+https://github.com/schoolyourself/schoolyourself-xblock.git@5e4d37716e3e72640e832e961f7cc0d38d4ec47b#egg=schoolyourself-xblock
+    - name: git+https://github.com/edx/schoolyourself-xblock.git@c0c980be0a0fd00a653afc80d2cfd147f8f8987d#egg=schoolyourself-xblock
       extra_args: -e
     # Prototype XBlocks from edX learning sciences limited roll-outs and user testing.
     # Concept XBlock, in particular, is nowhere near finished and an early prototype.
     # Profile XBlock is there so we can play with XBlock arguments in the platform, but isn't ready for use outside of
     # edX.
-    - name: git+https://github.com/edx/ConceptXBlock.git@2376fde9ebdd83684b78dde77ef96361c3bd1aa0#egg=concept-xblock
+    - name: git+https://github.com/edx/ConceptXBlock.git@a45a6560c92b6d8b62be1f939ff1d00dfff84e70#egg=concept-xblock
       extra_args: -e
-    - name: git+https://github.com/edx/AudioXBlock.git@1fbf19cc21613aead62799469e1593adb037fdd9#egg=audio-xblock
+    - name: git+https://github.com/edx/AudioXBlock.git@20538c6e9bb704801a71ecbb6981f794556dfc45#egg=audio-xblock
       extra_args: -e
-    - name: git+https://github.com/edx/AnimationXBlock.git@d2b551bb8f49a138088e10298576102164145b87#egg=animation-xblock
+    - name: git+https://github.com/edx/AnimationXBlock.git@c950ffdda2f69effda93bf03df8646f61d3ffada#egg=animation-xblock
       extra_args: -e
     # Peer instruction XBlock
-    - name: ubcpi-xblock==0.6.5
+    # Need it from github until we can land https://github.com/ubc/ubcpi/pull/167 upstream.
+    - name: git+https://github.com/edx/ubcpi.git@7b7a54ef4b99614f749128d3a1f47d31c143e25b#egg=ubcpi-xblock
+      extra_args: -e
     # Vector Drawing and ActiveTable XBlocks (Davidson)
-    - name: git+https://github.com/open-craft/xblock-vectordraw.git@c57df9d98119fd2ca4cb31b9d16c27333cdc65ca#egg=xblock-vectordraw==0.2.1
+    - name: git+https://github.com/open-craft/xblock-vectordraw.git@76976425356dfc7f13570f354c0c438db84c2840#egg=xblock-vectordraw==0.3.0
       extra_args: -e
-    - name: git+https://github.com/open-craft/xblock-activetable.git@e933d41bb86a8d50fb878787ca680165a092a6d5#egg=xblock-activetable
+    - name: git+https://github.com/open-craft/xblock-activetable.git@013003aa3ce28f0ae03b8227dc3a6daa4e19997d#egg=xblock-activetable
       extra_args: -e
-    - name: git+https://github.com/edx/edx-zoom.git@7feb9972c4c689acf00bf9f1a0b77d0f21b52d9a#egg=edx-zoom
+    - name: git+https://github.com/edx/edx-zoom.git@37c323ae93265937bf60abb92657318efeec96c5#egg=edx-zoom
+      extra_args: -e
+    # Stanford-developed XBlocks (technically unsupported, but here to ease migration of courses from Lagunita)
+    - name: git+https://github.com/edx/xblock-qualtrics-survey.git@b46c55d26bee615ff76051685277c45f762f9495#egg=xblock_qualtrics_survey
+      extra_args: -e
+    - name: git+https://github.com/edx/xblock-in-video-quiz.git@c1cc11f87285cd885d76604145433dae87434a6d#egg=invideoquiz-xblock
+      extra_args: -e
+    - name: git+https://github.com/edx/xblock-submit-and-compare@338cb3dd3c4ff5c50d509f34baaaf451255fdbc3#egg=xblock-submit-and-compare
+      extra_args: -e
+    - name: git+https://github.com/edx/xblock-free-text-response@cc85ca0d4aaab26c0362667c207d99dd0622878a#egg=xblock-free-text-response
+      extra_args: -e
+    - name: git+https://github.com/edx/xblock-sql-grader@e67f4134f62eca60f0aeb99101c4f713227fd4b4#egg=xblock-sql-grader
+      extra_args: -e
+    - name: git+https://github.com/edx/xblock-image-modal@9c19e426ea6118c1433e29cfccc1a88a2346510d#egg=xblock-image-modal
       extra_args: -e
     # XBlocks associated with the LabXchange project
-    - name: git+https://github.com/open-craft/labxchange-xblocks.git@171aec6fd7608d1a5e0af119c15e808a7320f2a7#egg=labxchange-xblocks
+    - name: git+https://github.com/open-craft/labxchange-xblocks.git@3830256088845c23eedaf6bc8c5b29c0ebc46fbb#egg=labxchange-xblocks
+      extra_args: -e
+    # "Pathways" learning context plugin for the LabXchange project
+    - name: git+https://github.com/open-craft/lx-pathway-plugin.git@337abf249b7c5ecc1e78a44d2e639e1ab65f2085#egg=lx-pathway-plugin
       extra_args: -e
 
 # List of custom middlewares that should be used in edxapp to process
@@ -622,23 +644,28 @@ EDXAPP_CELERY_WORKERS:
     service_variant: cms
     concurrency: 1
     monitor: True
+    prefetch_optimization: default
   - queue: high
     service_variant: cms
     concurrency: 1
     monitor: True
+    prefetch_optimization: default
   - queue: default
     service_variant: lms
     concurrency: 1
     monitor: True
+    prefetch_optimization: default
   - queue: high
     service_variant: lms
     concurrency: 1
     monitor: True
+    prefetch_optimization: default
   - queue: high_mem
     service_variant: lms
     concurrency: 1
     monitor: False
     max_tasks_per_child: 1
+    prefetch_optimization: default
 EDXAPP_RECALCULATE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_POLICY_CHANGE_GRADES_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_BULK_EMAIL_ROUTING_KEY_SMALL_JOBS: 'edx.lms.core.default'
@@ -717,7 +744,7 @@ EDXAPP_SOCIAL_SHARING_SETTINGS:
 # EDXAPP_PROFILE_IMAGE_BACKEND_CONFIG:
 #   class: storages.backends.s3boto.S3BotoStorage
 #   options:
-#     location: /path/to/images
+#     location: path/to/images  # Note: The location should not begin with a leading slash.
 #     bucket: mybucket
 #     custom_domain: mybucket.s3.amazonaws.com
 #     access_key: XXXAWS_ACCESS_KEYXXX
@@ -728,7 +755,7 @@ EDXAPP_SOCIAL_SHARING_SETTINGS:
 #NB2: custom_domain is REQUIRED. Otherwise, boto will generate a
 # temporary URL whenever asked for the URL of a specific file.
 EDXAPP_PROFILE_IMAGE_BACKEND:
-  class: storages.backends.overwrite.OverwriteStorage
+  class: openedx.core.storage.OverwriteStorage
   options:
     location: "{{ edxapp_media_dir }}/profile-images/"
     base_url: "{{ EDXAPP_MEDIA_URL }}/profile-images/"
@@ -848,7 +875,7 @@ EDXAPP_VIDEO_IMAGE_SETTINGS:
   VIDEO_IMAGE_MAX_BYTES : 2097152
   VIDEO_IMAGE_MIN_BYTES : 2048
   STORAGE_KWARGS:
-    location: "{{ edxapp_media_dir }}/"
+    location: "{{ edxapp_media_dir_s3 }}/"
     base_url: "{{ EDXAPP_MEDIA_URL }}/"
   DIRECTORY_PREFIX: 'video-images/'
 
@@ -858,7 +885,7 @@ EDXAPP_VIDEO_TRANSCRIPTS_MAX_AGE: 31536000
 EDXAPP_VIDEO_TRANSCRIPTS_SETTINGS:
   VIDEO_TRANSCRIPTS_MAX_BYTES : 3145728
   STORAGE_KWARGS:
-    location: "{{ edxapp_media_dir }}/"
+    location: "{{ edxapp_media_dir_s3 }}/"
     base_url: "{{ EDXAPP_MEDIA_URL }}/"
   DIRECTORY_PREFIX: 'video-transcripts/'
 
@@ -973,11 +1000,17 @@ EDXAPP_ACCOUNT_MICROFRONTEND_URL: null
 # Needed to link to the new program manager micro-frontend.
 EDXAPP_PROGRAM_MANAGER_MICROFRONTEND_URL: null
 
+# Needed to link to the learning micro-frontend.
+EDXAPP_LEARNING_MICROFRONTEND_URL: null
+
 # Remote config
 EDXAPP_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
 
 EDXAPP_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
 EDXAPP_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+# Dashboard courses default limit
+EDXAPP_DASHBOARD_COURSE_LIMIT: null
 
 #-------- Everything below this line is internal to the role ------------
 
@@ -993,7 +1026,8 @@ edxapp_venv_bin: "{{ edxapp_venv_dir }}/bin"
 edxapp_nodeenv_dir: "{{ edxapp_app_dir }}/nodeenvs/edxapp"
 edxapp_nodeenv_bin: "{{ edxapp_nodeenv_dir }}/bin"
 edxapp_settings: '{{ EDXAPP_SETTINGS }}'
-edxapp_node_version: "{{ common_node_version }}"
+EDXAPP_NODE_VERSION: "12"
+edxapp_node_version: "{{ EDXAPP_NODE_VERSION }}"
 # This is where node installs modules, not node itself
 edxapp_node_bin: "{{ edxapp_code_dir }}/node_modules/.bin"
 edxapp_user: edxapp
@@ -1002,6 +1036,7 @@ edxapp_user_shell: '/bin/false'
 edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:{{ edxapp_nodeenv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_media_dir: "{{ edxapp_data_dir }}/media"
+edxapp_media_dir_s3: "{{ edxapp_media_dir | regex_replace('^\\/', '') }}"
 edxapp_course_static_dir: "{{ edxapp_data_dir }}/course_static"
 edxapp_course_data_dir: "{{ edxapp_data_dir }}/data"
 edxapp_upload_dir: "{{ edxapp_data_dir }}/uploads"
@@ -1010,6 +1045,7 @@ edxapp_git_identity: "{{ edxapp_app_dir }}/edxapp-git-identity"
 edxapp_git_ssh: "/tmp/edxapp_git_ssh.sh"
 edxapp_studio_cfg: "{{ COMMON_CFG_DIR }}/studio.yml"
 edxapp_lms_cfg: "{{ COMMON_CFG_DIR }}/lms.yml"
+edxapp_revision_cfg: "{{ COMMON_CFG_DIR }}/revisions.yml"
 
 edxapp_devstack_logs:
   - "{{ supervisor_log_dir }}/cms-stdout.log"
@@ -1053,6 +1089,7 @@ edxapp_environment_default:
   LMS_CFG: "{{ edxapp_lms_cfg }}"
   STUDIO_CFG: "{{ edxapp_studio_cfg }}"
   BOTO_CONFIG: "{{ edxapp_app_dir }}/.boto"
+  REVISION_CFG: "{{ edxapp_revision_cfg }}"
 
 edxapp_environment_extra: {}
 
@@ -1086,7 +1123,7 @@ edxapp_generic_doc_store_config: &edxapp_generic_default_docstore
   socketTimeoutMS: 3000 # default is never timeout while the connection is open, this means it needs to explicitly close raising pymongo.errors.NetworkTimeout
   connectTimeoutMS: 2000 # default is 20000, I believe raises pymongo.errors.ConnectionFailure
   # Not setting waitQueueTimeoutMS and waitQueueMultiple since pymongo defaults to nobody being allowed to wait
-  auth_source: "{{ EDXAPP_MONGO_AUTH_DB }}"
+  authsource: "{{ EDXAPP_MONGO_AUTH_DB }}"
 
 EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG:
   <<: *edxapp_generic_default_docstore
@@ -1186,6 +1223,9 @@ generic_cache_config: &default_generic_cache
   BACKEND:  "{{ EDXAPP_CACHE_BACKEND }}"
   KEY_FUNCTION:  'util.memcache.safe_key'
 
+edxapp_revisions_config:
+  EDX_PLATFORM_REVISION: "{{ edx_platform_version }}"
+
 generic_env_config:  &edxapp_generic_env
   IDA_LOGOUT_URI_LIST: "{{ EDXAPP_IDA_LOGOUT_URI_LIST }}"
   CREDENTIALS_INTERNAL_SERVICE_URL: "{{ EDXAPP_CREDENTIALS_INTERNAL_SERVICE_URL }}"
@@ -1212,7 +1252,6 @@ generic_env_config:  &edxapp_generic_env
   CSRF_TRUSTED_ORIGINS: "{{ EDXAPP_CSRF_TRUSTED_ORIGINS  }}"
   VIDEO_UPLOAD_PIPELINE: "{{ EDXAPP_VIDEO_UPLOAD_PIPELINE }}"
   DEPRECATED_ADVANCED_COMPONENT_TYPES: "{{ EDXAPP_DEPRECATED_ADVANCED_COMPONENT_TYPES }}"
-  OAUTH_OIDC_ISSUER: "{{ EDXAPP_LMS_ISSUER }}"
   XBLOCK_FS_STORAGE_BUCKET: "{{ EDXAPP_XBLOCK_FS_STORAGE_BUCKET }}"
   XBLOCK_FS_STORAGE_PREFIX: "{{ EDXAPP_XBLOCK_FS_STORAGE_PREFIX }}"
   ANALYTICS_DASHBOARD_URL: '{{ EDXAPP_ANALYTICS_DASHBOARD_URL }}'
@@ -1411,6 +1450,8 @@ generic_env_config:  &edxapp_generic_env
 
   AUTH_PASSWORD_VALIDATORS: "{{ EDXAPP_AUTH_PASSWORD_VALIDATORS }}"
   PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG: "{{ EDXAPP_PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG }}"
+  # Dashboard courses default limit
+  DASHBOARD_COURSE_LIMIT: "{{ EDXAPP_DASHBOARD_COURSE_LIMIT }}"
 
 lms_auth_config:
   <<: *edxapp_generic_auth
@@ -1465,6 +1506,7 @@ lms_env_config:
   PAID_COURSE_REGISTRATION_CURRENCY: "{{ EDXAPP_PAID_COURSE_REGISTRATION_CURRENCY }}"
   GIT_REPO_DIR: "{{ EDXAPP_GIT_REPO_DIR }}"
   SITE_NAME:  "{{ EDXAPP_LMS_SITE_NAME }}"
+  HTTPS: "{{ EDXAPP_LMS_HTTPS }}"
   VIDEO_CDN_URL: "{{ EDXAPP_VIDEO_CDN_URLS }}"
   PDF_RECEIPT_TAX_ID: "{{ EDXAPP_PDF_RECEIPT_TAX_ID }}"
   PDF_RECEIPT_FOOTER_TEXT: "{{ EDXAPP_PDF_RECEIPT_FOOTER_TEXT }}"
@@ -1518,6 +1560,7 @@ lms_env_config:
   PROGRAM_CERTIFICATES_ROUTING_KEY: "{{ EDXAPP_PROGRAM_CERTIFICATES_ROUTING_KEY }}"
   ACCOUNT_MICROFRONTEND_URL: "{{ EDXAPP_ACCOUNT_MICROFRONTEND_URL }}"
   PROGRAM_MANAGER_MICROFRONTEND_URL: "{{ EDXAPP_PROGRAM_MANAGER_MICROFRONTEND_URL}}"
+  LEARNING_MICROFRONTEND_URL: "{{ EDXAPP_LEARNING_MICROFRONTEND_URL}}"
 
 cms_auth_config:
   <<: *edxapp_generic_auth
@@ -1592,19 +1635,22 @@ worker_core_mult:
 # TODO: change variables to ALL-CAPS, since they are meant to be externally overridden
 edxapp_theme_name: ""
 edxapp_theme_source_repo: 'https://{{ COMMON_GIT_MIRROR }}/Stanford-Online/edx-theme.git'
-edxapp_theme_version: 'master'
+EDXAPP_THEME_VERSION: 'master'
+edxapp_theme_version: "{{ EDXAPP_THEME_VERSION }}"
 
 # make this the public URL instead of writable
 edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
-# `edx_platform_version` can be anything that git recognizes as a commit
+# `EDX_PLATFORM_VERSION` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
-edx_platform_version: 'release'
+EDX_PLATFORM_VERSION: 'release'
+edx_platform_version: "{{ EDX_PLATFORM_VERSION }}"
 custom_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/custom.txt"
 base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
 django_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/django.txt"
 openstack_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/openstack.txt"
 
-sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
+sandbox_base_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/base.txt"
+sandbox_py35_requirements: "{{ edxapp_code_dir }}/requirements/edx-sandbox/py35.txt"
 
 # The Python requirements files in the order they should be installed.  This order should
 # match the order of PYTHON_REQ_FILES in edx-platform/pavelib/prereqs.py.
@@ -1620,8 +1666,6 @@ edxapp_requirements_with_github_urls:
   - "{{ base_requirements_file }}"
   - "{{ sandbox_base_requirements }}"
 
-edxapp_chrislea_ppa: "ppa:chris-lea/node.js"
-
 edxapp_debian_pkgs_default:
   # for compiling the virtualenv
   # (only needed if wheel files aren't available)
@@ -1636,7 +1680,6 @@ edxapp_debian_pkgs_default:
   # misc
   - curl
   - ipython
-  - nodejs
   - ntp
   # matplotlib needs libfreetype6-dev
   - libfreetype6-dev
@@ -1696,3 +1739,5 @@ EDXAPP_ENABLE_DJANGO_ADMIN_RESTRICTION: false
 
 EDXAPP_LMS_LOCAL_CONFIG_FILE: "{{ UNENCRYPTED_CFG_DIR }}/lms.yml"
 EDXAPP_CMS_LOCAL_CONFIG_FILE: "{{ UNENCRYPTED_CFG_DIR }}/studio.yml"
+
+edxapp_staticfiles_storage_overrides: !!null

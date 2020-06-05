@@ -1,0 +1,50 @@
+{% if edx_django_service_enable_experimental_docker_shim %}
+{% for w in edx_django_service_workers %}
+{% for count in range(1, 1 + w.concurrency) %}
+[program:{{ w.queue }}_{{ count }}]
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ edx_django_service_newrelic_appname }}-workers,NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ edx_django_service_enable_newrelic_distributed_tracing }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}CONCURRENCY=1,LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},LANG={{ edx_django_service_lang }},PYTHONPATH={{ edx_django_service_code_dir }},BOTO_CONFIG="{{ edx_django_service_home }}/.boto",EDX_REST_API_CLIENT_NAME={{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}-worker-{{ w.queue }},DOCKER_WORKER_QUEUE={{ w.queue }},DOCKER_WORKER_NUM={{ count }}
+
+user={{ common_web_user }}
+directory={{ edx_django_service_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh worker -A {{ edx_django_service_name }} --app {{ edx_django_service_name }}.celery:app --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency=1 {{ '--maxtasksperchild ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
+killasgroup=true
+stopwaitsecs={{ w.stopwaitsecs | default(edx_django_service_default_stopwaitsecs) }}
+; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
+; with an exit code of zero for certain types of unrecoverable errors, so we must make sure that the workers
+; are auto restarted even when exiting with code 0.
+; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
+autorestart=true
+
+{% endfor %}
+{% endfor %}
+
+[group:{{ edx_django_service_name }}_workers]
+programs={%- for w in edx_django_service_workers %}{%- for c in range(1, 1 + w.concurrency) %}{{ w.queue }}_{{ c }}{%- if not loop.last %},{%- endif %}{%- endfor %}{%- if not loop.last %},{%- endif %}{%- endfor %}
+{% else %}
+{% for w in edx_django_service_workers %}
+[program:{{ w.queue }}_{{ w.concurrency }}]
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ edx_django_service_newrelic_appname }}-workers,NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ edx_django_service_enable_newrelic_distributed_tracing }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}CONCURRENCY={{ w.concurrency }},LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},LANG={{ edx_django_service_lang }},PYTHONPATH={{ edx_django_service_code_dir }},BOTO_CONFIG="{{ edx_django_service_home }}/.boto",EDX_REST_API_CLIENT_NAME={{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}-worker-{{ w.queue }}
+user={{ common_web_user }}
+directory={{ edx_django_service_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh worker -A {{ edx_django_service_name }} --app {{ edx_django_service_name }}.celery:app --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--maxtasksperchild ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
+killasgroup=true
+stopwaitsecs={{ w.stopwaitsecs | default(edx_django_service_default_stopwaitsecs) }}
+; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
+; with an exit code of zero for certain types of unrecoverable errors, so we must make sure that the workers
+; are auto restarted even when exiting with code 0.
+; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
+autorestart=true
+
+{% endfor %}
+
+[group:{{ edx_django_service_name }}_workers]
+programs={%- for w in edx_django_service_workers %}{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %}
+{% endif %}

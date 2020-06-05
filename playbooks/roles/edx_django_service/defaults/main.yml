@@ -23,6 +23,8 @@ edx_django_service_version: 'master'
 edx_django_service_git_identity: null
 edx_django_service_django_settings_module: null
 
+edx_django_service_app_config_file: "{{ COMMON_CFG_DIR  }}/{{ edx_django_service_name }}.yml"
+
 edx_django_service_code_dir: '{{ edx_django_service_home }}/{{ edx_django_service_name }}'
 edx_django_service_venv_dir: '{{ edx_django_service_home }}/venvs/{{ edx_django_service_name }}'
 edx_django_service_venv_bin_dir: '{{ edx_django_service_venv_dir }}/bin'
@@ -31,7 +33,8 @@ edx_django_service_nodeenv_dir: '{{ edx_django_service_home }}/nodeenvs/{{ edx_d
 edx_django_service_nodeenv_bin: '{{ edx_django_service_nodeenv_dir }}/bin'
 edx_django_service_node_modules_dir: '{{ edx_django_service_code_dir }}/node_modules'
 edx_django_service_node_bin: '{{ edx_django_service_node_modules_dir }}/.bin'
-edx_django_service_node_version: '8.9.3'
+edx_django_service_node_version: '12.13.0'
+edx_django_service_npm_version: '6.12.1'
 
 edx_django_service_environment_default:
   DJANGO_SETTINGS_MODULE: '{{ edx_django_service_django_settings_module }}'
@@ -141,18 +144,11 @@ edx_django_service_databases:
     CONN_MAX_AGE: '{{ edx_django_service_default_db_conn_max_age }}'
     OPTIONS: '{{ edx_django_service_db_options }}'
 
-edx_django_service_social_auth_edx_oidc_key: '{{ edx_django_service_name }}-key'
-edx_django_service_social_auth_edx_oidc_secret: '{{ edx_django_service_name }}-secret'
 edx_django_service_social_auth_edx_oauth2_key: '{{ edx_django_service_name }}-sso-key'
 edx_django_service_social_auth_edx_oauth2_secret: '{{ edx_django_service_name }}-sso-secret'
 edx_django_service_backend_service_edx_oauth2_key: '{{ edx_django_service_name }}-backend-service-key'
 edx_django_service_backend_service_edx_oauth2_secret: '{{ edx_django_service_name }}-backend-service-secret'
 edx_django_service_social_auth_redirect_is_https: false
-
-edx_django_service_oidc_public_url_root: '{{ COMMON_OAUTH_PUBLIC_URL_ROOT }}'
-edx_django_service_oidc_url_root: '{{ COMMON_OAUTH_URL_ROOT }}'
-edx_django_service_oidc_logout_url: '{{ COMMON_OAUTH_LOGOUT_URL }}'
-edx_django_service_oidc_issuer: '{{ COMMON_OIDC_ISSUER }}'
 
 edx_django_service_oauth2_url_root: '{{ COMMON_LMS_BASE_URL }}'
 edx_django_service_oauth2_issuer: '{{ COMMON_LMS_BASE_URL }}'
@@ -191,14 +187,7 @@ edx_django_service_config_default:
   CACHES: '{{ edx_django_service_caches }}'
   DATABASES: '{{ edx_django_service_databases }}'
 
-  SOCIAL_AUTH_EDX_OIDC_KEY: '{{ edx_django_service_social_auth_edx_oidc_key }}'
-  SOCIAL_AUTH_EDX_OIDC_SECRET: '{{ edx_django_service_social_auth_edx_oidc_secret }}'
-  SOCIAL_AUTH_EDX_OIDC_ID_TOKEN_DECRYPTION_KEY: '{{ edx_django_service_social_auth_edx_oidc_secret }}'
-  SOCIAL_AUTH_EDX_OIDC_URL_ROOT: '{{ edx_django_service_oidc_url_root }}'
-  SOCIAL_AUTH_EDX_OIDC_PUBLIC_URL_ROOT: '{{ edx_django_service_oidc_public_url_root }}'
   SOCIAL_AUTH_REDIRECT_IS_HTTPS: '{{ edx_django_service_social_auth_redirect_is_https }}'
-  SOCIAL_AUTH_EDX_OIDC_LOGOUT_URL: '{{ edx_django_service_oidc_logout_url }}'
-  SOCIAL_AUTH_EDX_OIDC_ISSUER: '{{ edx_django_service_oidc_issuer }}'
 
   SOCIAL_AUTH_EDX_OAUTH2_KEY: '{{ edx_django_service_social_auth_edx_oauth2_key }}'
   SOCIAL_AUTH_EDX_OAUTH2_SECRET: '{{ edx_django_service_social_auth_edx_oauth2_secret }}'
@@ -215,7 +204,7 @@ edx_django_service_config_default:
   EXTRA_APPS: '{{ edx_django_service_extra_apps }}'
 
   EDX_DRF_EXTENSIONS:
-    OAUTH2_USER_INFO_URL: '{{ edx_django_service_oidc_url_root }}/user_info'
+    OAUTH2_USER_INFO_URL: '{{ edx_django_service_oauth2_url_root }}/user_info'
 
   SESSION_EXPIRE_AT_BROWSER_CLOSE: '{{ edx_django_service_session_expire_at_browser_close }}'
 
@@ -225,15 +214,7 @@ edx_django_service_config_default:
 edx_django_service_config_overrides: {}
 edx_django_service_config: '{{ edx_django_service_config_default|combine(edx_django_service_config_overrides) }}'
 
-edx_django_service_automated_users:
-  automated_user:
-    sudo_commands:
-      - command: '{{ edx_django_service_venv_dir }}/python {{ edx_django_service_code_dir }}/manage.py showmigrations'
-        sudo_user: '{{ edx_django_service_user }}'
-    authorized_keys:
-      - 'SSH authorized key'
-
-edx_django_service_sandbox_build: false
+edx_django_service_automated_users: {}
 
 # This array contains commands that should be run after migration.
 #
@@ -254,6 +235,25 @@ edx_django_service_sandbox_build: false
 #
 edx_django_service_post_migrate_commands: []
 
+# This is a comma seperated list of services which will trigger checking migrations if they are found in the
+# ec2 "services" tag. For most services this just needs to be the edx_django_service_name. In some cases it needs to be
+# overidden, such as in the case of having workers. For example for edxapp it need to be "lms,cms,workers" and for
+# enterprise_catalog it's "enterprise_catalog,enterprise_catalog_worker"
+edx_django_service_migration_check_services: "{{ edx_django_service_name }}"
+
 EDX_DJANGO_SERVICE_ENABLE_ADMIN_URLS_RESTRICTION: false
 
 EDX_DJANGO_SERVICE_ADMIN_URLS: []
+
+edx_django_service_enable_celery_workers: false
+edx_django_service_workers: []
+edx_django_service_celery_heartbeat_enabled: true
+edx_django_service_lang: 'en_US.UTF-8'
+edx_django_service_default_stopwaitsecs: 432000
+edx_django_service_workers_supervisor_conf: '{{ edx_django_service_name }}-workers.conf'
+
+edx_django_service_enable_experimental_docker_shim: false
+# Default to blank if edx_django_service_enable_experimental_docker_shim is false
+edx_django_service_docker_run_command_make_migrate: ""
+edx_django_service_docker_run_command_make_static: ""
+edx_django_service_docker_image_name: 'openedx/{{ edx_django_service_name }}'

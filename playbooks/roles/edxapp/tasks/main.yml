@@ -48,6 +48,15 @@
     - devstack
     - devstack:install
 
+- name: add paver autocomplete to bashrc
+  lineinfile:
+    dest: /root/.bashrc
+    line: "source {{ edxapp_code_dir }}/scripts/paver_autocomplete.sh"
+  when: devstack is defined and devstack
+  tags:
+  - devstack
+  - devstack:install
+
 - name: create edxapp log dir
   file:
     path: "{{ edxapp_log_dir }}"
@@ -106,6 +115,31 @@
     - install
     - install:base
 
+- name: Install the gpg key for nodejs LTS
+  apt_key:
+    url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install the nodejs LTS repos
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_{{ edxapp_node_version }}.x {{ ansible_distribution_release }} main"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+
+- name: Install node
+  apt:
+    name: nodejs
+    state: present
+  tags:
+    - install
+    - install:base
+
 - name: set up edxapp .npmrc
   template:
     src: .npmrc.j2
@@ -138,3 +172,15 @@
 - include: deploy.yml
   tags:
     - deploy
+
+- name: Include JWT signature setting in the app config file
+  include_role:
+    name: jwt_signature
+  when: CONFIGURE_JWTS and celery_worker is not defined
+  vars:
+     app_name: 'lms'
+     app_config_file: "{{ COMMON_CFG_DIR }}/lms.yml"
+     app_config_owner: "{{ edxapp_user }}"
+     app_config_group: root
+     app_config_mode: 0644
+     CAN_GENERATE_NEW_JWT_SIGNATURE: True
