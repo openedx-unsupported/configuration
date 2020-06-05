@@ -12,9 +12,11 @@ assume-role() {
     set +x
     ROLE_ARN="${1}"
     SESSIONID=$(date +"%s")
+    DURATIONSECONDS="${2:-3600}"
 
     RESULT=(`aws sts assume-role --role-arn $ROLE_ARN \
             --role-session-name $SESSIONID \
+	    --duration-seconds $DURATIONSECONDS \
             --query '[Credentials.AccessKeyId,Credentials.SecretAccessKey,Credentials.SessionToken]' \
             --output text`)
 
