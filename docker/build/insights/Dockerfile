@@ -13,7 +13,6 @@ LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/insights/ansible_overrides.yml /
-COPY docker/build/insights/insights.yml /edx/etc/insights.yml
 
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
 
@@ -24,6 +23,7 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook insights.yml \
     -t "install:base,install:system-requirements,install:configuration,install:app-requirements,install:code" \
     --extra-vars="INSIGHTS_VERSION=${OPENEDX_RELEASE}" \
     --extra-vars="@/ansible_overrides.yml"
+COPY docker/build/insights/insights.yml /edx/etc/insights.yml
 ADD docker/build/insights/devstack.sh /edx/app/insights/devstack.sh
 RUN chown insights:insights /edx/app/insights/devstack.sh && chmod a+x /edx/app/insights/devstack.sh
 ENTRYPOINT ["/edx/app/insights/devstack.sh"]
