@@ -22,6 +22,17 @@
   with_items: "{{ jenkins_worker_python_versions }}"
   become_user: "{{ jenkins_user }}"
 
+# Create the virtualenvs and install the correct pip version in each one.
+- name: Create virtualenvs and install desired pip version
+  pip:
+    chdir: "{{ jenkins_home }}/shallow-clone"
+    name: "{{ common_pip_pkgs }}"
+    virtualenv: "{{ jenkins_home }}/edx-venv-{{ item }}/edx-venv"
+    virtualenv_command: virtualenv
+    virtualenv_python: "python{{ item }}"
+  with_items: "{{ edx_platform_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
 # Combine testing and django requirements files for single virtualenv invocation
 - name: Combine requirements files
   shell: "cat {{ jenkins_home }}/shallow-clone/requirements/edx/testing.txt {{ jenkins_home }}/shallow-clone/requirements/edx/django.txt > {{ jenkins_home }}/shallow-clone/requirements/edx/jenkins.txt"
@@ -34,8 +45,6 @@
     requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/jenkins.txt"
     extra_args: "--exists-action=w"
     virtualenv: "{{ jenkins_home }}/edx-venv-{{ item }}/edx-venv"
-    virtualenv_command: virtualenv
-    virtualenv_python: "python{{ item }}"
   with_items: "{{ edx_platform_python_versions }}"
   become_user: "{{ jenkins_user }}"
 
