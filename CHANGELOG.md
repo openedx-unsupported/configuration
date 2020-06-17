@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+- Role: edxapp BREAKING_CHANGE
+  - The sandbox environment that runs instructor written python code used to run python 2.7. We update the default to
+    python 3.5 but provide a new variable to be able to go back to the old setting.  If `edxapp_sandbox_python_version`
+    is set to `python2.7` you will get the behavior from before this change.  If you are running a deployment where
+    there is instructor written python graded assignments and you will need to updated that code before taking this
+    change.  Or you will need to hold back the `edxapp_sandbox_python_version` until all instructor python code has been
+    updated.
+
 - Role: all
   - Split the COMMON_SANDBOX_BUILD variable with its two components: SANDBOX_CONFIG and CONFIGURE_JWTS.
 
