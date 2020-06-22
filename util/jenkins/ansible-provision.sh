@@ -181,7 +181,7 @@ if [[ -z $registrar ]]; then
 fi
 
 if [[ -z $registrar_version ]]; then
-  registrar_version="master"
+  REGISTRAR_VERSION="master"
 fi
 
 if [[ -z $learner_portal ]]; then
@@ -189,7 +189,7 @@ if [[ -z $learner_portal ]]; then
 fi
 
 if [[ -z $learner_portal_version ]]; then
-  learner_portal_version="master"
+  LEARNER_PORTAL_VERSION="master"
 fi
 
 if [[ $registrar == 'true' ]]; then
@@ -206,17 +206,17 @@ ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 cd playbooks
 
 cat << EOF > $extra_vars_file
-edx_platform_version: $edxapp_version
-forum_version: $forum_version
+EDX_PLATFORM_VERSION: $edxapp_version
+FORUM_VERSION: $forum_version
 notifier_version: $notifier_version
 XQUEUE_VERSION: $xqueue_version
-certs_version: $certs_version
-configuration_version: $configuration_version
-demo_version: $demo_version
+CERTS_VERSION: $certs_version
+CONFIGURATION_VERSION: $configuration_version
+DEMO_VERSION: $demo_version
 THEMES_VERSION: $themes_version
-registrar_version: $registrar_version
-learner_portal_version: $learner_portal_version
-program_manager_version: $program_manager_version
+REGISTRAR_VERSION: $registrar_version
+LEARNER_PORTAL_VERSION: $learner_portal_version
+PROGRAM_MANAGER_VERSION: $program_manager_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}

@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-07-10
+     - Role: all
+       - Convert ansible lowercase variables to upercase.
+
  - 2020-06-30
     - Role: edxapp
       - Added COURSE_CATALOG_URL_ROOT that contains root url of course catalog service (discovery service).

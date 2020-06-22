@@ -111,12 +111,12 @@ sudo -H pip install --upgrade virtualenv==16.7.10
 ## individually, or with $OPENEDX_RELEASE.
 ##
 VERSION_VARS=(
-    edx_platform_version
-    certs_version
-    forum_version
+    EDX_PLATFORM_VERSION
+    CERTS_VERSION
+    FORUM_VERSION
     XQUEUE_VERSION
-    configuration_version
-    demo_version
+    CONFIGURATION_VERSION
+    DEMO_VERSION
     NOTIFIER_VERSION
     INSIGHTS_VERSION
     ANALYTICS_API_VERSION
