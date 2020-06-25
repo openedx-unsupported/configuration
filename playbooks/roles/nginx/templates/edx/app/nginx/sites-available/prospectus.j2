@@ -28,6 +28,16 @@ server {
   location /static/ {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
   }
+  
+  location /preview/dynamic-bio/ {
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %}
+    port_in_redirect off;
+
+    try_files $uri $uri/ /preview/dynamic-bio/index.html;
+  }
 
   location /preview/ {
     {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
@@ -68,11 +78,10 @@ server {
     }
 
    {% if prospectus_redirect_file is defined %}
-      	include	fastcgi_params;
-	fastcgi_param SERVER_PORT 80;
+        include fastcgi_params;
+        fastcgi_param SERVER_PORT 80;
         include {{ prospectus_redirect_file }};
-	port_in_redirect off;
-	
+        port_in_redirect off;        
    {% endif %}
 
     try_files $uri @index;
