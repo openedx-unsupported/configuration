@@ -1,0 +1,36 @@
+# Configure a Jenkins worker instance
+# This has all the requirements to run test jobs,
+# but not the Jenkins Java app.
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    mongo_enable_journal: False
+    serial_count: 1
+    platform_worker: True
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+    MONGO_AUTH: false
+    SQLITE_AUTOCONF_URL: "https://www.sqlite.org/2019/sqlite-autoconf-3280000.tar.gz"
+    SQLITE_AUTOCONF_CREATED_PATH: "sqlite-autoconf-3280000"
+    SQLITE_FIX_PYTHON_PATH: "/home/jenkins/edx-venv/bin/python"
+  serial: "{{ serial_count }}"
+  vars_files:
+    - roles/edxapp/defaults/main.yml
+    - roles/xqueue/defaults/main.yml
+    - roles/xserver/defaults/main.yml
+    - roles/forum/defaults/main.yml
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - docker-tools
+    - mysql
+    - edxlocal
+    - memcache
+    - mongo_3_2
+    - browsers
+    - jenkins_worker
+    - sqlite_fix
+    - newrelic_infrastructure
