@@ -329,7 +329,7 @@ def _get_role_name(role):
     - role: rbenv
       rbenv_user: "{{ forum_user }}"
       rbenv_dir: "{{ forum_app_dir }}"
-      rbenv_ruby_version: "{{ FORUM_RUBY_VERSION }}"
+      rbenv_ruby_version: "{{ forum_ruby_version }}"
 
     :param role:
     :return:
