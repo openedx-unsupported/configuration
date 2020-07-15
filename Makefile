@@ -17,13 +17,13 @@ main.help:
 	@echo ''
 
 requirements:
-	pip install -qr pre-requirements.txt --exists-action w
-	pip install -qr requirements.txt --exists-action w
+	pip3 install -qr pre-requirements.txt --exists-action w
+	pip3 install -qr requirements.txt --exists-action w
 
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
 upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints
-	pip install -qr pre-requirements.txt --exists-action w
-	pip install -qr requirements/pip-tools.txt
+	pip3 install -qr pre-requirements.txt --exists-action w
+	pip3 install -qr requirements/pip-tools.txt
 	# Make sure to compile files after any other files they include!
 	pip-compile --upgrade -o requirements/pip-tools.txt requirements/pip-tools.in
 	pip-compile --upgrade -o requirements.txt requirements/base.in
