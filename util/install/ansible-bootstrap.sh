@@ -45,6 +45,7 @@ PIP_VERSION="9.0.3"
 SETUPTOOLS_VERSION="39.0.1"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
+PYTHON_VERSION="3.5"
 ANSIBLE_DIR="/tmp/ansible"
 CONFIGURATION_DIR="/tmp/configuration"
 EDX_PPA_KEY_SERVER="keyserver.ubuntu.com"
@@ -107,6 +108,12 @@ add-apt-repository -y ppa:git-core/ppa
 apt-key adv --keyserver "${EDX_PPA_KEY_SERVER}" --recv-keys "${EDX_PPA_KEY_ID}"
 add-apt-repository -y "${EDX_PPA}"
 
+# Add deadsnakes repository for python3.5 usage in
+# Ubuntu versions different than xenial.
+if [[ "${SHORT_DIST}" != xenial ]] ;then
+  add-apt-repository -y ppa:deadsnakes/ppa
+fi
+
 # Install python 2.7 latest, git and other common requirements
 # NOTE: This will install the latest version of python 2.7 and
 # which may differ from what is pinned in virtualenvironments
@@ -115,17 +122,19 @@ apt-get update -y
 apt-get install -y python2.7 python2.7-dev python-pip python-apt python-yaml python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 
 
-pip install --upgrade pip=="${PIP_VERSION}"
+apt-get install -y python${PYTHON_VERSION}-dev python3-pip python3-apt
+
+python${PYTHON_VERSION} -m pip install --upgrade pip=="${PIP_VERSION}"
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
-pip install setuptools=="${SETUPTOOLS_VERSION}"
-pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
+python${PYTHON_VERSION} -m pip install setuptools=="${SETUPTOOLS_VERSION}"
+python${PYTHON_VERSION} -m pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
 
 
 if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     # create a new virtual env
-    /usr/local/bin/virtualenv "${VIRTUAL_ENV}"
+    /usr/local/bin/virtualenv --python=python${PYTHON_VERSION} "${VIRTUAL_ENV}"
 
     PATH="${PYTHON_BIN}":${PATH}
 
