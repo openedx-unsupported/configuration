@@ -151,7 +151,7 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     make requirements
 
     cd "${CONFIGURATION_DIR}"/playbooks
-    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "configuration_version=${CONFIGURATION_VERSION}"
+    "${PYTHON_BIN}"/ansible-playbook edx_ansible.yml -i '127.0.0.1,' -c local -e "CONFIGURATION_VERSION=${CONFIGURATION_VERSION}"
 
     # cleanup
     rm -rf "${ANSIBLE_DIR}"
