@@ -18,7 +18,7 @@
   template:
     src: edx/app/{{ role_name }}/{{ role_name }}_gunicorn.py.j2
     dest: "{{ '{{' }} {{ role_name }}_home }}/{{ role_name }}_gunicorn.py"
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  become_user: "{{ '{{' }} {{ role_name }}_user }}"
   tags:
     - install
     - install:configuration
@@ -27,7 +27,7 @@
   command: "virtualenv {{ '{{' }} {{ role_name }}_venv_dir }}"
   args:
     creates: "{{ '{{' }} {{ role_name }}_venv_dir }}/bin/pip"
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  become_user: "{{ '{{' }} {{ role_name }}_user }}"
   environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - install
@@ -37,7 +37,7 @@
   command: make requirements
   args:
     chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  become_user: "{{ '{{' }} {{ role_name }}_user }}"
   environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - install
@@ -47,7 +47,7 @@
   command: make local-requirements
   args:
     chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  become_user: "{{ '{{' }} {{ role_name }}_user }}"
   environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - devstack
@@ -57,7 +57,7 @@
   command: make migrate
   args:
     chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  become_user: "{{ '{{' }} {{ role_name }}_user }}"
   environment: "{{ '{{' }} {{ role_name }}_migration_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
   run_once: yes
@@ -155,7 +155,7 @@
   command: make static
   args:
     chdir: "{{ '{{' }} {{ role_name }}_code_dir }}"
-  sudo_user: "{{ '{{' }} {{ role_name }}_user }}"
+  become_user: "{{ '{{' }} {{ role_name }}_user }}"
   environment: "{{ '{{' }} {{ role_name }}_environment }}"
   tags:
     - assets
@@ -168,7 +168,7 @@
     config: "{{ '{{' }} supervisor_cfg }}"
     name: "{{ '{{' }} {{ role_name }}_service_name }}"
   when: not disable_edx_services
-  sudo_user: "{{ '{{' }} supervisor_service_user }}"
+  become_user: "{{ '{{' }} supervisor_service_user }}"
   tags:
     - manage
     - manage:start
