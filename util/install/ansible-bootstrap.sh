@@ -92,6 +92,7 @@ fi
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
 # Upgrade the OS
+sudo rm -r /var/lib/apt/lists/* -vf
 apt-get update -y
 
 # To apt-key update in bionic, gnupg is needed.
@@ -122,7 +123,6 @@ if [[ "${SHORT_DIST}" != bionic ]] ;then
   add-apt-repository -y "${EDX_PPA}"
 fi
 
-
 # Install python 2.7 latest, git and other common requirements
 # NOTE: This will install the latest version of python 2.7 and
 # which may differ from what is pinned in virtualenvironments
@@ -130,14 +130,12 @@ apt-get update -y
 
 apt-get install -y python2.7 python2.7-dev python-pip python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 
-
 pip install --upgrade pip=="${PIP_VERSION}"
 
 # pip moves to /usr/local/bin when upgraded
 PATH=/usr/local/bin:${PATH}
 pip install setuptools=="${SETUPTOOLS_VERSION}"
 pip install virtualenv=="${VIRTUAL_ENV_VERSION}"
-
 
 if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     # create a new virtual env
