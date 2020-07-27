@@ -122,8 +122,8 @@ ansible-playbook \
   -i localhost, \
   -c local run_role.yml \
   -e role=user_retirement_pipeline \
-  -e configuration_version=master \
-  -e edx_platform_version=master \
+  -e CONFIGURATION_VERSION=master \
+  -e EDX_PLATFORM_VERSION=master \
   -e edxapp_user=root \
   -e COMMON_RETIREMENT_SERVICE_SETUP=true \
   -e RETIREMENT_SERVICE_COOL_OFF_DAYS=0 \

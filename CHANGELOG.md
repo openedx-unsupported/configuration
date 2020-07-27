@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-07-27
+     - Role: all
+       - Convert ansible lowercase variables to upercase.
+
  - 2020-07-24
     - Role: newrelic_mongo_monitor
       - Added the new newrelic_mongo_monitor role and playbook for configuring newrelic infrastructure agent mongodb
