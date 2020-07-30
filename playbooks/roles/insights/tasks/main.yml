@@ -32,13 +32,31 @@
     - install
     - install:configuration
 
+- name: add deadsnakes repo
+  apt_repository:
+      repo: ppa:deadsnakes/ppa
+  when: INSIGHTS_PYTHON_VERSION == "3.8" and ansible_distribution_release != 'focal'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install python3.8
+  apt:
+    pkg:
+      - python3.8-dev
+      - python3.8-distutils
+  when: INSIGHTS_PYTHON_VERSION == "3.8" ansible_distribution_release != 'focal'
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install application requirements
   pip:
     requirements: "{{ insights_requirements_base }}/{{ item }}"
     virtualenv: "{{ insights_venv_dir }}"
     state: present
     extra_args: "--exists-action w"
-    virtualenv_python: python3.5
+    virtualenv_python: "python{{ INSIGHTS_PYTHON_VERSION }}"
   become_user: "{{ insights_user }}"
   with_items: "{{ insights_requirements }}"
   tags:
