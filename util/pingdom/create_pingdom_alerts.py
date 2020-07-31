@@ -38,13 +38,12 @@ def main(noop, pingdom_email, pingdom_password,
                                                           config_file_content)
 
     config_file_content = integration_names_to_ids(config_file_content)
-    checks_by_hostname = build_checks_by_hostname(pingdom_email,
+    check_for_update, checks_by_hostname = build_checks_by_hostname(pingdom_email,
                                                   pingdom_password,
                                                   pingdom_api_key)
-    hostnames = list(checks_by_hostname.keys())
 
     for alert_config in config_file_content['checks']:
-        if alert_config['host'] not in hostnames:
+        if (alert_config['name'], alert_config['host']) not in checks_by_hostname.items():
             # Create new check
             if noop:
                 print(("Would CREATE: {0}, but you set the noop flag.".format(
@@ -56,7 +55,7 @@ def main(noop, pingdom_email, pingdom_password,
 
         else:
             # Updating existing check
-            existing_check = checks_by_hostname[alert_config['host']]
+            existing_check = check_for_update[alert_config['host']]
             if noop:
                 print(("""
                 Has changes, would UPDATE: {0},
@@ -198,9 +197,11 @@ def list_users(pingdom_email, pingdom_password, pingdom_api_key):
 def build_checks_by_hostname(pingdom_email, pingdom_password, pingdom_api_key):
     checks = list_checks(pingdom_email, pingdom_password, pingdom_api_key)
     checks_by_hostname = {}
+    check_for_update = {}
     for check in checks:
-        checks_by_hostname[str(check['hostname'])] = check
-    return checks_by_hostname
+        check_for_update[str(check['hostname'])] = check
+        checks_by_hostname[str(check['name'])] = str(check['hostname'])
+    return check_for_update, checks_by_hostname
 
 
 def build_userid_by_name(pingdom_email, pingdom_password, pingdom_api_key):
