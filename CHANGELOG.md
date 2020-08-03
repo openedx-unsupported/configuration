@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-08-01
+     - Role: edxapp
+       - Added `EDXAPP_SITE_CONFIGURATION` to allow creating/updating the `SiteConfiguration` values during provisioning.
+
  - 2020-07-27
      - Role: all
        - Convert ansible lowercase variables to upercase.
