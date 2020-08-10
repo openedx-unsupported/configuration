@@ -41,7 +41,6 @@ def main(noop, pingdom_email, pingdom_password,
     check_for_update, checks_by_hostname = build_checks_by_hostname(pingdom_email,
                                                   pingdom_password,
                                                   pingdom_api_key)
-
     for alert_config in config_file_content['checks']:
         if (alert_config['name'], alert_config['host']) not in checks_by_hostname.items():
             # Create new check
@@ -55,7 +54,7 @@ def main(noop, pingdom_email, pingdom_password,
 
         else:
             # Updating existing check
-            existing_check = check_for_update[alert_config['host']]
+            existing_check = check_for_update[alert_config['name']]
             if noop:
                 print(("""
                 Has changes, would UPDATE: {0},
@@ -199,7 +198,7 @@ def build_checks_by_hostname(pingdom_email, pingdom_password, pingdom_api_key):
     checks_by_hostname = {}
     check_for_update = {}
     for check in checks:
-        check_for_update[str(check['hostname'])] = check
+        check_for_update[str(check['name'])] = check
         checks_by_hostname[str(check['name'])] = str(check['hostname'])
     return check_for_update, checks_by_hostname
 
