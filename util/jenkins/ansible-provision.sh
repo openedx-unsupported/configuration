@@ -90,6 +90,7 @@ sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/develop
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 program_manager="false"
+prospectus="false"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -196,6 +197,9 @@ if [[ $registrar == 'true' ]]; then
   program_manager="true"
 fi
 
+if [[ $prospectus == 'true' ]]; then
+  prospectus="true"
+fi
 
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
@@ -217,6 +221,7 @@ THEMES_VERSION: $themes_version
 REGISTRAR_VERSION: $registrar_version
 LEARNER_PORTAL_VERSION: $learner_portal_version
 PROGRAM_MANAGER_VERSION: $program_manager_version
+PROSPECTUS_VERSION: $prospectus_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -257,6 +262,12 @@ PROGRAM_MANAGER_SSL_NGINX_PORT: 443
 PROGRAM_MANAGER_VERSION: $program_manager_version
 PROGRAM_MANAGER_ENABLED: $program_manager
 PROGRAM_MANAGER_SANDBOX_BUILD: True
+
+PROSPECTUS_NGINX_PORT: 80
+PROSPECTUS_SSL_NGINX_PORT: 443
+PROSPECTUS_VERSION: $prospectus_version
+PROSPECTUS_ENABLED: $prospectus
+PROSPECTUS_SANDBOX_BUILD: True
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -372,6 +383,8 @@ PROGRAM_MANAGER_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
 PROGRAM_MANAGER_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 
+PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
+
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
@@ -457,7 +470,7 @@ EOF
 fi
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
+plays="edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal prospectus"
 
 for play in $plays; do
     deploy[$play]=${!play}
