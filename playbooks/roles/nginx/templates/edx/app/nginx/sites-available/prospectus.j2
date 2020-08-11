@@ -6,6 +6,22 @@
 
 server {
   # Prospectus configuration file for nginx, templated by ansible
+  
+  server_name ~^((stage|prod)-)?prospectus.*;
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ prospectus_ssl_nginx_port }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
+  {% endif %}
+
 
   {% if NGINX_PROSPECTUS_PROXY_INTERCEPT_ERRORS %}
   proxy_intercept_errors on;
