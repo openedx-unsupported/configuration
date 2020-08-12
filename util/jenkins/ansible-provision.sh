@@ -90,7 +90,6 @@ sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/develop
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 program_manager="false"
-prospectus="false"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -193,12 +192,16 @@ if [[ -z $learner_portal_version ]]; then
   LEARNER_PORTAL_VERSION="master"
 fi
 
-if [[ $registrar == 'true' ]]; then
-  program_manager="true"
+if [[ -z $prospectus ]]; then
+  prospectus="false"
 fi
 
-if [[ $prospectus == 'true' ]]; then
-  prospectus="true"
+if [[ -z $prospectus_version ]]; then
+  PROSPECTUS_VERSION="master"
+fi
+
+if [[ $registrar == 'true' ]]; then
+  program_manager="true"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
