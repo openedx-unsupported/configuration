@@ -6,8 +6,7 @@
 
 server {
   # Prospectus configuration file for nginx, templated by ansible
-  
-  server_name ~^((stage|prod)-)?prospectus.*;
+  listen {{ PROSPECTUS_NGINX_PORT }} {{ default_site }};
 
   {% if NGINX_ENABLE_SSL %}
 
@@ -22,12 +21,11 @@ server {
   add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
   {% endif %}
 
+  server_name ~^((stage|prod)-)?prospectus.*;
 
   {% if NGINX_PROSPECTUS_PROXY_INTERCEPT_ERRORS %}
   proxy_intercept_errors on;
   {% endif %}
-
-  listen {{ PROSPECTUS_NGINX_PORT }} {{ default_site }};
 
   root {{ PROSPECTUS_DATA_DIR }};
 
