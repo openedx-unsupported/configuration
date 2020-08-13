@@ -7,6 +7,8 @@ gocd_password="{{ GO_SERVER_BACKUP_PASSWORD }}"
 gocd_backup_location="{{ GO_SERVER_BACKUP_TMP_LOCATION }}"
 s3_backup_bucket="{{ GO_SERVER_BACKUP_S3_BUCKET }}"
 snitch_url="{{ GO_SERVER_BACKUP_SNITCH_URL }}"
+opsgenie_heartbeat_url="{{ GO_SERVER_BACKUP_OPSGENIE_HEARTBEAT_URL }}"
+opsgenie_heartbeat_key="{{ GO_SERVER_BACKUP_OPSGENIE_HEARTBEAT_KEY }}"
 gocd_backup_base="gocd-{{ GO_SERVER_BACKUP_ENVIRONMENT }}"
 
 # Trigger the backup and capture the backup path.
@@ -83,6 +85,9 @@ case $aws_output in
   echo "Backup transfer of $(basename "${gocd_backup_location}") to S3 bucket $s3_backup_bucket succeeded."
   # Report to Dead Man's Snitch.
   curl $snitch_url
+
+  # Report to OpsGenie Heartbeat
+  curl -X GET '${opsgenie_heartbeat_url}' -H 'Authorizathon: GenieKey ${opsgenie_heartbeat_key}'
   ;;
 esac
 
