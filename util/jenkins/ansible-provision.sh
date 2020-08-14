@@ -387,6 +387,7 @@ PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
 PROGRAM_MANAGER_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 
 PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
+PROSPECTUS_USE_COURSE_URL_SLUGS: true
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
@@ -473,7 +474,7 @@ EOF
 fi
 
 declare -A deploy
-plays="edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal prospectus"
+plays="prospectus edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_manager learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
