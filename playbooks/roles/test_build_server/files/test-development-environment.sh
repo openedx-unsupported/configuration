@@ -48,8 +48,8 @@ case "$1" in
     "bokchoy")
 
         # Run some of the bok-choy tests
-        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabSingleThreadTest
-        paver test_bokchoy -t studio/test_studio_outline.py::WarningMessagesTest::test_unreleased_published_locked --fasttest
+        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabMultipleThreadTest
+        paver test_bokchoy -t studio/test_studio_settings.py::StudioSettingsA11yTest
         ;;
 
     "quality")
