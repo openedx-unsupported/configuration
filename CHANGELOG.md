@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-09-23
+     - Role: certs
+       - Changed Python version used for creating virtualenv from the system's default (2.7) to 3.5.
+
  - 2020-09-18
      - Role: nginx
        - Add location to support accessing files from ```EDXAPP_MEDIA_URL``` under the cms site.
