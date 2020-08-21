@@ -150,11 +150,12 @@ def get_rds_from_all_regions():
         rds_client = RDSBotoWrapper(region_name=region["RegionName"])
         response = rds_client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            temp_dict = dict()
-            temp_dict["name"] = instance["DBInstanceIdentifier"]
-            temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-            temp_dict["Port"] = instance.get("Port")
-            rds_list.append(temp_dict)
+            if "test" not in instance["DBInstanceIdentifier"]:
+                temp_dict = dict()
+                temp_dict["name"] = instance["DBInstanceIdentifier"]
+                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                temp_dict["Port"] = instance.get("Port")
+                rds_list.append(temp_dict)
     return rds_list
 
 

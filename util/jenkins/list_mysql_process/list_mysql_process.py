@@ -51,7 +51,7 @@ def rds_extractor(environment):
         client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            if environment in instance.get("Endpoint").get("Address"):
+            if environment in instance.get("Endpoint").get("Address") and "test" not in instance["DBInstanceIdentifier"]:
                 temp_dict = {}
                 temp_dict["name"] = instance["DBInstanceIdentifier"]
                 temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
