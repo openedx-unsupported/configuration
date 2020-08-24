@@ -91,3 +91,21 @@
   command: /usr/sbin/{{ edxapp_aa_command }} /etc/apparmor.d/code.sandbox
   tags:
     - edxapp-sandbox
+
+- name: code sandbox | test enforcement 1
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/python -c \"import os; os.listdir('/')\""
+  register: sandbox_test1
+  failed_when: "'PermissionError:' not in sandbox_test1.stderr"
+  when: EDXAPP_SANDBOX_ENFORCE
+
+- name: code sandbox | test enforcement 2
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/python -c \"import subprocess; subprocess.check_output('ls', shell=True)\""
+  register: sandbox_test2
+  failed_when: "'PermissionError:' not in sandbox_test2.stderr"
+  when: EDXAPP_SANDBOX_ENFORCE
+
+- name: code sandbox | test enforcement 3
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/python -c \"print(7*11*13*17)\""
+  register: sandbox_test3
+  failed_when: "'17017' not in sandbox_test3.stdout"
+  when: EDXAPP_SANDBOX_ENFORCE
