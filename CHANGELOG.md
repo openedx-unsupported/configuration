@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-08-26
+     - Role: whitelabel
+       - Removes the whitelabel role and all associated configuration for whitelabel sites.
+
  - 2020-08-17
      - Role: nginx
        - Added `NGINX_ALLOW_PRIVATE_IP_ACCESS` boolean, which allows to disable handling the IP disclosure within private subnetworks.
