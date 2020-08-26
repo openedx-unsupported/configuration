@@ -7,7 +7,7 @@ RUNNER_TOKEN=$(curl -sX POST -H "Authorization: token ${GITHUB_ACCESS_TOKEN}" ht
 
 cd /home/actions-runner/actions-runner
 
-./config.sh --url https://github.com/${GITHUB_ORGANIZATION} --token ${RUNNER_TOKEN} --unattended
+./config.sh --url https://github.com/${GITHUB_ORGANIZATION} --token ${RUNNER_TOKEN} --unattended --replace
 
 cleanup() {
     echo "Removing runner..."
