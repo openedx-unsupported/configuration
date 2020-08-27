@@ -34,6 +34,30 @@ script:
   - make --version
   - travis_wait 90 make --keep-going $MAKE_TARGET SHARD=$SHARD SHARDS=$SHARDS
 
-matrix:
+deploy:
+  - provider: script
+    script: bash travis/docker_devstack_push.sh
+    on:
+      branch: jdmulloy/travis_docker_build
+
+jobs:
   allow_failures:
     - python: 3.8
+  include:
+    - stage: deploy
+      name: Push edxapp docker image
+      install: skip
+      script: skip
+      deploy: []
+      env:
+        - APP_NAME=edxapp
+    - name: Push ecommerce docker image
+      install: skip
+      script: skip
+      deploy: []
+      env:
+        - APP_NAME=ecommerce
+
+stages:
+  - name: test
+  - name: docker_push
