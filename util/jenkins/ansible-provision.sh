@@ -172,10 +172,6 @@ if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
 fi
 
-if [[ -z $set_whitelabel ]]; then
-  set_whitelabel="true"
-fi
-
 if [[ -z $registrar ]]; then
   registrar="false"
 fi
@@ -529,11 +525,6 @@ organization_key: $registrar_org_key
 registrar_role: "organization_read_write_enrollments"
 EOF
   run_ansible masters_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
-
-if [[ $set_whitelabel == "true" ]]; then
-    # Setup Whitelabel themes
-    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $enable_newrelic == "true" ]]; then
