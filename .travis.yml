@@ -26,8 +26,12 @@ install:
   - "pip install -r requirements.txt"
 
 env:
-  - MAKE_TARGET=test.syntax SHARD=0 SHARDS=1
-  - MAKE_TARGET=test.playbooks SHARD=0 SHARDS=1
+  global:
+    - OPENEDX_RELEASE=open-release/juniper.master
+    - TAG_NAME=juniper.master
+  jobs:
+    - MAKE_TARGET=test.syntax SHARD=0 SHARDS=1
+    - MAKE_TARGET=test.playbooks SHARD=0 SHARDS=1
 
 script:
   - docker --version
@@ -36,7 +40,6 @@ script:
 
 deploy:
   - provider: script
-    script: bash travis/docker_devstack_push.sh
     on:
       branch: jdmulloy/travis_docker_build
 
@@ -44,20 +47,19 @@ jobs:
   allow_failures:
     - python: 3.8
   include:
-    - stage: deploy
-      name: Push edxapp docker image
+    - stage: devstack_docker_push
+      name: Edxapp devstack docker image
       install: skip
-      script: skip
-      deploy: []
+      script: bash travis/docker_devstack_push.sh
       env:
         - APP_NAME=edxapp
-    - name: Push ecommerce docker image
+    - name: Ecommerce devstack docker image
       install: skip
-      script: skip
-      deploy: []
+      script: bash travis/docker_devstack_push.sh
       env:
         - APP_NAME=ecommerce
 
 stages:
   - name: test
-  - name: docker_push
+  - name: devstack_docker_push
+#    if: (NOT type IN (pull_request)) AND (branch = master)
