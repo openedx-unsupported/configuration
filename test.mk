@@ -15,7 +15,7 @@ test.help:
 
 test: test.syntax test.playbooks
 
-test.syntax: test.syntax.yml test.syntax.json
+test.syntax:
 
 test.syntax.yml: $(patsubst %,test.syntax.yml/%,$(yml_files))
 
@@ -28,7 +28,6 @@ test.syntax.json/%:
 	jsonlint -v $*
 
 test.playbooks:
-	tests/test_playbooks.sh
 
 clean: test.clean
 
