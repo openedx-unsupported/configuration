@@ -140,11 +140,11 @@ apt-get update -y
 if [[ "${SHORT_DIST}" != focal ]];then
   apt-get install -y python2.7 python2.7-dev python-pip python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 else
+  apt-get install -y python2.7 python2.7-dev  python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
+  update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
   curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
   python2 get-pip.py
   rm get-pip.py
-  apt-get install -y python2.7 python2.7-dev  python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
-  update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 fi
 
 apt-get install -y python${PYTHON_VERSION}-dev python3-pip python3-apt
