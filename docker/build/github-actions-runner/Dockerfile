@@ -1,13 +1,13 @@
 FROM ubuntu:bionic
 
 # Set the github runner version
-ARG RUNNER_VERSION="2.272.0"
+ARG RUNNER_VERSION="2.273.0"
 
 ENV GITHUB_ORGANIZATION=""
 ENV GITHUB_ACCESS_TOKEN=""
 
 # Update and install necessary packages
-RUN apt-get update && apt-get install -y curl jq software-properties-common build-essential libssl-dev libffi-dev python3 python3-venv python3-dev
+RUN apt-get update && apt-get install -y curl iputils-ping jq software-properties-common build-essential libssl-dev libffi-dev python3 python3-venv python3-dev
 
 # Add a github action runner user
 RUN useradd -m actions-runner
