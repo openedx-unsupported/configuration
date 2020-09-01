@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-09-10
+     - Playbook: program_console
+       - Added playbook to setup program-console micro-frontend application on sandboxes
+       - This is created to replace the program_manager application. The app was renamed
+
+     - Role: program_console
+       - Created the program-console role for micro-frontend application to be setup
+       - This is created to replace the program_manager role. The app was renamed
+
  - 2020-08-26
      - Role: whitelabel
        - Removes the whitelabel role and all associated configuration for whitelabel sites.
