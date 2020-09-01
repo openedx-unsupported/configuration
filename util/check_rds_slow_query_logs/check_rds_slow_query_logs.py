@@ -79,7 +79,7 @@ def cli(db_engine, whitelist):
        
         if db_engine == "mysql":
             db_identifier = dbhost['DBInstanceIdentifier']
-            if db_identifier in ignore_rds:
+            if db_identifier in ignore_rds or "test" in db_identifier:
                 continue
 
             db_parameter_group = dbhost['DBParameterGroups'][0]['DBParameterGroupName']

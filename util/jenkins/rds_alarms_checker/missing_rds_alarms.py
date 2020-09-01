@@ -59,11 +59,12 @@ def rds_extractor():
         client = RDSBotoWrapper(region_name=region["RegionName"])
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
-            temp_dict = {}
-            temp_dict["name"] = instance["DBInstanceIdentifier"]
-            temp_dict["ARN"] = instance["DBInstanceArn"]
-            temp_dict["Region"] = region["RegionName"]
-            rds_list.append(temp_dict)
+            if "test" not in instance["DBInstanceIdentifier"]:
+                temp_dict = {}
+                temp_dict["name"] = instance["DBInstanceIdentifier"]
+                temp_dict["ARN"] = instance["DBInstanceArn"]
+                temp_dict["Region"] = region["RegionName"]
+                rds_list.append(temp_dict)
     return rds_list
 
 

@@ -52,7 +52,7 @@ def rds_extractor():
         response = client.describe_db_instances()
         for instance in response.get('DBInstances'):
             # This condition use to skip irrelevant RDS
-            if "prod" in instance.get("Endpoint").get("Address") or "stage" in instance.get("Endpoint").get("Address"):
+            if ("prod" in instance.get("Endpoint").get("Address") or "stage" in instance.get("Endpoint").get("Address")) and "test" not in instance["DBInstanceIdentifier"]:
                 temp_dict = {}
                 temp_dict["name"] = instance["DBInstanceIdentifier"]
                 temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")

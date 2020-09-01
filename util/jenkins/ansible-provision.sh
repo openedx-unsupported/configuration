@@ -131,6 +131,8 @@ if [[ -z $ami ]]; then
     ami="ami-0c9c19b09d5dbaf26"
   elif [[ $server_type == "ubuntu_18.04" ]]; then
     ami="ami-07ebfd5b3428b6f4d"
+  elif [[ $server_type == "ubuntu_20.04" ]]; then
+    ami="ami-05cf2c352da0bfb2e"
   elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
     ami="ami-092546daafcc8bc0d"
   fi
@@ -170,10 +172,6 @@ fi
 
 if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
-fi
-
-if [[ -z $set_whitelabel ]]; then
-  set_whitelabel="true"
 fi
 
 if [[ -z $registrar ]]; then
@@ -529,11 +527,6 @@ organization_key: $registrar_org_key
 registrar_role: "organization_read_write_enrollments"
 EOF
   run_ansible masters_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
-
-if [[ $set_whitelabel == "true" ]]; then
-    # Setup Whitelabel themes
-    run_ansible whitelabel.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $enable_newrelic == "true" ]]; then

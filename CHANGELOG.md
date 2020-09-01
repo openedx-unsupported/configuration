@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-08-26
+     - Role: whitelabel
+       - Removes the whitelabel role and all associated configuration for whitelabel sites.
+
+ - 2020-08-17
+     - Role: nginx
+       - Added `NGINX_ALLOW_PRIVATE_IP_ACCESS` boolean, which allows to disable handling the IP disclosure within private subnetworks.
+         This is needed by ELB to run health checks while using encrypted connection between ELB and AppServer (`NGINX_ENABLE_SSL`).
+         Without this enabled, ELB will get `403` response when trying to reach the AppServer via its IP address (it is still impossible to specify the `Host` header for the health check).
+
  - 2020-08-01
      - Role: edxapp
        - Added `EDXAPP_SITE_CONFIGURATION` to allow creating/updating the `SiteConfiguration` values during provisioning.
