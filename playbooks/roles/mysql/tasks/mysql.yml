@@ -46,6 +46,42 @@
     owner: root
     group: root
     mode: 0644
+  when: ansible_distribution_release != 'focal'
+
+- name: add the mysql signing key
+  apt_key:
+    keyserver: "{{ MYSQL_APT_KEYSERVER }}"
+    id: "{{ MYSQL_APT_KEY }}"
+  when: ansible_distribution_release == 'focal'
+
+- name: add the mysql-5.7 repo to the sources list
+  apt_repository:
+    repo: "{{ MYSQL_REPO }}"
+    state: present
+  when: ansible_distribution_release == 'focal'
+
+# Installing mysql-5.7-client, mysql-5.7-community-server
+# and mysql-5.7-server in separate tasks to resolve dependencies
+- name: install mysql-5.7-client
+  apt:
+    name: mysql-client=5.7.31-1ubuntu18.04
+    state: present
+    update_cache: yes
+  when: ansible_distribution_release == 'focal'
+
+- name: install mysql-5.7-community-server
+  apt:
+    name:  mysql-community-server=5.7.31-1ubuntu18.04
+    state: present
+    update_cache: yes
+  when: ansible_distribution_release == 'focal'
+
+- name: install mysql-5.7-server
+  apt:
+    name: mysql-server=5.7.31-1ubuntu18.04
+    state: present
+    update_cache: yes
+  when: ansible_distribution_release == 'focal'
 
 - name: restart mysql
   command: service mysql restart
