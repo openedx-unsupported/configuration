@@ -71,18 +71,27 @@ NOTIFIER_DEAD_MANS_SNITCH_URL: "" # optional; for monitoring use with https://de
 notifier_app_dir: "{{ COMMON_APP_DIR }}/notifier"
 notifier_user: "notifier"
 
-notifier_debian_pkgs:
+notifier_debian_pkgs_default:
   - apparmor-utils
   - build-essential
   - curl
   - g++
   - gcc
-  - ipython
   - pkg-config
   - rsyslog
   - libmysqlclient-dev
   - libffi-dev
   - libssl-dev
+
+notifier_release_specific_debian_pkgs:
+  xenial:
+    - ipython
+  bionic:
+    - ipython
+  focal:
+    - ipython3
+
+notifier_debian_pkgs: "{{ notifier_debian_pkgs_default + notifier_release_specific_debian_pkgs[ansible_distribution_release] }}"
 
 #
 # This structure is iterated over in order to build both
