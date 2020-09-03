@@ -26,6 +26,22 @@ Add any new changes to the top(right below this line).
        - Created the program-console role for micro-frontend application to be setup
        - This is created to replace the program_manager role. The app was renamed
 
+ - 2020-09-03
+     - Role: edxapp
+        - Added `EDXAPP_AUTH_USE_OPENID_PROVIDER` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_COMBINED_LOGIN_REGISTRATION` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_CORS_HEADERS` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_COUNTRY_ACCESS` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_CROSS_DOMAIN_CSRF_COOKIE` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_DISCUSSION_HOME_PANEL` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_DISCUSSION_SERVICE` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_ENROLLMENT_RESET` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_GRADE_DOWNLOADS` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_INSTRUCTOR_ANALYTICS` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_LTI_PROVIDER` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_SPECIAL_EXAMS` to allow creating/updating the configuration values during provisioning.
+        - Added `EDXAPP_ENABLE_VIDEO_UPLOAD_PIPELINE` to allow creating/updating the configuration values during provisioning.
+
  - 2020-08-26
      - Role: whitelabel
        - Removes the whitelabel role and all associated configuration for whitelabel sites.
