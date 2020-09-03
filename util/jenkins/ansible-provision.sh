@@ -379,7 +379,7 @@ LEARNER_PORTAL_URL_ROOT: "https://learner-portal-${deploy_host}"
 LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
 
-PROGRAM_MANAGER_URL_ROOT: "https://program-manager-${deploy_host}"
+PROGRAM_MANAGER_URL_ROOT: "https://program-console-${deploy_host}"
 PROGRAM_MANAGER_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 PROGRAM_MANAGER_LMS_BASE_URL: "https://${deploy_host}"
 PROGRAM_MANAGER_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
