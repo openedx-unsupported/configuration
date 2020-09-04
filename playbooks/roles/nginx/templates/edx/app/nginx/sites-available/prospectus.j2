@@ -108,16 +108,25 @@ server {
 
     # Matches: /<route>/
     location = /{{ static_site.router_path }}/ {
+        {% if static_site.proxied_hostname is defined %}
+        proxy_Set_header Host {{ static_site.proxied_hostname }}
+        {% endif %}
         proxy_pass {{ static_site.proxied_path }}/index.html;
     }
 
     # Matches: <route>/[.../]<file.ext>
     location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
+        {% if static_site.proxied_hostname is defined %}
+        proxy_Set_header Host {{ static_site.proxied_hostname }}
+        {% endif %}
         proxy_pass {{ static_site.proxied_path }}/$1$2;
     }
 
     # Matches: <route>/<subpage>/[.../]
     location ~ ^/{{ static_site.router_path }}/([a-z0-9-]+)[/]? {
+        {% if static_site.proxied_hostname is defined %}
+        proxy_Set_header Host {{ static_site.proxied_hostname }}
+        {% endif %}
         proxy_pass {{ static_site.proxied_path }}/$1/index.html;
     }
 
