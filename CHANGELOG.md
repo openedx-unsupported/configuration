@@ -4,7 +4,7 @@ Add any new changes to the top(right below this line).
 
  - 2020-09-23
      - Role: certs
-       - Changed Python version used for creating virtualenv from the system's default (2.7) to 3.5.
+       - Changed Python version used for creating virtualenv from the system's default (2.7) to 3.8.
 
  - 2020-09-18
      - Role: nginx
