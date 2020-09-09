@@ -115,6 +115,31 @@
     - install:configuration
     - install:app-configuration
 
+- name: Add deadsnakes repo
+  apt_repository:
+      repo: ppa:deadsnakes/ppa
+  when: edx_service_use_python38
+
+- name: Install Python 3.8
+  apt:
+    pkg:
+      - python3.8-dev
+      - python3.8-distutils
+  when: edx_service_use_python38
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Build virtualenv with Python 3.8
+  command: "virtualenv --python=python3.8 {{ edx_service_venv_dir }}"
+  args:
+    creates: "{{ edx_service_venv_dir }}/bin/pip"
+  become_user: "{{ edx_service_user }}"
+  when: edx_service_use_python38
+  tags:
+    - install
+    - install:system-requirements
+
 - name: Replace deploy host to sandbox dns name
   replace:
     path: "{{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml"
