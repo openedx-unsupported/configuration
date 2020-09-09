@@ -133,15 +133,10 @@ if [[ "${SHORT_DIST}" != xenial ]] ;then
   add-apt-repository -y ppa:deadsnakes/ppa
 fi
 
-# Install python 2.7 latest, git and other common requirements
-# NOTE: This will install the latest version of python 2.7 and
-# which may differ from what is pinned in virtualenvironments
+# Install git and other common requirements
 apt-get update -y
-if [[ "${SHORT_DIST}" != focal ]];then
-  apt-get install -y python2.7 python2.7-dev python-pip python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
-else
-  apt-get install -y python3-apt python3-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
-fi
+
+apt-get install -y python3-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 
 apt-get install -y python${PYTHON_VERSION}-dev python3-pip python3-apt
 
