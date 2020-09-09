@@ -4,7 +4,7 @@
 edxapp_common_role_name: edxapp_common
 
 # OS packages
-edxapp_common_debian_pkgs:
+edxapp_common_debian_pkgs_default:
     - build-essential
     - gfortran
     # Needed for sandboxes for CS188x classes :-(
@@ -21,7 +21,16 @@ edxapp_common_debian_pkgs:
     # Pillow (PIL Fork) Dependencies
     # Needed by the CMS to manipulate images.
     - libjpeg8-dev
-    - libpng12-dev
     # python-saml dependencies: (required for Shibboleth in third_party_auth)
     - libxmlsec1-dev
     - swig
+
+edxapp_common_release_specific_debian_pkgs:
+  xenial:
+    - libpng12-dev
+  bionic:
+    - libpng-dev
+  focal:
+    - libpng-dev
+
+edxapp_common_debian_pkgs: "{{ edxapp_common_debian_pkgs_default + edxapp_common_release_specific_debian_pkgs[ansible_distribution_release] }}"
