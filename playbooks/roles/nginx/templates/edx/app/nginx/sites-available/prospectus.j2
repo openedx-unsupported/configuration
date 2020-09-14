@@ -6,7 +6,7 @@
 
 server {
   # Prospectus configuration file for nginx, templated by ansible
-  
+
   server_name ~^((stage|prod)-)?prospectus.*;
 
   {% if NGINX_ENABLE_SSL %}
@@ -31,8 +31,16 @@ server {
 
   root {{ PROSPECTUS_DATA_DIR }};
 
+  location /es/bio/ {
+    try_files $uri $uri/ /es/bio/index.html;
+  }
+
+  location /bio/ {
+    try_files $uri $uri/ /bio/index.html;
+  }
+
   location /preview/ {
-    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       auth_basic            "Restricted";
       auth_basic_user_file  {{ nginx_htpasswd_file }};
     {% endif %}
@@ -40,7 +48,7 @@ server {
   }
 
   location /es/preview/ {
-    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       auth_basic            "Restricted";
       auth_basic_user_file  {{ nginx_htpasswd_file }};
     {% endif %}
@@ -64,7 +72,7 @@ server {
         include fastcgi_params;
         fastcgi_param SERVER_PORT 80;
         include {{ prospectus_redirect_file }};
-        port_in_redirect off;        
+        port_in_redirect off;
    {% endif %}
   }
 
