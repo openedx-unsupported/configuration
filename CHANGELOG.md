@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-09-14
+     - Playbook: program_manager
+       - Removed. It is replaced by program_console
+    
+     - Role: program_manager
+       - Removed. It is replaced by program_console
+
  - 2020-09-10
      - Playbook: program_console
        - Added playbook to setup program-console micro-frontend application on sandboxes
