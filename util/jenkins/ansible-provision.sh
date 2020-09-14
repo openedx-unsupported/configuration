@@ -496,7 +496,7 @@ done
 
 # If reconfigure was selected or if starting from an ubuntu 16.04 AMI
 # run non-deploy tasks for all plays
-if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
+if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
