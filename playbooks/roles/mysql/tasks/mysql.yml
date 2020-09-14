@@ -33,11 +33,18 @@
 # Thought that instead of performing all those steps and get the repo, why not directly use this repo
 # `deb http://repo.mysql.com/apt/ubuntu/ precise mysql-5.6`, I just picked this line and directly used it and it worked for us.
 
-- name: Install mysql-5.6 and dependencies
+- name: Install mysql dependencies
   apt:
     name: "{{ mysql_debian_pkgs }}"
     install_recommends: yes
     state: present
+
+- name: Install mysql
+  apt:
+    name: "{{ mysql_server_pkg }}"
+    install_recommends: yes
+    state: present
+  when: ansible_distribution_release != 'focal'
 
 - name: Set default character sets and collations
   template:
@@ -46,6 +53,42 @@
     owner: root
     group: root
     mode: 0644
+  when: ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal'
+
+- name: add the mysql signing key
+  apt_key:
+    keyserver: "{{ MYSQL_APT_KEYSERVER }}"
+    id: "{{ MYSQL_APT_KEY }}"
+  when: ansible_distribution_release == 'focal'
+
+- name: add the mysql-5.7 repo to the sources list
+  apt_repository:
+    repo: "{{ MYSQL_REPO }}"
+    state: present
+  when: ansible_distribution_release == 'focal'
+
+# Installing mysql-5.7-client, mysql-5.7-community-server
+# and mysql-5.7-server in separate tasks to resolve dependencies
+- name: install mysql-5.7-client
+  apt:
+    name: "{{ mysql_client_5_7_pkg }}"
+    state: present
+    update_cache: yes
+  when: ansible_distribution_release == 'focal'
+
+- name: install mysql-5.7-community-server
+  apt:
+    name: "{{ mysql_community_server_5_7_pkg }}"
+    state: present
+    update_cache: yes
+  when: ansible_distribution_release == 'focal'
+
+- name: install mysql-5.7-server
+  apt:
+    name: "{{ mysql_server_5_7_pkg }}"
+    state: present
+    update_cache: yes
+  when: ansible_distribution_release == 'focal'
 
 - name: restart mysql
   command: service mysql restart
@@ -55,6 +98,7 @@
     name: ''
     host: "{{ item }}"
     state: absent
+    login_unix_socket: "{{ mysql_socket }}"
   with_items:
     - localhost
     - "{{ ansible_hostname }}"

@@ -15,6 +15,7 @@
     db: "{{ item }}"
     state: present
     encoding: utf8
+    login_unix_socket: "{{ mysql_socket }}"
   when: item != None and item != ''
   with_items: "{{ edxlocal_databases }}"
 
@@ -24,6 +25,7 @@
     password: "{{ item.pass }}"
     priv: "{{ item.db }}.*:ALL"
     append_privs: yes
+    login_unix_socket: "{{ mysql_socket }}"
   when: item.db != None and item.db != ''
   with_items: "{{ edxlocal_database_users }}"
 
@@ -33,6 +35,7 @@
     password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
     priv: "{{ item }}.*:ALL"
     append_privs: yes
+    login_unix_socket: "{{ mysql_socket }}"
   when: item != None and item != ''
   with_items: "{{ edxlocal_databases }}"
 
@@ -41,6 +44,7 @@
     name: "{{ ANALYTICS_API_DATABASES.default.USER }}"
     password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
     priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+    login_unix_socket: "{{ mysql_socket }}"
   when: ANALYTICS_API_DATABASES is defined and ANALYTICS_API_DATABASES.default is defined
 
 - name: create read-only reports user for the analytics-api
@@ -48,6 +52,7 @@
     name: "{{ ANALYTICS_API_DATABASES.reports.USER }}"
     password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
     priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+    login_unix_socket: "{{ mysql_socket }}"
   when: ANALYTICS_API_DATABASES is defined and ANALYTICS_API_DATABASES.reports is defined
 
 - name: create a database for the hive metastore
@@ -55,6 +60,7 @@
     db: "{{ HIVE_METASTORE_DATABASE.name }}"
     state: "present"
     encoding: "latin1"
+    login_unix_socket: "{{ mysql_socket }}"
   when: HIVE_METASTORE_DATABASE is defined
 
 - name: setup the edx-notes-api db user
@@ -62,12 +68,14 @@
     name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
     password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
     priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
+    login_unix_socket: "{{ mysql_socket }}"
   when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
 - name: setup the read-only db user
   mysql_user:
     name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
     password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+    login_unix_socket: "{{ mysql_socket }}"
     priv: "*.*:SELECT"
 
 - name: setup the admin db user
@@ -75,3 +83,4 @@
     name: "{{ COMMON_MYSQL_ADMIN_USER }}"
     password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
     priv: "*.*:CREATE USER"
+    login_unix_socket: "{{ mysql_socket }}"
