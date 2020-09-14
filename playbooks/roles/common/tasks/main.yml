@@ -78,14 +78,13 @@
     state: "present"
   when: >
     ansible_distribution in common_debian_variants and
-    ansible_distribution_release != 'bionic'
+    (ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal')
 
 - name: Update expired apt keys
   shell: apt-key adv --recv-keys --keyserver {{ COMMON_EDX_PPA_KEY_SERVER }} {{ COMMON_EDX_PPA_KEY_ID }}
   when: >
     ansible_distribution in common_debian_variants and
-    ansible_distribution_release != 'bionic'
-
+    (ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal')
 
 - name: Add custom edX PPA
   # Ensure that we get the latest version of python 2.7
@@ -94,8 +93,17 @@
     repo: "{{ COMMON_EDX_PPA }}"
   when: >
     ansible_distribution in common_debian_variants and
-    ansible_distribution_release != 'bionic'
+    (ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal')
 
+# The deadsnakes PPA is required to install python3.5 on Bionic and Focal
+# Xenial comes with python3.5 installed.
+- name: add deadsnakes repository
+  apt_repository:
+    repo: "ppa:deadsnakes/ppa"
+  when: ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+  tags:
+    - install
+    - install:system-requirements
 
 - name: Install role-independent useful system packages
   # do this before log dir setup; rsyslog package guarantees syslog user present
@@ -128,7 +136,7 @@
   when: >
     ansible_distribution in common_debian_variants and
     ansible_distribution_release in old_python_ppa_releases and
-    ansible_distribution_release != 'bionic'
+    (ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal')
 
 - name: Install role-independent useful system packages
   yum:
