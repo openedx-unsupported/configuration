@@ -40,8 +40,8 @@
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu'
 
-# For focal, use the bionic repo for now.
-- name: Install apt repository for New Relic Infrastructure if not bionic and focal
+# For bionic, use the xenial repo for now.
+- name: Install apt repository for New Relic Infrastructure if not bionic
   apt_repository:
     repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO }}"
     state: present
@@ -49,28 +49,18 @@
   tags:
     - install
     - install:app-requirements
-  when: ansible_distribution == 'Ubuntu' and (ansible_distribution_release != 'bionic' or ansible_distribution_release != 'focal')
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release != 'bionic'
 
+# For bionic, use the xenial repo for now.
 - name: Install apt repository for New Relic Infrastructure if bionic
   apt_repository:
-    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_BIONIC }}"
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_XENIAL }}"
     state: present
     update_cache: yes
   tags:
     - install
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
-
-# For focal, use the bionic repo for now.
-- name: Install apt repository for New Relic Infrastructure if focal
-  apt_repository:
-    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_BIONIC }}"
-    state: present
-    update_cache: yes
-  tags:
-    - install
-    - install:app-requirements
-  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'focal'
 
 - name: Install newrelic related system packages for Ubuntu
   apt:
@@ -123,7 +113,7 @@
     line: "/edx/bin/write_nr_display_name_config.sh"
     insertbefore: "exit 0"
     mode: "u+x,g+x"
-  when: ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal'
+  when: ansible_distribution_release != 'bionic'
 
 - name: Restart the infrastructure agent if the license key changes
   service:
