@@ -13,7 +13,7 @@
 #   - role: rbenv
 #     rbenv_user: "{{ forum_user }}"
 #     rbenv_dir: "{{ forum_rbenv_dir }}"
-#     rbenv_ruby_version: "{{ forum_ruby_version }}"
+#     rbenv_ruby_version: "{{ FORUM_RUBY_VERSION }}"
 #
 # Parameters:
 #
@@ -68,7 +68,7 @@
   git:
     repo: https://github.com/sstephenson/rbenv.git
     dest: "{{ rbenv_dir }}/.rbenv"
-    version: "{{ rbenv_version }}"
+    version: "{{ RBENV_VERSION }}"
     accept_hostkey: yes
   become_user: "{{ rbenv_user }}"
   tags:
@@ -94,7 +94,7 @@
 
 - name: if ruby-build exists, which versions we can install
   command: /usr/local/bin/ruby-build --definitions
-  when: rbuild_present|success
+  when: rbuild_present is succeeded
   register: installable_ruby_vers
   ignore_errors: yes
   tags:
@@ -106,7 +106,7 @@
   command: mktemp -d
   register: tempdir
   become_user: "{{ rbenv_user }}"
-  when: rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
+  when: rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers)
   tags:
     - install
     - install:base
@@ -116,7 +116,7 @@
     repo: https://github.com/sstephenson/ruby-build.git
     dest: "{{ tempdir.stdout }}/ruby-build"
     accept_hostkey: yes
-  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  when: tempdir.stdout is defined and (rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   become_user: "{{ rbenv_user }}"
   tags:
     - install
@@ -124,14 +124,14 @@
 
 - name: install ruby-build
   command: ./install.sh chdir={{ tempdir.stdout }}/ruby-build
-  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  when: tempdir.stdout is defined and (rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   tags:
     - install
     - install:base
 
 - name: remove temporary directory
   file: path={{ tempdir.stdout }} state=absent
-  when: tempdir.stdout is defined and (rbuild_present|failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
+  when: tempdir.stdout is defined and (rbuild_present is failed or (installable_ruby_vers is defined and rbenv_ruby_version not in installable_ruby_vers))
   tags:
     - install
     - install:base
@@ -148,7 +148,7 @@
 
 - name: install ruby {{ rbenv_ruby_version }}
   shell: "rbenv install {{ rbenv_ruby_version }} creates={{ rbenv_dir }}/.rbenv/versions/{{ rbenv_ruby_version }}"
-  when: ruby_installed|failed
+  when: ruby_installed is failed
   become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
@@ -163,8 +163,16 @@
     - install
     - install:base
 
+- name: update rubygems
+  shell: "gem update --system {{ RBENV_RUBYGEMS_VERSION }}"
+  become_user: "{{ rbenv_user }}"
+  environment: "{{ rbenv_environment }}"
+  tags:
+    - install
+    - install:base
+
 - name: install bundler
-  shell: "gem install bundler -v {{ rbenv_bundler_version }}"
+  shell: "gem install bundler -v {{ RBENV_BUNDLER_VERSION }}"
   become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   tags:
@@ -176,10 +184,10 @@
   when: jenkins_worker is not defined or not jenkins_worker
   tags:
     - install
-    - install:base  
+    - install:base
 
 - name: install rake gem
-  shell: "gem install rake -v {{ rbenv_rake_version }}"
+  shell: "gem install rake -v {{ RBENV_RAKE_VERSION }}"
   become_user: "{{ rbenv_user }}"
   environment: "{{ rbenv_environment }}"
   when: jenkins_worker is not defined or not jenkins_worker
@@ -187,14 +195,6 @@
     - install
     - install:base
 
-- name: update rubygems
-  shell: "gem install rubygems-update && update_rubygems"
-  become_user: "{{ rbenv_user }}"
-  environment: "{{ rbenv_environment }}"
-  tags:
-    - install
-    - install:base
-    
 - name: rehash
   shell: "rbenv rehash"
   become_user: "{{ rbenv_user }}"

@@ -1,0 +1,78 @@
+# Creates initial state for a master's integration environment sandbox
+
+- name: setup master's integration environment
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    - edxapp_env_path: /edx/app/edxapp/edxapp_env
+    - edxapp_venv_dir: /edx/app/edxapp/venvs/edxapp
+    - edxapp_code_dir: /edx/app/edxapp/edx-platform
+    - registrar_env_path: /edx/app/registrar/registrar_env
+    - registrar_venv_dir: /edx/app/registrar/venvs/registrar
+    - registrar_code_dir: /edx/app/registrar/registrar
+    - lms_config_file: /edx/etc/lms.yml
+    - registrar_config_file: /edx/etc/registrar.yml
+    - jwt_signature_file: /tmp/lms_jwt_signature.yml
+
+  tasks:
+    - name: create lms user
+      shell: . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms manage_user {{username}} {{email}}
+      args:
+        chdir: "{{ edxapp_code_dir }}"
+
+    - name: create dot application
+      shell: >
+        . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms create_dot_application "master's api client" {{username}}
+        --client-id {{organization_key}}-api-client-id --scopes=user_id
+      args:
+        chdir: "{{ edxapp_code_dir }}"
+
+    - name: create api access request
+      shell: >
+        . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms create_api_access_request {{username}}
+        --create-config --disconnect-signals
+      args:
+        chdir: "{{ edxapp_code_dir }}"
+
+    - name: create discovery site configuration
+      shell: >
+        . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms create_or_update_site_configuration {{dns_name}}.sandbox.edx.org
+        --configuration '{"COURSE_CATALOG_API_URL":"https://discovery-{{dns_name}}.sandbox.edx.org/api/v1","email_from_address":"edX <no-reply@registration.{{dns_name}}.sandbox.edx.org>"}'
+      args:
+        chdir: "{{ edxapp_code_dir }}"
+
+    - name: create LMS catalog integration
+      shell: >
+        . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms create_catalog_integrations --enabled --internal_api_url
+        https://discovery-{{dns_name}}.sandbox.edx.org --service_username discovery_worker --page_size 20
+      args:
+        chdir: "{{ edxapp_code_dir }}"
+
+    - name: create LMS organization
+      shell: >
+        . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms
+        add_organization {{organization_key}} {{organization_key}}
+      args:
+        chdir: "{{ edxapp_code_dir }}"
+
+    - name: create registrar organization
+      shell: >
+        . {{ registrar_env_path }} && {{ registrar_venv_dir }}/bin/python manage.py create_organization {{organization_key}}
+        --group {{registrar_role}}
+      args:
+        chdir: "{{ registrar_code_dir }}"
+
+    - name: create registrar user
+      shell: >
+        . {{ registrar_env_path }} && {{ registrar_venv_dir }}/bin/python manage.py create_user {{username}} --email {{email}}
+        --groups {{organization_key}}_{{registrar_role}}
+      args:
+        chdir: "{{ registrar_code_dir }}"
+
+    - name: set up cron job to refresh lms cache
+      cron:
+        name: "refresh masters sandbox cache"
+        job: ". {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python {{ edxapp_code_dir }}/manage.py lms cache_programs"
+        hour: "0"
+        minute: "0"

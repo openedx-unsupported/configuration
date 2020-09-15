@@ -1,0 +1,27 @@
+- name: Deploy edX Course Discovery Service
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'discovery'
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_default_sites:
+        - discovery
+    - discovery
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - role: hermes
+      HERMES_TARGET_SERVICE: 'discovery'
+      when: DISCOVERY_HERMES_ENABLED
+

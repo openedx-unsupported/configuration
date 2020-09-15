@@ -1,0 +1,36 @@
+---
+# Create a virtualenv for edx-load-tests by installing the requirements and
+# packaging the virtualenv.
+
+- name: Create shallow clone of edx-load-tests
+  git:
+    repo: https://github.com/edx/edx-load-tests.git
+    dest: "{{ jenkins_home }}/shallow-clone"
+    version: "master"
+    depth: 1
+  become_user: "{{ jenkins_user }}"
+
+- name: Install most edx-load-tests requirements using pip
+  pip:
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/{{ item }}"
+    extra_args: "--exists-action=w"
+    virtualenv: "{{ jenkins_home }}/edx-venv"
+    virtualenv_command: virtualenv
+  with_items:
+    - base.txt
+  become_user: "{{ jenkins_user }}"
+
+# Archive the current state of the virtualenv as a starting point for new
+# builds.  The edx-venv directory is deleted and then recreated cleanly from
+# the archive by the jenkins build scripts.
+#
+# TODO: after we migrate to ansible 2.3+, change this task to use the archive
+# module.  http://docs.ansible.com/ansible/archive_module.html
+- name: Create a clean virtualenv archive
+  command: "tar -cpzf edx-venv_clean.tar.gz edx-venv"
+  args:
+    chdir: "{{ jenkins_home }}"
+  become_user: "{{ jenkins_user }}"
+
+- name: Remove the shallow-clone
+  file: path={{ jenkins_home }}/shallow-clone state=absent

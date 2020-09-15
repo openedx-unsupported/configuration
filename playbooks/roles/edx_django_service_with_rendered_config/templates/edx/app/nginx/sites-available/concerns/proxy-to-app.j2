@@ -1,0 +1,38 @@
+
+location / {
+  {% include 'concerns/basic-auth.j2' %}
+  try_files $uri @proxy_to_app;
+}
+
+location ~ ^/({{ edx_django_service_with_rendered_config_basic_auth_exempted_paths | join('|') }})/ {
+  try_files $uri @proxy_to_app;
+}
+
+{% include 'concerns/robots.j2' %}
+
+{% include "concerns/admin_urls_access_from_restricted_cidrs.j2" %}
+
+location @proxy_to_app {
+
+{% if edx_django_service_with_rendered_config_allow_cors_headers %}
+  {% include 'concerns/cors-add-header.j2' %}
+{% endif %}
+
+{% if NGINX_SET_X_FORWARDED_HEADERS %}
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_set_header X-Forwarded-Port $server_port;
+  proxy_set_header X-Forwarded-For $remote_addr;
+{% else %}
+  proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+  proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+  proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+{% endif %}
+
+  # newrelic-specific header records the time when nginx handles a request.
+  proxy_set_header X-Queue-Start "t=${msec}";
+
+  proxy_set_header Host $http_host;
+
+  proxy_redirect off;
+  proxy_pass http://{{ edx_django_service_with_rendered_config_service_name }}_app_server;
+}

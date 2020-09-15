@@ -30,21 +30,29 @@
 #     - common
 #
 
-- name: install go-server aptitude repository
-  apt_repository:
-    repo: "{{ GO_SERVER_APT_SOURCE }}"
-    state: present
-
 - name: install aptitude key for go-server/go-server
   apt_key:
     url: "{{ GO_SERVER_APT_KEY_URL }}"
     state: present
-
-- name: install go-server using apt-get
-  apt:
-    name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
-    update_cache: yes
+  tags:
+    - install
+    - install:base
+    
+- name: install go-server aptitude repository
+  apt_repository:
+    repo: "{{ GO_SERVER_APT_SOURCE }}"
     state: present
+  tags:
+    - install
+    - install:base
+
+- name: install openjdk ppa repository
+  apt_repository:
+    repo: "{{ openjdk_apt_source }}"
+    state: present
+  tags:
+    - install
+    - install:base
 
 - name: install other needed system packages
   apt:
@@ -53,6 +61,18 @@
     update_cache: true
     cache_valid_time: 3600
   with_items: "{{ GO_SERVER_APT_PKGS }}"
+  tags:
+    - install
+    - install:base
+
+- name: install go-server using apt-get
+  apt:
+    name: "{{ GO_SERVER_APT_NAME }}={{ GO_SERVER_VERSION }}"
+    update_cache: yes
+    state: present
+  tags:
+    - install
+    - install:base
 
 - name: create go-server plugin directory
   file:
@@ -61,6 +81,9 @@
     mode: 0776
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
+  tags:
+    - install
+    - install:base
 
 - name: install go-server plugins
   get_url:
@@ -73,31 +96,9 @@
   with_items:
     - { url: "{{ GO_SERVER_OAUTH_LOGIN_JAR_URL }}", md5: "{{ GO_SERVER_OAUTH_LOGIN_MD5 }}" }
     - { url: "{{ GO_SERVER_GITHUB_PR_PLUGIN_JAR_URL }}", md5: "{{ GO_SERVER_GITHUB_PR_PLUGIN_MD5 }}" }
-
-- name: generate line for go-server password file for admin user
-  command: "/usr/bin/htpasswd -nbs \"{{ GO_SERVER_ADMIN_USERNAME }}\" \"{{ GO_SERVER_ADMIN_PASSWORD }}\""
-  register: admin_user_password_line
-  when: GO_SERVER_ADMIN_USERNAME and GO_SERVER_ADMIN_PASSWORD
-
-- name: generate line for go-server password file for backup user
-  command: "/usr/bin/htpasswd -nbs \"{{ GO_SERVER_BACKUP_USERNAME }}\" \"{{ GO_SERVER_BACKUP_PASSWORD }}\""
-  register: backup_user_password_line
-  when: GO_SERVER_BACKUP_USERNAME and GO_SERVER_BACKUP_PASSWORD
-
-- name: generate line for go-server password file for gomatic user
-  command: "/usr/bin/htpasswd -nbs \"{{ GO_SERVER_GOMATIC_USERNAME }}\" \"{{ GO_SERVER_GOMATIC_PASSWORD }}\""
-  register: gomatic_user_password_line
-  when: GO_SERVER_GOMATIC_USERNAME and GO_SERVER_GOMATIC_PASSWORD
-
-- name: setup password file
-  template:
-    src: edx/app/go-server/password.txt.j2
-    dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
-    mode: 0600
-    owner: "{{ GO_SERVER_USER }}"
-    group: "{{ GO_SERVER_GROUP }}"
-    force: no
-  when: GO_SERVER_ADMIN_PASSWORD and GO_SERVER_BACKUP_PASSWORD and GO_SERVER_GOMATIC_PASSWORD
+  tags:
+    - install
+    - install:base
 
 - name: install go-server configuration
   template:
@@ -107,20 +108,59 @@
     owner: "{{ GO_SERVER_USER }}"
     group: "{{ GO_SERVER_GROUP }}"
     force: no
+  tags:
+    - install
+    - install:base
+
+- name: ensure everyone can read go-server log files
+  file:
+    path: "/var/log/go-server"
+    state: directory
+    mode: "0755"
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+  tags:
+    - install
+    - install:base
 
 - include: download_backup.yml
   when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT and GO_SERVER_RESTORE_BACKUP
 
-- name: replace the password lines in the password file post-restore
+- name: generate lines for go-server password file for users
+  command: "/usr/bin/htpasswd -nbB '{{ item.username }}' '{{ item.password }}'"
+  with_items: "{{ GO_SERVER_USERS }}"
+  when: item.username and item.password
+  register: go_server_users_htpasswds
+  tags:
+    - install
+    - install:app-configuration
+    - update-gocd-users
+
+- name: replace the password lines in the password file
   lineinfile:
     dest: "{{ GO_SERVER_CONF_HOME }}/{{ GO_SERVER_PASSWORD_FILE_NAME }}"
-    regexp: "^{{ item.username }}"
-    line: "{{ item.password_hash.stdout }}"
-  with_items:
-    - { username: "{{ GO_SERVER_ADMIN_USERNAME }}", password: "{{ GO_SERVER_ADMIN_PASSWORD }}", password_hash: "{{ admin_user_password_line }}" }
-    - { username: "{{ GO_SERVER_BACKUP_USERNAME }}", password: "{{ GO_SERVER_BACKUP_PASSWORD }}", password_hash: "{{ backup_user_password_line }}" }
-    - { username: "{{ GO_SERVER_GOMATIC_USERNAME }}", password: "{{ GO_SERVER_GOMATIC_PASSWORD }}", password_hash: "{{ gomatic_user_password_line }}" }
-  when: item.username and item.password and item.password_hash
+    regexp: "^{{ item.item.username }}"
+    line: "{{ item.stdout }}"
+    create: yes
+    mode: "0600"
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+  with_items: "{{ go_server_users_htpasswds.results }}"
+  when: item.item.username and item.item.password and item.stdout
+  tags:
+    - install
+    - install:app-configuration
+    - update-gocd-users
+
+- name: create ssh directory
+  file:
+    path: "/var/go/.ssh"
+    state: directory
+    mode: "0755"
+    owner: "{{ GO_SERVER_USER }}"
+    group: "{{ GO_SERVER_GROUP }}"
+  tags:
+    - git_identity
 
 - name: install ssh key for the secure repos
   copy:
@@ -162,14 +202,20 @@
   lineinfile:
     destfile: /etc/default/go-server
     regexp: "^export GO_SERVER_SYSTEM_PROPERTIES=*"
-    line: "export GO_SERVER_SYSTEM_PROPERTIES='-Dgo.config.repo.gc.cron=\"0 0 2 ? * SAT\" -Dgo.config.repo.gc.periodic=\"Y\"'"
+    line: "export GO_SERVER_SYSTEM_PROPERTIES='-Xmx{{GO_SERVER_MAX_MEM}} -Dgo.config.repo.gc.cron=\"0 0 2 ? * SAT\" -Dgo.config.repo.gc.periodic=\"Y\"'"
   tags:
-    - environment_variables
+    - install
+    - install:app-configuration
 
-- name: restart go-server
+- name: Restart go-server
   service:
     name: "{{ GO_SERVER_SERVICE_NAME }}"
     state: restarted
+  tags:
+    - install
+    - install:app-configuration
 
 - include: setup_regular_backup.yml
   when: GO_SERVER_BACKUP_S3_BUCKET and GO_SERVER_BACKUP_S3_OBJECT and GO_SERVER_CONFIGURE_BACKUPS
+  tags:
+    - setup_backups

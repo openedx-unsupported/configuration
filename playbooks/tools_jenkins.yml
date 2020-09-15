@@ -1,0 +1,39 @@
+# Documentation on updating tools-edx-jenkins: https://openedx.atlassian.net/wiki/display/EdxOps/Updating+tools-edx-jenkins
+
+# Updating or creating a new install of tools_jenkins (will restart Jenkins)
+# ansible-playbook -i tools-edx-jenkins.m.edx.org, tools_jenkins.yml -e@/path/to/secure-config/tools-edx.yml
+
+# Update tools_jenkins with new plugins (will not restart Jenkins):
+# ansible-playbook -i tools-edx-jenkins.m.edx.org, tools_jenkins.yml -e@/path/to/secure-config/tools-edx.yml --tags install:plugins
+
+# Configure an instance with the tool jenkins.
+- name: Configure Jenkins instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    serial_count: 1
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+  serial: "{{ serial_count }}"
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    # jenkins_master role does extra tweaks to datadog if COMMON_ENABLE_DATADOG is set
+    # so this needs to run early.
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - tools_jenkins
+    # This requires an override of the following form:
+    # SPLUNKFORWARDER_LOG_ITEMS:
+    #   - source: /edx/var/jenkins/jobs/*/builds/*/log
+    #     index: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-jenkins'
+    #     sourcetype: jenkins_build
+    #     followSymlink: false
+    #     crcSalt: <SOURCE>
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE

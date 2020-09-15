@@ -31,8 +31,7 @@
 
 - name: Install Elasticsearch repo key 
   apt_key:
-    id: "{{ elasticsearch_apt_key }}"
-    keyserver: "{{ elasticsearch_apt_keyserver }}"
+    url: "{{ elasticsearch_apt_key_url }}"
     state: present
   tags:
     - install
@@ -57,6 +56,11 @@
     - install
     - install:base
   register: elasticsearch_reinstall
+
+  # Prevent elasticsearch from being upgraded.
+- dpkg_selections:
+    name: elasticsearch
+    selection: hold
 
 - name: create directories
   file:

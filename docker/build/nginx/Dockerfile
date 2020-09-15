@@ -1,5 +1,5 @@
-FROM edxops/precise-common:latest
-MAINTAINER edxops
+FROM edxops/xenial-common:latest
+LABEL maintainer="edxops"
 
 USER root
 ADD . /edx/app/edx_ansible/edx_ansible

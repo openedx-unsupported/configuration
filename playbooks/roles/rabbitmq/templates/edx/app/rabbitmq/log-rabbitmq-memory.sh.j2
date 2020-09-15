@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -x
+
+log_directory={{ rabbitmq_log_dir }}
+
+{% raw %}
+MemTotal=`grep 'MemTotal' /proc/meminfo | awk '{print $2}'`
+memusg=`/usr/sbin/rabbitmqctl status | grep total | awk -F',|}' -v date="$(date)" -v MemTotal="$MemTotal" 'NR==1{printf date"\tRabbitMQ Memory Usage:(%%)\t" ((($2/1024)/MemTotal)*100)}'`
+echo $memusg >> "$log_directory/rabbitmq.memory.log"
+{% endraw %}

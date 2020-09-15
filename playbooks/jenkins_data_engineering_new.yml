@@ -1,0 +1,35 @@
+---
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Mount EBS
+  hosts: all
+  become: True
+  vars:
+    volumes: "{{ JENKINS_VOLUMES }}"
+  roles:
+    - mount_ebs
+
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    COMMON_ENABLE_SPLUNKFORWARDER: False
+    COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE: True
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+    ansible_distribution_release: bionic
+
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - jenkins_data_engineering_new
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+      tags:
+        - newreliconly

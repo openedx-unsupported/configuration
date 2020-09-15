@@ -1,0 +1,21 @@
+# Configure a Jenkins worker instance specifically for running tests for
+# CodeJail, which requires specific set up with regards to python execution
+
+- name: Configure instance(s)
+  hosts: jenkins_worker
+  become: True
+  gather_facts: True
+  vars:
+    serial_count: 1
+    codejail_worker: True
+    codejail_sandbox_caller: 'jenkins'
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+  serial: "{{ serial_count }}"
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - docker-tools
+    - jenkins_worker
+    - codejail
+    - newrelic_infrastructure

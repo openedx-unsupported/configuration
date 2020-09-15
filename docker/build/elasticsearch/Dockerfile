@@ -1,5 +1,5 @@
-FROM edxops/precise-common:latest
-MAINTAINER edxops
+FROM edxops/xenial-common:latest
+LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
@@ -9,5 +9,5 @@ RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook elasticsearch.ym
    -i '127.0.0.1,'
 
 WORKDIR /etc/elasticsearch
-CMD ["/usr/share/elasticsearch/bin/elasticsearch","-f"]
+CMD service elasticsearch start && sleep 5 && tail -f /edx/var/log/elasticsearch/elasticsearch.log
 EXPOSE 9200 9300

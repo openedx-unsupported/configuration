@@ -1,0 +1,13 @@
+FROM edxops/xenial-common:latest
+LABEL maintainer="edxops"
+
+WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
+ADD . /edx/app/edx_ansible/edx_ansible
+COPY docker/build/notifier/ansible_overrides.yml /
+RUN /edx/app/edx_ansible/venvs/edx_ansible/bin/ansible-playbook notifier.yml \
+    -i '127.0.0.1,' -c local \
+    -t 'install' \
+    -e@/ansible_overrides.yml
+WORKDIR /edx/app
+ENTRYPOINT ["/edx/app/notifier/devstack.sh"]
+CMD ["start"]

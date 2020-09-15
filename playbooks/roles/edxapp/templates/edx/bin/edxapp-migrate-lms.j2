@@ -4,8 +4,25 @@ if [[ -z "${NO_EDXAPP_SUDO:-}" ]]; then
     SUDO='sudo -E -u {{ edxapp_user }} env "PATH=$PATH"'
 fi
 
+remove_unwanted_args () {
+  ARGS=("")
+  args_to_remove="(--list|--noinput)"
+  for var in "$@"; do
+    # Ignore known unneeded arguments
+    if [[ "$var" =~ $args_to_remove ]]; then
+      continue
+    fi
+    ARGS+=("$var")
+  done
+}
+
 {% for db in lms_auth_config.DATABASES.keys() %}
   {%- if db != 'read_replica' %}
-${SUDO:-} {{ edxapp_venv_bin }}/python manage.py lms migrate --database {{ db }} --noinput --settings $EDX_PLATFORM_SETTINGS $@
+if [[ $@ =~ .*--list.* ]]; then
+  remove_unwanted_args $@
+  ${SUDO:-} {{ edxapp_venv_bin }}/python manage.py lms showmigrations --database {{ db }} --settings $EDX_PLATFORM_SETTINGS ${ARGS[@]}
+else
+  ${SUDO:-} {{ edxapp_venv_bin }}/python manage.py lms migrate --database {{ db }} --noinput --settings $EDX_PLATFORM_SETTINGS $@
+fi
   {% endif %}
 {% endfor %}

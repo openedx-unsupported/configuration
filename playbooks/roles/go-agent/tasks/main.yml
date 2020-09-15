@@ -10,14 +10,14 @@
 #
 #
 # Tasks for role go-agent
-# 
+#
 # Overview:
 #
 # Deploys go-agent using aptitude!
 #
 # Dependencies:
 #    - openjdk7
-# 
+#
 # Example play:
 #
 # - name: Configure instance(s)
@@ -34,17 +34,23 @@
   apt_repository:
     repo: "{{ GO_AGENT_APT_SOURCE }}"
     state: present
+  tags:
+    - install
 
 - name: Install aptitude key for go-agent/go-agent
   apt_key:
     url: "{{ GO_AGENT_APT_KEY_URL }}"
     state: present
+  tags:
+    - install
 
 - name: Install go-agent using apt-get
   apt:
     name: "{{ GO_AGENT_APT_NAME }}={{ GO_AGENT_VERSION }}"
     update_cache: yes
     state: present
+  tags:
+    - install
 
 - name: Install go-agent configuration
   template:
@@ -53,8 +59,12 @@
     mode: "0644"
     owner: "{{ GO_AGENT_USER }}"
     group: "{{ GO_AGENT_GROUP }}"
+  tags:
+    - install
 
 - name: Restart go-agent
   service:
     name: "{{ GO_AGENT_SERVICE_NAME }}"
     state: restarted
+  tags:
+    - install

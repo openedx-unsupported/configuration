@@ -33,14 +33,14 @@
   when: not extracted_dir.stat.exists
 
 - name: distribution extracted
-  shell: "tar -xzf {{ hive_temporary_dir }}/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} hive-{{ HIVE_VERSION }}-bin"
+  shell: "tar -xzf {{ hive_temporary_dir }}/{{ hive_dist.filename }} && chown -R {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ hive_dist.untarred_filename }}"
   args:
     chdir: "{{ HADOOP_COMMON_USER_HOME }}"
   when: not extracted_dir.stat.exists
 
 - name: versioned directory symlink created
   file:
-    src: "{{ HADOOP_COMMON_USER_HOME }}/hive-{{ HIVE_VERSION }}-bin"
+    src: "{{ HADOOP_COMMON_USER_HOME }}/{{ hive_dist.untarred_filename }}"
     dest: "{{ HIVE_HOME }}"
     owner: "{{ hadoop_common_user }}"
     group: "{{ hadoop_common_group }}"
@@ -67,7 +67,7 @@
     state: directory
 
 - name: hive mysql connector installed
-  shell: "cp mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar {{ HIVE_LIB }} && chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HIVE_LIB }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}-bin.jar"
+  shell: "cp {{ hive_mysql_connector_dist.jarfilename }} {{ HIVE_LIB }} && chown {{ hadoop_common_user }}:{{ hadoop_common_group }} {{ HIVE_LIB }}/{{ hive_mysql_connector_dist.jarfilename }}"
   args:
     chdir: "/{{ hive_temporary_dir }}/mysql-connector-java-{{ HIVE_MYSQL_CONNECTOR_VERSION }}"
   when: not extracted_dir.stat.exists

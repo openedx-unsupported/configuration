@@ -1,0 +1,76 @@
+# This play will create an RDS for an application.
+# It can be run like so:
+#
+# ansible-playbook -c local -i 'localhost,' create_rds.yml -e@./db.yml
+#
+# where the content of db.yml contains the following settings 
+#
+# It can read from the same config as create_dbs_and_users.yml and needs this
+# part of that config
+# database_connection:
+#   login_host: "{{ database_name }}......rds.amazonaws.com" # This is pretty predictable for our accounts.
+#   login_user: "root"
+#   login_password: "" # max 41 characters, Only printable ASCII characters besides '/', '@', '\"', ' ' may be used.
+# database_name: your-database-name
+# database_size: number of gigabytes (integer)
+# instance_type: Choose an AWS RDS instance type such as "db.t2.medium"
+# aws_region: a full region (such as us-east-1 or us-west-2) not an AZ
+# database_engine_version: You should use either or standard or the newest possible, such as "5.6.39"
+# maintenance_window: UTC time and day of week to allow maintenance "Mon:16:00-Mon:16:30"
+# vpc_security_groups: What security group in the VPC your RDS should belong to (this is separate from your app or elb SG)
+# subnet_group: a name of a group in the RDS console that contains subnets, it will pick the appropriate one
+# parameter_group: name of the parameter group with overriddent defaults for this RDS
+# backup_window: UTC time of the day to take a backup "08:00-08:30"
+# backup_retention: Days to keep backups (integer)
+# multi_zone: yes or no (whether this RDS is multi-az)
+# performance_insights: yes or no (or unset) whether to enable Performance Insights (must be 5.6.40 or greater and not a t2)
+# tags: "[{'Key': 'environment', 'Value': 'TBD'}, {'Key': 'deployment', 'Value': 'TBD'}, {'Key': 'deployment', 'Value': 'TBD'}]"
+ 
+
+- name: Create databases and users
+  hosts: all
+  gather_facts: False
+  tasks:
+
+# The rds module for ansible only uses boto2, and boto2 defaults to magnetic discs and will
+# use io1 if you specify piops, but you can't have gp2.
+# Adapted from https://github.com/ansible/ansible-modules-core/issues/633
+# which points you to the various other open github issues.
+
+  - name: Create RDS instance using SSD (gp2) storage
+    command: "aws rds create-db-instance
+              --db-instance-identifier {{ database_name }}
+              --storage-type gp2
+              --allocated-storage {{ database_size }}
+              --db-instance-class {{ instance_type }}
+              --engine {{ database_engine|default('MySQL') }}
+              --engine-version {{ database_engine_version }}
+              --master-username {{ database_connection.login_user }}
+              --master-user-password {{ database_connection.login_password }}
+              --vpc-security-group-ids {{ vpc_security_groups}}
+              --db-subnet-group-name {{ subnet_group }}
+              --preferred-maintenance-window {{ maintenance_window }}
+              --db-parameter-group-name {{ parameter_group }}
+              --backup-retention-period {{ backup_retention }}
+              --preferred-backup-window {{ backup_window }}
+              --{{ '' if multi_zone == 'yes' else 'no-' }}multi-az
+              {{ '--enable-performance-insights' if performance_insights is defined and performance_insights == 'yes' else '' }}
+              --tags '{{ tags }}'
+              "
+    register: result
+    failed_when: >
+      result.rc != 0 and ('DBInstanceAlreadyExists' not in result.stderr)
+    changed_when: "result.rc == 0"
+
+  - name: Wait RDS to be available
+    rds:
+      command: facts
+      region: "{{ aws_region }}"
+      instance_name: "{{ database_name }}"
+    register: result
+    until: result.instance.status == "available"
+    retries: 20
+    delay: 60
+
+- include: create_db_and_users.yml
+  when: database_connection.login_host is defined

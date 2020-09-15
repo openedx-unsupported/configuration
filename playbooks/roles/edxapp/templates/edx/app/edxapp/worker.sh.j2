@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set edxapp_venv_bin = edxapp_venv_dir + "/bin" %}
+source {{ edxapp_app_dir }}/edxapp_env
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = edxapp_venv_bin + '/newrelic-admin run-program ' + edxapp_venv_bin + '/celery worker' %}
+
+export NEW_RELIC_CONFIG_FILE="{{ edxapp_app_dir }}/newrelic.ini"
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  HOSTNAME=$(hostname)
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
+{% else %}
+{% set executable = edxapp_venv_bin + '/celery worker' %}
+{% endif %}
+
+# We exec so that celery is the child of supervisor and can be managed properly
+
+exec {{ executable }} $@

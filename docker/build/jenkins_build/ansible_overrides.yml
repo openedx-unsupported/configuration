@@ -1,0 +1,76 @@
+---
+# This docker image for build jenkins is currently intended for local
+# development, or as a base for the community, so we leave out github oauth and
+# add the seed job creator.
+build_jenkins_configuration_scripts:
+  - 1addJarsToClasspath.groovy
+  - 2checkInstalledPlugins.groovy
+  - 3importCredentials.groovy
+  - 3installGroovy.groovy
+  - 3installPython.groovy
+  - 3mainConfiguration.groovy
+  - 3setGlobalProperties.groovy
+  - 3shutdownCLI.groovy
+  - 4configureEc2Plugin.groovy
+#  - 4configureGHOAuth.groovy  # intentionally left commented out
+  - 4configureGHPRB.groovy
+  - 4configureGit.groovy
+  - 4configureGithub.groovy
+  - 4configureMailerPlugin.groovy
+  - 4configureMaskPasswords.groovy
+  - 4configureSecurity.groovy
+  - 5configureEmailExtension.groovy
+  - 5addSeedJob.groovy  # added this
+  - 5createLoggers.groovy
+
+
+jenkins_common_non_plugin_template_files:
+  - credentials
+  - ec2_config
+  - email_ext_config
+  - ghprb_config
+  - git_config
+  - github_config
+  # - github_oauth # intentionally commented out
+  - groovy_config
+  - log_config
+  - mailer_config
+  - main_config
+  - mask_passwords_config
+  - properties_config
+  - python_config
+  - security
+  - seed_config
+
+# Add the jenkins-worker label so that this jenkins master will work
+# out-of-the-box for running most kinds of jobs.  This makes integration
+# testing easier, and is easier for the openedx community.
+# Also add the android-worker label so that android testing can be done
+# easily on a local dev environment. NOTE: this also requires running
+# playbooks/android_sdk.yml in order to have all of the necessary Android
+# compilation and testing tools, but isn't necessary for most cases and
+# therefore should be omitted from normal builds of this container.
+jenkins_common_main_labels:
+  - 'dsl-seed-runner'
+  - 'backup-runner'
+  - 'jenkins-worker'  # added this
+  - 'android-worker'
+
+# We're running all our jobs on the Jenkins Master by default (one container
+# only), so we need to bump up the number of executors for some jobs with
+# downstream jobs to work correctly.
+jenkins_common_main_num_executors: 6
+
+# Add basic permissions for a non-authenticated user to be able to view
+# the jenkins instance and its jobs. When used for development, an
+# initial admin password is generated and will be used for job creation.
+# However, in order to get to the login page, these permissions must be
+# configured.
+JENKINS_SECURITY_GROUPS:
+  - NAME: 'anonymous'
+    PERMISSIONS:
+      - 'hudson.model.Hudson.Read'
+      - 'hudson.model.Item.Discover'
+      - 'hudson.model.Item.Read'
+    USERS:
+      - 'anonymous'

@@ -13,30 +13,44 @@
 #   - pre-Ubuntu 16 releases do not contain the android sdk in their apt repos
 #   - the existing ppas containing the sdk are questionable
 #   - ubuntu-make did not seem reliable at the time of writing this
-- name: Download the Android SDK tarball
+- name: Download the Android SDK
   get_url:
-    url: "https://dl.google.com/android/{{ android_download }}"
-    dest: /tmp/android-sdk.tgz
+    url: "https://dl.google.com/android/repository/{{ android_download }}"
+    dest: /tmp/android-sdk.zip
 - name: Verify checksum of Android SDK
-  shell: "sha1sum /tmp/android-sdk.tgz"
+  shell: "sha1sum /tmp/android-sdk.zip"
   register: sdk_checksum
 - assert:
     that:
       "'{{ android_checksum }}' in sdk_checksum.stdout"
-- name: Unarchive tarball to /opt/android-sdk-linux
-  unarchive:
-    copy: no
-    src: /tmp/android-sdk.tgz
-    dest: /opt
-    creates: "{{ android_home }}"
+- name: Create Android Home directory
+  file:
+    path: "{{ android_home }}"
+    state: directory
     owner: "{{ android_user }}"
     group: "{{ android_group }}"
-  become: yes
+    mode: 0775   
+# Unzip Android SDK and pipe the output to dev/null because unzipping archive creates a large amount of logging which fails the job 
+- name: Unzip the Android archive
+  shell: "unzip /tmp/android-sdk.zip -d {{ android_home }} > /dev/null"
+- name: Change perms
+  shell: "chown -R {{ android_user }}:{{ android_group }} {{ android_home }}"
+
 # Use the android sdk manager to install the build targets necessary for the edx mobile app
-- name: Install Android API levels
-  shell: "echo 'y' | {{ android_home }}/tools/android update sdk -a --no-ui --filter {{ android_build_targets | join(',') }}"
+- name: Install Android API levels 
+  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_build_targets }}" 
   become: yes
   become_user: "{{ android_user }}"
+
+# Create repository file needed for sdkmanaer 
+- name: Create needed repository file
+  file:
+    path: "~/.android/repositories.cfg"
+    state: touch
+
+  become: yes
+  become_user: "{{ android_user }}"
+
 # Put Android package names into a list for easier installation command
 - name: Gather Android packages to download into a list
   util_map:
@@ -47,16 +61,9 @@
   register: android_packages
 # Use the android sdk manager to install the build tools necessary for the edx mobile app
 - name: Install other Android tools
-  shell: "echo 'y' | {{ android_home }}/tools/android update sdk -a --no-ui --filter {{ android_packages.function_output | join(',') }}"
+  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager {{ android_packages.function_output | join(' ') }} > /dev/null"
   become: yes
   become_user: "{{ android_user }}"
-# The following libraries are only needed to run AVD emulation, not for compiling
-- name: Install additional libraries used for Android emulation
-  apt:
-    name: "{{ item }}"
-    update_cache: yes
-    state: present
-  with_items: "{{ android_apt_libraries }}"
 # Link adb to tools, where all the rest of the android tools are
 - name: Add symlink for adb
   file:
@@ -65,25 +72,27 @@
     state: link
     owner: "{{ android_user }}"
     group: "{{ android_group }}"
-# TEMPORARY FIX TO https://code.google.com/p/android/issues/detail?id=228113
-# The version of the Android ARM system image used by the mobile team for screenshot
-# testing is currently unavailable. In the meantime, download a cached version on
-# s3.
-# Download cached version of Android Sys image, because it is no longer available
-# via the Android SDK
-- name: Download cached version of Android Sys Image 23 from s3
-  shell: "curl -L {{ android_sys_image_url }} -o /var/tmp/android-sysimage-23.tar.gz"
-  args:
-    creates: /var/tmp/android-sysimage-23.tar.gz
-- name: Verify checksum of downloaded android tarball
-  shell: "sha256sum /var/tmp/android-sysimage-23.tar.gz"
-  register: android_sys_image_download_checksum
-- assert:
-    that:
-        "'{{ android_sys_image_checksum }}' in android_sys_image_download_checksum.stdout"
-- name: Unzip Android system image
-  unarchive:
-    src: /var/tmp/android-sysimage-23.tar.gz
-    dest: "{{ android_home }}/system-images"
-    creates: "{{ android_home }}/system-images/android-23"
-    copy: no
+# The following libraries are only needed to run AVD emulation, not for compiling
+- name: Install additional libraries used for Android emulation
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+    state: present
+  with_items: "{{ android_apt_libraries }}"
+# Download Android System Image to run emulator 
+- name: Download Android System Image
+  shell: "echo 'y' | {{ android_home }}/tools/bin/sdkmanager  {{ android_sys_image }} > /dev/null" 
+  become: yes
+  become_user: "{{ android_user }}"
+
+- name: Adding executable permissions 
+  file:
+    path: "{{ item }}"
+    mode: 0655
+  with_items: "{{ android_files }}"
+
+- name: Install zip utility
+  apt:
+    name: "zip"
+    state: present
+    update_cache: yes

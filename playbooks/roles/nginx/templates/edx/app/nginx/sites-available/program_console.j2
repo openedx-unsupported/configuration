@@ -1,0 +1,29 @@
+{%- if "program_console" in nginx_default_sites -%}
+  {%- set default_site = "default_server" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+server {
+  listen {{ PROGRAM_CONSOLE_NGINX_PORT }} {{ default_site }};
+  server_name ~^((stage|prod)-)?program-console.*;
+
+  {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
+
+  location / {
+    root /edx/app/program-console/program-console/dist;
+    index index.html;
+  }
+}
+
+server {
+  listen {{ PROGRAM_CONSOLE_SSL_NGINX_PORT }} ssl;
+  server_name ~^((stage|prod)-)?program-console.*;
+  ssl_certificate /etc/ssl/certs/wildcard.sandbox.edx.org.pem;
+  ssl_certificate_key /etc/ssl/private/wildcard.sandbox.edx.org.key;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  location / {
+    root /edx/app/program-console/program-console/dist;
+    index index.html;
+  }
+}

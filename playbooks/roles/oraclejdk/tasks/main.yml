@@ -17,11 +17,10 @@
   with_items: "{{ oraclejdk_debian_pkgs }}"
 
 - name: Download Oracle Java
-  shell: "curl -b gpw_e24=http%3A%2F%2Fwww.oracle.com -b oraclelicense=accept-securebackup-cookie -O -L {{ oraclejdk_url }}"
-  args:
-    executable: /bin/bash
-    chdir: /var/tmp
-    creates: "/var/tmp/{{ oraclejdk_file }}"
+  get_url:
+    url: "{{ oraclejdk_url }}"
+    headers: 'Cookie:oraclelicense=accept-securebackup-cookie'
+    dest: "/var/tmp/{{ oraclejdk_file }}"
 
 - name: Create jvm dir
   file:
@@ -31,10 +30,10 @@
     group: root
 
 - name: Untar Oracle Java
-  shell: "tar -C /usr/lib/jvm -zxvf /var/tmp/{{ oraclejdk_file }}"
-  args:
-    executable: /bin/bash
-    creates: "/usr/lib/jvm/{{ oraclejdk_base }}"
+  unarchive:
+    src: "/var/tmp/{{ oraclejdk_file }}"
+    dest: "/usr/lib/jvm"
+    copy: no
 
 - name: Create symlink expected by elasticsearch
   file:

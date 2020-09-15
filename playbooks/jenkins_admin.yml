@@ -1,0 +1,27 @@
+# Configure an instance with the admin jenkins.
+- name: install python2
+  hosts: all
+  become: True
+  gather_facts: False
+  roles:
+    - python
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - jenkins_admin
+    # This requires an override of the following form:
+    # SPLUNKFORWARDER_LOG_ITEMS:
+    #   - source: /edx/var/jenkins/jobs/*/builds/*/log
+    #     index: '{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-jenkins'
+    #     sourcetype: jenkins_build
+    #     followSymlink: false
+    #     crcSalt: <SOURCE>
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER

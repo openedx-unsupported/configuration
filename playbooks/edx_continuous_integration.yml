@@ -1,0 +1,54 @@
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  serial: 10
+  vars:
+    migrate_db: "yes"
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      - xqueue
+      - learner_portal
+      - program_console
+      - prospectus
+      nginx_default_sites:
+      - lms
+    - mysql
+    - role: edxlocal
+      tags: edxlocal
+    - memcache
+    - mongo_3_6
+    - role: redis
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - testcourses
+    - oraclejdk
+    - elasticsearch
+    - forum
+    - { role: "xqueue", update_users: True }
+    - edx_ansible
+    - analytics_api
+    - ecommerce
+    - credentials
+    - discovery
+    - role: registrar
+      when: REGISTRAR_ENABLED
+    - role: learner_portal
+      when: LEARNER_PORTAL_ENABLED
+    - role: program_console
+      when: PROGRAM_CONSOLE_ENABLED
+    - role: prospectus
+      when: PROSPECTUS_ENABLED
+    - oauth_client_setup
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - flower

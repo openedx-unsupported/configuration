@@ -1,0 +1,39 @@
+# This playbook will run a management command for a Django application.
+#
+#
+# Required variables for this playbook:
+#
+#   - APPLICATION_PATH                - the top-level path of the Django application; the application lives underneath
+#                                       this directory in a directory with the same name as APPLICATION_NAME.
+#   - APPLICATION_NAME                - The name of the application that we are running against
+#   - APPLICATION_USER                - user which is meant to run the application
+#   - COMMAND                         - name of the management command to be run
+#
+# Other variables:
+#   - EDX_PLATFORM_SETTINGS           - The settings to use for the edx platform {production|devstack} DEFAULT: production
+#
+# Example command line to run this playbook:
+#    ansible-playbook -vvvv -i "localhost," -c local \
+#       -e @overrides.yml \
+#       run_management_command.yml
+#
+
+
+
+- hosts: all
+  vars:
+    EDX_PLATFORM_SETTINGS: "production"
+    COMMAND_PREFIX: " . {{ APPLICATION_PATH }}/{{ APPLICATION_NAME }}_env; /edx/bin/python.{{ APPLICATION_NAME }} /edx/bin/manage.{{ APPLICATION_NAME }}"
+  gather_facts: False
+  become: True
+  tasks:
+
+  - name: run management command
+    shell: '{{ COMMAND_PREFIX }} {{ COMMAND }}'
+    become_user: "{{ APPLICATION_USER }}"
+    when: APPLICATION_NAME != "edxapp"
+
+  - name: run edxapp management command
+    shell: '{{ COMMAND_PREFIX }} {{ COMMAND }} --settings "{{ EDX_PLATFORM_SETTINGS }}"'
+    become_user: "{{ APPLICATION_USER }}"
+    when: APPLICATION_NAME == "edxapp" 

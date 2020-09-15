@@ -1,0 +1,32 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role video_pipeline_integration
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: create edxapp video pipeline integration
+  shell: >
+    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
+    create_video_pipeline_integration {{ item.client_name}} {{ item.api_url }} {{ item.service_username }} --enabled
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ edxapp_user }}"
+  with_items: "{{ EDXAPP_VIDEO_PIPELINE_INTEGRATION_CONFIG }}"
+  when: CREATE_SERVICE_WORKER_USERS and CREATE_EDXAPP_VIDEO_PIPELINE_INTEGRATION is defined

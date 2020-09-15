@@ -1,0 +1,58 @@
+---
+- name: Install codejail specific system packages
+  apt:
+    name: '{{ item }}'
+    state: present
+    update_cache: yes
+  with_items: '{{ codejail_debian_packages }}'
+- name: Create group for sandbox user
+  group:
+    name: '{{ codejail_sandbox_group }}'
+    state: present
+    system: yes
+- name: Create sandbox user
+  user:
+    name: '{{ codejail_sandbox_user }}'
+    group: '{{ codejail_sandbox_group }}'
+    state: present
+- name: Create sandboxed virtual environments for every Python installation
+  shell: "virtualenv -p {{ item  }} --always-copy --no-site-packages {{ codejail_sandbox_env }}-{{ item }}"
+  become: true
+  with_items: "{{ CODEJAIL_PYTHON_VERSIONS }}"
+- name: Clone codejail repo
+  git:
+    repo: 'https://github.com/edx/codejail.git'
+    dest: '/tmp/codejail'
+    version: 'master'
+- name: Install codejail sandbox dependencies
+  pip:
+    requirements: '/tmp/codejail/requirements/sandbox.txt'
+    virtualenv: "{{ codejail_sandbox_env }}-{{ item }}"
+    state: present
+  become: true
+  with_items: "{{ CODEJAIL_PYTHON_VERSIONS }}"
+- name: Set permissions for sandboxed Python environments
+  file:
+    path: '{{ codejail_sandbox_env }}-{{ item }}'
+    recurse: yes
+    owner: '{{ codejail_sandbox_user }}'
+    group: '{{ codejail_sandbox_group }}'
+  with_items: "{{ CODEJAIL_PYTHON_VERSIONS }}"
+  become: true
+- name: Template sudoers file
+  template:
+    src:  "sudoers-template"
+    dest: "/etc/sudoers.d/01-sandbox"
+- name: Create AppArmor profiles for each Python installation
+  template:
+    src: "apparmor-template"
+    dest: '/etc/apparmor.d/home.{{ codejail_sandbox_user }}.{{ codejail_sandbox_name_base }}-{{ item }}.bin.python'
+  with_items: "{{ CODEJAIL_PYTHON_VERSIONS }}"
+- name: Parse AppArmor profiles
+  shell: 'apparmor_parser /etc/apparmor.d/home.{{ codejail_sandbox_user }}.{{ codejail_sandbox_name_base }}-{{ item }}.bin.python'
+  become: true
+  with_items: "{{ CODEJAIL_PYTHON_VERSIONS }}"
+- name: Enforce AppArmor profile
+  shell: 'aa-enforce /etc/apparmor.d/home.{{ codejail_sandbox_user }}.{{ codejail_sandbox_name_base }}-{{ item }}.bin.python'
+  become: true
+  with_items: "{{ CODEJAIL_PYTHON_VERSIONS }}"

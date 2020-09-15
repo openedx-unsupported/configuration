@@ -1,0 +1,35 @@
+# Manages a mongo cluster.
+# To set up a new mongo cluster, make sure you've configured MONGO_RS_CONFIG
+# as used by mongo_replica_set in the mongo_3_6 role.
+#
+# If you are initializing a cluster, your command might look like:
+# ansible-playbook mongo_3_6.yml -i 203.0.113.11,203.0.113.12,203.0.113.13 -e@/path/to/edx.yml -e@/path/to/ed.yml
+# If you just want to deploy an updated replica set config, you can run
+# ansible-playbook mongo_3_6.yml -i any-cluster-ip -e@/path/to/edx.yml -e@/path/to/ed.yml --tags configure_replica_set
+#
+# ADDING A NEW CLUSTER MEMBER
+# If you are adding a member to a cluster, you must be sure that the new machine is not first in your inventory
+# ansible-playbook mongo_3_6.yml -i 203.0.113.11,203.0.113.12,new-machine-ip -e@/path/to/edx.yml -e@/path/to/ed.yml
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+- name: Deploy MongoDB
+  hosts: all
+  become: True
+  gather_facts: True
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - mongo_3_6
+    - munin_node
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG

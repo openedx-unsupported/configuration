@@ -1,5 +1,5 @@
-FROM edxops/precise-common:latest
-MAINTAINER edxops
+FROM edxops/xenial-common:latest
+LABEL maintainer="edxops"
 
 ADD . /edx/app/edx_ansible/edx_ansible
 COPY docker/build/automated/ansible_overrides.yml /

@@ -1,0 +1,45 @@
+---
+
+- name: Install newrelic mongo integration
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - "nri-mongodb"
+
+- name: Create newrelic monitoring role
+  shell:
+    cmd: 'mongo --authenticationDatabase admin -u "{{ MONGO_ADMIN_USER }}" -p "{{ MONGO_ADMIN_PASSWORD }}" --host "{{ MONGO_REPL_SET }}/{{ EDXAPP_MONGO_HOSTS }}" --eval ''db.createRole({ role: "listCollections", privileges: [{ resource: {db:"",collection:""}, actions: ["listCollections"] }], roles: [] });'' admin'
+  register: create_newrelic_role_result
+  ignore_errors: true
+
+- name: Fail if create newrelic monitoring role actually failed
+  fail:
+    msg: create newrelic monitoring role failed
+  when: 'create_newrelic_role_result.rc != 0 and "already exists" not in create_newrelic_role_result.stdout'
+
+- name: Create newrelic mongo user
+  mongodb_user:
+    login_database: "admin"
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    replica_set: "{{ MONGO_REPL_SET }}"
+    database: "admin"
+    name: "{{ MONGO_NEWRELIC_MONITOR_USER }}"
+    password: "{{ MONGO_NEWRELIC_MONITOR_PASSWORD }}"
+    roles:
+      - "clusterMonitor"
+      - "listCollections"
+    state: present
+
+- name: Copy newrelic mongo integration config
+  template:
+    src: "mongodb-config.yml.j2"
+    dest: "/etc/newrelic-infra/integrations.d/mongodb-config.yml"
+    backup: yes
+
+- name: Restart the infrastructure agent to apply changes
+  service:
+    name: newrelic-infra
+    state: restarted

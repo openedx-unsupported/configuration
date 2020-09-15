@@ -1,0 +1,57 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for veda_pipeline_worker role
+#
+
+veda_pipeline_worker_service_name: 'veda_pipeline_worker'
+veda_pipeline_worker_user: '{{ veda_pipeline_worker_service_name }}'
+veda_pipeline_worker_home: '{{ COMMON_APP_DIR }}/{{ veda_pipeline_worker_service_name }}'
+veda_pipeline_worker_code_dir: '{{ veda_pipeline_worker_home }}/{{ veda_pipeline_worker_service_name }}'
+veda_pipeline_worker_venv_bin: '{{ veda_pipeline_worker_home }}/venvs/{{ veda_pipeline_worker_service_name }}/bin'
+veda_pipeline_worker_service_config: !!null
+veda_pipeline_worker_variants:
+  - deliver
+  - ingest
+  - youtubecallback
+
+veda_pipeline_worker_requirements_base: '{{ veda_pipeline_worker_code_dir }}'
+veda_pipeline_worker_requirements:
+  - requirements.txt
+
+veda_pipeline_worker_deliver_work_dir: '{{ COMMON_DATA_DIR }}/{{ veda_pipeline_worker_service_name }}/DELIVER_WORK_DIR'
+veda_pipeline_worker_ingest_work_dir: '{{ COMMON_DATA_DIR }}/{{ veda_pipeline_worker_service_name }}/INGEST_WORK_DIR'
+veda_pipeline_worker_work_dir: '{{ COMMON_DATA_DIR }}/{{ veda_pipeline_worker_service_name }}/VEDA_WORKING'
+
+veda_pipeline_worker_directories:
+  DELIVER_WORK_DIR: '{{ veda_pipeline_worker_deliver_work_dir }}'
+  INGEST_WORK_DIR: '{{ veda_pipeline_worker_ingest_work_dir }}'
+  VEDA_WORKING: '{{ veda_pipeline_worker_work_dir }}'
+
+veda_pipeline_worker_config_other: {}
+veda_pipeline_worker_config_extra: '{{ veda_pipeline_worker_config_other | combine(veda_pipeline_worker_directories) }}'
+
+veda_pipeline_worker_environment:
+  PATH: '{{ veda_pipeline_worker_venv_bin }}:{{ ansible_env.PATH }}'
+  PYTHONPATH: "{{ veda_pipeline_worker_code_dir }}"
+  VIDEO_PIPELINE_CFG: '{{ COMMON_CFG_DIR }}/{{ veda_pipeline_worker_service_name }}.yml'
+  DJANGO_SETTINGS_MODULE: "VEDA.settings.production"
+
+VEDA_PIPELINE_WORKER_GIT_IDENTITY: !!null
+VEDA_PIPELINE_WORKER_VERSION: 'master'
+
+VEDA_PIPELINE_WORKER_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: edx-video-pipeline.git
+    VERSION: '{{ VEDA_PIPELINE_WORKER_VERSION }}'
+    DESTINATION: '{{ veda_pipeline_worker_code_dir }}'
+    SSH_KEY: '{{ VEDA_PIPELINE_WORKER_GIT_IDENTITY }}'

@@ -12,7 +12,13 @@
 # 
 dependencies:
   - common
-  - supervisor
+  - role: supervisor
+    supervisor_spec:
+      - service: "{{ insights_service_name }}"
+        migration_check_services: "{{ insights_service_name }}"
+        python: "python.{{ insights_service_name }}"
+        code: "{{ insights_code_dir | default(None) }}"
+        env: "{{ insights_home | default(None) }}/insights_env"
   - role: edx_service
     edx_service_name: "{{ insights_service_name }}"
     edx_service_config: "{{ INSIGHTS_CONFIG }}"
@@ -22,3 +28,6 @@ dependencies:
     edx_service_packages:
       debian: "{{ insights_debian_pkgs + insights_release_specific_debian_pkgs[ansible_distribution_release] }}"
       redhat: []
+    edx_service_decrypt_config_enabled: "{{ INSIGHTS_DECRYPT_CONFIG_ENABLED }}"
+    edx_service_copy_config_enabled: "{{ INSIGHTS_COPY_CONFIG_ENABLED }}"
+

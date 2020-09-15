@@ -1,0 +1,13 @@
+{% if EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT %}
+  # w/in scorm/, override default return 403 for these file types
+  location ~ ^/static/scorm/(?:.*)(?:\.xml|\.json) {
+      try_files /{{ EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT }}/$file =404;
+  }
+
+  location ~ "/scorm/(?P<file>.*)" {
+    add_header 'Access-Control-Allow-Origin' $cors_origin;
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
+    try_files /{{ EDXAPP_SCORM_PLAYER_LOCAL_STORAGE_ROOT }}/$file =404;
+  }
+{% endif %}

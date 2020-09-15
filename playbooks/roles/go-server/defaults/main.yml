@@ -13,16 +13,13 @@
 GO_SERVER_SERVICE_NAME: "go-server"
 GO_SERVER_USER: "go"
 GO_SERVER_GROUP: "{{ GO_SERVER_USER }}"
-GO_SERVER_VERSION: "17.1.0-4511"
+GO_SERVER_VERSION: "17.10.0-5380"
 GO_SERVER_HOME: "/var/lib/go-server"
 GO_SERVER_CONF_HOME: "/etc/go"
 GO_SERVER_PLUGIN_DIR: "{{ GO_SERVER_HOME }}/plugins/external/"
 
-# Java version settings
-GO_SERVER_ORACLEJDK_VERSION: "8u65"
-GO_SERVER_ORACLEJDK_BASE: "jdk1.8.0_65"
-GO_SERVER_ORACLEJDK_BUILD: "b17"
-GO_SERVER_ORACLEJDK_LINK: "/usr/lib/jvm/java-8-oracle"
+#Openjdk PPA Apt source
+openjdk_apt_source: "ppa:openjdk-r/ppa"
 
 # java tuning
 GO_SERVER_JAVA_HOME: "{{ GO_SERVER_ORACLEJDK_LINK }}"
@@ -31,7 +28,7 @@ GO_SERVER_JAVA_HOME: "{{ GO_SERVER_ORACLEJDK_LINK }}"
 GO_SERVER_APT_SOURCE: "deb https://download.gocd.io /"
 GO_SERVER_APT_KEY_URL: "https://download.gocd.io/GOCD-GPG-KEY.asc"
 GO_SERVER_APT_NAME: "go-server"
-GO_SERVER_APT_PKGS: ["apache2-utils"]
+GO_SERVER_APT_PKGS: ["apache2-utils","openjdk-8-jdk"]
 
 # gocd-oauth-login
 GO_SERVER_OAUTH_LOGIN_VERSION: "1.2"
@@ -53,6 +50,14 @@ GO_SERVER_BACKUP_PASSWORD: ""
 GO_SERVER_GOMATIC_USERNAME: ""
 GO_SERVER_GOMATIC_PASSWORD: ""
 
+GO_SERVER_USERS:
+    - username: "{{ GO_SERVER_ADMIN_USERNAME }}"
+      password: "{{ GO_SERVER_ADMIN_PASSWORD }}"
+    - username: "{{ GO_SERVER_BACKUP_USERNAME }}"
+      password: "{{ GO_SERVER_BACKUP_PASSWORD }}"
+    - username: "{{ GO_SERVER_GOMATIC_USERNAME }}"
+      password: "{{ GO_SERVER_GOMATIC_PASSWORD }}"
+
 # go-server network settings
 GO_SERVER_PORT: 8153
 GO_SERVER_SECURE_PORT: 8154
@@ -68,6 +73,8 @@ GO_SERVER_H2DB_BACKUP_LOCATION: "{{ GO_SERVER_HOME }}/{{ GO_SERVER_H2DB_BACKUP_P
 # For use in backup/restore of a GoCD configuration.
 GO_SERVER_BACKUP_ENVIRONMENT: "{{ COMMON_ENVIRONMENT }}"
 GO_SERVER_BACKUP_SNITCH_URL: "https://nosnch.in/4444444444"
+GO_SERVER_BACKUP_OPSGENIE_HEARTBEAT_URL: "https://api.opsgenie.com/v2/heartbeats/HeartbeatName/ping"
+GO_SERVER_BACKUP_OPSGENIE_HEARTBEAT_KEY: "aaaaaaaa-bbbb-cccc-ddddd-eeeeeeeeeeee"
 GO_SERVER_BACKUP_FILENAME: "go-server-latest-backup.tgz"
 GO_SERVER_TEMP_RESTORE_DIRECTORY: "/tmp/go-server-backup"
 GO_SERVER_BACKUP_S3_BUCKET: "edx-{{ GO_SERVER_BACKUP_ENVIRONMENT }}-gocd-backup"
@@ -77,6 +84,8 @@ GO_SERVER_BACKUP_PIP_PKGS: ["boto", "awscli"]
 GO_SERVER_BACKUP_API_URL: "http://localhost:8153/go/api/backups"
 GO_SERVER_BACKUP_TMP_LOCATION: "/tmp/{{ GO_SERVER_BACKUP_FILENAME }}"
 GO_SERVER_BACKUP_CRON_SCRIPT_LOCATION: "/root/gocd_backup.sh"
+GO_SERVER_BACKUP_CRON_HOUR: "23"
+GO_SERVER_BACKUP_CRON_MINUTE: "30"
 
 # When "true", attempts to restore go-server backup from S3.
 GO_SERVER_RESTORE_BACKUP: false
@@ -90,3 +99,6 @@ GO_SERVER_ADMIN_USERS: ["admin"]
 
 # key for go-agents to autoregister with the go-server
 GO_SERVER_AUTO_REGISTER_KEY: "dev-only-override-this-key"
+
+# The maximum amount of memory used by the go-server."
+GO_SERVER_MAX_MEM: "1024m"

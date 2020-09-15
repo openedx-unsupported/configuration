@@ -1,0 +1,112 @@
+mongo_logappend: true
+
+#This way, when mongod receives a SIGUSR1, it'll close and reopen its log file handle
+mongo_logrotate: reopen
+
+MONGO_VERSION_MAJOR_MINOR: "3.6"
+MONGO_VERSION_PATCH: "17"
+PYMONGO_VERSION: "3.6.1"
+MONGO_VERSION: "{{ MONGO_VERSION_MAJOR_MINOR }}.{{ MONGO_VERSION_PATCH }}"
+mongo_port: "27017"
+mongo_extra_conf: ''
+mongo_key_file: '/etc/mongodb_key'
+
+mongo_data_dir: "{{ COMMON_DATA_DIR }}/mongo"
+mongo_log_dir: "{{ COMMON_LOG_DIR }}/mongo"
+mongo_journal_dir: "{{ COMMON_DATA_DIR }}/mongo/mongodb/journal"
+mongo_user: mongodb
+
+MONGODB_REPO: "deb http://repo.mongodb.org/apt/ubuntu {{ ansible_distribution_release }}/mongodb-org/{{ MONGO_VERSION_MAJOR_MINOR }} multiverse"
+MONGODB_REPO_XENIAL: "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/{{ MONGO_VERSION_MAJOR_MINOR }} multiverse"
+
+mongodb_debian_pkgs:
+  - "mongodb-org={{ MONGO_VERSION }}"
+  - "mongodb-org-server={{ MONGO_VERSION }}"
+  - "mongodb-org-shell={{ MONGO_VERSION }}"
+  - "mongodb-org-mongos={{ MONGO_VERSION }}"
+  - "mongodb-org-tools={{ MONGO_VERSION }}"
+
+
+
+mongo_configure_replica_set: true
+
+# Vars Meant to be overridden
+MONGO_ADMIN_USER: 'admin'
+MONGO_ADMIN_PASSWORD: 'password'
+MONGO_USERS:
+  - user: cs_comments_service
+    password: password
+    database: cs_comments_service
+    roles: readWrite
+  - user: edxapp
+    password: password
+    database: edxapp
+    roles: readWrite
+
+# This default setting is approriate for a single machine installation
+# This will need to be overridden for setups where mongo is on its own server
+# and/or you are configuring mongo replication. If the override value is
+# 0.0.0.0 mongo will listen on all IPs. The value may also be set to a
+# specific IP.
+MONGO_BIND_IP: 127.0.0.1
+
+MONGO_REPL_SET: "rs0"
+MONGO_AUTH: true
+
+MONGO_CLUSTER_KEY: "CHANGEME"
+
+# Cluster member configuration
+# Fed directly into mongodb_replica_set module
+MONGO_RS_CONFIG:
+  _id: '{{ MONGO_REPL_SET }}'
+  members:
+    - host: '127.0.0.1'
+
+# Storage engine options in 3.2: "mmapv1" or "wiredTiger"
+# 3.2 and 3.4 default to wiredTiger
+MONGO_STORAGE_ENGINE: "wiredTiger"
+
+# List of dictionaries as described in the mount_ebs role's default
+# for the volumes.
+# Useful if you want to store your mongo data and/or journal on separate
+# disks from the root volume.  By default, they will end up mongo_data_dir
+# on the root disk.
+MONGO_VOLUMES: []
+
+# WiredTiger takes a number of optional configuration settings
+# which can be defined as a yaml structure in your secure configuration.
+MONGO_STORAGE_ENGINE_OPTIONS: !!null
+
+mongo_logpath: "{{ mongo_log_dir }}/mongodb.log"
+mongo_dbpath: "{{ mongo_data_dir }}/mongodb"
+
+# In environments that do not require durability (devstack / Jenkins)
+# you can disable the journal to reduce disk usage
+mongo_enable_journal: true
+
+MONGO_LOG_SERVERSTATUS: true
+
+# Vars for configuring a mongo backup node. If enabled, this node will be provisioned with a script that uses mongodump
+# to backup the database to an ebs volume at a period set by mongo_backup_cron.
+# Set MONGO_BACKUP_ENABLED to true to enable. If enabled, all the other MONGO_BACKUP_ vars must be set according to your
+# setup.
+MONGO_BACKUP_ENABLED: false
+MONGO_BACKUP_NODE: "" # note: most likely the ip address of the instance on which to perform the backups
+MONGO_BACKUP_EBS_VOLUME_DEVICE: ""
+MONGO_BACKUP_EBS_VOLUME_ID: ""
+MONGO_BACKUP_AUTH_DATABASE: ""
+MONGO_BACKUP_PRUNE_OLDER_THAN_DATE: ""  # passed to `date -d`; should be a relative date like "-30days"
+MONGO_BACKUP_SNITCH_URL: "" # Optional URL that will be used to ping a monitoring service (such as Dead Man's Snitch) upon successful completion of a backup.
+MONGO_BACKUP_VOLUME_MOUNT_PATH: "/mnt/mongo-backup"
+MONGO_BACKUP_SNAPSHOT_DESC: "mongo-backup"
+mongo_backup_script_path: "/usr/local/sbin/backup-mongo.sh"
+mongo_backup_cron:
+  minute: '12'
+  hour: '*/12'
+  day: '*'
+  month: '*'
+  weekday: '*'
+
+# Internal variable set to true dynamically if backups enabled and playbook running on MONGO_BACKUP_NODE. Do not
+# manually override.
+is_backup_node: false

@@ -1,0 +1,23 @@
+[Unit]
+Description=Hermes - Hermes is the messenger/bureaucrat of the edx stack. It fetches documents and files them on a server's filesystem on a regular basis
+Documentation=https://github.com/edx/hermes/blob/master/README.md
+After=network.target
+
+[Service]
+User={{ hermes_user }}
+
+Type=simple
+TimeoutSec=60
+
+Restart=always
+RestartSec=1
+
+WorkingDirectory={{ hermes_code_dir }}
+ExecStart={{ hermes_app_dir }}/{{ hermes_service_name }}.sh -i {{ HERMES_INTERVAL }} -j {{ HERMES_JITTER }} -y {{ hermes_manifest_yaml_file_path }}
+
+{% if HERMES_ENABLE_PRE_CHECK_SCRIPT %}
+ExecStartPre={{ hermes_app_dir }}/pre_hermes_checks.sh
+{%- endif %}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+#jinja2:trim_blocks: False
+{# Have to disable trim blocks or else fi at end of file is not on it's own line #}
+#!/bin/bash
+
+# Reload LMS gunicorn if this machine has the LMS frontend
+if [ -e '/edx/app/supervisor/conf.d/lms.conf' ]; then
+  /edx/bin/supervisorctl signal HUP lms
+fi
+
+# Reload LMS workers if this machine has workers
+if [ -e '/edx/app/supervisor/conf.d/workers.conf' ]; then
+    /edx/bin/supervisorctl signal HUP {% for w in edxapp_workers %}{% if w.service_variant == 'lms' %}edxapp_worker:{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}{% if not loop.last %} {% endif %}{% endif %}{% endfor %}
+fi

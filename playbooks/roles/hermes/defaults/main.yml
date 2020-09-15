@@ -1,0 +1,86 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role hermes
+#
+
+#
+# vars are namespaced with the module name.
+#
+
+hermes_user: hermes
+hermes_role_name: hermes
+hermes_service_name: hermes
+hermes_source_repo: https://github.com/edx/hermes.git
+HERMES_VERSION: master
+hermes_app_dir: "{{ COMMON_APP_DIR }}/{{ hermes_service_name }}"
+hermes_download_dir: "{{ hermes_app_dir }}/downloads"
+hermes_code_dir: "{{ hermes_app_dir }}/{{ hermes_service_name }}"
+hermes_venv_dir: "{{ hermes_app_dir }}/venvs/{{ hermes_service_name }}"
+hermes_venv_bin: "{{ hermes_venv_dir }}/bin"
+hermes_manifest_yaml_file_path: "{{ COMMON_CFG_DIR }}/{{ hermes_service_name }}.yml"
+hermes_private_key_file_path: "{{ hermes_app_dir }}/{{ hermes_service_name }}-private-key"
+hermes_environment:
+  PATH: "{{ hermes_venv_dir }}/bin:{{ ansible_env.PATH }}"
+#
+# OS packages
+#
+
+hermes_debian_pkgs: []
+
+hermes_redhat_pkgs: []
+
+# the name of the yaml file on disk that the application is looking for without the suffix.
+# this is usually the play used to configure the service, but not always.
+HERMES_TARGET_SERVICE: "Not configured"
+
+# HERMES_INTERVAL is how often to check S3 for updates
+HERMES_INTERVAL: 60
+
+# HERMES_JITTER is how much jitter to add to HERMES_INTERVAL.
+# Each time hermes sleeps between check is a random number between HERMES_INTERVAL and HERMES_INTERVAL+HERMES_JITTER
+HERMES_JITTER: 40
+
+# Enable pre_hermes_checks.sh in systemd service file
+HERMES_ENABLE_PRE_CHECK_SCRIPT: False
+
+# Where to download config file from, start with s3:// or https://
+HERMES_REMOTE_FILE_LOCATION: "Not configured"
+
+# Where to download the file from eg: s3://some-bucket/{{ HERMES_TARGET_SERVICE }}.yml
+HERMES_REMOTE_FILE_PATH: "{{ HERMES_REMOTE_FILE_LOCATION }}/{{ COMMON_ENVIRONMENT }}/{{ HERMES_TARGET_SERVICE }}.yml"
+
+# Where to download the file to
+HERMES_LOCAL_FILE_PATH: "{{ hermes_download_dir }}/{{ HERMES_TARGET_SERVICE }}.yml"
+
+# How to copy the downloaded file to the config path the application expects
+HERMES_COPY_COMMAND: /bin/cp {{ hermes_download_dir }}/{{ HERMES_TARGET_SERVICE }}.yml {{ COMMON_CFG_DIR }}/{{ HERMES_TARGET_SERVICE }}.yml
+
+# How to restart the application
+HERMES_RELOAD_COMMAND: /edx/bin/supervisorctl signal HUP all
+
+# Hermes typically reloads one config file and reloads all the services on that box, typically 1 service for us
+# if you need to do something more complex like reloading multiple services, running additional commands etc
+# you could overwrite HERMES_SERVICE_CONFIG directly and ignore these defaults
+HERMES_SERVICE_CONFIG:
+  - url: '{{ HERMES_REMOTE_FILE_PATH }}'
+    filename: '{{ HERMES_LOCAL_FILE_PATH }}'
+    command:  'sudo {{ HERMES_COPY_COMMAND }} && sudo {{ HERMES_RELOAD_COMMAND }}'
+    secret_key_files: "{{ HERMES_PRIVATE_KEYS_DICT | map('regex_replace','(.*)','/edx/app/hermes/hermes-\\1') | join(',') if HERMES_PRIVATE_KEYS_DICT is defined else None }}"
+
+# These are dropped into sudoers for the user that runs this program, care should be taken to ensure they are safe
+# to run. By default we assume the 1 service per box and restart supervisor model. If you did something custom with
+# HERMES_SERVICE_CONFIG you may need to make adjustments here as well to give the application user permission to perform the actions
+# in its service config
+HERMES_ALLOWED_SUDO_COMMANDS:
+  - "{{ HERMES_COPY_COMMAND }}"
+  - "{{ HERMES_RELOAD_COMMAND }}"
+
+HERMES_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ hermes_service_name }}"

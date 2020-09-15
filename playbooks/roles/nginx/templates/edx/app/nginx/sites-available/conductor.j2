@@ -1,0 +1,65 @@
+{%- if "conductor" in nginx_default_sites -%}
+  {%- set default_site = "default_server" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+server {
+  # Conductor configuration file for nginx, templated by ansible
+
+  {% if NGINX_CONDUCTOR_PROXY_INTERCEPT_ERRORS %}
+  proxy_intercept_errors on;
+  {% endif %}
+
+  # Catches 404s from S3 and returns the default nginx 404 page instead
+  error_page 404 @error404;
+
+  location @error404 {
+    return 404;
+  }
+
+  {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}";
+  {% endif %}
+
+  listen {{ CONDUCTOR_NGINX_PORT }} {{ default_site }};
+
+  # Redirects using the client port instead of the port the service is running
+  # on. This prevents redirects to the local 8000 port.
+  port_in_redirect off;
+
+  {% if CONDUCTOR_REDIRECT_ROOT %}
+    location = / {
+      return 302 {{ CONDUCTOR_ROOT_REDIRECT_PATH }};
+    }
+  {% endif %}
+
+  # CONDUCTOR_STATIC_SITES will be a list of dictionaries which have a:
+  #   - router_path: The path you will go to on the router to access the content
+  #   - proxied_path: The path to proxy the requests to
+  {% for static_site in CONDUCTOR_STATIC_SITES %}
+
+    # Matches: <router>/<organization>/
+    location = /{{ static_site.router_path }}/ {
+        proxy_pass {{ static_site.proxied_path }}/index.html;
+    }
+
+    # Matches: <router>/<organization>/[.../]<file.ext>
+    location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
+        proxy_pass {{ static_site.proxied_path }}/$1$2;
+    }
+
+    # Matches: <router>/<organization>/<subpage>/[.../]
+    location ~ ^/{{ static_site.router_path }}/([a-z0-9-]+)[/]? {
+        proxy_pass {{ static_site.proxied_path }}/$1/index.html;
+    }
+
+  {% endfor %}
+
+  location /HealthCheck {
+    return 200;
+  }
+}

@@ -26,16 +26,18 @@
 # EDXAPP_AUTOMATED_USERS:
 #   ecom:
 #     sudo_commands:
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms migrate --list --settings=aws"
+#       - command: "/edx/app/edxapp/edx-platform/manage.py lms showmigrations --settings=production"
+#         python_prefix: /edx/app/edxapp/venvs/edxapp/bin/python
 #         sudo_user: "edxapp"
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py cms migrate --list --settings=aws"
+#       - command: "/edx/app/edxapp/edx-platform/manage.py cms showmigrations --settings=production"
+#         python_prefix: /edx/app/edxapp/venvs/edxapp/bin/python
 #         sudo_user: "edxapp"
 #     authorized_keys:
 #       - 'ssh-rsa <REDACTED> ecom+admin@example.com'
 #       - 'ssh-rsa <REDACTED> ecom+devel@example.com'
 #   analytics:
 #     sudo_commands:
-#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms help --settings=aws"
+#       - command: "/edx/app/edxapp/venvs/edxapp/bin/python /edx/app/edxapp/edx-platform/manage.py lms help --settings=production"
 #         sudo_user: "edxapp"
 #     authorized_keys: ['ssh-rsa <REDACTED> analytics@example.com']
 #
@@ -61,9 +63,8 @@
     group: "root"
     mode: "0440"
     validate: 'visudo -cf %s'
-  when: automated_sudoers_template
   with_dict: "{{ AUTOMATED_USERS }}"
-  
+
 - name: Create .ssh directory
   file:
     path: "/home/{{ item.key }}/.ssh"
@@ -72,7 +73,7 @@
     owner: "{{ item.key }}"
     group: "{{ item.key }}"
   with_dict: "{{ AUTOMATED_USERS }}"
-    
+
 - name: Build authorized_keys file
   template:
     src: "home/automator/.ssh/authorized_keys.j2"
@@ -81,7 +82,7 @@
     owner: "{{ item.key }}"
     group: "{{ item.key }}"
   with_dict: "{{ AUTOMATED_USERS }}"
-    
+
 - name: Build known_hosts file
   file:
     path: "/home/{{ item.key }}/.ssh/known_hosts"
@@ -90,3 +91,27 @@
     owner: "{{ item.key }}"
     group: "{{ item.key }}"
   with_dict: "{{ AUTOMATED_USERS }}"
+
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+
+- name: Allow automated users to ssh
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '#automated_users_allowed_to_ssh'
+    line: "AllowUsers {{ AUTOMATED_USERS.keys() | list | join(' ') }} #automated_users_allowed_to_ssh"
+  when: ( AUTOMATED_USERS|length > 0 ) and docker_container.stdout != 'yes'
+  register: users_ssh_access
+
+- name: restart ssh
+  service:
+    name: ssh
+    state: restarted
+  when: users_ssh_access.changed
+
+- name: Add management command users to docker group
+  command: 'sudo usermod -aG docker "{{ item }}"'
+  when: ENABLE_DOCKER_ACCESS_FOR_AUTOMATED_USERS is defined and ENABLE_DOCKER_ACCESS_FOR_AUTOMATED_USERS
+  with_items: '{{ AUTOMATED_USERS }}'
