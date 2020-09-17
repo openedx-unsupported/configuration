@@ -28,6 +28,7 @@ Add any new changes to the top(right below this line).
 
  - 2020-09-03
      - Role: edxapp
+        - Added `EDXAPP_FEATURES_DEFAULT` and `EDXAPP_FEATURES_EXTRA` that are combined into `EDXAPP_FEATURES` allowing for future options to be added as needed during provisioning.
         - Added `EDXAPP_AUTH_USE_OPENID_PROVIDER` to allow creating/updating the configuration values during provisioning.
         - Added `EDXAPP_ENABLE_COMBINED_LOGIN_REGISTRATION` to allow creating/updating the configuration values during provisioning.
         - Added `EDXAPP_ENABLE_CORS_HEADERS` to allow creating/updating the configuration values during provisioning.
