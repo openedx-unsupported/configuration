@@ -90,6 +90,7 @@ sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/develop
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 program_console="false"
+account="true"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
@@ -225,6 +226,8 @@ REGISTRAR_VERSION: $registrar_version
 LEARNER_PORTAL_VERSION: $learner_portal_version
 PROGRAM_CONSOLE_VERSION: $program_console_version
 PROSPECTUS_VERSION: $prospectus_version
+ACCOUNT_VERSION: $account_version
+
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
@@ -271,6 +274,12 @@ PROSPECTUS_SSL_NGINX_PORT: 443
 PROSPECTUS_VERSION: $prospectus_version
 PROSPECTUS_ENABLED: $prospectus
 PROSPECTUS_SANDBOX_BUILD: True
+
+ACCOUNT_NGINX_PORT: 80
+ACCOUNT_SSL_NGINX_PORT: 443
+ACCOUNT_VERSION: $program_console_version
+ACCOUNT_ENABLED: $account
+ACCOUNT_SANDBOX_BUILD: True
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -386,6 +395,9 @@ PROGRAM_CONSOLE_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
 PROGRAM_CONSOLE_LMS_BASE_URL: "https://${deploy_host}"
 PROGRAM_CONSOLE_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 
+ACCOUNT_URL_ROOT: "https://account-${deploy_host}"
+ACCOUNT_LMS_BASE_URL: "https://${deploy_host}"
+
 PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
 PROSPECTUS_USE_COURSE_URL_SLUGS: true
 OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
@@ -476,7 +488,7 @@ EOF
 fi
 
 declare -A deploy
-plays="prospectus edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_console learner_portal"
+plays="prospectus edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_console account learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}

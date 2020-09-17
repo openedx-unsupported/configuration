@@ -10,10 +10,17 @@ Add any new changes to the top(right below this line).
      - Role: nginx
        - Add location to support accessing files from ```EDXAPP_MEDIA_URL``` under the cms site.
 
+ - 2020-09-17
+     - Playbook: account
+       - Added playbook to setup account micro-frontend application on sandboxes
+
+     - Role: account
+       - Created the account role for micro-frontend application to be setup
+
  - 2020-09-14
      - Playbook: program_manager
        - Removed. It is replaced by program_console
-    
+
      - Role: program_manager
        - Removed. It is replaced by program_console
 
