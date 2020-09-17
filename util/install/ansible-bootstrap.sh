@@ -96,7 +96,7 @@ fi
 EDX_PPA="deb http://ppa.edx.org ${SHORT_DIST} main"
 
 # Upgrade the OS
-sudo rm -r /var/lib/apt/lists/* -vf
+rm -r /var/lib/apt/lists/* -vf
 apt-get update -y
 
 # To apt-key update in bionic, gnupg is needed.
