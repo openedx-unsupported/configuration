@@ -15,7 +15,8 @@ ENV LC_ALL en_US.UTF-8
 ENV ANSIBLE_REPO="https://github.com/edx/ansible"
 ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
 ARG OPENEDX_RELEASE=master
-ENV CONFIGURATION_VERSION="${OPENEDX_RELEASE}"
+# ENV CONFIGURATION_VERSION="${OPENEDX_RELEASE}"
+ENV CONFIGURATION_VERSION="tuchfarber/fix_common_image_builders"
 
 ADD util/install/ansible-bootstrap.sh /tmp/ansible-bootstrap.sh
 RUN chmod +x /tmp/ansible-bootstrap.sh
