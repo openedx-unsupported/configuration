@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-09-18
+     - Role: nginx
+       - Add location to support accessing files from ```EDXAPP_MEDIA_URL``` under the cms site.
+
  - 2020-09-14
      - Playbook: program_manager
        - Removed. It is replaced by program_console
