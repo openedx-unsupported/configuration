@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-09-18
+     - Role: nginx
+       - Add location to support accessing files from ```EDXAPP_MEDIA_URL``` under the cms site.
+
 - Role: edxapp BREAKING_CHANGE
   - The sandbox environment that runs instructor written python code used to run python 2.7. We update the default to
     python 3.5 but provide a new variable to be able to go back to the old setting.  If `edxapp_sandbox_python_version`
