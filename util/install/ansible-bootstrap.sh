@@ -138,7 +138,7 @@ fi
 # which may differ from what is pinned in virtualenvironments
 apt-get update -y
 
-if [[ "${SHORT_DIST}" != bionic ]] ;then
+if [[ "${SHORT_DIST}" != bionic ]] && [[ "${SHORT_DIST}" != focal ]] ;then
   apt-get install -y python2.7 python2.7-dev python-pip python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 else
   apt-get install -y python3-pip python3-apt python3-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
