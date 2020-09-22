@@ -184,7 +184,7 @@ if __name__ == '__main__':
                     os.chdir(cmd_vars['code_dir'])
                     # Run migration check command.
                     output = subprocess.check_output(cmd, shell=True, )
-                    if '[ ]' in output:
+                    if b'[ ]' in output:
                         raise Exception("Migrations have not been run for {}".format(service))
                     else:
                         report.append("Checked migrations: {}".format(service))
