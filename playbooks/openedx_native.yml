@@ -16,8 +16,14 @@
   vars:
     migrate_db: "yes"
     EDXAPP_PREVIEW_LMS_BASE: '{{ EDXAPP_LMS_BASE }}'
-    EDXAPP_LOGIN_REDIRECT_WHITELIST: [ "{{ EDXAPP_CMS_BASE }}" ]
+    EDXAPP_LOGIN_REDIRECT_WHITELIST: [
+        "{{ EDXAPP_CMS_BASE }}",
+        "{{ GRADEBOOK_MFE_BASE }}",
+        "{{ ACCOUNT_MFE_BASE }}",
+        "{{ PROFILE_MFE_BASE }}"
+    ]
     EDXAPP_LMS_BASE_SCHEME: http
+    COMMON_LMS_BASE_URL: "{{ EDXAPP_LMS_BASE_SCHEME }}://{{ EDXAPP_LMS_BASE }}"
     EDXAPP_LMS_NGINX_PORT: '80'
     EDX_PLATFORM_VERSION: 'master'
     # Set to false if deployed behind another proxy/load balancer.
@@ -35,10 +41,16 @@
     SANDBOX_ENABLE_INSIGHTS: true
     SANDBOX_ENABLE_RABBITMQ: true
     SANDBOX_ENABLE_NOTES: false
+    SANDBOX_ENABLE_ACCOUNT: true
+    SANDBOX_ENABLE_PROFILE: true
+    SANDBOX_ENABLE_GRADEBOOK: true
     DEMO_ROLE_ENABLED: true
     ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING: false
     EDXAPP_ENABLE_MEMCACHE: true
     EDXAPP_ENABLE_ELASTIC_SEARCH: true
+    GRADEBOOK_MFE_BASE: "gradebook.{{ EDXAPP_LMS_BASE }}"
+    PROFILE_MFE_BASE: "profile.{{ EDXAPP_LMS_BASE }}"
+    ACCOUNT_MFE_BASE: "account.{{ EDXAPP_LMS_BASE }}"
   roles:
     - role: swapfile
       SWAPFILE_SIZE: 4GB
@@ -109,3 +121,9 @@
       when: not COMMON_ENABLE_DATADOG
     - role: user_retirement_pipeline
       when: COMMON_RETIREMENT_SERVICE_SETUP
+    - role: profile_mfe
+      when: SANDBOX_ENABLE_PROFILE
+    - role: gradebook_mfe
+      when: SANDBOX_ENABLE_GRADEBOOK
+    - role: account_mfe
+      when: SANDBOX_ENABLE_ACCOUNT

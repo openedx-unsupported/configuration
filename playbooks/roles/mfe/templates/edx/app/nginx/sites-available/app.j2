@@ -1,0 +1,35 @@
+#
+# {{ ansible_managed }}
+#
+
+server {
+  server_name {{ MFE_HOSTNAME }};
+  listen {{ MFE_NGINX_PORT }};
+
+{% if NGINX_ENABLE_SSL %}
+  {% include "concerns/handle-ip-disclosure.j2" %}
+  rewrite ^ https://$host$request_uri? permanent;
+{% else %}  
+  {% if NGINX_REDIRECT_TO_HTTPS %}
+    {% include "concerns/handle-tls-terminated-elsewhere-ip-disclosure.j2" %}
+    {% include "concerns/handle-tls-terminated-elsewhere-redirect.j2" %}
+  {% endif %}
+  {% include "concerns/mfe-common.j2" %}
+{% endif %}
+
+  {% include "concerns/mfe.j2" %}
+}
+
+{% if NGINX_ENABLE_SSL %}
+server {
+  server_name {{ MFE_HOSTNAME }};
+  listen {{ MFE_SSL_NGINX_PORT }} ssl;
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+
+  {% include "concerns/mfe-common.j2" %}
+
+  {% include "concerns/mfe.j2" %}
+}
+{% endif %}
