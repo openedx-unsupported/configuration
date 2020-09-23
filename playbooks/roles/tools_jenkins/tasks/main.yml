@@ -23,3 +23,59 @@
   tags:
     - install
     - install:system-requirements
+
+- name: download the Cloudwatch agent package
+  get_url:
+    dest: /tmp/{{ item.name }}
+    url: "{{ item.url }}"
+  register: download_deb
+  until: download_deb is succeeded
+  retries: 5
+  with_items: "{{ cloudwatch_agent_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install xenial/bionic Cloudwatch agent packages
+  shell: gdebi -nq /tmp/{{ item.name }}
+  with_items: "{{ cloudwatch_agent_s3_deb_pkgs }}"
+  when: download_deb.changed and
+        ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: download Cloudagent configuration package from S3
+  get_url:
+    dest: /opt/aws/amazon-cloudwatch-agent/bin/{{ item.name }}
+    url: "{{ item.url }}"
+  register: download_configuration_file
+  with_items: "{{ cloudwatch_agent_config }}"
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add the cwagent user to adm group
+  user:
+    name: '{{ cwagent_user }}'
+    groups:  '{{ cwagent_group }}'
+    append: yes
+    shell: /bin/bash
+  tags:
+    - install
+    - install:system-requirements
+
+- name: reload cloudwatch agent configuration
+  command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/bin/{{ item.name  }} -s
+  with_items: "{{ cloudwatch_agent_config }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: restart cloudwatch agent
+  command: systemctl restart amazon-cloudwatch-agent.service
+  tags:
+    - install
+    - install:system-requirements
