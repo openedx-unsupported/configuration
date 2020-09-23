@@ -94,6 +94,18 @@
   become_user: "{{ common_web_user }}"
   when: certs_gpg_key.changed
 
+- name: add deadsnakes repo
+  apt_repository:
+      repo: ppa:deadsnakes/ppa
+  when: ansible_distribution_version is version('20.04', '<')
+
+- name: install python3.8
+  apt:
+    pkg:
+      - python3.8-dev
+      - python3.8-distutils
+  when: ansible_distribution_version is version('20.04', '<')
+
 - include: deploy.yml
   tags:
     - deploy
