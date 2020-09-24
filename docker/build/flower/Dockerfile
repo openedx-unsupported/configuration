@@ -4,7 +4,7 @@ FROM ubuntu:xenial
 RUN apt-get update && apt-get install -y python3-pip
 
 # Install the required packages
-RUN pip3 install --no-cache-dir redis==2.10.6 celery==3.1.18 flower==0.9.2
+RUN pip3 install --no-cache-dir redis==3.2.0 celery==4.4.7 flower==0.9.5
 
 # PYTHONUNBUFFERED: Force stdin, stdout and stderr to be totally unbuffered. (equivalent to `python -u`)
 # PYTHONHASHSEED: Enable hash randomization (equivalent to `python -R`)
