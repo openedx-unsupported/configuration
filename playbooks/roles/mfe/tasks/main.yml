@@ -1,0 +1,120 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role mfe
+#
+# Overview:
+#
+# This role performs the operations needed to deploy a MFE
+# in a single server.
+#
+# Example play:
+#
+# Rather than being included in the play, this role
+# is included as a dependency by other roles in the meta/main.yml
+# file.  The including role should add the following
+# depency definition.
+#
+# dependencies:
+#   - role: mfe
+#   MFE_BASE: "{{ PROFILE_MFE_BASE }}"
+#   MFE_BASE_URL: "{{ PROFILE_BASE_URL }}"
+#   MFE_NAME: "{{ PROFILE_REPO_NAME }}"
+#   MFE_SITE_NAME: "{{ PROFILE_SITE_NAME }}"
+#   MFE_APP_VERSION: "{{ PROFILE_VERSION }}"
+#   MFE_NODE_VERSION: "{{ PROFILE_NODE_VERSION }}"
+
+
+
+- name: install needed packages
+  apt:
+    name: "{{ MFE_DEBIAN_PKGS }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  command: "nodeenv {{ MFE_NODEENV_DIR }} --node={{ MFE_NODE_VERSION }} --prebuilt"
+  args:
+    creates: "{{ MFE_NODEENV_DIR }}"
+  become_user: "{{ MFE_USER }}"
+  environment: "{{ MFE_ENVIRONMENT }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: upgrade npm
+  command: "npm install -g npm@{{ MFE_NPM_VERSION }}"
+  become_user: "{{ MFE_USER }}"
+  environment: "{{ MFE_ENVIRONMENT }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install npm dependencies
+  shell: "npm install --dev --no-save"
+  args:
+    chdir: "{{ MFE_CODE_DIR }}"
+  become_user: "{{ MFE_USER }}"
+  environment: "{{ MFE_ENVIRONMENT }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install npm overrides
+  npm:
+    name: "{{ MFE_NPM_OVERRIDES }}"
+    path: "{{ MFE_CODE_DIR }}"
+  become_user: "{{ MFE_USER }}"
+  environment: "{{ MFE_ENVIRONMENT }}"
+  when: MFE_NPM_OVERRIDES | bool
+  tags:
+    - install
+    - install:app-requirements
+
+- name: build MFE
+  command: "npm run build"
+  args:
+    chdir: "{{ MFE_CODE_DIR }}"
+  become_user: "{{ MFE_USER }}"
+  environment: "{{ MFE_ENVIRONMENT }}"
+  tags:
+    - install:base
+
+
+- name: Copying nginx configs for the service
+  template:
+    src: "edx/app/nginx/sites-available/app.j2"
+    dest: "{{ nginx_sites_available_dir }}/{{ MFE_NAME }}"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  when: nginx_app_dir is defined
+  notify: reload nginx
+  tags:
+    - install:base
+    - install:vhosts
+
+- name: Creating nginx config links for the service
+  file:
+    src: "{{ nginx_sites_available_dir }}/{{ MFE_NAME }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ MFE_NAME }}"
+    state: link
+    owner: root
+    group: root
+  when: nginx_app_dir is defined
+  notify: reload nginx
+  tags:
+    - install:base
+    - install:vhosts
