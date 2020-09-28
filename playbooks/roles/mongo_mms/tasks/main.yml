@@ -25,7 +25,7 @@
   register: download_mms_deb
   with_items: "{{ agents }}"
   when: ansible_distribution_release == 'xenial'
-  
+
 - name: install mongo mms agent
   apt:
     deb: "/tmp/{{ item.agent }}-{{ item.version }}.deb"
@@ -51,3 +51,45 @@
     name: "{{ item.agent }}"
     state: started
   with_items: "{{ agents }}"
+
+
+# Install mongoDB agent
+- name: download xenial mongodb agent
+  get_url:
+    url: "{{ base_url }}/{{ item.dir }}/{{ item.agent }}_{{ item.version }}_{{ pkg_arch }}.{{ os_version }}.{{ pkg_format }}"
+    dest: "/tmp/{{ item.agent }}-{{ item.version }}.{{ pkg_format }}"
+  register: download_mongodb_deb
+  with_items: "{{ mongodb_agent }}"
+  when: ansible_distribution_release == 'xenial'
+
+- name: install mongodb agent
+  apt:
+    deb: "/tmp/{{ item.agent }}-{{ item.version }}.deb"
+  when: download_mongodb_deb.changed
+  with_items: "{{ mongodb_agent }}"
+
+- name: add group ID to automation-agent.config
+  lineinfile:
+    dest: "{{ item.config }}"
+    regexp: "^mmsGroupId="
+    line: "mmsGroupId={{ MMSGROUPID }}"
+  with_items: "{{ mongodb_agent }}"
+
+- name: add key to automation-agent.config
+  lineinfile:
+    dest: "{{ item.config }}"
+    regexp: "^mmsApiKey="
+    line: "mmsApiKey={{ MMSAPIKEY }}"
+  with_items: "{{ mongodb_agent }}"
+
+- name: create data dir if it does not exist
+  file:
+    path: "{{ mongodb_agent_dir }}"
+    owner: "{{ mongodb_agent_user }}"
+    group: "{{ mongodb_agent_user }}"
+    state: directory
+
+- name: start mongodb agent service
+  service:
+    name: "mongodb-mms-automation-agent"
+    state: started
