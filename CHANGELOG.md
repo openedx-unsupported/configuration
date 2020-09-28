@@ -9,7 +9,11 @@ Add any new changes to the top(right below this line).
  - 2020-10-27
      - Role: notifier
        - Removed the notifier role (see DEPR-106 for details)
-
+ - 2020-10-23
+     - Role: mfe
+       - Added role deploy to deploy MFE in a single machine with nginx.
+     - Open edX
+       - Use new role to deploy gradebook, profile and account MFEs in native installation.
  - 2020-10-13
      - Role: forums
         - Add settings for ES7 upgrade.
