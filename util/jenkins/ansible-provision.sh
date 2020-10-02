@@ -388,8 +388,8 @@ PROGRAM_CONSOLE_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 
 PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
 PROSPECTUS_USE_COURSE_URL_SLUGS: true
-OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
-OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
+PROSPECTUS_OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
+PROSPECTUS_OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
