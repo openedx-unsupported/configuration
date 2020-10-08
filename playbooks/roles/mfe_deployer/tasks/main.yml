@@ -1,0 +1,51 @@
+---
+
+- name: Build MFE
+  include_role:
+     name: mfe
+  vars:
+    MFE_NAME: "{{ custom_mfe.name }}"
+    MFE_REPO: "{{ custom_mfe.repo }}"
+    MFE_NODE_VERSION: "{{ custom_mfe.node_version | default(MFE_DEPLOY_NODE_VERSION) }}"
+    MFE_GIT_PROTOCOL: '{{ custom_mfe.git_protocol | default(MFE_DEPLOY_GIT_PROTOCOL) }}'
+    MFE_GIT_DOMAIN: '{{ custom_mfe.git_domain | default(MFE_DEPLOY_GIT_DOMAIN) }}'
+    MFE_GIT_PATH: '{{ custom_mfe.git_path | default(MFE_DEPLOY_GIT_PATH) }}'
+    MFE_VERSION: '{{ custom_mfe.version | default(MFE_DEPLOY_VERSION) }}'
+    MFE_GIT_IDENTITY: '{{ custom_mfe.git_identity | default(MFE_DEPLOY_GIT_IDENTITY) }}'
+    MFE_NPM_OVERRIDES: '{{ custom_mfe.npm_overrides | default(MFE_DEPLOY_NPM_OVERRIDES) }}'
+    MFE_ENVIRONMENT_EXTRA: '{{ custom_mfe.env_extra | default(MFE_DEPLOY_ENVIRONMENT_EXTRA) }}'
+    MFE_PUBLIC_PATH: '{{ custom_mfe.public_path | default(MFE_DEPLOY_PUBLIC_PATH) }}'
+    MFE_SITE_NAME: '{{ custom_mfe.site_name | default(MFE_DEPLOY_SITE_NAME) }}'
+    MFE_STANDALONE_NGINX: '{{ custom_mfe.standalone_nginx | default(MFE_DEPLOY_STANDALONE_NGINX) }}'
+  loop: "{{ MFES }}"
+  loop_control:
+    loop_var: custom_mfe
+  tags:
+    - install:base
+
+- name: Copying nginx configs for the service
+  template:
+    src: "edx/app/nginx/sites-available/app.j2"
+    dest: "{{ nginx_sites_available_dir }}/mfes"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  when: nginx_app_dir is defined and not MFE_DEPLOY_STANDALONE_NGINX
+  notify: reload nginx
+  tags:
+    - install:base
+    - install:vhosts
+
+- name: Creating nginx config links for the service
+  file:
+    src: "{{ nginx_sites_available_dir }}/mfes"
+    dest: "{{ nginx_sites_enabled_dir }}/mfes"
+    state: link
+    owner: root
+    group: root
+  when: nginx_app_dir is defined and not MFE_DEPLOY_STANDALONE_NGINX
+  notify: reload nginx
+  tags:
+    - install:base
+    - install:vhosts
+
