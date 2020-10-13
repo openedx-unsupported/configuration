@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-10-13
+     - Role: forums
+        - Add settings for ES7 upgrade.
+
  - 2020-09-23
      - Role: certs
        - Changed Python version used for creating virtualenv from the system's default (2.7) to 3.8.
@@ -13,7 +17,7 @@ Add any new changes to the top(right below this line).
  - 2020-09-14
      - Playbook: program_manager
        - Removed. It is replaced by program_console
-    
+
      - Role: program_manager
        - Removed. It is replaced by program_console
 
