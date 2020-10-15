@@ -65,6 +65,16 @@ server {
     add_header Cache-Control "no-cache";
   }
 
+  location /preview/ {
+    error_page 404 /404.html;
+    add_header Cache-Control "no-cache";
+  }
+
+  location /es/preview/ {
+    error_page 404 /404.html;
+    add_header Cache-Control "no-cache";
+  }
+
   # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
   #   - from_path: The path of the course-about page that you want redirect
   #   - to_path: URL to redirect to
@@ -169,13 +179,19 @@ server {
   }
 
   location /preview/ {
-    error_page 404 /404.html;
-    add_header Cache-Control "no-cache";
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %} 
+    port_in_redirect off;
   }
 
   location /es/preview/ {
-    error_page 404 /404.html;
-    add_header Cache-Control "no-cache";
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %} 
+    port_in_redirect off;
   }
 
   # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
