@@ -292,6 +292,8 @@ COMMON_LMS_BASE_URL: https://${deploy_host}
 nginx_default_sites:
   - lms
 
+mysql_server_version_5_7: True
+
 # User provided extra vars
 $extra_vars
 EOF
