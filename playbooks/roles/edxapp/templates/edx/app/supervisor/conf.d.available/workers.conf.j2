@@ -1,8 +1,6 @@
 {% for w in edxapp_workers %}
 [program:{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}]
 
-{% if w.queue != "beat_default" %}
-
 environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_WORKERS_APPNAME }},NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ EDXAPP_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}CONCURRENCY={{ w.concurrency }},LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ worker_django_settings_module }},LANG={{ EDXAPP_LANG }},PYTHONPATH={{ edxapp_code_dir }},SERVICE_VARIANT={{ w.service_variant }},BOTO_CONFIG="{{ edxapp_app_dir }}/.boto,EDX_REST_API_CLIENT_NAME=edx.{{ w.service_variant }}.core.{{ w.queue }},"
 user={{ common_web_user }}
 directory={{ edxapp_code_dir }}
@@ -18,7 +16,9 @@ stopwaitsecs={{ w.stopwaitsecs | default(EDXAPP_WORKER_DEFAULT_STOPWAITSECS) }}
 ; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
 autorestart=true
 
-{% else %}
+{% endfor %}
+
+[program:lms_beat_default_1]
 
 environment=CONCURRENCY=1,LOGLEVEL=info,DJANGO_SETTINGS_MODULE=production,LANG=en_US.UTF-8,PYTHONPATH=/edx/app/edxapp/edx-platform,SERVICE_VARIANT=lms,BOTO_CONFIG="/edx/app/edxapp/.boto,EDX_REST_API_CLIENT_NAME=edx.lms.core.default,"
 user=www-data
@@ -35,8 +35,8 @@ stopwaitsecs=432000
 ; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
 autorestart=true
 
-{% endif %}
-{% endfor %}
-
 [group:edxapp_worker]
 programs={%- for w in edxapp_workers %}{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %}
+
+[group:celerybeat]
+programs=lms_beat_default_1
