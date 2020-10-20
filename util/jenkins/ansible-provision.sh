@@ -377,6 +377,7 @@ ecommerce_create_demo_data: true
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+INSIGHTS_BASE_URL: "https://insights-${deploy_host}"
 INSIGHTS_URL_ROOT: "https://insights-${deploy_host}"
 INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
