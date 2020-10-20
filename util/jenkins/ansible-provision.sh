@@ -249,6 +249,10 @@ ANALYTICS_API_NGINX_PORT: 80
 ANALYTICS_API_SSL_NGINX_PORT: 443
 ANALYTICS_API_VERSION: $analytics_api_version
 
+INSIGHTS_NGINX_PORT: 80
+INSIGHTS_SSL_NGINX_PORT: 443
+INSIGHTS_VERSION: $insights_version
+
 REGISTRAR_NGINX_PORT: 80
 REGISTRAR_SSL_NGINX_PORT: 443
 REGISTRAR_VERSION: $registrar_version
@@ -372,6 +376,9 @@ ecommerce_create_demo_data: true
 
 DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
 DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+INSIGHTS_URL_ROOT: "https://insights-${deploy_host}"
+INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
 REGISTRAR_URL_ROOT: "https://registrar-${deploy_host}"
 REGISTRAR_API_ROOT: "https://registrar-${deploy_host}/api"
