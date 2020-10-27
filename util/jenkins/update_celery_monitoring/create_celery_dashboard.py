@@ -103,8 +103,8 @@ def generate_dashboard(environment, deploy):
     width = 24
     y_cord = 0
     region = "us-east-1"
-    right_axis_items=["edx.lms.core.ace", "edx.lms.core.background_process", "notifier.default"]
-    right_axis_items_age=["notifier.default"]
+    right_axis_items=["edx.lms.core.ace", "edx.lms.core.background_process"]
+    right_axis_items_age=[]
 
     height = 9
 
@@ -199,16 +199,7 @@ def generate_dashboard(environment, deploy):
         height = 9
 
         widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
-            title="{}-{} Notifier".format(environment, deploy),
-            namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
-            include_filter="^notifier\.",
-        ))
-
-        y_cord += height
-        height = 9
-
-        widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
-            title="{}-{} Legacy Celery (Notifier/Ecommerce) should be 0".format(environment, deploy),
+            title="{}-{} Legacy Celery (Ecommerce) should be 0".format(environment, deploy),
             namespace=celery_namespace, metric_name="queue_length", dimension_name="queue",
             include_filter="celery",
         ))

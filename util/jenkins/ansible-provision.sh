@@ -215,7 +215,6 @@ cd playbooks
 cat << EOF > $extra_vars_file
 EDX_PLATFORM_VERSION: $edxapp_version
 FORUM_VERSION: $forum_version
-notifier_version: $notifier_version
 XQUEUE_VERSION: $xqueue_version
 CERTS_VERSION: $certs_version
 CONFIGURATION_VERSION: $configuration_version
@@ -478,7 +477,7 @@ EOF
 fi
 
 declare -A deploy
-plays="prospectus edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration notifier xqueue certs demo testcourses registrar program_console learner_portal"
+plays="prospectus edxapp forum ecommerce credentials discovery analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration xqueue certs demo testcourses registrar program_console learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
