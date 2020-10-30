@@ -8,8 +8,9 @@ LABEL maintainer="edxops"
 # https://github.com/docker-library/python/issues/13
 # https://github.com/docker-library/python/pull/14/files
 # Also install software-properties-common to get apt-add-repository
+# Also install iproute2 because ansible needs it for the ansible_default_ipv4.address fact
 RUN apt-get update &&\
-    apt-get install -y cron locales software-properties-common &&\
+    apt-get install -y cron iproute2 locales software-properties-common &&\
     locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
