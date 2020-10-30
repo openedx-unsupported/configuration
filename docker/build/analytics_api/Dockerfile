@@ -8,7 +8,7 @@
 # with the currently checked-out configuration repo.
 
 ARG BASE_IMAGE_TAG=latest
-FROM edxops/xenial-common:${BASE_IMAGE_TAG}
+FROM edxops/focal-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
 
 RUN apt-get update
