@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-10-27
+     - Role: notifier
+       - Removed the notifier role (see DEPR-106 for details)
+
  - 2020-10-13
      - Role: forums
         - Add settings for ES7 upgrade.
