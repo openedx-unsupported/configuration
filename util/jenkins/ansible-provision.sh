@@ -532,6 +532,11 @@ EOF
   run_ansible masters_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
+# prospectus sandbox
+if [[ $prospectus == "true ]]; then
+   run_ansible prospectus_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
+
 if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
