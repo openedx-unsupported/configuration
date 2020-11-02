@@ -49,24 +49,6 @@ if [[ $GREP_LMS == 1 ]] || [[ $GREP_CMS == 1 ]]; then
     exit
 fi
 
-grep -Fq edx. config.yml
-GREP_BAD_DOMAIN=$?
-
-if [[ $GREP_BAD_DOMAIN == 0 ]]; then
-    echo '*** NOTE: Open edX and edX are registered trademarks.'
-    echo 'You may not use "openedx." or "edx." as subdomains when naming your site.'
-    echo 'For more details, see the edX Trademark Policy: https://edx.org/trademarks'
-    echo ''
-    echo 'Here are some examples of unacceptable domain names:'
-    echo '    openedx.yourdomain.org'
-    echo '    edx.yourdomain.org'
-    echo '    openedxyourdomain.org'
-    echo '    yourdomain-edx.com'
-    echo ''
-    echo 'Please choose different domain names.'
-    exit
-fi
-
 ##
 ## Log what's happening
 ##
