@@ -533,7 +533,7 @@ EOF
 fi
 
 # prospectus sandbox
-if [[ $prospectus == "true ]]; then
+if [[ $prospectus == "true" ]]; then
    run_ansible prospectus_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
