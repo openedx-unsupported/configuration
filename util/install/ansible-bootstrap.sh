@@ -113,7 +113,7 @@ fi
 
 # Required for add-apt-repository
 apt-get install -y software-properties-common
-if [[ "${SHORT_DIST}" != bionic ]] && [[ "${SHORT_DIST}" != xenial ]] && [[ "${SHORT_DIST}" != focal ]] ;then
+if [[ "${SHORT_DIST}" != trusty ]] && [[ "${SHORT_DIST}" != xenial ]] && [[ "${SHORT_DIST}" != bionic ]] && [[ "${SHORT_DIST}" != focal ]] ;then
   apt-get install -y python-software-properties
 fi
 
@@ -145,6 +145,13 @@ else
 fi
 
 apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python3-pip python3-apt
+
+# We want to link pip to pip3 for Ubuntu versions that don't have python 2.7 so older scripts work there 
+# Applies to Ubuntu 20.04 Focal
+if [[ "${SHORT_DIST}" != trusty ]] && [[ "${SHORT_DIST}" != xenial ]] && [[ "${SHORT_DIST}" != bionic ]] && [[ "${SHORT_DIST}" != focal ]] ;then
+  sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
+  sudo update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+fi
 
 python${PYTHON_VERSION} -m pip install --upgrade pip=="${PIP_VERSION}"
 
