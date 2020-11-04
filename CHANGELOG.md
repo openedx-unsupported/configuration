@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-11-04
+     - Role: edxapp
+       - Stopped rendering legacy auth and env json files that edxapp is no longer reading. Rendering can be reenabled by setting EDXAPP_ENABLE_LEGACY_JSON_CONFIGS to true
+
  - 2020-10-27
      - Role: notifier
        - Removed the notifier role (see DEPR-106 for details)

@@ -1,4 +1,22 @@
 ---
+- name: create application and auth config
+  template:
+    src: "{{ item[0] }}.{{ item[1] }}.json.j2"
+    dest: "{{ edxapp_app_dir }}/{{ item[0] }}.{{ item[1] }}.json"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0640
+  become: true
+  when: "EDXAPP_ENABLE_LEGACY_JSON_CONFIGS"
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    - [ 'env', 'auth' ]
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
 - name: combined lms auth env for yml
   set_fact:
     lms_combined_config: '{{lms_env_config|combine(lms_auth_config)}}'
