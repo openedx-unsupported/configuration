@@ -51,13 +51,13 @@
     - install
     - install:system-requirements
 
-- name: download xenial/bionic browser packages from S3
+- name: download xenial/bionic/focal browser packages from S3
   get_url:
     dest: /tmp/{{ item.name }}
     url: "{{ item.url }}"
   register: download_xenial_deb
   with_items: "{{ browser_s3_deb_pkgs }}"
-  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic'
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
   tags:
     - install
     - install:system-requirements
@@ -71,11 +71,11 @@
     - install
     - install:system-requirements
 
-- name: install xenial/bionic browser packages
+- name: install xenial/bionic/focal browser packages
   shell: gdebi -nq /tmp/{{ item.name }}
   with_items: "{{ browser_s3_deb_pkgs }}"
   when: download_xenial_deb.changed and
-        ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic'
+        ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
   tags:
     - install
     - install:system-requirements
