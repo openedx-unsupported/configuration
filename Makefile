@@ -20,6 +20,7 @@ requirements:
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements.txt --exists-action w
 
+upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
 upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements/pip-tools.txt
@@ -27,9 +28,9 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	pip-compile --upgrade -o requirements/pip-tools.txt requirements/pip-tools.in
 	pip-compile --upgrade -o requirements.txt requirements/base.in
 	pip-compile --upgrade -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
-	pip-compile --upgrade -o requirements3.txt requirements/ses-limits.in
 	pip-compile --upgrade -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
-	pip-compile --upgrade -o util/jenkins/requirements-celery.txt requirements/celery.in
+	pip-compile --upgrade -o util/jenkins/update_celery_monitoring/requirements.txt requirements/celery.in
+	pip-compile --upgrade -o util/jenkins/check_celery_progress/requirements.txt requirements/celery_progress.in
 	pip-compile --upgrade -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
 	pip-compile --upgrade -o util/pingdom/requirements.txt requirements/pingdom.in
 	pip-compile --upgrade -o util/vpc-tools/requirements.txt requirements/vpc-tools.in
@@ -38,9 +39,9 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
  	    requirements/pip-tools.txt \
 	    requirements.txt \
 	    playbooks/roles/aws/templates/requirements.txt.j2 \
-	    requirements3.txt \
 	    util/elasticsearch/requirements.txt \
-	    util/jenkins/requirements-celery.txt \
+	    util/jenkins/update_celery_monitoring/requirements.txt \
+	    util/jenkins/check_celery_progress/requirements.txt \
 	    util/jenkins/requirements-cloudflare.txt \
 	    util/pingdom/requirements.txt \
 	    util/vpc-tools/requirements.txt
