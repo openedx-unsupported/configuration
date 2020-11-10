@@ -204,6 +204,14 @@ if [[ $registrar == 'true' ]]; then
   program_console="true"
 fi
 
+if [[ -z $logistration ]]; then
+  logistration="false"
+fi
+
+if [[ -z $logistration_version ]]; then
+  LOGISTRATION_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -270,6 +278,12 @@ PROSPECTUS_SSL_NGINX_PORT: 443
 PROSPECTUS_VERSION: $prospectus_version
 PROSPECTUS_ENABLED: $prospectus
 PROSPECTUS_SANDBOX_BUILD: True
+
+LOGISTRATION_NGINX_PORT: 80
+LOGISTRATION_SSL_NGINX_PORT: 443
+LOGISTRATION_MFE_VERSION: $logistration_version
+LOGISTRATION_ENABLED: $logistration
+LOGISTRATION_SANDBOX_BUILD: True
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -390,6 +404,8 @@ PROGRAM_CONSOLE_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
 OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
 OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
+
+LOGISTRATION_URL_ROOT: "https://logistration-${deploy_host}"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
