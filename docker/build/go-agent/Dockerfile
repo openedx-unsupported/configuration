@@ -83,6 +83,9 @@ RUN \
 # that is already installed for zappa deployments.
 RUN apt-get update && apt-get install zlib1g-dev wget lsb-core -qy && cd /opt && wget https://www.python.org/ftp/python/3.6.7/Python-3.6.7.tgz && tar -xvf Python-3.6.7.tgz && cd /opt/Python-3.6.7 && ./configure --prefix=/usr && cd /opt/Python-3.6.7 && make && make commoninstall maninstall && rm -rf /opt/Python-3.6.7
 
+# Install dependencies for Cypress
+RUN apt-get update && apt-get install libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb -qy
+
 # Install AWS command-line interface - for AWS operations in a go-agent task.
 RUN pip install 'awscli>=1.11.58'
 
