@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-11-10
+     - Role: mfe
+       - Added role deploy to deploy MFE in a single machine with nginx.
+     - Open edX
+       - Use new role to deploy gradebook, profile and account MFEs in native installation.
+
  - 2020-11-04
      - Role: edxapp
        - Stopped rendering legacy auth and env json files that edxapp is no longer reading. Rendering can be reenabled by setting EDXAPP_ENABLE_LEGACY_JSON_CONFIGS to true

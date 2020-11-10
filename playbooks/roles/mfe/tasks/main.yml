@@ -18,10 +18,9 @@
 #
 # Example play:
 #
-# Rather than being included in the play, this role
-# is included as a dependency by other roles in the meta/main.yml
-# file.  The including role should add the following
-# depency definition.
+# It is recommended to deploy MFE directly using the mfe_deployer role instead of this one.
+# This role can be used as a dependency by other roles in the meta/main.yml
+# file.  The including role should add the following dependency definition.
 #
 # dependencies:
 #   - role: mfe
@@ -31,8 +30,21 @@
 #   MFE_SITE_NAME: "{{ PROFILE_SITE_NAME }}"
 #   MFE_APP_VERSION: "{{ PROFILE_VERSION }}"
 #   MFE_NODE_VERSION: "{{ PROFILE_NODE_VERSION }}"
-
-
+#
+# This role can also be used directly in the playbooks
+#
+#- name: Configure instance(s)
+#  hosts: all
+#  become: True
+#  gather_facts: True
+#  roles:
+#    - role: mfe
+#      MFE_NAME: profile
+#    - role: mfe
+#      MFE_NAME: gradebook
+#    - role: mfe
+#      MFE_NAME: account
+#
 
 - name: install needed packages
   apt:
@@ -73,12 +85,12 @@
     - install:app-requirements
 
 - name: install npm overrides
-  npm:
-    name: "{{ MFE_NPM_OVERRIDES }}"
-    path: "{{ MFE_CODE_DIR }}"
+  shell: "npm install {{ item }} --no-save"
+  args:
+    chdir: "{{ MFE_CODE_DIR }}"
   become_user: "{{ MFE_USER }}"
   environment: "{{ MFE_ENVIRONMENT }}"
-  when: MFE_NPM_OVERRIDES | bool
+  with_items: "{{ MFE_NPM_OVERRIDES }}"
   tags:
     - install
     - install:app-requirements
