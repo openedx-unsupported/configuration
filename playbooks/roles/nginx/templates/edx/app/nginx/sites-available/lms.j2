@@ -66,7 +66,7 @@ server {
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
 
   # Do not include a 502 error in NGINX_ERROR_PAGES when
-  # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
+  # NGINX_EDXAPP_ENABLE_S3_MAINTENANCE is enabled.
 
   error_page 502 @maintenance;
 
@@ -75,7 +75,7 @@ server {
   {% endif %}
 
   # error pages
-  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
+  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.items() %}
 error_page {{ k }} {{ v }};
   {% endfor %}
 
@@ -189,6 +189,10 @@ error_page {{ k }} {{ v }};
     try_files $uri @proxy_to_lms_app;
   }
 
+  location /login_refresh {
+    try_files $uri @proxy_to_lms_app;
+  }
+
   #enterprise API
   location /enterprise/api {
     try_files $uri @proxy_to_lms_app;
@@ -225,6 +229,16 @@ error_page {{ k }} {{ v }};
 
   # No basic auth security on third party auth endpoints
   location /auth {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth on the XBlock View endpoint, which can use OAuth2
+  location ~ ^/courses/.*/xblock/.*/view/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth on XBlock handlers, which can use OAuth2
+  location ~ ^/courses/.*/xblock/.*/handler/ {
     try_files $uri @proxy_to_lms_app;
   }
 
