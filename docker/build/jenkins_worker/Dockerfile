@@ -9,7 +9,7 @@
 
 # Run the edxapp play with custom ansible overrides
 ARG BASE_IMAGE_TAG=latest
-FROM edxops/xenial-common:${BASE_IMAGE_TAG}
+FROM edxops/focal-common:${BASE_IMAGE_TAG}
 LABEL maintainer="edxops"
 USER root
 
