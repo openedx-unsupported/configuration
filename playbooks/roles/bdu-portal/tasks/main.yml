@@ -1,0 +1,32 @@
+---
+- name: render BDU Portal config files
+  template:
+    src: "{{ item.0 }}.{{ item.1 }}.json.j2"
+    dest: "{{ BDU_PORTAL_CFG_DIR }}/{{ item.0 }}.{{ item.1 }}.json"
+  become_user: "{{ edxapp_user | default('edxapp') }}"
+  with_nested:
+    - bdu
+    - ["env", "auth"]
+  tags:
+    - docker:run
+    - run:prod
+
+- name: create temp deploy key file
+  copy:
+    content: "{{ BDU_PORTAL_DEPLOY_KEY }}"
+    dest: "{{ bdu_portal_deploy_key_path }}"
+    mode: 0600
+  tags:
+    - install:app-requirements
+
+- include: xblocks.yml
+- include: extra-packages.yml
+
+- name: remove private key
+  file:
+    path: "{{ bdu_portal_deploy_key_path }}"
+    state: absent
+  tags:
+    - install:app-requirements
+    - run:prod
+    - always

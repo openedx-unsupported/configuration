@@ -1,0 +1,28 @@
+---
+- name: checkout extra package repos
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.path }}"
+    accept_hostkey: yes
+    key_file: "{{ bdu_portal_deploy_key_path }}"
+    version: "{{ item.version }}"
+  with_items: "{{ BDU_PORTAL_EXTRA_PACKAGES }}"
+  tags:
+    - install:app-requirements
+
+- name: install extra packages
+  pip:
+    name: "file://{{ item.path }}"
+    executable: "{{ bdu_portal_edxapp_pip_path }}"
+  become_user: "{{ edxapp_user | default('edxapp') }}"
+  with_items: "{{ BDU_PORTAL_EXTRA_PACKAGES }}"
+  tags:
+    - install:app-requirements
+
+- name: remove extra packages source
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ BDU_PORTAL_EXTRA_PACKAGES }}"
+  tags:
+    - install:app-requirements
