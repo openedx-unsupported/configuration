@@ -7,12 +7,7 @@ from os.path import splitext, basename, exists, dirname
 import sys
 import time
 
-try:
-    from ansible.plugins.callback import CallbackBase
-except ImportError:
-    # Support Ansible 1.9.x
-    CallbackBase = object
-
+from ansible.plugins.callback import CallbackBase
 import datadog
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
@@ -189,8 +184,8 @@ class LoggingTimingLogger(TimingLogger):
 
         # Sort the tasks by their running time
         sorted_results = sorted(
-            results.items(),
-            key=lambda (task, timestamp): timestamp.duration,
+            results.values(),
+            key=lambda timestamp: timestamp['duration'],
             reverse=True
         )
 
