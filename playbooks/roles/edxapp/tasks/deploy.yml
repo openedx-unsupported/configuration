@@ -127,6 +127,34 @@
     - install
     - install:app-requirements
 
+# NOTE (CCB): Ideally we should use the pip Ansible command,
+# but that doesn't seem to work with the Python 3.x virtualenv.
+- name: install nodenv
+  command: pip install nodeenv
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  command: "nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt"
+  args:
+    creates: "{{ edxapp_nodeenv_dir }}"
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: upgrade npm
+  command: "npm install -g npm@{{ edxapp_npm_version }}"
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
 - name: Stat each Python requirements file to ensure it exists
   stat:
     path: "{{ item }}"
