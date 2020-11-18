@@ -266,7 +266,7 @@ class CallbackModule(CallbackBase):
         # Flatten the stats so that multiple runs of the same task get listed
         # individually.
         flat_stats = {}
-        for task_name, task_runs in self.stats.iteritems():
+        for task_name, task_runs in self.stats.items():
             if len(task_runs) == 1:
                 flat_stats[task_name] = task_runs[0]
             else:
