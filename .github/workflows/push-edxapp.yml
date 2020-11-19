@@ -1,0 +1,21 @@
+name: Build and push edxapp
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image Tag'
+        required: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      VAULT_PASS: ${{ secrets.VAULT_PASS }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create Ansible Vault pass
+        run: 'echo "$VAULT_PASS" > .vault_pass.txt'
+      - name: Build image
+        run: make build
+      - run: rm .vault_pass.txt # for redundency
