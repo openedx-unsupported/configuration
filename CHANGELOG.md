@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-11-20
+     - Role: edxapp
+        - Updated the worker newrelic config to have the service variant in the app name.  This will seperate the names
+          of the newrelic apps to be `...-lms` and `...-cms` to make it easier to monitor them separately.  This will
+          impact any newrelic monitoring and alerting you have that is linked to the old app name, which should be
+          updated to use both of the new application names.
  - 2020-11-17
     - Removed mentions of ANSIBLE_REPO and ANSIBLE_VERSION since we no longer use our own fork of Ansible.
 
