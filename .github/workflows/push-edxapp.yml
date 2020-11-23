@@ -6,6 +6,9 @@ on:
       tag:
         description: 'Image Tag'
         required: true
+      ref:
+        description: 'Branch/Tag/SHA to checkout'
+        default: ''
 
 jobs:
   build-and-push:
@@ -14,6 +17,8 @@ jobs:
       VAULT_PASS: ${{ secrets.VAULT_PASS }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.ref }}
       - name: Create Ansible Vault pass
         run: 'echo "$VAULT_PASS" > .vault_pass.txt'
       - uses: docker/login-action@v1
