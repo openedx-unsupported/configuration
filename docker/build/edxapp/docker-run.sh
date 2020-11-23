@@ -26,13 +26,13 @@ while True:
         c = db_conn.cursor()
     except OperationalError as e:
         if e[0] == 2003:
-            print "Waiting for MySQL to start..."
+            print("Waiting for MySQL to start...")
             time.sleep(2)
             continue
         else:
             raise e
     else:
-        print "MySQL is up!"
+        print("MySQL is up!")
         break
 EOF
 }
