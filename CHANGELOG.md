@@ -8,6 +8,9 @@ Add any new changes to the top(right below this line).
           of the newrelic apps to be `...-lms` and `...-cms` to make it easier to monitor them separately.  This will
           impact any newrelic monitoring and alerting you have that is linked to the old app name, which should be
           updated to use both of the new application names.
+ - 2020-11-17
+    - Removed mentions of ANSIBLE_REPO and ANSIBLE_VERSION since we no longer use our own fork of Ansible.
+
  - 2020-11-10
      - Role: mfe
        - Added role deploy to deploy MFE in a single machine with nginx.
@@ -32,7 +35,7 @@ Add any new changes to the top(right below this line).
 
  - 2020-09-18
      - Role: nginx
-       - Add location to support accessing files from ```EDXAPP_MEDIA_URL``` under the cms site.
+       - Add location to support accessing files from `EDXAPP_MEDIA_URL` under the cms site.
 
  - 2020-09-14
      - Playbook: program_manager
