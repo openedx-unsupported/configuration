@@ -212,6 +212,14 @@ if [[ -z $logistration_version ]]; then
   LOGISTRATION_MFE_VERSION="master"
 fi
 
+if [[ -z $payment ]]; then
+  payment="false"
+fi
+
+if [[ -z $payment_version ]]; then
+  PAYMENT_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -284,6 +292,12 @@ LOGISTRATION_SSL_NGINX_PORT: 443
 LOGISTRATION_MFE_VERSION: $logistration_version
 LOGISTRATION_ENABLED: $logistration
 LOGISTRATION_SANDBOX_BUILD: True
+
+PAYMENT_NGINX_PORT: 80
+PAYMENT_SSL_NGINX_PORT: 443
+PAYMENT_MFE_VERSION: $payment_version
+PAYMENT_ENABLED: $payment
+PAYMENT_SANDBOX_BUILD: True
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
@@ -406,6 +420,7 @@ OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
 OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
 
 LOGISTRATION_URL_ROOT: "https://logistration-${deploy_host}"
+PAYMENT_URL_ROOT: "https://payment-${deploy_host}"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
