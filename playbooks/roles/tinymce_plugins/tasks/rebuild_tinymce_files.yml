@@ -1,0 +1,48 @@
+---
+
+- name: Clean temporary tinymce repositories
+  file:
+    state: absent
+    path: "{{ temp_repo_dir }}"
+
+- name: Minify tinymce plugin files
+  block:
+    - name: Unarchive JakePackage.zip
+      unarchive:
+        src: "{{ edx_jake_package }}"
+        dest: "{{ tinymce_dir }}"
+        remote_src: True
+    - name: Clean existing node modules
+      file:
+        state: absent
+        path: "{{ tinymce_dir }}/node_modules"
+    - name: Install npm dependencies from archive
+      shell: "npm install"
+      args:
+        chdir: "{{ tinymce_dir }}"
+    - name: Clean existing tinymce js files with jake
+      shell: "npx jake clean-js"
+      args:
+        chdir: "{{ tinymce_dir }}"
+    - name: Build tinymce with jake
+      shell: "npx jake minify bundle[themes:*,plugins:*]"
+      args:
+        chdir: "{{ tinymce_dir }}"
+  become_user: "{{ edxapp_user }}"
+
+- name: Update static assets
+  command: "{{ COMMON_BIN_DIR }}/edxapp-update-assets"
+
+- name: Restart LMS
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "lms"
+
+- name: Restart LMS
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "cms"

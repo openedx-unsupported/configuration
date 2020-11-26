@@ -1,0 +1,17 @@
+---
+
+- name: Add additional tinymce plugins
+  block:
+    - name: Clone plugin
+      git:
+        repo: "{{ plugin.repo }}"
+        dest: "{{ temp_repo_dir }}"
+        version: "{{ plugin.version | default('master') }}"
+        accept_hostkey: true
+        key_file: "{% if EDXAPP_USE_GIT_IDENTITY %}{{ edxapp_git_identity }}{% endif %}"
+    - name: Move plugin to tinymce plugins directory
+      copy:
+        src: "{{ temp_repo_dir }}/{{ plugin.plugin_path }}"
+        dest: "{{ tinymce_plugins_dir }}"
+        remote_src: True
+  become_user: "{{ edxapp_user }}"
