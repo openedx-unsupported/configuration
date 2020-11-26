@@ -33,7 +33,16 @@
     dest: "/tmp/{{ item.name }}"
     url: "{{ item.url }}"
   with_items: "{{ sqlite_s3_packages }}"
+  when: ansible_distribution_release != "focal"
 
 - name: Install sqlite packages
   shell: gdebi -nq /tmp/{{ item.name }}
   with_items: "{{ sqlite_s3_packages }}"
+  when: ansible_distribution_release != "focal"
+
+- name: install package dependencies for focal
+  apt:
+    name: "{{ sqlite_s3_packages_focal }}"
+    update_cache: yes
+    cache_valid_time: "{{ cache_valid_time }}"
+  when: ansible_distribution_release == 'focal'
