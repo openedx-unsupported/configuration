@@ -421,6 +421,8 @@ OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
 
 LOGISTRATION_URL_ROOT: "https://logistration-${deploy_host}"
 PAYMENT_URL_ROOT: "https://payment-${deploy_host}"
+PAYMENT_ECOMMERCE_BASE_URL: "https://ecommerce-${deploy_host}"
+PAYMENT_LMS_BASE_URL: "https://${deploy_host}"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
