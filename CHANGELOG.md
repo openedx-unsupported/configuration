@@ -3,12 +3,16 @@ All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
  - 2020-12-01
+    - Role: edxapp
+        - Default the CodeJail Python version to the same as the rest of edxapp.
+
      - Role: edxapp
         - Added `EDXAPP_ORGANIZATIONS_AUTOCREATE` variable with default of
           `true`. See `ORGANIZATIONS_AUTOCREATE` toggle documentation in
           edx-platform/cms/envs/common.py for details.
+
  - 2020-11-20
-     - Role: edxapp
+    - Role: edxapp
         - Updated the worker newrelic config to have the service variant in the app name.  This will seperate the names
           of the newrelic apps to be `...-lms` and `...-cms` to make it easier to monitor them separately.  This will
           impact any newrelic monitoring and alerting you have that is linked to the old app name, which should be
