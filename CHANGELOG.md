@@ -6,6 +6,11 @@ Add any new changes to the top(right below this line).
     - Role: edxapp
         - Default the CodeJail Python version to the same as the rest of edxapp.
 
+     - Role: edxapp
+        - Added `EDXAPP_ORGANIZATIONS_AUTOCREATE` variable with default of
+          `true`. See `ORGANIZATIONS_AUTOCREATE` toggle documentation in
+          edx-platform/cms/envs/common.py for details.
+
  - 2020-11-20
     - Role: edxapp
         - Updated the worker newrelic config to have the service variant in the app name.  This will seperate the names
