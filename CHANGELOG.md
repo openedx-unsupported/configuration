@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-12-01
+    - Role: edxapp
+        - Default the CodeJail Python version to the same as the rest of edxapp.
+
  - 2020-11-10
      - Role: mfe
        - Added role deploy to deploy MFE in a single machine with nginx.
