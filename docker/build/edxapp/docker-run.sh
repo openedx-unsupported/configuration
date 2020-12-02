@@ -12,10 +12,9 @@ start_service () {
 
 # helper function that waits for the MySQL database to come up
 wait_for_mysql () {
-  export DJANGO_SETTINGS_MODULE=$1.envs.bdu
   export SERVICE_VARIANT=$1
 
-  /edx/app/edxapp/venvs/edxapp/bin/python - <<EOF
+  /edx/bin/edxapp-shell-lms - <<EOF
 import time
 from django.db import connections
 from django.db.utils import OperationalError
@@ -39,21 +38,26 @@ EOF
 
 create_oauth2_client () {
   local name=$1; shift;
-  local url=$1; shift;
   local url_callback=$1; shift;
   local client_id=$1; shift;
   local client_secret=$1; shift;
+  local scopes=$1; shift;
 
-  local edxpython="/edx/app/edxapp/venvs/edxapp/bin/python"
-  local manage="/edx/app/edxapp/edx-platform/manage.py"
+  local edxpython="/edx/bin/python.edxapp"
+  local manage="/edx/bin/manage.edxapp"
 
   echo "Creating OAuth2 client for ${name}..."
-  $edxpython $manage lms create_oauth2_client "${url}" "${url_callback}" confidential \
+  source /edx/app/edxapp/edxapp_env
+  $edxpython $manage lms --settings=bdu manage_user "${name}_worker" "${name}_worker@skillsnetwork.site" --staff --superuser
+  $edxpython $manage lms create_dot_application \
+    --redirect-uris="${url_callback}" \
+    --grant-type=authorization-code \
+    --skip-authorization \
     --settings=bdu \
-    --client_name "${name}" \
-    --client_id "${client_id}" \
-    --client_secret "${client_secret}" \
-    --trusted > /dev/null
+    --client-id="${client_id}" \
+    --client-secret="${client_secret}" \
+    --scopes="${scopes}" \
+    "${name}" "${name}_worker" > /dev/null
   echo "Done."
 }
 
@@ -130,11 +134,11 @@ run_command () {
       fi
 
       # Create OAuth clients
-      create_oauth2_client "Portal" "https://${BDU_PORTAL_HOSTNAME}" "https://${BDU_PORTAL_HOSTNAME}/auth/open_edx/callback" "${OPENEDX_CLIENT_ID}" "${OPENEDX_CLIENT_SECRET}"
-      create_oauth2_client "CC Labs" "https://${BDU_LABS_HOSTNAME}" "https://${BDU_LABS_HOSTNAME}/${BDU_LABS_OAUTH2_PROVIDER}/callback" "${OPENEDX_LABS_CLIENT_ID}" "${OPENEDX_LABS_CLIENT_SECRET}"
-      create_oauth2_client "Competitions" "https://${BDU_PORTAL_C3_HOSTNAME}" "https://${BDU_PORTAL_C3_HOSTNAME}/auth" "${OPENEDX_C3_CLIENT_ID}" "${OPENEDX_C3_CLIENT_SECRET}"
+      create_oauth2_client "Portal" "https://${BDU_PORTAL_HOSTNAME}/auth/open_edx/callback" "${OPENEDX_CLIENT_ID}" "${OPENEDX_CLIENT_SECRET}" "user_id,profile,email"
+      create_oauth2_client "CC Labs" "https://${BDU_LABS_HOSTNAME}/${BDU_LABS_OAUTH2_PROVIDER}/callback" "${OPENEDX_LABS_CLIENT_ID}" "${OPENEDX_LABS_CLIENT_SECRET}" "user_id,profile,email"
+      create_oauth2_client "Competitions" "https://${BDU_PORTAL_C3_HOSTNAME}/auth" "${OPENEDX_C3_CLIENT_ID}" "${OPENEDX_C3_CLIENT_SECRET}" "user_id,profile,email"
       if [[ $ANN_HOSTNAME ]]; then
-        create_oauth2_client "ANN" "https://${ANN_HOSTNAME}" "https://${ANN_HOSTNAME}/auth/oauth/callback" "${OPENEDX_ANN_CLIENT_ID}" "${OPENEDX_ANN_CLIENT_SECRET}"
+        create_oauth2_client "ANN" "https://${ANN_HOSTNAME}/auth/oauth/callback" "${OPENEDX_ANN_CLIENT_ID}" "${OPENEDX_ANN_CLIENT_SECRET}" "user_id,profile,email"
       fi
     ;;
 
