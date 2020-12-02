@@ -441,6 +441,13 @@ VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 EOF
 fi
 
+if [[ $payment == "true" ]]; then
+    cat << EOF >> $extra_vars_file
+ECOMMERCE_CORS_ALLOW_CREDENTIALS: true
+ECOMMERCE_PAYMENT_MICROFRONTEND_URL: "https://payment-${deploy_host}"
+EOF
+fi
+
 encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api)
 
 for app in ${encrypted_config_apps[@]}; do
