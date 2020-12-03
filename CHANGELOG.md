@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+
+ - 2020-12-02
+    - Role: mfe
+        - Added logo-related configuration settings, with defaults.
+
  - 2020-12-01
     - Role: edxapp
         - Default the CodeJail Python version to the same as the rest of edxapp.
