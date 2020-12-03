@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2020-12-03
+    - Role: edxapp
+        - Added LOGIN_ISSUE_SUPPORT_LINK.
 
  - 2020-12-02
     - Role: mfe
