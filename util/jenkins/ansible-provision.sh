@@ -315,7 +315,7 @@ COMMON_DEPLOY_HOSTNAME: ${deploy_host}
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 COMMON_LMS_BASE_URL: https://${deploy_host}
-
+COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
 
