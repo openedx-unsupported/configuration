@@ -1,0 +1,159 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role enterprise_catalog
+#
+
+
+#
+# vars are namespace with the module name.
+#
+enterprise_catalog_service_name: 'enterprise_catalog'
+
+enterprise_catalog_user: "{{ enterprise_catalog_service_name }}"
+enterprise_catalog_home: "{{ COMMON_APP_DIR }}/{{ enterprise_catalog_service_name }}"
+enterprise_catalog_app_dir: "{{ COMMON_APP_DIR }}/{{ enterprise_catalog_service_name }}"
+enterprise_catalog_code_dir: "{{ enterprise_catalog_app_dir }}/{{ enterprise_catalog_service_name }}"
+enterprise_catalog_venvs_dir: "{{ enterprise_catalog_app_dir }}/venvs"
+enterprise_catalog_venv_dir: "{{ enterprise_catalog_venvs_dir }}/enterprise_catalog"
+
+enterprise_catalog_celery_default_queue: 'enterprise_catalog.default'
+
+ENTERPRISE_CATALOG_CELERY_ALWAYS_EAGER: false
+ENTERPRISE_CATALOG_CELERY_BROKER_TRANSPORT: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_USER: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_PASSWORD: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_HOSTNAME: ''
+ENTERPRISE_CATALOG_CELERY_BROKER_VHOST: ''
+
+enterprise_catalog_environment:
+  ENTERPRISE_CATALOG_CFG: '{{ COMMON_CFG_DIR }}/{{ enterprise_catalog_service_name }}.yml'
+
+enterprise_catalog_gunicorn_port: 8160
+
+enterprise_catalog_debian_pkgs: []
+
+ENTERPRISE_CATALOG_ENABLE_EXPERIMENTAL_DOCKER_SHIM: false
+
+ENTERPRISE_CATALOG_NGINX_PORT: '1{{ enterprise_catalog_gunicorn_port }}'
+ENTERPRISE_CATALOG_SSL_NGINX_PORT: '4{{ enterprise_catalog_gunicorn_port }}'
+
+ENTERPRISE_CATALOG_DEFAULT_DB_NAME: 'enterprise_catalog'
+ENTERPRISE_CATALOG_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+ENTERPRISE_CATALOG_MYSQL_USER: 'entcatalog001'
+ENTERPRISE_CATALOG_MYSQL_PASSWORD: 'password'
+
+ENTERPRISE_CATALOG_MEMCACHE: [ 'memcache' ]
+
+ENTERPRISE_CATALOG_DJANGO_SETTINGS_MODULE: 'enterprise_catalog.settings.production'
+ENTERPRISE_CATALOG_DOMAIN: 'localhost'
+ENTERPRISE_CATALOG_URL_ROOT: 'http://{{ ENTERPRISE_CATALOG_DOMAIN }}:{{ ENTERPRISE_CATALOG_NGINX_PORT }}'
+ENTERPRISE_CATALOG_LOGOUT_URL: '{{ ENTERPRISE_CATALOG_URL_ROOT }}/logout/'
+
+ENTERPRISE_CATALOG_LANGUAGE_CODE: 'en'
+ENTERPRISE_CATALOG_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+ENTERPRISE_CATALOG_SERVICE_USER: 'enterprise_catalog_service_user'
+
+ENTERPRISE_CATALOG_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ enterprise_catalog_service_name }}'
+ENTERPRISE_CATALOG_MEDIA_ROOT: '{{ ENTERPRISE_CATALOG_DATA_DIR }}/media'
+ENTERPRISE_CATALOG_MEDIA_URL: '/media/'
+
+ENTERPRISE_CATALOG_MEDIA_STORAGE_BACKEND:
+DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+MEDIA_ROOT: '{{ ENTERPRISE_CATALOG_MEDIA_ROOT }}'
+MEDIA_URL: '{{ ENTERPRISE_CATALOG_MEDIA_URL }}'
+
+# TODO: Let edx_django_service manage ENTERPRISE_CATALOG_STATIC_ROOT in phase 2.
+ENTERPRISE_CATALOG_STATIC_ROOT: '{{ ENTERPRISE_CATALOG_DATA_DIR }}/staticfiles'
+ENTERPRISE_CATALOG_STATIC_URL: '/static/'
+
+ENTERPRISE_CATALOG_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+ENTERPRISE_CATALOG_CORS_ORIGIN_ALLOW_ALL: false
+ENTERPRISE_CATALOG_CORS_ORIGIN_WHITELIST_DEFAULT:
+- '{{ ENTERPRISE_CATALOG_DOMAIN }}'
+
+ENTERPRISE_CATALOG_CORS_ORIGIN_WHITELIST_EXTRA: []
+ENTERPRISE_CATALOG_CORS_ORIGIN_WHITELIST: '{{ ENTERPRISE_CATALOG_CORS_ORIGIN_WHITELIST_DEFAULT + ENTERPRISE_CATALOG_CORS_ORIGIN_WHITELIST_EXTRA }}'
+
+ENTERPRISE_CATALOG_VERSION: 'master'
+
+ENTERPRISE_CATALOG_GUNICORN_EXTRA: ''
+
+ENTERPRISE_CATALOG_EXTRA_APPS: []
+
+ENTERPRISE_CATALOG_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+ENTERPRISE_CATALOG_CERTIFICATE_LANGUAGES:
+'en': 'English'
+'es_419': 'Spanish'
+
+enterprise_catalog_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ ENTERPRISE_CATALOG_CERTIFICATE_LANGUAGES }}'
+  ENTERPRISE_CATALOG_SERVICE_USER: '{{ ENTERPRISE_CATALOG_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ ENTERPRISE_CATALOG_LANGUAGE_COOKIE_NAME }}'
+  CSRF_COOKIE_SECURE: "{{ ENTERPRISE_CATALOG_CSRF_COOKIE_SECURE }}"
+  CELERY_ALWAYS_EAGER: '{{ ENTERPRISE_CATALOG_CELERY_ALWAYS_EAGER }}'
+  CELERY_BROKER_TRANSPORT: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_TRANSPORT }}'
+  CELERY_BROKER_USER: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_USER }}'
+  CELERY_BROKER_PASSWORD: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_PASSWORD }}'
+  CELERY_BROKER_HOSTNAME: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_HOSTNAME }}'
+  CELERY_BROKER_VHOST: '{{ ENTERPRISE_CATALOG_CELERY_BROKER_VHOST }}'
+  CELERY_DEFAULT_EXCHANGE: 'enterprise_catalog'
+  CELERY_DEFAULT_ROUTING_KEY: 'enterprise_catalog'
+  CELERY_DEFAULT_QUEUE: '{{ enterprise_catalog_celery_default_queue }}'
+
+# See edx_django_service_automated_users for an example of what this should be
+ENTERPRISE_CATALOG_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+ENTERPRISE_CATALOG_LMS_URL_ROOT: !!null
+ENTERPRISE_CATALOG_DISCOVERY_API_URL:  !!null
+
+ENTERPRISE_CATALOG_CSRF_COOKIE_SECURE: false
+
+ENTERPRISE_CATALOG_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+enterprise_catalog_post_migrate_commands: []
+
+ENTERPRISE_CATALOG_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'enterprise-catalog-sso-key'
+ENTERPRISE_CATALOG_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'enterprise-catalog-sso-secret'
+ENTERPRISE_CATALOG_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'enterprise-catalog-backend-service-key'
+ENTERPRISE_CATALOG_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'enterprise-catalog-backend-service-secret'
+ENTERPRISE_CATALOG_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+ENTERPRISE_CATALOG_GIT_IDENTITY: !!null
+
+ENTERPRISE_CATALOG_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: 'enterprise-catalog.git'
+    VERSION: '{{ ENTERPRISE_CATALOG_VERSION }}'
+    DESTINATION: "{{ enterprise_catalog_code_dir }}"
+    SSH_KEY: '{{ ENTERPRISE_CATALOG_GIT_IDENTITY }}'
+
+ENTERPRISE_CATALOG_SECRET_KEY: 'SET-ME-PLEASE'
+
+# Remote config
+ENTERPRISE_CATALOG_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+ENTERPRISE_CATALOG_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+ENTERPRISE_CATALOG_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+# Worker settings
+worker_django_settings_module: "{{ ENTERPRISE_CATALOG_DJANGO_SETTINGS_MODULE }}"
+ENTERPRISE_CATALOG_CELERY_WORKERS:
+  - queue: '{{ enterprise_catalog_celery_default_queue }}'
+    concurrency: 1
+    monitor: True
+enterprise_catalog_workers: "{{ ENTERPRISE_CATALOG_CELERY_WORKERS }}"
