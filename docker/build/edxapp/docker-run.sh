@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# fix individual packages
+monkey_patch () {
+  /edx/bin/pip.edxapp install Mako==1.1.3
+}
+
 # helper function to start a service (LMS or CMS)
 start_service () {
   # start supervisor in foreground and with the current environment loaded
@@ -183,6 +188,10 @@ mkdir -p /edx/var/edxapp/themes
 ls /edx/var/edxapp | grep -v "staticfiles" | grep -v "themes" | awk '{ print "/edx/var/edxapp/"$1 }' | xargs chown -R www-data:www-data || true
 chown -R www-data:www-data /edx/var/log/supervisor/supervisord.log || true
 chown -R edxapp:www-data /edx/var/edxapp/themes || true
+chown -R edxapp:www-data /edx/var/edx-themes || true
+chown -R edxapp:edxapp /edx/var/edxapp/staticfiles || true
+
+monkey_patch
 
 for cmd in "$@"; do
   run_command $cmd
