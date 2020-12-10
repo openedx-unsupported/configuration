@@ -1,11 +1,13 @@
  #!/usr/bin/env bash
 
 # function to create a virtual environment in a directory separate from
-# where it is called
+# where it is called. Name of venv is predictable based on where this
+# script is called
 #
-# create_and_enable_virtualenv.sh --python=python3.8 --clear
+# $ venv=$(create_virtualenv.sh --python=python3.8 --clear)
+# $ . "$venv/bin/activate"
 #
-# Environmental Variables required to be set:
+# Optional Environmental Variables:
 # 
 # JOBVENVDIR - where on the system to create the virtualenv
 #            - e.g. /edx/var/jenkins/jobvenvs/
@@ -27,16 +29,15 @@
 
 if [ -z "$JOBVENVDIR" ]
 then
-	echo "You need to set JOBVENVDIR in your environment before using!" >&2
-	exit 1
+	echo "No JOBVENVDIR found. Using default value."
+	JOBVENVDIR="/edx/var/jenkins/jobvenvs/"
 fi
 
-HERE=`pwd`
-
-# create a unique hash for the job based on its location
-venvname=($(echo -n "$HERE" | md5sum))
+# create a unique hash for the job based location of where job is run
+venvname=($(echo -n `pwd` | md5sum))
 
 cd $JOBVENVDIR
 virtualenv $@ "$venvname"
-. "$venvname/bin/activate"
-cd "$HERE"
+
+# print out venv path so caller can source the environment
+echo -n "$JOBVENVDIR$venvname"
