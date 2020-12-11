@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
  
+ - 2020-12-11
+    - Role: jenkins_master
+       - Adding variable/tasks to create directories for job virtual
+         enviroments to be created, as part of removing shiningpanda
+         as a dependency.
+
  - 2020-12-09
      - Role: edxapp
         - Updated renderer options to reference `common.djangoapps.edxmako`
