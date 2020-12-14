@@ -1,4 +1,4 @@
- #!/usr/bin/env bash
+#!/usr/bin/env bash
 
 # function to create a virtual environment in a directory separate from
 # where it is called. Its name is predictable based on where the script
@@ -11,7 +11,7 @@
 # Optional Environmental Variables:
 # 
 # JOBVENVDIR - where on the system to create the virtualenv
-#            - e.g. /edx/var/jenkins/jobvenvs/
+#            - e.g. /edx/var/jenkins/jobvenvs
 #
 # Reason for existence: shiningpanda, the jenkins plugin that manages our
 # virtualenvironments for jenkins jobs, is no longer supported so we need
@@ -29,22 +29,19 @@
 # parse.
 
 function create_virtualenv () {
-    if [ -z "$JOBVENVDIR" ]
+    if [ -z "${JOBVENVDIR:-}" ]
     then
         echo "No JOBVENVDIR found. Using default value." >&2
-        JOBVENVDIR="/edx/var/jenkins/jobvenvs/"
+        JOBVENVDIR="/edx/var/jenkins/jobvenvs"
     fi
 
-    local job_location=`pwd`
     # create a unique hash for the job based location of where job is run
-    venvname=($(echo -n "$job_location" | md5sum))
+    venvname="$(pwd | md5sum | cut -d' ' -f1)"
 
-    # go create the virtualenv and come back
-    cd $JOBVENVDIR
-    virtualenv $@ "$venvname"
-    cd $job_location
+    # create the virtualenv
+    virtualenv "$@" "$JOBVENVDIR/$venvname"
 
     # This variable is created in global scope if function is sourced
     # so we can access it after running this function.
-    venvpath="$JOBVENVDIR$venvname"
+    venvpath="$JOBVENVDIR/$venvname"
 }
