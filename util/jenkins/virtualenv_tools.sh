@@ -29,13 +29,11 @@
 # parse.
 
 function create_virtualenv () {
-    set +u  # it's okay if JOBVENVDIR doesn't exist
     if [ -z "$JOBVENVDIR" ]
     then
         echo "No JOBVENVDIR found. Using default value." >&2
         JOBVENVDIR="/edx/var/jenkins/jobvenvs/"
     fi
-    set -u
 
     local job_location=`pwd`
     # create a unique hash for the job based location of where job is run
