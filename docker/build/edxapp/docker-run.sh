@@ -102,6 +102,14 @@ run_command () {
       start_service $service
     ;;
 
+    lms-fake-migrate|cms-fake-migrate)
+      echo "Fake migrating ${service}..."
+      wait_for_mysql $service
+      local edxpython="/edx/bin/python.edxapp"
+      local manage="/edx/bin/manage.edxapp"
+      eval "${edxpython} ${manage} ${service} migrate --fake-initial --settings=bdu ${FAKE_MIGRATION_APP:-thumbnail}"
+    ;;
+
     lms-migrate|cms-migrate)
       echo "Migrating ${service}..."
       wait_for_mysql $service
