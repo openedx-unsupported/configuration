@@ -65,10 +65,11 @@ def check_slow_query_logs(parameter_group_type, parameter_group_name):
 
 @click.command()
 @click.option('--db_engine', help='Removed, left for compatibility')
-@click.option('--whitelist', type=(str), multiple=True, help='Whitelisted RDS Instances')
-def cli(db_engine, whitelist):
+@click.option('--whitelist', type=(str), multiple=True, help='Deprecated alias for --ignore')
+@click.option('--ignore', type=(str), multiple=True, help='RDS Instances to ignore')
+def cli(db_engine, whitelist, ignore):
 
-    ignore_rds =  list(whitelist)
+    ignore_rds = list(ignore) + list(whitelist)
     slow_query_logs_disabled_rds = []
     instances_out_of_sync_with_instance_parameters = []
     instances_out_of_sync_with_cluster_parameters = []
