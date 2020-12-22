@@ -91,7 +91,7 @@ def cli(db_engine, whitelist):
             db_identifier = instance['DBInstanceIdentifier']
             if db_identifier in ignore_rds or "test" in db_identifier:
                 continue
-        db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
+            db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
 
     for instance_name, parameter_groups in db_instance_parameter_groups.items():
         instance_parameter_group_name = parameter_groups['instance']['DBParameterGroupName']
