@@ -7,11 +7,11 @@ Script supports 3 operations
 3- revertacl
 
 1 optional parameter
-whitelist (optional) (provide multiple whitelist parameters to filter out)
+exclude (optional) (provide multiple parameters to filter out)
 
 It saves current ACL in a file named bucketname.txt for updating or reverting purposes.
 
-python s3_acl.py --bucketname <name-of-bucket> --operation getacl --whitelist <prefix_to_avoid>
+python s3_acl.py --bucketname <name-of-bucket> --operation getacl --exclude <prefix_to_avoid>
 
 Should assume role to run this script.
 """
@@ -63,7 +63,7 @@ class S3BotoWrapper:
         return self.client.put_object_acl(*args, **kwargs)
 
 
-def get_all_s3_keys(s3_bucket, region, whitelist):
+def get_all_s3_keys(s3_bucket, region, exclude):
     """Get a list of all keys in an S3 bucket."""
     keys = []
     kwargs = {'Bucket': s3_bucket}
@@ -72,7 +72,7 @@ def get_all_s3_keys(s3_bucket, region, whitelist):
         resp = s3_client.get_object(**kwargs)
         for obj in resp['Contents']:
             # Filter out directories, you can add more filters here if required.
-            if obj['Key'][-1] == '/' or any(obj['Key'].startswith(whitelist_object) for whitelist_object in whitelist):
+            if obj['Key'][-1] == '/' or any(obj['Key'].startswith(filter_object) for filter_object in exclude):
                 continue
             else:
                 keys.append(obj['Key'])
@@ -83,11 +83,11 @@ def get_all_s3_keys(s3_bucket, region, whitelist):
     return keys
 
 
-def set_acl_private(acl_list, bucket_name, whitelist):
+def set_acl_private(acl_list, bucket_name, exclude):
     s3_client = S3BotoWrapper(region_name=region)
     for item in acl_list:
         for key, value in item.items():
-            if any(key.startswith(whitelist_object) for whitelist_object in whitelist):
+            if any(key.startswith(filter_object) for filter_object in exclude):
                 continue
             else:
                 try:
@@ -104,11 +104,11 @@ def set_acl_private(acl_list, bucket_name, whitelist):
                         sys.exit(1)
 
 
-def revert_s3_acl(acl_list, bucket_name, whitelist):
+def revert_s3_acl(acl_list, bucket_name, exclude):
     s3_client = S3BotoWrapper(region_name=region)
     for item in acl_list:
         for key, value in item.items():
-            if any(key.startswith(whitelist_object) for whitelist_object in whitelist):
+            if any(key.startswith(filter_object) for filter_object in exclude):
                 continue
             else:
                 try:
@@ -126,11 +126,11 @@ def revert_s3_acl(acl_list, bucket_name, whitelist):
                         sys.exit(1)
 
 
-def get_s3_acl(s3_bucket, whitelist):
+def get_s3_acl(s3_bucket, exclude):
     s3_client = S3BotoWrapper(region_name=region)
     response_list = []
     try:
-        s3_objects_key = get_all_s3_keys(s3_bucket, region, whitelist)
+        s3_objects_key = get_all_s3_keys(s3_bucket, region, exclude)
     except ClientError as e:
         logger.error(("Unable to connect to AWS with error :{}".format(e)))
         sys.exit(1)
@@ -154,11 +154,11 @@ def get_s3_acl(s3_bucket, whitelist):
 @click.command()
 @click.option('--bucketname', required=True, help='S3 bucket name')
 @click.option('--operation', required=True, help='Operation name to perform i.e 1- getacl 2- setaclprivate 3- revertacl')
-@click.option('--whitelist', '-i', multiple=True, help='S3 objects name to avoid')
-def controller(bucketname, operation, whitelist):
+@click.option('--exclude', '-i', multiple=True, help='S3 objects name to avoid')
+def controller(bucketname, operation, exclude):
     file_to_write = bucketname + ".txt"
     if operation == 'getacl':
-        objects_acl = get_s3_acl(bucketname, whitelist)
+        objects_acl = get_s3_acl(bucketname, exclude)
         with open(file_to_write, 'w') as fout:
             json.dump(objects_acl, fout)
         logger.info("Task completed. Total numbers of objects read are: " + str(len(objects_acl)))
@@ -167,7 +167,7 @@ def controller(bucketname, operation, whitelist):
             data = []
             with open(file_to_write, "r") as inFile:
                 data = json.load(inFile)
-            set_acl_private(data, bucketname, whitelist)
+            set_acl_private(data, bucketname, exclude)
             logger.info("Task completed. ACL of " + bucketname + " objects set to private.")
         except IOError:
             logger.error("File not accessible")
@@ -177,7 +177,7 @@ def controller(bucketname, operation, whitelist):
             data = []
             with open(file_to_write, "r") as inFile:
                 data = json.load(inFile)
-            revert_s3_acl(data, bucketname, whitelist)
+            revert_s3_acl(data, bucketname, exclude)
             logger.info("Task completed. ACL of " + bucketname + " objects reverted to given state")
         except IOError:
             logger.error("File not accessible")
