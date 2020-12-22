@@ -89,11 +89,13 @@ def cli(db_engine, whitelist):
             db_identifier = instance['DBInstanceIdentifier']
             if db_identifier not in ignore_rds and "test" not in db_identifier:
                 db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
+                if instance["DBClusterParameterGroupStatus"] != "in-sync":
+                    instances_out_of_sync_with_instance_parameters.append(db_identifier)
 
-    for instance_name, parameter_groups in db_instance_parameter_groups.items():
+    for db_identifier, parameter_groups in db_instance_parameter_groups.items():
         instance_parameter_group_name = parameter_groups['instance']['DBParameterGroupName']
         if parameter_groups['instance']['ParameterApplyStatus'] != "in-sync":
-            instances_out_of_sync_with_instance_parameters.append(instance_name)
+            instances_out_of_sync_with_instance_parameters.append(db_identifier)
             exit_status = 1
 
         # First check if slow_query_logs are enabled in the instance parameter group which takes precedence over the cluster
