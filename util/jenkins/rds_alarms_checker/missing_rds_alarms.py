@@ -80,16 +80,15 @@ def cloudwatch_alarm_checker(alarmprefix, region):
 
 
 @click.command()
-@click.option('--whitelist', type=(str), multiple=True, help='Deprecated alias for --ignore')
 @click.option('--ignore', type=(str), multiple=True, help='RDS Instances to ignore')
-def controller(whitelist, ignore):
+def controller(ignore):
     """
     Control execution of all other functions
     """
     rds = rds_extractor()
     missing_alarm = []
     # List of RDS we don't care about
-    ignore_rds_list = list(ignore) + list(whitelist)
+    ignore_rds_list = list(ignore)
     for db in rds:
         if db["name"] not in ignore_rds_list:
             alarms_count = cloudwatch_alarm_checker(db["name"], db["Region"])
