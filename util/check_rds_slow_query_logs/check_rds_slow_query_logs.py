@@ -90,7 +90,7 @@ def cli(db_engine, ignore):
             if db_identifier not in ignore_rds and "test" not in db_identifier:
                 db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
                 if instance["DBClusterParameterGroupStatus"] != "in-sync":
-                    instances_out_of_sync_with_instance_parameters.append(db_identifier)
+                    instances_out_of_sync_with_cluster_parameters.append(db_identifier)
 
     for db_identifier, parameter_groups in db_instance_parameter_groups.items():
         instance_parameter_group_name = parameter_groups['instance']['DBParameterGroupName']
@@ -116,7 +116,7 @@ def cli(db_engine, ignore):
     print()
     print(("Instance parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_instance_parameters)))
     print()
-    print(("Cluster parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_instance_parameters)))
+    print(("Cluster parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_cluster_parameters)))
     exit(exit_status)
 
 if __name__ == '__main__':
