@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-01-04
+     - Role: tinymce_plugins
+        - Installs `tinymce_plugins` specified in `TINYMCE_ADDITIONAL_PLUGINS_LIST` configuration variable
+        - Rebuilds TinyMCE files with the newly installed plugins and the previous ones
+
+     - Role: edxapp
+        - Includes `tinymce_plugins` role in order to install custom TinyMCE plugins, if there are any.
  - 2020-11-20
      - Role: edxapp
         - Updated the worker newrelic config to have the service variant in the app name.  This will seperate the names
