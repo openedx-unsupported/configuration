@@ -59,37 +59,12 @@
   register: prospectus_checkout
   when: PROSPECTUS_GIT_IDENTITY == "none"
 
-- name: add deadsnakes repo
-  apt_repository:
-      repo: ppa:deadsnakes/ppa
-  when: prospectus_use_python3
-
-- name: install python3.8
-  apt:
-    pkg:
-      - python3.8-dev
-      - python3.8-distutils
-  when: prospectus_use_python3
-  tags:
-    - install
-    - install:system-requirements
-
 - name: build virtualenv with python2.7
   command: "virtualenv --python=python2.7 {{ prospectus_venv_dir }}"
   args:
     creates: "{{ prospectus_venv_dir }}/bin/pip"
   become_user: "{{ prospectus_user }}"
-  when: not prospectus_use_python3
-  tags:
-    - install
-    - install:system-requirements
-
-- name: build virtualenv with python3.8
-  command: "virtualenv --python=python3.8 {{ prospectus_venv_dir }}"
-  args:
-    creates: "{{ prospectus_venv_dir }}/bin/pip"
-  become_user: "{{ prospectus_user }}"
-  when: prospectus_use_python3
+  when: not edx_django_service_use_python3
   tags:
     - install
     - install:system-requirements
