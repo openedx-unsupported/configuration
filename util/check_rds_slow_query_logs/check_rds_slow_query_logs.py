@@ -4,59 +4,58 @@ import boto3
 import click
 
 
-def get_db_instances(db_engine):
+def get_db_instances():
 
-    """ 
-    Returns: 
+    """
+    Returns:
           List of provisioned RDS instances
     """
+    return rds.describe_db_instances()['DBInstances']
 
-    if db_engine == "mysql":
-        instances = rds.describe_db_instances()['DBInstances']
-    elif db_engine == "aurora":
-        instances = rds.describe_db_clusters()['DBClusters']
-    return instances
+def get_db_clusters():
 
+    """
+    Returns:
+          List of provisioned RDS instances
+    """
+    return rds.describe_db_clusters()['DBClusters']
 
-def get_db_parameters(db_engine, db_parameter_group, marker):
-    
-    """ 
-    Returns: 
-           The detailed parameter list for a particular DB parameter 
-           group Using marker as pagination token as at max it returns 
+def get_db_parameters(parameter_group_type, parameter_group_name, marker):
+
+    """
+    Returns:
+           The detailed parameter list for a particular DB parameter
+           group Using marker as pagination token as at max it returns
            100 records
     """
 
-    if db_engine == "mysql":
+    if parameter_group_type == "instance":
         response = rds.describe_db_parameters(
-                       DBParameterGroupName=db_parameter_group, 
+                       DBParameterGroupName=parameter_group_name,
                        Marker=marker)
-    elif db_engine == "aurora":
+    elif parameter_group_type == "cluster":
         response = rds.describe_db_cluster_parameters(
-                       DBClusterParameterGroupName=db_parameter_group, 
+                       DBClusterParameterGroupName=parameter_group_name,
                        Marker=marker)
     return response
 
 
-def check_slow_query_logs(db_engine, db_parameter_group):
+def check_slow_query_logs(parameter_group_type, parameter_group_name):
 
     slow_log_enabled = False
 
     marker = ""
-   
-    while True:
 
+    while True:
         if marker is None:
             break
 
-        response = get_db_parameters(db_engine, db_parameter_group, marker)
+        response = get_db_parameters(parameter_group_type, parameter_group_name, marker)
         marker = response.get('Marker')
         parameters = response.get('Parameters')
 
         for param in parameters:
-
             if 'slow_query_log' in param['ParameterName']:
-
                 if 'ParameterValue' in param and param['ParameterValue'] == '1':
                     slow_log_enabled = True
                 break
@@ -65,41 +64,62 @@ def check_slow_query_logs(db_engine, db_parameter_group):
 
 
 @click.command()
-@click.option('--db_engine', help='RDS engine: mysql or aurora', required=True)
-@click.option('--whitelist', type=(str), multiple=True, help='Whitelisted RDS Instances')
-def cli(db_engine, whitelist):
+@click.option('--db_engine', help='Removed, left for compatibility')
+@click.option('--ignore', type=(str), multiple=True, help='RDS Instances to ignore')
+def cli(db_engine, ignore):
 
-    ignore_rds =  list(whitelist)
+    ignore_rds = list(ignore)
     slow_query_logs_disabled_rds = []
+    instances_out_of_sync_with_instance_parameters = []
+    instances_out_of_sync_with_cluster_parameters = []
     exit_status = 0
-    
-    dbhosts = get_db_instances(db_engine)
 
-    for dbhost in dbhosts:
-       
-        if db_engine == "mysql":
-            db_identifier = dbhost['DBInstanceIdentifier']
-            if db_identifier in ignore_rds or "test" in db_identifier:
-                continue
+    db_instances = get_db_instances()
+    db_clusters = get_db_clusters()
 
-            db_parameter_group = dbhost['DBParameterGroups'][0]['DBParameterGroupName']
-        elif db_engine == "aurora":
-            db_identifier = dbhost['DBClusterIdentifier']
-            if db_identifier in ignore_rds:
-                continue
+    db_instance_parameter_groups = {}
 
-            db_parameter_group = dbhost['DBClusterParameterGroup']
+    for instance in db_instances:
+        db_identifier = instance['DBInstanceIdentifier']
+        if db_identifier not in ignore_rds and "test" not in db_identifier:
+            db_instance_parameter_groups[db_identifier] = {'instance': instance['DBParameterGroups'][0]}
 
-        slow_query_logs_enabled = check_slow_query_logs(db_engine, db_parameter_group)
+    for cluster in db_clusters:
+        for instance in cluster['DBClusterMembers']:
+            db_identifier = instance['DBInstanceIdentifier']
+            if db_identifier not in ignore_rds and "test" not in db_identifier:
+                db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
+                if instance["DBClusterParameterGroupStatus"] != "in-sync":
+                    instances_out_of_sync_with_cluster_parameters.append(db_identifier)
+
+    for db_identifier, parameter_groups in db_instance_parameter_groups.items():
+        instance_parameter_group_name = parameter_groups['instance']['DBParameterGroupName']
+        if parameter_groups['instance']['ParameterApplyStatus'] != "in-sync":
+            instances_out_of_sync_with_instance_parameters.append(db_identifier)
+            exit_status = 1
+
+        # First check if slow_query_logs are enabled in the instance parameter group which takes precedence over the cluster
+        # level parameter group
+        slow_query_logs_enabled = check_slow_query_logs('instance', instance_parameter_group_name)
+
+        if 'cluster' in parameter_groups.keys():
+            cluster_parameter_group_name = parameter_groups['cluster']
+            # If slow query logs weren't enabled by a cluster level parameter, see if they are enabled at the instance level
+            if not slow_query_logs_enabled:
+                slow_query_logs_enabled = check_slow_query_logs('cluster', cluster_parameter_group_name)
 
         if not slow_query_logs_enabled:
             exit_status = 1
             slow_query_logs_disabled_rds.append(db_identifier)
 
     print(("Slow query logs are disabled for RDS Instances\n{0}".format(slow_query_logs_disabled_rds)))
+    print()
+    print(("Instance parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_instance_parameters)))
+    print()
+    print(("Cluster parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_cluster_parameters)))
     exit(exit_status)
 
 if __name__ == '__main__':
-         
+
     rds = boto3.client('rds')
     cli()

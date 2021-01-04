@@ -233,6 +233,30 @@
     - install:base
     - install:plugins
 
+- name: Create directory to hold job virtualenvs
+  file:
+    path: "{{ jenkins_job_venv_dir }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+  when: jenkins_job_venv_dir is defined
+  tags:
+    - install
+    - install:venv-management
+
+- name: Copy virtualenv script tools to jenkins
+  copy:
+    remote_src: no
+    src: ../util/jenkins/virtualenv_tools.sh
+    dest: "{{ jenkins_job_venv_dir }}/virtualenv_tools.sh"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: 0755
+  when: jenkins_job_venv_dir is defined
+  tags:
+    - install
+    - install:venv-management
+
 # Plugins that are bundled with Jenkins are "pinned".
 # Jenkins will overwrite updated plugins with its built-in version
 # unless we create a ".pinned" file for the plugin.

@@ -31,6 +31,17 @@
     - "install"
     - "install:app-requirements"
 
+# add Bionic source list to install libssl1.0.0 on Focal
+# so mongo3.2 installation does not fail with dependencies
+- name: add source list to install libssl1.0.0
+  apt_repository:
+    repo: "deb http://security.ubuntu.com/ubuntu bionic-security main"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
+  when: ansible_distribution_release == 'focal'
+
 - name: add the mongodb signing key
   apt_key:
     url: "https://www.mongodb.org/static/pgp/server-{{ MONGO_VERSION_MAJOR_MINOR }}.asc"
@@ -48,6 +59,19 @@
     - "install"
     - "install:app-requirements"
     - "mongo_packages"
+  when: ansible_distribution_release != 'focal'
+
+# mongo 3.2 does not have any source list for Bionic and Focal
+# use Xenial repo source list to install mongo 3.2
+- name: add the mongodb repo to the sources list for focal
+  apt_repository:
+    repo: "{{ MONGODB_REPO_XENIAL }}"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+  when: ansible_distribution_release == 'focal'
 
 - name: install mongo server and recommends
   apt:

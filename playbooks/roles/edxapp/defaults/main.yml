@@ -296,6 +296,8 @@ EDXAPP_ACE_ROUTING_KEY: 'edx.lms.core.default'
 EDXAPP_ACE_CHANNEL_DEFAULT_EMAIL: 'django_email'
 EDXAPP_ACE_CHANNEL_TRANSACTIONAL_EMAIL: 'django_email'
 
+EDXAPP_ORGANIZATIONS_AUTOCREATE: true
+
 # Display a language selector in the LMS/CMS header.
 EDXAPP_SHOW_HEADER_LANGUAGE_SELECTOR: false
 
@@ -603,7 +605,7 @@ EDXAPP_COURSES_WITH_UNSAFE_CODE: []
 EDXAPP_SESSION_COOKIE_DOMAIN: ""
 EDXAPP_SESSION_COOKIE_NAME: "sessionid"
 
-# django-session-cookie middleware 
+# django-session-cookie middleware
 EDXAPP_DCS_SESSION_COOKIE_SAMESITE: "{{ 'None' if NGINX_ENABLE_SSL | default(False) else 'Lax' }}"
 EDXAPP_DCS_SESSION_COOKIE_SAMESITE_FORCE_ALL: True
 
@@ -1091,7 +1093,8 @@ EDXAPP_WORKER_DEFAULT_STOPWAITSECS: 432000
 # setup for python codejail
 edxapp_sandbox_venv_dir:  '{{ edxapp_venvs_dir }}/edxapp-sandbox'
 edxapp_sandbox_user: 'sandbox'  # I think something about the codejail requires hardcoding this to sandbox:sandbox
-edxapp_sandbox_python_version: 'python3.5' # change to 'python2.7' if you want to go back to the old setting.
+EDXAPP_SANDBOX_PYTHON_VERSION: "{{ EDXAPP_PYTHON_VERSION }}"
+edxapp_sandbox_python_version: "{{ EDXAPP_SANDBOX_PYTHON_VERSION }}"
 
 # apparmor command
 edxapp_aa_command: "{% if EDXAPP_SANDBOX_ENFORCE %}aa-enforce{% else %}aa-complain{% endif %}"
@@ -1120,7 +1123,6 @@ edxapp_environment_default:
   STUDIO_CFG: "{{ edxapp_studio_cfg }}"
   BOTO_CONFIG: "{{ edxapp_app_dir }}/.boto"
   REVISION_CFG: "{{ edxapp_revision_cfg }}"
-  SETUPTOOLS_USE_DISTUTILS: "stdlib" # https://setuptools.readthedocs.io/en/latest/history.html#v50-0-0
 
 edxapp_environment_extra: {}
 
@@ -1513,14 +1515,14 @@ lms_auth_config:
               OPTIONS:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
-                render_template: 'edxmako.shortcuts.render_to_string'
+                render_template: 'common.djangoapps.edxmako.shortcuts.render_to_string'
             - NAME: 'draft'
               ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
               DOC_STORE_CONFIG: "{{ EDXAPP_LMS_DRAFT_DOC_STORE_CONFIG }}"
               OPTIONS:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
-                render_template: 'edxmako.shortcuts.render_to_string'
+                render_template: 'common.djangoapps.edxmako.shortcuts.render_to_string'
   SOCIAL_AUTH_OAUTH_SECRETS: "{{ EDXAPP_SOCIAL_AUTH_OAUTH_SECRETS }}"
   ACE_CHANNEL_SAILTHRU_API_KEY: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_KEY }}"
   ACE_CHANNEL_SAILTHRU_API_SECRET: "{{ EDXAPP_ACE_CHANNEL_SAILTHRU_API_SECRET }}"
@@ -1581,6 +1583,7 @@ lms_env_config:
   ACE_ROUTING_KEY: "{{ EDXAPP_ACE_ROUTING_KEY }}"
   ACE_CHANNEL_DEFAULT_EMAIL: "{{ EDXAPP_ACE_CHANNEL_DEFAULT_EMAIL }}"
   ACE_CHANNEL_TRANSACTIONAL_EMAIL: "{{ EDXAPP_ACE_CHANNEL_TRANSACTIONAL_EMAIL }}"
+  ORGANIZATIONS_AUTOCREATE: "{{ EDXAPP_ORGANIZATIONS_AUTOCREATE }}"
   ENTERPRISE_TAGLINE: "{{ EDXAPP_ENTERPRISE_TAGLINE }}"
   ANALYTICS_API_URL: "{{ EDXAPP_LMS_ANALYTICS_API_URL }}"
   GOOGLE_SITE_VERIFICATION_ID: "{{ EDXAPP_GOOGLE_SITE_VERIFICATION_ID }}"
@@ -1615,14 +1618,14 @@ cms_auth_config:
               OPTIONS:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
-                render_template: 'edxmako.shortcuts.render_to_string'
+                render_template: 'common.djangoapps.edxmako.shortcuts.render_to_string'
             - NAME: 'draft'
               ENGINE: 'xmodule.modulestore.mongo.DraftMongoModuleStore'
               DOC_STORE_CONFIG: "{{ EDXAPP_CMS_DOC_STORE_CONFIG }}"
               OPTIONS:
                 default_class: 'xmodule.hidden_module.HiddenDescriptor'
                 fs_root:  "{{ edxapp_course_data_dir }}"
-                render_template: 'edxmako.shortcuts.render_to_string'
+                render_template: 'common.djangoapps.edxmako.shortcuts.render_to_string'
   SEGMENT_KEY: "{{ EDXAPP_CMS_SEGMENT_KEY }}"
   PARSE_KEYS: "{{ EDXAPP_PARSE_KEYS }}"
   FERNET_KEYS: "{{ EDXAPP_FERNET_KEYS }}"
