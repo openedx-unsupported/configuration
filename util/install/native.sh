@@ -103,7 +103,7 @@ sudo apt-get install -y build-essential software-properties-common curl git-core
 sudo apt-get remove -y python-yaml
 sudo pip3 install --upgrade pip==20.0.2
 sudo pip3 install --upgrade setuptools==44.1.0
-sudo -H pip3 install --upgrade virtualenv==20.1.0
+sudo -H pip3 install --upgrade virtualenv==20.2.0
 
 ##
 ## Overridable version variables in the playbooks. Each can be overridden
