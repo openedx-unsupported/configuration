@@ -111,6 +111,15 @@ run_command () {
       eval "${edxpython} ${manage} ${service} migrate --fake-initial --settings=bdu ${FAKE_MIGRATION_APP:-thumbnail}"
     ;;
 
+    lms-dark-lang-config)
+      echo "Adding dark lang configuration"
+      wait_for_mysql $service
+      source /edx/app/edxapp/edxapp_env
+      local edxpython="/edx/bin/python.edxapp"
+      local manage="/edx/bin/manage.edxapp"
+      eval "${edxpython} ${manage} ${service} --settings=bdu add_dark_lang_config --langs ${DARK_LANGS:-en,fr,zh-cn,es-419,uk,ru,pt-br,it-it}"
+    ;;
+
     lms-migrate|cms-migrate)
       echo "Migrating ${service}..."
       wait_for_mysql $service
