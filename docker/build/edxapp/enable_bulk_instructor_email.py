@@ -8,7 +8,6 @@ flag = BulkEmailFlag.objects.first()
 
 if flag is None or not flag.enabled:
     BulkEmailFlag.objects.create(enabled=True, require_course_email_auth=False)
-    BulkEmail
 else:
     flag.enabled=True
     flag.require_course_email_auth=False
