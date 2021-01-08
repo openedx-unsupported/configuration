@@ -1,9 +1,19 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
+ 
+ - 2021-01-08
+     - Role: tinymce_plugins
+        - Installs `tinymce_plugins` specified in `TINYMCE_ADDITIONAL_PLUGINS_LIST` configuration variable
+        - Rebuilds TinyMCE files with the newly installed plugins and the previous ones
+
+     - Role: edxapp
+        - Includes `tinymce_plugins` role in order to install custom TinyMCE plugins, if there are any.
+
  - 2021-01-05
      - Role: edxapp
         - setting `proxy_buffer_size` behind the EDXAPP_SET_PROXY_BUFFER_SIZE flag.
+
  - 2020-12-11
     - Role: jenkins_master
        - Adding variable/tasks to create directories for job virtual
