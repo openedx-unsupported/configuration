@@ -107,7 +107,7 @@
     - install:app-requirements
 
 - name: Create the virtualenv to install the Python requirements
-  command: "virtualenv {{ edxapp_venv_dir }} -p {{ EDXAPP_PYTHON_VERSION }}"
+  command: "virtualenv {{ edxapp_venv_dir }} -p {{ EDXAPP_PYTHON_VERSION }} --always-copy"
   args:
     chdir: "{{ edxapp_code_dir }}"
     creates: "{{ edxapp_venv_dir }}/bin/pip"
@@ -261,7 +261,7 @@
     - install:app-requirements
 
 - name: Create the virtualenv to install the Python sandbox requirements
-  command: "virtualenv {{ edxapp_sandbox_venv_dir }} -p {{ edxapp_sandbox_python_version }}"
+  command: "virtualenv {{ edxapp_sandbox_venv_dir }} -p {{ edxapp_sandbox_python_version }} --always-copy"
   args:
     chdir: "{{ edxapp_code_dir }}"
     creates: "{{ edxapp_sandbox_venv_dir }}/bin/pip"
@@ -364,6 +364,12 @@
     - install
     - install:configuration
 
+- name: import custom tinymce plugins
+  include_role:
+    name: "tinymce_plugins"
+  when:
+    - celery_worker is not defined
+
 # creates the supervisor jobs for the
 # service variants configured, runs
 # gather_assets and db migrations
@@ -411,15 +417,12 @@
   tags:
     - manage
 
-- name: create symlinks from the venv bin dir and repo dir
+- name: create symlinks from the repo dir
   file:
     src: "{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ (item | basename).split('.', 1) | first }}.edxapp"
     state: link
   with_items:
-    - '{{ edxapp_venv_bin }}/python'
-    - '{{ edxapp_venv_bin }}/pip'
-    - '{{ edxapp_venv_bin }}/django-admin.py'
     - '{{ edxapp_code_dir }}/manage.py'
   tags:
     - install

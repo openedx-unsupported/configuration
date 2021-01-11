@@ -1,5 +1,22 @@
 ---
 ######## BEGIN PYTHON3 ########
+- name: add deadsnakes repo
+  apt_repository:
+      repo: ppa:deadsnakes/ppa
+      update_cache: yes
+  when: xqueue_use_python38
+
+- name: install python3.8
+  apt:
+    name: "{{ item }}"
+  when: xqueue_use_python38
+  with_items:
+    - python3.8-dev
+    - python3.8-distutils
+  tags:
+    - install
+    - install:system-requirements
+
 - name: install python3
   apt:
     name: "{{ item }}"
@@ -7,6 +24,16 @@
   with_items:
     - python3-pip
     - python3-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3.8
+  command: "virtualenv --python=python3.8 {{ xqueue_venv_dir }}"
+  args:
+    creates: "{{ xqueue_venv_dir }}/bin/pip"
+  become_user: "{{ xqueue_user }}"
+  when: xqueue_use_python38
   tags:
     - install
     - install:system-requirements
@@ -20,6 +47,19 @@
   tags:
     - install
     - install:system-requirements
+
+- name: "Install python3.8 requirements"
+  pip:
+    requirements: "{{ xqueue_requirements_file }}"
+    virtualenv: "{{ xqueue_venv_dir }}"
+    virtualenv_python: 'python3.8'
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
+  become_user: "{{ xqueue_user }}"
+  when: xqueue_use_python38
+  tags:
+    - install
+    - install:app-requirements
 
 - name: "Install python3 requirements"
   pip:
@@ -41,7 +81,7 @@
   args:
     creates: "{{ xqueue_venv_dir }}/bin/pip"
   become_user: "{{ xqueue_user }}"
-  when: not xqueue_use_python3
+  when: not xqueue_use_python3 and not xqueue_use_python38
   tags:
     - install
     - install:system-requirements
@@ -117,7 +157,7 @@
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
   become_user: "{{ xqueue_user }}"
-  when: not xqueue_use_python3
+  when: not xqueue_use_python3 and not xqueue_use_python38
   tags:
     - install
     - install:app-requirements
@@ -144,7 +184,6 @@
     DB_MIGRATION_USER: "{{ COMMON_MYSQL_MIGRATE_USER }}"
     DB_MIGRATION_PASS: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
     XQUEUE_CFG: '{{ COMMON_CFG_DIR }}/xqueue.yml'
-    SETUPTOOLS_USE_DISTUTILS: "stdlib" # https://setuptools.readthedocs.io/en/latest/history.html#v50-0-0
   when: migrate_db is defined and migrate_db|lower == "yes" and COMMON_MYSQL_MIGRATE_PASS
   run_once: yes
   tags:
@@ -156,7 +195,6 @@
   become_user: "{{ xqueue_user }}"
   environment:
     XQUEUE_CFG: '{{ COMMON_CFG_DIR }}/xqueue.yml'
-    SETUPTOOLS_USE_DISTUTILS: "stdlib" # https://setuptools.readthedocs.io/en/latest/history.html#v50-0-0
   when: not disable_edx_services
   tags:
     - manage

@@ -12,6 +12,13 @@
 #     database: edxapp
 #     roles: readWrite
 # 
+# define optional MONGO_ROLES in edxapp-mongo.yml with the following format to create and use custom mongodb role
+#
+# MONGO_ROLES:
+#   - database: edxapp
+#     role: edxapp_readWrite
+#     privileges: "'createCollection', 'createIndex', 'dropIndex', 'find', 'insert', 'listIndexes', 'listCollections', 'remove', 'renameCollectionSameDB', 'update'"
+#
 # It should also define a login_host and repl_set.  You can set login_host to
 # be any member of your cluster as this code will find and connect to the
 # primary.
@@ -29,6 +36,11 @@
   tasks:
     - name: install python mongo module
       pip: name=pymongo state=present
+
+    - name: create a mongodb role
+      shell: mongo -u {{ MONGO_ADMIN_USER }} -p {{ MONGO_ADMIN_PASSWORD }} --host {{ repl_set }}/{{ login_host }} --authenticationDatabase admin --eval "db = db.getSiblingDB('{{ item.database }}');if ( db.getRole('{{ item.role }}') === null ){ db.createRole({ role{{':'}} '{{ item.role }}', privileges{{':'}} [{ resource{{':'}} { db{{':'}} '{{ item.database }}', collection{{':'}} '' }, actions{{':'}} [{{ item.privileges }}]}], roles{{':'}} []}); } else { db.updateRole('{{ item.role }}',{ privileges{{':'}} [{ resource{{':'}} { db{{':'}} '{{ item.database }}', collection{{':'}} '' }, actions{{':'}} [{{ item.privileges }}]}], roles{{':'}} []}); }"
+      with_items: "{{ MONGO_ROLES }}"
+      when: MONGO_ROLES is defined
 
     - name: create a mongodb user
       mongodb_user:

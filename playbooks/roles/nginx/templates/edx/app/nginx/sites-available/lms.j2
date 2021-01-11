@@ -114,7 +114,8 @@ error_page {{ k }} {{ v }};
   # Some Master's courses require submissions up to 20MB in size.
   # CMS requires larger value for course assets, values provided
   # via hiera.
-  client_max_body_size 20M;
+  client_max_body_size {{ NGINX_LMS_CLIENT_MAX_BODY_SIZE }};
+  proxy_read_timeout {{ NGINX_LMS_PROXY_READ_TIMEOUT }};
 
   rewrite ^(.*)/favicon.ico$ {{ NGINX_EDXAPP_FAVICON_PATH }} last;
 
@@ -283,6 +284,11 @@ error_page {{ k }} {{ v }};
     {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
       {%- include "basic-auth.j2" %}
     {% endif %}
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth, uses oauth2 for authentication
+  location /v1/accounts/gdpr_retire_users {
     try_files $uri @proxy_to_lms_app;
   }
 

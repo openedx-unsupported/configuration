@@ -11,6 +11,7 @@ import click
 import backoff
 import boto3
 import botocore
+import traceback
 from itertools import zip_longest
 from celery import Celery
 from opsgenie.swagger_client import AlertApi
@@ -327,6 +328,7 @@ def celery_connection(host, port):
         celery_client = Celery(broker=broker_url)
     except Exception as e:
         print(("Exception in connection():", e))
+        print(traceback.format_exc())
     return celery_client
 
 
@@ -354,6 +356,7 @@ def get_active_tasks(celery_control, queue_workers, queue_name):
                         ])
         except Exception as e:
             print(("Exception in get_active_tasks():", e))
+            print(traceback.format_exc())
     return (pretty_json(active_tasks), pretty_json(redacted_active_tasks))
 
 
@@ -406,6 +409,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
                 queue_workers.setdefault(queue['name'], []).append(worker)
     except Exception as e:
         print(("Exception while getting queue to worker mappings:", e))
+        print(traceback.format_exc())
 
     old_state = unpack_state(queue_age_hash)
     # Temp debugging
@@ -439,6 +443,7 @@ def check_queues(host, port, environment, deploy, default_threshold, queue_thres
             body = extract_body(first_item)
         except Exception as error:
             print(("ERROR: Unable to extract task body in queue {}, exception {}".format(queue_name, error)))
+            print(traceback.format_exc())
             ret_val = 1
         redacted_body = {'task': body.get('task'), 'args': 'REDACTED', 'kwargs': 'REDACTED'}
         active_tasks, redacted_active_tasks = get_active_tasks(celery_control, queue_workers, queue_name)

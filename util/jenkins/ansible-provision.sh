@@ -128,7 +128,7 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-0c9c19b09d5dbaf26"
+    ami="ami-087649e61b3299e66"
   elif [[ $server_type == "ubuntu_18.04" ]]; then
     ami="ami-07ebfd5b3428b6f4d"
   elif [[ $server_type == "ubuntu_20.04" ]]; then
@@ -204,6 +204,22 @@ if [[ $registrar == 'true' ]]; then
   program_console="true"
 fi
 
+if [[ -z $logistration ]]; then
+  logistration="false"
+fi
+
+if [[ -z $logistration_version ]]; then
+  LOGISTRATION_MFE_VERSION="master"
+fi
+
+if [[ -z $payment ]]; then
+  payment="false"
+fi
+
+if [[ -z $payment_version ]]; then
+  PAYMENT_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -271,6 +287,18 @@ PROSPECTUS_VERSION: $prospectus_version
 PROSPECTUS_ENABLED: $prospectus
 PROSPECTUS_SANDBOX_BUILD: True
 
+LOGISTRATION_NGINX_PORT: 80
+LOGISTRATION_SSL_NGINX_PORT: 443
+LOGISTRATION_MFE_VERSION: $logistration_version
+LOGISTRATION_ENABLED: $logistration
+LOGISTRATION_SANDBOX_BUILD: True
+
+PAYMENT_NGINX_PORT: 80
+PAYMENT_SSL_NGINX_PORT: 443
+PAYMENT_MFE_VERSION: $payment_version
+PAYMENT_MFE_ENABLED: $payment
+PAYMENT_SANDBOX_BUILD: True
+
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
@@ -287,7 +315,7 @@ COMMON_DEPLOY_HOSTNAME: ${deploy_host}
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
 COMMON_LMS_BASE_URL: https://${deploy_host}
-
+COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
 
@@ -390,6 +418,11 @@ PROGRAM_CONSOLE_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
 PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
 OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
 OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
+
+LOGISTRATION_URL_ROOT: "https://logistration-${deploy_host}"
+PAYMENT_URL_ROOT: "https://payment-${deploy_host}"
+PAYMENT_ECOMMERCE_BASE_URL: "https://ecommerce-${deploy_host}"
+PAYMENT_LMS_BASE_URL: "https://${deploy_host}"
 
 credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"

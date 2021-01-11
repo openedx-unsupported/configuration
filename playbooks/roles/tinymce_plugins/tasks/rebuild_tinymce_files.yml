@@ -1,0 +1,22 @@
+---
+
+- name: Minify tinymce plugin files
+  block:
+    - name: Unarchive JakePackage.zip
+      unarchive:
+        src: "{{ edx_jake_package }}"
+        dest: "{{ tinymce_dir }}"
+        remote_src: True
+    - name: Clean install npm dependencies from archive
+      shell: "npm ci"
+      args:
+        chdir: "{{ tinymce_dir }}"
+    - name: Clean existing tinymce js files with jake
+      shell: "npx jake clean-js"
+      args:
+        chdir: "{{ tinymce_dir }}"
+    - name: Build tinymce with jake
+      shell: "npx jake minify bundle[themes:*,plugins:*]"
+      args:
+        chdir: "{{ tinymce_dir }}"
+  become_user: "{{ edxapp_user }}"

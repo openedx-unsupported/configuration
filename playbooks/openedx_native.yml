@@ -2,26 +2,20 @@
 
 # Open edX Native installation for single server community installs.
 
-- name: Bootstrap instance(s)
-  hosts: all
-  gather_facts: no
-  become: True
-  roles:
-    - python
-
 - name: Configure instance(s)
   hosts: all
   become: True
   gather_facts: True
   vars:
     migrate_db: "yes"
-    EDXAPP_PREVIEW_LMS_BASE: '{{ EDXAPP_LMS_BASE }}'
+    EDXAPP_PREVIEW_LMS_BASE: 'preview.{{ EDXAPP_LMS_BASE }}'
     EDXAPP_LOGIN_REDIRECT_WHITELIST: [
         "{{ EDXAPP_CMS_BASE }}",
-        "account.{{ EDXAPP_LMS_BASE }}",
-        "gradebook.{{ EDXAPP_LMS_BASE }}",
-        "profile.{{ EDXAPP_LMS_BASE }}"
     ]
+    EDXAPP_ENABLE_CORS_HEADERS: true
+    EDXAPP_ENABLE_CROSS_DOMAIN_CSRF_COOKIE: true
+    EDXAPP_CROSS_DOMAIN_CSRF_COOKIE_DOMAIN: '{{ EDXAPP_LMS_BASE }}'
+    EDXAPP_CROSS_DOMAIN_CSRF_COOKIE_NAME: 'native-csrf-cookie'
     EDXAPP_LMS_BASE_SCHEME: http
     COMMON_LMS_BASE_URL: "{{ EDXAPP_LMS_BASE_SCHEME }}://{{ EDXAPP_LMS_BASE }}"
     EDXAPP_LMS_NGINX_PORT: '80'
@@ -39,7 +33,7 @@
     SANDBOX_ENABLE_ECOMMERCE: true
     SANDBOX_ENABLE_ANALYTICS_API: true
     SANDBOX_ENABLE_INSIGHTS: true
-    SANDBOX_ENABLE_RABBITMQ: true
+    SANDBOX_ENABLE_REDIS: true
     SANDBOX_ENABLE_NOTES: false
     DEMO_ROLE_ENABLED: true
     ECOMMERCE_ENABLE_COMPREHENSIVE_THEMING: false
@@ -65,9 +59,8 @@
       when: EDXAPP_ENABLE_MEMCACHE
     - role: mongo_3_6
       when: "'localhost' in EDXAPP_MONGO_HOSTS"
-    - role: rabbitmq
-      rabbitmq_ip: 127.0.0.1
-      when: SANDBOX_ENABLE_RABBITMQ
+    - role: redis
+      when: SANDBOX_ENABLE_REDIS
     - role: edxapp
       celery_worker: True
     - edxapp
@@ -113,9 +106,4 @@
       when: not COMMON_ENABLE_DATADOG
     - role: user_retirement_pipeline
       when: COMMON_RETIREMENT_SERVICE_SETUP
-    - role: mfe
-      MFE_NAME: profile
-    - role: mfe
-      MFE_NAME: gradebook
-    - role: mfe
-      MFE_NAME: account
+    - role: mfe_deployer

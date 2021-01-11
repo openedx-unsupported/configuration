@@ -12,7 +12,6 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-ENV ANSIBLE_REPO="https://github.com/edx/ansible"
 ENV CONFIGURATION_REPO="https://github.com/edx/configuration.git"
 ARG OPENEDX_RELEASE=master
 ENV CONFIGURATION_VERSION="${OPENEDX_RELEASE}"
