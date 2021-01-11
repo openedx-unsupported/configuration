@@ -66,6 +66,25 @@ create_oauth2_client () {
   echo "Done."
 }
 
+create_oauth2_client_service_account () {
+  local name=$1; shift;
+  local client_id=$1; shift;
+  local username=$1; shift;
+
+  local edxpython="/edx/bin/python.edxapp"
+  local manage="/edx/bin/manage.edxapp"
+
+  echo "Creating OAuth2 client for ${name}..."
+  source /edx/app/edxapp/edxapp_env
+  $edxpython $manage lms create_dot_application \
+    --settings=bdu \
+    --grant-type=password \
+    --client-id="${client_id}" \
+    --public \
+    "${name}" "${username}" > /dev/null
+  echo "Done."
+}
+
 run_command () {
   # extract the first 3 characters to find the appropriate service (lms or cms)
   local service=${1:0:3}
@@ -163,6 +182,7 @@ run_command () {
       if [[ $ANN_HOSTNAME ]]; then
         create_oauth2_client "ANN" "https://${ANN_HOSTNAME}/auth/oauth/callback" "${OPENEDX_ANN_CLIENT_ID}" "${OPENEDX_ANN_CLIENT_SECRET}" "user_id,profile,email"
       fi
+      create_oauth2_client_service_account "glados_service" "glados_service" "Portal_worker"
     ;;
 
     help|*)
