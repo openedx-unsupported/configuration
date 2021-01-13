@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
  - 2021-01-12
+     - Playbook: go-server
+        - Removed
+     - Playbook: go-agent
+        - Removed
+     - Role: go-server
+        - Removed
+     - Role: go-agent
+        - Removed
+
+ - 2021-01-12
      - Role: nginx
         - Increase large_client_header_buffers to 16K to handle browsers with too much cookie data
 
