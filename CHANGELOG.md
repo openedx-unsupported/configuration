@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-01-15
+     - Role: nginx
+        - Increase large_client_header_buffers from 4->8 buffers to handle browsers with too much cookie data
+
  - 2021-01-12
      - Playbook: go-server
         - Removed
