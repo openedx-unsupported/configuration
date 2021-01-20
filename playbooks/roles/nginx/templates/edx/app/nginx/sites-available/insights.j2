@@ -57,6 +57,18 @@ server {
 
   {% include "robots.j2" %}
 
+{% if NGINX_ADMIN_ACCESS_CIDRS and INSIGHTS_ENABLE_ADMIN_URLS_RESTRICTION %}
+  location ~ ^/(admin) {
+    real_ip_header X-Forwarded-For;
+    set_real_ip_from {{ NGINX_TRUSTED_IP_CIDRS }};
+    {% for cidr in NGINX_ADMIN_ACCESS_CIDRS %}
+      allow {{ cidr }};
+    {% endfor %}
+      deny all;
+      try_files $uri @proxy_to_lms_app;
+  }
+{% endif %}
+
 location @proxy_to_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
     proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
