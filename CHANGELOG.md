@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-01-20
+    - Remove xserver role and all its references.
+    - This service has been removed per DEPR-95
+
  - 2021-01-19
      - Role: edxapp, edx_notes_api, gitreload, xqueue, xserver
         - Increase gunicorn limit_request_field_size to 16384 in order to accomodate large cookies.
