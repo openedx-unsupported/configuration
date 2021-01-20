@@ -1,0 +1,45 @@
+name: Build and push ${{ github.event.inputs.component }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'edX component'
+        default: 'edxapp'
+        required: true
+      tag:
+        description: 'Image Tag'
+        required: true
+      ref:
+        description: 'Branch/Tag/SHA to checkout'
+        default: ''
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      VAULT_PASS: ${{ secrets.VAULT_PASS }}
+    steps:
+      - uses: actions/checkout@v2
+        name: "Git checkout ${{ github.event.inputs.ref }}"
+        with:
+          ref: ${{ github.event.inputs.ref }}
+      - name: Create Ansible Vault pass
+        run: 'echo "$VAULT_PASS" > .vault_pass.txt'
+      - uses: docker/login-action@v1
+        with:
+          registry: us.icr.io
+          username: iamapikey
+          password: ${{ secrets.IAM_API_KEY }}
+      - name: "Build ${{ github.event.inputs.component }}:${{ github.event.inputs.tag }}"
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: docker/build/${{ github.event.inputs.component }}/Dockerfile.bdu
+          tags: us.icr.io/skills-network-portals/${{ github.event.inputs.component }}:${{ github.event.inputs.tag }}
+          no-cache: true
+          load: true
+      - name: Push
+        run: docker push us.icr.io/skills-network-portals/${{ github.event.inputs.component }}:${{ github.event.inputs.tag }}
+      - run: rm .vault_pass.txt # for redundency
+        if: always()            # run this even if a previous step failed
