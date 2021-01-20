@@ -204,12 +204,12 @@ if [[ $registrar == 'true' ]]; then
   program_console="true"
 fi
 
-if [[ -z $logistration ]]; then
-  logistration="false"
+if [[ -z authn ]]; then
+  authn="false"
 fi
 
-if [[ -z $logistration_version ]]; then
-  LOGISTRATION_MFE_VERSION="master"
+if [[ -z $authn_version ]]; then
+  AUTHN_MFE_VERSION="master"
 fi
 
 if [[ -z $payment ]]; then
@@ -287,11 +287,11 @@ PROSPECTUS_VERSION: $prospectus_version
 PROSPECTUS_ENABLED: $prospectus
 PROSPECTUS_SANDBOX_BUILD: True
 
-LOGISTRATION_NGINX_PORT: 80
-LOGISTRATION_SSL_NGINX_PORT: 443
-LOGISTRATION_MFE_VERSION: $logistration_version
-LOGISTRATION_ENABLED: $logistration
-LOGISTRATION_SANDBOX_BUILD: True
+AUTHN_NGINX_PORT: 80
+AUTHN_SSL_NGINX_PORT: 443
+AUTHN_MFE_VERSION: $authn_version
+AUTHN_ENABLED: $authn
+AUTHN_SANDBOX_BUILD: True
 
 PAYMENT_NGINX_PORT: 80
 PAYMENT_SSL_NGINX_PORT: 443
@@ -419,7 +419,7 @@ PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
 OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
 OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
 
-LOGISTRATION_URL_ROOT: "https://logistration-${deploy_host}"
+AUTHN_URL_ROOT: "https://authn-${deploy_host}"
 PAYMENT_URL_ROOT: "https://payment-${deploy_host}"
 PAYMENT_ECOMMERCE_BASE_URL: "https://ecommerce-${deploy_host}"
 PAYMENT_LMS_BASE_URL: "https://${deploy_host}"
