@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-01-19
+     - Role: edxapp, edx_notes_api, gitreload, xqueue, xserver
+        - Increase gunicorn limit_request_field_size to 16384 in order to accomodate large cookies.
+
  - 2021-01-15
      - Role: nginx
         - Increase large_client_header_buffers from 4->8 buffers to handle browsers with too much cookie data
