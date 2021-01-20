@@ -85,6 +85,21 @@ create_oauth2_client_service_account () {
   echo "Done."
 }
 
+set_waffle_switch () {
+  local name=$1; shift;
+  local state=$1; shift;
+
+  local edxpython="/edx/bin/python.edxapp"
+  local manage="/edx/bin/manage.edxapp"
+
+  echo "Setting waffle switch ${name} to ${state}..."
+  source /edx/app/edxapp/edxapp_env
+  $edxpython $manage lms --settings=bdu waffle_switch \
+    --create \
+    "${name}" "${state}" > /dev/null
+  echo "Done."
+}
+
 run_command () {
   # extract the first 3 characters to find the appropriate service (lms or cms)
   local service=${1:0:3}
@@ -183,6 +198,7 @@ run_command () {
         create_oauth2_client "ANN" "https://${ANN_HOSTNAME}/auth/oauth/callback" "${OPENEDX_ANN_CLIENT_ID}" "${OPENEDX_ANN_CLIENT_SECRET}" "user_id,profile,email"
       fi
       create_oauth2_client_service_account "glados_service" "glados_service" "Portal_worker"
+      set_waffle_switch "grades.assume_zero_grade_if_absent" "on"
     ;;
 
     help|*)
