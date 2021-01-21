@@ -72,5 +72,16 @@
     retries: 20
     delay: 60
 
+  - name: Add role to DB cluster
+    command: "aws rds add-role-to-db-cluster
+              --db-cluster-identifier {{ cluster_name }}
+              --role-arn {{ cluster_role_arn }}
+              "
+    register: add_role_result
+    failed_when: >
+      add_role_result.rc !=0 and ('DBClusterRoleAlreadyExists' not in add_role_result.stderr)
+    changed_when: "add_role_result.rc == 0"
+    when: cluster_name is defined and cluster_role_arn is defined
+
 - include: create_db_and_users.yml
   when: database_connection.login_host is defined
