@@ -39,10 +39,20 @@
     url: "https://bootstrap.pypa.io/get-pip.py"
     dest: "/tmp/get-pip.py"
 
-- name: Install 'pip' for each installed version of python.
+- name: Install most recent 'pip' for installed python versions 3.6 and greater.
   shell:
     cmd: "python{{ item }} /tmp/get-pip.py"
+  when:
+    - item != '3.5'
+    - item != '2.7'
   with_items: '{{ jenkins_worker_python_versions }}'
+  register: python_versions
+
+- name: Install pinned 'pip' for installed python version 3.5 and lower.
+  shell:
+    cmd: "python{{ item }} /tmp/get-pip.py pip<21.0"
+  with_items: '{{ python_versions.results }}'
+  when: item | skipped
 
 # Requests library is required for the github status script.
 - name: Install requests Python library
