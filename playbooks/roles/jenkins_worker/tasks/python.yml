@@ -33,6 +33,20 @@
     update_cache: yes
   with_items: '{{ jenkins_worker_distutils_versions }}'
 
+# For Python version 3.5, install pip via Ubuntu apt-get, as get-pip.py can no longer be used.
+# get-pip.py also doesn't support Python2.7 - that version's install is broken at the moment.
+- name: Install distro pip for Python3 to accomodate Python 3.5.
+  apt:
+    name: python3-pip
+    state: present
+    update_cache: yes
+
+- name: Upgrade pip for installed python version 3.5.
+  shell:
+    cmd: "python{{ item }} -m pip install --upgrade pip==20.3.4"
+  when: item == 3.5
+  with_items: '{{ jenkins_worker_python_versions }}'
+  register: python_versions
 
 - name: Fetch get-pip.py from pypa
   get_url:
@@ -41,18 +55,11 @@
 
 - name: Install most recent 'pip' for installed python versions 3.6 and greater.
   shell:
-    cmd: "python{{ item }} /tmp/get-pip.py"
-  when:
-    - item != '3.5'
-    - item != '2.7'
-  with_items: '{{ jenkins_worker_python_versions }}'
-  register: python_versions
-
-- name: Install pinned 'pip' for installed python version 3.5 and lower.
-  shell:
-    cmd: "python{{ item }} /tmp/get-pip.py pip<21.0"
+    cmd: "python{{ item.item }} /tmp/get-pip.py"
   with_items: '{{ python_versions.results }}'
-  when: item | skipped
+  when:
+    - item | skipped
+    - item.item != 2.7 or (item.item == 2.7 and jenkins_worker_install_python27)
 
 # Requests library is required for the github status script.
 - name: Install requests Python library
@@ -61,4 +68,6 @@
     state: present
     executable: 'pip{{ item }}'
   with_items: "{{ jenkins_worker_python_versions }}"
+  when:
+    - item != 2.7 or (item == 2.7 and jenkins_worker_install_python27)
 
