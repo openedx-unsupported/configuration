@@ -37,5 +37,15 @@ jobs:
           load: true
       - name: Push
         run: docker push us.icr.io/skills-network-portals/edxapp:${{ github.event.inputs.tag }}
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "edxapp-${{ github.event.inputs.tag }}"
+          release_name: "edxapp-${{ github.event.inputs.tag }}"
+          prerelease: false
+          commitish: ${{ github.event.inputs.ref }}
       - run: rm .vault_pass.txt # for redundency
         if: always()            # run this even if a previous step failed
