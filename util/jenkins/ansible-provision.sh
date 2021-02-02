@@ -220,6 +220,14 @@ if [[ -z $payment_version ]]; then
   PAYMENT_MFE_VERSION="master"
 fi
 
+ if [[ -z $admin_portal ]]; then
+  admin_portal="false"
+fi
+
+if [[ -z $admin_portal_version ]]; then
+  ADMIN_PORTAL_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -298,6 +306,12 @@ PAYMENT_SSL_NGINX_PORT: 443
 PAYMENT_MFE_VERSION: $payment_version
 PAYMENT_MFE_ENABLED: $payment
 PAYMENT_SANDBOX_BUILD: True
+
+ADMIN_PORTAL_NGINX_PORT: 80
+ADMIN_PORTAL_SSL_NGINX_PORT: 443
+ADMIN_PORTAL_MFE_VERSION: $admin_portal_version
+ADMIN_PORTAL_ENABLED: $admin_portal
+ADMIN_PORTAL_SANDBOX_BUILD: True
 
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
