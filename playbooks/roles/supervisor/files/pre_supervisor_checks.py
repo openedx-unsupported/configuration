@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 import argparse
+import backoff
 import boto.ec2
 from boto.utils import get_instance_metadata, get_instance_identity
 from boto.exception import AWSConnectionError
@@ -26,7 +27,14 @@ NGINX_ENABLE = {
 MAX_BACKOFF = 120
 INITIAL_BACKOFF = 1
 
+MAX_ATTEMPTS = int(os.environ.get('RETRY_MAX_ATTEMPTS', 5))
+
 REGION = get_instance_identity()['document']['region']
+
+
+class MigrationNotRunException(Exception):
+    """Specific exception to trigger backoffs"""
+    pass
 
 def services_for_instance(instance_id):
     """
@@ -61,6 +69,30 @@ def edp_for_instance(instance_id):
                     msg = "{} tag not found on this instance({})".format(ke.message, instance_id)
                     raise Exception(msg)
                 return (environment, deployment, play)
+
+
+@backoff.on_exception(backoff.expo,
+                      MigrationNotRunException,
+                      max_tries=MAX_ATTEMPTS)
+def check_if_migrations_run(cmd, report, service):
+    """
+    Check if migration output in cmd's output.
+
+    Arguments:
+      cmd: string - a command to run with subprocess
+      report: list - list of output results
+      service: string - name of service
+
+    Returns: None
+
+    Raises:
+      MigrationNotRunException: if migrations have not been run
+    """
+    output = subprocess.check_output(cmd, shell=True, )
+    if b'[ ]' in output:
+        raise MigrationNotRunException("Migrations have not been run for {}".format(service))
+    else:
+        report.append("Checked migrations: {}".format(service))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -183,11 +215,7 @@ if __name__ == '__main__':
                 if os.path.exists(cmd_vars['code_dir']):
                     os.chdir(cmd_vars['code_dir'])
                     # Run migration check command.
-                    output = subprocess.check_output(cmd, shell=True, )
-                    if b'[ ]' in output:
-                        raise Exception("Migrations have not been run for {}".format(service))
-                    else:
-                        report.append("Checked migrations: {}".format(service))
+                    check_if_migrations_run(cmd, report, service)
 
             # Link to available service.
             available_file = os.path.join(args.available, "{}.conf".format(service))
