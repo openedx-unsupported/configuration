@@ -83,7 +83,7 @@ def check_if_migrations_run(cmd, report, service):
       report: list - list of output results
       service: string - name of service
 
-    Returns: None
+    Returns: None (but appends to report if successful)
 
     Raises:
       MigrationNotRunException: if migrations have not been run
