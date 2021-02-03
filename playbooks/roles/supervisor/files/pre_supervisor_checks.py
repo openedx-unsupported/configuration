@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 import argparse
+import backoff
 import boto.ec2
 from boto.utils import get_instance_metadata, get_instance_identity
 from boto.exception import AWSConnectionError
@@ -25,6 +26,8 @@ NGINX_ENABLE = {
 # Max amount of time to wait for tags to be applied.
 MAX_BACKOFF = 120
 INITIAL_BACKOFF = 1
+
+MAX_ATTEMPTS = int(os.environ.get('RETRY_MAX_ATTEMPTS', 5))
 
 REGION = get_instance_identity()['document']['region']
 
@@ -61,6 +64,21 @@ def edp_for_instance(instance_id):
                     msg = "{} tag not found on this instance({})".format(ke.message, instance_id)
                     raise Exception(msg)
                 return (environment, deployment, play)
+
+@backoff.on_exception(backoff.expo,
+                      Exception,
+                      max_tries=MAX_ATTEMPTS)
+def check_command_output_with_backoff(cmd):
+    """
+    Run command using subprocess. Retry if a non-zero error code is returned
+
+    Arguments:
+      cmd: string - command to be run via subprocess
+
+    Returns a (byte) string
+    """
+    return subprocess.check_output(cmd, shell=True, )
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -183,7 +201,7 @@ if __name__ == '__main__':
                 if os.path.exists(cmd_vars['code_dir']):
                     os.chdir(cmd_vars['code_dir'])
                     # Run migration check command.
-                    output = subprocess.check_output(cmd, shell=True, )
+                    output = check_command_output_with_backoff(cmd)
                     if b'[ ]' in output:
                         raise Exception("Migrations have not been run for {}".format(service))
                     else:
