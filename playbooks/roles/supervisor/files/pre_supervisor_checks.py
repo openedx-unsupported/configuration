@@ -31,11 +31,6 @@ MAX_ATTEMPTS = int(os.environ.get('RETRY_MAX_ATTEMPTS', 5))
 
 REGION = get_instance_identity()['document']['region']
 
-
-class MigrationNotRunException(Exception):
-    """Specific exception to trigger backoffs"""
-    pass
-
 def services_for_instance(instance_id):
     """
     Get the list of all services named by the services tag in this
@@ -70,29 +65,20 @@ def edp_for_instance(instance_id):
                     raise Exception(msg)
                 return (environment, deployment, play)
 
-
 @backoff.on_exception(backoff.expo,
-                      MigrationNotRunException,
+                      Exception,
                       max_tries=MAX_ATTEMPTS)
-def check_if_migrations_run(cmd, report, service):
+def check_command_output_with_backoff(cmd):
     """
-    Check if migration output in cmd's output.
+    Run command using subprocess. Retry if a non-zero error code is returned
 
     Arguments:
-      cmd: string - a command to run with subprocess
-      report: list - list of output results
-      service: string - name of service
+      cmd: string - command to be run via subprocess
 
-    Returns: None (but appends to report if successful)
-
-    Raises:
-      MigrationNotRunException: if migrations have not been run
+    Returns a (byte) string
     """
-    output = subprocess.check_output(cmd, shell=True, )
-    if b'[ ]' in output:
-        raise MigrationNotRunException("Migrations have not been run for {}".format(service))
-    else:
-        report.append("Checked migrations: {}".format(service))
+    return subprocess.check_output(cmd, shell=True, )
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -215,7 +201,11 @@ if __name__ == '__main__':
                 if os.path.exists(cmd_vars['code_dir']):
                     os.chdir(cmd_vars['code_dir'])
                     # Run migration check command.
-                    check_if_migrations_run(cmd, report, service)
+                    output = check_command_output_with_backoff(cmd)
+                    if b'[ ]' in output:
+                        raise Exception("Migrations have not been run for {}".format(service))
+                    else:
+                        report.append("Checked migrations: {}".format(service))
 
             # Link to available service.
             available_file = os.path.join(args.available, "{}.conf".format(service))
