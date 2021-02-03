@@ -23,6 +23,14 @@
 - include: extra-packages.yml
 - include: bdu.yml
 
+- name: Override default social auth redirect
+  replace:
+    path: "{{ EDX_PLATFORM_DIR }}/common/djangoapps/third_party_auth/settings.py"
+    regexp: "SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/dashboard'"
+    replace: "SOCIAL_AUTH_LOGIN_REDIRECT_URL = django_settings.PRIVATE_PORTAL_URL + '/auth/open_edx'"
+  tags:
+    - run:prod
+
 - name: remove private key
   file:
     path: "{{ bdu_portal_deploy_key_path }}"
