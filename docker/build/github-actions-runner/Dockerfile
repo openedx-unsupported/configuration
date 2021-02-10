@@ -1,7 +1,7 @@
 FROM ubuntu:bionic
 
 # Set the github runner version
-ARG RUNNER_VERSION="2.273.0"
+ARG RUNNER_VERSION="2.277.1"
 
 ENV GITHUB_ORGANIZATION=""
 ENV GITHUB_ACCESS_TOKEN=""
