@@ -220,12 +220,20 @@ if [[ -z $payment_version ]]; then
   PAYMENT_MFE_VERSION="master"
 fi
 
- if [[ -z $admin_portal ]]; then
+if [[ -z $admin_portal ]]; then
   admin_portal="false"
 fi
 
 if [[ -z $admin_portal_version ]]; then
   ADMIN_PORTAL_VERSION="master"
+fi
+
+if [[ -z $learner_portal_enterprise ]]; then
+  learner_portal_enterprise="false"
+fi
+
+if [[ -z $learner_portal_enterprise_version ]]; then
+  LEARNER_PORTAL_ENTERPRISE_VERSION="master"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
@@ -306,6 +314,12 @@ PAYMENT_SSL_NGINX_PORT: 443
 PAYMENT_MFE_VERSION: $payment_version
 PAYMENT_MFE_ENABLED: $payment
 PAYMENT_SANDBOX_BUILD: True
+
+LEARNER_PORTAL_ENTERPRISE_NGINX_PORT: 80
+LEARNER_PORTAL_ENTERPRISE_SSL_NGINX_PORT: 443
+LEARNER_PORTAL_ENTERPRISE_MFE_VERSION: $learner_portal_enterprise_version
+LEARNER_PORTAL_ENTERPRISE_MFE_ENABLED: $learner_portal_enterprise
+LEARNER_PORTAL_ENTERPRISE_SANDBOX_BUILD: True
 
 ADMIN_PORTAL_NGINX_PORT: 80
 ADMIN_PORTAL_SSL_NGINX_PORT: 443
