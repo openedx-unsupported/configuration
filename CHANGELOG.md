@@ -2,8 +2,8 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
- - 2021-02-02
-    - Adding Enterprise Admin Portal MFE
+ - 2021-02-11
+    - Adding Enterprise Admin Portal MFE, Enterprise Learner Portal MFE, Enterprise Catalog Django Microservice, and Enterprise License Manager Django microservice to support Enterprise sandboxes.
     
  - 2021-01-20
     - Remove xserver role and all its references.
