@@ -7,7 +7,7 @@ ENV GITHUB_ORGANIZATION=""
 ENV GITHUB_ACCESS_TOKEN=""
 
 # Update and install necessary packages
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl iputils-ping jq software-properties-common build-essential libssl-dev libffi-dev python3 python3-venv python3-dev
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl iputils-ping jq software-properties-common build-essential libssl-dev libffi-dev python3 python3-venv python3-dev yamllint
 
 # Add a github action runner user
 RUN useradd -m actions-runner
