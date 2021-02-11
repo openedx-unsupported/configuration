@@ -236,6 +236,23 @@ if [[ -z $learner_portal_enterprise_version ]]; then
   LEARNER_PORTAL_ENTERPRISE_VERSION="master"
 fi
 
+
+if [[ -z $enterprise_catalog ]]; then
+  enterprise_catalog="false"
+fi
+
+if [[ -z $enterprise_catalog_version ]]; then
+  ENTERPRISE_CATALOG_VERSION="master"
+fi
+
+
+if [[ -z $learner_portal_enterprise ]]; then
+  learner_portal_enterprise="false"
+fi
+
+if [[ -z $learner_portal_enterprise_version ]]; then
+  LEARNER_PORTAL_ENTERPRISE_VERSION="master"
+fi
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -302,6 +319,10 @@ PROSPECTUS_SSL_NGINX_PORT: 443
 PROSPECTUS_VERSION: $prospectus_version
 PROSPECTUS_ENABLED: $prospectus
 PROSPECTUS_SANDBOX_BUILD: True
+
+ENTERPRISE_CATALOG_VERSION: $enterprise_catalog_version
+ENTERPRISE_CATALOG_ENABLED: $enterprise_catalog
+ENTERPRISE_CATALOG_SANDBOX_BUILD: True
 
 AUTHN_NGINX_PORT: 80
 AUTHN_SSL_NGINX_PORT: 443
