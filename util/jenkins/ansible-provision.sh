@@ -225,7 +225,7 @@ if [[ -z $admin_portal ]]; then
 fi
 
 if [[ -z $admin_portal_version ]]; then
-  ADMIN_PORTAL_VERSION="master"
+  ADMIN_PORTAL_MFE_VERSION="master"
 fi
 
 if [[ -z $learner_portal_enterprise ]]; then
@@ -233,7 +233,7 @@ if [[ -z $learner_portal_enterprise ]]; then
 fi
 
 if [[ -z $learner_portal_enterprise_version ]]; then
-  LEARNER_PORTAL_ENTERPRISE_VERSION="master"
+  LEARNER_PORTAL_ENTERPRISE_MFE_VERSION="master"
 fi
 
 
@@ -251,7 +251,7 @@ if [[ -z $learner_portal_enterprise ]]; then
 fi
 
 if [[ -z $learner_portal_enterprise_version ]]; then
-  LEARNER_PORTAL_ENTERPRISE_VERSION="master"
+  LEARNER_PORTAL_ENTERPRISE_MFE_VERSION="master"
 fi
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
