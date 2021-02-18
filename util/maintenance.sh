@@ -11,6 +11,8 @@ usage() {
 
 ED=$1
 ENABLE_ARG=$2
+# Allow passing -C
+EXTRA_ARG=$3
 
 case $ED in
     loadtest-edx|stage-edx|prod-edx|prod-edge)
@@ -39,4 +41,7 @@ esac
 INVENTORY=$(aws ec2 describe-instances --filter "Name=tag:Name,Values=${ED}-edxapp,${ED}-studio,${ED}-worker" --query 'Reservations[].Instances[].PrivateIpAddress' --output text | tr '\t' ',')
 ENABLE_EXTRA_VAR="{\"ENABLE_MAINTENANCE\": ${ENABLE}}"
 
-ansible-playbook ./edx_maintenance.yml -i "${INVENTORY}," -e "${ENABLE_EXTRA_VAR}"
+echo ansible-playbook ./edx_maintenance.yml -i "${INVENTORY}," -e "${ENABLE_EXTRA_VAR}" ${EXTRA_ARG}
+read -p "RUN?"
+set -x
+ansible-playbook ./edx_maintenance.yml -i "${INVENTORY}," -e "${ENABLE_EXTRA_VAR}" ${EXTRA_ARG}
