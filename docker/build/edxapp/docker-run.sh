@@ -237,9 +237,12 @@ fi
 
 # Fix theme directory ownership
 mkdir -p /edx/var/edxapp/themes
+# Fix missing supervisor directory (maybe)
+mkdir -p /edx/var/log/supervisor
 
 # We add '|| true' to the lines below so that the container can start even if these files don't exist yet
 ls /edx/var/edxapp | grep -v "staticfiles" | grep -v "themes" | awk '{ print "/edx/var/edxapp/"$1 }' | xargs chown -R www-data:www-data || true
+chown -R www-data:supervisor /edx/var/log/supervisor || true
 chown -R www-data:www-data /edx/var/log/supervisor/supervisord.log || true
 chown -R edxapp:www-data /edx/var/edxapp/themes || true
 chown -R edxapp:www-data /edx/var/edx-themes || true
