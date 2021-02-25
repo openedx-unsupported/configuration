@@ -72,6 +72,8 @@ def cli(db_engine, ignore):
     slow_query_logs_disabled_rds = []
     instances_out_of_sync_with_instance_parameters = []
     instances_out_of_sync_with_cluster_parameters = []
+    cluster_with_disabled_snapshot_tags = []
+    instances_with_disabled_performance_insights = []
     exit_status = 0
 
     db_instances = get_db_instances()
@@ -84,13 +86,21 @@ def cli(db_engine, ignore):
         if db_identifier not in ignore_rds and "test" not in db_identifier:
             db_instance_parameter_groups[db_identifier] = {'instance': instance['DBParameterGroups'][0]}
 
+            if instance['PerformanceInsightsEnabled'] == False:
+                instances_with_disabled_performance_insights.append(instance['DBInstanceIdentifier'])
+
     for cluster in db_clusters:
+
+        if cluster['CopyTagsToSnapshot'] == False:
+            cluster_with_disabled_snapshot_tags.append(cluster['DBClusterIdentifier'])
+
         for instance in cluster['DBClusterMembers']:
             db_identifier = instance['DBInstanceIdentifier']
             if db_identifier not in ignore_rds and "test" not in db_identifier:
                 db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
                 if instance["DBClusterParameterGroupStatus"] != "in-sync":
                     instances_out_of_sync_with_cluster_parameters.append(db_identifier)
+
 
     for db_identifier, parameter_groups in db_instance_parameter_groups.items():
         instance_parameter_group_name = parameter_groups['instance']['DBParameterGroupName']
@@ -112,11 +122,16 @@ def cli(db_engine, ignore):
             exit_status = 1
             slow_query_logs_disabled_rds.append(db_identifier)
 
+
     print(("Slow query logs are disabled for RDS Instances\n{0}".format(slow_query_logs_disabled_rds)))
     print()
     print(("Instance parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_instance_parameters)))
     print()
     print(("Cluster parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_cluster_parameters)))
+    print()
+    print("Sanpshot tags are disabled for Clusters\n{0}".format(cluster_with_disabled_snapshot_tags))
+    print()
+    print("Performance Insights is disabled for RDS Instances\n{0}".format(instances_with_disabled_performance_insights))
     exit(exit_status)
 
 if __name__ == '__main__':
