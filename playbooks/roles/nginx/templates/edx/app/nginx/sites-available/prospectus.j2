@@ -77,18 +77,6 @@ server {
     add_header Cache-Control "no-cache";
   }
 
-  # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
-  #   - from_path: The path of the course-about page that you want redirect
-  #   - to_path: URL to redirect to
-  {% for redirect in PROSPECTUS_TEMPORARY_REDIRECTS %}
-  location = {{ redirect.from_path }} {
-    include fastcgi_params;
-    fastcgi_param SERVER_PORT 80;
-    port_in_redirect off;
-    return 302 {{ redirect.to_path }};
-  }
-  {% endfor %}
-
   location / {
     location ~ \.(js|css)$ {
       add_header 'Cache-Control' 'public, max-age=31536000, immutable';
@@ -133,7 +121,7 @@ server {
 
 server {
   # Prospectus configuration file for nginx, templated by ansible
-  
+
   server_name ~^((stage|prod)-)?prospectus.*;
 
   {% if NGINX_ENABLE_SSL %}
@@ -175,13 +163,13 @@ server {
   location /es/bio/ {
     try_files $uri $uri/ /es/bio/index.html;
   }
-  
+
   location /bio/ {
     try_files $uri $uri/ /bio/index.html;
   }
 
   location /preview/ {
-    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       auth_basic            "Restricted";
       auth_basic_user_file  {{ nginx_htpasswd_file }};
     {% endif %}
@@ -189,7 +177,7 @@ server {
   }
 
   location /es/preview/ {
-    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       auth_basic            "Restricted";
       auth_basic_user_file  {{ nginx_htpasswd_file }};
     {% endif %}
@@ -222,7 +210,7 @@ server {
         include fastcgi_params;
         fastcgi_param SERVER_PORT 80;
         include {{ prospectus_redirect_file }};
-        port_in_redirect off;        
+        port_in_redirect off;
   {% endif %}
 
     try_files $uri @index;
