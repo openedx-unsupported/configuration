@@ -41,6 +41,20 @@ while True:
 EOF
 }
 
+run_lms_admin_command() {
+  local edxpython="/edx/bin/python.edxapp"
+  local manage="/edx/bin/manage.edxapp"
+
+  $edxpython $manage lms --settings=bdu "$@"
+}
+
+run_cms_admin_command() {
+  local edxpython="/edx/bin/python.edxapp"
+  local manage="/edx/bin/manage.edxapp"
+
+  $edxpython $manage cms --settings=bdu "$@"
+}
+
 create_oauth2_client () {
   local name=$1; shift;
   local url_callback=$1; shift;
@@ -83,6 +97,21 @@ create_oauth2_client_service_account () {
     --public \
     "${name}" "${username}" > /dev/null
   echo "Done."
+}
+
+create_retirement_service_user () {
+  local client_id=$1; shift;
+  local client_secret=$1; shift;
+
+  local app_name=retirement
+  local user_name="${app_name}_worker"
+
+  echo "Creating retirement service account"
+  run_lms_admin_command manage_user $user_name $user_name@skillsnetwork.site --staff --superuser
+  run_lms_admin_command create_dot_application \
+    --client-id="${client_id}" \
+    --client-secret="${client_secret}" \
+    $app_name $user_name
 }
 
 set_waffle_switch () {
@@ -199,6 +228,10 @@ run_command () {
       fi
       create_oauth2_client_service_account "glados_service" "glados_service" "Portal_worker"
       set_waffle_switch "grades.assume_zero_grade_if_absent" "on"
+
+      # Enable retirement features
+      create_retirement_service_user
+      run_lms_admin_command populate_retirement_states
     ;;
 
     help|*)
