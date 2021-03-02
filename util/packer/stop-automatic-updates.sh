@@ -10,7 +10,7 @@
 
 set -xe
 
-if grep -q 'Xenial Xerus' /etc/os-release; then
+if grep -q 'Focal Fossa' /etc/os-release; then
     systemctl stop apt-daily.service
     systemctl kill --kill-who=all apt-daily.service
     # Our jenkins job for building AMIs will timeout, even if the lock is
