@@ -230,7 +230,7 @@ run_command () {
       set_waffle_switch "grades.assume_zero_grade_if_absent" "on"
 
       # Enable retirement features
-      create_retirement_service_user
+      create_retirement_service_user "${OPENEDX_RETIREMENT_CLIENT_ID}" "${OPENEDX_RETIREMENT_CLIENT_SECRET}"
       run_lms_admin_command populate_retirement_states
     ;;
 
