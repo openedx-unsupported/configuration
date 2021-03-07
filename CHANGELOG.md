@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-07-03
+    - Role: ecommerce
+      - Added new configuration variable ECOMMERCE_EXTRA_CONFIG_OVERRIDES, which will allow override any ecommerce settings.
+
  - 2021-01-20
     - Remove xserver role and all its references.
     - This service has been removed per DEPR-95
