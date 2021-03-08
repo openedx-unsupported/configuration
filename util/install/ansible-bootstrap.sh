@@ -141,7 +141,6 @@ apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python3-p
 if [[ "${SHORT_DIST}" != trusty ]] && [[ "${SHORT_DIST}" != xenial ]] && [[ "${SHORT_DIST}" != bionic ]] ;then
   sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
   sudo update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-  ln -s /usr/bin/pip3 /usr/bin/pip
 fi
 
 python${PYTHON_VERSION} -m pip install --upgrade pip=="${PIP_VERSION}"
