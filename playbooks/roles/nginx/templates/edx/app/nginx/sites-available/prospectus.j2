@@ -34,6 +34,14 @@ server {
 
   root {{ PROSPECTUS_DATA_DIR }};
 
+  # Do not cache any 404 documents at the CDN for all pages..
+  error_page 404 /404.html;
+  location = /404.html {
+    root   {{ PROSPECTUS_DATA_DIR }};
+    add_header Cache-Control "no-cache" always;
+  }
+
+
   # Ignore the rollout group headers for the health check endpoint.
   location /HealthCheck {
     try_files $uri $uri/index.html;
@@ -53,7 +61,6 @@ server {
       auth_basic_user_file  {{ nginx_htpasswd_file }};
     {% endif %}
     port_in_redirect off;
-    error_page 404 /404.html;
     add_header Cache-Control "no-cache";
   }
 
@@ -63,19 +70,16 @@ server {
       auth_basic_user_file  {{ nginx_htpasswd_file }};
     {% endif %}
     port_in_redirect off;
-    error_page 404 /404.html;
     add_header Cache-Control "no-cache";
   }
 
   location /preview/ {
     port_in_redirect off;
-    error_page 404 /404.html;
     add_header Cache-Control "no-cache";
   }
 
   location /es/preview/ {
     port_in_redirect off;
-    error_page 404 /404.html;
     add_header Cache-Control "no-cache";
   }
 
@@ -105,7 +109,6 @@ server {
 
     add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
     try_files $uri $uri/index.html =404;
-    error_page 404 /404.html;
   }
 
   # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
