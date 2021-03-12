@@ -3,6 +3,7 @@ from __future__ import print_function
 import boto3
 import click
 
+tags_key_list = ["deployment", "environment", "cluster"]
 
 def get_db_instances():
 
@@ -62,6 +63,13 @@ def check_slow_query_logs(parameter_group_type, parameter_group_name):
 
     return slow_log_enabled
 
+def check_tags(tags_list, db, tags):
+    status = 0
+    for tag in tags: 
+        if not tag["Key"] in tags_key_list:
+            tags_list.append(db)
+            status = 1
+    return status, tags_list
 
 @click.command()
 @click.option('--db_engine', help='Removed, left for compatibility')
@@ -74,6 +82,8 @@ def cli(db_engine, ignore):
     instances_out_of_sync_with_cluster_parameters = []
     cluster_with_disabled_snapshot_tags = []
     instances_with_disabled_performance_insights = []
+    instances_without_tags = []
+    clusters_without_tags = []
     exit_status = 0
 
     db_instances = get_db_instances()
@@ -82,7 +92,11 @@ def cli(db_engine, ignore):
     db_instance_parameter_groups = {}
 
     for instance in db_instances:
+        arn = instance['DBInstanceArn']
+        tags = rds.list_tags_for_resource(ResourceName=arn)['TagList']
         db_identifier = instance['DBInstanceIdentifier']
+        exit_status, instances_without_tags = check_tags(instances_without_tags, db_identifier, tags)
+        
         if db_identifier not in ignore_rds and "test" not in db_identifier:
             db_instance_parameter_groups[db_identifier] = {'instance': instance['DBParameterGroups'][0]}
 
@@ -90,7 +104,9 @@ def cli(db_engine, ignore):
                 instances_with_disabled_performance_insights.append(instance['DBInstanceIdentifier'])
 
     for cluster in db_clusters:
-
+        arn = cluster['DBClusterArn']
+        tags = rds.list_tags_for_resource(ResourceName=arn)['TagList']
+        exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_identifier, tags)
         if cluster['CopyTagsToSnapshot'] == False:
             cluster_with_disabled_snapshot_tags.append(cluster['DBClusterIdentifier'])
 
@@ -122,7 +138,6 @@ def cli(db_engine, ignore):
             exit_status = 1
             slow_query_logs_disabled_rds.append(db_identifier)
 
-
     print(("Slow query logs are disabled for RDS Instances\n{0}".format(slow_query_logs_disabled_rds)))
     print()
     print(("Instance parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_instance_parameters)))
@@ -132,6 +147,11 @@ def cli(db_engine, ignore):
     print("Sanpshot tags are disabled for Clusters\n{0}".format(cluster_with_disabled_snapshot_tags))
     print()
     print("Performance Insights is disabled for RDS Instances\n{0}".format(instances_with_disabled_performance_insights))
+    print()
+    print("Tags are missing for the RDS Instances\n{0}".format(instances_without_tags))
+    print()
+    print("Tags are missing for the RDS Clusters\n{0}".format(clusters_without_tags))
+    print()
     exit(exit_status)
 
 if __name__ == '__main__':
