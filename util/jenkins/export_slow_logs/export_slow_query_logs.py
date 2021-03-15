@@ -89,6 +89,7 @@ def rds_controller(rds_list, username, password):
         connection = pymysql.connect(host=rds_host_endpoint, port=rds_port,
                                      user=username, password=password)
         cursor = connection.cursor()
+        print("Checking slow log on RDS HOST {0}".format(rds_host_endpoint))
         cursor.execute("""
                       SELECT *
                       FROM mysql.slow_log
