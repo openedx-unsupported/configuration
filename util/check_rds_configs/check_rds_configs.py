@@ -65,12 +65,16 @@ def check_slow_query_logs(parameter_group_type, parameter_group_name):
 
 def check_tags(tags_list, db, tags):
     status = 0
-    for tag in tags: 
-        if not tag["Key"] in tags_key_list:
-            tags_list.append(db)
-            status = 1
-    return status, tags_list
-
+    if tags:    
+        for tag in tags: 
+            if not tag["Key"] in tags_key_list:
+                tags_list.append(db)
+                status = 1
+        return status, tags_list
+    else:
+        status = 1
+        tags_list.append(db)
+        return status, tags_list
 @click.command()
 @click.option('--db_engine', help='Removed, left for compatibility')
 @click.option('--ignore', type=(str), multiple=True, help='RDS Instances to ignore')
