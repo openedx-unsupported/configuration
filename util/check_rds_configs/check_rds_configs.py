@@ -141,6 +141,9 @@ def cli(db_engine, ignore):
         if not slow_query_logs_enabled:
             exit_status = 1
             slow_query_logs_disabled_rds.append(db_identifier)
+    
+    if cluster_with_disabled_snapshot_tags:
+        exit_status = 1
 
     print(("Slow query logs are disabled for RDS Instances\n{0}".format(slow_query_logs_disabled_rds)))
     print()
