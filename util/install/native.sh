@@ -101,7 +101,7 @@ sudo apt-get upgrade -y
 sudo apt-get install -y build-essential software-properties-common curl git-core libxml2-dev libxslt1-dev python3-pip libmysqlclient-dev python3-apt python3-dev libxmlsec1-dev libfreetype6-dev swig gcc g++
 # ansible-bootstrap installs yaml that pip 19 can't uninstall.
 sudo apt-get remove -y python-yaml
-sudo pip3 install --upgrade pip==20.0.2
+sudo pip3 install --upgrade pip==20.1.1
 sudo pip3 install --upgrade setuptools==44.1.0
 sudo -H pip3 install --upgrade virtualenv==20.2.0
 
