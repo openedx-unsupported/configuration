@@ -4,7 +4,6 @@
   {%- set default_site = "" -%}
 {%- endif -%}
 
-{%- if NGINX_PROSPECTUS_TURN_OFF_DRUPAL -%}
 server {
   # Prospectus configuration file for nginx, templated by ansible
 
@@ -78,6 +77,10 @@ server {
     add_header Cache-Control "no-store, max-age=0";
   }
 
+  location /images/ {
+    add_header 'Cache-Control' 'public, max-age=3600';
+  }
+
   location /es/preview/ {
     port_in_redirect off;
     add_header Cache-Control "no-store, max-age=0";
@@ -134,140 +137,3 @@ server {
   {% endfor %}
 }
 
-{%- else -%}
-
-server {
-  # Prospectus configuration file for nginx, templated by ansible
-  
-  server_name ~^((stage|prod)-)?prospectus.*;
-
-  {% if NGINX_ENABLE_SSL %}
-
-  listen {{ prospectus_ssl_nginx_port }} ssl;
-
-  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
-  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
-  {% endif %}
-
-  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
-  # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
-  {% endif %}
-
-
-  {% if NGINX_PROSPECTUS_PROXY_INTERCEPT_ERRORS %}
-  proxy_intercept_errors on;
-  {% endif %}
-
-  listen {{ PROSPECTUS_NGINX_PORT }} {{ default_site }};
-
-  root {{ PROSPECTUS_DATA_DIR }};
-
-  # Ignore the rollout group headers for the health check endpoint.
-  location /HealthCheck {
-    try_files $uri $uri/index.html @drupal;
-  }
-
-  location /admin/ {
-    add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
-    try_files $uri @drupal;
-  }
-
-  location /static/ {
-    add_header 'Cache-Control' 'public, max-age=3600';
-  }
-
-  location ~ ^/images/ {
-    add_header 'Cache-Control' 'public, max-age=3600';
-  }
-
-  location /es/bio/ {
-    try_files $uri $uri/ /es/bio/index.html;
-  }
-  
-  location /bio/ {
-    try_files $uri $uri/ /bio/index.html;
-  }
-
-  location /preview/ {
-    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
-      auth_basic            "Restricted";
-      auth_basic_user_file  {{ nginx_htpasswd_file }};
-    {% endif %}
-    port_in_redirect off;
-  }
-
-  location /es/preview/ {
-    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %} 
-      auth_basic            "Restricted";
-      auth_basic_user_file  {{ nginx_htpasswd_file }};
-    {% endif %}
-    port_in_redirect off;
-  }
-
-  # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
-  #   - from_path: The path of the course-about page that you want redirect
-  #   - to_path: URL to redirect to
-  {% for redirect in PROSPECTUS_TEMPORARY_REDIRECTS %}
-  location = {{ redirect.from_path }} {
-    include fastcgi_params;
-    fastcgi_param SERVER_PORT 80;
-    port_in_redirect off;
-    return 302 {{ redirect.to_path }};
-  }
-  {% endfor %}
-
-  location / {
-    location ~ \.(js|css)$ {
-      add_header 'Cache-Control' 'public, max-age=31536000, immutable';
-      try_files $uri @drupal;
-    }
-
-    if ($http_x_content_source ~ "drupal") {
-      proxy_pass {{ PROSPECTUS_PROXY_PASS }};
-    }
-
-  {% if prospectus_redirect_file is defined %}
-        include fastcgi_params;
-        fastcgi_param SERVER_PORT 80;
-        include {{ prospectus_redirect_file }};
-        port_in_redirect off;        
-  {% endif %}
-
-    try_files $uri @index;
-  }
-
-  # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
-  #   - router_path: The path you will go to on the router to access the content
-  #   - proxied_path: The path to proxy the requests to
-  {% for static_site in PROSPECTUS_STATIC_SITES %}
-
-    # Matches: /<route>/
-    location = /{{ static_site.router_path }}/ {
-        proxy_pass {{ static_site.proxied_path }}/index.html;
-    }
-
-    # Matches: <route>/[.../]<file.ext>
-    location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
-        proxy_pass {{ static_site.proxied_path }}/$1$2;
-    }
-
-    # Matches: <route>/<subpage>/[.../]
-    location ~ ^/{{ static_site.router_path }}/([a-z0-9-]+)[/]? {
-        proxy_pass {{ static_site.proxied_path }}/$1/index.html;
-    }
-
-  {% endfor %}
-
-  location @index {
-    add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
-    try_files $uri/index.html @drupal;
-  }
-
-  location @drupal {
-    add_header 'Cache-Control' '';
-    proxy_pass {{ PROSPECTUS_PROXY_PASS }};
-    proxy_set_header Host $host;
-  }
-}
-{%- endif -%}
