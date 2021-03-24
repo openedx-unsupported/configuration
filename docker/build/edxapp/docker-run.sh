@@ -211,6 +211,9 @@ run_command () {
       echo "Creating Admin user..."
       /edx/bin/edxapp-shell-lms < /edx/app/edx_ansible/edx_ansible/docker/build/edxapp/create_admin.py > /dev/null
 
+      # Create SN service user
+      /edx/bin/edxapp-shell-lms < /edx/app/edx_ansible/edx_ansible/docker/build/edxapp/create_sn_user.py > /dev/null
+
       echo "Enabling bulk instructor emails"
       /edx/bin/edxapp-shell-lms < /edx/app/edx_ansible/edx_ansible/docker/build/edxapp/enable_bulk_instructor_email.py > /dev/null
 
