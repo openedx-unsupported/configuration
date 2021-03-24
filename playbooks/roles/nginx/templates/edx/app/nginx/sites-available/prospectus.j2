@@ -40,6 +40,29 @@ server {
     add_header Cache-Control "no-store, max-age=0" always;
   }
 
+  # Cache js/css for a long time at the edge, they are versioned in their names
+  location ~ \.(js|css)$ {
+    add_header 'Cache-Control' 'public, max-age=31536000, immutable';
+  }
+
+  # data.json files are used to rehydrate the page, they can be cached for a 30 minutes at the edge.
+
+  location ~ data\.json$ {
+    add_header 'Cache-Control' 'public, max-age=1800';
+  }
+
+  # images sometimes change, we want to cache them for an hour at the edge to reduce bandwidth.
+
+  location /images/ {
+    add_header 'Cache-Control' 'public, max-age=3600';
+  }
+  
+  # favicon is requested a lot.  cache it at the edge.
+
+  location /favicon.ico {
+      add_header 'Cache-Control' 'public, max-age=86400';
+  }
+
 
   # Ignore the rollout group headers for the health check endpoint.
   location /HealthCheck {
@@ -53,6 +76,8 @@ server {
   location /bio/ {
     try_files $uri $uri/ /bio/index.html;
   }
+
+  # preview pages are not cached, and have basic auth
 
   location /secure-preview/ {
     {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
@@ -77,10 +102,6 @@ server {
     add_header Cache-Control "no-store, max-age=0";
   }
 
-  location /images/ {
-    add_header 'Cache-Control' 'public, max-age=3600';
-  }
-  
   location /es/preview/ {
     port_in_redirect off;
     add_header Cache-Control "no-store, max-age=0";
@@ -98,19 +119,6 @@ server {
   }
   {% endfor %}
 
-  location / {
-    location ~ \.(js|css)$ {
-      add_header 'Cache-Control' 'public, max-age=31536000, immutable';
-    }
-
-    location ~ data\.json$ {
-      add_header 'Cache-Control' 'public, max-age=1800';
-    }
-  }
-  
-  location /favicon.ico {
-      add_header 'Cache-Control' 'public, max-age=86400';
-  }
     
 
   {% if prospectus_redirect_file is defined %}
@@ -122,7 +130,6 @@ server {
 
     add_header 'Cache-Control' 'public, max-age=0, must-revalidate';
     try_files $uri $uri/index.html =404;
-  }
 
   # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
   #   - router_path: The path you will go to on the router to access the content
