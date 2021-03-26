@@ -244,8 +244,6 @@ EDXAPP_ENABLE_EDXNOTES: false
 EDXAPP_ENABLE_CREDIT_ELIGIBILITY: false
 EDXAPP_ENABLE_CREDIT_API: false
 
-EDXAPP_ENABLE_SPECIAL_EXAMS: false
-
 EDXAPP_CUSTOM_COURSES_EDX: false
 
 EDXAPP_ENABLE_SYSADMIN_DASHBOARD: false
@@ -603,7 +601,7 @@ EDXAPP_COURSES_WITH_UNSAFE_CODE: []
 EDXAPP_SESSION_COOKIE_DOMAIN: ""
 EDXAPP_SESSION_COOKIE_NAME: "sessionid"
 
-# django-session-cookie middleware 
+# django-session-cookie middleware
 EDXAPP_DCS_SESSION_COOKIE_SAMESITE: "{{ 'None' if NGINX_ENABLE_SSL | default(False) else 'Lax' }}"
 EDXAPP_DCS_SESSION_COOKIE_SAMESITE_FORCE_ALL: True
 
@@ -1057,11 +1055,11 @@ edxapp_nodeenv_bin: "{{ edxapp_nodeenv_dir }}/bin"
 edxapp_settings: '{{ EDXAPP_SETTINGS }}'
 EDXAPP_NODE_VERSION: "12"
 # This is where node installs modules, not node itself
-edxapp_node_bin: "{{ edxapp_code_dir }}/node_modules/.bin"
+edxapp_node_bin: "{{ code_dirs[service_variants_enabled[0]] }}/node_modules/.bin"
 edxapp_user: edxapp
 edxapp_user_createhome: 'no'
 edxapp_user_shell: '/bin/false'
-edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_code_dir }}/bin:{{ edxapp_node_bin }}:{{ edxapp_nodeenv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+edxapp_deploy_path: "{{ edxapp_venv_bin }}:{{ edxapp_node_bin }}:{{ edxapp_nodeenv_bin }}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 edxapp_staticfile_dir: "{{ edxapp_data_dir }}/staticfiles"
 edxapp_media_dir: "{{ edxapp_data_dir }}/media"
 edxapp_media_dir_s3: "{{ edxapp_media_dir | regex_replace('^\\/', '') }}"
@@ -1637,8 +1635,14 @@ cms_env_config:
   X_FRAME_OPTIONS: "{{ EDXAPP_X_FRAME_OPTIONS }}"
   COURSE_AUTHORING_MICROFRONTEND_URL: "{{ EDXAPP_COURSE_AUTHORING_MICROFRONTEND_URL }}"
 
+
+lms_code_dir: "{{ edxapp_app_dir }}/lms-deployment"
+studio_code_dir: "{{ edxapp_app_dir }}/studio-deployment"
+
 # install dir for the edx-platform repo
-edxapp_code_dir: "{{ edxapp_app_dir }}/edx-platform"
+code_dirs:
+  lms: "{{ lms_code_dir }}"
+  cms: "{{ studio_code_dir }}"
 
 
 # gunicorn ports/hosts, these shouldn't need to be overridden
@@ -1671,17 +1675,23 @@ edxapp_theme_name: ""
 edxapp_theme_source_repo: 'https://{{ COMMON_GIT_MIRROR }}/Stanford-Online/edx-theme.git'
 EDXAPP_THEME_VERSION: 'master'
 
+lms_deployment_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/lms-deployment.git"
+studio_deployment_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/studio-deployment.git"
+
 # make this the public URL instead of writable
-edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
+deployment_repos:
+  lms: "{{ lms_deployment_repo }}"
+  cms: "{{ studio_deployment_repo }}"
+
 # `EDX_PLATFORM_VERSION` can be anything that git recognizes as a commit
 # reference, including a tag, a branch name, or a commit hash
 EDX_PLATFORM_VERSION: 'release'
-custom_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/custom.txt"
-base_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/base.txt"
-django_requirements_file:   "{{ edxapp_code_dir }}/requirements/edx/django.txt"
-openstack_requirements_file: "{{ edxapp_code_dir }}/requirements/edx/openstack.txt"
+custom_requirements_file:   "requirements/edx/custom.txt"
+base_requirements_file:   "requirements/edx/base.txt"
+django_requirements_file:   "requirements/edx/django.txt"
+openstack_requirements_file: "requirements/edx/openstack.txt"
 
-sandbox_base_requirements:  "{{ edxapp_code_dir }}/requirements/edx-sandbox/{% if edxapp_sandbox_python_version == 'python2.7' %}base.txt{% else %}py35.txt{% endif %}"
+sandbox_base_requirements:  "requirements/edx-sandbox/{% if edxapp_sandbox_python_version == 'python2.7' %}base.txt{% else %}py35.txt{% endif %}"
 
 # The Python requirements files in the order they should be installed.  This order should
 # match the order of PYTHON_REQ_FILES in edx-platform/pavelib/prereqs.py.

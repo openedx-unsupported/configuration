@@ -35,22 +35,24 @@
     - install:base
 
 # Do A Checkout
-- name: checkout edx-platform repo into {{ edxapp_code_dir }}
+- name: checkout edx-platform repo into {{ code_dirs[item] }}
   git:
-    dest: "{{ edxapp_code_dir }}"
-    repo: "{{ edx_platform_repo }}"
+    dest: "{{ code_dirs[item] }}"
+    repo: "{{ deployment_repos[item] }}"
     version: "{{ EDX_PLATFORM_VERSION }}"
     accept_hostkey: yes
     key_file: "{% if EDXAPP_USE_GIT_IDENTITY %}{{ edxapp_git_identity }}{% endif %}"
   become_user: "{{ edxapp_user }}"
   register: edxapp_platform_checkout
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - install
     - install:code
 
 - name: git clean after checking out edx-platform
-  shell: cd {{ edxapp_code_dir }} && git clean -xdf
+  shell: cd {{ code_dirs[item] }} && git clean -xdf
   become_user: "{{ edxapp_user }}"
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - install
     - install:code
@@ -109,10 +111,11 @@
 - name: Create the virtualenv to install the Python requirements
   command: "virtualenv {{ edxapp_venv_dir }} -p {{ EDXAPP_PYTHON_VERSION }} --always-copy"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
     creates: "{{ edxapp_venv_dir }}/bin/pip"
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - install
     - install:app-requirements
@@ -120,9 +123,10 @@
 - name: Pin pip to a specific version.
   command: "{{ edxapp_venv_dir }}/bin/pip install pip=={{ COMMON_PIP_VERSION }}"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - install
     - install:app-requirements
@@ -141,13 +145,15 @@
   # Need to use command rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  command: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item.item }}"
+  command: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item[1].item }}"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item[0]] }}"
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
-  when: item.stat.exists
-  with_items: "{{ python_requirement_files.results }}"
+  when: item[1].stat.exists
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    - "{{ python_requirement_files.results }}"
   tags:
     - install
     - install:app-requirements
@@ -158,11 +164,13 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w {{ item.extra_args|default('') }} {{ item.name }}"
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w {{ item.extra_args|default('') }} {{ item[1].name }}"
   args:
-    chdir: "{{ edxapp_code_dir }}"
-  with_items:
-  - "{{ EDXAPP_PRIVATE_REQUIREMENTS }}"
+    chdir: "{{ code_dirs[item[0]] }}"
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    -
+      - "{{ EDXAPP_PRIVATE_REQUIREMENTS }}"
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
@@ -204,11 +212,13 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item[1] }}"
   args:
-    chdir: "{{ edxapp_code_dir }}"
-  with_items:
-  - "{{ sandbox_base_requirements }}"
+    chdir: "{{ code_dirs[item[0] }}"
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    -
+      - "{{ sandbox_base_requirements }}"
   become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
@@ -241,9 +251,10 @@
 - name: install node dependencies
   shell: "easy_install --version && npm install"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
   environment: "{{ edxapp_environment }}"
   become_user: "{{ edxapp_user }}"
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - install
     - install:app-requirements
@@ -263,10 +274,11 @@
 - name: Create the virtualenv to install the Python sandbox requirements
   command: "virtualenv {{ edxapp_sandbox_venv_dir }} -p {{ edxapp_sandbox_python_version }} --always-copy"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
     creates: "{{ edxapp_sandbox_venv_dir }}/bin/pip"
   become_user: "{{ edxapp_sandbox_user }}"
   environment: "{{ edxapp_environment }}"
+  with_items: "{{ service_variants_enabled }}"
   when: EDXAPP_PYTHON_SANDBOX
   tags:
     - edxapp-sandbox
@@ -277,9 +289,10 @@
   # Not pinning to the same version as everything else because sandboxes are still python 2.7
   command: "{{ edxapp_sandbox_venv_dir }}/bin/pip install pip==20.0.2"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
   become_user: "{{ edxapp_sandbox_user }}"
   environment: "{{ edxapp_environment }}"
+  with_items: "{{ service_variants_enabled }}"
   when: EDXAPP_PYTHON_SANDBOX
   tags:
     - edxapp-sandbox
@@ -288,13 +301,14 @@
 
 - name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
   pip:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
     requirements: "{{ sandbox_base_requirements }}"
     virtualenv: "{{ edxapp_sandbox_venv_dir }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
     virtualenv_python: "{{ edxapp_sandbox_python_version }}"
   become_user: "{{ edxapp_sandbox_user }}"
+  with_items: "{{ service_variants_enabled }}"
   when: EDXAPP_PYTHON_SANDBOX
   tags:
     - edxapp-sandbox
@@ -328,8 +342,9 @@
   when: EDXAPP_SANDBOX_ENFORCE
 
 - name: compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x '.git/.*|node_modules/.*' {{ edxapp_code_dir }}"
+  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x '.git/.*|node_modules/.*' {{ code_dirs[item] }}"
   become_user: "{{ edxapp_user }}"
+  with_items: "{{ service_variants_enabled }}"
   tags:
     - install
     - install:code
@@ -413,11 +428,11 @@
 
 - name: create symlinks from the repo dir
   file:
-    src: "{{ item }}"
+    src: '{{ code_dirs[item] }}/manage.py'
     dest: "{{ COMMON_BIN_DIR }}/{{ (item | basename).split('.', 1) | first }}.edxapp"
     state: link
   with_items:
-    - '{{ edxapp_code_dir }}/manage.py'
+    - "{{ service_variants_enabled }}"
   tags:
     - install
     - install:configuration
@@ -467,11 +482,13 @@
     - manage
 
 - name: create service worker users
-  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item[1].username}} {{ item[1].email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dir[item[0]] }}"
   become_user: "{{ common_web_user }}"
-  with_items: "{{ SERVICE_WORKER_USERS }}"
+  with_nested:
+    - "{{ service_variants_enabled }}"
+    - "{{ SERVICE_WORKER_USERS }}"
   when: CREATE_SERVICE_WORKER_USERS and item.enabled|default(true)
   tags:
     - manage
@@ -480,7 +497,8 @@
 - name: reindex all courses
   shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
+  with_items: "{{ service_variants_enabled }}"
   become_user: "{{ common_web_user }}"
   when: EDXAPP_REINDEX_ALL_COURSES
   tags:
@@ -491,10 +509,11 @@
   cron:
     name: "clear expired Django sessions"
     user: "{{ edxapp_user }}"
-    job: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
+    job: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ code_dirs[item] }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
     hour: "{{ EDXAPP_CLEARSESSIONS_CRON_HOURS }}"
     minute: "{{ EDXAPP_CLEARSESSIONS_CRON_MINUTES }}"
     day: "*"
+  with_items: "{{ service_variants_enabled }}"
   when: EDXAPP_CLEARSESSIONS_CRON_ENABLED
 
 - name: install additional cron jobs
@@ -504,8 +523,9 @@
 - name: populate retirement states
   shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} populate_retirement_states"
   args:
-    chdir: "{{ edxapp_code_dir }}"
+    chdir: "{{ code_dirs[item] }}"
   become_user: "{{ common_web_user }}"
+  with_items: "{{ service_variants_enabled }}"
   when: COMMON_RETIREMENT_SERVICE_SETUP | default(false)
   tags:
     - manage

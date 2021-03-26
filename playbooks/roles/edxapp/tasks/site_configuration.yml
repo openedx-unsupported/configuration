@@ -22,8 +22,9 @@
       when: item.domain is defined and item.site_id is defined
 
     - name: Get the default SITE_ID
-      shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms print_setting SITE_ID 2>/dev/null"
+      shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ code_dirs[item] }}/manage.py {{item}} print_setting SITE_ID 2>/dev/null"
       register: default_site_id
+      with_items: "{{ service_variants_enabled }}"
       when: item.site_id is not defined and item.domain is not defined
 
     - name: Use the default SITE_ID as the site identifier
@@ -34,7 +35,8 @@
     - name: Run create_or_update_site_configuration
       shell: |
         . {{ edxapp_app_dir }}/edxapp_env
-        {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms create_or_update_site_configuration -f /tmp/site_configuration.json --enabled {{ site_identifier }}
+        {{ edxapp_venv_bin }}/python {{ code_dirs[item] }}/manage.py lms create_or_update_site_configuration -f /tmp/site_configuration.json --enabled {{ site_identifier }
+      with_items: "{{ service_variants_enabled }}"}
 
     - name: Remove the generated SiteConfiguration JSON file
       file:
