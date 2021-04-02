@@ -573,5 +573,21 @@ if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
+if [[ $license_manager == "true" ]]; then
+    k8s_django_apps="license-manager"
+fi
+if [[ $edx_notes_api == "true" ]]; then
+    k8s_django_apps+=" edx-notes-api"
+fi
+if [[ -z $k8s_django_apps ]]; then
+    cat << EOF >> $extra_vars_file
+K8S_DJANGO_APPS: $k8s_django_apps
+EOF
+
+    manifest_dir="k8s"
+    ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/configuration-internal/$manifest_dir dest=/var/tmp/" -u ubuntu -b
+    run_ansible run_role.yml -i "${deploy_host}," -e role=minikube $extra_var_arg  --user ubuntu
+fi
+
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
