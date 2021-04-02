@@ -579,7 +579,7 @@ fi
 if [[ $edx_notes_api == "true" ]]; then
     k8s_django_apps+=" edx-notes-api"
 fi
-if [[ -z $k8s_django_apps ]]; then
+if [[ ! -z $k8s_django_apps ]]; then
     cat << EOF >> $extra_vars_file
 K8S_DJANGO_APPS: $k8s_django_apps
 EOF
