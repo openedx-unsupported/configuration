@@ -4,10 +4,14 @@
 {% for override in edxapp_staticfiles_storage_overrides %}
 sudo -E -H -u {{ edxapp_user }} \
     env "PATH=$PATH" "STATICFILES_STORAGE={{ override }}" \
-    {{ edxapp_venv_bin }}/paver update_assets --debug-collect --settings=$EDX_PLATFORM_SETTINGS
+    {{ edxapp_venv_bin }}/paver update_assets studio --debug-collect --settings $EDX_PLATFORM_SETTINGS &
+    {{ edxapp_venv_bin }}/paver update_assets lms --debug-collect --settings $EDX_PLATFORM_SETTINGS
+    wait
 {% endfor %}
 {% else %}
 sudo -E -H -u {{ edxapp_user }} \
     env "PATH=$PATH" \
-    {{ edxapp_venv_bin }}/paver update_assets --debug-collect --settings $EDX_PLATFORM_SETTINGS
+    {{ edxapp_venv_bin }}/paver update_assets studio --debug-collect --settings $EDX_PLATFORM_SETTINGS &
+    {{ edxapp_venv_bin }}/paver update_assets lms --debug-collect --settings $EDX_PLATFORM_SETTINGS
+    wait
 {% endif %}
