@@ -319,6 +319,14 @@ COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
 
+minikube_host: 192.168.49.2
+
+license_manager_service_name: "license-manager"
+license_manager_nginx_port: 80
+license_manager_ssl_nginx_port: 443
+license_manager_gunicorn_port: 18170
+license_manager_node_port: 32100
+
 mysql_server_version_5_7: True
 
 # User provided extra vars
