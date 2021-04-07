@@ -176,9 +176,6 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     ******************************************************************************
 
     Done bootstrapping, edx_ansible is now installed in /edx/app/edx_ansible.
-    Time to run some plays.  Activate the virtual env with
-
-    > . /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 
     ******************************************************************************
 EOF
