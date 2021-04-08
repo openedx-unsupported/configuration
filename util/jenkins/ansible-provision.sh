@@ -319,13 +319,14 @@ COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
 
-minikube_host: 192.168.49.2
-
 license_manager_service_name: "license-manager"
 license_manager_nginx_port: 80
 license_manager_ssl_nginx_port: 443
 license_manager_gunicorn_port: 18170
 license_manager_node_port: 32100
+
+edx_notes_api_gunicorn_port: 8120
+edx_notes_api_node_port: 32101
 
 mysql_server_version_5_7: True
 
@@ -595,6 +596,13 @@ EOF
     manifest_dir="k8s"
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/configuration-internal/$manifest_dir dest=/var/tmp/" -u ubuntu -b
     run_ansible run_role.yml -i "${deploy_host}," -e role=minikube $extra_var_arg  --user ubuntu
+    minikube_host=$(ansible -c ssh -i "${deploy_host}," $deploy_host -m shell -a "su -c 'minikube ip'  minikube" -u ubuntu -b)
+    minikube_host_ip=`echo $minikube_host | awk '{print $NF}'`
+    cat << EOF >> $extra_vars_file
+minikube_host_ip: $minikube_host_ip
+nginx_sites: ['license_manager']
+EOF
+    run_ansible run_role.yml -i "${deploy_host}," -e role=nginx $extra_var_arg  --user ubuntu
 fi
 
 rm -f "$extra_vars_file"
