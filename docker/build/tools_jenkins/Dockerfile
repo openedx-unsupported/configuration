@@ -1,8 +1,9 @@
-FROM edxops/trusty-common:latest
+FROM edxops/focal-common:latest
 LABEL maintainer="edxops"
 
 USER root
-RUN apt-get update
+RUN apt-get update \
+  && apt-get install -y wget
 
 ADD . /edx/app/edx_ansible/edx_ansible
 WORKDIR /edx/app/edx_ansible/edx_ansible/docker/plays
