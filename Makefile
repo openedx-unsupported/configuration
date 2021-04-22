@@ -32,6 +32,7 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	pip-compile --upgrade -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
 	pip-compile --upgrade -o util/pingdom/requirements.txt requirements/pingdom.in
 	pip-compile --upgrade -o util/vpc-tools/requirements.txt requirements/vpc-tools.in
+	pip-compile --upgrade -o util/jenkins/requirements.txt requirements/jenkins.in
 	# Post process all of the files generated above to work around open pip-tools issues
 	util/post-pip-compile.sh \
  	    requirements/pip-tools.txt \
@@ -40,6 +41,7 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	    util/elasticsearch/requirements.txt \
 	    util/jenkins/requirements-cloudflare.txt \
 	    util/pingdom/requirements.txt \
-	    util/vpc-tools/requirements.txt
+	    util/vpc-tools/requirements.txt \
+	    util/jenkins/requirements.txt
 
 include *.mk
