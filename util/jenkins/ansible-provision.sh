@@ -319,6 +319,12 @@ COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
 
+LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
+LICENSE_MANAGER_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'license-manager-sso-key'
+LICENSE_MANAGER_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'license-manager-sso-secret'
+LICENSE_MANAGER_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'license-manager-backend-service-key'
+LICENSE_MANAGER_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'license-manager-backend-service-secret'
+LICENSE_MANAGER_LOGOUT_URL: '{{ LICENSE_MANAGER_URL_ROOT }}/logout/'
 license_manager_service_name: "license-manager"
 license_manager_nginx_port: 80
 license_manager_ssl_nginx_port: 443

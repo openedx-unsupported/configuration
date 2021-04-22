@@ -27,7 +27,8 @@ for k8s_app in $k8s_apps; do
               app_port={{ edx_notes_api_gunicorn_port }}
               node_port={{ edx_notes_api_node_port }}
         fi       
-        helm install $k8s_app --namespace $k8s_app -f $k8s_app/development-currently-deployed-image.yaml -f $k8s_app/development-config.yaml $k8s_app/
+        helm install $k8s_app --namespace $k8s_app -f $k8s_app/development-config.yaml  -f $k8s_app/development-currently-deployed-image.yaml \
+        --set-file django-ida.app.config=$k8s_app/$k8s_app.yaml $k8s_app/
         kubectl expose deployment $k8s_app -n $k8s_app --name=$k8s_app-nodeport --port=$app_port \
         --type=NodePort --overrides '{ "apiVersion": "v1","spec":{"ports":[{"port":'$app_port',"protocol":"TCP","nodePort":'$node_port'}]}}'
     else
