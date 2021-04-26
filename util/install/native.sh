@@ -189,4 +189,5 @@ if [[ $ansible_status -ne 0 ]]; then
     echo "    Your environment:"
     env | egrep -i 'version|release' | sed -e 's/^/        /'
     echo "============================================================"
+    exit ${ansible_status}
 fi
