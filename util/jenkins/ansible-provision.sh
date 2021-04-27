@@ -220,6 +220,14 @@ if [[ -z $payment_version ]]; then
   PAYMENT_MFE_VERSION="master"
 fi
 
+if [[ -z $learning ]]; then
+  learning="false"
+fi
+
+if [[ -z $learning_version ]]; then
+  LEARNING_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -324,6 +332,12 @@ license_manager_nginx_port: 80
 license_manager_ssl_nginx_port: 443
 license_manager_gunicorn_port: 18170
 license_manager_node_port: 32100
+
+LEARNING_NGINX_PORT: 80
+LEARNING_SSL_NGINX_PORT: 443
+LEARNING_MFE_VERSION: $learning_version
+LEARNING_MFE_ENABLED: $learning
+LEARNING_SANDBOX_BUILD: True
 
 edx_notes_api_gunicorn_port: 8120
 edx_notes_api_node_port: 32101
