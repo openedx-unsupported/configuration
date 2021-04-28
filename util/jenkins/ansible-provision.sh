@@ -184,6 +184,14 @@ if [[ -z $registrar_version ]]; then
   REGISTRAR_VERSION="master"
 fi
 
+if [[ -z $license_manager ]]; then
+  license_manager="false"
+fi
+
+if [[ -z $license_manager_version ]]; then
+  LICENSE_MANAGER_VERSION="master"
+fi
+
 if [[ -z $learner_portal ]]; then
   learner_portal="false"
 fi
@@ -302,6 +310,13 @@ PAYMENT_SANDBOX_BUILD: True
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
+LICENSE_MANAGER_NGINX_PORT: 80
+LICENSE_MANAGER_SSL_NGINX_PORT: 443
+LICENSE_MANAGER_VERSION: $license_manager_version
+LICENSE_MANAGER_ENABLED: $license_manager
+LICENSE_MANAGER_DECRYPT_CONFIG_ENABLED: true
+LICENSE_MANAGER_COPY_CONFIG_ENABLED: true
+
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
@@ -318,15 +333,6 @@ COMMON_LMS_BASE_URL: https://${deploy_host}
 COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
-
-license_manager_service_name: "license-manager"
-license_manager_nginx_port: 80
-license_manager_ssl_nginx_port: 443
-license_manager_gunicorn_port: 18170
-license_manager_node_port: 32100
-
-edx_notes_api_gunicorn_port: 8120
-edx_notes_api_node_port: 32101
 
 mysql_server_version_5_7: True
 
@@ -448,10 +454,12 @@ VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
 VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
 VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 
+LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
+
 EOF
 fi
 
-encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api)
+encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api license_manager)
 
 for app in ${encrypted_config_apps[@]}; do
      eval app_decrypt_and_copy_config_enabled=\${${app}_decrypt_and_copy_config_enabled}
@@ -580,29 +588,6 @@ fi
 
 if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
-fi
-
-if [[ $license_manager == "true" ]]; then
-    k8s_django_apps="license-manager"
-fi
-if [[ $edx_notes_api == "true" ]]; then
-    k8s_django_apps+=" edx-notes-api"
-fi
-if [[ ! -z $k8s_django_apps ]]; then
-    cat << EOF >> $extra_vars_file
-K8S_DJANGO_APPS: $k8s_django_apps
-EOF
-
-    manifest_dir="k8s"
-    ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/configuration-internal/$manifest_dir dest=/var/tmp/" -u ubuntu -b
-    run_ansible run_role.yml -i "${deploy_host}," -e role=minikube $extra_var_arg  --user ubuntu
-    minikube_host=$(ansible -c ssh -i "${deploy_host}," $deploy_host -m shell -a "su -c 'minikube ip'  minikube" -u ubuntu -b)
-    minikube_host_ip=`echo $minikube_host | awk '{print $NF}'`
-    cat << EOF >> $extra_vars_file
-minikube_host_ip: $minikube_host_ip
-nginx_sites: ['license_manager']
-EOF
-    run_ansible run_role.yml -i "${deploy_host}," -e role=nginx $extra_var_arg  --user ubuntu
 fi
 
 rm -f "$extra_vars_file"
