@@ -228,6 +228,14 @@ if [[ -z $payment_version ]]; then
   PAYMENT_MFE_VERSION="master"
 fi
 
+if [[ -z $learning ]]; then
+  learning="false"
+fi
+
+if [[ -z $learning_version ]]; then
+  LEARNING_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -333,6 +341,12 @@ COMMON_LMS_BASE_URL: https://${deploy_host}
 COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
+
+LEARNING_NGINX_PORT: 80
+LEARNING_SSL_NGINX_PORT: 443
+LEARNING_MFE_VERSION: $learning_version
+LEARNING_MFE_ENABLED: $learning
+LEARNING_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
 
