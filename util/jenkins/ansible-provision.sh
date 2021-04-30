@@ -192,6 +192,10 @@ if [[ -z $license_manager_version ]]; then
   LICENSE_MANAGER_VERSION="master"
 fi
 
+if [[ -z $enterprise_catalog_version ]]; then
+  ENTERPRISE_CATALOG_VERSION="master"
+fi
+
 if [[ -z $learner_portal ]]; then
   learner_portal="false"
 fi
@@ -324,6 +328,13 @@ LICENSE_MANAGER_VERSION: $license_manager_version
 LICENSE_MANAGER_ENABLED: $license_manager
 LICENSE_MANAGER_DECRYPT_CONFIG_ENABLED: true
 LICENSE_MANAGER_COPY_CONFIG_ENABLED: true
+
+ENTERPRISE_CATALOG_NGINX_PORT: 80
+ENTERPRISE_CATALOG_SSL_NGINX_PORT: 443
+ENTERPRISE_CATALOG_VERSION: $enterprise_catalog_version
+ENTERPRISE_CATALOG_ENABLED: $enterprise_catalog
+ENTERPRISE_CATALOG_DECRYPT_CONFIG_ENABLED: true
+ENTERPRISE_CATALOG_COPY_CONFIG_ENABLED: true
 
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
@@ -469,6 +480,8 @@ VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
 VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 
 LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
+
+ENTERPRISE_CATALOG_URL_ROOT: "https://enterprise-catalog-${deploy_host}"
 
 EOF
 fi
