@@ -1,7 +1,14 @@
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
+
+ - 2021-05-24
+    - In ``manage_edxapp_users_and_groups.yml`` playbook, allow LMS and CMS
+      groups to be managed separately via ``manage-groups-lms`` and
+      ``manage-groups-cms`` tags. These replace the ``manage-groups`` tag,
+      which will be interepreted as ``manage-groups-lms`` until it is removed.
 
  - 2021-05-18
     - The version of tubular is controlled by RETIREMENT_SERVICE_VERSION.
