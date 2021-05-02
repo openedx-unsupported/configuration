@@ -1,0 +1,83 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Usage: ansible-playbook -i lms-host-1, \
+#                         manage_lms_groups.yml \
+#                         -e@/path/to/group/configfile \
+#                         -e "service_variant=[lms|cms]"
+#
+# Overview:
+# This playbook ensures that the specified groups exist in the targeted LMS or CMS cluster.
+# Expects list of groups as input via `django_groups` variable.
+#
+# Groups can have the following properties:
+#   - name (required, str)
+#   - permissions (required, list[str])
+#   - remove (optional, bool): ensures the group does not exist
+#   - _comment (optional, str): ignored
+#
+# Example:
+#
+# django_groups:
+#
+#   - name: group1
+#     permissions:
+#       - permission1
+#       - permission2
+#   
+#   - name: group3
+#     remove: true
+#     permissions: []
+#     _comment: |
+#         group3 is the best group
+#         yada yada     
+# 
+# Note:
+#
+#    LMS and CMS do still share a database, and therefore share a Groups a table.
+#    However, we create groups separately for LMS and CMS, because:
+#    (1) if they were only created in LMS context, then we would not be able to
+#        reference permissions for CMS-only apps, and
+#    (2) doing so aligns with our strategic goal to create stricter logical
+#        boundaries between LMS and CMS.
+#
+#    Given that, note that the groups created for one service variant should be disjoint
+#    with those created the other.
+#    That is, each group name should be defined for LMS *or* CMS, not both.
+#    Otherwise, whichever group is created second will override the first one.
+#
+#    Users are still managed centrally in the LMS context (see `manage_edxapp_users.yml`)
+#    but those users may be added to both LMS and CMS groups.
+#
+# Note: to get a list of all available permissions, run the following code within a Django shell:
+#
+#   from django.contrib.auth.models import Permission
+#   for perm in Permission.objects.all():
+#     print '{}:{}:{}'.format(perm.content_type.app_label, perm.content_type.model, perm.codename)
+#
+- hosts: all
+  vars:
+    env_path: /edx/app/edxapp/edxapp_env
+    python_path: /edx/app/edxapp/venvs/edxapp/bin/python
+    manage_path: /edx/bin/manage.edxapp
+    ignore_user_creation_errors: no
+    deployment_settings: "{{ EDXAPP_SETTINGS | default('production') }}"
+  vars_files:
+    - roles/common_vars/defaults/main.yml
+  tasks:
+    - name: Manage groups
+      tags:
+        - manage-groups
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} {{ service_variant }} --settings={{ deployment_settings }}
+        manage_group {{ item.name | quote }}
+        {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+      with_items: "{{ django_groups }}"
+      become: true
+      become_user: "{{ common_web_user }}"
