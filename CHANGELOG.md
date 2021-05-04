@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-05-05
+    - Role: openjdk
+        - Added a new role to install OpenJDK.
+        - Configure the version used with `OPENJDK_MAJOR_VERSION` (defaults to version 8).
+    - Playbook: openedx_native
+        - Modify to use the new `openjdk` role (instead of the default `oraclejdk`) when the `USE_OPENJDK` flag is set.
+    - Role: elasticsearch
+        - Modify to use the new `openjdk` role (instead of the default `oraclejdk`) when the `USE_OPENJDK` flag is set.
+        
  - 2021-03-08
     - Remove instruction from ansile-bootstrap.sh that instructed people to activate
       the virtualenv.  This was incorrect for community installations.

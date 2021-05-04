@@ -41,6 +41,7 @@
     EDXAPP_ENABLE_ELASTIC_SEARCH: true
     # For the mfe role.
     COMMON_ECOMMERCE_BASE_URL: '{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}'
+    USE_OPENJDK: false
   roles:
     - role: swapfile
       SWAPFILE_SIZE: 4GB
@@ -88,7 +89,10 @@
     - role: demo
       when: DEMO_ROLE_ENABLED
     - oauth_client_setup
-    - oraclejdk
+    - role: openjdk
+      when: USE_OPENJDK|default(false)|bool
+    - role: oraclejdk
+      when: not USE_OPENJDK|default(false)|bool
     - role: elasticsearch
       when: EDXAPP_ENABLE_ELASTIC_SEARCH
     - forum
