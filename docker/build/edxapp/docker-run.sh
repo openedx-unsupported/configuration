@@ -275,6 +275,8 @@ fi
 mkdir -p /edx/var/edxapp/themes
 # Fix missing supervisor directory (maybe)
 mkdir -p /edx/var/log/supervisor
+# Remove edx.log 
+rm -f /edx/var/log/lms/edx.log && ln -s /dev/null /edx/var/log/lms/edx.log 
 
 # We add '|| true' to the lines below so that the container can start even if these files don't exist yet
 ls /edx/var/edxapp | grep -v "staticfiles" | grep -v "themes" | awk '{ print "/edx/var/edxapp/"$1 }' | xargs chown -R www-data:www-data || true
