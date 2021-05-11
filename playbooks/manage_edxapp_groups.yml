@@ -6,10 +6,10 @@
 # code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
 # license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
 #
-# Usage: ansible-playbook -i lms-host-1, \
-#                         manage_lms_groups.yml \
+# Usage: ansible-playbook -i edxapp-worker-host-1 \
+#                         manage_edxapp_groups.yml \
 #                         -e@/path/to/group/configfile \
-#                         -e "service_variant=[lms|cms]"
+#                         -e "service_variant=[lms|cms] environment_deployment=[stage-edx|prod-edx|prod-edge]"
 #
 # Overview:
 # This playbook ensures that the specified groups exist in the targeted LMS or CMS cluster.
@@ -79,5 +79,6 @@
         {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
       with_items: "{{ django_groups }}"
+      when: item.get(environment_deployment) == "true"
       become: true
       become_user: "{{ common_web_user }}"
