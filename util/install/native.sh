@@ -175,10 +175,8 @@ if [[ $ansible_status -ne 0 ]]; then
     echo "------------------------------------------------------------"
     echo " "
     echo "Decoded error:"
-    # Find the FAILED line before the "NO MORE HOSTS" line, and decode it.
-    # The plusses in the regex are because if I run this with -x, the awk line
-    # will be added to the log, and the regex would find itself if it didn't have plusses.
-    awk '/NO +MORE +HOSTS/{if (bad) print bad} /FAILED/{bad=$0}' $log_file | python3 /var/tmp/configuration/util/ansible_msg.py
+    # Find the last "failed" or "fatal" line and decode it.
+    awk '/^(failed|fatal):/{bad=$0} END {if (bad) print bad}' $log_file | python3 /var/tmp/configuration/util/ansible_msg.py
     echo " "
     echo "============================================================"
     echo "Installation failed!"
