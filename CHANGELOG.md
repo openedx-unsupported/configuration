@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-05-13
+     - Role: edx_django_service
+        - Added task that installs extra python packages specified in `edx_django_service_extra_requirements`.
+     - Role: discovery
+        - Installs extra python packages specified in `DISCOVERY_EXTRA_REQUIREMENTS`. 
+     - Role: ecommerce
+        - Installs extra python packages specified in `ECOMMERCE_EXTRA_REQUIREMENTS`. 
+
  - 2021-03-08
     - Remove instruction from ansile-bootstrap.sh that instructed people to activate
       the virtualenv.  This was incorrect for community installations.
