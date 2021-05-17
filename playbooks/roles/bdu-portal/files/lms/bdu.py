@@ -23,6 +23,7 @@ with open(CONFIG_ROOT / "bdu.auth.json") as env_file:
 COPYRIGHT_YEAR = str(datetime.datetime.now().year)
 
 # Branded header and footer
+ANNOUNCEMENTS_FIELDS = BDU_ENV_TOKENS.get('ANNOUNCEMENTS_FIELDS', { "enabled": False })
 HEADER_NAVIGATION_LINKS = BDU_ENV_TOKENS.get('HEADER_NAVIGATION_LINKS', [])
 FOOTER_NAVIGATION_LINKS = BDU_ENV_TOKENS.get('FOOTER_NAVIGATION_LINKS', [])
 FOOTER_FOOTNOTE = BDU_ENV_TOKENS.get('FOOTER_FOOTNOTE', '')
