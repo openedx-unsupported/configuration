@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-05-18
+    - The version of tubular is controlled by RETIREMENT_SERVICE_VERSION.
+      Previously it was always "master", which broke older Open edX re-installations.
+
  - 2020-09-18
      - Role: nginx
        - Add location to support accessing files from ```EDXAPP_MEDIA_URL``` under the cms site.
