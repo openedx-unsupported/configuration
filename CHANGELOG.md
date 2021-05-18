@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-05-18
+    - The version of tubular is controlled by RETIREMENT_SERVICE_VERSION.
+      Previously it was always "master", which broke older Open edX re-installations.
+
  - 2021-03-08
     - Remove instruction from ansile-bootstrap.sh that instructed people to activate
       the virtualenv.  This was incorrect for community installations.
