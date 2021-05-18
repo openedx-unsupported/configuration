@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top(right below this line).
 
+ - 2021-05-18
+    - The version of tubular is controlled by RETIREMENT_SERVICE_VERSION.
+      Previously it was always "master", which broke older Open edX re-installations.
+
  - 2020-12-01
     - Role: edxapp
         - Default the CodeJail Python version to the same as the rest of edxapp.
