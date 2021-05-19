@@ -184,6 +184,18 @@ if [[ -z $registrar_version ]]; then
   REGISTRAR_VERSION="master"
 fi
 
+if [[ -z $license_manager ]]; then
+  license_manager="false"
+fi
+
+if [[ -z $license_manager_version ]]; then
+  LICENSE_MANAGER_VERSION="master"
+fi
+
+if [[ -z $enterprise_catalog_version ]]; then
+  ENTERPRISE_CATALOG_VERSION="master"
+fi
+
 if [[ -z $learner_portal ]]; then
   learner_portal="false"
 fi
@@ -236,23 +248,15 @@ if [[ -z $learner_portal_enterprise_version ]]; then
   LEARNER_PORTAL_ENTERPRISE_MFE_VERSION="master"
 fi
 
-
-if [[ -z $enterprise_catalog ]]; then
-  enterprise_catalog="false"
+if [[ -z $learning ]]; then
+  learning="false"
 fi
 
-if [[ -z $enterprise_catalog_version ]]; then
-  ENTERPRISE_CATALOG_VERSION="master"
+if [[ -z $learning_version ]]; then
+  LEARNING_MFE_VERSION="master"
 fi
 
 
-if [[ -z $learner_portal_enterprise ]]; then
-  learner_portal_enterprise="false"
-fi
-
-if [[ -z $learner_portal_enterprise_version ]]; then
-  LEARNER_PORTAL_ENTERPRISE_MFE_VERSION="master"
-fi
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -351,6 +355,20 @@ ADMIN_PORTAL_SANDBOX_BUILD: True
 VIDEO_PIPELINE_BASE_NGINX_PORT: 80
 VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
+LICENSE_MANAGER_NGINX_PORT: 80
+LICENSE_MANAGER_SSL_NGINX_PORT: 443
+LICENSE_MANAGER_VERSION: $license_manager_version
+LICENSE_MANAGER_ENABLED: $license_manager
+LICENSE_MANAGER_DECRYPT_CONFIG_ENABLED: true
+LICENSE_MANAGER_COPY_CONFIG_ENABLED: true
+
+ENTERPRISE_CATALOG_NGINX_PORT: 80
+ENTERPRISE_CATALOG_SSL_NGINX_PORT: 443
+ENTERPRISE_CATALOG_VERSION: $enterprise_catalog_version
+ENTERPRISE_CATALOG_ENABLED: $enterprise_catalog
+ENTERPRISE_CATALOG_DECRYPT_CONFIG_ENABLED: true
+ENTERPRISE_CATALOG_COPY_CONFIG_ENABLED: true
+
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
 DISCOVERY_VERSION: $discovery_version
@@ -367,6 +385,12 @@ COMMON_LMS_BASE_URL: https://${deploy_host}
 COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
+
+LEARNING_NGINX_PORT: 80
+LEARNING_SSL_NGINX_PORT: 443
+LEARNING_MFE_VERSION: $learning_version
+LEARNING_MFE_ENABLED: $learning
+LEARNING_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
 
@@ -488,10 +512,14 @@ VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
 VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
 VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
 
+LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
+
+ENTERPRISE_CATALOG_URL_ROOT: "https://enterprise-catalog-${deploy_host}"
+
 EOF
 fi
 
-encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api)
+encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api license_manager)
 
 for app in ${encrypted_config_apps[@]}; do
      eval app_decrypt_and_copy_config_enabled=\${${app}_decrypt_and_copy_config_enabled}

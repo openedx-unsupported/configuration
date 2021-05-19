@@ -33,7 +33,7 @@ fi
 # Bootstrapping constants
 #
 VIRTUAL_ENV_VERSION="16.7.10"
-PIP_VERSION="20.0.2"
+PIP_VERSION="20.1.1"
 SETUPTOOLS_VERSION="44.1.0"
 VIRTUAL_ENV="/tmp/bootstrap"
 PYTHON_BIN="${VIRTUAL_ENV}/bin"
@@ -138,10 +138,9 @@ apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python3-p
 
 # We want to link pip to pip3 for Ubuntu versions that don't have python 2.7 so older scripts work there
 # Applies to Ubuntu 20.04 Focal
-if [[ "${SHORT_DIST}" != trusty ]] && [[ "${SHORT_DIST}" != xenial ]] && [[ "${SHORT_DIST}" != bionic ]] && [[ "${SHORT_DIST}" != focal ]] ;then
+if [[ "${SHORT_DIST}" != trusty ]] && [[ "${SHORT_DIST}" != xenial ]] && [[ "${SHORT_DIST}" != bionic ]] ;then
   sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
   sudo update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-  ln -s /usr/bin/pip3 /usr/bin/pip
 fi
 
 python${PYTHON_VERSION} -m pip install --upgrade pip=="${PIP_VERSION}"
@@ -177,9 +176,6 @@ if [[ "true" == "${RUN_ANSIBLE}" ]]; then
     ******************************************************************************
 
     Done bootstrapping, edx_ansible is now installed in /edx/app/edx_ansible.
-    Time to run some plays.  Activate the virtual env with
-
-    > . /edx/app/edx_ansible/venvs/edx_ansible/bin/activate
 
     ******************************************************************************
 EOF
