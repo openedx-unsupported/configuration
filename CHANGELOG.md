@@ -3,6 +3,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-05-20
+    - Adding Enterprise Admin Portal MFE, Enterprise Learner Portal MFE to Django sandboxes
+
  - 2021-05-13
      - Role: edx_django_service
         - Added task that installs extra python packages specified in `edx_django_service_extra_requirements`.
@@ -19,9 +22,6 @@ Add any new changes to the top (right below this line).
     - Role: ecommerce
       - Added new configuration variable ECOMMERCE_EXTRA_CONFIG_OVERRIDES, which will allow override any ecommerce settings.
 
- - 2021-02-11
-    - Adding Enterprise Admin Portal MFE, Enterprise Learner Portal MFE, Enterprise Catalog Django Microservice, and Enterprise License Manager Django microservice to support Enterprise sandboxes.
-    
  - 2021-01-20
     - Remove xserver role and all its references.
     - This service has been removed per DEPR-95
