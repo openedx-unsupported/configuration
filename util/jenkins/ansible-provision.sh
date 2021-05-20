@@ -256,7 +256,6 @@ if [[ -z $learning_version ]]; then
   LEARNING_MFE_VERSION="master"
 fi
 
-
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
