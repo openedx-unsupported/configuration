@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 import click
 import datetime
@@ -41,7 +39,7 @@ def check_valid_policy(ctx, param, value):
     list_of_valid_policy_names = get_tls_security_policy_template_names()
     if value not in list_of_valid_policy_names:
         raise click.BadParameter("""Could not find the specified policy version,
-                                 found versions: {0}"""
+                                 found versions: {}"""
                                  .format(list_of_valid_policy_names))
     return value
 
@@ -64,12 +62,12 @@ def get_elb_names():
 
 def print_header(header):
     print("\n\n----------------------------------------------")
-    print(("[   ] {0}".format(header)))
+    print(f"[   ] {header}")
     print("----------------------------------------------")
 
 
 def print_line_item(line_item):
-    print(("[ * ] {0}".format(line_item)))
+    print(f"[ * ] {line_item}")
 
 
 def print_list(name, items_list):
@@ -88,7 +86,7 @@ def create_tls_policy(elb_name, policy_version_to_copy):
     })
     milli_datetime = str(int(datetime.datetime.now().strftime("%s")) * 1000)
     print('Creating new policy for elb....')
-    new_policy_name = "SSLUpdateScript-SSLNegotiationPolicy-{0}-{1}".format(
+    new_policy_name = "SSLUpdateScript-SSLNegotiationPolicy-{}-{}".format(
         elb_name, milli_datetime)
     response = client.create_load_balancer_policy(
         LoadBalancerName=elb_name,
@@ -200,7 +198,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
     else:
         for elb_name in elb_names_to_update:
             tls_policy_name = create_tls_policy(elb_name, policy_version)
-            print(("Trying to update...{0}".format(elb_name)))
+            print(f"Trying to update...{elb_name}")
             client = get_client()
 
             # Determine which policies are actually active
@@ -268,7 +266,7 @@ def update_elb_policies(confirm, policy_version, names, port_override):
                 LoadBalancerPort=tls_port,
                 PolicyNames=policy_names
             )
-            print(("Updated {0}\n".format(elb_name)))
+            print(f"Updated {elb_name}\n")
 
 cli.add_command(show_available_policy_versions)
 cli.add_command(show_elb_policy_versions)

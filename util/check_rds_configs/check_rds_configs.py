@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 from botocore.config import Config
 import click
@@ -151,19 +149,19 @@ def cli(db_engine, ignore):
     if cluster_with_disabled_snapshot_tags:
         exit_status = 1
 
-    print(("Slow query logs are disabled for RDS Instances\n{0}".format(slow_query_logs_disabled_rds)))
+    print(f"Slow query logs are disabled for RDS Instances\n{slow_query_logs_disabled_rds}")
     print()
-    print(("Instance parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_instance_parameters)))
+    print(f"Instance parameter groups out of sync/pending reboot for RDS Instances\n{instances_out_of_sync_with_instance_parameters}")
     print()
-    print(("Cluster parameter groups out of sync/pending reboot for RDS Instances\n{0}".format(instances_out_of_sync_with_cluster_parameters)))
+    print(f"Cluster parameter groups out of sync/pending reboot for RDS Instances\n{instances_out_of_sync_with_cluster_parameters}")
     print()
-    print("Sanpshot tags are disabled for Clusters\n{0}".format(cluster_with_disabled_snapshot_tags))
+    print(f"Sanpshot tags are disabled for Clusters\n{cluster_with_disabled_snapshot_tags}")
     print()
-    print("Performance Insights is disabled for RDS Instances\n{0}".format(instances_with_disabled_performance_insights))
+    print(f"Performance Insights is disabled for RDS Instances\n{instances_with_disabled_performance_insights}")
     print()
-    print("Tags are missing for the RDS Instances\n{0}".format(instances_without_tags))
+    print(f"Tags are missing for the RDS Instances\n{instances_without_tags}")
     print()
-    print("Tags are missing for the RDS Clusters\n{0}".format(clusters_without_tags))
+    print(f"Tags are missing for the RDS Clusters\n{clusters_without_tags}")
     print()
     exit(exit_status)
 

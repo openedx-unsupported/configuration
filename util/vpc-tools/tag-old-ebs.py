@@ -3,7 +3,6 @@
 For a given aws account, go through all un-attached volumes and tag them.
 
 """
-from __future__ import absolute_import
 import boto
 import boto.utils
 import argparse
@@ -15,7 +14,6 @@ from os.path import join, exists, isdir, islink, realpath, basename, dirname
 import yaml
 # needs to be pip installed
 import netaddr
-from six.moves import filter
 
 LOG_FORMAT = "%(asctime)s %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
 TIMEOUT = 300
@@ -23,7 +21,7 @@ TIMEOUT = 300
 log_level = logging.INFO
 
 def tags_for_hostname(hostname, mapping):
-    logging.debug("Hostname is {}".format(hostname))
+    logging.debug(f"Hostname is {hostname}")
     if not hostname.startswith('ip-'):
         return {}
 
@@ -54,7 +52,7 @@ def potential_devices(root_device):
     all_devices = os.listdir(device_dir)
     all_devices = list(filter(relevant_devices, all_devices))
 
-    logging.info("Potential devices on {}: {}".format(root_device, all_devices))
+    logging.info(f"Potential devices on {root_device}: {all_devices}")
     if len(all_devices) > 1:
         all_devices.remove(basename(root_device))
 
@@ -73,7 +71,7 @@ def get_tags_for_disk(mountpoint):
     edx_dir = join(mountpoint, 'edx', 'app')
     if exists(hostname_file):
         # This means this was a root volume.
-        with open(hostname_file, 'r') as f:
+        with open(hostname_file) as f:
             hostname = f.readline().strip()
             tag_data['hostname'] = hostname
 
@@ -118,7 +116,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    mappings = yaml.safe_load(open(args.config,'r'))
+    mappings = yaml.safe_load(open(args.config))
 
     # Setup Logging
     if args.verbose:
@@ -139,7 +137,7 @@ if __name__ == "__main__":
     # Find all unattached volumes
     filters = { "status": "available", "availability-zone": az }
     potential_volumes = ec2.get_all_volumes(filters=filters)
-    logging.debug("Found {} unattached volumes in {}".format(len(potential_volumes), az))
+    logging.debug(f"Found {len(potential_volumes)} unattached volumes in {az}")
 
     for vol in potential_volumes:
         if "cluster" in vol.tags:
@@ -158,7 +156,7 @@ if __name__ == "__main__":
                 logging.debug(waiting_msg.format(vol.id, root_device))
                 timeout -= 2
                 if timeout <= 0:
-                    logging.critical("Timed out while attaching {}.".format(vol.id))
+                    logging.critical(f"Timed out while attaching {vol.id}.")
                     exit(1)
 
 
@@ -168,8 +166,8 @@ if __name__ == "__main__":
                 vol.add_tag("devices_on_volume", str(devices_on_volume))
                 # Don't tag in this case because the different devices
                 # may have conflicting tags.
-                logging.info("Skipping {} because it has multiple mountpoints.".format(vol.id))
-                logging.info("{} has mountpoints {}".format(vol.id, str(devices_on_volume)))
+                logging.info(f"Skipping {vol.id} because it has multiple mountpoints.")
+                logging.info(f"{vol.id} has mountpoints {str(devices_on_volume)}")
             else:
                 device = devices_on_volume[0]
                 try:
@@ -182,9 +180,9 @@ if __name__ == "__main__":
 
                     # If they are found tag the instance with them
                     if args.noop:
-                        logging.info("Would have tagged {} with: \n{}".format(vol.id, str(tag_data)))
+                        logging.info(f"Would have tagged {vol.id} with: \n{str(tag_data)}")
                     else:
-                        logging.info("Tagging {} with: \n{}".format(vol.id, str(tag_data)))
+                        logging.info(f"Tagging {vol.id} with: \n{str(tag_data)}")
                         vol.add_tags(tag_data)
                 finally:
                     # Un-mount the volume
@@ -203,7 +201,7 @@ if __name__ == "__main__":
                 time.sleep(2)
                 timeout -= 2
                 if timeout <= 0:
-                    logging.critical("Timed out while detaching {}.".format(vol.id))
+                    logging.critical(f"Timed out while detaching {vol.id}.")
                     exit(1)
-                logging.debug("Waiting for {} to be detached.".format(vol.id))
+                logging.debug(f"Waiting for {vol.id} to be detached.")
 

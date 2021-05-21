@@ -5,7 +5,7 @@ import yaml
 @click.option('--values', help='Path to a values.yaml file', required=True)
 @click.option('--subcharts', help='Sub chart values to ignore', multiple=True)
 def cli(values, subcharts):
-    with open(values, 'r') as stream:
+    with open(values) as stream:
       parsed_dict = yaml.safe_load(stream)
       keys_from_yaml = collect_keys_from_yaml(parsed_dict, subcharts)
       col_width = 99
@@ -62,7 +62,7 @@ def get_keys(prefix, inp):
     for child_key in inp.keys():
       child = inp[child_key]
 
-      if prefix is not "":
+      if prefix != "":
         modified_prefix = prefix + "."
       else:
         modified_prefix = prefix

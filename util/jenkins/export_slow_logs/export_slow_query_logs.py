@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 from botocore.exceptions import ClientError
 import sys
@@ -64,7 +62,7 @@ def rds_extractor(environment):
     try:
         regions_list = client_region.describe_regions()
     except ClientError as e:
-        print(("Unable to connect to AWS with error :{}".format(e)))
+        print(f"Unable to connect to AWS with error :{e}")
         sys.exit(1)
     for region in regions_list["Regions"]:
         client = RDSBotoWrapper(region_name=region["RegionName"])
@@ -89,7 +87,7 @@ def rds_controller(rds_list, username, password):
         connection = pymysql.connect(host=rds_host_endpoint, port=rds_port,
                                      user=username, password=password)
         cursor = connection.cursor()
-        print("Checking slow log on RDS HOST {0}".format(rds_host_endpoint))
+        print(f"Checking slow log on RDS HOST {rds_host_endpoint}")
         cursor.execute("""
                       SELECT *
                       FROM mysql.slow_log

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 import click
 
@@ -43,10 +41,10 @@ def show_asg_event_notifications():
             event_notifications = get_asg_event_notifications(asg)
 
             if event_notifications:
-                print(("Event notifications: {0} are set for ASG: {1}".format(event_notifications,
-                        asg)))
+                print("Event notifications: {} are set for ASG: {}".format(event_notifications,
+                        asg))
             else:
-                print(("No Event Notifications found for ASG {}".format(asg)))
+                print(f"No Event Notifications found for ASG {asg}")
     except Exception as e:
 
         print(e)
@@ -78,7 +76,7 @@ def create_asg_event_notifications(
              asg_to_create_event_notifications.append(asg_name)
 
     if confirm is False:
-        print(("Would have created the event notification for asgs {}".format(asg_to_create_event_notifications)))
+        print(f"Would have created the event notification for asgs {asg_to_create_event_notifications}")
     else:
         try:
             for asg in asg_to_create_event_notifications:
@@ -87,7 +85,7 @@ def create_asg_event_notifications(
                     client.put_notification_configuration(AutoScalingGroupName=asg,
                         TopicARN=topic_arn, NotificationTypes=[event])
 
-                print(("Created {0} event notifications for auto scaling group {1}").format(event,
+                print(("Created {} event notifications for auto scaling group {}").format(event,
                        asg))
         except Exception as e:
             print(e)

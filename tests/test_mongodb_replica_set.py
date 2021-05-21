@@ -5,7 +5,6 @@
 # 2. rename mongodb_replica_set to mongodb_replica_set.py
 # 3. python test_mongodb_replica_set.py
 
-from __future__ import absolute_import
 import mongodb_replica_set as mrs
 import unittest, mock
 from six.moves.urllib.parse import quote_plus

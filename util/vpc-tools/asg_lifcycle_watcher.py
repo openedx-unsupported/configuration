@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 __author__ = 'e0d'
 
 """
@@ -51,7 +50,7 @@ class LifecycleHandler:
             aws_bin=self.aws_bin)
         
         if self.region:
-            self.base_cli_command += "--region {region} ".format(region=self.region)
+            self.base_cli_command += f"--region {self.region} "
 
         self.dry_run = args.dry_run
         self.ec2_con = boto3.client('ec2',region_name=self.region)
@@ -65,7 +64,7 @@ class LifecycleHandler:
                                               WaitTimeSeconds=LifecycleHandler.WAIT_TIME_SECONDS).get('Messages', []):
             body = json.loads(sqs_message['Body'])
             as_message = json.loads(body['Message'])
-            logging.info("Proccessing message {message}.".format(message=as_message))
+            logging.info(f"Proccessing message {as_message}.")
 
             if 'LifecycleTransition' in as_message and as_message['LifecycleTransition'] \
                     == LifecycleHandler.INSTANCE_TERMINATION:
@@ -107,10 +106,10 @@ class LifecycleHandler:
 
     def delete_sqs_message(self, queue, sqs_message, as_message, dry_run):
         if not dry_run:
-            logging.info("Deleting message with body {message}".format(message=as_message))
+            logging.info(f"Deleting message with body {as_message}")
             self.sqs_con.delete_message(QueueUrl=queue.url, ReceiptHandle=sqs_message['ReceiptHandle'])
         else:
-            logging.info("Would have deleted message with body {message}".format(message=as_message))
+            logging.info(f"Would have deleted message with body {as_message}")
 
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
@@ -132,18 +131,18 @@ class LifecycleHandler:
 
     def run_subprocess_command(self, command, dry_run):
 
-        message = "Running command {command}.".format(command=command)
+        message = f"Running command {command}."
 
         if not dry_run:
             logging.info(message)
             try:
                 output = subprocess.check_output(command.split(' '))
-                logging.info("Output was {output}".format(output=output))
+                logging.info(f"Output was {output}")
             except Exception as e:
                 logging.exception(e)
                 raise  e
         else:
-            logging.info("Dry run: {message}".format(message=message))
+            logging.info(f"Dry run: {message}")
 
     def get_ec2_instance_by_id(self, instance_id):
         """
@@ -171,10 +170,10 @@ class LifecycleHandler:
             for t in instance['Tags']:
                 tags_dict[t['Key']] = t['Value']
             if 'safe_to_retire' in tags_dict and tags_dict['safe_to_retire'].lower() == 'true':
-                logging.info("Instance with id {id} is safe to retire.".format(id=instance_id))
+                logging.info(f"Instance with id {instance_id} is safe to retire.")
                 return True
             else:
-                logging.info("Instance with id {id} is not safe to retire.".format(id=instance_id))
+                logging.info(f"Instance with id {instance_id} is not safe to retire.")
                 return False
         else:
             # No instance for id in SQS message this can happen if something else

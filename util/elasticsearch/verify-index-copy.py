@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 Verifies that an index was correctly copied from one ES host to another.
 """
 
-from __future__ import absolute_import
-from __future__ import print_function
 import itertools
 import pprint
 import random
@@ -200,7 +197,7 @@ def scan_documents(old_es, new_es, old_index, new_index):
         matching += find_matching_ids(new_es, new_index, old_elt_ids, old_elt_docs)
         total += len(old_elt_ids)
         if total % 100 == 0:
-            print('processed {} items'.format(total))
+            print(f'processed {total} items')
 
     ratio = float(matching)/total
     print("{}: scanned documents matching ({} out of {}, {:.6}%)".format(
@@ -251,7 +248,7 @@ def random_checks(old_es, new_es, old_index, new_index, total_document_count, ch
         current_offset += num_elts
 
         if total % 100 == 0:
-            print('processed {} items'.format(total))
+            print(f'processed {total} items')
 
     ratio = float(matching) / total
     print("{}: random documents matching ({} out of {}, {}%)".format(

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import argparse
 import backoff
 import boto.ec2
@@ -44,11 +42,10 @@ def services_for_instance(instance_id):
                 try:
                     services = instance.tags['services'].split(',')
                 except KeyError as ke:
-                    msg = "Tag named 'services' not found on this instance({})".format(instance_id)
+                    msg = f"Tag named 'services' not found on this instance({instance_id})"
                     raise Exception(msg)
 
-                for service in services:
-                    yield service
+                yield from services
 
 def edp_for_instance(instance_id):
     ec2 = boto.ec2.connect_to_region(REGION)
@@ -61,7 +58,7 @@ def edp_for_instance(instance_id):
                     deployment = instance.tags['deployment']
                     play = instance.tags['play']
                 except KeyError as ke:
-                    msg = "{} tag not found on this instance({})".format(ke.message, instance_id)
+                    msg = f"{ke.message} tag not found on this instance({instance_id})"
                     raise Exception(msg)
                 return (environment, deployment, play)
 
@@ -133,7 +130,7 @@ if __name__ == '__main__':
                 instance_id=instance_id)
             break
         except Exception as e:
-            print(("Failed to get EDP for {}: {}".format(instance_id, str(e))))
+            print(f"Failed to get EDP for {instance_id}: {str(e)}")
             # With the time limit being 2 minutes we will
             # try 5 times before giving up.
             time.sleep(backoff)
@@ -163,14 +160,14 @@ if __name__ == '__main__':
                              "ami-id": ami_id,
                              "created": volume.create_time })
     except Exception as e:
-        msg = "Failed to tag volumes associated with {}: {}".format(instance_id, str(e))
+        msg = f"Failed to tag volumes associated with {instance_id}: {str(e)}"
         print(msg)
 
     try:
         for service in services_for_instance(instance_id):
             if service in NGINX_ENABLE:
                 subprocess.call(NGINX_ENABLE[service], shell=True)
-                report.append("Enabling nginx: {}".format(service))
+                report.append(f"Enabling nginx: {service}")
             # We have to reload the new config files
             subprocess.call("/bin/systemctl reload nginx", shell=True)
 
@@ -203,24 +200,24 @@ if __name__ == '__main__':
                     # Run migration check command.
                     output = check_command_output_with_backoff(cmd)
                     if b'[ ]' in output:
-                        raise Exception("Migrations have not been run for {}".format(service))
+                        raise Exception(f"Migrations have not been run for {service}")
                     else:
-                        report.append("Checked migrations: {}".format(service))
+                        report.append(f"Checked migrations: {service}")
 
             # Link to available service.
-            available_file = os.path.join(args.available, "{}.conf".format(service))
-            link_location = os.path.join(args.enabled, "{}.conf".format(service))
+            available_file = os.path.join(args.available, f"{service}.conf")
+            link_location = os.path.join(args.enabled, f"{service}.conf")
             if os.path.exists(available_file):
-                subprocess.call("sudo -u supervisor ln -sf {} {}".format(available_file, link_location), shell=True)
-                report.append("Enabling service: {}".format(service))
+                subprocess.call(f"sudo -u supervisor ln -sf {available_file} {link_location}", shell=True)
+                report.append(f"Enabling service: {service}")
             else:
-                raise Exception("No conf available for service: {}".format(link_location))
+                raise Exception(f"No conf available for service: {link_location}")
 
     except AWSConnectionError as ae:
-        msg = "{}: ERROR : {}".format(prefix, ae)
+        msg = f"{prefix}: ERROR : {ae}"
         raise ae
     except Exception as e:
-        msg = "{}: ERROR : {}".format(prefix, e)
+        msg = f"{prefix}: ERROR : {e}"
         print(msg)
         traceback.print_exc()
         raise e

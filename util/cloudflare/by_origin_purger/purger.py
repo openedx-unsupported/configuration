@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import requests
 import click
-from six.moves import range
 
 
 
@@ -39,7 +36,7 @@ def purge(cloudflare_email, cloudflare_api_key, cloudflare_zone_id, origin, clou
     chunks = divide_chunks(lines, chunk_size)
     for chunk in chunks:
         if not confirm:
-            print((str.format("Will purge: {} at origin {} and {} others like it. Add --confirm to execute.", chunk[0]['url'], chunk[0]['headers']['Origin'], len(chunk))))
+            print(str.format("Will purge: {} at origin {} and {} others like it. Add --confirm to execute.", chunk[0]['url'], chunk[0]['headers']['Origin'], len(chunk)))
         else: 
             headers = {'X-Auth-Email': cloudflare_email,
                        'X-Auth-Key': cloudflare_api_key,
@@ -49,7 +46,7 @@ def purge(cloudflare_email, cloudflare_api_key, cloudflare_zone_id, origin, clou
             }
             url = str.format("https://api.cloudflare.com/client/v4/zones/{cloudflare_zone_id}/purge_cache", cloudflare_zone_id=cloudflare_zone_id)
             response = requests.delete(url, headers=headers, json=payload)
-            print((response.json()))
+            print(response.json())
 
 if __name__ == '__main__':
     purge()

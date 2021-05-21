@@ -16,9 +16,6 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
 # From https://github.com/ansible/ansible/issues/31527#issuecomment-335495855
-from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
-
 
 import os
 import sys

@@ -21,12 +21,10 @@ Config Encoder Filters
 More information: https://github.com/jtyr/ansible-config_encoder_filters
 """
 
-from __future__ import (absolute_import, division, print_function)
 from ansible import errors
 from copy import copy
 import re
 import six
-from six.moves import map
 
 
 def _str_is_bool(data):
@@ -169,7 +167,7 @@ def encode_apache(
 
     elif block_type == 'options':
         for o in data:
-            for key, val in sorted(six.iteritems(o)):
+            for key, val in sorted(o.items()):
                 rv += "%s%s " % (indent * (level-1), key)
                 rv += encode_apache(
                     val,
@@ -197,7 +195,7 @@ def encode_apache(
             else:
                 rv += str(data)
 
-        elif isinstance(data, six.string_types):
+        elif isinstance(data, str):
             # Value is a string
             if (
                     quote_all_strings or
@@ -244,7 +242,7 @@ def encode_erlang(
 
         rv += "\n"
 
-        for key, val in sorted(six.iteritems(data)):
+        for key, val in sorted(data.items()):
             rv += "%s{%s," % (indent*level, key)
 
             if not isinstance(val, dict):
@@ -268,7 +266,7 @@ def encode_erlang(
 
         rv += str(data).lower()
 
-    elif isinstance(data, six.string_types):
+    elif isinstance(data, str):
         # It's a string
 
         atom_len = len(atom_value_indicator)
@@ -289,7 +287,7 @@ def encode_erlang(
 
         for val in data:
             if (
-                    isinstance(val, six.string_types) or
+                    isinstance(val, str) or
                     _is_num(val)):
                 rv += "\n%s" % (indent*level)
 
@@ -360,7 +358,7 @@ def encode_ini(
     rv = ""
 
     # First process all standalone properties
-    for prop, val in sorted(six.iteritems(data)):
+    for prop, val in sorted(data.items()):
         if ucase_prop:
             prop = prop.upper()
 
@@ -377,7 +375,7 @@ def encode_ini(
                     prop, delimiter, quote, _escape(item, quote), quote)
 
     # Then process all sections
-    for section, props in sorted(six.iteritems(data)):
+    for section, props in sorted(data.items()):
         if isinstance(props, dict):
             if rv != "":
                 rv += "\n"
@@ -413,7 +411,7 @@ def encode_json(
         if len(data) > 0:
             rv += "\n"
 
-        items = sorted(six.iteritems(data))
+        items = sorted(data.items())
 
         for key, val in items:
             rv += '%s"%s": ' % (indent * (level+1), key)
@@ -447,7 +445,7 @@ def encode_json(
 
         rv += str(data).lower()
 
-    elif isinstance(data, six.string_types):
+    elif isinstance(data, str):
         # It's a string
 
         rv += '"%s"' % _escape(_escape(data), format='control')
@@ -497,7 +495,7 @@ def encode_logstash(
         if prevtype in ('value', 'value_hash', 'array'):
             rv += "{\n"
 
-        items = sorted(six.iteritems(data))
+        items = sorted(data.items())
 
         for key, val in items:
             if key[0] == section_prefix:
@@ -513,7 +511,7 @@ def encode_logstash(
                 # Last item of the loop
                 if items[-1] == (key, val):
                     if (
-                            isinstance(val, six.string_types) or
+                            isinstance(val, str) or
                             _is_num(val) or
                             isinstance(val, bool) or (
                                 isinstance(val, dict) and
@@ -540,7 +538,7 @@ def encode_logstash(
 
             if (
                     items[-1] != (key, val) and (
-                        isinstance(val, six.string_types) or
+                        isinstance(val, str) or
                         _is_num(val) or
                         isinstance(val, bool))):
                 rv += "\n"
@@ -560,7 +558,7 @@ def encode_logstash(
 
         rv += str(data).lower()
 
-    elif isinstance(data, six.string_types):
+    elif isinstance(data, str):
         # It's a string
 
         rv += '"%s"' % _escape(data)
@@ -625,7 +623,7 @@ def encode_nginx(data, indent="  ", level=0, block_semicolon=False):
 
             item_type = 'section'
 
-        elif isinstance(item, six.string_types):
+        elif isinstance(item, str):
             # Normal line
             if item_type == 'section':
                 rv += "\n"
@@ -656,7 +654,7 @@ def encode_pam(
     # Remember previous type to make newline between type blocks
     prev_type = None
 
-    for label, rule in sorted(six.iteritems(data)):
+    for label, rule in sorted(data.items()):
         if separate_types:
             # Add extra newline to separate blocks of the same type
             if prev_type is not None and prev_type != rule['type']:
@@ -714,9 +712,9 @@ def encode_toml(
         # It's a dict
 
         # First process all standalone strings, numbers, booleans and lists
-        for key, val in sorted(six.iteritems(data)):
+        for key, val in sorted(data.items()):
             if (
-                    isinstance(val, six.string_types) or
+                    isinstance(val, str) or
                     _is_num(val) or
                     isinstance(val, bool) or (
                         isinstance(val, list) and
@@ -737,7 +735,7 @@ def encode_toml(
                 first = False
 
         # Then process all data structures
-        for key, val in sorted(six.iteritems(data)):
+        for key, val in sorted(data.items()):
             if (
                     isinstance(val, dict) or
                     isinstance(val, list) and isinstance(val[0], dict)):
@@ -798,7 +796,7 @@ def encode_toml(
         if prevtype != 'list':
             rv += "\n"
 
-    elif isinstance(data, six.string_types):
+    elif isinstance(data, str):
         # It's a string
 
         rv += "%s%s%s" % (
@@ -950,7 +948,7 @@ def encode_yaml(
         if len(list(data.keys())) == 0:
             rv += "{}\n"
         else:
-            for i, (key, val) in enumerate(sorted(six.iteritems(data))):
+            for i, (key, val) in enumerate(sorted(data.items())):
                 # Skip indentation only for the first pair
                 rv += "%s%s:" % ("" if i == 0 and skip_indent else level*indent, key)
 
@@ -1044,9 +1042,9 @@ def template_replace(data, replacement):
     if isinstance(local_data, list):
         local_data = [template_replace(x, replacement) for x in local_data]
     elif isinstance(local_data, dict):
-        for key, val in six.iteritems(local_data):
+        for key, val in local_data.items():
             local_data[key] = template_replace(val, replacement)
-    elif isinstance(local_data, six.string_types):
+    elif isinstance(local_data, str):
         # Replace the special string by it's evaluated value
         p = re.compile(r'\{\[\{\s*(\w+)([^}\s]+|)\s*\}\]\}')
         local_data = p.sub(__eval_replace, local_data)
@@ -1054,7 +1052,7 @@ def template_replace(data, replacement):
     return local_data
 
 
-class FilterModule(object):
+class FilterModule:
     """Ansible encoder Jinja2 filters."""
 
     def filters(self):
