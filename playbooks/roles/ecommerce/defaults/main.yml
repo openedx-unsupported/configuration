@@ -190,6 +190,7 @@ ECOMMERCE_DISCOVERY_SERVICE_URL: 'http://localhost:8008'
 ECOMMERCE_ENTERPRISE_URL: '{{ ECOMMERCE_LMS_URL_ROOT }}'
 
 ECOMMERCE_CORS_ORIGIN_WHITELIST: []
+ECOMMERCE_CSRF_TRUSTED_ORIGINS: []
 ECOMMERCE_CORS_URLS_REGEX: ''
 ECOMMERCE_CORS_ALLOW_CREDENTIALS: false
 
@@ -239,6 +240,7 @@ ecommerce_config:
   SESSION_COOKIE_SECURE: '{{ ECOMMERCE_SESSION_COOKIE_SECURE}}'
 
   CORS_ORIGIN_WHITELIST: "{{ ECOMMERCE_CORS_ORIGIN_WHITELIST }}"
+  CSRF_TRUSTED_ORIGINS: "{{ ECOMMERCE_CSRF_TRUSTED_ORIGINS }}"
   CORS_URLS_REGEX: "{{ ECOMMERCE_CORS_URLS_REGEX }}"
   CORS_ALLOW_CREDENTIALS: "{{ ECOMMERCE_CORS_ALLOW_CREDENTIALS }}"
 
@@ -270,6 +272,9 @@ ECOMMERCE_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
 
 ECOMMERCE_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
 ECOMMERCE_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+# MFEs default settings
+ECOMMERCE_ENABLE_PAYMENT_MFE: false
 
 #
 # vars are namespace with the module name.
@@ -325,7 +330,23 @@ ecommerce_redhat_pkgs: []
 ecommerce_post_migrate_commands:
   - command: './manage.py oscar_populate_countries --initial-only'
     when: true
-  - command: './manage.py create_or_update_site --site-id=1 --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }} --partner-code=edX --partner-name="Open edX" --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }} --client-side-payment-processor=cybersource --payment-processors=cybersource,paypal --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }} --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }} --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }} --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }} --from-email staff@example.com --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/'
+  - command: >
+      ./manage.py create_or_update_site
+      --site-id=1
+      --site-domain={{ ECOMMERCE_ECOMMERCE_URL_ROOT.split("://")[1] }}
+      --partner-code=edX --partner-name="Open edX"
+      --lms-url-root={{ ECOMMERCE_LMS_URL_ROOT }}
+      --client-side-payment-processor=cybersource
+      --payment-processors=cybersource,paypal
+      --sso-client-id={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_KEY }}
+      --sso-client-secret={{ ECOMMERCE_SOCIAL_AUTH_EDX_OAUTH2_SECRET }}
+      --backend-service-client-id={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_KEY }}
+      --backend-service-client-secret={{ ECOMMERCE_BACKEND_SERVICE_EDX_OAUTH2_SECRET }}
+      --from-email staff@example.com
+      --discovery_api_url={{ ECOMMERCE_DISCOVERY_SERVICE_URL }}/api/v1/
+      {{ " --enable-microfrontend-for-basket-page=true" if ECOMMERCE_ENABLE_PAYMENT_MFE else "" }}
+      {{ " --payment-microfrontend-url="~EDXAPP_LMS_BASE_SCHEME~"://"~MFE_BASE~"/payment" if ECOMMERCE_ENABLE_PAYMENT_MFE else "" }}
+
     when: '{{ ecommerce_create_demo_data }}'
   - command: './manage.py create_demo_data --partner=edX'
     when: '{{ ecommerce_create_demo_data }}'
