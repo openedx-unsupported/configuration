@@ -4,6 +4,12 @@
 #   - tag community-engineering
 #   - if it also has '[automerge]' in the PR body,
 #     label it as 'automerge', then merge it.
+# Required organization secrets
+# - CC_GITHUB_TOKEN=...
+# - CC_TEAM_CHAMPIONS=org/team-name
+# - CC_TEAM_CHAMPIONS_PEOPLE_ARRAY=["username1"]
+# - CC_TEAM_CONTRIBUTORS_ORG=org
+# - CC_TEAM_CONTRIBUTORS_TEAM=team-name
 ---
 name: automerge BTR open-release PRs
 on:
@@ -37,26 +43,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: echo "${{ toJSON(github) }}"
-    - run: echo "TEAM_CONTRIBUTORS=ceng-test" >> "${GITHUB_ENV}"
-    - run: echo "TEAM_CHAMPIONS=openedx/ceng-test" >> "${GITHUB_ENV}"
-    - run: echo 'TEAM_CHAMPIONS_ARRAY=["stvstnfrd"]' >> "${GITHUB_ENV}"
     - name: lookup teams
       id: teams
       if: ${{ !github.event.pull_request.draft }}
       uses: tspascoal/get-user-teams-membership@v1
       with:
         username: "${{ github.actor }}"
-        team: ${{ env.TEAM_CONTRIBUTORS }}
-        GITHUB_TOKEN: "${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}"
+        organization: ${{ secrets.CC_TEAM_CONTRIBUTORS_ORG }}
+        team: ${{ secrets.CC_TEAM_CONTRIBUTORS_TEAM }}
+        GITHUB_TOKEN: "${{ secrets.CC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
     - name: tag team on all Named Release PRs
       if: ${{ steps.teams.outputs.isTeamMember && github.event.action == 'opened' }}
       run: |
         curl \
           -X POST \
           -H 'Accept: application/vnd.github.v3+json' \
-          -H "authorization: Bearer ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}" \
+          -H "authorization: Bearer ${{ secrets.CC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}" \
           https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers \
-          -d '{"reviewers": ${{ env.TEAM_CHAMPIONS_ARRAY }}}' \
+          -d '{"reviewers": ${{ secrets.CC_TEAM_CHAMPIONS_PEOPLE_ARRAY }}}' \
         ;
     - name: approve PR
       if: ${{ !github.event.pull_request.draft && steps.teams.outputs.isTeamMember && github.event.action == 'opened' }}
@@ -69,7 +73,7 @@ jobs:
 
           When you're ready to merge, edit the PR description and add this to it: `[automerge]`;
           we'll handle the rest.
-          CC: @${{ env.TEAM_CHAMPIONS }}
+          CC: @${{ secrets.CC_TEAM_CHAMPIONS }}
     - name: label PR as auto-mergeable
       if: ${{ !github.event.pull_request.draft && steps.teams.outputs.isTeamMember && contains(github.event.pull_request.body, '[automerge]') }}
       uses: andymckay/labeler@978f846c4ca6299fd136f465b42c5e87aca28cac
@@ -82,5 +86,5 @@ jobs:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         MERGE_COMMIT_MESSAGE: |
           merge: PR #{pullRequest.number}: {pullRequest.title}
-
+ 
           {pullRequest.body}
