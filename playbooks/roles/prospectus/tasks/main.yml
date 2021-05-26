@@ -74,33 +74,6 @@
     - install
     - install:system-requirements
 
-- name: build virtualenv with python2.7
-  command: "virtualenv --python=python2.7 {{ prospectus_venv_dir }}"
-  args:
-    creates: "{{ prospectus_venv_dir }}/bin/pip"
-  become_user: "{{ prospectus_user }}"
-  when: not prospectus_use_python3
-  tags:
-    - install
-    - install:system-requirements
-
-- name: build virtualenv with python3.8
-  command: "virtualenv --python=python3.8 {{ prospectus_venv_dir }}"
-  args:
-    creates: "{{ prospectus_venv_dir }}/bin/pip"
-  become_user: "{{ prospectus_user }}"
-  when: prospectus_use_python3
-  tags:
-    - install
-    - install:system-requirements
-
-- name: Pin pip to a specific version.
-  command: "{{ prospectus_venv_dir }}/bin/pip install pip=={{ COMMON_PIP_VERSION }}"
-  become_user: "{{ prospectus_user }}"
-  tags:
-    - install
-    - install:system-requirements
-
 - name: Add prospectus configuration file
   template:
     src: ".env.environment.j2"
@@ -109,10 +82,9 @@
     owner: "{{ prospectus_user }}"
     group: "{{ prospectus_user }}"
 
-# NOTE (CCB): Ideally we should use the pip Ansible command,
-# but that doesn't seem to work with the Python 3.x virtualenv.
-- name: install nodenv
-  command: pip install nodeenv
+- name: Install nodeenv
+  apt:
+    name: nodeenv
   become_user: "{{ prospectus_user }}"
   environment: "{{ prospectus_env_vars }}"
   tags:
@@ -120,8 +92,10 @@
     - install:system-requirements
 
 # Install node
-- name: create nodeenv
-  shell: "{{ prospectus_venv_dir }}/bin/nodeenv {{ prospectus_nodeenv_dir }} --node={{ PROSPECTUS_NODE_VERSION }} --prebuilt --force"
+- name: Create nodeenv
+  shell: "nodeenv {{ prospectus_nodeenv_dir }} --node={{ PROSPECTUS_NODE_VERSION }} --prebuilt --force"
+  become_user: "{{ prospectus_user }}"
+  environment: "{{ prospectus_env_vars }}"
   tags:
     - install
     - install:system-requirements
