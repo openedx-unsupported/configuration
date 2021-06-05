@@ -4,6 +4,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-06-05
+    - Remove ENABLE_INSTRUCTOR_ANALYTICS setting, which was removed from edx-platform in 2015
+
  - 2021-05-24
     - In ``manage_edxapp_users_and_groups.yml`` playbook, allow LMS and CMS
       groups to be managed separately via ``manage-groups-lms`` and
