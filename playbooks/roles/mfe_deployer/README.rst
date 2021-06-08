@@ -34,6 +34,14 @@ When running this role, you'll need to set the following variables:
         - **site_name**: Used to define the Environment SITE_NAME, used to build the MFE. By default it takes the value of ``MFE_DEPLOY_SITE_NAME``.
         - **standalone_nginx**: To indicate if the MFE will be deployed in a separated nginx file or if it will be in a shared nginx file with the other MFEs, by default it takes the value of ``MFE_DEPLOY_STANDALONE_NGINX``.
 
+
+- ``MFES_ECOMMERCE``: list of all ecommerce related MFEs you want to install. The structure matches MFES list.
+
+
+Ecommerce related MFEs will be built in case of ecommerce service to be installed.
+``MFE_DEPLOY_ECOMMERCE_MFES`` conditional variable is responsible for this and based on ``SANDBOX_ENABLE_ECOMMERCE`` variable.
+
+
 Deployment using subdirectories
 _______________________________
 
@@ -51,6 +59,14 @@ By default ``MFE_DEPLOY_STANDALONE_NGINX`` is false, which means that all the mi
       - name: account
         repo: frontend-app-account
         public_path: "/account/"
+
+    MFES_ECOMMERCE:
+      - name: payment
+        repo: frontend-app-payment
+        public_path: "/payment/"
+      - name: ecommerce
+        repo: frontend-app-ecommerce
+        public_path: "/ecommerce/"
 
     ### edxapp Configurations
     ### See comprehensive example below
@@ -74,6 +90,14 @@ If we want to deploy the microfrontends in different subdomains, we should turn 
         repo: frontend-app-gradebook
       - name: account
         repo: frontend-app-account
+
+    MFES_ECOMMERCE:
+      - name: payment
+        repo: frontend-app-payment
+        public_path: "/payment/"
+      - name: ecommerce
+        repo: frontend-app-ecommerce
+        public_path: "/ecommerce/"
 
     MFE_DEPLOY_STANDALONE_NGINX: true
 
@@ -123,6 +147,14 @@ __________________________________________________________
       repo: frontend-app-account
       public_path: "/account/"
 
+  MFES_ECOMMERCE:
+    - name: payment
+      repo: frontend-app-payment
+      public_path: "/payment/"
+    - name: ecommerce
+      repo: frontend-app-ecommerce
+      public_path: "/ecommerce/"
+
   MFE_DEPLOY_STANDALONE_NGINX: false
   MFE_DEPLOY_COMMON_HOSTNAME: '{{ MFE_BASE }}'
   
@@ -147,10 +179,25 @@ __________________________________________________________
     - "{{ EDXAPP_CMS_BASE }}"
     - "{{ MFE_BASE }}"
 
+  EDXAPP_SITE_CONFIGURATION:
+    - values:
+        ENABLE_ORDER_HISTORY_MICROFRONTEND: "{{ SANDBOX_ENABLE_ECOMMERCE }}"
+
   # MFE Links
   EDXAPP_LMS_WRITABLE_GRADEBOOK_URL: 'https://{{ MFE_BASE}}/gradebook'
   EDXAPP_PROFILE_MICROFRONTEND_URL: 'https://{{ MFE_BASE}}/profile/u/'
   EDXAPP_ACCOUNT_MICROFRONTEND_URL: 'https://{{ MFE_BASE}}/account'
+  EDXAPP_ORDER_HISTORY_MICROFRONTEND_URL: 'https://{{ MFE_BASE }}/ecommerce/orders'
+
+  ## ecommerce Configuration
+  ECOMMERCE_CORS_ORIGIN_WHITELIST: [
+    "{{ EDXAPP_LMS_BASE_SCHEME }}://{{ MFE_BASE }}",
+  ]
+  ECOMMERCE_CSRF_TRUSTED_ORIGINS: [
+    "{{ EDXAPP_LMS_BASE_SCHEME }}://{{ MFE_BASE }}",
+  ]
+  ECOMMERCE_CORS_ALLOW_CREDENTIALS: true
+  ECOMMERCE_ENABLE_PAYMENT_MFE: true
 
 .. _decision record about asymmetric JWT: https://github.com/edx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0008-use-asymmetric-jwts.rst
 .. _Developer Documentation: https://edx.readthedocs.io/projects/edx-developer-docs/en/latest/developers_guide/micro_frontends_in_open_edx.html#overriding-brand-specific-elements

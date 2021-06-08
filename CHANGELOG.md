@@ -4,6 +4,26 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-06-07
+    - In `openedx_native.yml`
+       - Added configuration variable ECOMMERCE_CSRF_TRUSTED_ORIGINS to allow payment mfe to interact with ecommerce service
+       - Added configuration variable ECOMMERCE_CORS_ORIGIN_WHITELIST to allow cross domain interation between mfes and ecommerce service
+       - Added new conditional variable MFE_DEPLOY_ECOMMERCE_MFES to not build ecommerce related MFEs w/o ecommerce service
+       - Created SiteConfiguration for default Site to enable ecommerce MFE
+       - Added configuration variable EDXAPP_ORDER_HISTORY_MICROFRONTEND_URL
+       - Set ECOMMERCE_CORS_ALLOW_CREDENTIALS to true
+       - Added new configuration variable ECOMMERCE_ENABLE_PAYMENT_MFE
+    - Role ecommerce
+       - Added new configuration variable ECOMMERCE_ENABLE_PAYMENT_MFE with default value to false
+       - Updated `create_or_update_site` management command to set `enable-microfrontend-for-basket-page` and `payment-microfrontend-url` flags
+    - Role mfe_deployer
+      - Added MFES_ECOMMERCE list for ecommerce related MFEs
+      - Added new configuration variable MFE_DEPLOY_ECOMMERCE_MFES
+      - Added new deploy_mfes variable to collect list of all MFEs to deploy
+      - Changed looping from `MFES` to `deploy_mfes` list internally
+    - Role mfe_flags_setup
+       - Added new flag `order_history.redirect_to_microfrontend`
+
  - 2021-06-05
     - Remove ENABLE_INSTRUCTOR_ANALYTICS setting, which was removed from edx-platform in 2015
 
