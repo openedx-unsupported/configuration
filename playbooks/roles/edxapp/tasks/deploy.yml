@@ -365,16 +365,17 @@
     - install
     - install:configuration
 
-- name: install single-beat to control celerybeat processes
-  command: "{{ edxapp_venv_dir }}/bin/pip install single-beat=={{ EDXAPP_SINGLE_BEAT_VERSION }}"
-  args:
-    chdir: "{{ edxapp_code_dir }}"
-  become_user: "{{ edxapp_user }}"
-  environment: "{{ edxapp_environment }}"
-  when: EDXAPP_ENABLE_CELERY_BEAT
-  tags:
-    - install
-    - install:app-requirements
+- name: install single-beat to run only one celerybeat scheduler
+  pip:
+    name: single-beat
+    version: "{{ EDXAPP_SINGLE_BEAT_VERSION|default(omit) }}"
+    virtualenv: "{{ edxapp_venv_dir }}"
+    state: present
+    become_user: "{{ edxapp_user }}"
+    when: EDXAPP_ENABLE_CELERY_BEAT
+    tags:
+      - install
+      - install:app-requirements
 
 - name: import custom tinymce plugins
   include_role:
