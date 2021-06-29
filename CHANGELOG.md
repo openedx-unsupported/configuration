@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-07-29
+    - Role edxapp
+       - Add `EDXAPP_ENABLE_MONGODB_INDEXES` configuration variable to optionally set up indexes on edxapp mongodb.
+    - Role forum
+       - Add `FORUM_ENABLE_MONGODB_INDEXES` configuration variable to optionally set up indexes on forum mongodb.
+
  - 2021-07-19
      - Role: edx_django_service
         - Allows writing extra requirements to an 'extra.txt' requirements file in the service's requirements directory.
