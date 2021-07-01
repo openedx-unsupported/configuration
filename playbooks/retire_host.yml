@@ -37,11 +37,13 @@
         - "edx-services"
     # This catches the case where tracking.log is 0b
     - name: Sync again
+      command: /edx/bin/send-logs-to-object-store -d "{{ COMMON_LOG_DIR }}/tracking/" -b "{{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }}/logs/tracking"
+    - name: Sync edX services logs again
       command: "/edx/bin/send-logs-to-object-store -d {{ COMMON_LOG_DIR }}{{ item.src }} -b {{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }} -p {{ item.dest }}"
       with_items:
-        - { src: '/tracking/',  dest: '{{ COMMON_OBJECT_STORE_LOG_SYNC_PREFIX }}' }
         - { src: '/lms/',  dest: '{{ COMMON_OBJECT_STORE_EDX_LOG_SYNC_PREFIX }}lms/' }
         - { src: '/cms/',  dest: '{{ COMMON_OBJECT_STORE_EDX_LOG_SYNC_PREFIX }}cms/' }
+      when: COMMON_OBJECT_STORE_EDX_LOG_SYNC
 
 - name: Run minos verification
   hosts: "{{TARGET}}"
