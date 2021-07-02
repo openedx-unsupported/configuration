@@ -109,8 +109,9 @@ def cli(db_engine, ignore):
 
     for cluster in db_clusters:
         arn = cluster['DBClusterArn']
+        db_cluster_identifier = cluster['DBClusterIdentifier']
         tags = rds.list_tags_for_resource(ResourceName=arn)['TagList']
-        exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_identifier, tags)
+        exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_cluster_identifier, tags)
         if cluster['CopyTagsToSnapshot'] == False:
             cluster_with_disabled_snapshot_tags.append(cluster['DBClusterIdentifier'])
 
