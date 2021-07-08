@@ -99,6 +99,7 @@ def cli(db_engine, ignore):
         arn = instance['DBInstanceArn']
         tags = rds.list_tags_for_resource(ResourceName=arn)['TagList']
         db_identifier = instance['DBInstanceIdentifier']
+        print("Checking tags on DB instance {}".format(db_identifier))
         exit_status, instances_without_tags = check_tags(instances_without_tags, db_identifier, tags)
         
         if db_identifier not in ignore_rds and "test" not in db_identifier:
@@ -109,13 +110,16 @@ def cli(db_engine, ignore):
 
     for cluster in db_clusters:
         arn = cluster['DBClusterArn']
+        db_cluster_identifier = cluster['DBClusterIdentifier']
         tags = rds.list_tags_for_resource(ResourceName=arn)['TagList']
-        exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_identifier, tags)
+        print("Checking cluster tags on DB cluster {}".format(db_cluster_identifier))
+        exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_cluster_identifier, tags)
         if cluster['CopyTagsToSnapshot'] == False:
             cluster_with_disabled_snapshot_tags.append(cluster['DBClusterIdentifier'])
 
         for instance in cluster['DBClusterMembers']:
             db_identifier = instance['DBInstanceIdentifier']
+            print("Checking tags on cluster DB instance {}".format(db_identifier))
             if db_identifier not in ignore_rds and "test" not in db_identifier:
                 db_instance_parameter_groups[db_identifier]['cluster'] = cluster['DBClusterParameterGroup']
                 if instance["DBClusterParameterGroupStatus"] != "in-sync":
@@ -123,6 +127,7 @@ def cli(db_engine, ignore):
 
 
     for db_identifier, parameter_groups in db_instance_parameter_groups.items():
+        print("Checking paramter groups on DB {}".format(db_identifier))
         instance_parameter_group_name = parameter_groups['instance']['DBParameterGroupName']
         if parameter_groups['instance']['ParameterApplyStatus'] != "in-sync":
             instances_out_of_sync_with_instance_parameters.append(db_identifier)
