@@ -39,6 +39,10 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu'
+  retries: 10
+  delay: 10
+  register: result
+  until: result is succeeded
 
 # For focal, use the bionic repo for now.
 - name: Install apt repository for New Relic Infrastructure if neither bionic nor focal
@@ -50,6 +54,10 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu' and (ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal')
+  retries: 10
+  delay: 10
+  register: nr_apt_repo
+  until: nr_apt_repo is succeeded
 
 - name: Install apt repository for New Relic Infrastructure if bionic
   apt_repository:
@@ -60,6 +68,10 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
+  retries: 10
+  delay: 10
+  register: nr_apt_repo_bionic
+  until: nr_apt_repo_bionic is succeeded
 
 # For focal, use the bionic repo for now.
 - name: Install apt repository for New Relic Infrastructure if focal
@@ -71,6 +83,12 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'focal'
+  retries: 10
+  delay: 10
+  register: result
+  until: result is succeeded
+  register: nr_apt_repo_focal
+  until: nr_apt_repo_focal is succeeded
 
 - name: Install newrelic related system packages for Ubuntu
   apt:
@@ -81,6 +99,10 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Ubuntu'
+  retries: 10
+  delay: 10
+  register: nr_apt_pkg
+  until: nr_apt_pkg is succeeded
 
 - name: Configure the New Relic Servers yum repository
   yum_repository:
@@ -94,6 +116,12 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Amazon'
+  retries: 10
+  delay: 10
+  register: result
+  until: result is succeeded
+  register: nr_yum_repo
+  until: nr_yum_repo is succeeded
 
 - name: Install newrelic related system packages for Amazon
   yum:
@@ -105,6 +133,12 @@
     - install
     - install:app-requirements
   when: ansible_distribution == 'Amazon'
+  retries: 10
+  delay: 10
+  register: result
+  until: result is succeeded
+  register: nr_yum_pkg
+  until: nr_yum_pkg is succeeded
 
 - name: Install newrelic display name script
   copy:
