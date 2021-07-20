@@ -28,6 +28,8 @@ environment=
     LANG={{ EDXAPP_LANG }},
     PYTHONPATH={{ edxapp_code_dir }},
     SERVICE_VARIANT=lms,
+    DJANGO_SETTINGS_MODULE=lms.envs.{{ worker_django_settings_module }},
+    LMS_CFG={{ COMMON_CFG_DIR }}/lms.yml,
     BOTO_CONFIG="{{ edxapp_app_dir }}/.boto",
     EDX_REST_API_CLIENT_NAME=edx.lms.core.default,
     SINGLE_BEAT_LOCK_TIME={{ EDXAPP_SINGLE_BEAT_LOCK_TIME }},
@@ -41,7 +43,7 @@ directory={{ edxapp_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 
-command={{ edxapp_app_dir }}/beat_scheduler.sh --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
+command={{ edxapp_app_dir }}/beat_scheduler.sh --app=lms.celery:APP --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
 
 killasgroup=true
 stopwaitsecs={{ EDXAPP_WORKER_DEFAULT_STOPWAITSECS }}
