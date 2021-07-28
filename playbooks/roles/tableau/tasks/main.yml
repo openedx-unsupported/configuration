@@ -2,12 +2,24 @@
 #  - group_vars/all
 #  - common/tasks/main.yml
 ---
+
+- name: create main group for tableau's default user
+  group:
+    name: "{{ tableau_user_group }}"
+    state: "present"
+  tags:
+    - install
+    - install:base
+
 - name: create application user
   user:
     name: "{{ tableau_user }}"
     home: "{{ tableau_app_dir }}"
     createhome: "{{ tableau_user_createhome }}"
     shell: "{{ tableau_user_shell }}"
+    group: "{{ tableau_user_group }}"
+    groups: sudo
+    password: "{{ TABLEAU_ADMIN_PASSWORD | password_hash('sha512') }}"
   tags:
     - install
     - install:base
@@ -17,7 +29,7 @@
     path: "{{ item.path }}"
     state: directory
     owner: "{{ tableau_user }}"
-    group: "{{ common_web_group }}"
+    group: "{{ tableau_user_group }}"
     mode: "{{ item.mode | default(0755) }}"
   with_items:
     - { path: "{{ tableau_app_dir }}" }
@@ -52,6 +64,7 @@
     repo: "{{ tableau_repo }}"
     version: "{{ tableau_version }}"
     accept_hostkey: yes
+    force: yes
   become_user: "{{ tableau_user }}"
   register: tableau_checkout
   tags:
@@ -97,9 +110,20 @@
     - install
     - install:code
 
-- name: Run automated installer to actually setup the tableau server
-  shell: "{{ tableau_installer_dir }}/automated-installer  -s {{ tableau_installer_dir }}/secrets -f {{ tableau_installer_dir }}/config.json -r {{ tableau_installer_dir }}/registration.json --accepteula {{ tableau_installer_dir }}/{{ tableau_server_deb_pkg_name }}"
+- name: Ensure "{{ tableau_user }}" is in th sudoers file.
+  lineinfile:
+    path: "/etc/sudoers"
+    state: "present"
+    regexp: '^%{{ tableau_user }} ALL='
+    line: '%{{ tableau_user }} ALL=(ALL) NOPASSWD: ALL'
   sudo: true
+  tags:
+    - install
+    - install:code
+
+- name: Run automated installer to actually setup the tableau server
+  shell: "sudo {{ tableau_installer_dir }}/automated-installer -k '{{ TABLEAU_LICENSE_KEY }}' -s {{ tableau_installer_dir }}/secrets -f {{ tableau_installer_dir }}/config.json -r {{ tableau_installer_dir }}/registration.json --accepteula {{ tableau_installer_dir }}/{{ tableau_server_deb_pkg_name }}"
+  become_user: "{{ tableau_user }}"
   tags:
     - install
     - install:code
