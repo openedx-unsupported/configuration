@@ -86,16 +86,35 @@
   template:
     src: edx/etc/elasticsearch/elasticsearch.yml.j2
     dest: "{{ elasticsearch_cfg_dir }}/elasticsearch.yml"
-    mode: 0744
+    mode: 0644
   tags:
     - install
     - install:configuration
 
 - name: drop the elasticsearch logging config
+  copy:
+    src: /etc/elasticsearch/log4j2.properties
+    dest: "{{ elasticsearch_cfg_dir }}/log4j2.properties"
+    remote_src: yes
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch jvm config
   template:
-    src: edx/etc/elasticsearch/logging.yml.j2
-    dest: "{{ elasticsearch_cfg_dir }}/logging.yml"
-    mode: 0744
+    src: edx/etc/elasticsearch/jvm.options.j2 
+    dest: "{{ elasticsearch_cfg_dir }}/jvm.options"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch systemd service config
+  template:
+    src: lib/systemd/system/elasticsearch.service.j2 
+    dest: "/lib/systemd/system/elasticsearch.service"
+    mode: 0644
   tags:
     - install
     - install:configuration
