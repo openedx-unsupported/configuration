@@ -4,6 +4,14 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-07-19
+     - Role: edx_django_service
+        - Allows writing extra requirements to an 'extra.txt' requirements file in the service's requirements directory.
+     - Role: ecommerce
+        - Adds an optional flag to write the extra requirements to an 'extra.txt' file since many of the app's setup commands
+          use tox and that creates its own environments separate from the default ecommerce virtualenv environment where the
+          `ECOMMERCE_EXTRA_REQUIREMENTS` requirements are installed.
+
  - 2021-06-17
     - Role credentials
        - Installs extra python packages specified in `CREDENTIALS_EXTRA_REQUIREMENTS` (defaults to `[]`).
