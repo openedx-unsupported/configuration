@@ -6,6 +6,10 @@ Add any new changes to the top (right below this line).
 
  - 2021-10-20
     - Role neo4j
+       - Upgrade Neo4j from 3.3.1 to 3.5.28.
+
+ - 2021-08-26
+    - Role neo4j
       - Bring Neo4j role closer in with what we really deploy:
         - Change Neo4j version from 3.2.2 to 3.3.1.
         - Expose Bolt on 0.0.0.0:7687 with optional encryption.
