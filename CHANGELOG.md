@@ -4,6 +4,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-09-19
+    - Remove configuration for edx-certificates, as that repo and service are no longer used.
+
  - 2021-07-29
     - Role edxapp
        - Add `EDXAPP_ENABLE_MONGODB_INDEXES` configuration variable to optionally set up indexes on edxapp mongodb.

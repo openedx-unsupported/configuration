@@ -111,7 +111,6 @@ sudo -H pip3 install --upgrade virtualenv==20.2.0
 ##
 VERSION_VARS=(
     EDX_PLATFORM_VERSION
-    CERTS_VERSION
     FORUM_VERSION
     XQUEUE_VERSION
     CONFIGURATION_VERSION
