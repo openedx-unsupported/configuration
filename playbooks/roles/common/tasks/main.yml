@@ -59,11 +59,21 @@
 - name: Add git apt repository
   apt_repository:
     repo: "{{ common_git_ppa }}"
+    update_cache: yes
+  register: add_repo
+  until: add_repo|success
+  retries: 10
+  delay: 5
   when: ansible_distribution in common_debian_variants
 
 - name: Add ppa for watchman package
   apt_repository:
     repo: "ppa:linuxuprising/apps"
+    update_cache: yes
+  register: add_repo
+  until: add_repo|success
+  retries: 10
+  delay: 5
   when: >
       ansible_distribution in common_debian_variants and 
       ({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})
@@ -100,6 +110,11 @@
 - name: add deadsnakes repository
   apt_repository:
     repo: "ppa:deadsnakes/ppa"
+    update_cache: yes
+  register: add_repo
+  until: add_repo|success
+  retries: 10
+  delay: 5
   when: ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
   tags:
     - install
