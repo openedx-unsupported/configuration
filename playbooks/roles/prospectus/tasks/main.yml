@@ -59,27 +59,43 @@
   register: prospectus_checkout
   when: PROSPECTUS_GIT_IDENTITY == "none"
 
-- name: Install the gpg key for nodejs LTS
-  apt_key:
-    url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
-    state: present
-  tags:
-    - install
-    - install:system-requirements
-
-- name: Install the nodejs LTS repos
+- name: add deadsnakes repo
   apt_repository:
-    repo: "deb https://deb.nodesource.com/node_{{ PROSPECTUS_NODE_VERSION }}.x {{ ansible_distribution_release }} main"
-    state: present
-    update_cache: yes
+      repo: ppa:deadsnakes/ppa
+  when: prospectus_use_python3
+
+- name: install python3.8
+  apt:
+    pkg:
+      - python3.8-dev
+      - python3.8-distutils
+  when: prospectus_use_python3
   tags:
     - install
     - install:system-requirements
 
-- name: Install node
+- name: Add prospectus configuration file
+  template:
+    src: ".env.environment.j2"
+    dest: "{{ prospectus_code_dir }}/config/.env.keys"
+    mode: "0644"
+    owner: "{{ prospectus_user }}"
+    group: "{{ prospectus_user }}"
+
+- name: Install nodeenv
   apt:
-    name: nodejs
-    state: present
+    name: nodeenv
+  become_user: "{{ prospectus_user }}"
+  environment: "{{ prospectus_env_vars }}"
+  tags:
+    - install
+    - install:system-requirements
+
+# Install node
+- name: Create nodeenv
+  shell: "nodeenv {{ prospectus_nodeenv_dir }} --node={{ PROSPECTUS_NODE_VERSION }} --prebuilt --force"
+  become_user: "{{ prospectus_user }}"
+  environment: "{{ prospectus_env_vars }}"
   tags:
     - install
     - install:system-requirements
@@ -116,8 +132,9 @@
     - install
     - install:app-requirements
 
+# Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: install node dependencies
-  shell: "npm install --unsafe-perm=true --allow-root"
+  shell: "{{ prospectus_nodeenv_bin }}/npm install --unsafe-perm=true --allow-root"
   args:
     chdir: "{{ prospectus_code_dir }}"
   environment: "{{ prospectus_env_vars }}"
@@ -126,8 +143,9 @@
     - install
     - install:app-requirements
 
+# Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: run prospectus build
-  shell: "npm run build"
+  shell: "{{ prospectus_nodeenv_bin }}/npm run build"
   args:
     chdir: "{{ prospectus_code_dir }}"
   environment: "{{ prospectus_env_vars }}"
