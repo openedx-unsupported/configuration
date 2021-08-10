@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 import boto3
+from botocore.config import Config
 import click
 
 tags_key_list = ["deployment", "environment", "cluster"]
@@ -168,5 +169,5 @@ def cli(db_engine, ignore):
 
 if __name__ == '__main__':
 
-    rds = boto3.client('rds')
+    rds = boto3.client('rds', config=Config(connect_timeout=5, read_timeout=60, retries={'max_attempts': 15}))
     cli()
