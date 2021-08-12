@@ -109,6 +109,10 @@
     name: "{{ item }}"
     state: present
     update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   with_flattened:
     - "{{ edxapp_debian_pkgs_default }}"
     - "{{ edxapp_debian_pkgs_extra }}"
@@ -129,6 +133,10 @@
     repo: "deb https://deb.nodesource.com/node_{{ EDXAPP_NODE_VERSION }}.x {{ ansible_distribution_release }} main"
     state: present
     update_cache: yes
+  register: add_repo
+  until: add_repo|success
+  retries: 10
+  delay: 5
   tags:
     - install
     - install:base
@@ -137,6 +145,11 @@
   apt:
     name: nodejs
     state: present
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   tags:
     - install
     - install:base
@@ -161,6 +174,11 @@
     pkg:
       - python3.8-dev
       - python3.8-distutils
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   tags:
     - install
     - install:system-requirements
