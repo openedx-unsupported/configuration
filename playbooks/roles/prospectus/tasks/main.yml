@@ -59,23 +59,14 @@
   register: prospectus_checkout
   when: PROSPECTUS_GIT_IDENTITY == "none"
 
-- name: add deadsnakes repo
-  apt_repository:
-      repo: ppa:deadsnakes/ppa
-      update_cache: yes
-  register: add_repo
-  until: add_repo|success
-  retries: 10
-  delay: 5
-  when: prospectus_use_python3
-
 - name: install python3.8
   apt:
     pkg:
       - python3.8-dev
       - python3.8-distutils
-  register: add_pkgs
-  until: add_pkgs|success
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
   retries: 10
   delay: 5
   when: prospectus_use_python3
@@ -94,10 +85,11 @@
 - name: Install nodeenv
   apt:
     name: nodeenv
+    update_cache: yes
   become_user: "{{ prospectus_user }}"
   environment: "{{ prospectus_env_vars }}"
-  register: add_pkg
-  until: add_pkg|success
+  register: install_pkgs
+  until: install_pkgs|success
   retries: 10
   delay: 5
   tags:
@@ -170,8 +162,9 @@
 - name: Install pngquant
   apt:
     name: "pngquant"
-  register: add_pkg
-  until: add_pkg|success
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
   retries: 10
   delay: 5
   tags:
