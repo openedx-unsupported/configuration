@@ -115,16 +115,16 @@
     - install:configuration
     - install:app-configuration
 
-- name: Add deadsnakes repo
-  apt_repository:
-      repo: ppa:deadsnakes/ppa
-  when: edx_service_use_python38
-
 - name: Install Python 3.8
   apt:
     pkg:
       - python3.8-dev
       - python3.8-distutils
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   when: edx_service_use_python38
   tags:
     - install
@@ -133,6 +133,11 @@
 - name: install python3
   apt:
     name: "{{ item }}"
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   when: edx_service_use_python3 and not edx_service_use_python38
   with_items:
     - python3-pip
@@ -193,6 +198,10 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   when: ansible_distribution in common_debian_variants
   tags:
     - install
