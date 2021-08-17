@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 assign_czar_org_groups.py
 
@@ -39,21 +37,21 @@ with open(args.file) as config:
 
 iam_connection = boto.connect_iam(profile_name=args.profile)
 
-for k,v in data['organizations'].items():
-    print("Adding {user} to group {group}.".format(user=v['recipients'],group=k))
+for group, group_info in data['organizations'].items():
+    print(f"Adding {group_info['recipients']} to group {group}.")
 
     # Add to the group providing general permissions for all data czars.
     try:
-        for i in v['recipients']:
-            iam_connection.add_user_to_group('analytics-edx-course-data-s3-ro', i)
+        for user in group_info['recipients']:
+            iam_connection.add_user_to_group('analytics-edx-course-data-s3-ro', user)
     except Exception as e:
         print(e)
 
     # Add to the org specific group
     try:
         pass
-        for i in v['recipients']:
-            iam_connection.add_user_to_group(org_group_name_template.format(org=k), i)
+        for user in group_info['recipients']:
+            iam_connection.add_user_to_group(org_group_name_template.format(org=group), user)
     except Exception as e:
         print(e)
 

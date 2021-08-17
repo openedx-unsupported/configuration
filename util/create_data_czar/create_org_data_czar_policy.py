@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 create_org_data_czar_policy.py
 
