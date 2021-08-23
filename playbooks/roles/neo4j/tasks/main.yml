@@ -98,8 +98,28 @@
 - name: allow format migration (when updating neo4j versions)
   lineinfile:
     dest: "{{ neo4j_server_config_file }}"
-    regexp: "dbms.allow_format_migration="
-    line: "dbms.allow_format_migration=true"
+    regexp: "dbms.allow_upgrade="
+    line: "dbms.allow_upgrade=true"
+  tags:
+    - install
+    - install:configuration
+
+- name: set to listen on specific port for bolt
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ neo4j_bolt_settings_key }}="
+    line: "{{ neo4j_bolt_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_bolt_port }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: allow both encrypted and unencrypted bolt connections
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ neo4j_bolt_tls_key }}="
+    line: "{{ neo4j_bolt_tls_key }}=OPTIONAL"
   tags:
     - install
     - install:configuration
