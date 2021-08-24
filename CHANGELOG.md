@@ -4,6 +4,14 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-08-26
+    - Role neo4j
+      - Bring Neo4j role closer in with what we really deploy:
+        - Change Neo4j version from 3.2.2 to 3.3.1.
+        - Expose Bolt on 0.0.0.0:7687 with optional encryption.
+        - Enable `dbms.allow_upgrade`, which is the new name of the `dbms.allow_format_migration` key.
+        - Remove http->https redirection logic when NGINX_ENABLE_SSL is false.
+
  - 2021-08-19
     - Remove configuration for edx-certificates, as that repo and service are no longer used.
 
