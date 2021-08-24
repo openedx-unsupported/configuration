@@ -4,7 +4,7 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
- - 2021-09-19
+ - 2021-08-19
     - Remove configuration for edx-certificates, as that repo and service are no longer used.
 
  - 2021-07-29
