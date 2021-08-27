@@ -250,7 +250,6 @@ cat << EOF > $extra_vars_file
 EDX_PLATFORM_VERSION: $edxapp_version
 FORUM_VERSION: $forum_version
 XQUEUE_VERSION: $xqueue_version
-CERTS_VERSION: $certs_version
 CONFIGURATION_VERSION: $configuration_version
 DEMO_VERSION: $demo_version
 THEMES_VERSION: $themes_version
@@ -398,8 +397,6 @@ EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: studio-${deploy_host}
 EDXAPP_SITE_NAME: ${deploy_host}
-CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_internal: True
 COMMON_USER_INFO:
   - name: ${github_username}
