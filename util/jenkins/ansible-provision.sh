@@ -396,6 +396,7 @@ if [[ $edx_internal == "true" ]]; then
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: studio-${deploy_host}
+EDXAPP_CMS_URL_ROOT: "https://{{ EDXAPP_CMS_BASE }}"
 EDXAPP_SITE_NAME: ${deploy_host}
 edx_internal: True
 COMMON_USER_INFO:
