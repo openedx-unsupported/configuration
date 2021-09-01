@@ -1,4 +1,4 @@
-import boto
+import boto3
 import argparse
 import gnupg
 
@@ -20,25 +20,25 @@ key_data = open(args.file).read()
 import_result = gpg.import_keys(key_data)
 
 # Connect to AWS and create account
-iam = boto.connect_iam()
+iam = boto3.client('iam')
 
 if not args.credentials_only:
-    user_response = iam.create_user(args.user)
+    user_response = iam.create_user(UserName=args.user)
 
-key_response = iam.create_access_key(args.user)
+key_response = iam.create_access_key(UserName=args.user)
 
 # Add user to group edx-s3bucket-course-data-readonly
-iam.add_user_to_group('edx-s3bucket-course-data-readonly', args.user)
+iam.add_user_to_group(GroupName='edx-s3bucket-course-data-readonly', UserName=args.user)
 
 # Add user to it's respective Org
 if args.orgs:
     for org in args.orgs:
         user_org = 'edx-course-data-' + org.lower()
-        iam.add_user_to_group(user_org, args.user)
+        iam.add_user_to_group(GroupName=user_org, UserName=args.user)
 
 # Create AWS Cred String
-key = key_response.create_access_key_response.create_access_key_result.access_key
-credstring = str('AWS_ACCESS_KEY_ID = ' + key.access_key_id + '\n' + 'AWS_SECRET_ACCESS_KEY = ' + key.secret_access_key)
+key = key_response['AccessKey']
+credstring = str(f'AWS_ACCESS_KEY_ID = {key["AccessKeyId"]} \nAWS_SECRET_ACCESS_KEY = {key["SecretAccessKey"]}')
 
 # Encrypt file
 encrypted_data = gpg.encrypt(credstring, args.user, always_trust=True)

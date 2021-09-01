@@ -7,7 +7,8 @@ that allows for read-only access to the group.
 """
 
 import argparse
-import boto
+import boto3
+from botocore.exceptions import ClientError
 from string import Template
 import sys
 
@@ -41,18 +42,21 @@ def add_org_group(org, iam_connection):
         group_name = "edx-course-data-{org}".format(org=org)
 
         try:
-            iam_connection.create_group(group_name)
-        except boto.exception.BotoServerError as bse:
-            if bse.status == 409:
+            iam_connection.create_group(GroupName=group_name)
+        except ClientError as bse:
+            if bse.response['ResponseMetadata']['HTTPStatusCode'] == 409:
                 pass
             else:
                 print(bse)
 
         try:
             iam_connection.put_group_policy(
-                group_name,group_name,template.substitute(org=org))
+                GroupName=group_name,
+                PolicyName=group_name,
+                PolicyDocument=template.substitute(org=org)
+            )
         except boto.exception.BotoServerError as bse:
-            if bse.status == 409:
+            if bse.response['ResponseMetadata']['HTTPStatusCode'] == 409:
                 pass
             else:
                 print(bse)
@@ -67,13 +71,9 @@ group.add_argument('-o', '--org', help='Name of the org for which to create an I
 group.add_argument('-f', '--file', help='The path to a file containing one org name '
                                         'per line.')
 
-parser.add_argument('-p', '--profile', help='The IAM profile to use when creating '
-                                            'the group and policy.')
-
 args = parser.parse_args()
 
-iam_connection = boto.connect_iam(profile_name=args.profile)
-
+iam_connection = boto3.client('iam')
 if args.org:
         add_org_group(args.org.rstrip('\n').lower(), iam_connection)
 elif args.file:
