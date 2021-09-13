@@ -12,6 +12,7 @@ parser.add_argument('-u', '--user', help='Email of Data Czar', required=True)
 parser.add_argument('-f', '--file', help='Public Key file', required=True)
 parser.add_argument('--credentials-only', help='Only create new credentials', default=False, action='store_true')
 parser.add_argument('-o', '--orgs', nargs='*', help='Name of the org(s) as list, User need to be a member', default=None)
+parser.add_argument('-c', '--creator', help='Name of the creator', default=None)
 args = parser.parse_args()
 
 # Import Data Czar GPG Key
@@ -24,6 +25,8 @@ iam = boto3.client('iam')
 
 if not args.credentials_only:
     user_response = iam.create_user(UserName=args.user)
+    if args.creator:
+        tag_response = iam.tag_user(UserName=args.user, Tags=[{'Key': 'Creator', 'Value': args.creator}])
 
 key_response = iam.create_access_key(UserName=args.user)
 
