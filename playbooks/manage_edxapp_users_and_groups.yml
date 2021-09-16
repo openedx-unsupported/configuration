@@ -115,6 +115,7 @@
     ignore_user_creation_errors: no
     deployment_settings: "{{ EDXAPP_SETTINGS | default('production') }}"
     group_environment: ""  # By default, create groups for all envs (for backwards compatibility).
+    service: "" # Used to display the service name during execution with *-ida tags. Set using ansible-playbook -e.
   vars_files:
     - roles/common_vars/defaults/main.yml
   tasks:
@@ -147,7 +148,7 @@
 
     - name: Manage active LMS/CMS users
       tags:
-        - manage-active-users
+        - manage-active-users-edxapp
       shell: >
         . {{env_path}} && {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
         manage_user {{ item.username | quote }} {{ item.email | quote }}
@@ -168,9 +169,64 @@
 
     - name: Manage inactive LMS/CMS users
       tags:
-        - manage-inactive-users
+        - manage-inactive-users-edxapp
       shell: >
         . {{env_path}} && {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+        {% if item.get('unusable_password') %}--unusable-password{% endif %}
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      when: item.get('unusable_password')
+      register: manage_users_result
+      failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
+      retries: 3
+      until: manage_users_result is not failed
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage {{ service }} groups
+      tags:
+        - manage-groups-ida
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} --settings={{ deployment_settings }}
+        manage_group {{ item.name | quote }}
+        {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+      with_items: "{{ django_groups }}"
+      when: (not group_environment) or group_environment in item.environments
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage active {{ service }} users
+      tags:
+        - manage-active-users-ida
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} --settings={{ deployment_settings }}
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+        {% if item.get('unusable_password') %}--unusable-password{% endif %}
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      when: not item.get('unusable_password')
+      register: manage_users_result
+      failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
+      retries: 3
+      until: manage_users_result is not failed
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage inactive {{ service }} users
+      tags:
+        - manage-inactive-users-ida
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} --settings={{ deployment_settings }}
         manage_user {{ item.username | quote }} {{ item.email | quote }}
         {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
