@@ -1,6 +1,7 @@
 import boto3
 import argparse
 import gnupg
+import sys
 
 # Assumes you have GPG already installed
 # Assumes that the Data Czars already have your public key
@@ -52,3 +53,6 @@ gpgfile.write(encrypted_string)
 print('ok: ', encrypted_data.ok)
 print('status: ', encrypted_data.status)
 print('stderr: ', encrypted_data.stderr)
+
+if encrypted_data.stderr:
+    sys.exit(1)
