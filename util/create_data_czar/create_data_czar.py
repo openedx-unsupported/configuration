@@ -54,5 +54,5 @@ print('ok: ', encrypted_data.ok)
 print('status: ', encrypted_data.status)
 print('stderr: ', encrypted_data.stderr)
 
-if encrypted_data.stderr:
+if 'error' in encrypted_data.stderr:
     sys.exit(1)
