@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-09-28
+    - Role nginx
+      - Add `NGINX_ENABLE_IPV6` configuration variable to make nginx
+        services listen on the IPv6 wildcard address (in addition to
+        the IPv4 one, where services always listen). Defaults to true.
+
  - 2021-09-19
     - Remove configuration for edx-certificates, as that repo and service are no longer used.
 
