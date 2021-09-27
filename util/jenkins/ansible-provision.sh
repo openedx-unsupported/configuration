@@ -543,8 +543,11 @@ video_pipeline_integration=${video_pipeline:-false}
 # ansible overrides for master's integration environment setup
 if [[ $registrar == "true" ]]; then
     cat << EOF >> $extra_vars_file
-COMMON_ENABLE_SPLUNKFORWARDER: true,
-EDXAPP_ENABLE_ENROLLMENT_RESET: true,
+COMMON_ENABLE_SPLUNKFORWARDER: true
+EDXAPP_ENABLE_ENROLLMENT_RESET: true
+DISCOVERY_POST_MIGRATE_COMMANDS:
+  - command: "./manage.py remove_program_types_from_migrations"
+    when: true
 EOF
 fi
 
