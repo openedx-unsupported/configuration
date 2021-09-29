@@ -548,6 +548,19 @@ EDXAPP_ENABLE_ENROLLMENT_RESET: true
 DISCOVERY_POST_MIGRATE_COMMANDS:
   - command: "./manage.py remove_program_types_from_migrations"
     when: true
+  - command: >
+      ./manage.py create_superuser
+      --username="admin"
+      --email="admin@example.com"
+      --no-input
+    when: true
+registrar_post_migrate_commands:
+  - command: >
+      ./manage.py create_superuser
+      --username="admin"
+      --email="admin@example.com"
+      --no-input
+    when: true
 EOF
 fi
 
