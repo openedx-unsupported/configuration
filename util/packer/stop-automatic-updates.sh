@@ -3,7 +3,7 @@
 # Kill the apt services holding a dpkg lock, so that the ansible-bootstrap
 # script can run without conflicts.
 
-# NOTE: this is a temporary fix. Instead, we should be doing what devops does,
+# NOTE: this is a temporary fix. Instead, we should be doing what SRE does,
 # and first run the security+common roles on a vanilla AMI, which will disable
 # unattended-updates and set up users. Then we can feel free to run the
 # ansible bootstrap without any problems.
