@@ -140,4 +140,4 @@ Directory structure for the secure repository:
 
 
   
-Secure vars are set in files under the ``ansible/vars`` directory.  These files will be passed in when the relevant ansible-playbook commands are run.  If you need a secure variable defined, give it a name and use it in your playbooks like any other variable.  The value should be set in the secure vars files of the relevant deployment (edx, edge, etc.).  If you don't have access to this repository, you'll need to submit a ticket to the devops team to make the secure change.
+Secure vars are set in files under the ``ansible/vars`` directory.  These files will be passed in when the relevant ansible-playbook commands are run.  If you need a secure variable defined, give it a name and use it in your playbooks like any other variable.  The value should be set in the secure vars files of the relevant deployment (edx, edge, etc.).  If you don't have access to this repository, you'll need to submit a ticket to the SRE team to make the secure change.
