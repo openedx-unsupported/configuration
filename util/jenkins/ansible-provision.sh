@@ -541,7 +541,7 @@ veda_encode_worker=${video_encode_worker:-false}
 video_pipeline_integration=${video_pipeline:-false}
 
 # ansible overrides for master's integration environment setup
-if [[ $registrar == "true" ]]; then
+if [[ $masters_integration_environment == "true" ]]; then
     cat << EOF >> $extra_vars_file
 COMMON_ENABLE_SPLUNKFORWARDER: true
 EDXAPP_ENABLE_ENROLLMENT_RESET: true
@@ -609,7 +609,7 @@ fi
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
 
 # master's integration environment setup
-if [[ $registrar == "true" ]]; then
+if [[ $masters_integration_environment == "true" ]]; then
   # vars specific to master's integration environment
   cat << EOF >> $extra_vars_file
 username: $registrar_user_email
