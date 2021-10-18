@@ -482,7 +482,7 @@ ENTERPRISE_CATALOG_URL_ROOT: "https://enterprise-catalog-${deploy_host}"
 EOF
 fi
 
-encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api insights discovery credentials registrar edx_notes_api license_manager)
+encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api discovery credentials registrar edx_notes_api license_manager)
 
 for app in ${encrypted_config_apps[@]}; do
      eval app_decrypt_and_copy_config_enabled=\${${app}_decrypt_and_copy_config_enabled}
