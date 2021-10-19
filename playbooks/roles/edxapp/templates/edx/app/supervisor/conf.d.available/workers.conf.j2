@@ -40,12 +40,13 @@ environment=
     SINGLE_BEAT_IDENTIFIER="{{ EDXAPP_SINGLE_BEAT_IDENTIFIER }}",
     SINGLE_BEAT_REDIS_SERVER="redis://{{ EDXAPP_SINGLE_BEAT_USER }}:{{ EDXAPP_SINGLE_BEAT_PASSWORD }}@{{ EDXAPP_CELERY_BROKER_HOSTNAME }}/{{ EDXAPP_CELERY_BROKER_VHOST }}",
     SINGLE_BEAT_WAIT_MODE="supervised"
+    SERVICE_CONFIG="lms.envs.{{ worker_django_settings_module }}"
 user={{ common_web_user }}
 directory={{ edxapp_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 
-command={{ edxapp_app_dir }}/beat_scheduler.sh --config=lms.envs.{{ worker_django_settings_module }} --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
+command={{ edxapp_app_dir }}/beat_scheduler.sh --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
 
 killasgroup=true
 stopwaitsecs={{ EDXAPP_WORKER_DEFAULT_STOPWAITSECS }}
