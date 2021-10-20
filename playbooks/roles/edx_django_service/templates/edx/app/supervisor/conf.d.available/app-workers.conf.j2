@@ -10,7 +10,7 @@ directory={{ edx_django_service_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 
-command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh --app {{ edx_django_service_name }}.celery:app worker -A {{ edx_django_service_name }} --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency=1 {{ '--maxtasksperchild ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
+command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh --app {{ edx_django_service_name }}.celery:app worker -A {{ edx_django_service_name }} --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency=1 {{ '--max-tasks-per-child ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
 killasgroup=true
 stopwaitsecs={{ w.stopwaitsecs | default(edx_django_service_default_stopwaitsecs) }}
 ; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
@@ -39,7 +39,7 @@ stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 {% set worker_app_name = 'course_discovery' %}
 {% endif %}
 
-command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh --app {{ worker_app_name }}.celery:app worker -A {{ edx_django_service_name }} --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--maxtasksperchild ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
+command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh --app {{ worker_app_name }}.celery:app worker -A {{ edx_django_service_name }} --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--max-tasks-per-child ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
 killasgroup=true
 stopwaitsecs={{ w.stopwaitsecs | default(edx_django_service_default_stopwaitsecs) }}
 ; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
