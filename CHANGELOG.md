@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-06-17
+    - Role credentials
+       - Installs extra python packages specified in `CREDENTIALS_EXTRA_REQUIREMENTS` (defaults to `[]`).
+
  - 2021-06-07
     - In `openedx_native.yml`
        - Added configuration variable ECOMMERCE_CSRF_TRUSTED_ORIGINS to allow payment mfe to interact with ecommerce service

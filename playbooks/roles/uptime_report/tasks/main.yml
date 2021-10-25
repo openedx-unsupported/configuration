@@ -1,0 +1,36 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role uptime_report
+#
+# Overview:
+# This role will be used to set up automatic querying of daily uptime reports
+# and upload it onto an S3 bucket
+#
+# Example play:
+#
+#
+
+- name: Create python script to upload query and upload uptime reports
+  template:
+    dest: "{{ uptime_report_script }}"
+    src: "uptime_report_script.j2"
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Install cron job for automatically running the uptime report script
+  cron:
+    name: "Run uptime report script"
+    job: "{{ uptime_report_script }}"
+    hour: "{{ uptime_report_cron_job_days }}"
+    minute: "{{ uptime_report_cron_job_minutes }}"
+    day: "*"

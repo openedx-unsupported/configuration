@@ -180,6 +180,19 @@
     - devstack
     - devstack:install
 
+- name: install extra requirements
+  pip:
+    name: "{{ item.name }}"
+    version: "{{ item.version|default(omit) }}"
+    extra_args: "--exists-action w {{ item.extra_args|default('') }}"
+    virtualenv: "{{ edx_django_service_venv_dir }}"
+    state: present
+  with_items: "{{ edx_django_service_extra_requirements }}"
+  become_user: "{{ edx_django_service_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: Check for existing make_migrate container
   command: "docker ps -aq --filter name='{{ edx_django_service_name }}.make_migrate'"
   register: edx_django_service_make_migrate_container

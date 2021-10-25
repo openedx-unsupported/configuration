@@ -1,0 +1,59 @@
+#!/usr/bin/python
+
+import boto3
+import json
+import datetime
+from six.moves import urllib
+
+newrelic_query_key = '{{ newrelic_query_key }}'
+newrelic_query_api_url = '{{ newrelic_query_api_url }}'
+uptime_report_s3_bucket = '{{ uptime_report_s3_bucket }}'
+uptime_report_s3_bucket_folder = '{{ uptime_report_s3_bucket_folder }}'
+newrelic_monitor_name = 'https://{{ EDXAPP_SITE_NAME }}/'
+aws_access_key_id = '{{ AWS_S3_LOGS_ACCESS_KEY_ID }}'
+aws_secret_access_key = '{{ AWS_S3_LOGS_SECRET_KEY }}'
+
+nr_query = ("SELECT percentage(count(*), WHERE result = 'SUCCESS') as 'UPTIME' "
+            "FROM SyntheticCheck WHERE monitorName = '{0}' "
+            "FACET dateOf(timestamp), hourOf(timestamp) "
+            "SINCE '{1} 00:00:00' UNTIL '{2} 00:00:00' "
+            "LIMIT MAX")
+
+def get_uptime_data(date):
+    from_time = (date+datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
+    to_time = date.strftime("%Y-%m-%d")
+    data = urllib.parse.urlencode({
+        'nrql': nr_query.format(newrelic_monitor_name, from_time, to_time)
+    })
+    headers = {'X-Query-Key': newrelic_query_key, 'Accept': 'application/json'}
+    request = urllib.request.Request(newrelic_query_api_url+'?'+data, headers=headers)
+
+    response =  urllib.request.urlopen(request)
+    data = json.loads(response.read().decode('utf-8'))
+    response.close()
+    times = []
+
+    for facet in data['facets']:
+        date, time = facet['name'][0], facet['name'][1]
+        times.append({
+            'time': datetime.datetime.strptime('{0} {1}'.format(date, time), '%B %d, %Y %H:%M').strftime("%Y-%m-%d %H:%M"),
+            'uptime_percentage': float(facet['results'][0]['result']),
+        })
+    times = sorted(times, key=lambda x: x['time'])
+    return times
+
+def upload_to_s3(uptime_data, date):
+    filepath = 'uptime/'
+    if uptime_report_s3_bucket_folder:
+        filepath = '{0}{1}/'.format(filepath, uptime_report_s3_bucket_folder)
+    
+    filename = '{0}uptime-{1}.json'.format(filepath, (date+datetime.timedelta(days=-1)).strftime("%Y-%m-%d"))
+    uptime_data = json.dumps(uptime_data)
+
+    s3_client = boto3.client('s3',aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+    s3_client.put_object(Body=uptime_data, Bucket=uptime_report_s3_bucket, Key=filename)
+
+if __name__ == "__main__":
+    today = datetime.datetime.now()
+    uptime_data = get_uptime_data(today)
+    upload_to_s3(uptime_data, today)
