@@ -43,7 +43,7 @@ def parse_yaml(file_name):
             LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
         except KeyError as e:
-            print('I got a KeyError - reason "%s"' % str(e))
+            print(f"I got a KeyError - reason {str(e)}")
 
 
 def check_version(app_name, app_version, latest_version):
@@ -89,7 +89,7 @@ def send_an_email(to_addr, from_addr, app_list, region):
             )
 
     message += """</table>"""
-    print(("Sending the following as email to {}".format(to_addr)))
+    print(f"Sending the following as email to {to_addr}")
     print(message)
     ses_client.send_email(
         Source=from_addr,
