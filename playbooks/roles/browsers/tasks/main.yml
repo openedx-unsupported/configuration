@@ -233,26 +233,35 @@
     - install
     - install:system-requirements
 
-# Systemd doesn't exist in 14.04, use upstart instead
-- name: create xvfb upstart script
-  template:
-    src: xvfb.conf.j2
-    dest: /etc/init/xvfb.conf
-    owner: root
-    group: root
-  when: ansible_distribution_release == 'trusty'
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
   tags:
     - install
-    - install:configuration
+    - install:base
 
-- name: start xvfb
-  service:
-    name: xvfb
-    state: restarted
-  when: ansible_distribution_release == 'trusty'
-  tags:
-    - manage
-    - manage:start
+
+#Systemd doesn't exist in 14.04, use upstart instead
+# - name: create xvfb upstart script
+#   template:
+#     src: xvfb.conf.j2
+#     dest: /etc/init/xvfb.conf
+#     owner: root
+#     group: root
+# when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal') and docker_container.stdout != 'yes'
+#   tags:
+#     - install
+#     - install:configuration
+
+# - name: start xvfb
+#   service:
+#     name: xvfb
+#     state: restarted
+#   when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal') and docker_container.stdout != 'yes'
+#   tags:
+#     - manage
+#     - manage:start
 
 # Use systemd for xvfb in 16.04
 - name: create xvfb systemd service
@@ -261,17 +270,18 @@
     dest: /etc/systemd/system/xvfb.service
     owner: root
     group: root
-  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+  when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal') and docker_container.stdout != 'yes'
   tags:
     - install
     - install:configuration
 
 - name: enable and start xvfb systemd service
+  become: True
   systemd:
     name: xvfb
     enabled: yes
     state: started
-  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+  when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal') and docker_container.stdout != 'yes'
   tags:
     - manage
     - manage:start
