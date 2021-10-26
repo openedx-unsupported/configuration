@@ -44,7 +44,7 @@ def parse_yaml(file_name):
             LOGGER.error("error in configuration file: %s" % str(exc))
             sys.exit(1)
         except KeyError as e:
-            print('I got a KeyError - reason "%s"' % str(e))
+            print(f"I got a KeyError - reason {str(e)}")
 
 
 def add_helm(repo_url, repo_name):
@@ -62,12 +62,12 @@ def update_helm():
 
 def get_repo_name(repo_url):
     try:
-        cmd_list = 'helm repo list -o json'
-        output = subprocess.check_output(cmd_list, shell=True).strip()
-        output_list = json.loads(output.decode())
-        for dic in output_list:
-            if dic["url"] == repo_url:
-                return dic['name']
+        get_repo_cmd = 'helm repo list -o json'
+        repositories = subprocess.check_output(get_repo_cmd, shell=True).strip()
+        repo_list = json.loads(repositories.decode())
+        for repo in repo_list:
+            if repo["url"] == repo_url:
+                repo['name']
     except subprocess.CalledProcessError as e:
         print(e.output)
 
@@ -87,9 +87,7 @@ def check_version(chart_name, app_name, repo_name, app_version):
 
 
 def compare_version(current_version, latest_version):
-    if current_version == latest_version:
-        return True
-    return False
+    return True if current_version == latest_version else False
 
 
 def find(name, path):
