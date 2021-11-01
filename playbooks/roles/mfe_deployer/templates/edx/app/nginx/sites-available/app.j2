@@ -5,6 +5,9 @@
 server {
   server_name {{ MFE_DEPLOY_COMMON_HOSTNAME }};
   listen {{ MFE_DEPLOY_NGINX_PORT }};
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ MFE_DEPLOY_NGINX_PORT }};
+  {% endif %}
 
 {% if NGINX_ENABLE_SSL %}
   {% include "concerns/handle-ip-disclosure.j2" %}
@@ -24,6 +27,9 @@ server {
 server {
   server_name {{ MFE_DEPLOY_COMMON_HOSTNAME }};
   listen {{ MFE_DEPLOY_SSL_NGINX_PORT }} ssl;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ MFE_DEPLOY_SSL_NGINX_PORT }} ssl;
+  {% endif %}
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
