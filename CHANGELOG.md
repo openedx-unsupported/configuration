@@ -4,6 +4,15 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-11-01
+    - Docker: edxapp
+       - Removed unnecessary `CELERY_QUEUES` overrides for LMS and Studio.
+         Instead, just use the default value of `CELERY_QUEUES` as set in
+         edx-platform's settings files.
+         Functionally, this means that in addition to the existing queues
+         that LMS and Studio defined, there is now a "low priority" queue
+         for Studio, suitable for tasks like a CourseGraph dump.
+
  - 2021-10-20
     - Role neo4j
        - Upgrade Neo4j from 3.2.2 to 3.5.28.
