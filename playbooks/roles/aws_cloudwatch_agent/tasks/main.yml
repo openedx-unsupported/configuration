@@ -1,0 +1,60 @@
+---
+
+- name: Install Collectd to use with AWS CloudWatch Agent
+  apt:
+    name: collectd={{ collectd_version }}
+    install_recommends: "{{ collectd_install_recommends }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install xz-utils (required when using deb parameter of apt module)
+  apt:
+    name: xz-utils
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Download the AWS CloudWatch Agent Debian package
+  get_url:
+    url: "{{ cloudwatch_url }}"
+    dest: /tmp/amazon-cloudwatch-agent.deb
+  tags:
+    - install
+    - install:base
+
+- name: Install AWS CloudWatch Agent Debian package
+  apt:
+    deb: /tmp/amazon-cloudwatch-agent.deb
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Copy amazon-cloudwatch-agent template
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: 'amazon-cloudwatch-agent.json', dest: '/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json', mode: '0644' }
+  tags:
+    - install
+    - install:base
+
+- name: Enable AWS CloudWatch Agent
+  service:
+    name: amazon-cloudwatch-agent
+    enabled: yes
+  tags:
+    - install
+    - install:base
+
+- name: Run AWS CloudWatch Agent
+  shell: " /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+  become: yes
+  tags:
+    - install
+    - install:code
