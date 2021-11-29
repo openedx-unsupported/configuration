@@ -67,7 +67,7 @@ def get_repo_name(repo_url):
         repo_list = json.loads(repositories.decode())
         for repo in repo_list:
             if repo["url"] == repo_url:
-                repo['name']
+                return repo['name']
     except subprocess.CalledProcessError as e:
         print(e.output)
 
