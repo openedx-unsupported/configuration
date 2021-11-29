@@ -120,7 +120,7 @@ def send_an_email(to_addr, from_addr, app_list, region):
 @click.option('--recipient', multiple=True, help='Recipient Email address')
 @click.option('--sender', multiple=True, help='Sender email address')
 def controller(file_name, file_path, region, recipient, sender):
-    parse_yaml(file_name)
+    parse_yaml(file_path + "/" + file_name)
     if len(global_list) > 0:
         send_an_email(recipient[0], sender[0], global_list, region[0])
 
