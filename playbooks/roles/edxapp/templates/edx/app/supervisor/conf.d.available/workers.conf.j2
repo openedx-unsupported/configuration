@@ -45,4 +45,15 @@ command={{ edxapp_app_dir }}/beat_scheduler.sh --loglevel=info --schedule="{{ su
 
 killasgroup=true
 stopwaitsecs={{ EDXAPP_WORKER_DEFAULT_STOPWAITSECS }}
+
+# If multiple app servers are running, celery-beat will exit on the new app
+# server as it is already running on the old one. Once the process exited with
+# status 0, it wont restart again event the old server is deprovisioned. To
+# resolve this conflict, use `autorestart=true` to keep trying to start the
+# process. Startretries are scheduled 3 times by default; since there is no way
+# to set infinite retries, the recommended way is setting a high number. When
+# the previous server is stopped, celery-beat will start normally.
+autorestart=true
+startsecs=30
+startretries=10000
 {% endif %}
