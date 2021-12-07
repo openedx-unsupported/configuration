@@ -65,6 +65,16 @@
   register: neo4j_apt_pkg
   until: neo4j_apt_pkg is succeeded
 
+# For what it's worth: We purposely do not prefix these line-replacement
+# regex with ^ or suffix them with $. That's because we cannot be
+# confident whether these lines initially (i) exist in file commented-out,
+# or (ii) exist in the file with a value already set. So, we purposefully
+# leave the regexes without beginning- or end-of-line matches so that
+# they can handle both scenario (i) and (ii).
+# In the future, it'd be good to get rid of these tasks, and instead
+# just include j2-templated configuration files to wholesale replace
+# what's on the box.
+
 - name: enable or disable authentication
   lineinfile:
     dest: "{{ neo4j_server_config_file }}"
@@ -98,8 +108,28 @@
 - name: allow format migration (when updating neo4j versions)
   lineinfile:
     dest: "{{ neo4j_server_config_file }}"
-    regexp: "dbms.allow_format_migration="
-    line: "dbms.allow_format_migration=true"
+    regexp: "dbms.allow_upgrade="
+    line: "dbms.allow_upgrade=true"
+  tags:
+    - install
+    - install:configuration
+
+- name: set to listen on specific port for bolt
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ neo4j_bolt_settings_key }}="
+    line: "{{ neo4j_bolt_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_bolt_port }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: allow both encrypted and unencrypted bolt connections
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ neo4j_bolt_tls_key }}="
+    line: "{{ neo4j_bolt_tls_key }}=OPTIONAL"
   tags:
     - install
     - install:configuration
