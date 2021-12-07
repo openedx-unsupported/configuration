@@ -12,7 +12,7 @@ class S3VideoDownload:
         """ Initialize the class. """
         self.csv_file_name = csv_file
         self.s3_client = boto3.client('s3')
-        self.bucket_name = 'edx-video-bucket'
+        self.bucket_name = 'edx-videos'
         self.file_prefix = 'prod-edx/unprocessed/'
         self.files_dict = {}
 
