@@ -7,14 +7,9 @@ directory={{ edxapp_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 
-command={{ edxapp_app_dir }}/worker.sh --app={{ w.service_variant }}.celery:APP --loglevel=info --queues=edx.{{ w.service_variant }}.core.{{ w.queue }} --hostname=edx.{{ w.service_variant }}.core.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--maxtasksperchild ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not EDXAPP_CELERY_HEARTBEAT_ENABLED|bool else '' }} {{ '-O ' + w.prefetch_optimization if w.prefetch_optimization is defined else '' }}
+command={{ edxapp_app_dir }}/worker.sh --app={{ w.service_variant }}.celery:APP worker --loglevel=info --queues=edx.{{ w.service_variant }}.core.{{ w.queue }} --hostname=edx.{{ w.service_variant }}.core.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--max-tasks-per-child ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not EDXAPP_CELERY_HEARTBEAT_ENABLED|bool else '' }} {{ '-O ' + w.prefetch_optimization if w.prefetch_optimization is defined else '' }}
 killasgroup=true
 stopwaitsecs={{ w.stopwaitsecs | default(EDXAPP_WORKER_DEFAULT_STOPWAITSECS) }}
-; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
-; with an exit code of zero for certain types of unrecoverable errors, so we must make sure that the workers
-; are auto restarted even when exiting with code 0.
-; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
-autorestart=true
 
 {% endfor %}
 
@@ -37,21 +32,28 @@ environment=
     EDX_REST_API_CLIENT_NAME=edx.lms.core.default,
     SINGLE_BEAT_LOCK_TIME={{ EDXAPP_SINGLE_BEAT_LOCK_TIME }},
     SINGLE_BEAT_HEARTBEAT_INTERVAL={{ EDXAPP_SINGLE_BEAT_HEARTBEAT_INTERVAL }},
-    SINGLE_BEAT_IDENTIFIER="celerybeat",
-    SINGLE_BEAT_REDIS_SERVER="redis://{{ EDXAPP_CELERY_BROKER_HOSTNAME }}/{{ EDXAPP_CELERY_BROKER_VHOST }}",
-    SINGLE_BEAT_WAIT_MODE="supervised"
+    SINGLE_BEAT_IDENTIFIER="{{ EDXAPP_SINGLE_BEAT_IDENTIFIER }}",
+    SINGLE_BEAT_REDIS_SERVER="redis://{{ EDXAPP_SINGLE_BEAT_USER }}:{{ EDXAPP_SINGLE_BEAT_PASSWORD }}@{{ EDXAPP_CELERY_BROKER_HOSTNAME }}/{{ EDXAPP_CELERY_BROKER_VHOST }}",
+    SINGLE_BEAT_WAIT_MODE="supervised",
+    SERVICE_CONFIG="lms.envs.{{ worker_django_settings_module }}"
 user={{ common_web_user }}
 directory={{ edxapp_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 
-command={{ edxapp_app_dir }}/beat_scheduler.sh --config=lms.envs.{{ worker_django_settings_module }} --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
+command={{ edxapp_app_dir }}/beat_scheduler.sh --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
 
 killasgroup=true
 stopwaitsecs={{ EDXAPP_WORKER_DEFAULT_STOPWAITSECS }}
-; Set autorestart to `true`. The default value for autorestart is `unexpected`, but celery < 4.x will exit
-; with an exit code of zero for certain types of unrecoverable errors, so we must make sure that the workers
-; are auto restarted even when exiting with code 0.
-; The Celery bug was reported in https://github.com/celery/celery/issues/2024, and is fixed in Celery 4.0.0.
+
+# If multiple app servers are running, celery-beat will exit on the new app
+# server as it is already running on the old one. Once the process exited with
+# status 0, it wont restart again event the old server is deprovisioned. To
+# resolve this conflict, use `autorestart=true` to keep trying to start the
+# process. Startretries are scheduled 3 times by default; since there is no way
+# to set infinite retries, the recommended way is setting a high number. When
+# the previous server is stopped, celery-beat will start normally.
 autorestart=true
+startsecs=30
+startretries=10000
 {% endif %}

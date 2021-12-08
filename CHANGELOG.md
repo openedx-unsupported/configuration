@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-11-30
+    - Upgrade celery to 5.2.0 and adjust CLI call parameters too
+    - Bumped single-beat to use a more supported fork of the project
+
  - 2021-11-01
     - Docker: edxapp
        - Removed unnecessary `CELERY_QUEUES` overrides for LMS and Studio.
