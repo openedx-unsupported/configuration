@@ -86,14 +86,17 @@ class LifecycleInventory():
         for group in groups:
 
             for instance in group['Instances']:
-
-                private_ip_address = instances[instance['InstanceId']]['PrivateIpAddress']
-                if private_ip_address:
-                    environment,deployment = self.get_e_d_from_tags(group)
-                    inventory[environment + "_" + deployment + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
-                    inventory[group['AutoScalingGroupName']].append(private_ip_address)
-                    inventory[group['AutoScalingGroupName'] + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
-                    inventory[instance['LifecycleState'].replace(":","_")].append(private_ip_address)
+                instance_id = instance['InstanceId']
+                # We are seeing an issue in the list AWS returns where an instance does not have any data associated with it.
+                # Any valid instance should not have completely empty reservation data.
+                if len(instances[instance_id]['Reservations']) != 0:
+                    private_ip_address = instances[instance['InstanceId']]['PrivateIpAddress']
+                    if private_ip_address:
+                        environment,deployment = self.get_e_d_from_tags(group)
+                        inventory[environment + "_" + deployment + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
+                        inventory[group['AutoScalingGroupName']].append(private_ip_address)
+                        inventory[group['AutoScalingGroupName'] + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
+                        inventory[instance['LifecycleState'].replace(":","_")].append(private_ip_address)
 
         print(json.dumps(inventory, sort_keys=True, indent=2))
 
