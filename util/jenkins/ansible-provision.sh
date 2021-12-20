@@ -238,12 +238,12 @@ if [[ -z $learning_version ]]; then
   LEARNING_MFE_VERSION="master"
 fi
 
-if [[ -z $ora-grading ]]; then
-  ora-grading="false"
+if [[ -z $ora_grading ]]; then
+  ora_grading="false"
 fi
 
-if [[ -z $ora-grading_version ]]; then
-  ORA-GRADING_MFE_VERSION="master"
+if [[ -z $ora_grading_version ]]; then
+  ORA_GRADING_MFE_VERSION="master"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
@@ -364,11 +364,11 @@ LEARNING_MFE_VERSION: $learning_version
 LEARNING_MFE_ENABLED: $learning
 LEARNING_SANDBOX_BUILD: True
 
-ORA-GRADING_NGINX_PORT: 80
-ORA-GRADING_SSL_NGINX_PORT: 443
-ORA-GRADING_MFE_VERSION: $ora-grading_version
-ORA-GRADING_MFE_ENABLED: $ora-grading
-ORA-GRADING_SANDBOX_BUILD: True
+ORA_GRADING_NGINX_PORT: 80
+ORA_GRADING_SSL_NGINX_PORT: 443
+ORA_GRADING_MFE_VERSION: $ora_grading_version
+ORA_GRADING_MFE_ENABLED: $ora_grading
+ORA_GRADING_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
 
