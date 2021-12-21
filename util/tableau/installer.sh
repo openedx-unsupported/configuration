@@ -17,7 +17,7 @@ mkdir tableau
 cd tableau/
 git clone https://github.com/tableau/server-install-script-samples.git
 cd server-install-script-samples/linux/automated-installer/
-wget https://downloads.tableau.com/tssoftware/tableau-server-2020-4-1_amd64.deb
+wget https://downloads.tableau.com/tssoftware/tableau-server-2021-4-2_amd64.deb
 
 cat > secrets <<- EOM
 # You can use this as a template for the secrets file used with the
@@ -47,4 +47,4 @@ tableau_server_admin_user="$ADMIN_USER"
 tableau_server_admin_pass="$ADMIN_PASS"
 EOM
 
-sudo ./automated-installer -s secrets -f config.json -r registration.json --accepteula tableau-server-2020-4-1_amd64.deb
+sudo ./automated-installer -s secrets -f config.json -r registration.json --accepteula tableau-server-2021-4-2_amd64.deb
