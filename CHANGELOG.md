@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2021-12-30
+   - Role: discovery
+     - Replaced `ELASTICSEARCH_URL` with `ELASTICSEARCH_CLUSTER_URL` in `discovery_service_config_overrides`.
+
  - 2021-06-17
     - Role credentials
        - Installs extra python packages specified in `CREDENTIALS_EXTRA_REQUIREMENTS` (defaults to `[]`).
