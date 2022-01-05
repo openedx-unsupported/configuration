@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2022-01-05
+	- Remove an extraneous `-A ecommerce_worker` from the ecomworker startup script,
+	  which was preventing the celery worker process from starting.
+
  - 2021-11-30
     - Upgrade celery to 5.2.0 and adjust CLI call parameters too
     - Bumped single-beat to use a more supported fork of the project
