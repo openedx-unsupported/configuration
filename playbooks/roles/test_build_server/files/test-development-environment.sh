@@ -45,13 +45,6 @@ case "$1" in
         paver test_js_run -s lms-coffee
         ;;
 
-    "bokchoy")
-
-        # Run some of the bok-choy tests
-        paver test_bokchoy -t discussion/test_discussion.py::DiscussionTabMultipleThreadTest
-        paver test_bokchoy -t studio/test_studio_settings.py::StudioSettingsA11yTest
-        ;;
-
     "quality")
         # Generate quality reports
         paver run_quality
