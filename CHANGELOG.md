@@ -4,6 +4,14 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2022-01-06
+    - Role: edx_notes_api
+       - Replaced `ELASTICSEARCH_URL` with `ELASTICSEARCH_DSL` in `edx_notes_api_service_config`.
+
+ - 2022-01-06
+    - Role: discovery
+       - Replaced `ELASTICSEARCH_URL` with `ELASTICSEARCH_CLUSTER_URL` in `discovery_service_config_overrides`.
+
  - 2022-01-05
 	- Remove an extraneous `-A ecommerce_worker` from the ecomworker startup script,
 	  which was preventing the celery worker process from starting.
