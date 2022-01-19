@@ -4,7 +4,7 @@ FROM ubuntu:focal
 RUN apt-get update && apt-get install -y python3-pip
 
 # Install the required packages
-RUN pip3 install --no-cache-dir celery==5.2.3 https://github.com/mher/flower/zipball/v1.0.0#egg=flower redis==4.1.1
+RUN pip3 install --no-cache-dir celery==5.2.3 flower==1.0.0 redis==4.1.1
 
 # PYTHONUNBUFFERED: Force stdin, stdout and stderr to be totally unbuffered. (equivalent to `python -u`)
 # PYTHONHASHSEED: Enable hash randomization (equivalent to `python -R`)
