@@ -34,7 +34,7 @@ stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
 {% set worker_app_name = 'course_discovery' %}
 {% endif %}
 
-command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh --app {{ worker_app_name }}.celery:app worker -A {{ worker_app_name }} --loglevel=info --queue={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--max-tasks-per-child ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
+command={{ edx_django_service_home }}/{{ edx_django_service_name }}-workers.sh --app {{ worker_app_name }}.celery:app worker --loglevel=info --queues={{ w.queue }} --hostname={{ edx_django_service_name }}.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--max-tasks-per-child ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not edx_django_service_celery_heartbeat_enabled|bool else '' }}
 killasgroup=true
 stopwaitsecs={{ w.stopwaitsecs | default(edx_django_service_default_stopwaitsecs) }}
 
