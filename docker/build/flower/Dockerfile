@@ -1,10 +1,10 @@
-FROM ubuntu:xenial
+FROM ubuntu:focal
 
 # Update and get pip.
 RUN apt-get update && apt-get install -y python3-pip
 
 # Install the required packages
-RUN pip3 install --no-cache-dir redis==3.2.0 celery==4.4.7 flower==0.9.5
+RUN pip3 install --no-cache-dir celery==5.2.3 flower==1.0.0 redis==4.1.1
 
 # PYTHONUNBUFFERED: Force stdin, stdout and stderr to be totally unbuffered. (equivalent to `python -u`)
 # PYTHONHASHSEED: Enable hash randomization (equivalent to `python -R`)
@@ -22,4 +22,4 @@ USER nobody
 # Mount a config here if you want to enable OAuth etc
 ADD docker/build/flower/flowerconfig.py /flowerconfig.py
 
-ENTRYPOINT [ "flower" ]
+ENTRYPOINT [ "celery" ]
