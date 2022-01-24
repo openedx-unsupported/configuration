@@ -1,4 +1,4 @@
-FROM edxops/bionic-common:latest
+FROM edxops/focal-common:latest
 LABEL maintainer="edxops"
 
 USER root
