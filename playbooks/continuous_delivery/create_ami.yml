@@ -37,6 +37,7 @@
   vars:
     ec2_region: us-east-1
     ami_wait: yes
+    stop_wait: yes
     ami_creation_timeout: 5400
     no_reboot: no
     artifact_path: /tmp/ansible-runtime
@@ -51,6 +52,13 @@
       resource: "{{ instance_id }}"
       state: list
     register: instance_tags
+
+  - name: Stop instance
+    ec2:
+      instance_ids: "{{ instance_id }}"
+      state: stopped
+      wait: "{{ stop_wait }}"
+      region: "{{ ec2_region }}"
 
   - name: Create AMI
     ec2_ami:
