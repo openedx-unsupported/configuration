@@ -1,20 +1,32 @@
 ---
 - name: add the mongodb signing key
   apt_key:
-    id: "{{ MONGO_CLIENT_MONGODB_APT_KEY }}"
-    keyserver: "{{ MONGO_CLIENT_MONGODB_APT_KEYSERVER }}"
+    url: "https://www.mongodb.org/static/pgp/server-{{ MONGO_VERSION_MAJOR_MINOR }}.asc"
     state: present
+  retries: 3
   tags:
     - install
     - install:system-requirements
 
 - name: add the mongodb repo to the sources list
   apt_repository:
-    repo: "{{ MONGO_CLIENT_MONGODB_REPO }}"
+    repo: "{{ MONGODB_REPO }}"
     state: present
   tags:
     - install
     - install:system-requirements
+  when: ansible_distribution_release != 'focal'
+
+# mongo 4.2 does not have any source list for Focal
+# use Bionci repo source list to install mongo 4.2
+- name: add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO_BIONIC }}"
+    state: present
+  tags:
+    - install
+    - install:system-requirements
+  when: ansible_distribution_release == 'focal'
 
 - name: install mongo shell
   apt:
