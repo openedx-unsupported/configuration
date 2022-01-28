@@ -1,4 +1,22 @@
 ---
+- name: add the mysql signing key
+  apt_key:
+    keyserver: "{{ jenkins_mysql_apt_keyserver }}"
+    id: "{{ jenkins_mysql_apt_key }}"
+  when: ansible_distribution_release == 'focal' and jenkins_install_mysql_5_7|bool
+  tags:
+    - install
+    - install:system-requirements
+
+- name: add the mysql-5.7 repo to the sources list
+  apt_repository:
+    repo: "{{ jenkins_mysql_repo }}"
+    state: present
+  when: ansible_distribution_release == 'focal' and jenkins_install_mysql_5_7|bool
+  tags:
+    - install
+    - install:system-requirements
+
 - name: Install jenkins specific system packages
   apt:
     name: "{{ jenkins_debian_pkgs }}"
@@ -247,7 +265,7 @@
 - name: Copy virtualenv script tools to jenkins
   copy:
     remote_src: no
-    src: ../util/jenkins/virtualenv_tools.sh
+    src: "{{ jenkins_venv_src_dir  }}/virtualenv_tools.sh"
     dest: "{{ jenkins_job_venv_dir }}/virtualenv_tools.sh"
     owner: "{{ jenkins_user }}"
     group: "{{ jenkins_group }}"
