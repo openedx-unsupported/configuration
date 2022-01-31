@@ -12,20 +12,9 @@ function defaults {
 
 function initialize_devpi {
     echo "[RUN]: Initializing devpi-server..."
-    if [ ! -d  $DEVPISERVER_SERVERDIR ]; then
-        devpi-server --restrict-modify root --init --start --host 127.0.0.1 --port 3141
-    else
-        devpi-server --restrict-modify root --start --host 127.0.0.1 --port 3141
-    fi
-    devpi-server --status
-    devpi use http://localhost:3141
-    devpi login root --password=''
     DEVPI_PASSWORD=`date +%s | sha256sum | base64 | head -c 32`
-    devpi user -m root password="${DEVPI_PASSWORD}"
+    devpi-init --root-passwd ${DEVPI_PASSWORD}
     echo "[RUN]: devpi-server password set to '${DEVPI_PASSWORD}'" > $DEVPISERVER_SERVERDIR/.serverpassword
-    devpi index -y -c public pypi_whitelist='*'
-    devpi-server --stop
-    devpi-server --status
 }
 
 defaults
