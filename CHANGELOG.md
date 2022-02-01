@@ -9,6 +9,11 @@ Add any new changes to the top (right below this line).
         - Added a new `CELERY_RESULT_BACKEND` setting to allow operators to
           override the default celery result backend.
 
+ - 2022-02-01
+    - Role: edxapp
+        - Added a new `EDXAPP_PREPEND_LOCALE_PATHS` setting to allow operators to
+          override the default translations.
+
  - 2022-01-06
     - Role: edx_notes_api
        - Replaced `ELASTICSEARCH_URL` with `ELASTICSEARCH_DSL` in `edx_notes_api_service_config`.
