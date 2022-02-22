@@ -65,7 +65,7 @@
   apt_repository:
     repo: "{{ MYSQL_REPO }}"
     state: present
-  when: ansible_distribution_release == 'focal'
+  when: ansible_distribution_release == 'focal' and not mysql_8_0_install
 
 # Installing mysql-5.7-client, mysql-5.7-community-server
 # and mysql-5.7-server in separate tasks to resolve dependencies
@@ -74,21 +74,29 @@
     name: "{{ mysql_client_5_7_pkg }}"
     state: present
     update_cache: yes
-  when: ansible_distribution_release == 'focal'
+  when: ansible_distribution_release == 'focal' and not mysql_8_0_install
 
 - name: install mysql-5.7-community-server
   apt:
     name: "{{ mysql_community_server_5_7_pkg }}"
     state: present
     update_cache: yes
-  when: ansible_distribution_release == 'focal'
+  when: ansible_distribution_release == 'focal' and not mysql_8_0_install
 
 - name: install mysql-5.7-server
   apt:
     name: "{{ mysql_server_5_7_pkg }}"
     state: present
     update_cache: yes
-  when: ansible_distribution_release == 'focal'
+  when: ansible_distribution_release == 'focal' and not mysql_8_0_install
+
+- name: install  mysql-8.0
+  apt:
+     name: "{{ mysql_server_8_0_pkgs }}"
+     state: present
+     update_cache: yes
+  when: ansible_distribution_release == 'focal' and mysql_8_0_install
+
 
 - name: restart mysql
   command: service mysql restart
@@ -107,4 +115,10 @@
   shell:
     mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password;set password=password('')"
   become: true
-  when: ansible_distribution_release == 'focal'
+  when: ansible_distribution_release == 'focal' and not mysql_8_0_install
+
+- name: Alter user root to use mysql_native_password
+  shell:
+    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password by ''"
+  become: true
+  when: ansible_distribution_release == 'focal' and mysql_8_0_install
