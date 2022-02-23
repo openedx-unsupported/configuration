@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: help requirements clean build test pkg
+.PHONY: help requirements requirements-mysql clean build test pkg
 
 help: main.help
 
@@ -20,6 +20,9 @@ requirements:
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements.txt --exists-action w
 
+requirements-mysql: requirements
+	pip install -qr requirements-mysql.txt --exists-action w
+
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
 upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints
 	pip install -qr pre-requirements.txt --exists-action w
@@ -27,6 +30,7 @@ upgrade: ## update the pip requirements files to use the latest releases satisfy
 	# Make sure to compile files after any other files they include!
 	pip-compile --upgrade -o requirements/pip-tools.txt requirements/pip-tools.in
 	pip-compile --upgrade -o requirements.txt requirements/base.in
+	pip-compile --upgrade -o requirements/mysql.txt requirements/mysql.in
 	pip-compile --upgrade -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
 	pip-compile --upgrade -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
 	pip-compile --upgrade -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
