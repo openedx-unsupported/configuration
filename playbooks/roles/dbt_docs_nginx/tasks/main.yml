@@ -1,0 +1,87 @@
+---
+
+- name: Update the cache and update all packages
+  apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+
+- name: Install AWS CLI
+  apt:
+    name: awscli
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install and start nginx
+  apt:
+    name: nginx
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Copy dbt docs html files from S3 to the local machine
+  shell: 'aws s3 sync s3://edx-dbt-docs/ /usr/share/nginx/html/ --delete --include "*"'
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Make a Server Configuration Directory
+  file:
+    path: /home/server-config/
+    state: directory
+    mode: 0755
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Copy dbt docs nginx server configurations from S3
+  shell: 'aws s3 cp s3://edx-dbt-docs/server-config/ /home/server-config/ --recursive'
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Copy the nginx configuration file from S3 to the local nginx config directory
+  copy:
+    src: /home/server-config/nginx.conf
+    dest: /etc/nginx/nginx.conf
+    remote_src: yes
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Make the dbt-files-sync.sh script executable
+  file:
+    path: /home/server-config/dbt-files-sync.sh
+    mode: "a+x"
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Set up cron job to update the html files from S3
+  ansible.builtin.cron:
+    name: Run the /home/server-config/dbt-files-sync.sh script
+    minute: 0
+    hour: 23
+    job: /home/server-config/dbt-files-sync.sh
+
+- name: Restart nginx and enable it on reboot
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+    enabled: yes
