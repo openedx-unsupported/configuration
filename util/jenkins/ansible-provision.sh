@@ -643,5 +643,7 @@ if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
+ansible -c ssh -i "${deploy_host}," $deploy_host -m shell -a "sudo /edx/bin/supervisorctl restart all" -u ubuntu -b
+
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
