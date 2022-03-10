@@ -643,5 +643,8 @@ if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
+# after celery5 upgrade few tasks are not working on sandbox. But restarts fixes that issue.
+ansible -c ssh -i "${deploy_host}," $deploy_host -m shell -a "sudo /edx/bin/supervisorctl restart all" -u ubuntu -b
+
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
