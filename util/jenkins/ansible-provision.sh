@@ -158,10 +158,6 @@ if [[ -z $performance_course ]]; then
   performance_course="false"
 fi
 
-if [[ -z $demo_test_course ]]; then
-  demo_test_course="false"
-fi
-
 if [[ -z $edx_demo_course ]]; then
   edx_demo_course="false"
 fi
@@ -423,7 +419,6 @@ COMMON_ENABLE_DATADOG: $enable_datadog
 COMMON_OAUTH_BASE_URL: "https://${deploy_host}"
 FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 ENABLE_PERFORMANCE_COURSE: $performance_course
-ENABLE_DEMO_TEST_COURSE: $demo_test_course
 ENABLE_EDX_DEMO_COURSE: $edx_demo_course
 EDXAPP_ENABLE_AUTO_AUTH: $enable_automatic_auth_for_testing
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
