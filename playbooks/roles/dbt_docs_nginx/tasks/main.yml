@@ -9,7 +9,7 @@
     - install
     - install:base
 
-- name: Uninstall AWS CLI from the package manager
+- name: Uninstall AWS CLI from the package manager to avoid conflicts with the aws role
   apt:
     name: awscli
     state: absent
@@ -46,9 +46,10 @@
     - install
     - install:nginx
 
-- name: Make the dbt-files-sync.sh script executable
-  file:
-    path: /home/server-config/dbt-files-sync.sh
+- name: Make the dbt-files-sync.sh cron script
+  template:
+    src: "nginx/dbt_files_sync.sh.j2"
+    dest: /home/server-config/dbt_files_sync.sh
     mode: "a+x"
   become: yes
   become_method: sudo
@@ -58,10 +59,10 @@
 
 - name: Set up cron job to update the html files from S3
   cron:
-    name: Run the /home/server-config/dbt-files-sync.sh script
+    name: Run the /home/server-config/dbt_files_sync.sh script
     minute: 30
     hour: "*/6"
-    job: /home/server-config/dbt-files-sync.sh
+    job: /home/server-config/dbt_files_sync.sh
   tags:
     - install
     - install:cronjob
