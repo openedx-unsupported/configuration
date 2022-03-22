@@ -15,7 +15,7 @@
     state: absent
   tags:
     - install
-    - install:base
+    - install:aws
 
 - name: Copy dbt-docs html files from S3 to the local machine
   shell: 'aws s3 sync s3://edx-dbt-docs/ /usr/share/nginx/html/ --delete --include "*"'
@@ -23,9 +23,9 @@
   become_method: sudo
   tags:
     - install
-    - install:base
+    - install:docs
 
-- name: Make a Server Configuration Directory
+- name: Make a directory to store cron scripts
   file:
     path: /home/server-config/
     state: directory
@@ -36,24 +36,15 @@
     - install
     - install:base
 
-- name: Copy dbt-docs nginx server configurations from S3
-  shell: 'aws s3 cp s3://edx-dbt-docs/server-config/ /home/server-config/ --recursive'
-  become: yes
-  become_method: sudo
-  tags:
-    - install
-    - install:base
-
-- name: Copy the nginx configuration file from S3 to the local nginx config directory
-  copy:
-    src: /home/server-config/nginx.conf
+- name: Copy the nginx configuration file
+  template:
+    src: "nginx/nginx.conf.j2"
     dest: /etc/nginx/nginx.conf
-    remote_src: yes
   become: yes
   become_method: sudo
   tags:
     - install
-    - install:base
+    - install:nginx
 
 - name: Make the dbt-files-sync.sh script executable
   file:
@@ -63,23 +54,23 @@
   become_method: sudo
   tags:
     - install
-    - install:base
+    - install:cronjob
 
 - name: Set up cron job to update the html files from S3
-  ansible.builtin.cron:
+  cron:
     name: Run the /home/server-config/dbt-files-sync.sh script
     minute: 30
     hour: "*/6"
     job: /home/server-config/dbt-files-sync.sh
   tags:
     - install
-    - install:base
+    - install:cronjob
 
 - name: Restart nginx and enable it on reboot
-  ansible.builtin.service:
+  service:
     name: nginx
     state: restarted
     enabled: yes
   tags:
     - install
-    - install:base
+    - install:nginx
