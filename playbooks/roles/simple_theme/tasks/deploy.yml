@@ -137,3 +137,45 @@
       owner: "{{ edxapp_user }}"
       group: "{{ common_web_group }}"
     with_items: "{{ SIMPLETHEME_STATIC_FILES_URLS }}"
+
+# Handle translations.
+- block:
+  - name: Install needed packages
+    apt:
+      name: gettext
+      state: present
+      update_cache: true
+      cache_valid_time: 3600
+  - name: Create directories for django translations
+    file:
+      path: "{{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES"
+      state: directory
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_items: "{{ SIMPLETHEME_I18N_DJANGO }}"
+  - name: Make sure .po files exist
+    file:
+      path: "{{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.po"
+      state: touch
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_items: "{{ SIMPLETHEME_I18N_DJANGO }}"
+  - name: Create temporary .po files with custom translations
+    template:
+      src: "i18n/domain.po.j2"
+      dest: "{{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.po_"
+      owner: "{{ edxapp_user }}"
+      group: "{{ common_web_group }}"
+    with_items: "{{ SIMPLETHEME_I18N_DJANGO }}"
+  - name: Merge temporary .po files into default translations
+    shell: >
+      msgcat --use-first {{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.po_
+      {{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.po >
+      {{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.po
+    with_items: "{{ SIMPLETHEME_I18N_DJANGO }}"
+  - name: Compile .po files into .mo
+    shell: >
+      msgfmt {{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.po
+      -o {{ simpletheme_folder }}/i18n/conf/locale/{{ item.lang }}/LC_MESSAGES/{{ item.domain }}.mo
+    with_items: "{{ SIMPLETHEME_I18N_DJANGO }}"
+  when: SIMPLETHEME_I18N_DJANGO | length > 0
