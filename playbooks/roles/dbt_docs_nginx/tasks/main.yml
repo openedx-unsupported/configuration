@@ -1,0 +1,77 @@
+---
+
+- name: Update the cache and update all packages
+  apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+
+- name: Uninstall AWS CLI from the package manager to avoid conflicts with the aws role
+  apt:
+    name: awscli
+    state: absent
+  tags:
+    - install
+    - install:aws
+
+- name: Copy dbt-docs html files from S3 to the local machine
+  shell: 'aws s3 sync s3://edx-dbt-docs/ /usr/share/nginx/html/ --delete --include "*"'
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:docs
+
+- name: Make a directory to store cron scripts
+  file:
+    path: /home/server-config/
+    state: directory
+    mode: 0755
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Copy the nginx configuration file
+  template:
+    src: "nginx/nginx.conf.j2"
+    dest: /etc/nginx/nginx.conf
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:nginx
+
+- name: Make the dbt-files-sync.sh cron script
+  template:
+    src: "nginx/dbt_files_sync.sh.j2"
+    dest: /home/server-config/dbt_files_sync.sh
+    mode: "a+x"
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:cronjob
+
+- name: Set up cron job to update the html files from S3
+  cron:
+    name: Run the /home/server-config/dbt_files_sync.sh script
+    minute: 30
+    hour: "*/6"
+    job: /home/server-config/dbt_files_sync.sh
+  tags:
+    - install
+    - install:cronjob
+
+- name: Restart nginx and enable it on reboot
+  service:
+    name: nginx
+    state: restarted
+    enabled: yes
+  tags:
+    - install
+    - install:nginx
