@@ -75,3 +75,15 @@
   tags:
     - install
     - install:nginx
+
+# Add the jenkins user's ssh public key to the running user's autorized keys
+# This is needed so that this jenkins instance can be used to update system users
+- name: Add the jenkins user's ssh public key to the running user's autorized keys
+  lineinfile:
+    path: /home/{{ ansible_ssh_user }}/.ssh/authorized_keys
+    create: yes
+    line: "{{ lookup('file', jenkins_ssh_public_keyfile) }}"
+  when: jenkins_ssh_public_keyfile is defined and jenkins_ssh_public_keyfile
+  tags:
+    - ssh
+    - ssh:keys
