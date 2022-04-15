@@ -4,6 +4,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2022-06-01
+    - Upgrade ansible to 2.9
+
  - 2022-04-06
     - Role: edxapp
         - Added a new `EDXAPP_COMPILE_JSI18N` variable to control whether
