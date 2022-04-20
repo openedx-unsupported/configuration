@@ -154,12 +154,6 @@
     - install
     - install:base
 
-- name: Pin npm to EDXAPP_NPM_VERSION
-  command: "npm install -g npm@{{ EDXAPP_NPM_VERSION }}"
-  tags:
-    - install
-    - install:base
-
 - name: set up edxapp .npmrc
   template:
     src: .npmrc.j2
@@ -167,6 +161,16 @@
     owner: "{{ edxapp_user }}"
     group: "{{ common_web_group }}"
     mode: 0600
+  tags:
+    - install
+    - install:base
+
+# This will install npm EDXAPP_NPM_VERSION to edxapp_npm_bin rather than updating the global npm version installed via apt.
+# As edxapp_npm_bin is already part of edxapp_environment, the npm command will always pick up the one installed in edxapp_npm_bin.
+- name: Pin npm to {{ EDXAPP_NPM_VERSION }}
+  shell: "npm install -g npm@{{ EDXAPP_NPM_VERSION }}"
+  environment: "{{ edxapp_environment | combine(git_ssh_environment_mixin) }}"
+  become_user: "{{ edxapp_user }}"
   tags:
     - install
     - install:base
