@@ -1,14 +1,6 @@
 Configuration Pull Request
 ---
 
-<!--
-##
-####         Note: the Lilac master branch has been created.  Please consider whether your change
-    ####     should also be applied to Lilac.  If so, make another pull request against the
-####         open-release/lilac.master branch, or ping @nedbat for help or questions.
-##
--->
-
 Make sure that the following steps are done before merging:
 
   - [ ] A SRE team member has approved the PR if it is code shared across multiple services and you don't own all of the services.
