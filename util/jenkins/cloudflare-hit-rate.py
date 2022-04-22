@@ -3,8 +3,6 @@ CloudFlare API
 https://api.cloudflare.com/#zone-analytics-dashboard
 
 """
-from __future__ import absolute_import
-from __future__ import print_function
 import requests
 import argparse
 import sys
@@ -32,7 +30,7 @@ def calcualte_cache_hit_rate(zone_id, auth_key, email, threshold):
             sys.exit(1)
 
     except Exception as error:
-        print(("JSON Error: {} \n Content returned from API call: {}".format(error, res.text)))
+        print(f"JSON Error: {error} \n Content returned from API call: {res.text}")
 
 
 

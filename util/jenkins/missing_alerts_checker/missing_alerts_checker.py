@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 import requests
 import click
@@ -34,7 +32,7 @@ class NewRelic:
         try:
             alert_policies = response.json()
         except ValueError:
-            print(("Failed to parse response json. Got:\n{}".format(response.text)))
+            print(f"Failed to parse response json. Got:\n{response.text}")
             sys.exit(1)
         return alert_policies
 
@@ -74,7 +72,7 @@ class InfraAlerts:
         try:
             regions_list = client_region.describe_regions()
         except ClientError as e:
-            print(("Unable to connect to AWS with error :{}".format(e)))
+            print(f"Unable to connect to AWS with error :{e}")
             sys.exit(1)
         for region in regions_list['Regions']:
             client = boto3.resource('ec2', region_name=region['RegionName'])
@@ -134,7 +132,7 @@ class AppAlerts:
         try:
             apps_list = response.json()
         except ValueError:
-            print(("Failed to parse response json. Got:\n{}".format(response.text)))
+            print(f"Failed to parse response json. Got:\n{response.text}")
             sys.exit(1)
         return apps_list["applications"]
 
@@ -180,7 +178,7 @@ class BrowserAlerts:
         try:
             browser_list = response.json()
         except ValueError:
-            raise Exception("Failed to parse response json. Got:\n{}".format(response.text))
+            raise Exception(f"Failed to parse response json. Got:\n{response.text}")
         return browser_list["browser_applications"]
 
     def missing_alerts_checker(self, browser_list, alert_policies):
@@ -230,9 +228,9 @@ def controller(new_relic_api_key,ignore):
     missing_alerts_list = infracheck.missing_alerts_checker(instance_list, alert_policies)
     filtered_missing_alerts_list = list([x for x in missing_alerts_list if not any(re.search(r, x['name']) for r in ignore)])
     format_string = "{:<30}{}"
-    print((format_string.format("Instance ID", "Instance Name")))
+    print(format_string.format("Instance ID", "Instance Name"))
     for instance_wo_alerts in filtered_missing_alerts_list:
-        print((format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"])))
+        print(format_string.format(instance_wo_alerts["ID"], instance_wo_alerts["name"]))
         flag = 1
 
     # Initializing object of classes
@@ -245,9 +243,9 @@ def controller(new_relic_api_key,ignore):
     filtered_missing_alerts_list_app = list([x for x in missing_alerts_list_app if not any(re.search(r, x['name']) for r in ignore)])
     format_string = "{:<20}{}"
     print("")
-    print((format_string.format("Application ID", "Application Name")))
+    print(format_string.format("Application ID", "Application Name"))
     for instance_wo_alerts in filtered_missing_alerts_list_app:
-        print((format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"])))
+        print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
         flag = 1
 
     # Initializing object of classes
@@ -260,9 +258,9 @@ def controller(new_relic_api_key,ignore):
     filtered_missing_alerts_list_browser = list([x for x in missing_alerts_list_browser if not any(re.search(r, x['name']) for r in ignore)])
     format_string = "{:<20}{}"
     print("")
-    print((format_string.format("Browser ID", "Browser Name")))
+    print(format_string.format("Browser ID", "Browser Name"))
     for instance_wo_alerts in filtered_missing_alerts_list_browser:
-        print((format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"])))
+        print(format_string.format(instance_wo_alerts["id"], instance_wo_alerts["name"]))
         flag = 1
     sys.exit(flag)
 

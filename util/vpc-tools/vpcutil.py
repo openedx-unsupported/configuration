@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import boto
 import boto.rds2
 import boto.rds
@@ -19,7 +18,7 @@ def stack_name_for_vpc(vpc_name, aws_id, aws_secret):
     if CFN_TAG_KEY in resource.tags:
         return resource.tags[CFN_TAG_KEY]
     else:
-        msg = "VPC({}) is not part of a cloudformation stack.".format(vpc_name)
+        msg = f"VPC({vpc_name}) is not part of a cloudformation stack."
         raise Exception(msg)
 
 

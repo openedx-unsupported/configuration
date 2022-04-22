@@ -108,8 +108,6 @@ Security groups are comma-separated in 'ec2_security_group_ids' and
 
 ######################################################################
 
-from __future__ import absolute_import
-from __future__ import print_function
 import sys
 import os
 import argparse
@@ -122,7 +120,6 @@ from boto import route53
 import six.moves.configparser
 import traceback
 import six
-from six.moves import range
 
 try:
     import json
@@ -130,7 +127,7 @@ except ImportError:
     import simplejson as json
 
 
-class Ec2Inventory(object):
+class Ec2Inventory:
     def _empty_inventory(self):
         return {"_meta": {"hostvars": {}}}
 
@@ -238,9 +235,9 @@ class Ec2Inventory(object):
         else:
             aws_profile = ""
 
-        self.cache_path_cache = cache_path + "/{}ansible-ec2.cache".format(aws_profile)
-        self.cache_path_tags = cache_path + "/{}ansible-ec2.tags.cache".format(aws_profile)
-        self.cache_path_index = cache_path + "/{}ansible-ec2.index".format(aws_profile)
+        self.cache_path_cache = cache_path + f"/{aws_profile}ansible-ec2.cache"
+        self.cache_path_tags = cache_path + f"/{aws_profile}ansible-ec2.tags.cache"
+        self.cache_path_index = cache_path + f"/{aws_profile}ansible-ec2.index"
         self.cache_max_age = config.getint('ec2', 'cache_max_age')
 
     def parse_cli_args(self):
@@ -296,7 +293,7 @@ class Ec2Inventory(object):
 
             # connect_to_region will fail "silently" by returning None if the region name is wrong or not supported
             if conn is None:
-                print(("region name: %s likely not supported, or AWS is down.  connection to region failed." % region))
+                print("region name: %s likely not supported, or AWS is down.  connection to region failed." % region)
                 sys.exit(1)
 
             reservations = conn.get_all_instances()
@@ -336,7 +333,7 @@ class Ec2Inventory(object):
 
         # connect_to_region will fail "silently" by returning None if the region name is wrong or not supported
         if conn is None:
-            print(("region name: %s likely not supported, or AWS is down.  connection to region failed." % region))
+            print("region name: %s likely not supported, or AWS is down.  connection to region failed." % region)
             sys.exit(1)
 
         reservations = conn.get_all_instances([instance_id])
@@ -393,7 +390,7 @@ class Ec2Inventory(object):
             sys.exit(1)
 
         # Inventory: Group by tag keys
-        for k, v in six.iteritems(instance.tags):
+        for k, v in instance.tags.items():
             key = self.to_safe("tag_" + k + "=" + v)
             self.push(self.inventory, key, dest)
             self.keep_first(self.inventory, 'first_in_' + key, dest)
@@ -526,16 +523,16 @@ class Ec2Inventory(object):
             value = getattr(instance, key)
             key = self.to_safe('ec2_' + key)
             # Handle complex types
-            if type(value) in [int, bool]:
+            if isinstance(value, (int, bool)):
                 instance_vars[key] = value
-            elif type(value) in [str, six.text_type]:
+            elif isinstance(value, str):
                 instance_vars[key] = value.strip()
             elif type(value) == type(None):
                 instance_vars[key] = ''
             elif key == 'ec2_region':
                 instance_vars[key] = value.name
             elif key == 'ec2_tags':
-                for k, v in six.iteritems(value):
+                for k, v in value.items():
                     key = self.to_safe('ec2_tag_' + k)
                     instance_vars[key] = v
             elif key == 'ec2_groups':
@@ -573,9 +570,9 @@ class Ec2Inventory(object):
         ''' Reads the inventory from the cache file and returns it as a JSON
         object '''
         if self.args.tags_only:
-            cache = open(self.cache_path_tags, 'r')
+            cache = open(self.cache_path_tags)
         else:
-            cache = open(self.cache_path_cache, 'r')
+            cache = open(self.cache_path_cache)
         json_inventory = cache.read()
         return json_inventory
 
@@ -583,7 +580,7 @@ class Ec2Inventory(object):
     def load_index_from_cache(self):
         ''' Reads the index from the cache file sets self.index '''
 
-        cache = open(self.cache_path_index, 'r')
+        cache = open(self.cache_path_index)
         json_index = cache.read()
         self.index = json.loads(json_index)
 
@@ -603,7 +600,7 @@ class Ec2Inventory(object):
         ''' Converts 'bad' characters in a string to underscores so they can be
         used as Ansible groups '''
 
-        return re.sub("[^A-Za-z0-9\-]", "_", word)
+        return re.sub(r"[^A-Za-z0-9\-]", "_", word)
 
 
     def json_format_dict(self, data, pretty=False):

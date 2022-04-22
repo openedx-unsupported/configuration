@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import json
 import click
 import yaml
 import requests
 
 import json
-from six.moves import map
 
 
 class PingdomInvalidResponse(Exception):
@@ -30,7 +27,7 @@ class PingdomInvalidResponse(Exception):
 def main(noop, pingdom_email, pingdom_password,
          pingdom_api_key,
          alert_config_file):
-    with open(alert_config_file, 'r') as stream:
+    with open(alert_config_file) as stream:
         config_file_content = yaml.safe_load(stream)
     config_file_content = replace_user_names_with_userids(pingdom_email,
                                                           pingdom_password,
@@ -45,10 +42,10 @@ def main(noop, pingdom_email, pingdom_password,
         if (alert_config['name'], alert_config['host']) not in checks_by_hostname.items():
             # Create new check
             if noop:
-                print(("Would CREATE: {0}, but you set the noop flag.".format(
-                    alert_config)))
+                print("Would CREATE: {}, but you set the noop flag.".format(
+                    alert_config))
             else:
-                print(("CREATE: {0}".format(alert_config)))
+                print(f"CREATE: {alert_config}")
                 create_check(pingdom_email, pingdom_password,
                              pingdom_api_key, alert_config)
 
@@ -56,12 +53,12 @@ def main(noop, pingdom_email, pingdom_password,
             # Updating existing check
             existing_check = check_for_update[alert_config['name']]
             if noop:
-                print(("""
-                Has changes, would UPDATE: {0},
+                print("""
+                Has changes, would UPDATE: {},
                 but you set the noop flag.
-                """.format(alert_config)))
+                """.format(alert_config))
             else:
-                print(("Attempting UPDATE: {0}".format(alert_config)))
+                print(f"Attempting UPDATE: {alert_config}")
                 # We always update because the parameters to POST check
                 # and the paramters returned by GET check differ.
                 # It would be difficult to figure out if changes
@@ -87,7 +84,7 @@ def replace_user_names_with_userids(pingdom_email,
                         [x.strip() for x in alert['userids'].split(',')])
                 if user not in user_ids_by_name:
                     raise PingdomInvalidResponse(
-                        'Pingdom has no user with the name {0}'.format(user))
+                        f'Pingdom has no user with the name {user}')
                 user_id = user_ids_by_name[user]
                 user_ids.append(user_id)
             del alert['users']
@@ -147,7 +144,7 @@ def update_check(pingdom_email, pingdom_password,
     if('type' in payload):
         del(payload['type'])
     try:
-        url = "https://api.pingdom.com/api/2.1/checks/{0}".format(id)
+        url = f"https://api.pingdom.com/api/2.1/checks/{id}"
         response = requests.put(url,
                                 headers={
                                     'app-key': pingdom_api_key
@@ -216,15 +213,15 @@ def build_userid_by_name(pingdom_email, pingdom_password, pingdom_api_key):
 def print_request_and_response(response):
     print("Request:")
     for key in response.request.headers:
-        print(("{0}: {1}".format(key, response.request.headers[key])))
+        print(f"{key}: {response.request.headers[key]}")
     print("")
-    print((response.request.body))
+    print(response.request.body)
     print("------------------")
     print("Response:")
     for key in response.headers:
-        print(("{0}: {1}".format(key, response.headers[key])))
+        print(f"{key}: {response.headers[key]}")
     print("")
-    print((response.content.decode('utf-8')))
+    print(response.content.decode('utf-8'))
     print("------------------")
 
 

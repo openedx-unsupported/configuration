@@ -13,8 +13,6 @@
 #    version:
 #}
 
-from __future__ import absolute_import
-from __future__ import print_function
 import argparse
 from os.path import basename
 import yaml
@@ -26,7 +24,7 @@ if __name__ == '__main__':
         help="A CSV of xml courses to import.")
     args = parser.parse_args()
 
-    courses = open(args.courses_csv, 'r')
+    courses = open(args.courses_csv)
 
     all_course_data = []
     all_xml_mappings = {}

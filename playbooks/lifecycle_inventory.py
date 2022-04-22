@@ -28,8 +28,6 @@ group and state.
 
 }
 """
-from __future__ import absolute_import
-from __future__ import print_function
 import argparse
 import boto3
 import json

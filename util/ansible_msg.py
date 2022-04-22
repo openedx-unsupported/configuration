@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Simple utility for deciphering Ansible jsonized task output."""
 
-from __future__ import print_function
 
 import json
 import sys
@@ -36,9 +35,9 @@ unknown_keys = set(data) - set(GOOD_KEYS) - set(IGNORE_KEYS)
 if unknown_keys:
     print("== Unknown keys ======================")
     for key in unknown_keys:
-        print("{key}: {val!r:80}".format(key=key, val=data[key]))
+        print(f"{key}: {data[key]!r:80}")
 
 for key in GOOD_KEYS:
     if data.get(key):
-        print("== {key} ===========================".format(key=key))
-        print((data[key]))
+        print(f"== {key} ===========================")
+        print(data[key])

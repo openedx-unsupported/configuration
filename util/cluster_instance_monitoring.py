@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 import argparse
 import sys
@@ -16,7 +14,7 @@ def find_active_instances(cluster_file, region):
         and cluster to find ASG's and active instances for. 
 
     """
-    with open(cluster_file, 'r') as f:
+    with open(cluster_file) as f:
         cluster_map = yaml.safe_load(f)
 
     asg = boto3.client('autoscaling', region)
@@ -75,9 +73,9 @@ def find_active_instances(cluster_file, region):
         if no_active_instances_triples:
             print("Fail. There are no active instances for the following cluster(s)")
             for triple in no_active_instances_triples:
-                print(('environment: ' + triple.split('-')[0]))
-                print(('deployment: ' + triple.split('-')[1]))
-                print(('cluster: ' + triple.split('-')[2]))
+                print('environment: ' + triple.split('-')[0])
+                print('deployment: ' + triple.split('-')[1])
+                print('cluster: ' + triple.split('-')[2])
                 print('----')
         sys.exit(1)
     

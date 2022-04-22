@@ -100,7 +100,7 @@ def set_acl_private(acl_list, bucket_name, exclude):
                     if e.response['Error']['Code'] == 'NoSuchKey':
                         logger.warning("No such key in S3: " + key)  # Will send the errors to the file
                     else:
-                        logger.error(("Unexpected error :{}".format(e)))
+                        logger.error(f"Unexpected error :{e}")
                         sys.exit(1)
 
 
@@ -122,7 +122,7 @@ def revert_s3_acl(acl_list, bucket_name, exclude):
                     if e.response['Error']['Code'] == 'NoSuchKey':
                         logger.warning("No such key in S3: " + key)  # Will send the errors to the file
                     else:
-                        logger.error(("Unexpected error :{}".format(e)))
+                        logger.error(f"Unexpected error :{e}")
                         sys.exit(1)
 
 
@@ -132,7 +132,7 @@ def get_s3_acl(s3_bucket, exclude):
     try:
         s3_objects_key = get_all_s3_keys(s3_bucket, region, exclude)
     except ClientError as e:
-        logger.error(("Unable to connect to AWS with error :{}".format(e)))
+        logger.error(f"Unable to connect to AWS with error :{e}")
         sys.exit(1)
     for object_key in s3_objects_key:
         try:
@@ -146,7 +146,7 @@ def get_s3_acl(s3_bucket, exclude):
             elif e.response['Error']['Code'] == 'NoSuchKey':
                 logger.warning("No such key in S3: " + object_key)  # Will send the errors to the file
             else:
-                logger.error(("Unexpected error :{}".format(e)))
+                logger.error(f"Unexpected error :{e}")
                 sys.exit(1)
     return response_list
 
@@ -165,21 +165,21 @@ def controller(bucketname, operation, exclude):
     elif operation == 'setaclprivate':
         try:
             data = []
-            with open(file_to_write, "r") as inFile:
+            with open(file_to_write) as inFile:
                 data = json.load(inFile)
             set_acl_private(data, bucketname, exclude)
             logger.info("Task completed. ACL of " + bucketname + " objects set to private.")
-        except IOError:
+        except OSError:
             logger.error("File not accessible")
             sys.exit(1)
     elif operation == 'revertacl':
         try:
             data = []
-            with open(file_to_write, "r") as inFile:
+            with open(file_to_write) as inFile:
                 data = json.load(inFile)
             revert_s3_acl(data, bucketname, exclude)
             logger.info("Task completed. ACL of " + bucketname + " objects reverted to given state")
-        except IOError:
+        except OSError:
             logger.error("File not accessible")
             sys.exit(1)
     else:

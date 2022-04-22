@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 import click
 
@@ -71,12 +69,12 @@ def command(mode):
                 for sg_id in sorted(sources[source].keys()):
                     output = sg_id
                     if sources[source][sg_id]:
-                        output = "{} ({})".format(output, sources[source][sg_id])
+                        output = f"{output} ({sources[source][sg_id]})"
                     sgs.append(output)
-                print(("{: <40} {: <11} {: <70} {}".format(db['DBInstanceIdentifier'], ports, source, ", ".join(sgs))))
+                print("{: <40} {: <11} {: <70} {}".format(db['DBInstanceIdentifier'], ports, source, ", ".join(sgs)))
     if mode == 'by_sg':
         for sg,dbs in dbs_by_sg.items():
-            print(("{: <70} {: <4}  {}".format(sg, len(dbs), ", ".join(dbs))))
+            print("{: <70} {: <4}  {}".format(sg, len(dbs), ", ".join(dbs)))
 
 if __name__ == '__main__':
     command()

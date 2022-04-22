@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import boto3
 import click
 import socket
@@ -87,11 +85,11 @@ def print_header(name):
 ============================
 {0}
 ============================"""
-    print((header.format(name)))
+    print(header.format(name))
 
 def print_line_item(target, ip):
     line = "[ * ] {0} - {1}"
-    print((line.format(target, ip)))
+    print(line.format(target, ip))
 
 def get_instance_ip_by_name_tag(value):
     client = boto3.client('ec2')

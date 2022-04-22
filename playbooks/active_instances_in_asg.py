@@ -19,8 +19,6 @@ ansible -i $(active_instances_in_asg.py --asg stage-edx-edxapp) -m shell -a 'man
 
 """
 
-from __future__ import print_function
-from __future__ import absolute_import
 import argparse
 import botocore.session
 import botocore.exceptions

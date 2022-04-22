@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import pprint
 import re
 
@@ -11,7 +9,7 @@ import json
 
 MAX_TRIES = 1
 
-class CwBotoWrapper(object):
+class CwBotoWrapper:
     def __init__(self):
         self.client = boto3.client('cloudwatch')
 
@@ -83,7 +81,7 @@ def generate_dashboard_widget(
     return {'type': 'metric', 'height': height, 'width': width, 'x': x, 'y': y,
             'properties': {
                  'period': period, 'view': 'timeSeries', 'stacked': stacked, 'region': region,
-                 'title': "{} (auto-generated)".format(title),
+                 'title': f"{title} (auto-generated)",
                  'metrics': generate_dashboard_widget_metrics(cloudwatch, namespace, metric_name, dimension_name,
                                                               metrics_properties, right_axis_items=right_axis_items)
                  }
@@ -98,8 +96,8 @@ def generate_dashboard(environment, deploy):
     pp = pprint.PrettyPrinter(indent=4)
     cloudwatch = CwBotoWrapper()
 
-    dashboard_name = "{}-{}-xqueues".format(environment, deploy)
-    xqueue_namespace = "xqueue/{}-{}".format(environment, deploy)
+    dashboard_name = f"{environment}-{deploy}-xqueues"
+    xqueue_namespace = f"xqueue/{environment}-{deploy}"
 
     widgets = []
     y_cord = 0
@@ -110,7 +108,7 @@ def generate_dashboard(environment, deploy):
         height = 9
 
         widgets.append(generate_dashboard_widget(cloudwatch, y=y_cord, height=height,
-                                                 title="{}-{} Xqueue Queues".format(environment, deploy),
+                                                 title=f"{environment}-{deploy} Xqueue Queues",
                                                  namespace=xqueue_namespace, metric_name="queue_length",
                                                  dimension_name="queue",
                                                  )

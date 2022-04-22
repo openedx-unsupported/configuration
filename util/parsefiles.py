@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import pathlib2
 import logging
@@ -336,7 +334,7 @@ def _get_role_name(role):
     """
     if isinstance(role, dict):
         return role['role']
-    elif isinstance(role, six.string_types):
+    elif isinstance(role, str):
         return role
     else:
         LOGGER.warning("role %s could not be resolved to a role name." % role)
