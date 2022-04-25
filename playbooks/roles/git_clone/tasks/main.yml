@@ -20,6 +20,18 @@
 # Rewrite this task using the ansible git-config module once we'll migrate to Ansible 2.x
 # https://docs.ansible.com/ansible/git_config_module.html#git-config
 
+# On devstack, tell Git that repos owner by other users are safe.
+# This is necessary in git 2.35.2 and higher. Devstack uses a mix of
+# root and edxapp and git+https pip dependencies end up cloning repos
+# into an open-ended set of directories, so our best bet is to just
+# say every dir on devstack is safe.
+- name: Mark all directories as safe for git on devstack
+  shell: "git config --global --add safe.directory '*'"
+  become: true
+  when: "({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})"
+  tags:
+    - devstack
+
 - name: Set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   become_user: "{{ repo_owner }}"
