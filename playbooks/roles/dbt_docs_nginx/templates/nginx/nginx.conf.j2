@@ -54,12 +54,11 @@ http {
 
 	include /etc/nginx/conf.d/*.conf;
 	include /etc/nginx/sites-enabled/*;
-	server{
-
-	server_name {{ hostname_variable }}.edx.org;
-	root /usr/share/nginx/html;
-
+	server {
+		server_name {{ hostname_variable }}.edx.org;
+		if ($http_x_forwarded_proto = "http") {
+			return 301 https://$host$request_uri;
+		}
+		root /usr/share/nginx/html;
 	}
-
-
 }

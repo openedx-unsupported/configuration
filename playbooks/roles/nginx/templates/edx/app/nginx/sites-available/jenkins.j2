@@ -4,7 +4,11 @@ server {
   listen [::]:{{ jenkins_nginx_port }};
   {% endif %}
   server_name {{ jenkins_server_name }};
-
+  {%- if jenkins_protocol_https %}
+  if ($http_x_forwarded_proto = "http") {
+    return 301 https://$host$request_uri;
+  }
+  {%- endif %}
   location / {
     proxy_pass              http://localhost:{{ jenkins_port }};
 
