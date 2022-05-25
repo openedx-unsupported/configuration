@@ -1,43 +1,24 @@
 ---
-# The deadsnakes PPA is required to install python3.5 on Precise and Trusty.
-# Xenial comes with python3.5 installed.
-- name: Add deadsnakes repository
-  apt_repository:
-    repo: "ppa:fkrull/deadsnakes"
-  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
-  become: yes
-  tags:
-    - install
-    - install:system-requirements
-
-- name: install python3.5
-  apt:
-    name: "{{ item }}"
-  with_items:
-    - python3.5
-    - python3.5-dev
-  when: ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty'
-  become: yes
-  tags:
-    - install
-    - install:system-requirements
-
-- name: Download the AWS Logs Agent python script
+- name: Download the Cloudwatch agent package
   get_url:
-    url: "{{ AWS_LOGS_AGENT_SCRIPT_URL }}"
-    dest: /tmp/aws-logs-agent.py
-    mode: "0664"
-  tags:
-    - install
-    - install:code
+    dest: /tmp/{{ item.name }}
+    url: "{{ item.url }}"
+  register: download_deb
+  until: download_deb is succeeded
+  retries: 5
+  with_items: "{{ cloudwatch_agent_s3_deb_pkgs }}"
 
-- name: Copy aws_logs_agent.conf template
+- name: Install Cloudwatch agent packages
+  shell: dpkg -i -E /tmp/{{ item.name }}
+  with_items: "{{ cloudwatch_agent_s3_deb_pkgs }}"
+  become: yes
+
+- name: Copy aws_logs_agent.json template
   template:
-    src: "aws_logs_agent.conf.j2"
-    dest: "/etc/aws_logs_agent.conf"
+    src: "aws_logs_agent.json.j2"
+    dest: "/opt/aws/amazon-cloudwatch-agent/etc/aws_logs_agent.json"
     mode: "0664"
   become: yes
 
-- name: Run AWS Logs Agent script
-  shell: "python3.5 /tmp/aws-logs-agent.py -n --region {{ AWS_EC2_INSTANCE_REGION }} -c /etc/aws_logs_agent.conf"
-  become: yes
+- name: Start cloudwatch agent
+  command: amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/aws_logs_agent.json
