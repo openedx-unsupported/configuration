@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
- - 2022-04-14
+ - 2022-05-26
     - Role: edxapp
         - Added a new `CELERY_RESULT_BACKEND` setting to allow operators to
           override the default celery result backend.
