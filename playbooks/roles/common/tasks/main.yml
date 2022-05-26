@@ -66,20 +66,6 @@
   delay: 5
   when: ansible_distribution in common_debian_variants
 
-- name: Add ppa for watchman package
-  apt_repository:
-    repo: "ppa:linuxuprising/apps"
-    update_cache: yes
-  register: add_repo
-  until: add_repo is success
-  retries: 10
-  delay: 5
-  when: >
-      ansible_distribution in common_debian_variants and 
-      ({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})
-  tags:
-    - "devstack"
-
 # Ensure that we can install old software if need be.
 - name: Add edX PPA apt key
   apt_key:
@@ -140,7 +126,7 @@
     state: present
     update_cache: yes
   when: >
-      ansible_distribution in common_debian_variants and 
+      ansible_distribution in common_debian_variants and
       ({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})
   tags:
     - "devstack"
