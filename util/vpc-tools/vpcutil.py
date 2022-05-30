@@ -18,7 +18,7 @@ def stack_name_for_vpc(vpc_name, aws_id, aws_secret):
     if CFN_TAG_KEY in resource.tags:
         return resource.tags[CFN_TAG_KEY]
     else:
-        msg = "VPC({}) is not part of a cloudformation stack.".format(vpc_name)
+        msg = f"VPC({vpc_name}) is not part of a cloudformation stack."
         raise Exception(msg)
 
 
@@ -35,4 +35,4 @@ def rds_subnet_group_name_for_stack_name(stack_name, region='us-east-1', aws_id=
 def all_stack_names(region='us-east-1', aws_id=None, aws_secret=None):
     vpc_conn = boto.connect_vpc(aws_id, aws_secret)
     return [vpc.tags[CFN_TAG_KEY] for vpc in vpc_conn.get_all_vpcs()
-            if CFN_TAG_KEY in vpc.tags.keys()]
+            if CFN_TAG_KEY in list(vpc.tags.keys())]

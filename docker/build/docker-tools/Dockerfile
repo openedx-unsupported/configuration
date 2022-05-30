@@ -8,9 +8,8 @@
 # with the currently checked-out configuration repo.
 
 FROM edxops/xenial-common:latest
-MAINTAINER edxops
+LABEL maintainer="edxops"
 
-ENV PROGRAMS_VERSION=master
 ENV REPO_OWNER=edx
 
 ADD . /edx/app/edx_ansible/edx_ansible

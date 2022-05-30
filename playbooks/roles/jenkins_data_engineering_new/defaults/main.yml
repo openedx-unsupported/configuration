@@ -1,0 +1,301 @@
+---
+# See README.rst for variable descriptions
+
+jenkins_home: '/var/lib/jenkins'
+
+JENKINS_SERVER_NAME: 'jenkins-new.analytics.edx.org'
+jenkins_user: 'jenkins'
+jenkins_group: 'jenkins'
+# the groups that the jenkins user must belong to
+jenkins_groups: "jenkins,docker"
+jenkins_user_home: '/home/{{ jenkins_user }}'
+jenkins_port: 8080
+jenkins_nginx_port: 80
+jenkins_protocol_https: true
+AUTOMATION_USER: 'edx-analytics-automation'
+jenkins_host_name: "{{ JENKINS_SERVER_NAME | default('jenkins') }}"
+# We should expect a 403 Forbidden from Jenkins during the init stage,
+# as it should not be publicly available.
+de_jenkins_ready_status_code: 403
+
+JENKINS_VOLUMES: []
+
+de_jenkins_seed_name: 'data_engineering_seed_job'
+de_jenkins_seed_path: '{{ jenkins_common_config_path }}/xml/seed_job.xml'
+de_jenkins_seed_job_source: '{{ role_path }}/../jenkins_data_engineering_new/files/xml/seed_job.xml'
+
+de_jenkins_user_uid: 900
+de_jenkins_group_gid: 900
+DE_JENKINS_VERSION: jenkins_2.222.3
+de_jenkins_jvm_args: '-Djava.awt.headless=true -Xmx16g -Djenkins.install.runSetupWizard=false'
+
+de_jenkins_snap_pkgs:
+  - hub
+
+# Python versions to install onto the system
+de_jenkins_python_versions:
+  - python3.5
+  - python3.7
+  - python3.8
+  - python3.9
+
+# Jenkins aliases to installed Python binaries
+de_jenkins_python_installations:
+  - PYTHON_ALIAS: 'System-CPython-2.7'
+    PYTHON_PATH: '/usr/bin/python2.7'
+    PYTHON_PROPERTIES: []
+  - PYTHON_ALIAS: 'System-CPython-3.5.2'
+    PYTHON_PATH: '/usr/bin/python3.5'
+    PYTHON_PROPERTIES: []
+  - PYTHON_ALIAS: 'PYTHON_3.7'
+    PYTHON_PATH: '/usr/bin/python3.7'
+    PYTHON_PROPERTIES: []
+  - PYTHON_ALIAS: 'PYTHON_3.8'
+    PYTHON_PATH: '/usr/bin/python3.8'
+    PYTHON_PROPERTIES: []
+  - PYTHON_ALIAS: 'PYTHON_3.9'
+    PYTHON_PATH: '/usr/bin/python3.9'
+    PYTHON_PROPERTIES: []
+
+jenkins_base_environment_variables:
+  - NAME: 'AUTOMATION_USER'
+    VALUE: '{{ AUTOMATION_USER }}'
+  - NAME: 'PAGER_NOTIFY'
+    VALUE: '{{ PAGER_NOTIFY }}'
+
+JENKINS_DATA_ENGINEERING_EXTRA_PKGS:
+  - gettext
+  - pkg-config
+  - libsqlite3-dev
+  - libgeos-dev
+  - libmysqlclient-dev
+  - libgraphviz-dev
+  - libxmlsec1-dev
+  - zip
+
+# See https://www.vaultproject.io/downloads for latest version.
+DE_JENKINS_VAULT_CLI_VERSION: 1.9.4
+
+# plugins
+de_jenkins_plugins_list:
+  - name: 'ansicolor'
+    version: '0.5.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ant'
+    version: '1.8'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'antisamy-markup-formatter'
+    version: '1.5'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'aws-credentials'
+    version: '1.24'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'build-name-setter'
+    version: '1.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'build-timeout'
+    version: '1.19'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'build-user-vars-plugin'
+    version: '1.5'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'copyartifact'
+    version: '1.39'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'credentials'
+    version: '2.3.0'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'credentials-binding'
+    version: '1.15'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'email-ext'
+    version: '2.66'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'envinject'
+    version: '2.3.0'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'exclusive-execution'
+    version: '0.8'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'external-monitor-job'
+    version: '1.4'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'flexible-publish'
+    version: '0.15.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ghprb'
+    version: '1.42.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'git'
+    version: '4.2.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'git-client'
+    version: '3.0.0'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'github'
+    version: '1.29.2'
+    group: 'com.coravy.hudson.plugins.github'
+  - name: 'github-api'
+    version: '1.111'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'github-oauth'
+    version: '0.33'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'gradle'
+    version: '1.29'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'groovy'
+    version: '2.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'groovy-postbuild'
+    version: '2.4'
+    group: 'org.jvnet.hudson.plugins'
+  - name: 'htmlpublisher'
+    version: '1.21'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'javadoc'
+    version: '1.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'jobConfigHistory'
+    version: '2.24'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'job-dsl'
+    version: '1.77'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'junit'
+    version: '1.28'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ldap'
+    version: '1.20'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'mailer'
+    version: '1.23'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'mask-passwords'
+    version: '2.13'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'matrix-auth'
+    version: '2.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'matrix-project'
+    version: '1.14'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'maven-plugin'
+    version: '3.4'
+    group: 'org.jenkins-ci.main'
+  - name: 'monitoring'
+    version: '1.76.0'
+    group: 'org.jvnet.hudson.plugins'
+  - name: 'multiple-scms'
+    version: '0.6'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'nodelabelparameter'
+    version: '1.7.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'pam-auth'
+    version: '1.5.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'parameterized-trigger'
+    version: '2.35.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'postbuild-task'
+    version: '1.8'
+    group: 'org.jvnet.hudson.plugins'
+  - name: 'PrioritySorter'
+    version: '2.9'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'rebuild'
+    version: '1.31'
+    group: 'com.sonyericsson.hudson.plugins.rebuild'
+  - name: 'reverse-proxy-auth-plugin'
+    version: '1.6.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'run-condition'
+    version: '1.0'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'shiningpanda'
+    version: '0.23'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'slack'
+    version: '2.21'
+    group: 'org.jenkins-ci.plugins'    
+  - name: 'script-security'
+    version: '1.71'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ssh-agent'
+    version: '1.17'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ssh-credentials'
+    version: '1.17.3'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'ssh-slaves'
+    version: '1.28.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'subversion'
+    version: '2.13.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'text-finder'
+    version: '1.10'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'throttle-concurrents'
+    version: '2.0.1'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'timestamper'
+    version: '1.11.2'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'token-macro'
+    version: '2.10'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'translation'
+    version: '1.16'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'violations'
+    version: '0.7.11'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'workflow-cps'
+    version: '2.80'
+    group: 'org.jenkins-ci.plugins.workflow'
+  - name: 'workflow-cps-global-lib'
+    version: '2.15'
+    group: 'org.jenkins-ci.plugins.workflow'
+  - name: 'workflow-durable-task-step'
+    version: '2.35'
+    group: 'org.jenkins-ci.plugins.workflow'
+  - name: 'workflow-job'
+    version: '2.35'
+    group: 'org.jenkins-ci.plugins.workflow'
+  - name: 'workflow-step-api'
+    version: '2.21'
+    group: 'org.jenkins-ci.plugins.workflow'
+  - name: 'ws-cleanup'
+    version: '0.39'
+    group: 'org.jenkins-ci.plugins'
+  - name: 'xunit'
+    version: '1.93'
+    group: 'org.jenkins-ci.plugins'
+
+# ghprb
+de_jenkins_ghprb_white_list_phrase: '.*[Aa]dd\W+to\W+whitelist.*'
+de_jenkins_ghprb_ok_phrase: '.*ok\W+to\W+test.*'
+de_jenkins_ghprb_retest_phrase: '.*jenkins\W+run\W+all.*'
+de_jenkins_ghprb_skip_phrase: '.*\[[Ss]kip\W+ci\].*'
+de_jenkins_ghprb_cron_schedule: 'H/5 * * * *'
+
+# github
+JENKINS_GITHUB_CONFIG: ''
+
+# ec2
+de_jenkins_instance_cap: '500'
+
+JENKINS_DATA_ENGINEERING_CONCURRENT_JOBS_COUNT: 30
+
+jenkins_connection_retries: 240
+jenkins_connection_delay: 1
+
+jenkins_private_keyfile: "{{ jenkins_user_home }}/.ssh/id_rsa"
+jenkins_public_keyfile: "{{ jenkins_private_keyfile }}.pub"
+
+# Be clear about which time zone the console log timestamps are in!!!
+# use ZZ for Jenkins < 2.222.x
+# use XX for Jenkins >= 2.222.x
+de_jenkins_timestamper_system_time: "'<b>'HH:mm:ssXX'</b> '"

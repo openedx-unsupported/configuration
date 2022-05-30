@@ -1,0 +1,128 @@
+# This playbook will check for migrations to rollback for Django applications within a larger
+# Django project. The provided input file will determine what migrations should be rolled back.
+#
+# The playbook uses the Django management commands found in this Django app repo:
+# https://github.com/edx/edx-django-release-util
+# So the Django app above needs to be installed in the Django project.
+#
+# Required variables for this playbook:
+#
+#   - APPLICATION_PATH                - the top-level path of the Django application; the application lives underneath
+#                                       this directory in a directory with the same name as APPLICATION_NAME.
+#                                       NOTE: It is assumed that edx-django-release-util is one of its INSTALLED_APPS.
+#   - APPLICATION_NAME                - The name of the application that we are migrating.
+#   - APPLICATION_USER                - user which is meant to run the application
+#   - ARTIFACT_PATH                   - the path where the migration artifacts should be copied after completion
+#   - initial_states                  - An array of the migrations
+#   - database                        - Name of the database to run the rollback against
+#
+# Other variables:
+#   - migration_result                - the filename where the migration output is saved
+#   - SUB_APPLICATION_NAME            - used for migrations in edxapp {lms|cms}, must be specified
+#                                         when APPLICATION_NAME is edxapp
+#   - EDX_PLATFORM_SETTINGS           - The settings to use for the edx platform {production|devstack} DEFAULT: production
+#
+# Example command line to run this playbook:
+#    ansible-playbook \
+#    -vvvv \
+#    -i ../{artifact_path}/ansible_inventory \
+#    --private-key=$PRIVATE_KEY \
+#    --module-path=playbooks/library \
+#    --user=ubuntu \
+#    -e APPLICATION_PATH=$APPLICATION_PATH \
+#    -e APPLICATION_NAME=$APPLICATION_NAME \
+#    -e APPLICATION_USER=$APPLICATION_USER \
+#    -e ARTIFACT_PATH=`/bin/pwd`/../{artifact_path}/migrations \
+#    -e DB_MIGRATION_USER=$DB_MIGRATION_USER \
+#    -e DB_MIGRATION_PASS=$DB_MIGRATION_PASS \
+#    -e @../{artifact_path}/migration_input_file.yml \
+#    -e SUB_APPLICATION_NAME={sub_application_name} \
+#    playbooks/continuous_delivery/rollback_migrations.yml
+
+- hosts: all
+  gather_facts: false
+  become: true
+
+  vars:
+    COMMAND_PREFIX: ". {{ APPLICATION_PATH }}/{{ APPLICATION_NAME }}_env; DB_MIGRATION_USER={{ DB_MIGRATION_USER }} DB_MIGRATION_PASS='{{ DB_MIGRATION_PASS }}' {{ APPLICATION_PATH }}/venvs/{{ APPLICATION_NAME }}/bin/python /edx/bin/manage.{{ APPLICATION_NAME }} "
+    EDX_PLATFORM_SETTINGS: "production"
+    rollback_result: rollback_result.yml
+    original_state: original_state.yml
+    migration_plan: migration_plan.yml
+    migration_result: migration_result.yml
+    database: default
+
+  vars_files:
+    - roles/edxapp/defaults/main.yml
+
+  tasks:
+    - name: Create a temporary directory for the migration output.
+      command: mktemp -d
+      become_user: "{{ APPLICATION_USER }}"
+      register: temp_output_dir
+
+    - name: generate current migration state
+      shell: >
+        {{ COMMAND_PREFIX }} show_unapplied_migrations
+        --output_file '{{ temp_output_dir.stdout }}/{{ original_state }}'
+      become_user: "{{ APPLICATION_USER }}"
+      when: APPLICATION_NAME != "edxapp"
+
+    - name: generate current migration state for edxapp
+      shell: >
+        {{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} show_unapplied_migrations
+        --database '{{ database }}'
+        --output_file '{{ temp_output_dir.stdout }}/{{ database }}_{{ original_state }}'
+        --settings '{{ EDX_PLATFORM_SETTINGS }}'
+      become_user: "{{ APPLICATION_USER }}"
+      when: APPLICATION_NAME == "edxapp"
+
+    - name: migrate to original versions
+      shell: >
+        {{ COMMAND_PREFIX }} run_specific_migrations
+        --migration '{{ item.app }}' '{{ item.migration }}'
+        --output_file '{{ temp_output_dir.stdout }}/{{ migration_plan }}'
+      become_user: "{{ APPLICATION_USER }}"
+      with_items: "{{ initial_states }}"
+      when: APPLICATION_NAME != "edxapp"
+
+    - name: migrate to original versions for edxapp
+      shell: >
+        {{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} run_specific_migrations
+        --migration '{{ item.app }}' '{{ item.migration }}'
+        --output_file '{{ temp_output_dir.stdout }}/{{ database }}_{{ migration_plan }}'
+        --database '{{ database }}'
+        --settings '{{ EDX_PLATFORM_SETTINGS }}'
+      become_user: "{{ APPLICATION_USER }}"
+      with_items: "{{ initial_states }}"
+      when: APPLICATION_NAME == "edxapp"
+
+    - name: generate post rollback migration state
+      shell: >
+        {{ COMMAND_PREFIX }} show_unapplied_migrations
+        --output_file '{{ temp_output_dir.stdout }}/{{ migration_result }}'
+      become_user: "{{ APPLICATION_USER }}"
+      when: APPLICATION_NAME != "edxapp"
+
+    - name: generate post migration state for edxapp
+      shell: >
+        {{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} show_unapplied_migrations
+        --database '{{ database }}'
+        --output_file '{{ temp_output_dir.stdout }}/{{ database }}_{{ migration_result }}'
+        --settings '{{ EDX_PLATFORM_SETTINGS }}'
+      become_user: "{{ APPLICATION_USER }}"
+      when: APPLICATION_NAME == "edxapp"
+
+    - name: List all migration files
+      action: "command ls -1 {{ temp_output_dir.stdout }}"
+      register: migration_files
+
+    - name: Transfer artifacts to the proper place.
+      fetch:
+        src: "{{ temp_output_dir.stdout }}/{{ item }}"
+        dest: "{{ ARTIFACT_PATH }}/"
+        flat: True
+        fail_on_missing: True
+        mode: 0700
+      with_items:
+        - "{{ migration_files.stdout_lines }}"

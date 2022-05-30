@@ -1,0 +1,49 @@
+---
+
+# Open edX Native installation for single server analytics installs.
+
+- name: Bootstrap instance(s)
+  hosts: all
+  gather_facts: no
+  become: True
+  roles:
+    - python
+
+- name: Deploy all analytics services to a single node
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+    disable_edx_services: false
+    ENABLE_DATADOG: False
+    ENABLE_NEWRELIC: False
+    SANDBOX_ENABLE_ANALYTICS_API: True
+    SANDBOX_ENABLE_ANALYTICS_PIPELINE: True
+    SANDBOX_ENABLE_INSIGHTS: True
+    EDXAPP_MYSQL_HOST: ''
+    EDXAPP_MEMCACHE: ''
+    POSTFIX_QUEUE_EXTERNAL_SMTP_HOST: ''
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: edxlocal
+      when: EDXAPP_MYSQL_HOST == 'localhost'
+    - role: memcache
+      when: "'localhost' in ' '.join(EDXAPP_MEMCACHE)"
+    - role: nginx
+      nginx_sites:
+        - analytics_api
+      when: SANDBOX_ENABLE_ANALYTICS_API
+    - role: analytics_api
+      when: SANDBOX_ENABLE_ANALYTICS_API
+    - role: analytics_pipeline
+      when: SANDBOX_ENABLE_ANALYTICS_PIPELINE
+    - role: nginx
+      nginx_sites:
+        - insights
+      when: SANDBOX_ENABLE_INSIGHTS
+    - role: insights
+      when: SANDBOX_ENABLE_INSIGHTS
+    - role: postfix_queue
+      when: POSTFIX_QUEUE_EXTERNAL_SMTP_HOST != ''

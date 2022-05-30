@@ -6,8 +6,27 @@
     dest: /etc/apt/preferences.d/firefox-pinned-version
     content: |
       Package: firefox
-      Pin: {{ firefox_version }}
+      Pin: {{ FIREFOX_VERSION }}
       Pin-Priority: 1001
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add multiverse repos
+  apt_repository:
+    repo: "{{item}}"
+    update_cache: false  # only update when adding new repos
+  register: multiverse_installed
+  when: ansible_distribution == 'Ubuntu'
+  with_items: "{{ multiverse_urls }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Update cache when adding multiverse repos
+  apt:
+    update_cache: true
+  when: multiverse_installed | changed
   tags:
     - install
     - install:system-requirements
@@ -21,20 +40,107 @@
     - install
     - install:system-requirements
 
-- name: download browser packages from S3
+- name: download trusty browser packages from S3
   get_url:
     dest: /tmp/{{ item.name }}
     url: "{{ item.url }}"
-  register: download_deb
-  with_items: "{{ browser_s3_deb_pkgs }}"
+  register: download_trusty_deb
+  with_items: "{{ trusty_browser_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'trusty'
   tags:
     - install
     - install:system-requirements
 
-- name: install browser packages
-  shell: gdebi -nq /tmp/{{ item.name }}
-  when: download_deb.changed
+- name: Add Chrome Public keys for focal
+  shell: wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+  when: ansible_distribution_release == 'focal'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: download xenial/bionic/focal browser packages from S3
+  get_url:
+    dest: /tmp/{{ item.name }}
+    url: "{{ item.url }}"
+  register: download_xenial_deb
   with_items: "{{ browser_s3_deb_pkgs }}"
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install trusty browser packages
+  shell: gdebi -nq /tmp/{{ item.name }}
+  with_items: "{{ trusty_browser_s3_deb_pkgs }}"
+  when: download_trusty_deb.changed and
+        ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install xenial/bionic/focal browser packages
+  shell: gdebi -nq /tmp/{{ item.name }}
+  with_items: "{{ browser_s3_deb_pkgs }}"
+  when: download_xenial_deb.changed and
+        ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: download GeckoDriver
+  get_url:
+    url: "{{ geckodriver_url }}"
+    dest: /tmp/geckodriver.tar.gz
+  register: download_geckodriver
+  tags:
+    - install
+    - install:system-requirements
+
+- name: unzip GeckoDriver tarfile
+  shell: tar -xvf /tmp/geckodriver.tar.gz -C /usr/local/bin/
+  args:
+    chdir: /var/tmp
+  when: download_geckodriver.changed
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Rename geckodriver to geckodriver-bin
+  command: mv /usr/local/bin/geckodriver /usr/local/bin/geckodriver-bin
+  tags:
+    - install
+    - install:system-requirements
+
+- name: make GeckoDriver binary executable
+  file:
+    path: /usr/local/bin/geckodriver-bin
+    mode: 0755
+  when: download_geckodriver.changed
+  tags:
+    - install
+    - install:system-requirements
+
+- name: verify GeckoDriver location and mode
+  stat:
+    path: /usr/local/bin/geckodriver-bin
+  register: geckodriver
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Add geckodriver wrapper script
+  copy:
+    src: "../files/geckodriver"
+    dest: "/usr/local/bin/geckodriver"
+    mode: 0755
+  tags:
+    - install
+    - install:system-requirements
+
+- assert:
+    that:
+      - "geckodriver.stat.exists"
+      - "geckodriver.stat.mode == '0755'"
   tags:
     - install
     - install:system-requirements
@@ -127,12 +233,35 @@
     - install
     - install:system-requirements
 
+# Systemd doesn't exist in 14.04, use upstart instead
+- name: create xvfb upstart script
+  template:
+    src: xvfb.conf.j2
+    dest: /etc/init/xvfb.conf
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - install
+    - install:configuration
+
+- name: start xvfb
+  service:
+    name: xvfb
+    state: restarted
+  when: ansible_distribution_release == 'trusty'
+  tags:
+    - manage
+    - manage:start
+
+# Use systemd for xvfb in 16.04
 - name: create xvfb systemd service
   template:
     src: xvfb.service.j2
     dest: /etc/systemd/system/xvfb.service
     owner: root
     group: root
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
   tags:
     - install
     - install:configuration
@@ -142,6 +271,7 @@
     name: xvfb
     enabled: yes
     state: started
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
   tags:
-    - install
-    - install:configuration
+    - manage
+    - manage:start

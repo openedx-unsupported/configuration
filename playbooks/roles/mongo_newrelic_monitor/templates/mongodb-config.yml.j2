@@ -1,0 +1,44 @@
+# {{ ansible_managed }}
+#
+# Configuration docs:
+# https://docs.newrelic.com/docs/integrations/host-integrations/host-integrations-list/mongodb-monitoring-integration#users-privileges
+#
+# This is designed to be installed on the same instance as a mongo node.
+
+integration_name: com.newrelic.mongodb
+
+instances:
+  - name: all
+    # Available commands are "all", "metrics", and "inventory"
+    command: all
+    arguments:
+      cluster_name: '{{ MONGO_NEWRELIC_CLUSTER_NAME }}'
+      # The mongos to connect to
+      host: localhost
+      # The port the mongos is running on
+      port: 27017
+      # The username of the user created to monitor the cluster.
+      # This user should exist on the cluster as a whole as well
+      # as on each of the individual mongods.
+      username: '{{ MONGO_NEWRELIC_MONITOR_USER }}'
+      # The password for the monitoring user
+      password: '{{ MONGO_NEWRELIC_MONITOR_PASSWORD }}'
+      # The database on which the monitoring user is stored
+      auth_source: '{{ MONGO_NEWRELIC_USER_AUTH_SOURCE }}'
+      # Connect using SSL
+      ssl: false
+      # Skip verification of the certificate sent by the host.
+      # This can make the connection susceptible to man-in-the-middle attacks,
+      # and should only be used for testing
+      #ssl_insecure_skip_verify: true
+      # Path to the CA certs file
+      #ssl_ca_certs: /sample/path/to/ca_certs
+      # Client Certificate to present to the server (optional)
+      #pem_key_file: /sample/file.pem
+      # Passphrase to decrypt PEMKeyFile file (optional)
+      #passphrase: secret
+      # A JSON map of database names to an array of collection names. If empty,
+      # defaults to all databases and collections. If the list of collections is null,
+      # collects all collections for the database.
+      filters: ''
+    labels: {{ MONGO_NEWRELIC_LABELS }}

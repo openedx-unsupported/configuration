@@ -1,0 +1,41 @@
+---
+# oauth2_proxy
+#
+# Dependencies:
+#
+#   * common
+
+- name: create application user
+  user:
+    name: "{{ oauth2_proxy_user }}"
+    home: "{{ oauth2_proxy_app_dir }}"
+    createhome: yes
+    shell: /bin/false
+    generate_ssh_key: yes
+  tags:
+    - install
+    - install:base
+
+- name: set oauth2_proxy app dir permissions
+  file:
+    path: "{{ oauth2_proxy_app_dir }}"
+    state: directory
+    owner: "{{ oauth2_proxy_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
+
+- name: set oauth2_proxy conf dir permissions
+  file:
+    path: "{{ oauth2_proxy_conf_dir }}"
+    state: directory
+    owner: "{{ oauth2_proxy_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:base
+
+- include: deploy.yml
+  tags:
+    - deploy

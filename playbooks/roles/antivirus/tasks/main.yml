@@ -32,7 +32,7 @@
     createhome: no
     shell: /bin/false
 
-- name: create antivirus app and data dirs
+- name: create antivirus edx directories
   file:
     path: "{{ item }}"
     state: directory
@@ -41,6 +41,17 @@
   with_items:
     - "{{ antivirus_app_dir }}"
     - "{{ antivirus_app_dir }}/data"
+    - "{{ antivirus_log_dir }}"
+  when: ANTIVIRUS_S3_BUCKETS_SCAN or ANTIVIRUS_SERVER_SCAN
+
+- name: Ensure the clamav.log file exists
+  file:
+    path: "{{ antivirus_log_dir }}/clamav.log"
+    state: touch
+    owner: "{{ antivirus_user }}"
+    group: "{{ antivirus_user }}"
+    mode: "0644"
+  when: ANTIVIRUS_S3_BUCKETS_SCAN or ANTIVIRUS_SERVER_SCAN
 
 - name: install antivirus s3 scanner script
   template:
@@ -49,6 +60,7 @@
     mode: "0555"
     owner: "{{ antivirus_user }}"
     group: "{{ antivirus_user }}"
+  when: ANTIVIRUS_S3_BUCKETS_SCAN
 
 - name: install antivirus s3 scanner cronjob
   cron:
@@ -61,3 +73,25 @@
     minute: "0"
     day: "*"
   with_items: "{{ ANTIVIRUS_BUCKETS }}"
+  when: ANTIVIRUS_S3_BUCKETS_SCAN
+
+- name: install antivirus server scanner script
+  template:
+    src: server_virus_scan.sh.j2
+    dest: "{{ antivirus_app_dir }}/server_virus_scan.sh"
+    mode: "0555"
+    owner: "{{ antivirus_user }}"
+    group: "{{ antivirus_user }}"
+  when: ANTIVIRUS_SERVER_SCAN
+
+- name: install antivirus server scanner cronjob
+  cron:
+    name: "antivirus"
+    job: "{{ antivirus_app_dir }}/server_virus_scan.sh"
+    backup: yes
+    cron_file: "antivirus"
+    user: "{{ antivirus_user }}"
+    hour: "*"
+    minute: "0"
+    day: "*"
+  when: ANTIVIRUS_SERVER_SCAN

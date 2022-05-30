@@ -1,0 +1,56 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_service_with_rendered_config
+#
+# Overview:
+#
+# This role performs the repetive tasks that most edX roles
+# require in our default configuration.
+#
+# Example play:
+#
+# Rather than being included in the play, this role
+# is included as a dependency by other roles in the meta/main.yml
+# file.  The including role should add the following
+# depency definition.
+#
+# dependencies:
+#   - role: edx_service_with_rendered_config
+#     edx_service_with_rendered_config_servicee_name: "hotg"
+#     edx_service_with_rendered_config_servicee_config: "{{ structure_to_be_written_to_config_file_in_/edx/etc }}"
+#     edx_service_with_rendered_config_repos:
+#       - PROTOCOL: [https/ssh]
+#         DOMAIN: github.com
+#         PATH: edx
+#         REPO: hotg
+#         VERSION: master
+#         DESTINATION: "/edx/app/hotg/hotg"
+#         SSH_KEY: <required if PROTOCOL==ssh>
+#       - PROTOCOL
+#         ...
+#     edx_service_with_rendered_config_service_name: hotg_system_user
+#     edx_service_with_rendered_config_home: "/edx/app/hotg"
+#     edx_service_with_rendered_config_packages:
+#       debian: [ pkg1, pkg2, pkg3 ]
+#       redhat: [ pkg4, pkg5 ]
+#
+
+- name: Write out app config file
+  template:
+    src: "config.yml.j2"
+    dest: "{{ COMMON_CFG_DIR  }}/{{ edx_service_with_rendered_config_service_name }}.yml"
+    mode: "0644"
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration

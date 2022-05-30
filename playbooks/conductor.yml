@@ -1,0 +1,25 @@
+- name: Deploy conductor (router for learner portal)
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'conductor'
+    NGINX_OVERRIDE_DEFAULT_MAP_HASH_SIZE: True
+    NGINX_MAP_HASH_MAX_SIZE: 4096
+    NGINX_MAP_HASH_BUCKET_SIZE: 128
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_app_dir: "/etc/nginx"
+      nginx_sites:
+      - conductor
+      nginx_default_sites:
+      - conductor
+      CONDUCTOR_NGINX_PORT: 8000
+    - role: conductor
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE

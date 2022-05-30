@@ -1,0 +1,130 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role designer
+#
+
+
+#
+# vars are namespace with the module name.
+#
+designer_service_name: 'designer'
+
+designer_environment:
+  DESIGNER_CFG: '{{ COMMON_CFG_DIR }}/{{ designer_service_name }}.yml'
+
+designer_gunicorn_port: 8808
+
+designer_debian_pkgs: []
+
+DESIGNER_USE_PYTHON38: True
+
+DESIGNER_NGINX_PORT: '1{{ designer_gunicorn_port }}'
+DESIGNER_SSL_NGINX_PORT: '4{{ designer_gunicorn_port }}'
+
+DESIGNER_DEFAULT_DB_NAME: 'designer'
+DESIGNER_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+DESIGNER_MYSQL_USER: 'designer001'
+DESIGNER_MYSQL_PASSWORD: 'password'
+DESIGNER_MYSQL_CONN_MAX_AGE: 60
+
+DESIGNER_MEMCACHE: [ 'memcache' ]
+
+DESIGNER_DJANGO_SETTINGS_MODULE: 'designer.settings.production'
+DESIGNER_DOMAIN: 'localhost'
+DESIGNER_URL_ROOT: 'http://{{ DESIGNER_DOMAIN }}:{{ DESIGNER_NGINX_PORT }}'
+DESIGNER_LOGOUT_URL: '{{ DESIGNER_URL_ROOT }}/logout/'
+
+DESIGNER_LANGUAGE_CODE: 'en'
+DESIGNER_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+DESIGNER_SERVICE_USER: 'designer_service_user'
+
+DESIGNER_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ designer_service_name }}'
+DESIGNER_MEDIA_ROOT: '{{ DESIGNER_DATA_DIR }}/media'
+DESIGNER_MEDIA_URL: '/media/'
+
+DESIGNER_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ DESIGNER_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ DESIGNER_MEDIA_URL }}'
+
+# TODO: Let edx_django_service manage DESIGNER_STATIC_ROOT in phase 2.
+DESIGNER_STATIC_ROOT: '{{ DESIGNER_DATA_DIR }}/staticfiles'
+DESIGNER_STATIC_URL: '/static/'
+
+DESIGNER_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+DESIGNER_CORS_ORIGIN_ALLOW_ALL: false
+DESIGNER_CORS_ORIGIN_WHITELIST_DEFAULT:
+ - '{{ DESIGNER_DOMAIN }}'
+
+DESIGNER_CORS_ORIGIN_WHITELIST_EXTRA: []
+DESIGNER_CORS_ORIGIN_WHITELIST: '{{ DESIGNER_CORS_ORIGIN_WHITELIST_DEFAULT + DESIGNER_CORS_ORIGIN_WHITELIST_EXTRA }}'
+
+DESIGNER_VERSION: 'master'
+
+DESIGNER_GUNICORN_EXTRA: ''
+
+DESIGNER_EXTRA_APPS: []
+
+DESIGNER_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+DESIGNER_CERTIFICATE_LANGUAGES:
+  'en': 'English'
+  'es_419': 'Spanish'
+
+designer_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ DESIGNER_CERTIFICATE_LANGUAGES }}'
+  DESIGNER_SERVICE_USER: '{{ DESIGNER_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ DESIGNER_LANGUAGE_COOKIE_NAME }}'
+  CSRF_COOKIE_SECURE: "{{ DESIGNER_CSRF_COOKIE_SECURE }}"
+
+# See edx_django_service_automated_users for an example of what this should be
+DESIGNER_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+DESIGNER_LMS_URL_ROOT: !!null
+DESIGNER_DISCOVERY_API_URL:  !!null
+
+DESIGNER_CSRF_COOKIE_SECURE: false
+
+DESIGNER_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+designer_post_migrate_commands: []
+
+DESIGNER_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'designer-sso-key'
+DESIGNER_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'designer-sso-secret'
+DESIGNER_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'designer-backend-service-key'
+DESIGNER_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'designer-backend-service-secret'
+DESIGNER_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+DESIGNER_GIT_IDENTITY: !!null
+
+designer_home: "{{ COMMON_APP_DIR }}/{{ designer_service_name }}"
+designer_code_dir: "{{ designer_home }}/{{ designer_service_name }}"
+
+DESIGNER_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: 'portal-designer.git'
+    VERSION: '{{ DESIGNER_VERSION }}'
+    DESTINATION: "{{ designer_code_dir }}"
+    SSH_KEY: '{{ DESIGNER_GIT_IDENTITY }}'
+
+DESIGNER_SECRET_KEY: 'SET-ME-PLEASE'
+
+# Remote config
+DESIGNER_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+DESIGNER_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+DESIGNER_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"

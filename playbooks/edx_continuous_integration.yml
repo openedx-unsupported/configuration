@@ -1,0 +1,70 @@
+- name: Configure instance(s)
+  hosts: all
+  become: True
+  gather_facts: True
+  serial: 10
+  vars:
+    migrate_db: "yes"
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_sites:
+      - cms
+      - lms
+      - xqueue
+      - learner_portal
+      - program_console
+      - prospectus
+      nginx_default_sites:
+      - lms
+    - mysql
+    - role: edxlocal
+      tags: edxlocal
+    - memcache
+    - mongo_4_2
+    - role: redis
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - testcourses
+    - oraclejdk
+    - elasticsearch
+    - opensearch
+    - forum
+    - { role: "xqueue", update_users: True }
+    - edx_ansible
+    - analytics_api
+    - ecommerce
+    - credentials
+    - discovery
+    - role: registrar
+      when: REGISTRAR_ENABLED
+    - role: license_manager
+      when: LICENSE_MANAGER_ENABLED
+    - role: enterprise_catalog
+      when: ENTERPRISE_CATALOG_ENABLED
+    - role: learner_portal
+      when: LEARNER_PORTAL_ENABLED
+    - role: program_console
+      when: PROGRAM_CONSOLE_ENABLED
+    - role: prospectus
+      when: PROSPECTUS_ENABLED
+    - role: authn
+      when: AUTHN_ENABLED
+    - role: payment
+      MFE_NAME: payment
+      when: PAYMENT_MFE_ENABLED
+    - role: mfe
+      MFE_NAME: learning
+      when: LEARNING_MFE_ENABLED
+    - role: mfe
+      MFE_NAME: ora-grading
+      when: ORA_GRADING_MFE_ENABLED
+    - oauth_client_setup
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - flower

@@ -1,0 +1,244 @@
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Usage: ansible-playbook -i edxapp-host-1, -e@/path/to/configfile-of-users-andor-groups
+#                                           -e 'group_environment=prod-edge'
+# Overview:
+# This playbook ensures that the specified users and groups exist in the targeted
+# edxapp cluster.
+#
+# Users have the following properties:
+#   - username (required, str)
+#   - email (required, str)
+#   - initial_password_hash (optional, str)
+#   - remove (optional, bool): ensures the user does not exist
+#   - staff (optional, bool)
+#   - superuser (optional, bool)
+#   - unusable_password (optional, bool): ensures the password is unusable
+#   - groups (optional, list[str])
+#   - _comment (optional, str): ignored
+#
+# Groups can have the following properties:
+#   - name (required, str)
+#   - permissions (required, list[str])
+#   - remove (optional, bool): ensures the group does not exist
+#   - _comment (optional, str): ignored
+#
+# Example:
+#
+# django_users:
+#
+#   - username: bobby
+#     email: bobby@droptabl.es
+#     staff: true
+#     superuser: true
+#     groups:
+#       - group1
+#       - group2
+#
+#   - username: fred
+#     email: fred@smith
+#     remove: true
+#
+#   - username: smitty
+#     email: smitty@werbenmanjens.en
+#     groups:
+#       - group1
+#     _comment: |
+#       he was
+#       number one!
+#
+#   - username: frank
+#     email: frank@bigcorp.com
+#     staff: false
+#     superuser: false
+#     unusable_password: true
+#     groups: []
+#
+#   - username: zoe
+#     email: zoe@example.com
+#     initial_password_hash: 'pbkdf2_sha256$20000$levJ6jdVYCsu$gdBLGf2DNPqfaKdcETXtFocRU8Kk+sMsIvKkmw1dKbY='
+#
+# django_groups:
+#
+#   - name: group1
+#     permissions:
+#       - permission1
+#       - permission2
+#
+#   - name: group3
+#     remove: true
+#     permissions: []
+#     _comment: |
+#         group3 is the best group
+#         yada yada
+#
+# Note:
+#
+#    LMS and CMS do still share the edxapp database, and therefore share a
+#    User table and Group table. So, edxapp users are created in an LMS context
+#    but exist in CMS as well.
+#
+#    However, some edxapp Django apps are only installed into CMS (but not LMS),
+#    and vice versa. In order to create a group and grant it permissions,
+#    the permissions must be from apps that are installed into the running
+#    service. So, to create groups for LMS-only apps, we must create groups
+#    in an LMS context, and to create groups for CMS-only apps, we must create
+#    groups in a CMS context. Thus, while users are managed jointly for LMS/CMS,
+#    groups are managed separately.
+#
+#    That being said, note that the groups created in one service variant should be
+#    disjoint with those created the other, as the underlying Group table is shared.
+#    That is, each group name should be defined for LMS *or* CMS, not both.
+#    Otherwise, whichever group is created second will override the first one.
+#
+#    Of course, the jointly-managed LMS/CMS users can be assigned to any combination
+#    of both LMS and CMS groups. Assigning users to CMS groups does in fact work through
+#    an LMS context, since the actual CMS permissions are not being referenced.
+#
+# Note: to get a list of all available permissions, run the following code within a Django shell:
+#
+#   from django.contrib.auth.models import Permission
+#   for perm in Permission.objects.all():
+#     print '{}:{}:{}'.format(perm.content_type.app_label, perm.content_type.model, perm.codename)
+#
+- hosts: all
+  vars:
+    env_path: /edx/app/edxapp/edxapp_env
+    python_path: /edx/app/edxapp/venvs/edxapp/bin/python
+    manage_path: /edx/bin/manage.edxapp
+    ignore_user_creation_errors: no
+    deployment_settings: "{{ EDXAPP_SETTINGS | default('production') }}"
+    group_environment: ""  # By default, create groups for all envs (for backwards compatibility).
+    service: "" # Used to display the service name during execution with *-ida tags. Set using ansible-playbook -e.
+  vars_files:
+    - roles/common_vars/defaults/main.yml
+  tasks:
+    - name: Manage LMS groups
+      tags:
+        - manage-groups-lms
+        - manage-groups  # Old tag pre-lms/cms-group-split, can be removed after TNL-8274.
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
+        manage_group {{ item.name | quote }}
+        {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+      with_items: "{{ django_groups }}"
+      when: (not group_environment) or group_environment in item.environments
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage CMS groups
+      tags:
+        - manage-groups-cms
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} cms --settings={{ deployment_settings }}
+        manage_group {{ item.name | quote }}
+        {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+      with_items: "{{ django_groups }}"
+      when: (not group_environment) or group_environment in item.environments
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage active LMS/CMS users
+      tags:
+        - manage-active-users-edxapp
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+        {% if item.get('unusable_password') %}--unusable-password{% endif %}
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      when: not item.get('unusable_password')
+      register: manage_users_result
+      failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
+      retries: 3
+      until: manage_users_result is not failed
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage inactive LMS/CMS users
+      tags:
+        - manage-inactive-users-edxapp
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }} lms --settings={{ deployment_settings }}
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+        {% if item.get('unusable_password') %}--unusable-password{% endif %}
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      when: item.get('unusable_password')
+      register: manage_users_result
+      failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
+      retries: 3
+      until: manage_users_result is not failed
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage {{ service }} groups
+      tags:
+        - manage-groups-ida
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }}
+        manage_group {{ item.name | quote }}
+        {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+      with_items: "{{ django_groups }}"
+      when: (not group_environment) or group_environment in item.environments
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage active {{ service }} users
+      tags:
+        - manage-active-users-ida
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }}
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+        {% if item.get('unusable_password') %}--unusable-password{% endif %}
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      when: not item.get('unusable_password')
+      register: manage_users_result
+      failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
+      retries: 3
+      until: manage_users_result is not failed
+      become: true
+      become_user: "{{ common_web_user }}"
+
+    - name: Manage inactive {{ service }} users
+      tags:
+        - manage-inactive-users-ida
+      shell: >
+        . {{env_path}} && {{ python_path }} {{ manage_path }}
+        manage_user {{ item.username | quote }} {{ item.email | quote }}
+        {% if item.get('groups', []) | length %}--groups {{ item.groups | default([]) | map('quote') | join(' ') }}{% endif %}
+        {% if item.get('remove') %}--remove{% endif %}
+        {% if item.get('superuser') %}--superuser{% endif %}
+        {% if item.get('staff') %}--staff{% endif %}
+        {% if item.get('unusable_password') %}--unusable-password{% endif %}
+        {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
+      with_items: "{{ django_users }}"
+      when: item.get('unusable_password')
+      register: manage_users_result
+      failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
+      retries: 3
+      until: manage_users_result is not failed
+      become: true
+      become_user: "{{ common_web_user }}"

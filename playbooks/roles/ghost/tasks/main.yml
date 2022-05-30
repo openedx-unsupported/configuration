@@ -1,0 +1,27 @@
+- name: Check if package is installed and version is correct
+  command:  dpkg -s gh-ost | grep Version | cut -d ':' -f 3 | grep {{ GHOST_VERSION }}
+  register: ghost_correct
+  ignore_errors: True
+
+- name: Remove package if exists
+  apt:
+    name: "{{ ghost_package_name }}"
+    state: absent
+  when: ghost_correct.rc != 0
+
+- name: Download package
+  get_url: 
+    url="{{ ghost_package_url }}"
+    dest="{{ ghost_download_target }}"
+  when: ghost_correct.rc != 0
+
+- name: Install ghost_package
+  apt: deb="{{ ghost_download_target }}"
+  sudo: true
+  when: ghost_correct.rc != 0
+
+- name: "Install percona packages for dropping large tables"
+  apt:
+    name: 
+      - "percona-toolkit"
+    state: "present"

@@ -25,47 +25,60 @@
 # Start dealing with Jumbo frames issue in mixed MTU deployements in AWS
 #
 - name: Gather ec2 facts for use in other roles
-  action: ec2_facts
+  action: ec2_metadata_facts
   no_log: True
+  when: AWS_GATHER_FACTS
   tags:
     - deploy
 
 - name: Set the MTU to 1500 temporarily
-  shell: /sbin/ifconfig eth0 mtu 1500 up
+  shell: "/sbin/ifconfig {{ ansible_default_ipv4.interface }} mtu 1500 up"
   when: ansible_distribution in common_debian_variants
 
-- name: Check for eth0.cfg
-  stat:
-    path: /etc/network/interfaces.d/eth0.cfg
-  register: eth0_cfg
+- name: Set the MTU to 1500 permanently
+  template:
+    dest: /etc/network/if-up.d/mtu
+    src: mtu.j2
+    mode: 0755
+    owner: root
+    group: root
   when: ansible_distribution in common_debian_variants
-
-- name: Set the MTU to 1500 inside eth0.cfg file
-  lineinfile:
-    dest: /etc/network/interfaces.d/eth0.cfg
-    regexp: "^post-up /sbin/ifconfig eth0 mtu 1500"
-    line: "post-up /sbin/ifconfig eth0 mtu 1500"
-    insertafter: "^iface"
-  when: ansible_distribution in common_debian_variants and eth0_cfg.stat.exists
-
 #
 # End dealing with Jumbo frames issue in mixed MTU deployements in AWS
 #
 
 - name: Install system packages
   apt:
-    name: "{{ item }}"
+    name: "{{ aws_debian_pkgs }}"
     state: present
     update_cache: yes
-  with_items: "{{ aws_debian_pkgs }}"
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   when: ansible_distribution in common_debian_variants
+
+- name: Copy the Python requirements file
+  template:
+    src: "requirements.txt.j2"
+    dest: "{{ aws_requirements }}"
+    owner: root
+    group: root
+    mode: 0644
 
 - name: Install aws python packages
   pip:
-    name: "{{ item }}"
+    requirements: "{{ aws_requirements }}"
     state: present
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
-  with_items: "{{ aws_pip_pkgs }}"
+
+- name: Copy the boto global config file
+  template:
+    src: "boto.cfg.j2"
+    dest: "/etc/boto.cfg"
+    owner: root
+    group: root
+    mode: 0644
 
 - name: Create s3 log sync script
   template:
@@ -103,4 +116,4 @@
     path: "{{ item.item }}"
     mode: "0644"
   when: vagrant_home_dir.stat.exists == False and ansible_distribution in common_debian_variants and item.stat.exists
-  with_items: "{{ motd_files_exist.results }}" 
+  with_items: "{{ motd_files_exist.results }}"

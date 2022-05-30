@@ -17,12 +17,9 @@ It relies on some component applying the proper tags and performing pre-retireme
 """
 
 import argparse
-import boto
-import boto.ec2
-import boto.sqs
+import boto3
 import json
 import subprocess
-from boto.sqs.message import RawMessage
 import logging
 import os
 from distutils import spawn
@@ -35,42 +32,39 @@ class LifecycleHandler:
     INSTANCE_TERMINATION = 'autoscaling:EC2_INSTANCE_TERMINATING'
     TEST_NOTIFICATION = 'autoscaling:TEST_NOTIFICATION'
     NUM_MESSAGES = 10
-    WAIT_TIME_SECONDS = 10
+    WAIT_TIME_SECONDS = 1
+    VISIBILITY_TIMEOUT = 10
 
-    def __init__(self, profile, queue, hook, dry_run, bin_directory=None):
+    def __init__(self, region, queue, hook, dry_run, bin_directory=None):
         logging.basicConfig(level=logging.INFO)
         self.queue = queue
         self.hook = hook
-        self.profile = profile
+        self.region = region
         if bin_directory:
             os.environ["PATH"] = bin_directory + os.pathsep + os.environ["PATH"]
         self.aws_bin = spawn.find_executable('aws')
         self.python_bin = spawn.find_executable('python')
-        self.region = os.environ.get('AWS_REGION','us-east-1')
 
         self.base_cli_command ="{python_bin} {aws_bin} ".format(
             python_bin=self.python_bin,
             aws_bin=self.aws_bin)
-        if self.profile:
-            self.base_cli_command += "--profile {profile} ".format(profile=self.profile)
+        
         if self.region:
-            self.base_cli_command += "--region {region} ".format(region=self.region)
+            self.base_cli_command += f"--region {self.region} "
 
-        self.dry_run = dry_run
-        self.ec2_con = boto.ec2.connect_to_region(self.region)
-        self.sqs_con = boto.sqs.connect_to_region(self.region)
+        self.dry_run = args.dry_run
+        self.ec2_con = boto3.client('ec2',region_name=self.region)
+        self.sqs_con = boto3.client('sqs',region_name=self.region)
 
     def process_lifecycle_messages(self):
-        queue = self.sqs_con.get_queue(self.queue)
+        queue_url = self.sqs_con.get_queue_url(QueueName=self.queue)['QueueUrl']
+        queue = boto3.resource('sqs', region_name=self.region).Queue(queue_url)
 
-        # Needed to get unencoded message for ease of processing
-        queue.set_message_class(RawMessage)
-
-        for sqs_message in queue.get_messages(LifecycleHandler.NUM_MESSAGES,
-                                              wait_time_seconds=LifecycleHandler.WAIT_TIME_SECONDS):
-            body = json.loads(sqs_message.get_body_encoded())
+        for sqs_message in self.sqs_con.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=LifecycleHandler.NUM_MESSAGES, VisibilityTimeout=LifecycleHandler.VISIBILITY_TIMEOUT,
+                                              WaitTimeSeconds=LifecycleHandler.WAIT_TIME_SECONDS).get('Messages', []):
+            body = json.loads(sqs_message['Body'])
             as_message = json.loads(body['Message'])
-            logging.info("Proccessing message {message}.".format(message=as_message))
+            logging.info(f"Proccessing message {as_message}.")
 
             if 'LifecycleTransition' in as_message and as_message['LifecycleTransition'] \
                     == LifecycleHandler.INSTANCE_TERMINATION:
@@ -112,10 +106,10 @@ class LifecycleHandler:
 
     def delete_sqs_message(self, queue, sqs_message, as_message, dry_run):
         if not dry_run:
-            logging.info("Deleting message with body {message}".format(message=as_message))
-            self.sqs_con.delete_message(queue, sqs_message)
+            logging.info(f"Deleting message with body {as_message}")
+            self.sqs_con.delete_message(QueueUrl=queue.url, ReceiptHandle=sqs_message['ReceiptHandle'])
         else:
-            logging.info("Would have deleted message with body {message}".format(message=as_message))
+            logging.info(f"Would have deleted message with body {as_message}")
 
     def record_lifecycle_action_heartbeat(self, asg, token, hook):
 
@@ -137,27 +131,29 @@ class LifecycleHandler:
 
     def run_subprocess_command(self, command, dry_run):
 
-        message = "Running command {command}.".format(command=command)
+        message = f"Running command {command}."
 
         if not dry_run:
             logging.info(message)
             try:
                 output = subprocess.check_output(command.split(' '))
-                logging.info("Output was {output}".format(output=output))
+                logging.info(f"Output was {output}")
             except Exception as e:
                 logging.exception(e)
                 raise  e
         else:
-            logging.info("Dry run: {message}".format(message=message))
+            logging.info(f"Dry run: {message}")
 
     def get_ec2_instance_by_id(self, instance_id):
         """
         Simple boto call to get the instance based on the instance-id
         """
-        instances = self.ec2_con.get_only_instances([instance_id])
-
+        reservations = self.ec2_con.describe_instances(InstanceIds=[instance_id]).get('Reservations', [])
+        instances = []
+        if len(reservations) == 1:
+            instances = reservations[0].get('Instances', [])
         if len(instances) == 1:
-            return self.ec2_con.get_only_instances([instance_id])[0]
+            return self.ec2_con.describe_instances(InstanceIds=[instance_id])['Reservations'][0]['Instances'][0]
         else:
             return None
 
@@ -167,13 +163,17 @@ class LifecycleHandler:
         with the value 'true'
         """
         instance = self.get_ec2_instance_by_id(instance_id)
+        tags_dict = {}
 
         if instance:
-            if 'safe_to_retire' in instance.tags and instance.tags['safe_to_retire'].lower() == 'true':
-                logging.info("Instance with id {id} is safe to retire.".format(id=instance_id))
+            tags_dict = {}
+            for t in instance['Tags']:
+                tags_dict[t['Key']] = t['Value']
+            if 'safe_to_retire' in tags_dict and tags_dict['safe_to_retire'].lower() == 'true':
+                logging.info(f"Instance with id {instance_id} is safe to retire.")
                 return True
             else:
-                logging.info("Instance with id {id} is not safe to retire.".format(id=instance_id))
+                logging.info(f"Instance with id {instance_id} is not safe to retire.")
                 return False
         else:
             # No instance for id in SQS message this can happen if something else
@@ -184,9 +184,9 @@ class LifecycleHandler:
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--profile',
-                        help='The boto profile to use '
-                             'per line.',default=None)
+    parser.add_argument('-r', '--region',
+                        help='The aws region to use '
+                             'per line.',default='us-east-1')
     parser.add_argument('-b', '--bin-directory', required=False, default=None,
                         help='The bin directory of the virtual env '
                              'from which to run the AWS cli (optional)')
@@ -201,5 +201,5 @@ if __name__=="__main__":
     parser.set_defaults(dry_run=False)
     args = parser.parse_args()
 
-    lh = LifecycleHandler(args.profile, args.queue, args.hook, args.dry_run, args.bin_directory)
+    lh = LifecycleHandler(args.region, args.queue, args.hook, args.dry_run, args.bin_directory)
     lh.process_lifecycle_messages()

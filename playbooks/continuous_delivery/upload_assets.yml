@@ -1,0 +1,46 @@
+# This playbook will upload assets from a django service to an S3 bucket
+#
+#
+# Required variables for this playbook:
+#
+#   - APPLICATION_PATH                - the top-level path of the Django application; the application lives underneath
+#                                       this directory in a directory with the same name as APPLICATION_NAME.
+#   - APPLICATION_NAME                - The name of the application that we are running against
+#   - APPLICATION_USER                - user which is meant to run the application
+#   - BUCKET_PATH                     - name of the bucket to upload assets to
+#
+# Other variables:
+#   - EDX_PLATFORM_SETTINGS           - The settings to use for the edx platform {production|devstack} DEFAULT: production
+#
+# Example command line to run this playbook:
+#    ansible-playbook -vvvv -i "localhost," -c local \
+#       -e @overrides.yml \
+#       run_management_command.yml
+#
+
+
+
+- hosts: all
+  vars:
+    EDX_PLATFORM_SETTINGS: "production"
+    # Both LMS and Studio gather their assets to the same directory,
+    # so most of the time leaving the default sub-application will be fine.
+    SUB_APPLICATION_NAME: "lms"
+    COMMAND_PREFIX: " . {{ APPLICATION_PATH }}/{{ APPLICATION_NAME }}_env; {{ APPLICATION_PATH }}/venvs/{{ APPLICATION_NAME }}/bin/python /edx/bin/manage.{{ APPLICATION_NAME }}"
+    STATIC_ROOT: >-
+      $({{ COMMAND_PREFIX }} shell --command "from django.conf import settings; print(getattr(settings, 'STATIC_ROOT', ''))")
+    STATIC_ROOT_EDXAPP: >-
+      $({{ COMMAND_PREFIX }} {{ SUB_APPLICATION_NAME }} shell --settings "{{ EDX_PLATFORM_SETTINGS }}" --command "from django.conf import settings; print(getattr(settings, 'STATIC_ROOT', ''))")
+  gather_facts: False
+  become: True
+  tasks:
+
+  - name: sync assets to s3
+    shell: 'aws s3 sync {{ STATIC_ROOT }} {{ BUCKET_PATH }}'
+    become_user: "{{ APPLICATION_USER }}"
+    when: APPLICATION_NAME != "edxapp"
+
+  - name: sync edxapp assets to s3
+    shell: 'aws s3 sync {{ STATIC_ROOT_EDXAPP }} {{ BUCKET_PATH }}'
+    become_user: "{{ APPLICATION_USER }}"
+    when: APPLICATION_NAME == "edxapp"

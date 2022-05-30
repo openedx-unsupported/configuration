@@ -1,0 +1,42 @@
+---
+- name: Create or update SiteConfiguration
+  block:
+    - name: Create the SiteConfiguration JSON file
+      template:
+        src: "site_configuration.json.j2"
+        dest: "/tmp/site_configuration.json"
+
+    - name: Use the site_id if it is provided
+      set_fact:
+        site_identifier: "--site-id {{ item.site_id }}"
+      when: item.site_id is defined and item.domain is not defined
+
+    - name: Use the domain name if it is provided
+      set_fact:
+        site_identifier: "{{ item.domain }}"
+      when: item.domain is defined and item.site_id is not defined
+
+    - name: Fail if both site_id and domain are provided
+      fail:
+        msg: "Cannot specify the site_id and domain at the same time in {{ item }}"
+      when: item.domain is defined and item.site_id is defined
+
+    - name: Get the default SITE_ID
+      shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms print_setting SITE_ID 2>/dev/null"
+      register: default_site_id
+      when: item.site_id is not defined and item.domain is not defined
+
+    - name: Use the default SITE_ID as the site identifier
+      set_fact:
+        site_identifier: "--site-id {{ default_site_id.stdout }}"
+      when: item.site_id is not defined and item.domain is not defined
+
+    - name: Run create_or_update_site_configuration
+      shell: |
+        . {{ edxapp_app_dir }}/edxapp_env
+        {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms create_or_update_site_configuration -f /tmp/site_configuration.json --enabled {{ site_identifier }}
+
+    - name: Remove the generated SiteConfiguration JSON file
+      file:
+        path: "/tmp/site_configuration.json"
+        state: absent

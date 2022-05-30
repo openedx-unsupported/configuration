@@ -6,8 +6,8 @@
   user:
     name: "{{ edxapp_user }}"
     home: "{{ edxapp_app_dir }}"
-    createhome: no
-    shell: /bin/false
+    createhome: "{{ edxapp_user_createhome }}"
+    shell: "{{ edxapp_user_shell }}"
   tags:
     - install
     - install:base
@@ -27,29 +27,36 @@
     - { path: "{{ edxapp_theme_dir }}" }
     - { path: "{{ edxapp_staticfile_dir }}" }
     - { path: "{{ edxapp_course_static_dir }}" }
-    - { path: "{{ edxapp_course_data_dir }}" }
     # var should have more permissive permissions than the rest
     - { path: "{{ edxapp_data_dir }}", mode: "0775" }
     # directory to import the courses from github
     - { path: "{{ EDXAPP_GIT_REPO_DIR }}", mode: "0775" }
+    # directory to export the courses to git
+    - { path: "{{ EDXAPP_GIT_REPO_EXPORT_DIR }}", mode: "0775" }
   tags:
     - install
     - install:base
 
-# This is a symlink that has to exist because
-# we currently can't override the DATA_DIR var
-# in edx-platform. TODO: This can be removed once
-# VPC-122 is closed
-- name: make the course data dir
-  file:
-    src: "{{ edxapp_course_data_dir }}"
-    dest: "{{ edxapp_legacy_course_data_dir }}"
-    state: link
-    owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
+- name: write devstack script
+  template:
+    src: "devstack.sh.j2"
+    dest: "{{ edxapp_app_dir }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  when: devstack is defined and devstack
   tags:
-    - install
-    - install:base
+    - devstack
+    - devstack:install
+
+- name: add paver autocomplete to bashrc
+  lineinfile:
+    dest: /root/.bashrc
+    line: "source {{ edxapp_code_dir }}/scripts/paver_autocomplete.sh"
+  when: devstack is defined and devstack
+  tags:
+  - devstack
+  - devstack:install
 
 - name: create edxapp log dir
   file:
@@ -97,22 +104,52 @@
     - install
     - install:base
 
-# adding chris-lea nodejs repo
-# TODO: 16.04
-- name: add ppas for current versions of nodejs
-  apt_repository:
-    repo: "{{ edxapp_chrislea_ppa }}"
-  when: ansible_distribution_release == 'precise'
-  tags:
-    - install
-    - install:base
-    
 - name: install system packages on which LMS and CMS rely
   apt:
     name: "{{ item }}"
     state: present
     update_cache: yes
-  with_items: "{{ edxapp_debian_pkgs }}"
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
+  with_flattened:
+    - "{{ edxapp_debian_pkgs_default }}"
+    - "{{ edxapp_debian_pkgs_extra }}"
+  tags:
+    - install
+    - install:base
+
+- name: Install the gpg key for nodejs LTS
+  apt_key:
+    url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install the nodejs LTS repos
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_{{ EDXAPP_NODE_VERSION }}.x {{ ansible_distribution_release }} main"
+    state: present
+    update_cache: yes
+  register: add_repo
+  until: add_repo|success
+  retries: 10
+  delay: 5
+  tags:
+    - install
+    - install:base
+
+- name: Install node
+  apt:
+    name: nodejs
+    state: present
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   tags:
     - install
     - install:base
@@ -128,6 +165,30 @@
     - install
     - install:base
 
+# This will install npm EDXAPP_NPM_VERSION to edxapp_npm_bin rather than updating the global npm version installed via apt.
+# As edxapp_npm_bin is already part of edxapp_environment, the npm command will always pick up the one installed in edxapp_npm_bin.
+- name: Pin npm to {{ EDXAPP_NPM_VERSION }}
+  shell: "npm install -g npm@{{ EDXAPP_NPM_VERSION }}"
+  environment: "{{ edxapp_environment | combine(git_ssh_environment_mixin) }}"
+  become_user: "{{ edxapp_user }}"
+  tags:
+    - install
+    - install:base
+
+- name: install python3.8
+  apt:
+    pkg:
+      - python3.8-dev
+      - python3.8-distutils
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
+  tags:
+    - install
+    - install:system-requirements
+
 - name: create log directories for service variants
   file:
     path: "{{ edxapp_log_dir }}/{{ item }}"
@@ -139,7 +200,7 @@
   tags:
     - install
     - install:base
- 
+
 # Set up the python sandbox execution environment
 - include: python_sandbox_env.yml
   when: EDXAPP_PYTHON_SANDBOX
@@ -149,3 +210,15 @@
 - include: deploy.yml
   tags:
     - deploy
+
+- name: Include JWT signature setting in the app config file
+  include_role:
+    name: jwt_signature
+  when: CONFIGURE_JWTS and celery_worker is not defined
+  vars:
+     app_name: 'lms'
+     app_config_file: "{{ COMMON_CFG_DIR }}/lms.yml"
+     app_config_owner: "{{ edxapp_user }}"
+     app_config_group: root
+     app_config_mode: 0644
+     CAN_GENERATE_NEW_JWT_SIGNATURE: True

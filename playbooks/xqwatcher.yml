@@ -1,0 +1,21 @@
+- name: Deploy xqueue-watcher
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    COMMON_APP_DIR: "/edx/app"
+    common_web_group: "www-data"
+    ENABLE_DATADOG: False
+    ENABLE_NEWRELIC: False
+    serial_count: 1
+  serial: "{{ serial_count }}"
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - xqwatcher
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG

@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+# From https://github.com/ansible/ansible/issues/31527#issuecomment-335495855
 
 import os
 import sys
@@ -63,19 +64,19 @@ class CallbackModule(CallbackBase):
         self.start_time = time.time()
 
         if not 'SQS_REGION' in os.environ:
-            print 'ANSIBLE_ENABLE_SQS enabled but SQS_REGION ' \
-                  'not defined in environment'
+            print('ANSIBLE_ENABLE_SQS enabled but SQS_REGION ' \
+                  'not defined in environment')
             sys.exit(1)
         self.region = os.environ['SQS_REGION']
         try:
             self.sqs = boto.sqs.connect_to_region(self.region)
         except NoAuthHandlerFound:
-            print 'ANSIBLE_ENABLE_SQS enabled but cannot connect ' \
-                  'to AWS due invalid credentials'
+            print('ANSIBLE_ENABLE_SQS enabled but cannot connect ' \
+                  'to AWS due invalid credentials')
             sys.exit(1)
         if not 'SQS_NAME' in os.environ:
-            print 'ANSIBLE_ENABLE_SQS enabled but SQS_NAME not ' \
-                  'defined in environment'
+            print('ANSIBLE_ENABLE_SQS enabled but SQS_NAME not ' \
+                  'defined in environment')
             sys.exit(1)
         self.name = os.environ['SQS_NAME']
         self.queue = self.sqs.create_queue(self.name)
@@ -149,7 +150,7 @@ class CallbackModule(CallbackBase):
                     self.sqs.send_message(self.queue, json.dumps(payload))
                     break
                 except socket.gaierror as e:
-                    print 'socket.gaierror will retry: ' + e
+                    print('socket.gaierror will retry: ' + e)
                     time.sleep(1)
                 except Exception as e:
                     raise e

@@ -14,7 +14,7 @@
   tags:
     - install
     - install:base
-  
+
 - name: Remove mongo 2.4 if present
   apt:
     pkg: mongodb-10gen
@@ -25,12 +25,12 @@
   tags:
     - install
     - install:base
-  
+
 - name: Install python pymongo for mongo_user ansible module
   pip:
     name: pymongo
     state: present
-    version: "{{ pymongo_version }}"
+    version: "{{ PYMONGO_VERSION }}"
     extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   tags:
     - install
@@ -41,6 +41,7 @@
     id: "{{ MONGODB_APT_KEY }}"
     keyserver: "{{ MONGODB_APT_KEYSERVER }}"
     state: present
+  retries: 3
   tags:
     - install
     - install:base
@@ -55,7 +56,7 @@
 
 - name: Install mongo server and recommends
   apt:
-    name: "mongodb-org={{ mongo_version }}"
+    name: "mongodb-org={{ MONGO_VERSION }}"
     state: present
     install_recommends: yes
     force: yes
@@ -149,7 +150,7 @@
 
 - name: Wait for mongo server to start
   wait_for:
-    port: 27017 
+    port: 27017
     delay: 2
   tags:
     - manage
@@ -232,10 +233,9 @@
     - manage:app-users
 
 - name: Install s3cmd
-  pip:
+  apt:
     name: "s3cmd"
     state: present
-    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
   when: MONGO_S3_BACKUP
   tags:
     - install
@@ -257,7 +257,7 @@
     - install:configuration
 
 - name: Schedule backup-mongo-to-3s crontab
-  cron: 
+  cron:
     name: "backup-mongo-to-s3"
     job: "/edx/bin/backup-mongo-to-s3.sh"
     backup: yes

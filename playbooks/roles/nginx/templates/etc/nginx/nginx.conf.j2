@@ -18,12 +18,18 @@ http {
         tcp_nodelay on;
         keepalive_timeout 65;
         types_hash_max_size 2048;
+        {% if NGINX_OVERRIDE_DEFAULT_MAP_HASH_SIZE %}
+        map_hash_max_size {{ NGINX_MAP_HASH_MAX_SIZE }};
+        map_hash_bucket_size {{ NGINX_MAP_HASH_BUCKET_SIZE }};
+        {% endif %}
         # increase header buffer for for https://edx-wiki.atlassian.net/browse/LMS-467&gt
         # see http://orensol.com/2009/01/18/nginx-and-weird-400-bad-request-responses/
-        large_client_header_buffers 4 16k;
-        # server_tokens off;
+        large_client_header_buffers 8 16k;
+        server_tokens off;
 
-        # server_names_hash_bucket_size 64;
+        {% if NGINX_OVERRIDE_DEFAULT_SERVER_NAMES_HASH_SIZE %}
+        server_names_hash_bucket_size {{ NGINX_SERVER_NAMES_HASH_BUCKET_SIZE }};
+        {% endif %}
         # server_name_in_redirect off;
 
         include /etc/nginx/mime.types;
@@ -33,7 +39,7 @@ http {
         # Logging Settings
         ##
 
-        log_format {{ NGINX_LOG_FORMAT_NAME }} '$http_x_forwarded_for - $remote_addr - $remote_user [$time_local]  '
+        log_format p_combined '$http_x_forwarded_for - $remote_addr - $remote_user $http_x_forwarded_proto [$time_local]  '
                             '"$request" $status $body_bytes_sent $request_time '
                             '"$http_referer" "$http_user_agent"';
 
@@ -41,8 +47,63 @@ http {
                                 '"$request" $status $body_bytes_sent $request_time '
                                 '"$http_referer" "$http_user_agent"';
 
-        access_log {{ nginx_log_dir }}/access.log p_combined;
+        log_format app_metrics 'time=$time_iso8601 client=$remote_addr method=$request_method request="$request" '
+                               'request_length=$request_length status=$status bytes_sent=$bytes_sent body_bytes_sent=$body_bytes_sent '
+                               'referer=$http_referer user_agent="$http_user_agent" upstream_addr=$upstream_addr upstream_status=$upstream_status '
+                               'request_time=$request_time request_id=$request_id upstream_response_time=$upstream_response_time '
+                               'upstream_connect_time=$upstream_connect_time upstream_header_time=$upstream_header_time';
+
+        log_format json_analytics escape=json '{'
+                   '"msec": "$msec", ' # request unixtime in seconds with a milliseconds resolution
+                   '"connection": "$connection", ' # connection serial number
+                   '"connection_requests": "$connection_requests", ' # number of requests made in connection
+                   '"pid": "$pid", ' # process pid
+                   '"request_id": "$request_id", ' # the unique request id
+                   '"request_length": "$request_length", ' # request length (including headers and body)
+                   '"remote_addr": "$remote_addr", ' # client IP
+                   '"remote_user": "$remote_user", ' # client HTTP username
+                   '"remote_port": "$remote_port", ' # client port
+                   '"time_local": "$time_local", '
+                   '"time_iso8601": "$time_iso8601", ' # local time in the ISO 8601 standard format
+                   '"request": "$request", ' # full path no arguments of the request
+                   '"request_uri": "$request_uri", ' # full path and arguments of the request
+                   '"args": "$args", ' # args
+                   '"status": "$status", ' # response status code
+                   '"body_bytes_sent": "$body_bytes_sent", ' # the number of body bytes exclude headers sent to a client
+                   '"bytes_sent": "$bytes_sent", ' # the number of bytes sent to a client
+                   '"http_referer": "$http_referer", ' # HTTP referer
+                   '"http_user_agent": "$http_user_agent", ' # user agent
+                   '"http_x_forwarded_for": "$http_x_forwarded_for", ' # http_x_forwarded_for
+                   '"http_host": "$http_host", ' # the request Host: header
+                   '"server_name": "$server_name", ' # the name of the vhost serving the request
+                   '"request_time": "$request_time", ' # request processing time in seconds with msec resolution
+                   '"upstream": "$upstream_addr", ' # upstream backend server for proxied requests
+                   '"upstream_connect_time": "$upstream_connect_time", ' # upstream handshake time incl. TLS
+                   '"upstream_header_time": "$upstream_header_time", ' # time spent receiving upstream headers
+                   '"upstream_response_time": "$upstream_response_time", ' # time spent receiving upstream body
+                   '"upstream_response_length": "$upstream_response_length", ' # upstream response length
+                   '"upstream_cache_status": "$upstream_cache_status", ' # cache HIT/MISS where applicable
+                   '"ssl_protocol": "$ssl_protocol", ' # TLS protocol
+                   '"ssl_cipher": "$ssl_cipher", ' # TLS cipher
+                   '"scheme": "$scheme", ' # http or https
+                   '"request_method": "$request_method", ' # request method
+                   '"server_protocol": "$server_protocol", ' # request protocol, like HTTP/1.1 or HTTP/2.0
+                   '"pipe": "$pipe", ' # "p" if request was pipelined, "." otherwise
+                   '"gzip_ratio": "$gzip_ratio"'
+                   '}';
+
+        access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
         error_log {{ nginx_log_dir }}/error.log;
+
+        ##
+        # SSL/TLS settings
+        ##
+
+        ssl_protocols {{ NGINX_SSL_PROTOCOLS }};
+        ssl_ciphers {{ NGINX_SSL_CIPHERS }};
+        ssl_prefer_server_ciphers on;
+        ssl_dhparam {{ NGINX_DH_PARAMS_PATH }};
+
 
         ##
         # Gzip Settings
@@ -65,4 +126,3 @@ http {
         include {{ nginx_conf_dir }}/*.conf;
         include {{ nginx_sites_enabled_dir }}/*;
 }
-

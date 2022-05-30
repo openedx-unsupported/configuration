@@ -10,9 +10,11 @@
 {% endif %}
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED='{{ ECOMMERCE_WORKER_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }}'
 export NEW_RELIC_APP_NAME='{{ ECOMMERCE_WORKER_NEWRELIC_APPNAME }}'
 export NEW_RELIC_LICENSE_KEY='{{ NEWRELIC_LICENSE_KEY }}'
 {% endif -%}
 
 source {{ ecommerce_worker_home }}/{{ ecommerce_worker_service_name }}_env
-{{ executable }} -A ecommerce_worker worker --app ecommerce_worker.celery_app:app --concurrency={{ ECOMMERCE_WORKER_CONCURRENCY }} --loglevel=info --queue=fulfillment,email_marketing
+# We exec so that celery is the child of supervisor and can be managed properly
+exec {{ executable }} -A ecommerce_worker.celery_app:app worker --concurrency={{ ECOMMERCE_WORKER_CONCURRENCY }} --loglevel=info --hostname=ecomworker.%%h --queue=ecommerce.fulfillment,ecommerce.email_marketing

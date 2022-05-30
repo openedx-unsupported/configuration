@@ -38,6 +38,7 @@
     virtualenv: "{{ insights_venv_dir }}"
     state: present
     extra_args: "--exists-action w"
+    virtualenv_python: python3.8
   become_user: "{{ insights_user }}"
   with_items: "{{ insights_requirements }}"
   tags:
@@ -45,30 +46,27 @@
     - install:app-requirements
 
 - name: create nodeenv
-  shell: "{{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --node={{ insights_node_version }} --prebuilt --force"
+  shell: "{{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --node={{ INSIGHTS_NODE_VERSION }} --prebuilt --force"
   become_user: "{{ insights_user }}"
   tags:
     - install
     - install:system-requirements
 
-- name: install node dependencies
-  npm:
-    executable: "{{ insights_nodeenv_bin }}/npm"
-    path: "{{ insights_code_dir }}"
-    production: yes
-    state: latest
+- name: upgrade npm
+  command: "npm install -g npm@{{ INSIGHTS_NPM_VERSION }}"
   become_user: "{{ insights_user }}"
+  environment: "{{ insights_environment }}"
   tags:
     - install
-    - install:app-requirements
-  environment: "{{ insights_environment }}"
+    - install:system-requirements
 
-- name: install bower dependencies
-  shell: ". {{ insights_venv_dir }}/bin/activate && . {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/bower install --production --config.interactive=false"
+# install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+- name: install node dependencies
+  shell: "{{ insights_nodeenv_bin }}/npm install"
   args:
     chdir: "{{ insights_code_dir }}"
-
   become_user: "{{ insights_user }}"
+  environment: "{{ insights_environment }}"
   tags:
     - install
     - install:app-requirements
@@ -80,15 +78,17 @@
   become_user: "{{ insights_user }}"
   environment: "{{ insights_environment }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  run_once: yes
   tags:
     - migrate
     - migrate:db
 
-- name: run r.js optimizer
-  shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js"
+- name: run webpack
+  shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/webpack --config webpack.prod.config.js"
   args:
     chdir: "{{ insights_code_dir }}"
   become_user: "{{ insights_user }}"
+  environment: "{{ insights_environment }}"
   tags:
     - assets
     - assets:gather
@@ -101,16 +101,6 @@
   environment: "{{ insights_environment }}"
   with_items:
     - "collectstatic --noinput"
-    - "compress"
-  tags:
-    - assets
-    - assets:gather
-
-- name: compile translations
-  shell: ". {{ insights_venv_dir }}/bin/activate && i18n_tool generate -v"
-  args:
-    chdir: "{{ insights_code_dir }}/analytics_dashboard"
-  become_user: "{{ insights_user }}"
   tags:
     - assets
     - assets:gather
@@ -154,19 +144,6 @@
   tags:
     - manage
     - manage:start
-
-- name: create symlinks from the venv bin dir
-  file:
-    src: "{{ insights_venv_dir }}/bin/{{ item }}"
-    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ insights_service_name }}"
-    state: link
-  with_items:
-  - python
-  - pip
-  - django-admin.py
-  tags:
-    - install
-    - install:base
 
 - name: create manage.py symlink
   file:

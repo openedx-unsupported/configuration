@@ -1,0 +1,168 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role license_manager
+#
+
+LICENSE_MANAGER_GIT_IDENTITY: !!null
+
+LICENSE_MANAGER_ENABLED: True
+
+#
+# vars are namespace with the module name.
+#
+license_manager_service_name: 'license_manager'
+
+license_manager_user: "{{ license_manager_service_name }}"
+license_manager_home: "{{ COMMON_APP_DIR }}/{{ license_manager_service_name }}"
+license_manager_app_dir: "{{ COMMON_APP_DIR }}/{{ license_manager_service_name }}"
+license_manager_code_dir: "{{ license_manager_app_dir }}/{{ license_manager_service_name }}"
+license_manager_venvs_dir: "{{ license_manager_app_dir }}/venvs"
+license_manager_venv_dir: "{{ license_manager_venvs_dir }}/license_manager"
+license_manager_celery_default_queue: 'license_manager.default'
+license_manager_hostname: "license-manager"
+
+LICENSE_MANAGER_USE_PYTHON38: True
+
+LICENSE_MANAGER_CELERY_ALWAYS_EAGER: false
+LICENSE_MANAGER_CELERY_BROKER_TRANSPORT: ''
+LICENSE_MANAGER_CELERY_BROKER_USER: ''
+LICENSE_MANAGER_CELERY_BROKER_PASSWORD: ''
+LICENSE_MANAGER_CELERY_BROKER_HOSTNAME: ''
+LICENSE_MANAGER_CELERY_BROKER_VHOST: ''
+
+license_manager_environment:
+  LICENSE_MANAGER_CFG: '{{ COMMON_CFG_DIR }}/{{ license_manager_service_name }}.yml'
+
+license_manager_gunicorn_port: 18170
+
+license_manager_debian_pkgs: []
+
+LICENSE_MANAGER_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: 'license-manager.git'
+    VERSION: '{{ LICENSE_MANAGER_VERSION }}'
+    DESTINATION: "{{ license_manager_code_dir }}"
+    SSH_KEY: '{{ LICENSE_MANAGER_GIT_IDENTITY }}'
+
+LICENSE_MANAGER_NGINX_PORT: '1{{ license_manager_gunicorn_port }}'
+LICENSE_MANAGER_SSL_NGINX_PORT: '4{{ license_manager_gunicorn_port }}'
+
+LICENSE_MANAGER_DEFAULT_DB_NAME: 'license-manager'
+LICENSE_MANAGER_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+LICENSE_MANAGER_MYSQL_USER: 'license-manager001'
+LICENSE_MANAGER_MYSQL_PASSWORD: 'password'
+LICENSE_MANAGER_MYSQL_CONN_MAX_AGE: 60
+
+LICENSE_MANAGER_MEMCACHE: [ 'memcache' ]
+
+LICENSE_MANAGER_DJANGO_SETTINGS_MODULE: 'license_manager.settings.production'
+LICENSE_MANAGER_DOMAIN: 'localhost'
+LICENSE_MANAGER_URL_ROOT: 'http://{{ LICENSE_MANAGER_DOMAIN }}:{{ LICENSE_MANAGER_NGINX_PORT }}'
+LICENSE_MANAGER_API_ROOT: '{{ LICENSE_MANAGER_URL_ROOT }}/api'
+LICENSE_MANAGER_LOGOUT_URL: '{{ LICENSE_MANAGER_URL_ROOT }}/logout/'
+
+LICENSE_MANAGER_LANG: 'en_US.UTF-8'
+LICENSE_MANAGER_LANGUAGE_CODE: 'en'
+LICENSE_MANAGER_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+LICENSE_MANAGER_SERVICE_USER: 'license_manager_service_user'
+
+LICENSE_MANAGER_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ license_manager_service_name }}'
+LICENSE_MANAGER_MEDIA_ROOT: '{{ LICENSE_MANAGER_DATA_DIR }}/media'
+LICENSE_MANAGER_MEDIA_URL: '/api/media/'
+
+LICENSE_MANAGER_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ LICENSE_MANAGER_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ LICENSE_MANAGER_MEDIA_URL }}'
+
+# TODO: Let edx_django_service manage LICENSE_MANAGER_STATIC_ROOT in phase 2.
+LICENSE_MANAGER_STATIC_ROOT: '{{ LICENSE_MANAGER_DATA_DIR }}/staticfiles'
+LICENSE_MANAGER_STATIC_URL: '/static/'
+
+LICENSE_MANAGER_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+LICENSE_MANAGER_CORS_ORIGIN_ALLOW_ALL: false
+LICENSE_MANAGER_CORS_ORIGIN_WHITELIST: []
+
+LICENSE_MANAGER_CSRF_COOKIE_SECURE: false
+LICENSE_MANAGER_CSRF_TRUSTED_ORIGINS: []
+
+LICENSE_MANAGER_VERSION: 'master'
+
+LICENSE_MANAGER_GUNICORN_EXTRA: ''
+
+LICENSE_MANAGER_EXTRA_APPS: []
+
+LICENSE_MANAGER_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+LICENSE_MANAGER_CERTIFICATE_LANGUAGES:
+  'en': 'English'
+  'es_419': 'Spanish'
+
+# Used to automatically configure OAuth2 Client
+LICENSE_MANAGER_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'license_manager-sso-key'
+LICENSE_MANAGER_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'license_manager-sso-secret'
+LICENSE_MANAGER_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'license_manager-backend-service-key'
+LICENSE_MANAGER_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'license_manager-backend-service-secret'
+LICENSE_MANAGER_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+# API key for segment.io
+LICENSE_MANAGER_SEGMENT_KEY: !!null
+
+LICENSE_MANAGER_DISCOVERY_BASE_URL: !!null
+LICENSE_MANAGER_LMS_BASE_URL: !!null
+
+license_manager_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ LICENSE_MANAGER_CERTIFICATE_LANGUAGES }}'
+  LICENSE_MANAGER_SERVICE_USER: '{{ LICENSE_MANAGER_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ LICENSE_MANAGER_LANGUAGE_COOKIE_NAME }}'
+  SEGMENT_KEY: "{{ LICENSE_MANAGER_SEGMENT_KEY }}"
+  DISCOVERY_BASE_URL: "{{ LICENSE_MANAGER_DISCOVERY_BASE_URL }}"
+  LMS_BASE_URL: "{{ LICENSE_MANAGER_LMS_BASE_URL }}"
+  CORS_ORIGIN_WHITELIST: "{{ LICENSE_MANAGER_CORS_ORIGIN_WHITELIST }}"
+  CSRF_TRUSTED_ORIGINS: "{{ LICENSE_MANAGER_CSRF_TRUSTED_ORIGINS }}"
+  CSRF_COOKIE_SECURE: "{{ LICENSE_MANAGER_CSRF_COOKIE_SECURE }}"
+  CELERY_ALWAYS_EAGER: '{{ LICENSE_MANAGER_CELERY_ALWAYS_EAGER }}'
+  CELERY_BROKER_TRANSPORT: '{{ LICENSE_MANAGER_CELERY_BROKER_TRANSPORT }}'
+  CELERY_BROKER_USER: '{{ LICENSE_MANAGER_CELERY_BROKER_USER }}'
+  CELERY_BROKER_PASSWORD: '{{ LICENSE_MANAGER_CELERY_BROKER_PASSWORD }}'
+  CELERY_BROKER_HOSTNAME: '{{ LICENSE_MANAGER_CELERY_BROKER_HOSTNAME }}'
+  CELERY_BROKER_VHOST: '{{ LICENSE_MANAGER_CELERY_BROKER_VHOST }}'
+  CELERY_DEFAULT_EXCHANGE: 'license_manager'
+  CELERY_DEFAULT_ROUTING_KEY: 'license_manager'
+  CELERY_DEFAULT_QUEUE: '{{ license_manager_celery_default_queue }}'
+
+# See edx_django_service_automated_users for an example of what this should be
+LICENSE_MANAGER_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+
+LICENSE_MANAGER_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+# Remote config
+LICENSE_MANAGER_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+LICENSE_MANAGER_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+LICENSE_MANAGER_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+# Worker settings
+worker_django_settings_module: "{{ LICENSE_MANAGER_DJANGO_SETTINGS_MODULE }}"
+LICENSE_MANAGER_CELERY_WORKERS:
+  - queue: '{{ license_manager_celery_default_queue }}'
+    concurrency: 1
+    monitor: True
+license_manager_workers: "{{ LICENSE_MANAGER_CELERY_WORKERS }}"
+
+license_manager_post_migrate_commands: []

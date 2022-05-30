@@ -26,43 +26,62 @@
   tags:
     - install
     - install:system-requirements
+  when: ansible_distribution_release != 'focal'
+
+- name: install package dependencies for focal
+  apt:
+    name: "{{ docker_tools_deps_deb_pkgs_focal }}"
+    update_cache: yes
+    cache_valid_time: "{{ cache_valid_time }}"
+  tags:
+    - install
+    - install:system-requirements
+  when: ansible_distribution_release == 'focal'
 
 - name: add docker apt key
   apt_key:
-    keyserver: "{{ docker_apt_keyserver }}"
-    id: "{{ docker_apt_key_id }}"
+    url: "{{ docker_apt_key_url }}"
   tags:
     - install
     - install:configuration
 
 - name: add docker repo
   apt_repository:
-    repo: "{{ docker_repo }}"
+    repo: "{{ item }}"
+  with_items: "{{ docker_repos }}"
   tags:
     - install
     - install:configuration
 
 - name: install docker-engine
   apt:
-    name: "docker-engine"
+    name: "docker-ce"
     update_cache: yes
-    cache_valid_time: "{{ cache_valid_time }}"
   tags:
     - install
     - install:system-requirements
+
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+  tags:
+    - install
+    - install:base
 
 - name: start docker service
   service:
     name: docker
     enabled: yes
     state: started
+  when: docker_container.stdout != 'yes'
   tags:
     - install
     - install:configuration
 
 - name: install docker-compose
   pip:
-    name: "docker-compose"
+    name: docker-compose
   tags:
     - install
     - install:system-requirements

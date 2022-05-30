@@ -1,0 +1,97 @@
+---
+- name: Download opensearch {{ OPENSEARCH_VERSION }}
+  get_url:
+    url: "{{ opensearch_download_url }}/{{ OPENSEARCH_VERSION }}/opensearch-{{ OPENSEARCH_VERSION }}-linux-x64.tar.gz"
+    dest: "/tmp/opensearch.tar.gz"
+  tags:
+    - install
+    - install:base
+
+- name: Create opensearch user
+  user:
+    name: "{{ opensearch_user }}"
+    state: present
+    shell: /bin/bash
+  tags:
+    - install
+    - install:base
+
+- name: Create home directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ opensearch_user }}"
+    group: "{{ opensearch_user }}"
+  with_items:
+    - "{{ opensearch_app_dir }}"
+    - "{{ opensearch_data_dir }}"
+    - "{{ opensearch_log_dir }}"
+    - "{{ opensearch_cfg_dir }}"
+  tags:
+    - install
+    - install:base
+
+- name: Extract the tar file
+  command: chdir=/tmp/ tar -xvzf opensearch.tar.gz -C "{{ opensearch_app_dir }}" --strip-components=1
+  tags:
+    - install
+    - install:base
+  register: opensearch_reinstall
+
+- name: Copy Configuration File
+  blockinfile:
+    block: "{{ lookup('template', 'templates/edx/etc/opensearch/opensearch.yml.j2') }}"
+    dest: "{{ opensearch_app_dir }}/config/opensearch.yml"
+    backup: yes
+    state: present
+    create: yes
+    marker: "## {mark} opensearch main configuration ##"
+    owner: "{{ opensearch_user }}"
+    group: "{{ opensearch_user }}"
+    mode: 0600
+  tags:
+    - install
+    - install:base
+
+- name: Copy jvm.options File for Instance
+  template:
+    src: edx/etc/opensearch/jvm.options.j2
+    dest: "{{ opensearch_app_dir  }}/config/jvm.options"
+    owner: "{{ opensearch_user }}"
+    group: "{{ opensearch_user }}"
+    mode: 0600
+    force: yes
+  tags:
+    - install
+    - install:base
+
+- name: Create systemd service
+  template:
+    src: lib/systemd/system/opensearch.service.j2 
+    dest: "{{ systemctl_path }}/opensearch.service"
+  tags:
+    - install
+    - install:base
+
+- name: Make sure opensearch is started
+  service:
+    name: opensearch
+    state: started
+    enabled: yes
+  tags:
+    - install
+    - install:base
+
+- name: Get all the installed ES plugins
+  command: "/edx/app/opensearch/bin/opensearch-plugin list"
+  register: list_plugins
+  tags:
+    - install
+    - install:base
+
+- name: Show all the installed ES plugins
+  debug:
+    msg: "{{ list_plugins.stdout }}"
+  tags:
+    - install
+    - install:base

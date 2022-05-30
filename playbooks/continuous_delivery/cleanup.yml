@@ -10,9 +10,6 @@
 #
 # Other variables
 #   - ec2_region              - The region used to create the AMI
-#   - hipchat_token           - API token to send messages to hipchat
-#   - hipchat_room            - ID or name of the room to send the notification
-#   - hipchat_url             - URL of the hipchat API  (defaults to v1 of the api)
 #
 # Example command line to run this playbook:
 #    ansible-playbook -vvvv -i "localhost," -c local \
@@ -26,7 +23,6 @@
     ec2_region: us-east-1
     ec2_timeout: 300
     artifact_path: /tmp/ansible-runtime
-    hipchat_url: https://api.hipchat.com/v2/
   gather_facts: False
   connection: local
   tasks:
@@ -47,13 +43,3 @@
     file:
       path: "{{ artifact_path }}"
       state: absent
-
-  - name: Send Hipchat notification cleanup has finished
-    hipchat_2_0_0_1:
-      api: "{{ hipchat_url }}"
-      token: "{{ hipchat_token }}"
-      room: "{{ hipchat_room }}"
-      msg: "Cleanup for run id: {{ keypair_id }} complete."
-    ignore_errors: yes
-    when: hipchat_token is defined
-

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set edxapp_venv_bin = edxapp_venv_dir + "/bin" %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = edxapp_venv_bin + '/newrelic-admin run-program ' + edxapp_venv_bin + '/gunicorn' %}
+
+export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ EDXAPP_CMS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }}"
+export NEW_RELIC_APP_NAME="{{ EDXAPP_NEWRELIC_CMS_APPNAME }}"
+export NEW_RELIC_CONFIG_FILE="{{ edxapp_app_dir }}/newrelic.ini"
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  HOSTNAME=$(hostname)
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+
+{% else %}
+{% set executable = edxapp_venv_bin + '/gunicorn' %}
+{% endif %}
+
+export PORT="{{ edxapp_cms_gunicorn_port }}"
+export ADDRESS="{{ edxapp_cms_gunicorn_host }}"
+export LANG="{{ EDXAPP_LANG }}"
+export DJANGO_SETTINGS_MODULE="{{ EDXAPP_CMS_ENV }}"
+export SERVICE_VARIANT="cms"
+export PATH="{{ edxapp_deploy_path }}"
+export BOTO_CONFIG="{{ edxapp_app_dir }}/.boto"
+export EDX_REST_API_CLIENT_NAME="{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-studio"
+
+source {{ edxapp_app_dir }}/edxapp_env
+# We exec so that gunicorn is the child of supervisor and can be managed properly
+exec {{ executable }} -c {{ edxapp_app_dir }}/cms_gunicorn.py {{ EDXAPP_CMS_GUNICORN_EXTRA }} cms.wsgi

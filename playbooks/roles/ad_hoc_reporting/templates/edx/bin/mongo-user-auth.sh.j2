@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+db_hosts={{ item.db_hosts }}
+
+username=$1
+echo "Input your password: "
+read -s password
+
+if [[ -z $username ]]; then
+    echo "Username required! Rerun using the following format to connect /edx/bin/this-script.sh USERNAME"
+    exit 1
+fi
+
+for host in ${db_hosts//,/ }; do
+    is_secondary=$(mongo ${host}:{{ item.db_port }}/{{ item.db_name }} -u ${username} -p"${password}" --quiet --eval "printjson(db.isMaster()['secondary'])")
+    is_hidden=$(mongo ${host}:{{ item.db_port }}/{{ item.db_name }} -u ${username} -p"${password}"  --quiet --eval "printjson(db.isMaster()['hidden'])")
+    if [[ $is_hidden == "true" ]]; then
+        replica=$host
+	# Found a hidden secondary no need to keep looking.
+	break
+    fi
+
+    if [[ $is_secondary == "true" ]]; then
+        replica=$host
+	# Found a secondary but there could be a hidden secondary.
+	# keep looking.
+fi
+done
+
+if [[ -z $replica ]]; then
+    echo "No replica found for $db_hosts!"
+    exit 1
+fi
+
+mongo ${replica}:{{ item.db_port }}/{{ item.db_name }} -u ${username} -p"${password}"

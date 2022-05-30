@@ -70,15 +70,6 @@
 # want to provide more binaries add them to user_rbash_links
 # which can be passed in as a parameter to the role.
 #
-- name: Install debian packages user role needs
-  apt:
-    name: "{{ item }}"
-    install_recommends: yes
-    state: present
-    update_cache: yes
-  with_items: "{{ user_debian_pkgs }}"
-  when: ansible_distribution in common_debian_variants
-
 - debug: 
     var: user_info
 
@@ -124,16 +115,27 @@
 - name: Check the ssh key(s) for user(s) over github
   uri:
     url: "https://github.com/{{ item.name }}.keys"
+    return_content: true
   # We don't care if absent users lack ssh keys
-  when: item.get('state', 'present') == 'present'
+  when: item.get('state', 'present') == 'present' and item.github is defined
   with_items: "{{ user_info }}"
   register: github_users_return
+  until: github_users_return is succeeded
+  retries: 5
 
-- debug:
-    msg: "User {{ item.item.name }} doesn't have an SSH key associated with their account"
+- name: Print warning if github user(s) missing ssh key
+  debug:
+    msg: "User {{ item.item.name }} doesn't have an SSH key associated with their github account"
   with_items: "{{ github_users_return.results | default([]) }}"
   # We skip users in the previous task, and they end up with no content_length
-  when: item.get('content_length') and item.content_length == "0"
+  when: ('content' in item and item.content == "")
+
+- name: Halt if USER_FAIL_MISSING_KEYS is true and github user(s) missing ssh key
+  fail:
+    msg: "User {{ item.item.name }} doesn't have an SSH key associated with their github account"
+  with_items: "{{ github_users_return.results | default([]) }}"
+  # We skip users in the previous task, and they end up with no content_length
+  when: (USER_FAIL_MISSING_KEYS and 'content' in item and item.content == "")
 
 - name: Get github key(s) and update the authorized_keys file
   authorized_key:
@@ -141,7 +143,30 @@
     exclusive: yes
     key: "https://github.com/{{ item.name }}.keys"
   when: item.github is defined and item.get('state', 'present') == 'present'
+  register: task_result
+  until: task_result is succeeded
+  retries: 5
   with_items: "{{ user_info }}"
+
+- name: Create ~/.ssh directory for non github users
+  file:
+    path: "/home/{{ item.name }}/.ssh" 
+    state: directory 
+    mode: "0755"
+    owner: "{{ item.name }}" 
+    group: "{{ item.name }}"
+  when: item.authorized_keys is defined and item.get('state', 'present') == 'present'
+  with_items: "{{ user_info }}"
+
+- name: Build authorized_keys file for non github users
+  template:
+    src: "templates/authorized_keys.j2"
+    dest: "/home/{{ item.name }}/.ssh/authorized_keys"
+    mode: "0600"
+    owner: "{{ item.name }}"
+    group: "{{ item.name }}"
+  with_items: "{{ user_info }}"
+  when: item.authorized_keys is defined and item.get('state', 'present') == 'present'
 
 - name: Create bashrc file for normal users
   template: 
@@ -220,3 +245,28 @@
   with_nested:
     - "{{ user_info }}"
     - "{{ user_rbash_links }}"
+
+- name: remove ssh AllowUsers directive
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^AllowUsers"
+    state: absent
+  register: users_ssh_access
+
+- name: Restart ssh (ubuntu/debian)
+  service:
+    name: ssh
+    state: restarted
+  become: True
+  when: >
+    users_ssh_access.changed and
+    ansible_distribution in common_debian_variants
+
+- name: Restart ssh (redhat)
+  service:
+    name: sshd
+    state: restarted
+  become: True
+  when: >
+    users_ssh_access.changed and
+    ansible_distribution in common_redhat_variants

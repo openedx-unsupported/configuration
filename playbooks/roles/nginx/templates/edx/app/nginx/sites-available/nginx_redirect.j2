@@ -5,10 +5,16 @@
 {%- endif -%}
 
 server {
-  listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
+  listen {{ REDIRECT_NGINX_PORT }} {{ default_site }};
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ REDIRECT_NGINX_PORT }} {{ default_site }};
+  {% endif %}
 
   {% if "ssl" in item.value and item.value['ssl'] == true -%}
-  listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  listen {{ REDIRECT_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ REDIRECT_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  {% endif %}
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
   {% endif -%}

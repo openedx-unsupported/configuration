@@ -1,0 +1,22 @@
+- name: Deploy edX License Manager
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_NEWRELIC: True
+    CLUSTER_NAME: 'license_manager'
+    REGISTRAR_ENABLED: True
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_default_sites:
+        - license_manager
+    - license_manager
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: hermes
+      HERMES_TARGET_SERVICE: 'license_manager'
+      when: REGISTRAR_HERMES_ENABLED

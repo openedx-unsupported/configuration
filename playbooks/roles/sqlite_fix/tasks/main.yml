@@ -1,0 +1,48 @@
+---
+- name: Creates directory
+  file:
+    path: "{{ SQLITE_FIX_TMP_DIR }}"
+    state: directory
+    mode: 0775
+  tags:
+    - devstack
+    - devstack:install
+    - install
+
+
+# Tasks to download and upgrade pysqlite to prevent segfaults when testing in devstack
+- name: Download and unzip sqlite autoconf update
+  unarchive:
+    src: "{{ SQLITE_AUTOCONF_URL }}"
+    dest: "{{ SQLITE_FIX_TMP_DIR }}"
+    remote_src: yes
+  tags:
+    - devstack
+    - devstack:install
+    - install
+
+# Python 3 requires a version of sqlite that is not present in the Xenial
+# repositories. Download it from an s3 bucket
+- name:
+  apt:
+    name: libsqlite3-dev
+    state: absent
+
+- name: Download newer versions of sqlite that are not availble in Xenial
+  get_url:
+    dest: "/tmp/{{ item.name }}"
+    url: "{{ item.url }}"
+  with_items: "{{ sqlite_s3_packages }}"
+  when: ansible_distribution_release != "focal"
+
+- name: Install sqlite packages
+  shell: gdebi -nq /tmp/{{ item.name }}
+  with_items: "{{ sqlite_s3_packages }}"
+  when: ansible_distribution_release != "focal"
+
+- name: install package dependencies for focal
+  apt:
+    name: "{{ sqlite_s3_packages_focal }}"
+    update_cache: yes
+    cache_valid_time: "{{ cache_valid_time }}"
+  when: ansible_distribution_release == 'focal'

@@ -10,30 +10,57 @@
 #
 #
 # Tasks for role oauth_client_setup
-# 
+#
 # Overview:
-# 
+#
 #
 # Dependencies:
 #
-# 
+#
 # Example play:
 #
 #
 
-- name: create OAuth2 Clients
+- name: Create OAuth2 django-oauth-toolkit SSO Applications
   shell: >
-    {{ COMMON_BIN_DIR }}/python.edxapp {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
-    create_oauth2_client
-    {{ item.url_root }}
-    "{{ item.url_root }}/complete/edx-oidc/"
-    confidential
-    --client_name {{ item.name }}
-    --client_id {{ item.id }}
-    --client_secret {{ item.secret }}
-    --trusted
-    --logout_uri {{ item.logout_uri | default("") }}
+    {{ edxapp_venv_bin }}/python {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
+    create_dot_application
+    --grant-type authorization-code
+    --redirect-uris "{{ item.url_root }}/complete/edx-oauth2/"
+    --client-id {{ item.sso_id }}
+    --client-secret {{ item.sso_secret }}
+    --scopes user_id
+    --skip-authorization
+    --update
+    {{ item.name }}-sso
+    {{ item.username }}
   become_user: "{{ edxapp_user }}"
   environment: "{{ edxapp_environment }}"
   with_items: "{{ oauth_client_setup_oauth2_clients }}"
-  when: item.name != 'None'
+  when:
+    - item.name != 'None'
+    - item.sso_id is defined
+    - item.sso_id != 'None'
+    - item.sso_secret is defined
+    - item.sso_secret != 'None'
+
+- name: Create OAuth2 django-oauth-toolkit Backend Service Applications
+  shell: >
+    {{ edxapp_venv_bin }}/python {{ COMMON_BIN_DIR }}/manage.edxapp lms --settings={{ COMMON_EDXAPP_SETTINGS }}
+    create_dot_application
+    --grant-type client-credentials
+    --client-id {{ item.backend_service_id }}
+    --client-secret {{ item.backend_service_secret }}
+    --scopes user_id
+    --update
+    {{ item.name }}-backend-service
+    {{ item.username }}
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  with_items: "{{ oauth_client_setup_oauth2_clients }}"
+  when:
+    - item.name != 'None'
+    - item.backend_service_id is defined
+    - item.backend_service_id != 'None'
+    - item.backend_service_secret is defined
+    - item.backend_service_secret != 'None'

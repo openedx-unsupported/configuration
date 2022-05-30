@@ -40,15 +40,10 @@
 #     edx_service_user: hotg_system_user
 #     edx_service_home: "/edx/app/hotg"
 #     edx_service_packages:
-#       debian: [ pkg1, pkg2, pkg3 ]      
+#       debian: [ pkg1, pkg2, pkg3 ]
 #       redhat: [ pkg4, pkg5 ]
 #
-# Assumes that the home directory has been created above.
-# In some cases(vagrant boxes) the home directory gets created
-# but does not have the corrent owner and group. In vagrant for
-# example we were seeing it defaulting to `root` for both.
-# The item that is a blank string("") ensures the ownership
-# of the home directory is always correct before proceeding.
+
 - name: Create edx_service app, venv, data, and staticfiles dirs
   file:
     path: "{{ edx_service_home }}/{{ item }}"
@@ -64,16 +59,24 @@
     - install
     - install:base
 
-- name: Create /edx/var and /edx/etc dirs
+- name: Create /edx/var/app dir
   file:
-    path: "{{ item }}/{{ edx_service_name }}"
+    path: "/edx/var/{{ edx_service_name }}"
     state: directory
     owner: "{{ edx_service_user }}"
     group: "{{ common_web_group }}"
     mode: "0755"
-  with_items:
-    - "/edx/var"
-    - "/edx/etc"
+  tags:
+    - install
+    - install:base
+
+- name: Create /edx/etc dir
+  file:
+    path: "/edx/etc"
+    state: directory
+    owner: "{{ edx_service_user }}"
+    group: "{{ common_web_group }}"
+    mode: "0755"
   tags:
     - install
     - install:base
@@ -95,19 +98,110 @@
     src: "config.yml.j2"
     dest: "{{ COMMON_CFG_DIR  }}/{{ edx_service_name }}.yml"
     mode: "0644"
-  when: edx_service_config is defined
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: not edx_service_decrypt_config_enabled
   tags:
     - install
     - install:configuration
     - install:app-configuration
-  
-- name: Install a bunch of system packages on which edx_service relies
+
+- name: Decrypt app config file
+  local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml
+  become: false
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: edx_service_decrypt_config_enabled
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Install Python 3.8
+  apt:
+    pkg:
+      - python3.8-dev
+      - python3.8-distutils
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
+  when: edx_service_use_python38
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install python3
   apt:
     name: "{{ item }}"
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
+  when: edx_service_use_python3 and not edx_service_use_python38
+  with_items:
+    - python3-pip
+    - python3-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Build virtualenv with Python 3.8
+  command: "virtualenv --python=python3.8 {{ edx_service_venv_dir }}"
+  args:
+    creates: "{{ edx_service_venv_dir }}/bin/pip"
+  become_user: "{{ edx_service_user }}"
+  when: edx_service_use_python38
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3
+  command: "virtualenv --python=python3 {{ edx_service_venv_dir }}"
+  args:
+    creates: "{{ edx_service_venv_dir }}/bin/pip"
+  become_user: "{{ edx_service_user }}"
+  when: edx_service_use_python3 and not edx_service_use_python38
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Replace deploy host to sandbox dns name
+  replace:
+    path: "{{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml"
+    regexp: 'deploy_host'
+    replace: "{{ COMMON_DEPLOY_HOSTNAME }}"
+  when: edx_service_decrypt_config_enabled and SANDBOX_CONFIG
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  become: false
+  delegate_to: localhost
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Copy app config file
+  copy:
+    src: "{{ edx_service_local_config_file }}"
+    dest: "{{ COMMON_CFG_DIR }}/{{ edx_service_name }}.yml"
+    mode: 0644
+  no_log: "{{ COMMON_CONFIG_NO_LOGGING }}"
+  when: edx_service_copy_config_enabled
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
+- name: Install a bunch of system packages on which edx_service relies
+  apt:
+    name: "{{ edx_service_packages.debian }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
-  with_items: "{{ edx_service_packages.debian }}"
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
   when: ansible_distribution in common_debian_variants
   tags:
     - install
@@ -115,16 +209,16 @@
 
 - name: Install a bunch of system packages on which edx_service relies
   yum:
-    name: "{{ item }}"
+    name: "{{ edx_service_packages.redhat }}"
     state: present
-  with_items: "{{ edx_service_packages.redhat }}"
   when: ansible_distribution in common_redhat_variants
   tags:
     - install
     - install:system-requirements
 
 - name: Get instance information
-  action: ec2_facts
+  action: ec2_metadata_facts
+  when: AWS_GATHER_FACTS | default(false)
   tags:
     - to-remove
 
@@ -137,7 +231,7 @@
       - Name: "version:{{ edx_service_name }}"
         Value: "{{ item.0.DOMAIN }}/{{ item.0.PATH }}/{{ item.0.REPO }} {{ item.1.after |truncate(7,True,'') }}"
   when: item.1.after is defined and COMMON_TAG_EC2_INSTANCE and edx_service_repos is defined
-  with_together: 
+  with_together:
     - "{{ edx_service_repos }}"
     - "{{ code_checkout.results }}"
   tags:

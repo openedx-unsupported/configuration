@@ -42,7 +42,7 @@
   git:
     dest: "{{ forum_code_dir }}"
     repo: "{{ forum_source_repo }}"
-    version: "{{ forum_version }}"
+    version: "{{ FORUM_VERSION }}"
     accept_hostkey: yes
   become_user: "{{ forum_user }}"
   register: forum_checkout
@@ -54,7 +54,7 @@
 - name: install comments service bundle
   shell: "bundle install --deployment --path {{ forum_gem_root }} chdir={{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   notify: restart the forum service
   tags:
     - install
@@ -65,8 +65,21 @@
   args:
     chdir: "{{ forum_code_dir }}"
   become_user: "{{ forum_user }}"
-  environment: "{{ forum_environment }}"
+  environment: "{{ forum_base_env }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  run_once: yes
+  tags:
+    - migrate
+    - migrate:db
+
+- name: rebuild elasticsearch indices
+  command: "{{ forum_code_dir }}/bin/rake search:rebuild_indices"
+  args:
+    chdir: "{{ forum_code_dir }}"
+  become_user: "{{ forum_user }}"
+  environment: "{{ forum_base_env }}"
+  when: migrate_db is defined and migrate_db|lower == "yes" and FORUM_REBUILD_INDEX|bool
+  run_once: yes
   tags:
     - migrate
     - migrate:db
@@ -94,6 +107,18 @@
   when: not disable_edx_services
   tags:
     - manage
+
+- name: ensure indexes on forum mongo db
+  command: "{{ forum_code_dir }}/bin/rake db:init"
+  args:
+    chdir: "{{ forum_code_dir }}"
+  become_user: "{{ forum_user }}"
+  environment: "{{ forum_base_env }}"
+  when: FORUM_ENABLE_MONGODB_INDEXES
+  run_once: yes
+  tags:
+    - manage
+    - manage:db
 
 - include: test.yml
   tags:

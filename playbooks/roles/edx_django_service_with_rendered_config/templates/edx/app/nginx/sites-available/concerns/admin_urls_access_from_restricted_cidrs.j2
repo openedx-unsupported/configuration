@@ -1,0 +1,11 @@
+{% if NGINX_ADMIN_ACCESS_CIDRS and EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ENABLE_ADMIN_URLS_RESTRICTION %}
+  location ~ ^/({{ EDX_DJANGO_SERVICE_WITH_RENDERED_CONFIG_ADMIN_URLS|join("|") }}) {
+    real_ip_header X-Forwarded-For;
+    set_real_ip_from {{ NGINX_TRUSTED_IP_CIDRS }};
+    {% for cidr in NGINX_ADMIN_ACCESS_CIDRS %}
+      allow {{ cidr }};
+    {% endfor %}
+      deny all;
+      try_files $uri @proxy_to_app;
+  }
+{% endif %}

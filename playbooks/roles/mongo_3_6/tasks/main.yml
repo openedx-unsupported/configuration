@@ -1,0 +1,434 @@
+---
+- name: Add disable transparent huge pages systemd service (http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/)
+  copy:
+    src:  etc/systemd/system/disable-transparent-hugepages.service
+    dest: "/etc/systemd/system/disable-transparent-hugepages.service"
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - "hugepages"
+    - "install"
+    - "install:configuration"
+
+- name: Enable/start disable transparent huge pages service (http://docs.mongodb.org/manual/tutorial/transparent-huge-pages/)
+  service:
+    name: disable-transparent-hugepages
+    enabled: yes
+    state: started
+  tags:
+    - "hugepages"
+    - "manage"
+    - "manage:start"
+
+- name: install python pymongo for mongo_user ansible module
+  pip:
+    name: pymongo
+    state: present
+    version: "{{ PYMONGO_VERSION }}"
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }}"
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+# add Bionic source list to install libssl1.0.0 on Focal
+# so mongo3.6 installation does not fail with dependencies
+- name: add source list to install libssl1.0.0
+  apt_repository:
+    repo: "deb http://security.ubuntu.com/ubuntu bionic-security main"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
+  when: ansible_distribution_release == 'focal'
+
+- name: add the mongodb signing key
+  apt_key:
+    url: "https://www.mongodb.org/static/pgp/server-{{ MONGO_VERSION_MAJOR_MINOR }}.asc"
+    state: present
+  retries: 3
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+- name: add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO }}"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+  when: ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal'
+
+# mongo 3.6 does not have any source list for Bionic and Focal
+# use Xenial repo source list to install mongo 3.6
+- name: add the mongodb repo to the sources list
+  apt_repository:
+    repo: "{{ MONGODB_REPO_XENIAL }}"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+  when: ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+
+- name: install mongo server and recommends
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    install_recommends: yes
+    force: yes
+    update_cache: yes
+  register: install_mongo_package
+  with_items: "{{ mongodb_debian_pkgs }}"
+  tags:
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+
+- name: remove source list used to install libssl1.0.0
+  file: path=/etc/apt/sources.list.d/security_ubuntu_com_ubuntu.list state=absent
+  tags:
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+  when: ansible_distribution_release == 'focal'
+
+- name: create mongo dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ mongo_user  }}"
+    group: "{{ mongo_user }}"
+  with_items:
+    - "{{ mongo_data_dir }}"
+    - "{{ mongo_dbpath }}"
+    - "{{ mongo_log_dir }}"
+    - "{{ mongo_journal_dir }}"
+  tags:
+    - "install"
+    - "install:app-configuration"
+
+# This will error when run on a new replica set, so we ignore_errors
+# and connect anonymously next.
+- name: determine if there is a replica set already
+  mongodb_rs_status:
+    host: "{{ ansible_lo['ipv4']['address'] }}"
+    username: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+  run_once: true
+  register: authed_replica_set_already_configured
+  ignore_errors: true
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: Try checking the replica set with no user/pass in case this is a new box
+  mongodb_rs_status:
+    host: "{{ ansible_lo['ipv4']['address'] }}"
+  run_once: true
+  register: unauthed_replica_set_already_configured
+  when: authed_replica_set_already_configured.failed is defined
+  ignore_errors: true
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+# We use these in the templates but also to control a whole bunch of logic
+- name: set facts that default to not initializing a replica set
+  set_fact:
+    initialize_replica_set: false
+    skip_replica_set: false
+  tags:
+    - "install"
+    - "install:app-configuration"
+    - "update_mongod_conf"
+    - "manage"
+    - "manage:db-replication"
+
+# If either auth or unauthed access comes back with a replica set, we
+# do not want to initialize one.  Since initialization requires a bunch
+# of extra templating and restarting, it's not something we want to do on
+# existing boxes.
+- name: track if you have a replica set
+  set_fact:
+    initialize_replica_set: true
+    skip_replica_set: true
+  when: authed_replica_set_already_configured.status is not defined
+        and unauthed_replica_set_already_configured.status is not defined
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: warn about unconfigured replica sets
+  debug: msg="You do not appear to have a Replica Set configured, deploying one for you"
+  when: initialize_replica_set
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: copy mongodb key file
+  copy:
+    content: "{{ MONGO_CLUSTER_KEY }}"
+    dest: "{{ mongo_key_file }}"
+    mode: 0600
+    owner: mongodb
+    group: mongodb
+  register: update_mongod_key
+  tags:
+    - "manage"
+    - "manage:db-replication"
+    - "mongodb_key"
+
+# If skip_replica_set is true, this template will not contain a replica set stanza
+# because of the fact above.
+- name: copy configuration template
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    backup: yes
+  register: update_mongod_conf
+  tags:
+    - "install"
+    - "install:app-configuration"
+    - "manage"
+    - "manage:db-replication"
+    - "update_mongod_conf"
+
+# This sets the is_backup_node var by checking whether
+# mongo backups are enabled AND we're currently running against the designated mongo backup node.
+# This allows backup-related tasks below to determine whether or not they should run on the current mongo node.
+- name: determine if backup tasks should run
+  set_fact:
+    is_backup_node: true
+  when: MONGO_BACKUP_ENABLED and '{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}' == '{{ MONGO_BACKUP_NODE }}'
+  tags:
+    - "backup:mongo"
+
+- name: install logrotate configuration
+  template:
+    src: mongo_logrotate.j2
+    dest: /etc/logrotate.d/hourly/mongo
+  tags:
+    - "backup:mongo"
+    - "install"
+    - "install:app-configuration"
+    - "logrotate"
+
+- name: install prereqs for backup script
+  apt:
+    pkg: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - jq
+  when:
+    - is_backup_node
+  tags:
+    - "backup:mongo"
+    - "install"
+    - "install:app-requirements"
+    - "mongo_packages"
+
+- name: install backup script
+  template:
+    src: backup-mongo.sh.j2
+    dest: "{{ mongo_backup_script_path }}"
+    mode: 0700
+  when:
+    - is_backup_node
+  tags:
+    - "backup:mongo"
+    - "install"
+
+- name: add mongo backup script to cron
+  cron:
+    name: mongo backup job
+    minute: "{{ mongo_backup_cron.minute | default('12') }}"
+    hour: "{{ mongo_backup_cron.hour | default('*/12') }}"
+    day: "{{ mongo_backup_cron.day | default('*') }}"
+    month: "{{ mongo_backup_cron.month | default('*') }}"
+    weekday: "{{ mongo_backup_cron.weekday | default('*') }}"
+    job: "{{ mongo_backup_script_path }} >> {{ mongo_log_dir }}/mongo-backup.log 2>&1"
+  become: yes
+  when:
+    - is_backup_node
+  tags:
+    - "backup:mongo"
+    - "install"
+
+- name: format mongo backup volume
+  filesystem:
+    dev: "{{ MONGO_BACKUP_EBS_VOLUME_DEVICE }}"
+    fstype: ext4
+    force: true
+  ignore_errors: true
+  when:
+    - is_backup_node
+  tags:
+    - "backup:mongo"
+    - "install"
+
+- name: restart mongo service if we changed our configuration or upgraded mongo
+  service:
+    name: mongod
+    state: restarted
+  when: update_mongod_conf.changed or update_mongod_key.changed or install_mongo_package.changed
+  tags:
+    - "manage"
+    - "manage:start"
+    - "manage:db-replication"
+
+- name: wait for mongo server to start
+  wait_for:
+    port: 27017
+    delay: 2
+  tags:
+    - "manage"
+    - "manage:start"
+    - "manage:db-replication"
+
+# We only try passwordless superuser creation when
+# we're initializing the replica set and need to use
+# the localhost exemption to create a user who will be
+# able to initialize the replica set.
+# We can only create the users on one machine, the one
+# where we will initialize the replica set.  If we
+# create users on multiple hosts, then they will fail
+# to come into the replica set.
+- name: create super user
+  mongodb_user:
+    name: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+    database: admin
+    roles: root
+  when: initialize_replica_set
+  run_once: true
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+# Now that the localhost exemption has been used to create the superuser, we need
+# to add replica set to our configuration.  This will never happen if we detected
+# a replica set in the 'determine if there is a replica set already' task.
+- name: Unset our skip initializing replica set fact so that mongod.conf gets a replica set
+  set_fact:
+    skip_replica_set: false
+  when: initialize_replica_set
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: re-copy configuration template with replica set enabled
+  template:
+    src: mongod.conf.j2
+    dest: /etc/mongod.conf
+    backup: yes
+  when: initialize_replica_set
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: restart mongo service
+  service:
+    name: mongod
+    state: restarted
+  when: initialize_replica_set
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: wait for mongo server to start
+  wait_for:
+    port: 27017
+    delay: 2
+  when: initialize_replica_set
+  tags:
+    - "manage"
+    - "manage:db-replication"
+
+- name: configure replica set
+  mongodb_replica_set:
+    username: "{{ MONGO_ADMIN_USER }}"
+    password: "{{ MONGO_ADMIN_PASSWORD }}"
+    rs_config: "{{ MONGO_RS_CONFIG }}"
+  run_once: true
+  register: replset_status
+  when: mongo_configure_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
+    - "manage:db-replication"
+    - "manage:db-replication-configuration"
+
+# During initial replica set configuration, it can take a few seconds to vote
+# a primary and for all members to reflect that status.  During that window,
+# use creation or other writes can fail.  The best wait/check seems to be repeatedly
+# checking the replica set status until we see a PRIMARY in the results.
+- name: Wait for the replica set to update and (if needed) elect a primary
+  mongodb_rs_status:
+      host: "{{ ansible_lo['ipv4']['address'] }}"
+      username: "{{ MONGO_ADMIN_USER }}"
+      password: "{{ MONGO_ADMIN_PASSWORD }}"
+  register: status
+  until: status.status is defined and 'PRIMARY' in status.status.members|map(attribute='stateStr')|list
+  when: mongo_configure_replica_set
+  retries: 5
+  delay: 2
+  run_once: true
+  tags:
+    - "manage"
+    - "manage:db"
+    - "manage:db-replication"
+
+- name: create mongodb users in a replica set
+  mongodb_user:
+    database: "{{ item.database }}"
+    login_database: 'admin'
+    login_user: "{{ MONGO_ADMIN_USER }}"
+    login_password: "{{ MONGO_ADMIN_PASSWORD }}"
+    name: "{{ item.user }}"
+    password: "{{ item.password }}"
+    roles: "{{ item.roles }}"
+    state: present
+    replica_set: "{{ MONGO_REPL_SET }}"
+  with_items: "{{ MONGO_USERS }}"
+  run_once: true
+  when: mongo_configure_replica_set
+  tags:
+    - "manage"
+    - "manage:db"
+    - "manage:db-users"
+    - "manage:db-replication"
+
+- name: ensure mongo starts at boot time
+  service:
+    name: mongod
+    enabled: yes
+  tags:
+    - "manage"
+    - "manage:start"
+
+- name: add serverStatus logging script
+  template:
+    src: "log-mongo-serverStatus.sh.j2"
+    dest: "{{ COMMON_BIN_DIR }}/log-mongo-serverStatus.sh"
+    owner: "{{ mongo_user }}"
+    group: "{{ mongo_user }}"
+    mode: 0700
+  when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:app-configuration"
+
+- name: add serverStatus logging script to cron
+  cron:
+    name: mongostat logging job
+    minute: "*/3"
+    job: /edx/bin/log-mongo-serverStatus.sh >> {{ mongo_log_dir }}/serverStatus.log 2>&1
+  become: yes
+  when: MONGO_LOG_SERVERSTATUS
+  tags:
+    - "install"
+    - "install:app-configuration"

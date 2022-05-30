@@ -78,9 +78,9 @@ def add_or_update_record(dns_records):
                  """.format(record.record_name, record.record_type,
                             record.record_ttl, record.record_values)
         if args.noop:
-            print("Would have updated DNS record:\n{}".format(status_msg))
+            print(f"Would have updated DNS record:\n{status_msg}")
         else:
-            print("Updating DNS record:\n{}".format(status_msg))
+            print(f"Updating DNS record:\n{status_msg}")
 
         if record.record_name in record_names:
             print("Unable to create record for {} with value {} because one already exists!".format(
@@ -97,7 +97,7 @@ def add_or_update_record(dns_records):
         # If the record name already points to something.
         # Delete the existing connection. If the record has
         # the same type and name skip it.
-        if record.record_name in old_records.keys():
+        if record.record_name in list(old_records.keys()):
             if record.record_name + "." == old_records[record.record_name].name and \
                     record.record_type == old_records[record.record_name].type:
                 print("Record for {} already exists and is identical, skipping.\n".format(
@@ -105,7 +105,7 @@ def add_or_update_record(dns_records):
                 continue
 
             if args.force:
-                print("Deleting record:\n{}".format(status_msg))
+                print(f"Deleting record:\n{status_msg}")
                 change = change_set.add_change(
                     'DELETE',
                     record.record_name,
@@ -160,13 +160,13 @@ def get_or_create_hosted_zone(zone_name):
         return zone
 
     if not zone:
-        print("zone {} does not exist, creating".format(zone_name))
+        print(f"zone {zone_name} does not exist, creating")
         ts = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%SUTC')
         zone = r53.create_hosted_zone(
-            zone_name, comment="Created by vpc_dns script - {}".format(ts))
+            zone_name, comment=f"Created by vpc_dns script - {ts}")
 
     if parent_zone:
-        print("Updating parent zone {}".format(parent_zone_name))
+        print(f"Updating parent zone {parent_zone_name}")
 
         dns_records = set()
         dns_records.add(DNSRecord(parent_zone, zone_name, 'NS', 900, zone.NameServers))
@@ -188,7 +188,7 @@ def get_dns_from_instances(elb):
             instance = ec2_con.get_all_instances(
                 instance_ids=[inst.id])[0].instances[0]
         except IndexError:
-            print("instance {} attached to elb {}".format(inst, elb))
+            print(f"instance {inst} attached to elb {elb}")
             sys.exit(1)
         try:
             env_tag = instance.tags['environment']
@@ -238,13 +238,13 @@ def update_elb_rds_dns(zone):
             if key in elb.name:
                 play_tag = ELB_PLAY_MAPPINGS[key]
                 break
-        fqdn = "{}-{}-{}.{}".format(env_tag, deployment_tag, play_tag, zone_name)
+        fqdn = f"{env_tag}-{deployment_tag}-{play_tag}.{zone_name}"
 
         # Skip over ELBs if a substring of the ELB name is in
         # the ELB_BAN_LIST
 
         if any(name in elb.name for name in ELB_BAN_LIST):
-            print("Skipping {} because it is on the ELB ban list".format(elb.name))
+            print(f"Skipping {elb.name} because it is on the ELB ban list")
             continue
 
         dns_records.add(DNSRecord(zone, fqdn, 'CNAME', 600, [elb.dns_name]))

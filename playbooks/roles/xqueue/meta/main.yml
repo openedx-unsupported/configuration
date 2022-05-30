@@ -2,3 +2,20 @@
 dependencies:
   - common
   - supervisor
+  - role: supervisor
+    supervisor_spec:
+      - service: "{{ xqueue_service_name }}"
+        migration_check_services: "{{ xqueue_service_name }}"
+        python: "{{ xqueue_venv_bin }}/python"
+        code: "{{ xqueue_code_dir | default(None) }}"
+        env: "{{ xqueue_app_dir | default(none) }}/xqueue_env"
+  - role: edx_service_with_rendered_config
+    edx_service_with_rendered_config_service_name: "{{ xqueue_service_name }}"
+    edx_service_with_rendered_config_service_config: "{{ XQUEUE_CONFIG }}"
+    edx_service_with_rendered_config_filter_nones: true
+    edx_service_with_rendered_config_repos: "{{ XQUEUE_REPOS }}"
+    edx_service_with_rendered_config_user: "{{ xqueue_user }}"
+    edx_service_with_rendered_config_home: "{{ xqueue_home }}"
+    edx_service_with_rendered_config_packages:
+      debian: "{{ xqueue_debian_pkgs + xqueue_release_specific_debian_pkgs[ansible_distribution_release] }}"
+      redhat: []

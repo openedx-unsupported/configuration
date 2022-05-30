@@ -18,6 +18,10 @@
 #   an AMI.
 #
 #
+- name: supervisorctl_stop_all
+  shell: /edx/bin/supervisorctl stop all
+  ignore_errors: True
+
 - name: stop supervisor
   service:
     name: supervisor
@@ -56,7 +60,7 @@
 
 # Celery and Supervisord should not be killed because they may have long running tasks that need to finish
 - name: kill processes by user
-  shell: pgrep -u {{ item }} -lf | grep -v celery | grep -v supervisord | grep -v gunicorn |  awk '{ print $1}' | xargs -I {} kill {} || true
+  shell: pgrep -u {{ item }} -laf | grep -v celery | grep -v supervisord | grep -v gunicorn |  awk '{ print $1}' | xargs -I {} kill {} || true
   with_items:
     - www-data
     - rabbitmq

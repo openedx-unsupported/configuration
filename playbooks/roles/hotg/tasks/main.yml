@@ -1,0 +1,141 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://github.com/edx/configuration/wiki
+# code style: https://github.com/edx/configuration/wiki/Ansible-Coding-Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role hotg
+# 
+# Overview:
+#
+# Deploys an edX forked version of Netflix's Asgard
+# under the name Hammer of the gods.
+#
+# Dependencies:
+# 
+# Example play:
+#
+# - name: Configure instance(s)
+#   hosts: hotg
+#   sudo: True
+#   vars_files:
+#     - "{{ secure_dir }}/vars/common/common.yml"
+#     - "{{ secure_dir }}/vars/users.yml"
+#     - "{{ secure_dir }}/vars/env/hotg.yml"
+#   gather_facts: True
+#   roles:
+#     - common
+#     - gh_users
+#     - oraclejdk
+#     - splunkforwarder
+#     - hotg
+#
+
+- name: create application user
+  user: >
+    name="{{ HOTG_SERVICE_NAME }}"
+    home="{{ COMMON_APP_DIR }}/{{ HOTG_SERVICE_NAME }}"
+    createhome=no
+    shell=/bin/false
+  tags:
+    - install
+    - install:base
+
+- name: create common directories
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ HOTG_SERVICE_NAME }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ COMMON_APP_DIR }}/{{ HOTG_SERVICE_NAME }}"
+    - "{{ COMMON_APP_DIR }}/{{ HOTG_SERVICE_NAME }}/data"
+  tags:
+    - install
+    - install:base
+
+- name: create directories owned by www-data
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ common_web_group }}"
+    group="{{ common_web_group }}"
+  with_items:
+    - "{{ COMMON_LOG_DIR }}/{{ HOTG_SERVICE_NAME }}"
+  tags:
+    - install
+    - install:base
+
+- name: install a bunch of system packages on which hotg relies
+  apt: pkg={{ item }} state=present
+  with_items: "{{ hotg_debian_pkgs }}"
+  when: ansible_distribution in common_debian_variants
+  tags:
+    - install
+    - install:base
+
+- name: install a bunch of system packages on which hotgs relies
+  yum: pkg={{ item }} state=present
+  with_items: hotg_redhat_pkgs
+  when: ansible_distribution in common_redhat_variants
+  tags:
+    - install
+    - install:base
+
+#
+# Install tomcat
+#
+- name: download the tomcat archive
+  get_url: >
+    dest="/tmp/{{ hotg_tomcat_package|basename }}"
+    url="{{ hotg_tomcat_package }}"
+  register: download_tomcat
+  tags:
+    - install
+    - install:base
+
+- name: explode the archive
+  shell: >
+    tar xf /tmp/{{ hotg_tomcat_package|basename }}
+    creates={{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}
+    chdir={{ hotg_app_dir }}
+  tags:
+    - install
+    - install:base
+
+- name: chown of the tomcat dir
+  command: chown -R {{ common_web_user }} "{{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}"
+  tags:
+    - install
+    - install:base
+    
+- name: create hotg tomcat server.xml config
+  template: >
+    src=edx/app/hotg/server.xml.j2
+    dest={{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}/conf/server.xml
+    mode=0644
+    owner="root"
+    group="{{ HOTG_USER }}"
+  tags:
+    - install
+    - install:configuratin
+    
+- name: remove unneeded webapps
+  file: >
+    path={{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}/webapps/{{ item }}
+    state=absent
+  with_items:
+    - docs
+    - examples
+    - host-manager
+    - manager
+  tags:
+    - install
+    - install:base
+  
+- include: deploy.yml tags=deploy

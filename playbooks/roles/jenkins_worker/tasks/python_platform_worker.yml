@@ -9,50 +9,77 @@
   git:
     repo: https://github.com/edx/edx-platform.git
     dest: "{{ jenkins_home }}/shallow-clone"
-    version: "{{ jenkins_edx_platform_version }}"
+    version: "{{ JENKINS_EDX_PLATFORM_VERSION }}"
     depth: 1
+  become_user: "{{ jenkins_user }}"
+
+# In order to create multiple virtualenvs with the same name,
+# put them into separate directories
+- name: Create directories for virtualenvs to avoid naming collisions
+  file:
+    path: "{{ jenkins_home }}/edx-venv-{{ item }}"
+    state: directory
+  with_items: "{{ jenkins_worker_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
+# Create the virtualenvs and install the correct pip version in each one.
+- name: Create virtualenvs and install desired pip version
+  pip:
+    chdir: "{{ jenkins_home }}/shallow-clone"
+    name: "{{ common_pip_pkgs }}"
+    virtualenv: "{{ jenkins_home }}/edx-venv-{{ item }}/edx-venv"
+    virtualenv_command: virtualenv
+    virtualenv_python: "python{{ item }}"
+  with_items: "{{ edx_platform_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
+# Combine testing and django requirements files for single virtualenv invocation
+- name: Combine requirements files
+  shell: "cat {{ jenkins_home }}/shallow-clone/requirements/edx/testing.txt {{ jenkins_home }}/shallow-clone/requirements/edx/django.txt > {{ jenkins_home }}/shallow-clone/requirements/edx/jenkins.txt"
   become_user: "{{ jenkins_user }}"
 
 # Install the platform requirements using pip.
 - name: Install edx-platform requirements using pip
   pip:
-    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
+    chdir: "{{ jenkins_home }}/shallow-clone"
+    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/jenkins.txt"
     extra_args: "--exists-action=w"
-    virtualenv: "{{ jenkins_home }}/edx-venv"
-    virtualenv_command: virtualenv
-  with_items:
-    - pre.txt
-    - github.txt
-    - base.txt
-    - paver.txt
-    - testing.txt
+    virtualenv: "{{ jenkins_home }}/edx-venv-{{ item }}/edx-venv"
+  with_items: "{{ edx_platform_python_versions }}"
   become_user: "{{ jenkins_user }}"
 
-
-# These and the pip install below it can be removed some time after
-# https://github.com/edx/edx-platform/pull/7465 has merged.
-# This will keep us from breaking after that gets merged.
-- stat: path="{{ jenkins_home }}/shallow-clone/requirements/edx/post.txt"
-  register: post_requirements
-  become_user: "{{ jenkins_user }}"
-
-- name: Install edx-platform post requirements using pip
-  pip:
-    requirements: "{{ jenkins_home }}/shallow-clone/requirements/edx/{{ item }}"
-    extra_args: "--exists-action=w"
-    virtualenv: "{{ jenkins_home }}/edx-venv"
-    virtualenv_command: virtualenv
-  with_items:
-    - post.txt
-  become_user: "{{ jenkins_user }}"
-  when: post_requirements.stat.exists
-
-# Archive the current state of the virtualenv
+# Archive the current state of each of the virtualenvs
 # as a starting point for new builds.
-# The edx-venv directory is deleted and then recreated
+# The edx-venv-x directory is deleted and then recreated
 # cleanly from the archive by the jenkins build scripts.
 - name: Create a clean virtualenv archive
-  command: "tar -cpzf edx-venv_clean.tar.gz edx-venv"
+  command: "tar -C edx-venv-{{ item }} -cpzf edx-venv_clean-{{ item }}.tar.gz edx-venv"
+  args:
+    chdir: "{{ jenkins_home }}"
+  with_items: "{{ edx_platform_python_versions }}"
+  become_user: "{{ jenkins_user }}"
+
+- name: Add script to set install node packages
+  template:
+    src: jenkins_nodeenv.j2
+    dest: "{{ jenkins_home }}/jenkins_nodeenv"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "0500"
+  when: platform_worker is defined
+
+# Install node packages for platform.
+- name: Install node packages for caching
+  command: "bash {{ jenkins_home }}/jenkins_nodeenv"
+  become_user: "{{ jenkins_user }}"
+
+# Archive the current state of the npm cache as a starting
+# point for new builds. Most builds don't introduce package
+# changes, so npm won't need to fetch anything from a remote
+# registry. This should reduce the frequency of hanging
+# npm installs (see https://openedx.atlassian.net/browse/TE-2732)
+- name: Create a clean npm cache archive
+  command: "tar -cpzf edx-npm-cache_clean.tar.gz .npm"
   args:
     chdir: "{{ jenkins_home }}"
   become_user: "{{ jenkins_user }}"
@@ -61,19 +88,3 @@
 # done with it
 - name: Remove shallow-clone
   file: path={{ jenkins_home }}/shallow-clone state=absent
-
-# Although firefox is installed through the browsers role, install
-# a newer copy under the jenkins home directory. This will allow
-# platform pull requests to use a custom firefox path to a different
-# version
-- name: Install custom firefox to jenkins home
-  get_url:
-    url: "{{ custom_firefox_url }}"
-    dest: "{{ jenkins_home }}/firefox-{{ custom_firefox_version }}.tar.bz2"
-
-- name: unpack custom firefox version
-  unarchive:
-    src: "{{ jenkins_home }}/firefox-{{ custom_firefox_version }}.tar.bz2"
-    dest: "{{ jenkins_home }}"
-    creates: "{{ jenkins_home }}/firefox"
-    copy: no

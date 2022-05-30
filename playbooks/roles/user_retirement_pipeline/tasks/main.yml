@@ -1,0 +1,79 @@
+- name: Create data and log directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ retirement_service_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0755
+  with_items:
+    - "{{ retirement_service_data_dir }}/learners_to_retire"
+    - "{{ retirement_service_log_dir }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Install python3
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - python3-pip
+    - python3-dev
+  tags:
+    - install
+    - install:requirements
+
+- name: Build virtualenv with python3
+  command: "virtualenv --python=python3 {{ retirement_service_venv_dir }}"
+  args:
+    creates: "{{ retirement_service_venv_dir }}/bin/pip"
+  become_user: "{{ retirement_service_user }}"
+  tags:
+    - install
+    - install:requirements
+
+- name: Pin pip to a specific version.
+  command: "{{ retirement_service_venv_dir }}/bin/pip install pip=={{ retirement_service_pip_version }}"
+  become_user: "{{ retirement_service_user }}"
+  tags:
+    - install
+    - install:requirements
+
+- name: Install python requirements
+  command: pip install -r requirements.txt
+  args:
+    chdir: "{{ retirement_service_app_dir }}"
+  become_user: "{{ retirement_service_user }}"
+  environment: "{{ retirement_service_environment }}"
+  tags:
+    - install
+    - install:requirements
+
+- name: Generate configuration file for retirement service
+  template:
+    src: "config.yml.j2"
+    dest: "{{ retirement_service_home }}/config.yml"
+    owner: "{{ retirement_service_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Set up user retirement script
+  template:
+    src: "retire_users.sh.j2"
+    dest: "{{ retirement_service_home }}/retire_users.sh"
+    mode: 0750
+    owner: "{{ retirement_service_user }}"
+    group: "{{ common_web_group }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Install cron job for automatically running User Retirement
+  cron:
+    name: "Run user retirement pipeline"
+    job: "{{retirement_service_home}}/retire_users.sh"
+    hour: "{{ RETIREMENT_SERVICE_CRON_JOB_HOURS }}"
+    minute: "{{ RETIREMENT_SERVICE_CRON_JOB_MINUTES }}"
+    day: "*"
+  when: RETIREMENT_SERVICE_ENABLE_CRON_JOB

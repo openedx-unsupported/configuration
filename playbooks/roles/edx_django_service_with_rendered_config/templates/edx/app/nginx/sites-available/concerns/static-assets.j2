@@ -1,0 +1,15 @@
+location ~ ^/static/(?P<file>.*) {
+  root {{ COMMON_DATA_DIR }}/{{ edx_django_service_with_rendered_config_service_name }};
+  {% include "concerns/cors-add-header.j2" %}
+
+  # Inform downstream caches to take certain headers into account when reading/writing to cache.
+  add_header 'Vary' 'Accept-Encoding,Origin';
+  
+  try_files /staticfiles/$file =404;
+}
+
+location ~ ^/media/(?P<file>.*) {
+  root {{ COMMON_DATA_DIR }}/{{ edx_django_service_with_rendered_config_service_name }};
+  try_files /media/$file =404;
+}
+

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+s3_backup_bucket="{{ SPLUNK_FROZEN_DB_S3_BUCKET }}"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: coldToFrozenS3 <splunk_bucket_to_frozen>"
+    exit 1
+fi
+
+colddb=$1
+if [[ $colddb == */ ]]; then
+    colddb=${colddb::-1}
+fi
+
+if [[ ! -d $colddb ]]; then
+    echo "Given splunk bucket is not a valid directory: $colddb"
+    exit 1
+elif [[ ! -d $colddb/rawdata ]]; then
+    echo "No rawadata directory, this not an index database: $colddb"
+    exit 1
+fi
+
+# We have splunk bucket path like this /SPLUNK/DB/PATH/$index/colddb/$splunkbucket
+# and want to move on s3 bucket in format as s3://$s3_backup_bucket/$index/frozendb/$splunkbucket
+
+read -a segments <<EOF
+    $(echo  $colddb | awk -F "/" '{print $(NF-2)" "$(NF)}')
+EOF
+index=${segments[0]}
+splunkbucket=${segments[1]}
+
+remotepath="s3://${s3_backup_bucket}/${index}/frozendb/${splunkbucket}"
+
+# Transfer splunk cold bucket to s3 
+# We want to timeout s3 upload and kill it if command running after 15 minutes 
+# as it will occupy splunk worker slots and will effect indexing
+
+timeout=900
+awscli=$(/usr/bin/timeout ${timeout} /usr/bin/aws s3 sync ${colddb} ${remotepath})
+
+retval=$?
+if [ $retval -ne 0 ]; then
+    echo "S3 upload failed to rolled data from splunk cold bucket" 2>&1
+fi

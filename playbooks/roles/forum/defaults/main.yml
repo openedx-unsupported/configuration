@@ -19,6 +19,10 @@ FORUM_MONGO_HOSTS:
 FORUM_MONGO_TAGS: !!null
 FORUM_MONGO_PORT: "27017"
 FORUM_MONGO_DATABASE: "cs_comments_service"
+FORUM_MONGO_AUTH_DB: ""
+# Must be set if user credentials are provided.
+# Can be one of :scram, :mongodb_cr, :mongodb_x509, :plain, or empty string "" if no credentials.
+FORUM_MONGO_AUTH_MECH: ":scram"
 FORUM_MONGO_USE_SSL: false
 FORUM_MONGO_URL: "mongodb://{{ FORUM_MONGO_USER }}:{{ FORUM_MONGO_PASSWORD }}@{%- for host in FORUM_MONGO_HOSTS -%}{{ host }}:{{ FORUM_MONGO_PORT }}{%- if not loop.last -%},{%- endif -%}{%- endfor -%}/{{ FORUM_MONGO_DATABASE }}{%- if FORUM_MONGO_TAGS -%}?tags={{ FORUM_MONGO_TAGS }}{%- endif -%}"
 FORUM_SINATRA_ENV: "development"
@@ -28,7 +32,16 @@ FORUM_NGINX_PORT: "18080"
 FORUM_API_KEY: "password"
 FORUM_ELASTICSEARCH_HOST: "localhost"
 FORUM_ELASTICSEARCH_PORT: "9200"
-FORUM_ELASTICSEARCH_URL: "http://{{ FORUM_ELASTICSEARCH_HOST }}:{{ FORUM_ELASTICSEARCH_PORT }}"
+FORUM_ELASTICSEARCH_PROTOCOL: "http"
+FORUM_ELASTICSEARCH_URL: "{{ FORUM_ELASTICSEARCH_PROTOCOL }}://{{ FORUM_ELASTICSEARCH_HOST }}:{{ FORUM_ELASTICSEARCH_PORT }}"
+FORUM_ELASTICSEARCH_HOST_ES7: "localhost"
+FORUM_ELASTICSEARCH_URL_ES7: "{{ FORUM_ELASTICSEARCH_PROTOCOL }}://{{ FORUM_ELASTICSEARCH_HOST_ES7 }}:{{ FORUM_ELASTICSEARCH_PORT }}"
+
+#Opensearch config
+FORUM_OPENSEARCH_HOST: "localhost"
+FORUM_OPENSEARCH_PORT: "9202"
+FORUM_OPENSEARCH_PROTOCOL: "http"
+FORUM_OPENSEARCH_URL: "{{ FORUM_OPENSEARCH_PROTOCOL }}://{{ FORUM_OPENSEARCH_HOST }}:{{ FORUM_OPENSEARCH_PORT }}"
 
 # This needs to be a string, set to 'false' to disable
 FORUM_NEW_RELIC_ENABLE: '{{ COMMON_ENABLE_NEWRELIC_APP }}'
@@ -40,7 +53,16 @@ FORUM_LISTEN_HOST: "0.0.0.0"
 FORUM_LISTEN_PORT: "4567"
 FORUM_USE_TCP: false
 
-forum_environment:
+# If forums fails to start because rake search:validate_index failed,
+# wait this long before attempting to restart it
+FORUM_RESTART_DELAY: 60
+
+# Set to rebuild the forum ElasticSearch index from the database.
+FORUM_REBUILD_INDEX: false
+
+FORUM_ENABLE_MONGODB_INDEXES: false
+
+forum_base_env: &forum_base_env
   RBENV_ROOT: "{{ forum_rbenv_root }}"
   GEM_HOME: "{{ forum_gem_root }}"
   GEM_PATH: "{{ forum_gem_root }}"
@@ -49,8 +71,12 @@ forum_environment:
   SINATRA_ENV: "{{ FORUM_SINATRA_ENV }}"
   API_KEY: "{{ FORUM_API_KEY }}"
   SEARCH_SERVER: "{{ FORUM_ELASTICSEARCH_URL }}"
+  SEARCH_SERVER_ES7: "{{ FORUM_ELASTICSEARCH_URL_ES7 }}"
+  SEARCH_SERVER_OS12: "{{ FORUM_OPENSEARCH_URL }}"
   MONGOHQ_URL: "{{ FORUM_MONGO_URL }}"
   MONGOID_USE_SSL: "{{ FORUM_MONGO_USE_SSL }}"
+  MONGOID_AUTH_SOURCE: "{{ FORUM_MONGO_AUTH_DB }}"
+  MONGOID_AUTH_MECH: "{{ FORUM_MONGO_AUTH_MECH }}"
   HOME: "{{ forum_app_dir }}"
   NEW_RELIC_ENABLE: "{{ FORUM_NEW_RELIC_ENABLE }}"
   NEW_RELIC_APP_NAME: "{{ FORUM_NEW_RELIC_APP_NAME }}"
@@ -60,10 +86,23 @@ forum_environment:
   LISTEN_HOST: "{{ FORUM_LISTEN_HOST }}"
   LISTEN_PORT: "{{ FORUM_LISTEN_PORT }}"
 
+
+forum_env:
+  <<: *forum_base_env
+devstack_forum_env:
+  <<: *forum_base_env
+  RACK_ENV: "development"
+  SINATRA_ENV: "development"
+  SEARCH_SERVER: "http://edx.devstack.elasticsearch:9200/"
+  SEARCH_SERVER_ES7: "http://edx.devstack.elasticsearch710:9200/"
+  SEARCH_SERVER_OS12: "http://edx.devstack.opensearch12:9202/"
+  MONGOHQ_URL: "mongodb://cs_comments_service:password@edx.devstack.mongo:27017/cs_comments_service"
+  MONGOID_AUTH_MECH: "{{ FORUM_MONGO_AUTH_MECH }}"
+
 forum_user: "forum"
-forum_ruby_version: "1.9.3-p551"
+FORUM_RUBY_VERSION: "2.5.7"
 forum_source_repo: "https://github.com/edx/cs_comments_service.git"
-forum_version: "master"
+FORUM_VERSION: "master"
 
 #
 # test config
@@ -76,3 +115,5 @@ forum_version: "master"
 #
 forum_services:
   - {service: "elasticsearch", host: "{{ FORUM_ELASTICSEARCH_HOST }}", port: "{{ FORUM_ELASTICSEARCH_PORT }}"}
+  - {service: "elasticsearch7", host: "{{ FORUM_ELASTICSEARCH_HOST_ES7 }}", port: "{{ FORUM_ELASTICSEARCH_PORT }}"}
+  - {service: "opensearch12", host: "{{ FORUM_OPENSEARCH_HOST }}", port: "{{ FORUM_OPENSEARCH_PORT }}"}

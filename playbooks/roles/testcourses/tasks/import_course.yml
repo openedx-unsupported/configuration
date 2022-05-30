@@ -1,0 +1,14 @@
+- name: check out testcourses
+  git:
+    dest: "{{ demo_app_dir }}/{{ course.course_id }}"
+    repo: "{{ course.github_url }}"
+    accept_hostkey: yes
+  become_user: "{{ demo_edxapp_user }}"
+  register: testcourse_checkout
+
+- name: import testcourse
+  shell: ". {{ demo_edxapp_env }} && {{ demo_edxapp_venv_bin }}/python ./manage.py cms --settings={{ demo_edxapp_settings }} import {{ demo_app_dir }} {{ course.course_id }}"
+  args:
+    chdir: "{{ demo_edxapp_code_dir }}"
+  when: testcourse_checkout.changed
+  become_user: "{{ common_web_user }}"

@@ -12,7 +12,7 @@ COMMON_BASIC_AUTH_EXCEPTIONS:
   - 172.16.0.0/12
 
 # Settings to use for calls to edxapp manage.py
-COMMON_EDXAPP_SETTINGS: 'aws'
+COMMON_EDXAPP_SETTINGS: 'production'
 
 # Turn on syncing logs on rotation for edx
 # application and tracking logs, must also
@@ -21,6 +21,10 @@ COMMON_OBJECT_STORE_LOG_SYNC: False
 COMMON_OBJECT_STORE_LOG_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
 COMMON_OBJECT_STORE_LOG_SYNC_PREFIX: "logs/tracking/"
 COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-object-store"
+COMMON_OBJECT_STORE_LOG_SYNC_ON_EXIT: "{{ COMMON_BIN_DIR }}/sync-logs-on-exit"
+
+COMMON_OBJECT_STORE_EDX_LOG_SYNC_PREFIX : "logs/edx/"
+COMMON_OBJECT_STORE_EDX_LOG_SYNC : false
 
 COMMON_BASE_DIR: /edx
 COMMON_DATA_DIR: "{{ COMMON_BASE_DIR}}/var"
@@ -53,6 +57,9 @@ COMMON_PYPI_MIRROR_URL: 'https://pypi.python.org/simple'
 COMMON_NPM_MIRROR_URL: 'https://registry.npmjs.org'
 COMMON_UBUNTU_APT_KEYSERVER: "http://keyserver.ubuntu.com/pks/lookup?op=get&fingerprint=on&search="
 
+common_digicert_name: "DigiCertSHA2SecureServerCA.crt"
+common_digicert_base_url: "https://cacerts.digicert.com/"
+
 COMMON_EDX_PPA: "deb http://ppa.edx.org {{ ansible_distribution_release }} main"
 COMMON_EDX_PPA_KEY_SERVER: "keyserver.ubuntu.com"
 COMMON_EDX_PPA_KEY_ID: "69464050"
@@ -65,6 +72,7 @@ COMMON_GIT_PATH: 'edx'  # git path prefix
 
 # override this var to set a different hostname
 COMMON_HOSTNAME: ""
+COMMON_DEPLOY_HOSTNAME: ""
 
 # Set to true to customize DNS search domains
 COMMON_CUSTOM_DHCLIENT_CONFIG: false
@@ -81,6 +89,8 @@ COMMON_SECURITY_UPDATES: no
 
 COMMON_MYSQL_READ_ONLY_USER: 'read_only'
 COMMON_MYSQL_READ_ONLY_PASS: 'password'
+COMMON_ANALYTICS_MYSQL_READ_ONLY_USER: 'read_only'
+COMMON_ANALYTICS_MYSQL_READ_ONLY_PASS: 'password'
 COMMON_MYSQL_ADMIN_USER: 'admin'
 COMMON_MYSQL_ADMIN_PASS: 'password'
 COMMON_MYSQL_MIGRATE_USER: 'migrate'
@@ -92,13 +102,14 @@ COMMON_ENABLE_DATADOG: False
 COMMON_ENABLE_NGINXTRA: False
 COMMON_ENABLE_SPLUNKFORWARDER: False
 COMMON_ENABLE_NEWRELIC: False
+COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE: False
 # enables app reporting, you must enable newrelic
 # as well
 COMMON_ENABLE_NEWRELIC_APP: False
 COMMON_ENABLE_MINOS: False
 COMMON_TAG_EC2_INSTANCE: False
-common_boto_version: '2.34.0'
-common_node_version: '6.9.4'
+COMMON_BOTO_VERSION: '2.48.0'
+COMMON_NODE_VERSION: '12.13.0'
 common_redhat_pkgs:
   - ntp
   - lynx
@@ -107,26 +118,50 @@ common_redhat_pkgs:
   - git
   - unzip
   - acl
-common_debian_pkgs:
+
+common_debian_pkgs_default:
+  - apt-transport-https
   - ntp
   - acl
-  - lynx-cur
+  - iotop
+  - lynx
   - logrotate
   - rsyslog
   - git
   - unzip
-  - python-pip
-  - python2.7-dev
+  - net-tools
+  - python3-pip
+
+common_release_specific_debian_pkgs:
+  xenial:
+    - python-pip
+    - python2.7-dev
+  bionic:
+    - python-pip
+    - python3.5-dev
+  focal:
+    - python3.5-dev
+
+common_debian_pkgs: "{{ common_debian_pkgs_default + common_release_specific_debian_pkgs[ansible_distribution_release] }}"
+
+common_debian_devstack_pkgs:
+  - watchman
 
 # Packages that should be installed from our custom PPA, i.e. COMMON_EDX_PPA
 old_python_debian_pkgs:
   - "python2.7=2.7.10-0+{{ ansible_distribution_release }}1"
 
+
+COMMON_PIP_VERSION: '21.2.1'
+
 common_pip_pkgs:
-  - pip==8.1.2
-  - setuptools==24.0.3
-  - virtualenv==15.0.2
-  - virtualenvwrapper==4.7.1
+  - pip=={{ COMMON_PIP_VERSION }}
+  - configparser==4.0.2
+  - setuptools==44.1.0
+  - virtualenv==20.2.0
+  - zipp==1.2.0
+  - boto3
+  - importlib-resources==3.2.1
 
 common_web_user: www-data
 common_web_group: www-data
@@ -155,13 +190,17 @@ common_debian_variants:
 
 # We only have to install old Python for these releases:
 old_python_ppa_releases:
-  - precise
   - trusty
 
 common_redhat_variants:
   - CentOS
   - Red Hat Enterprise Linux
   - Amazon
+
+# Gunicorn pre_request function to log request before it is processed further.
+common_pre_request: |
+    def pre_request(worker, req):
+        worker.log.info("%s %s" % (req.method, req.path))
 
 # Code used in gunicorn post_fork functions to be sure we aren't sharing cache
 # connections among forked children.
@@ -207,3 +246,59 @@ COMMON_TRACKING_LOG_ROTATION:
 # COMMON_USING_SECURE_REPO: true
 COMMON_EXTRA_CONFIGURATION_SOURCES_CHECKING: false
 COMMON_EXTRA_CONFIGURATION_SOURCES: []
+
+COMMON_LMS_BASE_URL: 'http://127.0.0.1:8000'
+COMMON_OAUTH_BASE_URL: '{{ COMMON_LMS_BASE_URL }}'
+COMMON_OAUTH_PUBLIC_URL_ROOT: '{{ COMMON_OAUTH_BASE_URL }}/oauth2'
+COMMON_OAUTH_URL_ROOT: '{{ COMMON_OAUTH_PUBLIC_URL_ROOT }}'
+COMMON_OAUTH_LOGOUT_URL: '{{ COMMON_OAUTH_BASE_URL }}/logout'
+
+COMMON_LOGO_URL: "https://edx-cdn.org/v3/default/logo.svg"
+COMMON_LOGO_TRADEMARK_URL: "https://edx-cdn.org/v3/default/logo-trademark.svg"
+COMMON_LOGO_WHITE_URL: "https://edx-cdn.org/v3/default/logo-white.svg"
+COMMON_FAVICON_URL: "https://edx-cdn.org/v3/default/favicon.ico"
+
+############
+# Settings related to JSON Web Tokens (JWTs).
+# See https://github.com/edx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0003-use-jwt-as-oauth-tokens-remove-openid-connect.rst
+COMMON_JWT_AUDIENCE: 'SET-ME-PLEASE'
+COMMON_JWT_ISSUER: '{{ COMMON_OAUTH_URL_ROOT }}'
+
+# The following should be the string representation of a JSON Web Key Set (JWK set)
+# containing active public keys for signing JWTs.
+# See https://github.com/edx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0008-use-asymmetric-jwts.rst
+COMMON_JWT_PUBLIC_SIGNING_JWK_SET: ''
+
+COMMON_JWT_AUTH_COOKIE_HEADER_PAYLOAD: 'edx-jwt-cookie-header-payload'
+COMMON_JWT_AUTH_COOKIE_SIGNATURE: 'edx-jwt-cookie-signature'
+COMMON_JWT_AUTH_REFRESH_COOKIE: 'edx-jwt-refresh-cookie'
+
+# To be deprecated, in favor of the above COMMON_JWT_PUBLIC_SIGNING_JWK_SET.
+COMMON_JWT_SECRET_KEY: 'SET-ME-PLEASE'
+############
+
+# Set worker user default
+CREATE_SERVICE_WORKER_USERS: True
+
+COMMON_ENABLE_AWS_ROLE: true
+
+# Remote config
+COMMON_HERMES_ENABLED: false
+
+COMMON_DECRYPT_CONFIG_ENABLED: false
+COMMON_COPY_CONFIG_ENABLED: false
+
+# Disable logging of config rendering which has secrets
+COMMON_CONFIG_NO_LOGGING: True
+
+# Default sandbox build flag to false
+SANDBOX_CONFIG: False
+
+# Should we create the JWT settings?
+CONFIGURE_JWTS: false
+
+# Variable to control setting up the retirement services
+COMMON_RETIREMENT_SERVICE_SETUP: false
+
+# How to log in as "lms" to xqueue.
+COMMON_XQUEUE_LMS_PASSWORD: password

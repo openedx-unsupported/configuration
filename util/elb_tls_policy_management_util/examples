@@ -1,0 +1,20 @@
+#
+# Print help
+python elb_tls_policy_management_util.py --help
+
+### List available policy versions
+python elb_tls_policy_management_util.py show_available_policy_versions
+
+### List current policy versions for all elbs in account
+python elb_tls_policy_management_util.py show_elb_policy_versions
+
+### Update ELBs by name
+python elb_tls_policy_management_util.py update_elb_policies --policy_version ELBSecurityPolicy-TLS-1-1-2017-01 --names 'elb-name-app1,elb-name-app2'
+
+### Handle multiple listeners and non standard TLS port listeners
+The default behaviour here will find the first HTTPS listener and set its policy to the policy you specify while preserving any additional policies attached to that listener.
+
+ELBs with multiple TLS listeners will be listed more than once in show_elb_policy_versions, to deal with these you will have to explicitly set the port like so:
+python elb_tls_policy_management_util.py update_elb_policies --policy_version ELBSecurityPolicy-TLS-1-1-2017-01 --names 'elb-name-app1,elb-name-app2' --port_override
+
+You dont need to retarget when using the port override, as it will skip ELBs that dont have a listener on that port.

@@ -1,0 +1,41 @@
+<Server port="{{ HOTG_TOMCAT_SHUTDOWN_PORT }}" shutdown="SHUTDOWN">
+
+<Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener"/>
+<Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener"/>
+<Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener"/>
+
+<GlobalNamingResources>
+<Resource name="UserDatabase" auth="Container" type="org.apache.catalina.UserDatabase" description="User database that can be updated and saved" factory="org.apache.catalina.users.MemoryUserDatabaseFactory" pathname="conf/tomcat-users.xml"/>
+</GlobalNamingResources>
+
+<Service name="Catalina">
+
+<Connector
+    port="{{ HOTG_TOMCAT_CONNECTOR_PORT }}"
+    protocol="HTTP/1.1"
+    connectionTimeout="20000"
+    URIEncoding="UTF-8"
+    redirectPort="{{ HOTG_TOMCAT_REDIRECT_PORT }}"
+{% if HOTG_SSL_TERMINATED_ELSEWHERE %}
+    proxyPort="{{ HOTG_TOMCAT_SSL_PORT }}"
+    scheme="https"
+    secure="true"
+    proxyName="{{ HOTG_TOMCAT_PROXY_NAME }}"
+{% endif %}
+/>
+
+<Connector port="{{ HOTG_TOMCAT_AJP_PORT }}" protocol="AJP/1.3" redirectPort="{{ HOTG_TOMCAT_REDIRECT_PORT }}"/>
+
+<Engine name="Catalina" defaultHost="localhost">
+
+<Realm className="org.apache.catalina.realm.LockOutRealm">
+
+<Realm className="org.apache.catalina.realm.UserDatabaseRealm" resourceName="UserDatabase"/>
+</Realm>
+<Host name="localhost" appBase="webapps" unpackWARs="true" autoDeploy="true">
+
+<Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs" prefix="localhost_access_log." suffix=".txt" pattern="%h %l %u %t %r %s %b"/>
+</Host>
+</Engine>
+</Service>
+</Server>

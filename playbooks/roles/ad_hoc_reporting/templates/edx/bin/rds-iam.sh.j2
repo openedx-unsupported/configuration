@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SECURITY_TOKEN AWS_SESSION_TOKEN
+
+{% if COMMON_DEPLOYMENT == 'edge' %}
+ROLE_ARN={{ RDS_IAM_AUTHENTICATION_ROLE_ARN }}
+RESULT=(`aws sts assume-role --role-arn $ROLE_ARN \
+            --role-session-name rds_read_only_iam \
+            --query '[Credentials.AccessKeyId,Credentials.SecretAccessKey,Credentials.SessionToken]' \
+            --output text`)
+export AWS_ACCESS_KEY_ID=${RESULT[0]}
+export AWS_SECRET_ACCESS_KEY=${RESULT[1]}
+export AWS_SECURITY_TOKEN=${RESULT[2]}
+export AWS_SESSION_TOKEN=${AWS_SECURITY_TOKEN}
+{% endif %}
+
+DB_HOST="{{ item.db_host }}"
+
+# Token won't work if it's for a CNAME, so we need to check that we have the right hostname
+TOKEN_DB_HOST="${DB_HOST}"
+
+if echo "${TOKEN_DB_HOST}" | grep -qv '.*rds.amazonaws.com'; then
+    # Sed is needed to trim trailing dot which makes the token not work
+    TOKEN_DB_HOST=$(dig +noall +short ${TOKEN_DB_HOST} | head -n 1 | sed 's/\.$//')
+fi
+
+logger "Generating token for ${TOKEN_DB_HOST}"
+
+TOKEN="$(aws rds generate-db-auth-token --hostname ${TOKEN_DB_HOST} --port 3306 --region us-east-1 --username {{ COMMON_MYSQL_READ_ONLY_USER }})"
+
+if [[ "$1" == "generate-db-auth-token" ]]; then
+    echo "Third party application access credentials"
+    echo "----"
+    echo "Hostname: ${DB_HOST}"
+    echo "Port: 3306"
+    echo "Username: read_only_iam"
+    echo "Password: $TOKEN"
+    echo " "
+    echo "see https://openedx.atlassian.net/wiki/spaces/EdxOps/pages/26182437/How+to+Access+a+Read+Replica for documentation"
+elif [[  -z "$1" ]]; then
+    mysql -u {{ COMMON_MYSQL_READ_ONLY_USER }} -h ${DB_HOST} --enable-cleartext-plugin --ssl-ca=/edx/bin/rds-combined-ca-bundle.pem --password=$TOKEN {{ item.db_name }}
+else
+    echo "USAGE:"
+    echo "  Generates an auth token:"
+    echo "       /edx/bin/db_iam_auth_script generate-db-auth-token"
+    echo "  Connect to a db with IAM auth token:"
+    echo "       /edx/bin/db_iam_auth_script" 
+fi

@@ -1,0 +1,21 @@
+- name: Deploy learner_portal Frontend
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'learner-portal'
+    LEARNER_PORTAL_ENABLED: True
+    LEARNER_PORTAL_SANDBOX_BUILD: False
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_sites:
+      - learner_portal
+      LEARNER_PORTAL_NGINX_PORT: 8775
+    - learner_portal
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE

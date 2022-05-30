@@ -1,0 +1,59 @@
+{% for w in edxapp_workers %}
+[program:{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}]
+
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_WORKERS_APPNAME }}-{{ w.service_variant }},NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ EDXAPP_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}CONCURRENCY={{ w.concurrency }},LOGLEVEL=info,DJANGO_SETTINGS_MODULE={{ w.service_variant }}.envs.{{ worker_django_settings_module }},LANG={{ EDXAPP_LANG }},PYTHONPATH={{ edxapp_code_dir }},SERVICE_VARIANT={{ w.service_variant }},BOTO_CONFIG="{{ edxapp_app_dir }}/.boto",EDX_REST_API_CLIENT_NAME=edx.{{ w.service_variant }}.core.{{ w.queue }}
+user={{ common_web_user }}
+directory={{ edxapp_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edxapp_app_dir }}/worker.sh --app={{ w.service_variant }}.celery:APP worker --loglevel=info --queues=edx.{{ w.service_variant }}.core.{{ w.queue }} --hostname=edx.{{ w.service_variant }}.core.{{ w.queue }}.%%h --concurrency={{ w.concurrency }} {{ '--max-tasks-per-child ' + w.max_tasks_per_child|string if w.max_tasks_per_child is defined else '' }} {{ '--without-heartbeat' if not EDXAPP_CELERY_HEARTBEAT_ENABLED|bool else '' }} {{ '-O ' + w.prefetch_optimization if w.prefetch_optimization is defined else '' }}
+killasgroup=true
+stopwaitsecs={{ w.stopwaitsecs | default(EDXAPP_WORKER_DEFAULT_STOPWAITSECS) }}
+
+{% endfor %}
+
+[group:edxapp_worker]
+programs={%- for w in edxapp_workers %}{{ w.service_variant }}_{{ w.queue }}_{{ w.concurrency }}{%- if not loop.last %},{%- endif %}{%- endfor %}
+
+
+{% if EDXAPP_ENABLE_CELERY_BEAT|bool and EDXAPP_CELERY_BROKER_TRANSPORT == "redis"  %}
+[program:celerybeat_scheduler]
+environment=
+    {% if COMMON_ENABLE_NEWRELIC_APP %}
+    NEW_RELIC_APP_NAME={{ EDXAPP_NEWRELIC_WORKERS_APPNAME }}-lms,
+    NEW_RELIC_DISTRIBUTED_TRACING_ENABLED={{ EDXAPP_WORKERS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }},
+    NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},
+    {% endif -%}
+    LANG={{ EDXAPP_LANG }},
+    PYTHONPATH={{ edxapp_code_dir }},
+    SERVICE_VARIANT=lms,
+    BOTO_CONFIG="{{ edxapp_app_dir }}/.boto",
+    EDX_REST_API_CLIENT_NAME=edx.lms.core.default,
+    SINGLE_BEAT_LOCK_TIME={{ EDXAPP_SINGLE_BEAT_LOCK_TIME }},
+    SINGLE_BEAT_HEARTBEAT_INTERVAL={{ EDXAPP_SINGLE_BEAT_HEARTBEAT_INTERVAL }},
+    SINGLE_BEAT_IDENTIFIER="{{ EDXAPP_SINGLE_BEAT_IDENTIFIER }}",
+    SINGLE_BEAT_REDIS_SERVER="redis://{{ EDXAPP_SINGLE_BEAT_USER }}:{{ EDXAPP_SINGLE_BEAT_PASSWORD }}@{{ EDXAPP_CELERY_BROKER_HOSTNAME }}/{{ EDXAPP_CELERY_BROKER_VHOST }}",
+    SINGLE_BEAT_WAIT_MODE="supervised",
+    SERVICE_CONFIG="lms.envs.{{ worker_django_settings_module }}"
+user={{ common_web_user }}
+directory={{ edxapp_code_dir }}
+stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
+stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
+
+command={{ edxapp_app_dir }}/beat_scheduler.sh --loglevel=info --schedule="{{ supervisor_log_dir }}/celerybeat-schedule" --pidfile="{{ supervisor_log_dir }}/celerybeat.pid"
+
+killasgroup=true
+stopwaitsecs={{ EDXAPP_WORKER_DEFAULT_STOPWAITSECS }}
+
+# If multiple app servers are running, celery-beat will exit on the new app
+# server as it is already running on the old one. Once the process exited with
+# status 0, it wont restart again event the old server is deprovisioned. To
+# resolve this conflict, use `autorestart=true` to keep trying to start the
+# process. Startretries are scheduled 3 times by default; since there is no way
+# to set infinite retries, the recommended way is setting a high number. When
+# the previous server is stopped, celery-beat will start normally.
+autorestart=true
+startsecs=30
+startretries=10000
+{% endif %}

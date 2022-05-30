@@ -1,0 +1,283 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role edx_django_service_with_rendered_config
+#
+# Overview:
+# For devstack set edx_django_service_with_rendered_config_is_devstack to true.
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: add gunicorn configuration file
+  template:
+    src: "edx/app/app/app_gunicorn.py.j2"
+    dest: "{{ edx_django_service_with_rendered_config_home }}/{{ edx_django_service_with_rendered_config_service_name }}_gunicorn.py"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: install python3
+  apt:
+    name: "{{ item }}"
+  when: edx_django_service_with_rendered_config_use_python3
+  with_items:
+    - python3-pip
+    - python3-dev
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3
+  command: "virtualenv --python=python3 {{ edx_django_service_with_rendered_config_venv_dir }}"
+  args:
+    creates: "{{ edx_django_service_with_rendered_config_venv_dir }}/bin/pip"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  when: edx_django_service_with_rendered_config_use_python3
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python2.7
+  command: "virtualenv --python=python2.7 {{ edx_django_service_with_rendered_config_venv_dir }}"
+  args:
+    creates: "{{ edx_django_service_with_rendered_config_venv_dir }}/bin/pip"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  when: not edx_django_service_with_rendered_config_use_python3
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Pin pip to a specific version.
+  command: "{{ edx_django_service_with_rendered_config_venv_dir }}/bin/pip install pip=={{ COMMON_PIP_VERSION }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+# NOTE (CCB): Ideally we should use the pip Ansible command,
+# but that doesn't seem to work with the Python 3.x virtualenv.
+- name: install nodenv
+  command: pip install nodeenv
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: create nodeenv
+  command: "nodeenv {{ edx_django_service_with_rendered_config_nodeenv_dir }} --node={{ edx_django_service_with_rendered_config_node_version }} --prebuilt"
+  args:
+    creates: "{{ edx_django_service_with_rendered_config_nodeenv_dir }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_environment }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: install production requirements
+  command: make production-requirements
+  args:
+    chdir: "{{ edx_django_service_with_rendered_config_code_dir }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install development requirements
+  command: make requirements
+  args:
+    chdir: "{{ edx_django_service_with_rendered_config_code_dir }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_environment }}"
+  when: edx_django_service_with_rendered_config_is_devstack is defined and edx_django_service_with_rendered_config_is_devstack
+  tags:
+    - install
+    - install:app-requirements
+    - devstack
+    - devstack:install
+
+- name: migrate database
+  command: make migrate
+  args:
+    chdir: "{{ edx_django_service_with_rendered_config_code_dir }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_migration_environment }}"
+  when: migrate_db is defined and migrate_db|lower == "yes"
+  run_once: yes
+  tags:
+    - migrate
+    - migrate:db
+
+- name: run post-migrate commands
+  command: "{{ item.command }}"
+  args:
+    chdir: "{{ edx_django_service_with_rendered_config_code_dir }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_environment }}"
+  with_items: '{{ edx_django_service_with_rendered_config_post_migrate_commands }}'
+  when: migrate_db is defined and migrate_db|lower == "yes" and item.when|bool
+  run_once: yes
+  tags:
+    - migrate
+    - migrate:db
+    - migrate:post
+
+- name: ensure log files exist for tailing
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: "{{ common_web_user }}"
+    group: "{{ common_web_user }}"
+  with_items: '{{ edx_django_service_with_rendered_config_name_devstack_logs }}'
+  tags:
+    - install
+    - install:configuration
+
+- name: write out the supervisor wrapper
+  template:
+    src: "edx/app/app/app.sh.j2"
+    dest: "{{ edx_django_service_with_rendered_config_home }}/{{ edx_django_service_with_rendered_config_service_name }}.sh"
+    mode: 0650
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: write supervisord config
+  template:
+    src: "edx/app/supervisor/conf.d.available/app.conf.j2"
+    dest: "{{ supervisor_available_dir }}/{{ edx_django_service_with_rendered_config_service_name }}.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: write devstack script
+  template:
+    src: "edx/app/app/devstack.sh.j2"
+    dest: "{{ edx_django_service_with_rendered_config_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  when: edx_django_service_with_rendered_config_is_devstack is defined and edx_django_service_with_rendered_config_is_devstack
+  tags:
+    - devstack
+    - devstack:install
+
+- name: setup the app env file
+  template:
+    src: "edx/app/app/app_env.j2"
+    dest: "{{ edx_django_service_with_rendered_config_home }}/{{ edx_django_service_with_rendered_config_service_name }}_env"
+    owner: "{{ edx_django_service_with_rendered_config_user }}"
+    group: "{{ edx_django_service_with_rendered_config_user }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: enable supervisor script
+  file:
+    src: "{{ supervisor_available_dir }}/{{ edx_django_service_with_rendered_config_service_name }}.conf"
+    dest: "{{ supervisor_cfg_dir }}/{{ edx_django_service_with_rendered_config_service_name }}.conf"
+    state: link
+    force: yes
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  command: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: create symlinks from the repo dir
+  file:
+    src: "{{ edx_django_service_with_rendered_config_code_dir }}/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ edx_django_service_with_rendered_config_service_name }}"
+    state: link
+  with_items:
+    - manage.py
+  tags:
+    - install
+    - install:app-requirements
+
+- name: compile static assets
+  command: make static
+  args:
+    chdir: "{{ edx_django_service_with_rendered_config_code_dir }}"
+  become_user: "{{ edx_django_service_with_rendered_config_user }}"
+  environment: "{{ edx_django_service_with_rendered_config_environment }}"
+  when: edx_django_service_with_rendered_config_has_static_assets
+  tags:
+    - assets
+    - assets:gather
+
+- name: restart the application
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    name: "{{ edx_django_service_with_rendered_config_service_name }}"
+  when: not disable_edx_services
+  become_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start
+
+- name: Copying nginx configs for the service
+  template:
+    src: "edx/app/nginx/sites-available/app.j2"
+    dest: "{{ nginx_sites_available_dir }}/{{ edx_django_service_with_rendered_config_service_name }}"
+    owner: root
+    group: "{{ common_web_user }}"
+    mode: 0640
+  when: nginx_app_dir is defined
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+
+- name: Creating nginx config links for the service
+  file:
+    src: "{{ nginx_sites_available_dir }}/{{ edx_django_service_with_rendered_config_service_name }}"
+    dest: "{{ nginx_sites_enabled_dir }}/{{ edx_django_service_with_rendered_config_service_name }}"
+    state: link
+    owner: root
+    group: root
+  when: nginx_app_dir is defined
+  notify: reload nginx
+  tags:
+    - install
+    - install:vhosts
+
+- name: Include JWT signature setting in the app config file
+  include_role:
+    name: jwt_signature
+  when: edx_django_service_with_rendered_config_sandbox_build
+  vars:
+     app_name: '{{ edx_django_service_with_rendered_config_service_name }}'
+     app_config_file: "{{ COMMON_CFG_DIR  }}/{{ edx_django_service_with_rendered_config_service_name }}.yml"
+     app_config_owner: root
+     app_config_group: root
+     app_config_mode: 0644

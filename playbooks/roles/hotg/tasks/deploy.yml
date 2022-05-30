@@ -1,0 +1,98 @@
+---
+
+- name: create supervisor wrapper
+  template: >
+    src=edx/app/hotg/supervisor_wrapper.sh.j2
+    dest={{ hotg_app_dir }}/supervisor_wrapper.sh
+    owner={{ HOTG_USER }} group={{ common_web_user }} mode=0750
+  tags:
+    - install
+    - install:base
+    
+- name: create supervisor script
+  template: >
+    src=edx/app/supervisor/conf.d/hotg.conf.j2
+    dest={{ supervisor_available_dir }}/{{ HOTG_SERVICE_NAME }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }} mode=0644
+  tags:
+    - install
+    - install:base
+
+- name: enable supervisor scripts
+  file: >
+    src={{ supervisor_available_dir }}/{{ HOTG_SERVICE_NAME }}.conf
+    dest={{ supervisor_cfg_dir }}/{{ HOTG_SERVICE_NAME }}.conf
+    owner={{ supervisor_user }} group={{ common_web_user }}
+    mode=0644 state=link force=yes
+  when: not disable_edx_services    
+  tags:
+    - manage
+    - manage:update
+
+- name: update supervisor configuration
+  shell: "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  when: not disable_edx_services 
+  tags:
+    - manage
+    - manage:update
+
+- name: stop the service
+  supervisorctl: >
+    state=stopped
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name="{{ HOTG_SERVICE_NAME }}"
+  sudo_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:stop
+  
+- name: create hotg application config
+  template: >
+    src=edx/app/hotg/Config.groovy.j2
+    dest={{ hotg_app_dir }}/Config.groovy
+    mode=0644
+  sudo_user: "{{ HOTG_USER }}"
+  tags:
+    - install
+    - install:configuration
+
+  #
+  # Workaround a bug in ansible where it fails if it cannot verify
+  # a files md5sum, which it cannot do for large files
+- name: remove old war
+  file: >
+    path={{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}/webapps/ROOT.war
+    state=absent
+  tags:
+    - install
+    - install:base
+
+    
+- name: grab the war file from s3
+  get_url:
+    url: "https://files.edx.org/devops/jenkins_assets/asgard.war.{{ HOTG_GIT_REVISION }}/asgard.war"
+    dest: "{{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}/webapps/ROOT.war"
+    force: yes
+  tags:
+    - install
+    - install:base
+
+- name: remove exploded war directory
+  file: >
+    path={{ hotg_app_dir }}/apache-tomcat-{{ HOTG_TOMCAT_VERSION }}/webapps/ROOT
+    state=absent
+  tags:
+    - install
+    - install:base
+
+- name: start the service
+  supervisorctl: >
+    state=started
+    supervisorctl_path={{ supervisor_ctl }}
+    config={{ supervisor_cfg }}
+    name="{{ HOTG_SERVICE_NAME }}"
+  sudo_user: "{{ supervisor_service_user }}"
+  tags:
+    - manage
+    - manage:start

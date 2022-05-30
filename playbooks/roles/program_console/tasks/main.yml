@@ -1,0 +1,89 @@
+- name: Remove old git repo
+  file:
+    state: absent
+    path: "{{ program_console_code_dir }}/"
+
+- name: Remove old app repo
+  file:
+    state: absent
+    path: "{{ program_console_app_dir }}"
+
+- name: Create program-console app folder
+  file:
+    path: "{{ program_console_app_dir }}"
+    state: directory
+    owner: "{{ program_console_user }}"
+    group: "{{ program_console_user }}"
+
+- name: Checkout program-console repo into {{ program_console_code_dir }}
+  git:
+    dest: "{{ program_console_code_dir }}"
+    repo: "{{ program_console_repo }}"
+    version: "{{ PROGRAM_CONSOLE_VERSION }}"
+    accept_hostkey: yes
+  become_user: "{{ program_console_user }}"
+  register: program_console_checkout
+
+
+# Use apt to install nodeenv, so we can use nodeenv to install nodejs
+- name: install nodenv by using apt
+  apt:
+    name: nodeenv
+  tags:
+    - install
+    - install:system-requirements
+
+# Install node
+- name: install nodejs
+  shell: "nodeenv {{ program_console_nodeenv_dir }} --node={{ PROGRAM_CONSOLE_NODE_VERSION }} --prebuilt --force"
+  become_user: "{{ program_console_user }}"
+  environment: "{{ program_console_env_vars }}"
+  tags:
+    - install
+    - install:system-requirements
+
+# Set the npm registry
+# This needs to be done as root since npm is weird about
+# chown - https://github.com/npm/npm/issues/3565
+- name: Set the npm registry
+  shell: "{{ program_console_nodeenv_bin }}/npm config set registry '{{ COMMON_NPM_MIRROR_URL }}'"
+  args:
+    creates: "{{ program_console_code_dir }}/.npmrc"
+  environment: "{{ program_console_env_vars }}"
+  become_user: "{{ program_console_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+#we need to do this so that npm can find a node install to use to build node-sass
+- name: prepend node path
+  shell: "{{ program_console_nodeenv_bin }}/npm config set scripts-prepend-node-path true"
+  environment: "{{ program_console_env_vars }}"
+  become_user: "{{ program_console_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+#The version of ansible we are using also does not make use of "--unsafe-perm", which we need for node-sass
+- name: install node dependencies
+  shell: "sudo {{ program_console_nodeenv_bin }}/node {{ program_console_nodeenv_bin }}/npm i --unsafe-perm"
+  args:
+    chdir: "{{ program_console_code_dir }}"
+  environment: "{{ program_console_env_vars }}"
+  become: true
+  become_method: sudo
+  tags:
+    - install
+    - install:app-requirements
+
+#install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
+- name: run program-console build
+  shell: "npm run build"
+  args:
+    chdir: "{{ program_console_code_dir }}"
+  environment: "{{ program_console_env_vars }}"
+  become_user: "{{ program_console_user }}"
+  tags:
+    - install
+    - install:app-requirements

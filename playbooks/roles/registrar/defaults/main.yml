@@ -1,0 +1,161 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role registrar
+#
+
+REGISTRAR_ENABLED: True
+
+#
+# vars are namespace with the module name.
+#
+registrar_service_name: 'registrar'
+
+registrar_user: "{{ registrar_service_name }}"
+registrar_home: "{{ COMMON_APP_DIR }}/{{ registrar_service_name }}"
+registrar_app_dir: "{{ COMMON_APP_DIR }}/{{ registrar_service_name }}"
+registrar_code_dir: "{{ registrar_app_dir }}/{{ registrar_service_name }}"
+registrar_venvs_dir: "{{ registrar_app_dir }}/venvs"
+registrar_venv_dir: "{{ registrar_venvs_dir }}/registrar"
+registrar_celery_default_queue: 'registrar.default'
+
+REGISTRAR_USE_PYTHON38: True
+
+REGISTRAR_CELERY_ALWAYS_EAGER: false
+REGISTRAR_CELERY_BROKER_TRANSPORT: 'redis'
+REGISTRAR_CELERY_BROKER_USER: ''
+REGISTRAR_CELERY_BROKER_PASSWORD: ''
+REGISTRAR_CELERY_BROKER_HOSTNAME: ''
+REGISTRAR_CELERY_BROKER_VHOST: ''
+
+registrar_environment:
+  REGISTRAR_CFG: '{{ COMMON_CFG_DIR }}/{{ registrar_service_name }}.yml'
+
+registrar_gunicorn_port: 8734
+
+registrar_debian_pkgs: []
+
+REGISTRAR_NGINX_PORT: '1{{ registrar_gunicorn_port }}'
+REGISTRAR_SSL_NGINX_PORT: '4{{ registrar_gunicorn_port }}'
+
+REGISTRAR_DEFAULT_DB_NAME: 'registrar'
+REGISTRAR_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+REGISTRAR_MYSQL_USER: 'registrar001'
+REGISTRAR_MYSQL_PASSWORD: 'password'
+REGISTRAR_MYSQL_CONN_MAX_AGE: 60
+
+REGISTRAR_MEMCACHE: [ 'memcache' ]
+
+REGISTRAR_DJANGO_SETTINGS_MODULE: 'registrar.settings.production'
+REGISTRAR_DOMAIN: 'localhost'
+REGISTRAR_URL_ROOT: 'http://{{ REGISTRAR_DOMAIN }}:{{ REGISTRAR_NGINX_PORT }}'
+REGISTRAR_API_ROOT: '{{ REGISTRAR_URL_ROOT }}/api'
+REGISTRAR_LOGOUT_URL: '{{ REGISTRAR_URL_ROOT }}/logout/'
+
+REGISTRAR_LANG: 'en_US.UTF-8'
+REGISTRAR_LANGUAGE_CODE: 'en'
+REGISTRAR_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+REGISTRAR_SERVICE_USER: 'registrar_service_user'
+
+REGISTRAR_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ registrar_service_name }}'
+REGISTRAR_MEDIA_ROOT: '{{ REGISTRAR_DATA_DIR }}/media'
+REGISTRAR_MEDIA_URL: '/api/media/'
+
+REGISTRAR_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ REGISTRAR_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ REGISTRAR_MEDIA_URL }}'
+
+# TODO: Let edx_django_service manage REGISTRAR_STATIC_ROOT in phase 2.
+REGISTRAR_STATIC_ROOT: '{{ REGISTRAR_DATA_DIR }}/staticfiles'
+REGISTRAR_STATIC_URL: '/static/'
+
+REGISTRAR_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+REGISTRAR_CORS_ORIGIN_ALLOW_ALL: false
+REGISTRAR_CORS_ORIGIN_WHITELIST: []
+
+REGISTRAR_CSRF_COOKIE_SECURE: false
+REGISTRAR_CSRF_TRUSTED_ORIGINS: []
+
+REGISTRAR_VERSION: 'master'
+
+REGISTRAR_GUNICORN_EXTRA: ''
+
+REGISTRAR_EXTRA_APPS: []
+
+REGISTRAR_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+REGISTRAR_CERTIFICATE_LANGUAGES:
+  'en': 'English'
+  'es_419': 'Spanish'
+
+# Used to automatically configure OAuth2 Client
+REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'registrar-sso-key'
+REGISTRAR_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'registrar-sso-secret'
+REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'registrar-backend-service-key'
+REGISTRAR_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'registrar-backend-service-secret'
+REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+# API key for segment.io
+REGISTRAR_SEGMENT_KEY: !!null
+
+REGISTRAR_DISCOVERY_BASE_URL: !!null
+REGISTRAR_LMS_BASE_URL: !!null
+
+registrar_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ REGISTRAR_CERTIFICATE_LANGUAGES }}'
+  REGISTRAR_SERVICE_USER: '{{ REGISTRAR_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ REGISTRAR_LANGUAGE_COOKIE_NAME }}'
+  SEGMENT_KEY: "{{ REGISTRAR_SEGMENT_KEY }}"
+  DISCOVERY_BASE_URL: "{{ REGISTRAR_DISCOVERY_BASE_URL }}"
+  LMS_BASE_URL: "{{ REGISTRAR_LMS_BASE_URL }}"
+  CORS_ORIGIN_WHITELIST: "{{ REGISTRAR_CORS_ORIGIN_WHITELIST }}"
+  CSRF_TRUSTED_ORIGINS: "{{ REGISTRAR_CSRF_TRUSTED_ORIGINS }}"
+  CSRF_COOKIE_SECURE: "{{ REGISTRAR_CSRF_COOKIE_SECURE }}"
+  CELERY_TASK_ALWAYS_EAGER: '{{ REGISTRAR_CELERY_ALWAYS_EAGER }}'
+  CELERY_BROKER_TRANSPORT: '{{ REGISTRAR_CELERY_BROKER_TRANSPORT }}'
+  CELERY_BROKER_USER: '{{ REGISTRAR_CELERY_BROKER_USER }}'
+  CELERY_BROKER_PASSWORD: '{{ REGISTRAR_CELERY_BROKER_PASSWORD }}'
+  CELERY_BROKER_HOSTNAME: '{{ REGISTRAR_CELERY_BROKER_HOSTNAME }}'
+  CELERY_BROKER_VHOST: '{{ REGISTRAR_CELERY_BROKER_VHOST }}'
+  CELERY_TASK_DEFAULT_EXCHANGE: 'registrar'
+  CELERY_TASK_DEFAULT_ROUTING_KEY: 'registrar'
+  CELERY_TASK_DEFAULT_QUEUE: '{{ registrar_celery_default_queue }}'
+
+# See edx_django_service_automated_users for an example of what this should be
+REGISTRAR_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+
+REGISTRAR_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+# Remote config
+REGISTRAR_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+REGISTRAR_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+REGISTRAR_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+REGISTRAR_ENABLE_ADMIN_URLS_RESTRICTION: false
+
+REGISTRAR_ADMIN_URLS:
+  - admin
+
+# Worker settings
+worker_django_settings_module: "{{ REGISTRAR_DJANGO_SETTINGS_MODULE }}"
+REGISTRAR_CELERY_WORKERS:
+  - queue: '{{ registrar_celery_default_queue }}'
+    concurrency: 1
+    monitor: True
+registrar_workers: "{{ REGISTRAR_CELERY_WORKERS }}"
+
+registrar_post_migrate_commands: []

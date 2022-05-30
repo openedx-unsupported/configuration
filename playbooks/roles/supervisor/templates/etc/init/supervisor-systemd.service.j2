@@ -8,14 +8,10 @@ After=network.target
 {% if disable_edx_services and not devstack -%}
 # Run pre_supervisor
 ExecStartPre={{ supervisor_venv_dir }}/bin/python {{ supervisor_app_dir }}/pre_supervisor_checks.py \
-  {% if SUPERVISOR_HIPCHAT_API_KEY is defined -%}
-    --hipchat-api-key {{ SUPERVISOR_HIPCHAT_API_KEY }} --hipchat-room {{ SUPERVISOR_HIPCHAT_ROOM }} \
-  {% endif -%}
-  {%- for item in supervisor_spec -%}
+  {% for item in supervisor_spec -%}
     {%- if item.code -%}
-      {%- set name = item.service.replace('_', '-') -%}
-      --{{ name }}-python {{ COMMON_BIN_DIR }}/{{ item.python }} --{{ name }}-code-dir {{ item.code }}
-      {%- if item.env is defined %} --{{ name }}-env {{ item.env }}{% endif %} \
+      --check-migrations --check-migrations-service-names {{ item.migration_check_services }} --app-python {{ item.python }} --app-code-dir {{ item.code }}
+      {%- if item.env is defined %} --app-env {{ item.env }}{% endif %} \
     {% endif %}
   {%- endfor -%}
   --available={{ supervisor_available_dir }} --enabled={{ supervisor_cfg_dir }}
@@ -28,12 +24,17 @@ PermissionsStartOnly=true
 User={{ supervisor_service_user }}
 
 Type=forking
-TimeoutStartSec=432000
+TimeoutSec=432000
 
 ExecStart={{ supervisor_venv_dir }}/bin/supervisord --configuration {{ supervisor_cfg }}
 ExecReload={{ supervisor_venv_dir }}/bin/supervisorctl reload
 ExecStop={{ supervisor_venv_dir }}/bin/supervisorctl shutdown
 
+# Trust supervisor to kill all its children
+# Otherwise systemd will see that ExecStop ^ comes back synchronously and say "Oh, I can kill everyone in this cgroup"
+# https://www.freedesktop.org/software/systemd/man/systemd.service.html#ExecStop=
+# https://www.freedesktop.org/software/systemd/man/systemd.kill.html
+KillMode=none
 
 [Install]
 WantedBy=multi-user.target

@@ -1,0 +1,63 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role devpi
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: Create the application group
+  group:
+    name: "{{ devpi_group }}"
+    state: present
+  tags:
+    - "install"
+
+- name: Create application user
+  user:
+    name: "{{ devpi_user }}"
+    home: "{{ devpi_app_dir }}"
+    group: "{{ devpi_group }}"
+    createhome: no
+    shell: /bin/false
+  tags:
+    - "install"
+
+- name: Create devpi user dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ devpi_user }}"
+    group: "{{ devpi_group }}"
+  with_items:
+    - "{{ devpi_app_dir }}"
+    - "{{ devpi_venv_dir }}"
+  tags:
+    - "install"
+
+- name: install python requirements
+  pip:
+    name: "{{ item.name }}"
+    version: "{{ item.version|default(omit) }}"
+    extra_args: "--exists-action w {{ item.extra_args|default('') }}"
+    virtualenv: "{{ devpi_venv_path }}"
+    state: present
+  with_items: "{{ DEVPI_REQUIREMENTS }}"
+  become_user: "{{ devpi_user }}"
+  tags:
+    - "install"

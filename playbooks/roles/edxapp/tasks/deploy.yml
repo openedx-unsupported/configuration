@@ -1,14 +1,4 @@
 ---
-- name: create edxapp configuration dir
-  file:
-    path: "{{ EDXAPP_CFG_DIR }}"
-    state: directory
-    owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
-  tags:
-    - install
-    - install:base
-
 - name: copy the template to the desired location
   template:
     src: "{{ item.src }}"
@@ -20,6 +10,7 @@
     - { src: 'edxapp_env.j2', dest: '{{ edxapp_app_dir }}/edxapp_env', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'newrelic.ini.j2', dest: '{{ edxapp_app_dir }}/newrelic.ini', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
     - { src: 'git_ssh.sh.j2', dest: '{{ edxapp_git_ssh }}', owner: '{{ edxapp_user }}', group: '{{ edxapp_user }}', mode: '0750' }
+    - { src: 'boto.j2', dest: '{{ edxapp_app_dir }}/.boto', owner: '{{ edxapp_user }}', group: '{{ common_web_user }}', mode: '0644' }
   tags:
     - install
     - install:base
@@ -36,6 +27,18 @@
     - install
     - install:base
 
+# On devstack, tell Git that repos owner by other users are safe.
+# This is necessary in git 2.35.2 and higher. Devstack uses a mix of
+# root and edxapp and git+https pip dependencies end up cloning repos
+# into an open-ended set of directories, so our best bet is to just
+# say every dir on devstack is safe.
+- name: Mark all directories as safe for git on devstack
+  shell: "git config --global --add safe.directory '*'"
+  become: true
+  when: "({{ devstack | default(False) }} or {{ edx_django_service_is_devstack | default(False) }})"
+  tags:
+    - devstack
+
 - name: set git fetch.prune to ignore deleted remote refs
   shell: git config --global fetch.prune true
   become_user: "{{ edxapp_user }}"
@@ -48,11 +51,10 @@
   git:
     dest: "{{ edxapp_code_dir }}"
     repo: "{{ edx_platform_repo }}"
-    version: "{{ edx_platform_version }}"
+    version: "{{ EDX_PLATFORM_VERSION }}"
     accept_hostkey: yes
+    key_file: "{% if EDXAPP_USE_GIT_IDENTITY %}{{ edxapp_git_identity }}{% endif %}"
   become_user: "{{ edxapp_user }}"
-  environment:
-    GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_platform_checkout
   tags:
     - install
@@ -75,16 +77,23 @@
   git:
     dest: "{{ edxapp_app_dir }}/themes/{{ edxapp_theme_name }}"
     repo: "{{ edxapp_theme_source_repo }}"
-    version: "{{ edxapp_theme_version }}"
+    version: "{{ EDXAPP_THEME_VERSION }}"
     accept_hostkey: yes
+    key_file: "{% if EDXAPP_USE_GIT_IDENTITY %}{{ edxapp_git_identity }}{% endif %}"
   when: edxapp_theme_name != ''
   become_user: "{{ edxapp_user }}"
-  environment:
-    GIT_SSH: "{{ edxapp_git_ssh }}"
   register: edxapp_theme_checkout
   tags:
     - install
     - install:code
+
+# Download a theme and apply small modifications like SASS changes
+# To enable/disable this, set SIMPLETHEME_ENABLE_DEPLOY
+# https://github.com/ansible/ansible/issues/19472 prevents including the
+# role conditionally
+- name: Install a theme through simpletheme
+  include_role:
+    name: "simple_theme"
 
 - name: Stat each requirements file with Github URLs to ensure it exists
   stat:
@@ -110,7 +119,7 @@
     - install:app-requirements
 
 - name: Create the virtualenv to install the Python requirements
-  command: "virtualenv {{ edxapp_venv_dir }}"
+  command: "virtualenv {{ edxapp_venv_dir }} -p {{ EDXAPP_PYTHON_VERSION }} --always-copy"
   args:
     chdir: "{{ edxapp_code_dir }}"
     creates: "{{ edxapp_venv_dir }}/bin/pip"
@@ -120,10 +129,20 @@
     - install
     - install:app-requirements
 
+- name: Pin pip to a specific version.
+  command: "{{ edxapp_venv_dir }}/bin/pip install pip=={{ COMMON_PIP_VERSION }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: Stat each Python requirements file to ensure it exists
   stat:
     path: "{{ item }}"
-  with_items: "{{ edxapp_requirements_files }}"
+  with_items: "{{ edxapp_requirements_files }} + {{ [openstack_requirements_file] if EDXAPP_SETTINGS == 'openstack' else [] }}"
   register: python_requirement_files
   tags:
     - install
@@ -151,11 +170,11 @@
   # Need to use shell rather than pip so that we can maintain the context of our current working directory; some
   # requirements are pathed relative to the edx-platform repo. Using the pip from inside the virtual environment implicitly
   # installs everything into that virtual environment.
-  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+  shell: "{{ edxapp_venv_dir }}/bin/pip install {{ COMMON_PIP_VERBOSITY }} -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w {{ item.extra_args|default('') }} {{ item.name }}"
   args:
     chdir: "{{ edxapp_code_dir }}"
   with_items:
-  - "{{ private_requirements_file }}"
+  - "{{ EDXAPP_PRIVATE_REQUIREMENTS }}"
   become_user: "{{ edxapp_user }}"
   environment:
     GIT_SSH: "{{ edxapp_git_ssh }}"
@@ -202,19 +221,11 @@
     chdir: "{{ edxapp_code_dir }}"
   with_items:
   - "{{ sandbox_base_requirements }}"
-  - "{{ sandbox_local_requirements }}"
-  - "{{ sandbox_post_requirements }}"
   become_user: "{{ edxapp_user }}"
   when: not EDXAPP_PYTHON_SANDBOX
   tags:
     - install
     - install:app-requirements
-
-- name: create nodeenv
-  shell: "{{ edxapp_venv_dir }}/bin/nodeenv {{ edxapp_nodeenv_dir }} --node={{ edxapp_node_version }} --prebuilt --force"
-  tags:
-    - install
-    - install:system-requirements
 
 # Set the npm registry
 # This needs to be done as root since npm is weird about
@@ -239,12 +250,10 @@
     - install:app-requirements
 
 - name: install node dependencies
-  npm:
-    executable: "{{ edxapp_nodeenv_bin }}/npm"
-    path: "{{ edxapp_code_dir }}"
-    production: yes
-    state: latest
-  environment: "{{ edxapp_environment }}"
+  shell: "easy_install --version && npm install"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  environment: "{{ edxapp_environment | combine(git_ssh_environment_mixin) }}"
   become_user: "{{ edxapp_user }}"
   tags:
     - install
@@ -262,30 +271,42 @@
     - install
     - install:app-requirements
 
-- name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
-  pip:
-    requirements: "{{ sandbox_base_requirements }}"
-    virtualenv: "{{ edxapp_sandbox_venv_dir }}"
-    state: present
-    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
+- name: Create the virtualenv to install the Python sandbox requirements
+  command: "virtualenv {{ edxapp_sandbox_venv_dir }} -p {{ edxapp_sandbox_python_version }} --always-copy"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+    creates: "{{ edxapp_sandbox_venv_dir }}/bin/pip"
   become_user: "{{ edxapp_sandbox_user }}"
+  environment: "{{ edxapp_environment }}"
   when: EDXAPP_PYTHON_SANDBOX
   tags:
     - edxapp-sandbox
     - install
     - install:app-requirements
 
-- name: code sandbox | Install sandbox requirements into sandbox venv
-  shell: "{{ edxapp_sandbox_venv_dir }}/bin/pip install -i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w -r {{ item }}"
+- name: Pin pip to a specific version.
+  # Not pinning to the same version as everything else because sandboxes are still python 2.7
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/pip install pip==21.2.1"
   args:
     chdir: "{{ edxapp_code_dir }}"
-  with_items:
-    - "{{ sandbox_local_requirements }}"
-    - "{{ sandbox_post_requirements }}"
+  become_user: "{{ edxapp_sandbox_user }}"
+  environment: "{{ edxapp_environment }}"
+  when: EDXAPP_PYTHON_SANDBOX
+  tags:
+    - edxapp-sandbox
+    - install
+    - install:app-requirements
+
+- name: code sandbox | Install base sandbox requirements and create sandbox virtualenv
+  pip:
+    chdir: "{{ edxapp_code_dir }}"
+    requirements: "{{ sandbox_base_requirements }}"
+    virtualenv: "{{ edxapp_sandbox_venv_dir }}"
+    state: present
+    extra_args: "-i {{ COMMON_PYPI_MIRROR_URL }} --exists-action w"
+    virtualenv_python: "{{ edxapp_sandbox_python_version }}"
   become_user: "{{ edxapp_sandbox_user }}"
   when: EDXAPP_PYTHON_SANDBOX
-  register: sandbox_install_output
-  changed_when: sandbox_install_output.stdout is defined and 'installed' in sandbox_install_output.stdout
   tags:
     - edxapp-sandbox
     - install
@@ -299,8 +320,26 @@
     - install
     - install:app-requirements
 
+- name: code sandbox | test enforcement 1
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/python -c \"import os; os.listdir('/')\""
+  register: sandbox_test1
+  failed_when: "'PermissionError:' not in sandbox_test1.stderr"
+  when: EDXAPP_SANDBOX_ENFORCE
+
+- name: code sandbox | test enforcement 2
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/python -c \"import subprocess; subprocess.check_output('ls', shell=True)\""
+  register: sandbox_test2
+  failed_when: "'PermissionError:' not in sandbox_test2.stderr"
+  when: EDXAPP_SANDBOX_ENFORCE
+
+- name: code sandbox | test enforcement 3
+  command: "{{ edxapp_sandbox_venv_dir }}/bin/python -c \"print(7*11*13*17)\""
+  register: sandbox_test3
+  failed_when: "'17017' not in sandbox_test3.stdout"
+  when: EDXAPP_SANDBOX_ENFORCE
+
 - name: compiling all py files in the edx-platform repo
-  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x .git/.* {{ edxapp_code_dir }}"
+  shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x '.git/.*|node_modules/.*' {{ edxapp_code_dir }}"
   become_user: "{{ edxapp_user }}"
   tags:
     - install
@@ -318,6 +357,50 @@
   tags:
     - install
     - install:code
+
+- name: "create service wrapper scripts - {{item}}"
+  template:
+    dest: "{{ edxapp_app_dir }}/{{item}}"
+    src: "edx/app/edxapp/{{item}}.j2"
+    owner: "{{ edxapp_user }}"
+    group: "{{ common_web_group }}"
+    mode: "og+rx"
+  with_items:
+    - "lms.sh"
+    - "cms.sh"
+    - "beat_scheduler.sh"
+    - "worker.sh"
+    - "reload_lms_config.sh"
+    - "reload_cms_config.sh"
+  tags:
+    - install
+    - install:configuration
+
+- name: install single-beat to run only one celerybeat scheduler
+  pip:
+    name: "git+{{ EDXAPP_SINGLE_BEAT_REPO }}@{{ EDXAPP_SINGLE_BEAT_VERSION|default(master) }}#egg=single-beat"
+    virtualenv: "{{ edxapp_venv_dir }}"
+    state: present
+  become_user: "{{ edxapp_user }}"
+  when: EDXAPP_ENABLE_CELERY_BEAT
+  tags:
+    - install
+    - install:app-requirements
+
+- name: import custom tinymce plugins
+  include_role:
+    name: "tinymce_plugins"
+  when:
+    - celery_worker is not defined
+
+- name: compile JS translations
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} compilejsi18n"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ edxapp_user }}"
+  when: EDXAPP_COMPILE_JSI18N and celery_worker is not defined
+  tags:
+    - assets
 
 # creates the supervisor jobs for the
 # service variants configured, runs
@@ -343,12 +426,15 @@
 
 - name: ensure edxapp has started
   supervisorctl:
-    name: "edxapp:"
+    name: "{{ item }}"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: started
   become_user: "{{ supervisor_service_user }}"
   when: celery_worker is not defined and not disable_edx_services
+  with_items:
+    - 'lms'
+    - 'cms'
   tags:
     - manage
 
@@ -363,15 +449,12 @@
   tags:
     - manage
 
-- name: create symlinks from the venv bin dir and repo dir
+- name: create symlinks from the repo dir
   file:
     src: "{{ item }}"
     dest: "{{ COMMON_BIN_DIR }}/{{ (item | basename).split('.', 1) | first }}.edxapp"
     state: link
   with_items:
-    - '{{ edxapp_venv_bin }}/python'
-    - '{{ edxapp_venv_bin }}/pip'
-    - '{{ edxapp_venv_bin }}/django-admin.py'
     - '{{ edxapp_code_dir }}/manage.py'
   tags:
     - install
@@ -398,12 +481,15 @@
 
 - name: restart edxapp
   supervisorctl:
-    name: "edxapp:"
+    name: "{{ item }}"
     supervisorctl_path: "{{ supervisor_ctl }}"
     config: "{{ supervisor_cfg }}"
     state: restarted
   when: edxapp_installed is defined and celery_worker is not defined and not disable_edx_services
   become_user: "{{ supervisor_service_user }}"
+  with_items:
+    - 'lms'
+    - 'cms'
   tags:
     - manage
 
@@ -417,3 +503,59 @@
   become_user: "{{ common_web_user }}"
   tags:
     - manage
+
+- name: create service worker users
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} --service-variant lms manage_user {{ item.username}} {{ item.email }} --unusable-password {% if item.is_staff %} --staff{% endif %}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  with_items: "{{ SERVICE_WORKER_USERS }}"
+  when: CREATE_SERVICE_WORKER_USERS and item.enabled|default(true)
+  tags:
+    - manage
+    - manage:db
+
+- name: reindex all courses
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py cms reindex_course --setup --settings={{ edxapp_settings }}"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: EDXAPP_REINDEX_ALL_COURSES
+  tags:
+    - install
+    - install:base
+
+- name: install cron job to run clearsessions
+  cron:
+    name: "clear expired Django sessions"
+    user: "{{ edxapp_user }}"
+    job: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python {{ edxapp_code_dir }}/manage.py lms clearsessions --settings={{ edxapp_settings }} >/dev/null 2>&1"
+    hour: "{{ EDXAPP_CLEARSESSIONS_CRON_HOURS }}"
+    minute: "{{ EDXAPP_CLEARSESSIONS_CRON_MINUTES }}"
+    day: "*"
+  when: EDXAPP_CLEARSESSIONS_CRON_ENABLED
+
+- name: install additional cron jobs
+  cron: "{{ item }}"
+  with_items: "{{ EDXAPP_ADDITIONAL_CRON_JOBS }}"
+
+- name: populate retirement states
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} populate_retirement_states"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: COMMON_RETIREMENT_SERVICE_SETUP | default(false)
+  tags:
+    - manage
+    - manage:db
+
+- name: ensure indexes on contentstore and modulestore dbs
+  shell: ". {{ edxapp_app_dir }}/edxapp_env && {{ edxapp_venv_bin }}/python ./manage.py lms --settings={{ edxapp_settings }} ensure_indexes"
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ common_web_user }}"
+  when: EDXAPP_ENABLE_MONGODB_INDEXES
+  run_once: yes
+  tags:
+    - manage
+    - manage:db

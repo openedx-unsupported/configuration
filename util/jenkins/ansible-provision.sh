@@ -89,11 +89,12 @@ extra_vars_file="/var/tmp/extra-vars-$$.yml"
 sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
+program_console="false"
 
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file}"
+    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file} -e DECRYPT_CONFIG_PRIVATE_KEY=$WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key -e ENCRYPTED_CFG_DIR=$WORKSPACE/configuration-internal/sandbox-remote-config/sandbox -e UNENCRYPTED_CFG_DIR=$WORKSPACE"
 fi
 
 if [[ -z $region ]]; then
@@ -127,14 +128,22 @@ fi
 
 if [[ -z $ami ]]; then
   if [[ $server_type == "full_edx_installation" ]]; then
-    ami="ami-75789e63"
-  elif [[ $server_type == "ubuntu_16.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
-    ami="ami-9dcfdb8a"
+    ami="ami-0644020c3c81d30ba"
+  elif [[ $server_type == "ubuntu_18.04" ]]; then
+    ami="ami-07ebfd5b3428b6f4d"
+  elif [[ $server_type == "ubuntu_20.04" || $server_type == "full_edx_installation_from_scratch" ]]; then
+    ami="ami-089b5711e63812c2a"
+    # Ansible will always use Python3 interpreter on Ubuntu 20.04 hosts to execute modules
+    extra_var_arg+=' -e ansible_python_interpreter=auto'
   fi
 fi
 
 if [[ -z $instance_type ]]; then
-  instance_type="t2.large"
+  instance_type="r5.large"
+fi
+
+if [[ -z $instance_initiated_shutdown_behavior ]]; then
+  instance_initiated_shutdown_behavior="terminate"
 fi
 
 if [[ -z $enable_newrelic ]]; then
@@ -149,16 +158,88 @@ if [[ -z $performance_course ]]; then
   performance_course="false"
 fi
 
-if [[ -z $demo_test_course ]]; then
-  demo_test_course="false"
-fi
-
 if [[ -z $edx_demo_course ]]; then
   edx_demo_course="false"
 fi
 
+if [[ -z $enable_automatic_auth_for_testing ]]; then
+  enable_automatic_auth_for_testing="false"
+fi
+
 if [[ -z $enable_client_profiling ]]; then
   enable_client_profiling="false"
+fi
+
+if [[ -z $registrar ]]; then
+  registrar="false"
+fi
+
+if [[ -z $registrar_version ]]; then
+  REGISTRAR_VERSION="master"
+fi
+
+if [[ -z $license_manager ]]; then
+  license_manager="false"
+fi
+
+if [[ -z $license_manager_version ]]; then
+  LICENSE_MANAGER_VERSION="master"
+fi
+
+if [[ -z $enterprise_catalog_version ]]; then
+  ENTERPRISE_CATALOG_VERSION="master"
+fi
+
+if [[ -z $learner_portal ]]; then
+  learner_portal="false"
+fi
+
+if [[ -z $learner_portal_version ]]; then
+  LEARNER_PORTAL_VERSION="master"
+fi
+
+if [[ -z $prospectus ]]; then
+  prospectus="false"
+fi
+
+if [[ -z $prospectus_version ]]; then
+  PROSPECTUS_VERSION="master"
+fi
+
+if [[ $registrar == 'true' ]]; then
+  program_console="true"
+fi
+
+if [[ -z authn ]]; then
+  authn="false"
+fi
+
+if [[ -z $authn_version ]]; then
+  AUTHN_MFE_VERSION="master"
+fi
+
+if [[ -z $payment ]]; then
+  payment="false"
+fi
+
+if [[ -z $payment_version ]]; then
+  PAYMENT_MFE_VERSION="master"
+fi
+
+if [[ -z $learning ]]; then
+  learning="false"
+fi
+
+if [[ -z $learning_version ]]; then
+  LEARNING_MFE_VERSION="master"
+fi
+
+if [[ -z $ora_grading ]]; then
+  ora_grading="false"
+fi
+
+if [[ -z $ora_grading_version ]]; then
+  ORA_GRADING_MFE_VERSION="master"
 fi
 
 # Lowercase the dns name to deal with an ansible bug
@@ -167,23 +248,26 @@ dns_name="${dns_name,,}"
 deploy_host="${dns_name}.${dns_zone}"
 ssh-keygen -f "/var/lib/jenkins/.ssh/known_hosts" -R "$deploy_host"
 
-cd playbooks/edx-east
+cd playbooks
 
 cat << EOF > $extra_vars_file
-edx_platform_version: $edxapp_version
-forum_version: $forum_version
-notifier_version: $notifier_version
-xqueue_version: $xqueue_version
-xserver_version: $xserver_version
-certs_version: $certs_version
-configuration_version: $configuration_version
-demo_version: $demo_version
+EDX_PLATFORM_VERSION: $edxapp_version
+FORUM_VERSION: $forum_version
+XQUEUE_VERSION: $xqueue_version
+CONFIGURATION_VERSION: $configuration_version
+DEMO_VERSION: $demo_version
+THEMES_VERSION: $themes_version
+REGISTRAR_VERSION: $registrar_version
+LEARNER_PORTAL_VERSION: $learner_portal_version
+PROGRAM_CONSOLE_VERSION: $program_console_version
+PROSPECTUS_VERSION: $prospectus_version
 
 edx_ansible_source_repo: ${configuration_source_repo}
 edx_platform_repo: ${edx_platform_repo}
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
-EDXAPP_COMPREHENSIVE_THEME_DIRS: $edxapp_comprehensive_theme_dirs
+SANDBOX_CONFIG: True
+CONFIGURE_JWTS: True
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80
@@ -193,13 +277,65 @@ ECOMMERCE_NGINX_PORT: 80
 ECOMMERCE_SSL_NGINX_PORT: 443
 ECOMMERCE_VERSION: $ecommerce_version
 
-PROGRAMS_NGINX_PORT: 80
-PROGRAMS_SSL_NGINX_PORT: 443
-PROGRAMS_VERSION: $programs_version
-
 CREDENTIALS_NGINX_PORT: 80
 CREDENTIALS_SSL_NGINX_PORT: 443
 CREDENTIALS_VERSION: $credentials_version
+
+ANALYTICS_API_NGINX_PORT: 80
+ANALYTICS_API_SSL_NGINX_PORT: 443
+ANALYTICS_API_VERSION: $analytics_api_version
+
+REGISTRAR_NGINX_PORT: 80
+REGISTRAR_SSL_NGINX_PORT: 443
+REGISTRAR_VERSION: $registrar_version
+REGISTRAR_ENABLED: $registrar
+
+LEARNER_PORTAL_NGINX_PORT: 80
+LEARNER_PORTAL_SSL_NGINX_PORT: 443
+LEARNER_PORTAL_VERSION: $learner_portal_version
+LEARNER_PORTAL_ENABLED: $learner_portal
+LEARNER_PORTAL_SANDBOX_BUILD: True
+
+PROGRAM_CONSOLE_NGINX_PORT: 80
+PROGRAM_CONSOLE_SSL_NGINX_PORT: 443
+PROGRAM_CONSOLE_VERSION: $program_console_version
+PROGRAM_CONSOLE_ENABLED: $program_console
+PROGRAM_CONSOLE_SANDBOX_BUILD: True
+
+PROSPECTUS_NGINX_PORT: 80
+PROSPECTUS_SSL_NGINX_PORT: 443
+PROSPECTUS_VERSION: $prospectus_version
+PROSPECTUS_ENABLED: $prospectus
+PROSPECTUS_SANDBOX_BUILD: True
+
+AUTHN_NGINX_PORT: 80
+AUTHN_SSL_NGINX_PORT: 443
+AUTHN_MFE_VERSION: $authn_version
+AUTHN_ENABLED: $authn
+AUTHN_SANDBOX_BUILD: True
+
+PAYMENT_NGINX_PORT: 80
+PAYMENT_SSL_NGINX_PORT: 443
+PAYMENT_MFE_VERSION: $payment_version
+PAYMENT_MFE_ENABLED: $payment
+PAYMENT_SANDBOX_BUILD: True
+
+VIDEO_PIPELINE_BASE_NGINX_PORT: 80
+VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
+
+LICENSE_MANAGER_NGINX_PORT: 80
+LICENSE_MANAGER_SSL_NGINX_PORT: 443
+LICENSE_MANAGER_VERSION: $license_manager_version
+LICENSE_MANAGER_ENABLED: $license_manager
+LICENSE_MANAGER_DECRYPT_CONFIG_ENABLED: true
+LICENSE_MANAGER_COPY_CONFIG_ENABLED: true
+
+ENTERPRISE_CATALOG_NGINX_PORT: 80
+ENTERPRISE_CATALOG_SSL_NGINX_PORT: 443
+ENTERPRISE_CATALOG_VERSION: $enterprise_catalog_version
+ENTERPRISE_CATALOG_ENABLED: $enterprise_catalog
+ENTERPRISE_CATALOG_DECRYPT_CONFIG_ENABLED: true
+ENTERPRISE_CATALOG_COPY_CONFIG_ENABLED: true
 
 DISCOVERY_NGINX_PORT: 80
 DISCOVERY_SSL_NGINX_PORT: 443
@@ -208,14 +344,29 @@ NGINX_SET_X_FORWARDED_HEADERS: True
 NGINX_REDIRECT_TO_HTTPS: True
 EDX_ANSIBLE_DUMP_VARS: true
 migrate_db: "yes"
-rabbitmq_ip: "127.0.0.1"
-rabbitmq_refresh: True
+dns_name: $dns_name
 COMMON_HOSTNAME: $dns_name
+COMMON_DEPLOY_HOSTNAME: ${deploy_host}
 COMMON_DEPLOYMENT: edx
 COMMON_ENVIRONMENT: sandbox
-
+COMMON_LMS_BASE_URL: https://${deploy_host}
+COMMON_ECOMMERCE_BASE_URL: https://ecommerce-${deploy_host}
 nginx_default_sites:
   - lms
+
+LEARNING_NGINX_PORT: 80
+LEARNING_SSL_NGINX_PORT: 443
+LEARNING_MFE_VERSION: $learning_version
+LEARNING_MFE_ENABLED: $learning
+LEARNING_SANDBOX_BUILD: True
+
+ORA_GRADING_NGINX_PORT: 80
+ORA_GRADING_SSL_NGINX_PORT: 443
+ORA_GRADING_MFE_VERSION: $ora_grading_version
+ORA_GRADING_MFE_ENABLED: $ora_grading
+ORA_GRADING_SANDBOX_BUILD: True
+
+mysql_server_version_5_7: True
 
 # User provided extra vars
 $extra_vars
@@ -251,16 +402,12 @@ EOF_PROFILING
 fi
 
 if [[ $edx_internal == "true" ]]; then
-    # if this isn't a public server add the github
-    # user and set edx_internal to True so that
-    # xserver is installed
     cat << EOF >> $extra_vars_file
 EDXAPP_PREVIEW_LMS_BASE: preview-${deploy_host}
 EDXAPP_LMS_BASE: ${deploy_host}
 EDXAPP_CMS_BASE: studio-${deploy_host}
+EDXAPP_CMS_URL_ROOT: "https://{{ EDXAPP_CMS_BASE }}"
 EDXAPP_SITE_NAME: ${deploy_host}
-CERTS_DOWNLOAD_URL: "http://${deploy_host}:18090"
-CERTS_VERIFY_URL: "http://${deploy_host}:18090"
 edx_internal: True
 COMMON_USER_INFO:
   - name: ${github_username}
@@ -269,43 +416,92 @@ COMMON_USER_INFO:
 USER_CMD_PROMPT: '[$name_tag] '
 COMMON_ENABLE_NEWRELIC_APP: $enable_newrelic
 COMMON_ENABLE_DATADOG: $enable_datadog
+COMMON_OAUTH_BASE_URL: "https://${deploy_host}"
 FORUM_NEW_RELIC_ENABLE: $enable_newrelic
 ENABLE_PERFORMANCE_COURSE: $performance_course
-ENABLE_DEMO_TEST_COURSE: $demo_test_course
 ENABLE_EDX_DEMO_COURSE: $edx_demo_course
+EDXAPP_ENABLE_AUTO_AUTH: $enable_automatic_auth_for_testing
 EDXAPP_NEWRELIC_LMS_APPNAME: sandbox-${dns_name}-edxapp-lms
 EDXAPP_NEWRELIC_CMS_APPNAME: sandbox-${dns_name}-edxapp-cms
 EDXAPP_NEWRELIC_WORKERS_APPNAME: sandbox-${dns_name}-edxapp-workers
 XQUEUE_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue
+XQUEUE_CONSUMER_NEWRELIC_APPNAME: sandbox-${dns_name}-xqueue_consumer
 FORUM_NEW_RELIC_APP_NAME: sandbox-${dns_name}-forums
 SANDBOX_USERNAME: $github_username
 EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "https://ecommerce-${deploy_host}"
 EDXAPP_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
-EDXAPP_COURSE_CATALOG_API_URL: "https://catalog-${deploy_host}/api/v1"
+EDXAPP_DISCOVERY_API_URL: "https://discovery-${deploy_host}/api/v1"
+EDXAPP_COURSE_CATALOG_API_URL: "{{ EDXAPP_DISCOVERY_API_URL }}"
 
+ANALYTICS_API_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}/"
+
+# NOTE: This is the same as DISCOVERY_URL_ROOT below
+ECOMMERCE_DISCOVERY_SERVICE_URL: "https://discovery-${deploy_host}"
 ECOMMERCE_ECOMMERCE_URL_ROOT: "https://ecommerce-${deploy_host}"
 ECOMMERCE_LMS_URL_ROOT: "https://${deploy_host}"
 ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+ecommerce_create_demo_data: true
 
-PROGRAMS_LMS_URL_ROOT: "https://${deploy_host}"
-PROGRAMS_URL_ROOT: "https://programs-${deploy_host}"
-PROGRAMS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-PROGRAMS_CORS_ORIGIN_WHITELIST:
-  - studio-${deploy_host}
+DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
+DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 
+REGISTRAR_URL_ROOT: "https://registrar-${deploy_host}"
+REGISTRAR_API_ROOT: "https://registrar-${deploy_host}/api"
+REGISTRAR_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+REGISTRAR_LMS_BASE_URL: "https://${deploy_host}"
+REGISTRAR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
+
+LEARNER_PORTAL_URL_ROOT: "https://learner-portal-${deploy_host}"
+LEARNER_PORTAL_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+LEARNER_PORTAL_LMS_BASE_URL: "https://${deploy_host}"
+
+PROGRAM_CONSOLE_URL_ROOT: "https://program-console-${deploy_host}"
+PROGRAM_CONSOLE_DISCOVERY_BASE_URL: "https://discovery-${deploy_host}"
+PROGRAM_CONSOLE_LMS_BASE_URL: "https://${deploy_host}"
+PROGRAM_CONSOLE_REGISTRAR_API_BASE_URL: "https://registrar-${deploy_host}/api"
+
+PROSPECTUS_URL_ROOT: "https://prospectus-${deploy_host}"
+OAUTH_ID: "{{ PROSPECTUS_OAUTH_ID }}"
+OAUTH_SECRET: "{{ PROSPECTUS_OAUTH_SECRET }}"
+
+AUTHN_URL_ROOT: "https://authn-${deploy_host}"
+PAYMENT_URL_ROOT: "https://payment-${deploy_host}"
+PAYMENT_ECOMMERCE_BASE_URL: "https://ecommerce-${deploy_host}"
+PAYMENT_LMS_BASE_URL: "https://${deploy_host}"
+
+credentials_create_demo_data: true
 CREDENTIALS_LMS_URL_ROOT: "https://${deploy_host}"
 CREDENTIALS_DOMAIN: "credentials-${deploy_host}"
 CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-COURSE_DISCOVERY_ECOMMERCE_API_URL: "https://ecommerce-${deploy_host}/api/v2"
+CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 
-DISCOVERY_URL_ROOT: "https://discovery-${deploy_host}"
-DISCOVERY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
-DISCOVERY_PROGRAMS_API_URL: "{{ PROGRAMS_URL_ROOT }}/api/v1/"
+VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
+VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
+VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
+
+VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
+VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
+VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
+
+LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
+
+ENTERPRISE_CATALOG_URL_ROOT: "https://enterprise-catalog-${deploy_host}"
 
 EOF
 fi
 
+encrypted_config_apps=(edxapp ecommerce ecommerce_worker analytics_api discovery credentials registrar edx_notes_api license_manager)
+
+for app in ${encrypted_config_apps[@]}; do
+     eval app_decrypt_and_copy_config_enabled=\${${app}_decrypt_and_copy_config_enabled}
+     if [[ ${app_decrypt_and_copy_config_enabled} == "true" ]]; then
+         cat << EOF >> $extra_vars_file
+${app^^}_DECRYPT_CONFIG_ENABLED: true
+${app^^}_COPY_CONFIG_ENABLED: true
+EOF
+     fi
+done
 
 if [[ $recreate == "true" ]]; then
     # vars specific to provisioning added to $extra-vars
@@ -317,6 +513,7 @@ security_group: $security_group
 ami: $ami
 region: $region
 zone: $zone
+instance_initiated_shutdown_behavior: $instance_initiated_shutdown_behavior
 instance_tags:
     environment: $environment
     github_username: $github_username
@@ -333,7 +530,7 @@ EOF
 
 
     if [[ $server_type == "full_edx_installation" ]]; then
-        extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0'
+        extra_var_arg+=' -e instance_userdata="" -e launch_wait_time=0 -e elb_pre_post=false'
     fi
     # run the tasks to launch an ec2 instance from AMI
     cat $extra_vars_file
@@ -342,28 +539,57 @@ EOF
     if [[ $server_type == "full_edx_installation" ]]; then
         # additional tasks that need to be run if the
         # entire edx stack is brought up from an AMI
-        run_ansible rabbitmq.yml -i "${deploy_host}," $extra_var_arg -e 'elb_pre_post=false' --user ubuntu
+        run_ansible redis.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
         run_ansible restart_supervisor.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
     fi
 fi
 
-declare -A deploy
-roles="edxapp forum ecommerce programs credentials discovery notifier xqueue xserver certs demo testcourses"
+veda_web_frontend=${video_pipeline:-false}
+veda_pipeline_worker=${video_pipeline:-false}
+veda_encode_worker=${video_encode_worker:-false}
+video_pipeline_integration=${video_pipeline:-false}
 
-for role in $roles; do
-    deploy[$role]=${!role}
+# ansible overrides for master's integration environment setup
+if [[ $masters_integration_environment == "true" ]]; then
+    cat << EOF >> $extra_vars_file
+COMMON_ENABLE_SPLUNKFORWARDER: true
+EDXAPP_ENABLE_ENROLLMENT_RESET: true
+DISCOVERY_POST_MIGRATE_COMMANDS:
+  - command: "./manage.py remove_program_types_from_migrations"
+    when: true
+  - command: >
+      ./manage.py createsuperuser
+      --username="admin"
+      --email="admin@example.com"
+      --no-input
+    when: true
+registrar_post_migrate_commands:
+  - command: >
+      ./manage.py createsuperuser
+      --username="admin"
+      --email="admin@example.com"
+      --no-input
+    when: true
+EOF
+fi
+
+declare -A deploy
+plays="prospectus edxapp forum ecommerce credentials discovery enterprise_catalog analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration xqueue certs demo testcourses registrar program_console learner_portal"
+
+for play in $plays; do
+    deploy[$play]=${!play}
 done
 
 # If reconfigure was selected or if starting from an ubuntu 16.04 AMI
-# run non-deploy tasks for all roles
-if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" ]]; then
+# run non-deploy tasks for all plays
+if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
-    # Run deploy tasks for the roles selected
-    for i in $roles; do
+    # Run deploy tasks for the plays selected
+    for i in $plays; do
         if [[ ${deploy[$i]} == "true" ]]; then
             cat $extra_vars_file
             run_ansible ${i}.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
@@ -374,7 +600,7 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     done
 fi
 
-# deploy the edx_ansible role
+# deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
@@ -390,6 +616,27 @@ fi
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
+
+# master's integration environment setup
+if [[ $masters_integration_environment == "true" ]]; then
+  # vars specific to master's integration environment
+  cat << EOF >> $extra_vars_file
+username: $registrar_user_email
+email: $registrar_user_email
+organization_key: $registrar_org_key
+registrar_role: "organization_read_write_enrollments"
+EOF
+  run_ansible masters_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
+
+# prospectus sandbox
+if [[ $prospectus == "true" ]]; then
+   run_ansible prospectus_sandbox.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+fi
+
+if [[ $enable_newrelic == "true" ]]; then
+    run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
+fi
 
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean

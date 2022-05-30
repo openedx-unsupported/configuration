@@ -1,0 +1,61 @@
+# Generate JWT signature settings (probably if you're on sandbox)
+
+- name: create JWT signature settings
+  shell: . {{ edxapp_env_path }} && {{ edxapp_venv_dir }}/bin/python manage.py lms generate_jwt_signing_key --output-file {{ jwt_signature_file }} --strip-key-prefix
+  args:
+    chdir: "{{ edxapp_code_dir }}"
+  when: CAN_GENERATE_NEW_JWT_SIGNATURE
+
+- name: fetch JWT signature settings from host
+  fetch:
+    src: "{{ jwt_signature_file }}"
+    # this will save into /tmp/{{ inventory_hostname }}/{{ jwt_signature_file }} on host
+    dest: /tmp
+
+- name: read JWT signature settings
+  include_vars:
+    file: "/tmp/{{ inventory_hostname }}/{{ jwt_signature_file }}"
+    name: lms_jwt_signature
+
+- name: fetch app config from host
+  fetch:
+    src: "{{ app_config_file }}"
+    # this will save into /tmp/{{ inventory_hostname }}/{{ app_config_file }} on host
+    dest: /tmp
+
+- name: read app config into variable
+  include_vars:
+    file: "/tmp/{{ inventory_hostname }}/{{ app_config_file }}"
+    name: app_config_vars
+
+- name: combine app config with jwt_signature config
+  set_fact:
+    app_combined_config: '{{ app_config_vars | combine(lms_jwt_signature, recursive=True) }}'
+
+- name: render app config with jwt signature to yaml file
+  template:
+    src: roles/jwt_signature/templates/app_config.yml.j2
+    dest: "{{ app_config_file }}"
+    owner: "{{ app_config_owner }}"
+    group: "{{ app_config_group }}"
+    mode: "{{ app_config_mode }}"
+
+- name: delete JWT signature file on host
+  file:
+    path: "/tmp/{{ inventory_hostname }}/{{ jwt_signature_file }}"
+    state: absent
+
+- name: delete app config file on host
+  file:
+    path: "/tmp/{{ inventory_hostname }}/{{ app_config_file }}"
+    state: absent
+
+# The app must be restarted so that the config file variables
+# are loaded into the Django settings.
+- name: restart the application to load JWT signature settings
+  supervisorctl:
+    name: "{{ app_name }}"
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: restarted
+  become_user: "{{ supervisor_service_user }}"

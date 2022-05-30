@@ -1,0 +1,71 @@
+---
+
+- name: Install AWS CLI
+  apt:
+    name: awscli
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add OS default user in tableau group
+  shell: "usermod -a -G {{ tableau_user_group }} {{ os_default_user }}"
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Enable tableau user shell
+  shell: "usermod -s /bin/bash {{ tableau_user }}"
+  become: yes
+  become_method: sudo
+  tags:
+    - install
+    - install:base
+
+- name: Create directory for Postgre driver if it does not exist
+  file:
+    path: /opt/tableau/tableau_driver/jdbc
+    state: directory
+    mode: '0777'
+  tags:
+    - install
+    - install:base
+
+- name: Download Postgre driver jar file
+  get_url:
+    url: "{{postgre_driver_endpoint}}/postgresql-{{postgre_driver_version}}.jar"
+    dest: /opt/tableau/tableau_driver/jdbc/postgresql-{{postgre_driver_version}}.jar
+  become_user: "{{ tableau_user }}"
+  tags:
+    - install
+    - install:base
+
+- name: Download Snowflake odbc driver
+  get_url:
+    url: "{{snowflake_odbc_driver_endpoint}}/{{snowflake_driver_version}}/snowflake-odbc-{{snowflake_driver_version}}.x86_64.deb"
+    dest: /tmp/snowflake-odbc-{{snowflake_driver_version}}.x86_64.deb
+  tags:
+    - install
+    - install:base
+
+- name: Install Snowflake odbc driver
+  dpkg_selections:
+    name: snowflake-odbc-{{snowflake_driver_version}}.x86_64.deb
+    selection: install
+  tags:
+    - install
+    - install:base
+
+# Add the jenkins user's ssh public key to the running user's autorized keys
+# This is needed so that this jenkins instance can be used to update system users
+- name: Add the jenkins user's ssh public key to the running user's autorized keys
+  lineinfile:
+    path: /home/{{ ansible_ssh_user }}/.ssh/authorized_keys
+    create: yes
+    line: "{{ lookup('file', jenkins_ssh_public_keyfile) }}"
+  when: jenkins_ssh_public_keyfile is defined and jenkins_ssh_public_keyfile
+  tags:
+    - ssh
+    - ssh:keys

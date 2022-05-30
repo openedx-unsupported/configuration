@@ -1,0 +1,210 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role hermes
+#
+# Overview:
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+# Install python3.8 on Bionic.Focal comes with python3.8 installed.
+- name: install python3.8
+  apt:
+    name: "{{ item }}"
+    update_cache: yes
+  register: install_pkgs
+  until: install_pkgs|success
+  retries: 10
+  delay: 5
+  with_items:
+    - python3.8
+    - python3-pip
+  when: ansible_distribution_release == 'bionic'
+  tags:
+    - install
+    - install:system-requirements
+
+- name: build virtualenv with python3
+  command: "virtualenv --python=/usr/bin/python3.8 {{ hermes_venv_dir }}"
+  args:
+    creates: "{{ hermes_venv_dir }}/bin/pip"
+  become_user: "{{ hermes_user }}"
+  tags:
+    - install
+    - install:system-requirements
+
+- name: git checkout hermes repo into {{ hermes_code_dir }}
+  git:
+    dest: "{{ hermes_code_dir }}"
+    repo: "{{ hermes_source_repo }}"
+    version: "{{ HERMES_VERSION }}"
+    accept_hostkey: yes
+  become_user: "{{ hermes_user }}"
+  register: hermes_checkout
+  tags:
+    - install
+    - install:code
+
+- name: Set permission on {{ hermes_app_dir }}
+  file:
+    path: "{{ hermes_app_dir }}"
+    state: directory
+    recurse: no
+    owner: "{{ hermes_user }}"
+    group: "{{ common_web_group }}"
+    mode: "0750"
+  tags:
+    - install
+    - install:code
+
+- name: run make requirements
+  command: make requirements
+  args:
+    chdir: "{{ hermes_code_dir }}"
+  become_user: "{{ hermes_user }}"
+  environment: "{{ hermes_environment }}"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: write out the service wrapper
+  template:
+    src: "templates/hermes.sh.j2"
+    dest: "{{ hermes_app_dir }}/{{ hermes_service_name }}.sh"
+    mode: 0700
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: setup the app env file
+  template:
+    src: "templates/hermes_env.j2"
+    dest: "{{ hermes_app_dir }}/{{ hermes_service_name }}_env"
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: 0640
+  tags:
+    - install
+    - install:configuration
+
+- name: Create download directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ hermes_user }}"
+    group: "{{ common_web_group }}"
+    mode: "0750"
+  with_items:
+    - "{{ hermes_download_dir }}"
+  tags:
+    - install
+    - install:base
+
+- name: install private key
+  copy:
+    content: "{{ item.value }}"
+    dest: "{{ hermes_app_dir }}/{{ hermes_service_name }}-{{ item.key }}"
+    force: yes
+    owner: "{{ hermes_user }}"
+    mode: "0600"
+  no_log: True
+  with_dict: "{{ HERMES_PRIVATE_KEYS_DICT }}"
+  when: HERMES_PRIVATE_KEYS_DICT is defined
+  tags:
+    - install
+    - install:base
+
+- name: Add sudoers entry
+  template:
+    src: "templates/sudoers.j2"
+    dest: "/etc/sudoers.d/hermes"
+    owner: "root"
+    group: "root"
+    mode: 0440
+  tags:
+    - install
+    - install:base
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: "{{ hermes_venv_dir }}/bin/{{ item }}"
+    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.')[0] }}.{{ hermes_service_name }}"
+    state: link
+  with_items:
+    - python
+    - pip
+  tags:
+    - install
+    - install:app-requirements
+
+
+- name: Create hermes systemd job
+  template:
+    src: "hermes-systemd.service.j2"
+    dest: "/etc/systemd/system/{{ hermes_service_name }}.service"
+    owner: root
+    group: root
+  when: ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+  tags:
+    - install
+    - install:base
+
+  # This command and the subsequent check in the when condition are related
+  # to this bug: https://github.com/ansible/ansible-modules-core/issues/593
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+  tags:
+    - install
+    - install:base
+
+- name: Enable hermes to start on boot
+  service:
+    name: "{{ hermes_service_name }}.service"
+    enabled: yes
+  when: (ansible_distribution_release == 'xenial' or ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal') and docker_container.stdout != 'yes'
+  tags:
+    - install
+    - install:base
+
+- name: Write the pre_hermes python script
+  copy:
+    src: pre_hermes_checks.sh
+    dest: "{{ hermes_app_dir }}/pre_hermes_checks.sh"
+    owner: "{{ hermes_user }}"
+    group: "{{ hermes_user }}"
+    mode: "0750"
+  when: HERMES_ENABLE_PRE_CHECK_SCRIPT
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: Start hermes
+  service:
+    name: "{{ hermes_service_name }}"
+    state: started
+  register: start_hermes
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start

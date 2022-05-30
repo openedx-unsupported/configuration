@@ -2,7 +2,7 @@
 
 """
 Build an ansible inventory list suitable for use by -i by finding the active
-Auto Scaling Group in an Elastic Load Balancer.  
+Auto Scaling Group in an Elastic Load Balancer.
 
 If multiple ASGs are active in the ELB, no inventory is returned.
 
@@ -19,7 +19,6 @@ ansible -i $(active_instances_in_asg.py --asg stage-edx-edxapp) -m shell -a 'man
 
 """
 
-from __future__ import print_function
 import argparse
 import botocore.session
 import botocore.exceptions
@@ -27,6 +26,7 @@ import sys
 from collections import defaultdict
 from os import environ
 from itertools import chain
+import random
 
 class ActiveInventory():
 
@@ -41,11 +41,28 @@ class ActiveInventory():
         asg = session.create_client('autoscaling',self.region)
         ec2 = session.create_client('ec2',self.region)
 
-        groups = asg.describe_auto_scaling_groups()
-        matching_groups = [g for g in groups['AutoScalingGroups'] for t in g['Tags'] if t['Key'] == 'Name' and t['Value'] == asg_name]
+        asg_paginator = asg.get_paginator('describe_auto_scaling_groups')
+        asg_iterator = asg_paginator.paginate()
+        matching_groups = []
+        for groups in asg_iterator:
+            for asg in groups['AutoScalingGroups']:
+                asg_inactive = len(asg['SuspendedProcesses']) > 0
+                if asg_inactive:
+                    continue
+                for tag in asg['Tags']:
+                    if tag['Key'] == 'Name' and tag['Value'] == asg_name:
+                        matching_groups.append(asg)
 
-        groups_to_instances = {group['AutoScalingGroupName']: [instance['InstanceId'] for instance in group['Instances']] for group in matching_groups}
-        instances_to_groups = {instance['InstanceId']: group['AutoScalingGroupName'] for group in matching_groups for instance in group['Instances'] }
+        groups_to_instances = defaultdict(list)
+        instances_to_groups = {}
+
+        # for all instances in all auto scaling groups
+        for group in matching_groups:
+            for instance in group['Instances']:
+                if instance['LifecycleState'] == 'InService':
+                    groups_to_instances[group['AutoScalingGroupName']].append(instance['InstanceId'])
+                    instances_to_groups[instance['InstanceId']] = group['AutoScalingGroupName']
+
 
         # We only need to check for ASGs in an ELB if we have more than 1.
         # If a cluster is running with an ASG out of the ELB, then there are larger problems.
@@ -57,16 +74,21 @@ class ActiveInventory():
                     instances = elb.describe_instance_health(LoadBalancerName=load_balancer_name)
                     active_instances = [instance['InstanceId'] for instance in instances['InstanceStates'] if instance['State'] == 'InService']
                     for instance_id in active_instances:
-                        active_groups[instances_to_groups[instance_id]] = 1 
+                        active_groups[instances_to_groups[instance_id]] = 1
+
+            # If we found no active groups, because there are no ELBs (edxapp workers normally)
+            elbs = list(chain.from_iterable([group['LoadBalancerNames'] for group in matching_groups]))
+            if not (active_groups or elbs):
+                # This implies we're in a worker cluster since we have no ELB and we didn't find an active group above
+                for group in matching_groups:
+                    # Asgard marks a deleting ASG with SuspendedProcesses
+                    # If the ASG doesn't have those, then it's "Active" and a worker since there was no ELB above
+                    if not {'Launch','AddToLoadBalancer'} <= {i['ProcessName'] for i in group['SuspendedProcesses']}:
+                        active_groups[group['AutoScalingGroupName']] = 1
+
             if len(active_groups) > 1:
                 # When we have more than a single active ASG, we need to bail out as we don't know what ASG to pick an instance from
                 print("Multiple active ASGs - unable to choose an instance", file=sys.stderr)
-                return
-            # If we found no active groups, because there are no ELBs (edxapp workers normally)
-            # print a sensible reason why we failed
-            elbs = list(chain.from_iterable([group['LoadBalancerNames'] for group in matching_groups]))
-            if not (active_groups or elbs):
-                print("Multiple ASGs and no ELB - unable to choose an instance", file=sys.stderr)
                 return
         else:
             active_groups = { g['AutoScalingGroupName']: 1 for g in matching_groups }
@@ -74,7 +96,7 @@ class ActiveInventory():
 
         for group in active_groups.keys():
             for group_instance in groups_to_instances[group]:
-                instance = ec2.describe_instances(InstanceIds=[group_instance])['Reservations'][0]['Instances'][0]
+                instance = random.choice(ec2.describe_instances(InstanceIds=[group_instance])['Reservations'][0]['Instances'])
                 if 'PrivateIpAddress' in instance:
                     print("{},".format(instance['PrivateIpAddress']))
                     return # We only want a single IP

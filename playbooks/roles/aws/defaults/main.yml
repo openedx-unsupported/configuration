@@ -33,19 +33,25 @@ aws_s3_sync_script: "{{ vhost_dirs.home.path }}/send-logs-to-s3"
 aws_s3_logfile: "{{ vhost_dirs.logs.path }}/s3-log-sync.log"
 aws_region: "us-east-1"
 # default path to the aws binary
-aws_s3cmd: "/usr/local/bin/s3cmd"
+aws_s3cmd: "/usr/bin/s3cmd"
 aws_cmd: "/usr/local/bin/aws"
+aws_requirements: "{{ vhost_dirs.home.path }}/requirements.txt"
+
 #
 # OS packages
 #
 
 aws_debian_pkgs:
   - python-setuptools
-
-aws_pip_pkgs:
-  - https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-  - awscli==1.10.28
-  - boto=="{{ common_boto_version }}"
-  - s3cmd==1.6.1
+  - s3cmd
 
 aws_redhat_pkgs: []
+
+# The AWS_GATHER_FACTS switch is used to enable/disable data gathering
+# from ec2 instances.
+# This is needed in some deployments were S3 is being used for file storage but
+# the appserver is in another cloud provider, such as OpenStack.
+# This issues started happening after the ec2_facts role was replaced with
+# the new version `ec2_metadata_facts` that fails when the server is not
+# on AWS, unlike its older counterpart
+AWS_GATHER_FACTS: true

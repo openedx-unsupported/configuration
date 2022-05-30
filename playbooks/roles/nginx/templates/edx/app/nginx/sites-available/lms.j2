@@ -43,75 +43,88 @@ geo $http_x_forwarded_for $embargo {
 }
 {%- endif %}
 
+
+{% if EDXAPP_CORS_ORIGIN_WHITELIST|length > 0 %}
+  # The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+  # but only the server name (e.g. https://www.example.com).
+  # See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+  #
+  # Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+  # of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+  map $http_origin $cors_origin {
+  default "null";
+  {% for host in EDXAPP_CORS_ORIGIN_WHITELIST %}
+    "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+  {% endfor %}
+  }
+{% endif %}
+
+
 server {
   # LMS configuration file for nginx, templated by ansible
 
   {% if NGINX_EDXAPP_ENABLE_S3_MAINTENANCE %}
 
-  # Do not include a 502 error in NGINX_ERROR_PAGES when 
-  # NGINX_EDXAPP_ENABLE_MAINTENANCE is enabled.
+  # Do not include a 502 error in NGINX_ERROR_PAGES when
+  # NGINX_EDXAPP_ENABLE_S3_MAINTENANCE is enabled.
 
-  error_page 502 @maintenance;
+  # Return a 503 instead so that it passes through Cloudflare
+  error_page 502 =503 @maintenance;
 
     {% include "s3_maintenance.j2" %}
-  
+
   {% endif %}
 
   # error pages
-  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.iteritems() %}
+  {% for k, v in NGINX_EDXAPP_ERROR_PAGES.items() %}
 error_page {{ k }} {{ v }};
   {% endfor %}
 
+  {% if NGINX_EDXAPP_PROXY_INTERCEPT_ERRORS %}
+  proxy_intercept_errors on;
+  {% endif %}
+
+{% include "empty_json.j2" %}
+
   listen {{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ EDXAPP_LMS_NGINX_PORT }} {{ default_site }};
+  {% endif %}
 
   {% if NGINX_ENABLE_SSL %}
   listen {{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ EDXAPP_LMS_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  {% endif %}
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
-  # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
   {% endif %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
+  {% endif %}
+
+  # prevent the browser from doing MIME-type sniffing
+  add_header X-Content-Type-Options nosniff;
 
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
 
 
-  # Nginx does not support nested condition or or conditions so
-  # there is an unfortunate mix of conditonals here.
-  {% if NGINX_REDIRECT_TO_HTTPS %}
-     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
-  # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
-   set $do_redirect_to_https "true";
-  }
+  {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
 
-     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
-
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
-  {
-   set $do_redirect_to_https "true";
-  }
-     {% endif %}
-
-  # Execute the actual redirect
-  if ($do_redirect_to_https = "true")
-  {
-  return 301 https://$host$request_uri;
-  }
-  {% endif %}
-  
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
   error_log {{ nginx_log_dir }}/error.log error;
 
-  # CS184 requires uploads of up to 4MB for submitting screenshots.
-  # CMS requires larger value for course assest, values provided
+  # Some Master's courses require submissions up to 20MB in size.
+  # CMS requires larger value for course assets, values provided
   # via hiera.
-  client_max_body_size 4M;
+  client_max_body_size {{ NGINX_LMS_CLIENT_MAX_BODY_SIZE }};
+  proxy_read_timeout {{ NGINX_LMS_PROXY_READ_TIMEOUT }};
 
-  rewrite ^(.*)/favicon.ico$ /static/images/favicon.ico last;
+  rewrite ^(.*)/favicon.ico$ {{ NGINX_EDXAPP_FAVICON_PATH }} last;
 
   {% include "python_lib.zip.j2" %}
   {% include "common-settings.j2" %}
@@ -132,23 +145,16 @@ error_page {{ k }} {{ v }};
   {% endif -%}
 
   location @proxy_to_lms_app {
-    {% if NGINX_SET_X_FORWARDED_HEADERS %}
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Port $server_port;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    {% else %}
-    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
-    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
-    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
-    {% endif %}
+{% include "lms_proxy.j2" %}
 
-    # newrelic-specific header records the time when nginx handles a request.
-    proxy_set_header X-Queue-Start "t=${msec}";
+  }
 
-    proxy_set_header Host $http_host;
+  location @proxy_to_lms_app_api {
+    error_page 504 @empty_json;
+    error_page 502 @empty_json;
+    error_page 500 @empty_json;
 
-    proxy_redirect off;
-    proxy_pass http://lms-backend;
+{% include "lms_proxy.j2" %}
   }
 
   location / {
@@ -163,11 +169,8 @@ error_page {{ k }} {{ v }};
   # determine whether a user on their site is logged into edX.
   # The most common image to use is favicon.ico.
   location /login {
-    {% if EDXAPP_LMS_ENABLE_BASIC_AUTH|bool %}
-      {% include "basic-auth.j2" %}
-    {% endif %}
-
     if ( $arg_next ~* "favicon.ico" ) {
+      access_log off;
       return 403;
     }
 
@@ -189,21 +192,36 @@ error_page {{ k }} {{ v }};
   # uses the authorization header so we can't have
   # basic auth on it as well.
   location /api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
+  }
+
+  location /login_refresh {
+    try_files $uri @proxy_to_lms_app_api;
+  }
+
+  # CSRF token API
+  location /csrf/api {
+    try_files $uri @proxy_to_lms_app_api;
+  }
+
+  #enterprise API
+  location /enterprise/api {
+    try_files $uri @proxy_to_lms_app_api;
+  }
+
+  # Consent API
+  location /consent/api {
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   # Need a separate location for the image uploads endpoint to limit upload sizes
   location ~ ^/api/profile_images/[^/]*/[^/]*/upload$ {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
     client_max_body_size {{ EDXAPP_PROFILE_IMAGE_MAX_BYTES + 1000 }};
   }
 
-  location /notifier_api {
-    try_files $uri @proxy_to_lms_app;
-  }
-
   location /user_api {
-    try_files $uri @proxy_to_lms_app;
+    try_files $uri @proxy_to_lms_app_api;
   }
 
   # No basic auth security on the github_service_hook url, so that github can use it for cms
@@ -221,17 +239,36 @@ error_page {{ k }} {{ v }};
     try_files $uri @proxy_to_lms_app;
   }
 
+  # No basic auth on the XBlock View endpoint, which can use OAuth2
+  location ~ ^/courses/.*/xblock/.*/view/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
+  # No basic auth on XBlock handlers, which can use OAuth2
+  location ~ ^/courses/.*/xblock/.*/handler/ {
+    try_files $uri @proxy_to_lms_app;
+  }
+
   # No basic auth security on assets
   location /c4x {
     try_files $uri @proxy_to_lms_app;
   }
 
   location /asset {
+    {% if EDXAPP_CORS_ORIGIN_WHITELIST|length > 0 %}
+      add_header Access-Control-Allow-Origin $cors_origin;
+    {% endif %}
     try_files $uri @proxy_to_lms_app;
   }
 
   # No basic auth security on the heartbeat url, so that ELB can use it
   location /heartbeat {
+    # If /edx/var/nginx/server-static/maintenance_heartbeat.txt exists serve an
+    # empty 200 so the instance stays in the load balancer to serve the
+    # maintenance page
+    if (-f /edx/var/nginx/server-static/maintenance_heartbeat.txt) {
+       return 200;
+    }
     try_files $uri @proxy_to_lms_app;
   }
 
@@ -262,13 +299,31 @@ error_page {{ k }} {{ v }};
     try_files $uri @proxy_to_lms_app;
   }
 
+  # No basic auth, uses oauth2 for authentication
+  location /v1/accounts/gdpr_retire_users {
+    try_files $uri @proxy_to_lms_app;
+  }
+
 location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
     root {{ edxapp_media_dir }};
     try_files /$file =404;
     expires {{ EDXAPP_PROFILE_IMAGE_MAX_AGE }}s;
 }
 
+{% if NGINX_ADMIN_ACCESS_CIDRS and EDXAPP_ENABLE_DJANGO_ADMIN_RESTRICTION %}
+  location /admin {
+    real_ip_header X-Forwarded-For;
+    set_real_ip_from {{ NGINX_TRUSTED_IP_CIDRS }};
+    {% for cidr in NGINX_ADMIN_ACCESS_CIDRS %}
+      allow {{ cidr }};
+    {% endfor %}
+      deny all;
+      try_files $uri @proxy_to_lms_app;
+  }
+{% endif %}
+
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
+  {% include "extra_locations_lms.j2" ignore missing %}
 
 }

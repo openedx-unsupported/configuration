@@ -1,0 +1,95 @@
+---
+- name: create the supervisor config
+  template:
+    src: oauth2_proxy_supervisor.conf.j2
+    dest: "{{ supervisor_available_dir }}/oauth2_proxy.conf"
+    owner: "{{ supervisor_user }}"
+    group: "{{ supervisor_user }}"
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  register: oauth2_proxy_supervisor
+  tags:
+    - install
+    - install:configuration
+
+- name: enable the supervisor config
+  file:
+    src: "{{ supervisor_available_dir }}/oauth2_proxy.conf"
+    dest: "{{ supervisor_cfg_dir }}/oauth2_proxy.conf"
+    owner: "{{ supervisor_user }}"
+    state: link
+    force: yes
+    mode: 0644
+  become_user: "{{ supervisor_user }}"
+  register: oauth2_proxy_supervisor
+  tags:
+    - install
+    - install:configuration
+
+- name: download oauth2_proxy release
+  get_url:
+    url: "{{ oauth2_proxy_release_url }}"
+    dest: "/tmp/oauth2_proxy.tar.gz"
+    force: yes
+    sha256sum: "{{ oauth2_proxy_release_sha256 }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: extract the oauth2_proxy release
+  unarchive:
+    src: "/tmp/oauth2_proxy.tar.gz"
+    dest: "/tmp"
+    remote_src: True
+  tags:
+    - install
+    - install:configuration
+
+- name: move the oauth2_proxy binary into place
+  command: "mv /tmp/{{ oauth2_proxy_pkg_name }}/oauth2_proxy {{ oauth2_proxy_app_dir }}/"
+  tags:
+    - install
+    - install:configuration
+
+- name: update oauth2_proxy configuration
+  template:
+    src: oauth2_proxy.cfg.j2
+    dest: "{{ oauth2_proxy_conf_dir }}/oauth2_proxy.cfg"
+    owner: "{{ oauth2_proxy_user }}"
+    group: "{{ common_web_group }}"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  shell:  "{{ supervisor_ctl }} -c {{ supervisor_cfg }} update"
+  register: supervisor_update
+  changed_when: supervisor_update.stdout is defined and supervisor_update.stdout != ""
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+    - manage:update
+
+- name: ensure oauth2_proxy is started
+  supervisorctl:
+    name: oauth2_proxy
+    supervisorctl_path: "{{ supervisor_ctl }}"
+    config: "{{ supervisor_cfg }}"
+    state: started
+  tags:
+    - manage
+    - manage:start
+
+- include: test.yml
+  tags:
+    - deploy
+
+- include: tag_ec2.yml
+  when: COMMON_TAG_EC2_INSTANCE
+  tags:
+    - deploy
+
+- set_fact:
+    oauth2_proxy_installed: true

@@ -4,22 +4,51 @@ upstream insights_app_server {
     {% endfor %}
 }
 
+# The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+# but only the server name (e.g. https://www.example.com).
+# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+#
+# Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+# of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+map $http_origin $cors_origin {
+  default "null";
+{% for host in INSIGHTS_CORS_ORIGIN_WHITELIST %}
+  "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+{% endfor %}
+}
+
 server {
   listen {{ INSIGHTS_NGINX_PORT }} default_server;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ INSIGHTS_NGINX_PORT }} default_server;
+  {% endif %}
 
   {% if NGINX_ENABLE_SSL %}
   listen {{ INSIGHTS_NGINX_SSL_PORT }} ssl;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ INSIGHTS_NGINX_SSL_PORT }} ssl;
+  {% endif %}
 
   {% include "common-settings.j2" %}
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
   # request the browser to use SSL for all connections
-  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
   {% endif %}
 
   location ~ ^/static/(?P<file>.*) {
     root {{ COMMON_DATA_DIR }}/{{ insights_service_name }};
+    add_header Cache-Control "max-age=31536000";
+    add_header 'Access-Control-Allow-Origin' $cors_origin;
+    add_header 'Access-Control-Allow-Methods' 'HEAD, GET, OPTIONS';
+
+    # Inform downstream caches to take certain headers into account when reading/writing to cache.
+    add_header 'Vary' 'Accept-Encoding,Origin';
+
     try_files /staticfiles/$file =404;
   }
 
@@ -33,6 +62,18 @@ server {
   }
 
   {% include "robots.j2" %}
+
+{% if NGINX_ADMIN_ACCESS_CIDRS and INSIGHTS_ENABLE_ADMIN_URLS_RESTRICTION %}
+  location ~ ^/(admin) {
+    real_ip_header X-Forwarded-For;
+    set_real_ip_from {{ NGINX_TRUSTED_IP_CIDRS }};
+    {% for cidr in NGINX_ADMIN_ACCESS_CIDRS %}
+      allow {{ cidr }};
+    {% endfor %}
+      deny all;
+      try_files $uri @proxy_to_app;
+  }
+{% endif %}
 
 location @proxy_to_app {
     proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
@@ -51,29 +92,5 @@ location @proxy_to_app {
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
   
-  # Nginx does not support nested condition or or conditions so
-  # there is an unfortunate mix of conditonals here.
-  {% if NGINX_REDIRECT_TO_HTTPS %}
-     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
-  # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
-   set $do_redirect_to_https "true";
-  }
-
-     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
-
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
-  {
-   set $do_redirect_to_https "true";
-  }
-  {% endif %}
-
-  # Execute the actual redirect
-  if ($do_redirect_to_https = "true")
-  {
-  return 301 https://$host$request_uri;
-  }
-  {% endif %}
+  {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
 }

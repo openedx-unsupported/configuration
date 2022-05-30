@@ -1,0 +1,37 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+#
+#
+# Tasks for role mfe_flags_setup
+#
+# Overview:
+#
+#
+# Dependencies:
+#
+#
+# Example play:
+#
+#
+
+- name: Get edxapp waffle flags list
+  shell: >
+    {{ edxapp_venv_bin }}/python {{ COMMON_BIN_DIR }}/manage.edxapp lms waffle_flag -l --settings={{ COMMON_EDXAPP_SETTINGS }}
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  register: edxapp_waffle_flags_list
+
+- name: Create MFE waffle flag if it does not exist
+  shell: >
+    {{ edxapp_venv_bin }}/python {{ COMMON_BIN_DIR }}/manage.edxapp lms waffle_flag {{ item }} --everyone --create --settings={{ COMMON_EDXAPP_SETTINGS }}
+  become_user: "{{ edxapp_user }}"
+  environment: "{{ edxapp_environment }}"
+  when: item not in edxapp_waffle_flags_list.stdout
+  loop: "{{ MFE_FLAGS_SETUP_FLAGS_LIST }}"

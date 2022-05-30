@@ -1,0 +1,133 @@
+#!/bin/bash
+# ref https://tasks.opencraft.com/browse/SE-1669
+# Script to perform a point-in-time dump of the local mongodb database using
+# mongodump.
+# includes locking (prevent this script from running multiple times in
+# parallel), creating a snapshot of the volume used to backup to
+
+# exit by default on failure
+set -e
+# verbose for help with debugging
+set -x
+
+# make sure local/bin is in the path so we can use aws cli
+PATH="$PATH:/usr/local/bin"
+
+# vars set by ansible
+MONGO_BACKUP_EBS_VOLUME_DEVICE="{{ MONGO_BACKUP_EBS_VOLUME_DEVICE }}" # eg. /dev/svdk or /dev/disk/by-label/mylabel
+MONGO_BACKUP_EBS_VOLUME_ID="{{ MONGO_BACKUP_EBS_VOLUME_ID }}" # eg. vol-123456
+MONGO_BACKUP_VOLUME_MOUNT_PATH="{{ MONGO_BACKUP_VOLUME_MOUNT_PATH }}" # eg. /mnt/mongobackup/
+MONGO_BACKUP_NODE="{{ MONGO_BACKUP_NODE }}"
+EDXAPP_MONGO_DB_NAME="{{ EDXAPP_MONGO_DB_NAME }}"
+MONGO_BACKUP_AUTH_DATABASE="{{ MONGO_BACKUP_AUTH_DATABASE }}"
+MONGO_ADMIN_USER="{{ MONGO_ADMIN_USER }}"
+MONGO_ADMIN_PASSWORD="{{ MONGO_ADMIN_PASSWORD }}"
+AWS_ACCESS_KEY_ID="{{ MONGO_BACKUP_AWS_ACCESS_KEY_ID }}"
+AWS_SECRET_ACCESS_KEY="{{ MONGO_BACKUP_AWS_SECRET_ACCESS_KEY }}"
+MONGO_BACKUP_SNAPSHOT_DESC="{{ MONGO_BACKUP_SNAPSHOT_DESC }}"
+MONGO_BACKUP_PRUNE_OLDER_THAN_DATE="{{ MONGO_BACKUP_PRUNE_OLDER_THAN_DATE }}"
+MONGO_BACKUP_SNITCH_URL="{{ MONGO_BACKUP_SNITCH_URL }}"
+aws_region="{{ aws_region }}"
+
+# export to make available to aws cli
+export AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY
+
+# other vars
+archive_path="mongo-backup-$(date --iso-8601=minutes --utc)"
+
+# verify required variables are set
+required() {
+    if [ -z "$1" ]; then
+        echo "$2"
+        required_var_missing="yes"
+    fi
+}
+required "$MONGO_BACKUP_EBS_VOLUME_DEVICE" "MONGO_BACKUP_EBS_VOLUME_DEVICE missing; EBS volume device path is required"
+required "$MONGO_BACKUP_EBS_VOLUME_ID" "MONGO_BACKUP_EBS_VOLUME_ID missing; EBS volume id is required"
+required "$MONGO_BACKUP_VOLUME_MOUNT_PATH" "MONGO_BACKUP_VOLUME_MOUNT_PATH missing; path on which to mount ebs backup volume is required"
+required "$MONGO_BACKUP_NODE" "MONGO_BACKUP_NODE missing; this must be set to determine if this is the correct node to run backup on"
+required "$MONGO_BACKUP_AUTH_DATABASE" "MONGO_BACKUP_AUTH_DATABASE missing; this must be set to use the correct authenticationDatabase to auth against"
+required "$MONGO_ADMIN_USER" "MONGO_ADMIN_USER missing; this must be set to auth against the database"
+required "$MONGO_ADMIN_PASSWORD" "MONGO_ADMIN_PASSWORD missing; this must be set to auth against the database"
+required "$AWS_ACCESS_KEY_ID" "MONGO_BACKUP_AWS_ACCESS_KEY_ID missing; this must be set to auth against the database"
+required "$AWS_SECRET_ACCESS_KEY" "MONGO_BACKUP_AWS_SECRET_ACCESS_KEY missing; this must be set to auth against the database"
+required "$aws_region" "aws_region missing; this must be set to use awscli"
+[ -n "$required_var_missing" ] && exit 1
+
+
+# only run on specified node - this pulls the node name (ip address) of the mongo db on this instance
+mynodename=$(echo "db.isMaster()" | mongo -u "$MONGO_ADMIN_USER" -p"$MONGO_ADMIN_PASSWORD" --authenticationDatabase "$MONGO_BACKUP_AUTH_DATABASE" "$EDXAPP_MONGO_DB_NAME" | grep \"me\" | cut -f 2 -d ':' | sed -e 's/ //' -e 's/,//' -e 's/"//');
+if [ "$mynodename" != "$MONGO_BACKUP_NODE" ]; then
+    echo "This is not the backup host. Run on a different instance."
+    exit 1
+fi
+
+# Acquire backup lock using this script itself as the lockfile. If another
+# backup task is already running, then exit immediately.
+exec 200<$0
+flock -n 200 || { echo "Another backup task is already running."; exit 1; }
+
+echo "Starting at $(date)"
+
+# ensure volume is mounted
+mkdir -p "$MONGO_BACKUP_VOLUME_MOUNT_PATH"
+if ! mountpoint -q "$MONGO_BACKUP_VOLUME_MOUNT_PATH"; then
+  mount -o discard,defaults,noatime "$MONGO_BACKUP_EBS_VOLUME_DEVICE" "$MONGO_BACKUP_VOLUME_MOUNT_PATH"
+fi
+
+# Clean old backup files to save space and so we start afresh.
+rm -rf "$MONGO_BACKUP_VOLUME_MOUNT_PATH/mongo/"
+mkdir -p "$MONGO_BACKUP_VOLUME_MOUNT_PATH/mongo/"
+
+
+# create the dump
+# XXX: we may want to check how this lays out of disk and how it will play against ebs volume snapshots. The idea was
+# that snapshots would be cheap because you only pay for data blocks that have changed between one snapshot and the
+# next. however, if the mongodump -> gzip process ends up not being consistent in layout,
+# this may end up with a lot of the disk content changing between snapshots.
+mongodump --host="localhost" --oplog --gzip -u "$MONGO_ADMIN_USER" --password "$MONGO_ADMIN_PASSWORD" --authenticationDatabase "$MONGO_BACKUP_AUTH_DATABASE" --out="$MONGO_BACKUP_VOLUME_MOUNT_PATH/mongo/$archive_path"
+
+
+# flush everything to disk, and unmount the volume ready to snapshot
+sync
+umount "$MONGO_BACKUP_VOLUME_MOUNT_PATH"
+
+# create a snapshot of the volume
+snapshot_data=$(aws --region "$aws_region" ec2 create-snapshot --volume-id "$MONGO_BACKUP_EBS_VOLUME_ID" --description "$MONGO_BACKUP_SNAPSHOT_DESC")
+echo "$snapshot_data"
+snapshot_id="$(echo "$snapshot_data" | jq -r .SnapshotId)"
+
+# Poll until the snapshot has been created. We want to block here to avoid the chance of this script being run (and the
+# current backup deleted / a new backup created) while the snapshot is taking place. The snapshot must also be done
+# while the volume is unmounted to ensure data integrity.
+while true; do
+    sleep 60
+    snapshot_data=$(aws --region "$aws_region" ec2 describe-snapshots --snapshot-ids "$snapshot_id" || true)
+    if [ "$(echo "$snapshot_data" | jq -r '.Snapshots[0].State')" = "completed" ]; then
+        break
+    fi
+done
+
+if [ -n "$MONGO_BACKUP_PRUNE_OLDER_THAN_DATE" ]; then
+    # Prune old snapshots
+    old_snapshot_data="$(aws --region "$aws_region" ec2 describe-snapshots --filters "Name=description,Values=$MONGO_BACKUP_SNAPSHOT_DESC")"
+    lines_="$(echo "$old_snapshot_data" | jq -r ".Snapshots | map(\"\(.SnapshotId) \(.StartTime)\") | .[]")"
+    earliest_date="$(date -d "$MONGO_BACKUP_PRUNE_OLDER_THAN_DATE" "+%s")"
+    while read -r line; do
+        # each $line looks like: "snap-0123456789DEADBEEF 2019-11-01T00:15:12.492Z"
+        snapshot_id=$(echo "$line" | cut -f1 -d' ')
+        timestamp="$(date -d "$(echo "$line" | cut -f2 -d' ')" "+%s")"
+        if [ "$timestamp" -lt "$earliest_date" ]; then
+            # this snapshot_id is older than we want to keep around, so delete it
+            aws --region "$aws_region" ec2 delete-snapshot --snapshot-id "$snapshot_id"
+        fi
+    done <<< "$lines_"
+fi
+
+# ping the snitch url if available
+if [ -n "$MONGO_BACKUP_SNITCH_URL" ]; then
+    curl "$MONGO_BACKUP_SNITCH_URL"
+fi
+
+echo "End at $(date)"

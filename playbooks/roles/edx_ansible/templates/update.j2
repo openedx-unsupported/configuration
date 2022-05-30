@@ -10,10 +10,17 @@ IFS=","
 
     Usage: $PROG <repo> <version>
             -v        add verbosity to edx_ansible run
+            -e        add extra_vars to ansible plays
             -h        this
 
-    <repo> - must be one of edx-platform, edx-workers, xqueue, cs_comments_service, credentials, xserver, configuration, read-only-certificate-code, edx-analytics-data-api, edx-ora2, insights, ecommerce, programs, course_discovery
+    <repo> - must be one of edx-platform, edx-workers, xqueue, cs_comments_service, credentials, configuration,
+    read-only-certificate-code, edx-analytics-data-api, edx-ora2, insights, ecommerce, discovery,
+    video_web_frontend, video_delivery_worker, veda_pipeline_worker, video_encode_worker, veda_ffmpeg,
+    registrar, program_console, learner_portal
     <version> - can be a commit or tag
+    <extra_vars> - specify extra_vars to any of the ansible plays with the -e switch and then ecaptulating your vars in "double quotes"
+                   example: update <repo> <version> -e "-e 'hallo=bye' -e 'bye=hallo'"
+                   you can also specify a file as -e "-e '@/path/to/file.yml'"
 
 EO
 IFS=$SAVE_IFS
@@ -42,24 +49,39 @@ fi
 extra_args="$extra_args -e 'disable_edx_services=true' -e devstack=true"
 {% endif %}
 
+if [[ "$3" == "-e" ]]; then
+    opt=$4
+    sed -e 's/^"//' -e 's/"$//' <<<"$opt"
+    extra_args="$extra_args $opt"
+fi
+
 declare -A repos_to_cmd
 edx_ansible_cmd="{{ edx_ansible_venv_bin }}/ansible-playbook -i localhost, -c local $extra_args"
 
-repos_to_cmd["edx-platform"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2'"
-repos_to_cmd["edx-workers"]="$edx_ansible_cmd edxapp.yml -e 'edx_platform_version=$2' -e 'celery_worker=true'"
-repos_to_cmd["xqueue"]="$edx_ansible_cmd xqueue.yml -e 'xqueue_version=$2' -e 'elb_pre_post=false'"
+repos_to_cmd["edx-platform"]="$edx_ansible_cmd edxapp.yml -e 'EDX_PLATFORM_VERSION=$2'"
+repos_to_cmd["edx-workers"]="$edx_ansible_cmd edxapp.yml -e 'EDX_PLATFORM_VERSION=$2' -e 'celery_worker=true'"
+repos_to_cmd["xqueue"]="$edx_ansible_cmd xqueue.yml -e 'XQUEUE_VERSION=$2' -e 'elb_pre_post=false'"
 repos_to_cmd["credentials"]="$edx_ansible_cmd credentials.yml -e 'credentials_version=$2'"
-repos_to_cmd["cs_comments_service"]="$edx_ansible_cmd forum.yml -e 'forum_version=$2'"
-repos_to_cmd["xserver"]="$edx_ansible_cmd xserver.yml -e 'xserver_version=$2'"
-repos_to_cmd["configuration"]="$edx_ansible_cmd edx_ansible.yml -e 'configuration_version=$2'"
-repos_to_cmd["read-only-certificate-code"]="$edx_ansible_cmd certs.yml -e 'certs_version=$2'"
+repos_to_cmd["cs_comments_service"]="$edx_ansible_cmd forum.yml -e 'FORUM_VERSION=$2'"
+repos_to_cmd["configuration"]="$edx_ansible_cmd edx_ansible.yml -e 'CONFIGURATION_VERSION=$2'"
 repos_to_cmd["edx-analytics-data-api"]="$edx_ansible_cmd analyticsapi.yml -e 'ANALYTICS_API_VERSION=$2'"
 repos_to_cmd["edx-ora2"]="$edx_ansible_cmd ora2.yml -e 'ora2_version=$2'"
 repos_to_cmd["insights"]="$edx_ansible_cmd insights.yml -e 'INSIGHTS_VERSION=$2'"
 repos_to_cmd["ecommerce"]="$edx_ansible_cmd ecommerce.yml -e 'ECOMMERCE_VERSION=$2'"
-repos_to_cmd["programs"]="$edx_ansible_cmd programs.yml -e 'PROGRAMS_VERSION=$2'"
 repos_to_cmd["discovery"]="$edx_ansible_cmd discovery.yml -e 'DISCOVERY_VERSION=$2'"
-
+repos_to_cmd["video_web_frontend"]="$edx_ansible_cmd veda_web_frontend.yml -e 'VEDA_WEB_FRONTEND_VERSION=$2'"
+repos_to_cmd["video_delivery_worker"]="$edx_ansible_cmd veda_delivery_worker.yml -e 'VEDA_DELIVERY_WORKER_VERSION=$2'"
+repos_to_cmd["veda_pipeline_worker"]="$edx_ansible_cmd veda_pipeline_worker.yml -e 'VEDA_PIPELINE_WORKER_VERSION=$2'"
+repos_to_cmd["video_encode_worker"]="$edx_ansible_cmd veda_encode_worker.yml -e 'VEDA_ENCODE_WORKER_VERSION=$2'"
+repos_to_cmd["veda_ffmpeg"]="$edx_ansible_cmd veda_ffmpeg.yml -e 'VEDA_FFMPEG_VERSION=$2'"
+repos_to_cmd["registrar"]="$edx_ansible_cmd registrar.yml -e 'REGISTRAR_VERSION=$2'"
+repos_to_cmd["learner_portal"]="$edx_ansible_cmd learner_portal.yml -e 'LEARNER_PORTAL_VERSION=$2'"
+repos_to_cmd["program_console"]="$edx_ansible_cmd program_console.yml -e 'PROGRAM_CONSOLE_VERSION=$2'"
+repos_to_cmd["prospectus"]="$edx_ansible_cmd prospectus.yml -e 'PROSPECTUS_VERSION=$2'"
+repos_to_cmd["authn"]="$edx_ansible_cmd authn_frontend.yml -e 'AUTHN_MFE_VERSION=$2'"
+repos_to_cmd["payment"]="$edx_ansible_cmd payment.yml -e 'PAYMENT_MFE_VERSION=$2'"
+repos_to_cmd["learning"]="$edx_ansible_cmd learning.yml -e 'LEARNING_MFE_VERSION=$2'"
+repos_to_cmd["ora_grading"]="$edx_ansible_cmd ora_grading.yml -e 'ORA_GRADING_MFE_VERSION=$2'"
 
 if [[ -z $1 || -z $2 ]]; then
     echo
@@ -75,5 +97,5 @@ if [[ -z ${repos_to_cmd[$1]} ]]; then
     exit 1
 fi
 
-cd {{ edx_ansible_code_dir }}/playbooks/edx-east
+cd {{ edx_ansible_code_dir }}/playbooks
 eval "sudo ${repos_to_cmd["$1"]} $verbose"

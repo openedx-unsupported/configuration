@@ -9,7 +9,7 @@
 #
 #
 # Tasks for role edx-notes-api
-# 
+#
 # Overview:
 #
 # Role for installing the edx-notes-api Django application, https://github.com/edx/edx-notes-api.
@@ -19,7 +19,7 @@
 # For a complete picture of dependencies, see:
 #
 #  configuration/playbooks/role/edx-notes-api/meta/main.yml
-#  configuration/playbooks/edx-east/notes.yml
+#  configuration/notes.yml
 #
 # Example play:
 #
@@ -36,13 +36,11 @@
 #     nginx_sites:
 #       - edx-notes-api
 #   - aws
-#   - edx-notes-api 
+#   - edx-notes-api
 #   - role: datadog
 #     when: COMMON_ENABLE_DATADOG
 #   - role: splunkforwarder
 #     when: COMMON_ENABLE_SPLUNKFORWARDER
-#   - role: newrelic
-#     when: COMMON_ENABLE_NEWRELIC
 
 - name: Install application requirements
   pip:
@@ -50,11 +48,24 @@
     virtualenv: "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
     state: present
     extra_args: "--exists-action w"
+    virtualenv_python: 'python3.8'
   become_user: "{{ edx_notes_api_user }}"
   with_items: "{{ edx_notes_api_requirements }}"
   tags:
     - install
     - install:system-requirements
+
+- name: write devstack script
+  template:
+    src: "edx/app/edx_notes_api/devstack.sh.j2"
+    dest: "{{ edx_notes_api_home }}/devstack.sh"
+    owner: "{{ supervisor_user }}"
+    group: "{{ common_web_user }}"
+    mode: 0744
+  when: devstack is defined and devstack
+  tags:
+    - devstack
+    - devstack:install
 
 - name: Migrate
   shell: >
@@ -67,6 +78,7 @@
   environment:
     EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
   when: migrate_db is defined and migrate_db|lower == "yes"
+  run_once: yes
   tags:
     - migrate
     - migrate:db
@@ -145,19 +157,6 @@
   tags:
     - manage
     - manage:start
-
-- name: Create symlinks from the venv bin dir
-  file:
-    src: "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}/bin/{{ item }}"
-    dest: "{{ COMMON_BIN_DIR }}/{{ item.split('.', 1) | first }}.{{ edx_notes_api_service_name }}"
-    state: link
-  with_items:
-    - python
-    - pip
-    - django-admin.py
-  tags:
-    - install
-    - install:app-requirements
 
 - name: Create manage.py symlink
   file:

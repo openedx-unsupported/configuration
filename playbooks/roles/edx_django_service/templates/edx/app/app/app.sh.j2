@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+{% set edx_django_service_venv_bin = edx_django_service_venv_dir + "/bin" %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = edx_django_service_venv_bin + '/newrelic-admin run-program ' + edx_django_service_venv_bin + '/gunicorn' %}
+{% else %}
+{% set executable = edx_django_service_venv_bin + '/gunicorn' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ edx_django_service_enable_newrelic_distributed_tracing }}"
+export NEW_RELIC_APP_NAME="{{ edx_django_service_newrelic_appname }}"
+HOSTNAME=$(hostname)
+export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME"
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+export EDX_REST_API_CLIENT_NAME="{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}"
+
+source {{ edx_django_service_home }}/{{ edx_django_service_name }}_env
+
+{% if edx_django_service_enable_experimental_docker_shim %}
+
+OLD_CONTAINERS=$(docker ps -aq --filter name='^{{ edx_django_service_name }}$')
+
+# Delete old container so we can reuse the contianer name
+if [[ -n "${OLD_CONTAINERS}" ]]; then
+  docker rm ${OLD_CONTAINERS} > /dev/null 2>&1
+fi
+
+exec docker run \
+  --name {{ edx_django_service_name }} \
+  --mount type=bind,src={{ edx_django_service_app_config_file }},dst={{ edx_django_service_app_config_file }} \
+  --publish 127.0.0.1:{{ edx_django_service_gunicorn_port }}:{{ edx_django_service_gunicorn_port }}/tcp \
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+  --env NEW_RELIC_DISTRIBUTED_TRACING_ENABLED \
+  --env NEW_RELIC_APP_NAME \
+  --env NEW_RELIC_PROCESS_HOST_DISPLAY_NAME \
+  --env NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}" \
+{% endif -%}
+{% for name,value in edx_django_service_environment.items() -%}
+{%- if value %}
+  --env {{ name }} \
+{% endif %}
+{%- endfor %}
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+  {{ edx_django_service_docker_image_name }}:latest-newrelic
+{% else %}
+  {{ edx_django_service_docker_image_name }}:latest
+{% endif %}
+{% else %}
+exec {{ executable }} -c {{ edx_django_service_home }}/{{ edx_django_service_name }}_gunicorn.py {{ edx_django_service_gunicorn_extra }} {{ edx_django_service_wsgi_name }}.wsgi:application
+{% endif %}

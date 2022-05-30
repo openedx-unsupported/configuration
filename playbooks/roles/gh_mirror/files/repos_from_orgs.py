@@ -24,12 +24,12 @@ def check_running(run_type=''):
     fp = open(pid_file, 'w')
     try:
         fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except IOError:
+    except OSError:
         # another instance is running
         sys.exit(0)
 
 def run_cmd(cmd):
-    logging.debug('running: {}\n'.format(cmd))
+    logging.debug(f'running: {cmd}\n')
     process = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         shell=True)
@@ -49,9 +49,9 @@ def refresh_cache():
     path = dirname(abspath(__file__))
     try:
         with open(join(path, 'orgs.yml')) as f:
-            orgs = yaml.load(f)
-    except IOError:
-        print "Unable to read {}/orgs.yml, does it exist?".format(path)
+            orgs = yaml.safe_load(f)
+    except OSError:
+        print(f"Unable to read {path}/orgs.yml, does it exist?")
         sys.exit(1)
 
     repos = []
@@ -59,7 +59,7 @@ def refresh_cache():
     for org in orgs:
         page = 1
         while True:
-            r = requests.get('https://api.github.com/users/{}/repos?page={}'.format(org, page))
+            r = requests.get(f'https://api.github.com/users/{org}/repos?page={page}')
             org_data = r.json()
             # request pages until we get zero results
             if not isinstance(org_data, list) or len(org_data) == 0:
@@ -80,12 +80,12 @@ def update_repos():
     for repo in repos:
         repo_path = os.path.join(args.datadir, repo['org'], repo['name'] + '.git')
         if not os.path.exists(repo_path):
-            run_cmd('mkdir -p {}'.format(repo_path))
+            run_cmd(f'mkdir -p {repo_path}')
             run_cmd('git clone --mirror {} {}'.format(repo['html_url'], repo_path))
-            run_cmd('cd {} && git update-server-info'.format(repo_path))
+            run_cmd(f'cd {repo_path} && git update-server-info')
         else:
-            run_cmd('cd {} && git fetch --all --tags'.format(repo_path))
-            run_cmd('cd {} && git update-server-info'.format(repo_path))
+            run_cmd(f'cd {repo_path} && git fetch --all --tags')
+            run_cmd(f'cd {repo_path} && git update-server-info')
 
 if __name__ == '__main__':
     args = parse_args()
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     else:
         check_running()
         if not args.datadir:
-            print "Please specificy a repository directory"
+            print("Please specificy a repository directory")
             sys.exit(1)
         if not os.path.exists('/var/tmp/repos.json'):
             refresh_cache()

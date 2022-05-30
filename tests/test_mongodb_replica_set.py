@@ -7,7 +7,7 @@
 
 import mongodb_replica_set as mrs
 import unittest, mock
-from urllib import quote_plus
+from six.moves.urllib.parse import quote_plus
 from copy import deepcopy
 
 class TestNoPatchingMongodbReplicaSet(unittest.TestCase):

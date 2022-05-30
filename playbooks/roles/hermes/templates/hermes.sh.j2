@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# {{ ansible_managed }}
+
+source {{ hermes_app_dir }}/{{ hermes_service_name }}_env
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = hermes_venv_bin + '/newrelic-admin run-program ' + hermes_venv_bin + '/python' %}
+{% else %}
+{% set executable = hermes_venv_bin + '/python' %}
+{% endif %}
+
+{% if COMMON_ENABLE_NEWRELIC_APP %}
+export NEW_RELIC_APP_NAME="{{ hermes_service_name }}"
+if command -v ec2metadata >/dev/null 2>&1; then
+  INSTANCEID=$(ec2metadata --instance-id);
+  HOSTNAME=$(hostname)
+  export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
+fi
+export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+# We exec so that hermes is the child of systemd and can be managed properly
+exec {{ executable }} {{ hermes_code_dir }}/hermes.py $@

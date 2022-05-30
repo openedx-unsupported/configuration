@@ -39,6 +39,8 @@ server {
     proxy_pass http://127.0.0.1:{{ neo4j_http_port }};
   }
 
+  {% if NGINX_ENABLE_SSL %}
+
   # Forward to HTTPS if we're an HTTP request...
   if ($http_x_forwarded_proto = "http") {
     set $do_redirect "true";
@@ -48,4 +50,7 @@ server {
   if ($do_redirect = "true") {
     rewrite ^ https://$host$request_uri? permanent;
   }
+
+  {% endif %}
+
 }

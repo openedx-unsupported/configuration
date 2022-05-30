@@ -1,0 +1,76 @@
+---
+- name: checkout carbon
+  git:
+    repo: "{{ GRAPHITE_CARBON_GIT_URL }}"
+    dest: "{{ graphite_root }}/src/carbon"
+    version: "{{ GRAPHITE_CARBON_VERSION }}"
+  tags:
+    - install
+    - install:code
+
+- name: install carbon dependencies
+  pip:
+    virtualenv: "{{ graphite_root }}"
+    requirements: "{{ graphite_root }}/src/carbon/requirements.txt"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install carbon
+  command: "{{ graphite_root }}/bin/python setup.py install"
+  args:
+    chdir: "{{ graphite_root }}/src/carbon"
+    creates: "{{ graphite_root }}/bin/carbon-cache.py"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: configure carbon
+  template:
+    src: "carbon/conf/{{ item }}.conf.j2"
+    dest: "{{ graphite_root }}/conf/{{ item }}.conf"
+  with_items:
+    - carbon
+    - storage-schemas
+    - storage-aggregation
+  tags:
+    - install
+    - install:app-configuration
+
+- name: configure carbon service definition
+  template:
+    src: carbon/systemd/carbon-cache.service.j2
+    dest: /etc/systemd/system/carbon-cache.service
+  tags:
+    - install
+    - install:configuration
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  tags:
+    - install
+    - install:configuration
+
+- name: enable carbon
+  service:
+    name: carbon-cache
+    enabled: yes
+    state: started
+  tags:
+    - install
+    - install:configuration
+
+- name: stop carbon
+  service:
+    name: carbon-cache
+    state: stopped
+  tags:
+    - manage:stop
+
+- name: restart carbon
+  service:
+    name: carbon-cache
+    state: restarted
+  tags:
+    - manage:start
+    - manage:restart

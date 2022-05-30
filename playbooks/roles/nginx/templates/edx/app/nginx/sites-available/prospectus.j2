@@ -1,0 +1,161 @@
+{%- if "prospectus" in nginx_default_sites -%}
+  {%- set default_site = "default_server" -%}
+{%- else -%}
+  {%- set default_site = "" -%}
+{%- endif -%}
+
+server {
+  # Prospectus configuration file for nginx, templated by ansible
+
+  server_name ~^((stage|prod)-)?prospectus.*;
+
+  add_header X-Frame-Options DENY;
+
+  {% if NGINX_ENABLE_SSL %}
+
+  listen {{ prospectus_ssl_nginx_port }} ssl;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ prospectus_ssl_nginx_port }} ssl;
+  {% endif %}
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% endif %}
+
+  {% if NGINX_ENABLE_SSL or NGINX_REDIRECT_TO_HTTPS %}
+  # request the browser to use SSL for all connections
+  add_header Strict-Transport-Security "max-age={{ NGINX_HSTS_MAX_AGE }}; includeSubDomains";
+  {% endif %}
+
+
+  {% if NGINX_PROSPECTUS_PROXY_INTERCEPT_ERRORS %}
+  proxy_intercept_errors on;
+  {% endif %}
+
+  listen {{ PROSPECTUS_NGINX_PORT }} {{ default_site }};
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ PROSPECTUS_NGINX_PORT }} {{ default_site }};
+  {% endif %}
+
+  root {{ PROSPECTUS_DATA_DIR }};
+
+  # Do not cache any 404 documents at the CDN for all pages..
+  error_page 404 /404.html;
+  location = /404.html {
+    root   {{ PROSPECTUS_DATA_DIR }};
+    add_header Cache-Control "no-store, max-age=0" always;
+  }
+
+  location /event {
+    # this page is designed to be injected into other pages via an iframe
+    add_header X-Frame-Options '';
+  }
+
+  # Cache js/css for a long time at the edge, they are versioned in their names
+  location ~ \.(js|css)$ {
+    add_header 'Cache-Control' 'public, max-age=31536000, immutable';
+  }
+
+  # images sometimes change, we want to cache them for an hour at the edge to reduce bandwidth.
+
+  location /images/ {
+    add_header 'Cache-Control' 'public, max-age=3600';
+  }
+  
+  # favicon is requested a lot.  cache it at the edge.
+
+  location /favicon.ico {
+      add_header 'Cache-Control' 'public, max-age=86400';
+  }
+
+
+  # Ignore the rollout group headers for the health check endpoint.
+  location /HealthCheck {
+    try_files $uri $uri/index.html;
+  }
+
+  location /es/bio/ {
+    try_files $uri $uri/ /es/bio/index.html;
+  }
+
+  location /bio/ {
+    try_files $uri $uri/ /bio/index.html;
+  }
+
+  # preview pages are not cached, and have basic auth
+
+  location /secure-preview/ {
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %}
+    port_in_redirect off;
+    add_header Cache-Control "no-store, max-age=0";
+  }
+
+  location /es/secure-preview/ {
+    {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
+      auth_basic            "Restricted";
+      auth_basic_user_file  {{ nginx_htpasswd_file }};
+    {% endif %}
+    port_in_redirect off;
+    add_header Cache-Control "no-store, max-age=0";
+  }
+
+  location /preview/ {
+    port_in_redirect off;
+    add_header Cache-Control "no-store, max-age=0";
+  }
+
+  location /es/preview/ {
+    port_in_redirect off;
+    add_header Cache-Control "no-store, max-age=0";
+  }
+
+  # PROSPECTUS_TEMPORARY_REDIRECTS will be a list of dictionaries which have:
+  #   - from_path: The path of the course-about page that you want redirect
+  #   - to_path: URL to redirect to
+  {% for redirect in PROSPECTUS_TEMPORARY_REDIRECTS %}
+  location = {{ redirect.from_path }} {
+    include fastcgi_params;
+    fastcgi_param SERVER_PORT 80;
+    port_in_redirect off;
+    return 302 {{ redirect.to_path }};
+  }
+  {% endfor %}
+
+    
+
+  {% if prospectus_redirect_file is defined %}
+        include fastcgi_params;
+        fastcgi_param SERVER_PORT 80;
+        include {{ prospectus_redirect_file }};
+        port_in_redirect off;
+  {% endif %}
+
+    add_header 'Cache-Control' 'public, max-age=1800';
+    try_files $uri $uri/index.html =404;
+
+  # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
+  #   - router_path: The path you will go to on the router to access the content
+  #   - proxied_path: The path to proxy the requests to
+  {% for static_site in PROSPECTUS_STATIC_SITES %}
+
+    # Matches: /<route>/
+    location = /{{ static_site.router_path }}/ {
+        proxy_pass {{ static_site.proxied_path }}/index.html;
+    }
+
+    # Matches: <route>/[.../]<file.ext>
+    location ~ ^/{{ static_site.router_path }}/((?:\w+\/+)*)([\w\-\.]+\.[\w\-\.]+) {
+        proxy_pass {{ static_site.proxied_path }}/$1$2;
+    }
+
+    # Matches: <route>/<subpage>/[.../]
+    location ~ ^/{{ static_site.router_path }}/([a-z0-9-]+)[/]? {
+        proxy_pass {{ static_site.proxied_path }}/$1/index.html;
+    }
+
+  {% endfor %}
+}
+

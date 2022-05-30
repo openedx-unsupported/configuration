@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+{% if ANTIVIRUS_SCAN_DIRECTORY is defined %}
+dir_to_scan="{{ ANTIVIRUS_SCAN_DIRECTORY }}"
+{% endif %}
+
+log_dir={{ antivirus_log_dir }}
+
+clamout=$(clamscan -ri $dir_to_scan);
+malware=$(echo "$clamout" | grep -i 'Infected' | cut -d ' ' -f3)
+
+if [[ "$malware" -ne 0 ]]; then
+   echo -e "Malware Found\n$clamout" >> "$log_dir/clamav.log"
+fi

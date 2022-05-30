@@ -1,0 +1,129 @@
+# requires:
+#  - group_vars/all
+#  - common/tasks/main.yml
+---
+
+- name: create main group for tableau's default user
+  group:
+    name: "{{ tableau_user_group }}"
+    state: "present"
+  tags:
+    - install
+    - install:base
+
+- name: create application user
+  user:
+    name: "{{ tableau_user }}"
+    home: "{{ tableau_app_dir }}"
+    createhome: "{{ tableau_user_createhome }}"
+    shell: "{{ tableau_user_shell }}"
+    group: "{{ tableau_user_group }}"
+    groups: sudo
+    password: "{{ TABLEAU_ADMIN_PASSWORD | password_hash('sha512') }}"
+  tags:
+    - install
+    - install:base
+
+- name: create tableau user dirs
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ tableau_user }}"
+    group: "{{ tableau_user_group }}"
+    mode: "{{ item.mode | default(0755) }}"
+  with_items:
+    - { path: "{{ tableau_app_dir }}" }
+    # needed for the ansible 1.5 git module
+    - { path: "{{ tableau_app_dir }}/.ssh" }
+    - { path: "{{ tableau_data_dir }}" }
+  tags:
+    - install
+    - install:base
+
+- name: create tableau log dir
+  file:
+    path: "{{ tableau_log_dir }}"
+    state: directory
+    owner: "{{ common_log_user }}"
+    group: "{{ common_log_user }}"
+  tags:
+    - install
+    - install:base
+
+- name: set git fetch.prune to ignore deleted remote refs
+  shell: git config --global fetch.prune true
+  become_user: "{{ tableau_user }}"
+  tags:
+    - install
+    - install:base
+
+# Clone tableau repo containing install scripts.
+- name: checkout tableau repo into {{ tableau_code_dir }}
+  git:
+    dest: "{{ tableau_code_dir }}"
+    repo: "{{ tableau_repo }}"
+    version: "{{ tableau_version }}"
+    accept_hostkey: yes
+    force: yes
+  become_user: "{{ tableau_user }}"
+  register: tableau_checkout
+  tags:
+    - install
+    - install:code
+
+- name: git clean after checking out tableau repo
+  shell: cd {{ tableau_code_dir }} && git clean -xdf
+  become_user: "{{ tableau_user }}"
+  tags:
+    - install
+    - install:code
+
+- name: Download tableau server
+  get_url:
+    url: "{{ tableau_server_deb_pkg }}"
+    dest: "{{ tableau_installer_dir }}/{{ tableau_server_deb_pkg_name }}"
+  become_user: "{{ tableau_user }}"
+  tags:
+    - install
+    - install:tableau-server
+
+- name: copy the template to the desired location
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: 'secrets.j2', dest: '{{ tableau_installer_dir }}/secrets', owner: '{{ tableau_user }}', group: '{{ common_web_user }}', mode: '0644' }
+    - { src: 'registration.json.j2', dest: '{{ tableau_installer_dir }}/registration.json', owner: '{{ tableau_user }}', group: '{{ common_web_user }}', mode: '0644' }
+  tags:
+    - install
+    - install:base
+
+- name: Make automated installer executable
+  file:
+    dest: "{{ tableau_installer_dir }}/automated-installer"
+    mode: "a+x"
+  become_user: "{{ tableau_user }}"
+  tags:
+    - install
+    - install:code
+
+- name: Ensure "{{ tableau_user }}" is in th sudoers file.
+  lineinfile:
+    path: "/etc/sudoers"
+    state: "present"
+    regexp: '^%{{ tableau_user }} ALL='
+    line: '%{{ tableau_user }} ALL=(ALL) NOPASSWD: ALL'
+  sudo: true
+  tags:
+    - install
+    - install:code
+
+- name: Run automated installer to actually setup the tableau server
+  shell: "sudo {{ tableau_installer_dir }}/automated-installer -k '{{ TABLEAU_LICENSE_KEY }}' -s {{ tableau_installer_dir }}/secrets -f {{ tableau_installer_dir }}/config.json -r {{ tableau_installer_dir }}/registration.json --accepteula {{ tableau_installer_dir }}/{{ tableau_server_deb_pkg_name }}"
+  become_user: "{{ tableau_user }}"
+  tags:
+    - install
+    - install:code

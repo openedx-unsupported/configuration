@@ -28,6 +28,10 @@
   tags:
     - install
     - install:system-requirements
+  retries: 10
+  delay: 10
+  register: neo4j_gpg_key
+  until: neo4j_gpg_key is succeeded
 
 - name: add neo4j apt repository
   apt_repository:
@@ -36,26 +40,103 @@
   tags:
     - install
     - install:system-requirements
+  retries: 10
+  delay: 10
+  register: neo4j_apt_repository
+  until: neo4j_apt_repository is succeeded
 
-- name: install neo4j
-  apt:
-    name: "neo4j={{neo4j_version}}"
-    state: present
+- name: remove deprecated config file
+  file:
+    state: absent
+    path: "{{ deprecated_neo4j_wrapper_config_file }}"
   tags:
     - install
     - install:base
 
+- name: install neo4j
+  apt:
+    name: "neo4j={{NEO4J_VERSION}}"
+    state: present
+  tags:
+    - install
+    - install:base
+  retries: 10
+  delay: 10
+  register: neo4j_apt_pkg
+  until: neo4j_apt_pkg is succeeded
+
+# For what it's worth: We purposely do not prefix these line-replacement
+# regex with ^ or suffix them with $. That's because we cannot be
+# confident whether these lines initially (i) exist in file commented-out,
+# or (ii) exist in the file with a value already set. So, we purposefully
+# leave the regexes without beginning- or end-of-line matches so that
+# they can handle both scenario (i) and (ii).
+# In the future, it'd be good to get rid of these tasks, and instead
+# just include j2-templated configuration files to wholesale replace
+# what's on the box.
+
+- name: enable or disable authentication
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.security.auth_enabled="
+    line: "dbms.security.auth_enabled={{ NEO4J_AUTH_ENABLED }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: set neo4j page cache size
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.memory.pagecache.size="
+    line: "dbms.memory.pagecache.size={{ neo4j_page_cache_size }}"
+  tags:
+    - install
+    - install:configuration
+
 - name: set neo4j heap size
   lineinfile:
-    dest: "{{ neo4j_wrapper_config_file }}"
-    regexp: "dbms.memory.heap.max_size="
-    line: "dbms.memory.heap.max_size={{ neo4j_heap_max_size }}"
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ item }}="
+    line: "{{ item }}={{ neo4j_heap_max_size }}"
+  with_items:
+    - "dbms.memory.heap.max_size"
+    - "dbms.memory.heap.initial_size"
+  tags:
+    - install
+    - install:configuration
+
+- name: allow format migration (when updating neo4j versions)
+  lineinfile:
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "dbms.allow_upgrade="
+    line: "dbms.allow_upgrade=true"
+  tags:
+    - install
+    - install:configuration
+
+- name: set to listen on specific port for bolt
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ neo4j_bolt_settings_key }}="
+    line: "{{ neo4j_bolt_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_bolt_port }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: allow both encrypted and unencrypted bolt connections
+  lineinfile:
+    create: yes
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ neo4j_bolt_tls_key }}="
+    line: "{{ neo4j_bolt_tls_key }}=OPTIONAL"
   tags:
     - install
     - install:configuration
 
 - name: set to listen on specific port for https
   lineinfile:
+    create: yes
     dest: "{{ neo4j_server_config_file }}"
     regexp: "{{ neo4j_https_settings_key }}="
     line: "{{ neo4j_https_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_https_port }}"
@@ -65,6 +146,7 @@
 
 - name: set to listen on specific port for http
   lineinfile:
+    create: yes
     dest: "{{ neo4j_server_config_file }}"
     regexp: "{{ neo4j_http_settings_key }}="
     line: "{{ neo4j_http_settings_key }}={{ neo4j_listen_address }}:{{ neo4j_http_port }}"
@@ -72,10 +154,52 @@
     - install
     - install:configuration
 
+- name: remove deprecated listen address lines
+  lineinfile:
+    state: absent
+    dest: "{{ neo4j_server_config_file }}"
+    regexp: "{{ item }}"
+  with_items:
+    - "{{ deprecated_neo4j_https_settings_key }}"
+    - "{{ deprecated_neo4j_http_settings_key }}"
+  tags:
+    - install
+    - install:configuration
+
+- name: Create neo4j logging dir
+  file:
+    path: "{{ neo4j_log_dir }}"
+    state: directory
+    owner: neo4j
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: Create neo4j default file
+  file:
+    path: "{{ neo4j_defaults_file }}"
+    state: touch
+    owner: neo4j
+    mode: "0755"
+  tags:
+    - install
+    - install:base
+
+- name: set max open files to 40000
+  lineinfile:
+    dest: "{{ neo4j_defaults_file }}"
+    regexp: "#NEO4J_ULIMIT_NOFILE=40000"
+    line: "NEO4J_ULIMIT_NOFILE=40000"
+  tags:
+    - install
+    - install:base
+
 - name: restart neo4j
-  service: 
-    name: neo4j 
+  service:
+    name: neo4j
     state: restarted
+    enabled: yes
   tags:
     - manage
     - manage:start

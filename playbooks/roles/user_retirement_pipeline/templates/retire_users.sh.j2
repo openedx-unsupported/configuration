@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Log to console and to file
+LOG_LOCATION={{retirement_service_log_dir}}
+TIMESTAMP=$(date -u)
+exec > >(tee -i "$LOG_LOCATION/retirement-logs-[$TIMESTAMP].log")
+exec 2>&1
+echo "Writing logs to: [ $LOG_LOCATION ]"
+
+# Ensure only one instance of the retirement script is running
+LOCKFILE={{retirement_service_data_dir }}/retirement.lock
+if [ -e ${LOCKFILE} ] && kill -0 `cat ${LOCKFILE}`; then
+    echo "Retirement Pipeline already running!"
+    exit
+fi
+# make sure the lockfile is removed when we exit and then claim it
+trap "rm -f ${LOCKFILE}; exit" INT TERM EXIT
+echo $$ > ${LOCKFILE}
+
+# Source virtualenv
+source {{retirement_service_venv_dir}}/bin/activate
+
+# List users that are ready to be deleted, after the specified cool off period
+{{retirement_service_script_path}}/get_learners_to_retire.py \
+    --config_file={{retirement_service_home}}/config.yml \
+    --output_dir={{retirement_service_data_dir }}/learners_to_retire \
+    --cool_off_days={{RETIREMENT_SERVICE_COOL_OFF_DAYS}}
+
+# Loop over users and run deletion pipeline
+unset $RETIREMENT_USERNAME
+for filename in {{retirement_service_data_dir }}/learners_to_retire/*; do
+  [ -e "$filename" ] || continue
+  . $filename
+  echo "Deleting user: $RETIREMENT_USERNAME..."
+  {{retirement_service_script_path}}/retire_one_learner.py \
+    --config_file={{retirement_service_home}}/config.yml \
+    --username=$RETIREMENT_USERNAME
+  unset $RETIREMENT_USERNAME
+  rm -f $filename
+done
+
+# Clear the lockfile
+rm -f $LOCKFILE

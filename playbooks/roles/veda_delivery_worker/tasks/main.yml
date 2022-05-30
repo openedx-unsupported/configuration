@@ -1,0 +1,111 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# Tasks for veda_delivery_worker role
+#
+
+- name: install application requirements
+  pip:
+    requirements: '{{ veda_delivery_worker_requirements_base }}/{{ item }}'
+    virtualenv: '{{ veda_delivery_worker_home }}/venvs/{{ veda_delivery_worker_service_name }}'
+    state: present
+  become_user: '{{ veda_delivery_worker_user }}'
+  with_items: "{{ veda_delivery_worker_requirements }}"
+  tags:
+    - install
+    - install:app-requirements
+
+# TODO! Update VEDA_WORKING directory path with a better path
+# https://openedx.atlassian.net/browse/EDUCATOR-1851
+- name: create worker VEDA_WORKING directory
+  file:
+    path: "{{ veda_delivery_worker_home }}/{{ item }}"
+    state: directory
+    owner: "{{ veda_delivery_worker_service_name }}"
+    group: "{{ common_web_group }}"
+  with_items:
+    - "VEDA_WORKING"
+  tags:
+    - install
+    - install:base
+
+- name: write out the supervisor wrapper
+  template:
+    src: edx/app/veda_delivery_worker/veda_delivery_worker.sh.j2
+    dest: '{{ veda_delivery_worker_home }}/{{ veda_delivery_worker_service_name }}.sh'
+    mode: 0650
+    owner: '{{ supervisor_user }}'
+    group: '{{ common_web_user }}'
+  tags:
+    - install
+    - install:configuration
+
+- name: write supervisord config
+  template:
+    src: edx/app/supervisor/conf.d.available/veda_delivery_worker.conf.j2
+    dest: '{{ supervisor_available_dir }}/{{ veda_delivery_worker_service_name }}.conf'
+    owner: '{{ supervisor_user }}'
+    group: '{{ common_web_user }}'
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: setup the veda_delivery_worker env file
+  template:
+    src: edx/app/veda_delivery_worker/veda_delivery_worker_env.j2
+    dest: '{{ veda_delivery_worker_home }}/veda_delivery_worker_env'
+    owner: '{{ veda_delivery_worker_user }}'
+    group: '{{ veda_delivery_worker_user }}'
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: enable supervisor script
+  file:
+    src: '{{ supervisor_available_dir }}/{{ veda_delivery_worker_service_name }}.conf'
+    dest: '{{ supervisor_cfg_dir }}/{{ veda_delivery_worker_service_name }}.conf'
+    state: link
+    force: yes
+  when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: update supervisor configuration
+  shell: '{{ supervisor_ctl }} -c {{ supervisor_cfg }} update'
+  when: not disable_edx_services
+  tags:
+    - manage
+    - manage:start
+
+- name: create symlinks from the venv bin dir
+  file:
+    src: '{{ veda_delivery_worker_home }}/venvs/{{ veda_delivery_worker_service_name }}/bin/{{ item }}'
+    dest: '{{ COMMON_BIN_DIR }}/{{ item }}.veda_delivery_worker'
+    state: link
+  with_items:
+  - python
+  - pip
+  tags:
+    - install
+    - install:configuration
+
+- name: restart the applicaton
+  supervisorctl:
+    state: restarted
+    supervisorctl_path: '{{ supervisor_ctl }}'
+    config: '{{ supervisor_cfg }}'
+    name: '{{ veda_delivery_worker_service_name }}'
+  when: not disable_edx_services
+  become_user: '{{ supervisor_service_user }}'
+  tags:
+    - manage
+    - manage:start

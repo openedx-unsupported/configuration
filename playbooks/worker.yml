@@ -1,0 +1,24 @@
+- name: Deploy worker
+  hosts: all
+  become: True
+  gather_facts: True
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: edxapp
+      celery_worker: True
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: minos
+      when: COMMON_ENABLE_MINOS
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+    - role: jwt_signature
+      when: CONFIGURE_JWTS
+      app_name: lms
+      app_config_file: "{{ COMMON_CFG_DIR }}/lms.yml"
+      app_config_owner: "{{ edxapp_user }}"
+      app_config_group: "{{ common_web_group }}"
+      app_config_mode: 0640

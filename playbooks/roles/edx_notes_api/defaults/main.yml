@@ -9,7 +9,7 @@
 #
 ##
 # Defaults for role edx-notes-api
-# 
+#
 
 EDX_NOTES_API_GUNICORN_WORKERS_EXTRA: ""
 EDX_NOTES_API_WORKERS_EXTRA_CONF: ""
@@ -20,8 +20,14 @@ EDX_NOTES_API_MYSQL_DB_USER: notes001
 EDX_NOTES_API_MYSQL_DB_NAME: "{{ EDX_NOTES_API_DATASTORE_NAME }}"
 EDX_NOTES_API_MYSQL_DB_PASS: secret
 EDX_NOTES_API_MYSQL_HOST: localhost
-EDX_NOTES_API_ELASTICSEARCH_URL: http://127.0.0.1:9200
+EDX_NOTES_API_MYSQL_PORT: "3306"
+EDX_NOTES_API_MYSQL_OPTIONS:
+  connect_timeout: 10
+EDX_NOTES_API_ELASTICSEARCH_URL: "localhost:9200"
 EDX_NOTES_API_NEWRELIC_APPNAME: "{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-notes"
+EDX_NOTES_API_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+EDX_NOTES_API_HOSTNAME: '~^((stage|prod)-)?notes.*'
+
 # Change these values!!
 EDX_NOTES_API_SECRET_KEY: "CHANGEME"
 EDX_NOTES_API_CLIENT_ID: "CHANGEME"
@@ -29,6 +35,8 @@ EDX_NOTES_API_CLIENT_SECRET: "CHANGEME"
 EDX_NOTES_API_GIT_SSH_KEY: !!null
 EDX_NOTES_API_VERSION: master
 EDX_NOTES_API_DJANGO_SETTINGS_MODULE: 'notesserver.settings.yaml_config'
+
+EDX_NOTES_USERNAME_REPLACEMENT_WORKER: "OVERRIDE THIS WITH A VALID USERNAME"
 
 EDX_NOTES_API_DATABASES:
   # rw user
@@ -38,7 +46,8 @@ EDX_NOTES_API_DATABASES:
     USER: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
     PASSWORD: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
     HOST: "{{ EDX_NOTES_API_MYSQL_HOST }}"
-    PORT: 3306
+    PORT: "{{ EDX_NOTES_API_MYSQL_PORT }}"
+    OPTIONS: "{{ EDX_NOTES_API_MYSQL_OPTIONS }}"
 EDX_NOTES_API_ALLOWED_HOSTS:
   - localhost
 EDX_NOTES_API_DISABLE_TOKEN_CHECK: False
@@ -52,6 +61,12 @@ EDX_NOTES_API_REPOS:
     DESTINATION: "{{ edx_notes_api_code_dir }}"
     SSH_KEY: "{{ EDX_NOTES_API_GIT_SSH_KEY }}"
 
+# Remote config
+EDX_NOTES_API_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+EDX_NOTES_API_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+EDX_NOTES_API_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
 #
 # This data structure will be written out to yaml configuration file
 # in /edx/etc
@@ -63,14 +78,14 @@ edx_notes_api_service_config:
   # replace with your oauth id and secret
   CLIENT_ID: "{{ EDX_NOTES_API_CLIENT_ID }}"
   CLIENT_SECRET: "{{ EDX_NOTES_API_CLIENT_SECRET }}"
-  ELASTICSEARCH_URL: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
+  ELASTICSEARCH_DSL:
+    default:
+      hosts: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
   ELASTICSEARCH_INDEX: "edx_notes"
   # Number of rows to return by default in result.
   RESULTS_DEFAULT_SIZE: 25
   # Max number of rows to return in result.
   RESULTS_MAX_SIZE: 250
-  DATABASE_OPTIONS:
-    connect_timeout: 10
   DATABASES: "{{ EDX_NOTES_API_DATABASES }}"
   HAYSTACK_CONNECTIONS:
     default:
@@ -78,6 +93,16 @@ edx_notes_api_service_config:
       URL: "{{ EDX_NOTES_API_ELASTICSEARCH_URL }}"
       INDEX_NAME: '{{ EDX_NOTES_API_DATASTORE_NAME }}'
   DISABLE_TOKEN_CHECK: "{{ EDX_NOTES_API_DISABLE_TOKEN_CHECK }}"
+  JWT_AUTH:
+    JWT_ISSUERS:
+      - AUDIENCE: '{{ COMMON_JWT_AUDIENCE }}'
+        ISSUER: '{{ COMMON_JWT_ISSUER }}'
+        SECRET_KEY: '{{ COMMON_JWT_SECRET_KEY }}'
+    JWT_PUBLIC_SIGNING_JWK_SET: '{{ COMMON_JWT_PUBLIC_SIGNING_JWK_SET|string }}'
+    JWT_AUTH_COOKIE_HEADER_PAYLOAD: '{{ COMMON_JWT_AUTH_COOKIE_HEADER_PAYLOAD }}'
+    JWT_AUTH_COOKIE_SIGNATURE: '{{ COMMON_JWT_AUTH_COOKIE_SIGNATURE }}'
+    JWT_AUTH_REFRESH_COOKIE: '{{ COMMON_JWT_AUTH_REFRESH_COOKIE }}'
+  USERNAME_REPLACEMENT_WORKER: "{{ EDX_NOTES_USERNAME_REPLACEMENT_WORKER }}"
 
 #
 # vars are namespace with the module name.
@@ -86,7 +111,7 @@ edx_notes_api_service_config:
 
 edx_notes_api_environment:
   EDXNOTES_CONFIG_ROOT: "{{ COMMON_CFG_DIR }}"
-  LANG: "{{ EDX_NOTES_API_LANG }}" 
+  LANG: "{{ EDX_NOTES_API_LANG }}"
   DJANGO_SETTINGS_MODULE: "{{ EDX_NOTES_API_DJANGO_SETTINGS_MODULE }}"
   SERVICE_VARIANT: "{{ edx_notes_api_service_name }}"
   PATH: "{{ edx_notes_api_venv_dir }}/bin:{{ ansible_env.PATH }}"
@@ -97,13 +122,15 @@ edx_notes_api_home: "{{ COMMON_APP_DIR }}/{{ edx_notes_api_service_name }}"
 edx_notes_api_code_dir: "{{ edx_notes_api_home }}/{{ edx_notes_api_service_name }}"
 edx_notes_api_conf_dir: "{{ edx_notes_api_home }}"
 edx_notes_api_venv_dir:  "{{ edx_notes_api_home }}/venvs/{{ edx_notes_api_service_name }}"
+edx_notes_api_venv_bin: "{{ edx_notes_api_venv_dir }}/bin"
 
 edx_notes_api_gunicorn_host: "127.0.0.1"
 edx_notes_api_gunicorn_port: 8120
 edx_notes_api_gunicorn_timeout: 300
 edx_notes_api_wsgi: notesserver.wsgi:application
 edx_notes_api_nginx_port: 18120
-edx_notes_api_manage: "{{ edx_notes_api_code_dir }}/manage.py" 
+edx_notes_api_ssl_nginx_port: 48120
+edx_notes_api_manage: "{{ edx_notes_api_code_dir }}/manage.py"
 edx_notes_api_requirements_base: "{{ edx_notes_api_code_dir }}/requirements"
 # Application python requirements
 edx_notes_api_requirements:
@@ -114,6 +141,8 @@ edx_notes_api_requirements:
 #
 edx_notes_api_debian_pkgs:
   - libmysqlclient-dev
-  - python-mysqldb
+  - libssl-dev # needed for mysqlclient python library
+  - python3-dev
+  - python3.8-dev
 
 edx_notes_api_redhat_pkgs: []

@@ -46,6 +46,7 @@
       name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
       region: "{{ ec2_region }}"
     register: ssh_key_register
+    no_log: True
 
   - name: Ensure artifact directory exists
     file:
@@ -65,24 +66,32 @@
 
   - name: Launch EC2 instance
     ec2:
-      instance_tags: {"Name" : "{{ automation_prefix }} {{ unique_key_name.stdout }}"}
       region: "{{ ec2_region }}"
       key_name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
       instance_type: "{{ ec2_instance_type }}"
       image: "{{ launch_ami_id }}"
-      wait: yes
       group_id: "{{ ec2_security_group_id }}"
       count: 1
       vpc_subnet_id: "{{ ec2_vpc_subnet_id }}"
       assign_public_ip: "{{ ec2_assign_public_ip }}"
       volumes:
-        - device_name: /dev/sdf
+        - device_name: /dev/sda1
           volume_type: 'gp2'
           volume_size: "{{ ebs_volume_size }}"
       wait: yes
       wait_timeout: "{{ ec2_timeout }}"
       instance_profile_name: "{{ ec2_instance_profile_name }}"
     register: ec2_instance_register
+
+  - name: Tag EC2 instance
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ ec2_instance_register.instances[0].id }}"
+      state: present
+      tags:
+        Name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
+    retries: 6
+    delay: 15
 
   - name: Wait for SSH to come up
     wait_for:

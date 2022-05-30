@@ -1,0 +1,34 @@
+{% if NGINX_SET_X_FORWARDED_HEADERS %}
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-For $remote_addr;
+{% else %}
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+    proxy_set_header X-Forwarded-For $http_x_forwarded_for;
+{% endif %}
+
+    # newrelic-specific header records the time when nginx handles a request.
+    proxy_set_header X-Queue-Start "t=${msec}";
+
+    proxy_set_header Host $http_host;
+
+    proxy_redirect off;
+    proxy_pass http://cms-backend;
+{% if NGINX_CMS_PROXY_CONNECT_TIMEOUT %}
+    proxy_connect_timeout {{ NGINX_CMS_PROXY_CONNECT_TIMEOUT }};
+{% endif %}
+{% if NGINX_CMS_PROXY_SEND_TIMEOUT %}
+    proxy_send_timeout {{ NGINX_CMS_PROXY_SEND_TIMEOUT }};
+{% endif %}
+{% if NGINX_CMS_PROXY_READ_TIMEOUT %}
+    proxy_read_timeout {{ NGINX_CMS_PROXY_READ_TIMEOUT }};
+{% endif %}
+
+{% if EDXAPP_SET_PROXY_BUFFER_SIZE %}
+    proxy_buffer_size          {{EDXAPP_PROXY_BUFFER_SIZE}};
+    proxy_buffers              {{EDXAPP_PROXY_BUFFERS_NUMBER}} {{EDXAPP_PROXY_BUFFERS_SIZE}};
+    proxy_busy_buffers_size    {{EDXAPP_PROXY_BUSY_BUFFERS_SIZE}};
+{% endif %}
+
+{{ NGINX_EDXAPP_CMS_APP_EXTRA }}

@@ -4,49 +4,247 @@
 {% for search in SPLUNK_ALERTS %}
 [{{ search.name }}]
 {% if search.email is defined %}
-{# Default email options:
-   action.email.include.view_link = 1     Include a link to the alert
-   action.email.include.results_link = 1  Include a link to the results #}
-action.email = 1
-{# Include the search string #}
-action.email.include.search = 1
-{# Needed for the next option #}
-action.email.sendresults = 1
-{# Include the search results as a table in the body of the message #}
-action.email.inline = 1
-{# Include the alert trigger #}
-action.email.include.trigger = 1
-{# Include a timestamp of when the alert was triggered #}
-action.email.include.trigger_time = 1
-action.email.to = {{ search.email | join(', ') }}
-{# No idea what this does, it's undocumented #}
-action.email.reportServerEnabled = 0
-{# Use a namespaced subject. No idea what that means. #}
-action.email.useNSSubject = 1
-{% if search.message is defined %}
+action.email = {{ search.email }}
+{% endif %}
+{% if search.email_format is defined %}
+action.email.format = {{ search.email_format }}
+{% endif %}
+{% if search.email_alert is defined %}
 {# Include a backslash before newlines to match splunk's wonky INI format #}
-action.email.message.alert = {{ search.message.split('\n') | join('\\\n')}}
+action.email.message.alert = {{ search.email_alert.split('\n') | join('\\\n')}}
 {% endif %}
+{% if search.email_inline is defined %}
+action.email.inline = {{ search.email_inline }}
 {% endif %}
-alert.severity = {{ search.severity | default(SPLUNK_ALERT_DEFAULT_SEVERITY) }}
-alert.track = 1
-counttype = {{ search.counttype | default("number of events") }}
-quantity = {{ search.quantity | default("0") }}
-relation = {{ search.comparison | default("greater than") }}
-enableSched = 1
-cron_schedule = {{ search.schedule | default("*/15 * * * *") }}
-dispatch.earliest_time = {{ search.time | default("-15m") }}
-dispatch.latest_time = {{ "rt" if search.time == "rt" else "now" }}
-alert.digest_mode = {{ "0" if search.time == "rt" else "1" }}
-{% if search.digest_delay is defined %}
-alert.suppress = 1
-alert.suppress.period = {{ search.digest_delay }}
+{% if search.email_reportserverenabled is defined %}
+action.email.reportServerEnabled = {{ search.email_reportserverenabled }}
 {% endif %}
-request.ui_dispatch_app = search
-request.ui_dispatch_view = search
-{% if search.description %}
+{% if search.email_priority is defined %}
+action.email.priority = {{ search.email_priority }}
+{% endif %}
+{% if search.email_csv is defined %}
+action.email.sendcsv = {{ search.email_csv }}
+{% endif %}
+{% if search.email_to is defined %}
+action.email.to = {{ search.email_to }}
+{% endif %}
+{% if search.email_sendresults is defined %}
+action.email.sendresults = {{ search.email_sendresults }}
+{% endif %}
+{% if search.email_report is defined %}
+action.email.message.report = {{ search.email_report }}
+{% endif %}
+{% if search.email_sendpdf is defined %}
+action.email.sendpdf = {{ search.email_sendpdf }}
+{% endif %}
+{% if search.email_include_search is defined %}
+action.email.include.search = {{ search.email_include_search }}
+{% endif %}
+{% if search.email_bcc is defined %}
+action.email.bcc = {{ search.email_bcc  }}
+{% endif %}
+{% if search.email_cc is defined %}
+action.email.cc = {{ search.email_cc  }}
+{% endif %}
+{% if search.email_content_type is defined %}
+action.email.content_type = {{ search.email_content_type }}
+{% endif %}
+{% if search.email_result_link is defined %}
+action.email.include.results_link = {{ search.email_result_link }}
+{% endif %}
+{% if search.email_view_link is defined %}
+action.email.include.view_link = {{ search.email_view_link }}
+{% endif %}
+{% if search.email_sub is defined %}
+action.email.subject = {{ search.email_sub }}
+{% endif %}
+{% if search.email_sub_alert is defined %}
+action.email.subject.alert = {{ search.email_sub_alert }}
+{% endif %}
+{% if search.email_sub_report is defined %}
+action.email.subject.report = {{ search.email_sub_report }}
+{% endif %}
+{% if search.email_NSSsub is defined %}
+action.email.useNSSubject = {{ search.email_NSSsub }}
+{% endif %}
+{% if search.email_trigger_time is defined %}
+action.email.include.trigger_time = {{ search.email_trigger_time }}
+{% endif %}
+{% if search.email_trigger is defined %}
+action.email.include.trigger = {{ search.email_trigger  }}
+{% endif %}
+{% if search.timespan is defined %}
+auto_summarize.timespan = {{ search.timespan }}
+{% endif %}
+{% if search.display_general_type is defined %}
+display.general.type = {{ search.display_general_type  }}
+{% endif %}
+{% if search.display_search_tab is defined %}
+display.page.search.tab = {{ search.display_search_tab  }}
+{% endif %}
+{% if search.search_pattern_sensitivity is defined %}
+display.page.search.patterns.sensitivity = {{ search.search_pattern_sensitivity }}
+{% endif %}
+{% if search.enablesched is defined %}
+enableSched = {{ search.enablesched }}
+{% endif %}
+{% if search.dispatch_app is defined %}
+request.ui_dispatch_app  = {{ search.dispatch_app }}
+{% endif %}
+{% if search.events_fields is defined %}
+display.events.fields = ["{{ search.events_fields | list | join ("\",\"") }}"]
+{% endif %}
+{% if search.visual_chart_height is defined %}
+display.visualizations.chartHeight = {{ search.visual_chart_height }}
+{% endif %}
+{% if search.visual_chart is defined %}
+display.visualizations.charting.chart  = {{ search.visual_chart }}
+{% endif %}
+{% if search.visual_show is defined %}
+display.visualizations.show = {{ search.visual_show }}
+{% endif %}
+{% if search.visual_chart_y_axis is defined %}
+display.visualizations.charting.axisY.scale = {{ search.visual_chart_y_axis }}
+{% endif %}
+{% if search.visual_beforelabel is defined %}
+display.visualizations.singlevalue.beforeLabel = {{ search.visual_beforelabel }}
+{% endif %}
+{% if search.visual_underlabel is defined %}
+display.visualizations.singlevalue.underLabel = {{ search.visual_underlabel }}
+{% endif %}
+{% if search.display_timerange is defined %}
+display.general.timeRangePicker.show = {{ search.display_timerange }}
+{% endif %}
+{% if search.visual_drilldown is defined %}
+display.visualizations.charting.drilldown = {{ search.visual_drilldown }}
+{% endif %}
+{% if search.display_chart_mode is defined %}
+display.visualizations.charting.chart.stackMode = {{ search.display_chart_mode }}
+{% endif %}
+{% if search.visual_Y_axis_title is defined %}
+display.visualizations.charting.axisTitleY.text = {{ search.visual_Y_axis_title }}
+{% endif %}
+{% if search.visual_X_axis_title is defined %}
+display.visualizations.charting.axisTitleX.text = {{ search.visual_X_axis_title }}
+{% endif %}
+{% if search.visual_chart_legend_place is defined %}
+display.visualizations.charting.legend.placement = {{ search.visual_chart_legend_place }}
+{% endif %}
+{% if search.visual_chart_nullvalue is defined %}
+display.visualizations.charting.chart.nullValueMode = {{ search.visual_chart_nullvalue }}
+{% endif %}
+{% if search.visual_chart_layout is defined %}
+display.visualizations.charting.layout.splitSeries = {{ search.visual_chart_layout }}
+display.visualizations.charting.layout.splitSeries.allowIndependentYRanges = {{ search.visual_chart_layout_splitseries_y_range }}
+{% endif %}
+{% if search.visual_chart_legend_style is defined %}
+display.visualizations.charting.legend.labelStyle.overflowMode = {{ search.visual_chart_legend_style }}
+{% endif %}
+{% if search.visual_chart_style is defined %}
+display.visualizations.charting.chart.style = {{ search.visual_chart_style }}
+{% endif %}
+{% if search.visual_afterlabel is defined %}
+display.visualizations.singlevalue.afterLabel = {{ search.visual_afterlabel }}
+{% endif %}
+{% if search.display_event_list_wrap is defined %}
+display.events.list.wrap = {{ search.display_event_list_wrap }}
+{% endif %}
+{% if search.dispatch_sample_ratio is defined %}
+dispatch.sample_ratio = {{ search.dispatch_sample_ratio }}
+{% endif %}
+{% if search.display_events_maxlines is defined %}
+display.events.maxLines = {{ search.display_events_maxlines }}
+{% endif %}
+{% if search.display_events_rownum is defined %}
+display.events.rowNumbers = {{ search.display_events_rownum }}
+{% endif %}
+{% if search.display_events_drilldown is defined %}
+display.events.table.drilldown = {{ search.display_events_drilldown }}
+{% endif %}
+{% if search.display_events_table_wrap is defined %}
+display.events.table.wrap = {{ search.display_events_table_wrap }}
+{% endif %}
+{% if search.events_type is defined %}
+display.events.type = {{ search.events_type }}
+{% endif %}
+{% if search.stat_wrap is defined %}
+display.statistics.wrap = {{ search.stat_wrap }}
+{% endif %}
+{% if search.schedule_window is defined %}
+schedule_window = {{ search.schedule_window }}
+{% endif %}
+{% if search.search_mode is defined %}
+display.page.search.mode  = {{ search.search_mode }}
+{% endif %}
+{% if search.auto_summarize is defined %}
+auto_summarize = {{ search.auto_summarize }}
+{% endif %}
+{% if search.suppress is defined %}
+alert.suppress = {{ search.suppress }}
+{% endif %}
+{% if search.description is defined %}
 description = {{ search.description }}
 {% endif %}
+{% if search.suppress_period is defined %}
+alert.suppress.period = {{ search.suppress_period }}
+{% endif %}
+{% if search.severity is defined %}
+alert.severity = {{ search.severity }}
+{% endif %}
+{% if search.track is defined %}
+alert.track = {{ search.track }}
+{% endif %}
+{% if search.dispatch_as is defined %}
+dispatchAs = {{ search.dispatch_as }}
+{% endif %}
+{% if search.opsgenie is defined %}
+action.opsgenie = {{ search.opsgenie }} 
+action.opsgenie.param.api_url = {{ search.opsgenie_api_url }}
+{% endif %}
+{% if search.digest_mode is defined %}
+alert.digest_mode = {{ search.digest_mode }}
+{% endif %}
+{% if search.stats is defined %}
+display.statistics.show = {{ search.stats }}
+{% endif %}
+{% if search.alert_condition is defined %}
+alert_condition = {{ search.alert_condition }}
+{% endif %}
+{% if search.counttype is defined %}
+counttype = {{ search.counttype }}
+{% endif %}
+{% if search.displayview is defined %}
+displayview = {{ search.displayview }}
+{% endif %}
+{% if search.dispatchview is defined %}
+request.ui_dispatch_view = {{ search.dispatchview }}
+{% endif %}
+{% if search.schedule is defined %}
+cron_schedule = {{ search.schedule }}
+{% endif %}
+{% if search.disabled is defined %}
+disabled = {{ search.disabled }}
+{% endif %}
+{% if search.quantity is defined %}
+quantity = {{ search.quantity }}
+{% endif %}
+{% if search.time is defined %}
+dispatch.earliest_time = {{ search.time }}
+{% endif %}
+{% if search.relation is defined %}
+relation = {{ search.relation }}
+{% endif %}
+{% if search.dispatch_earliest_time is defined %}
+auto_summarize.dispatch.earliest_time = {{ search.dispatch_earliest_time }}
+{% endif %}
+{% if search.dispatch_latest_time is defined %}
+dispatch.latest_time = {{ search.dispatch_latest_time }}
+{% endif %}
+{% if search.search is defined %}
 search = {{ search.search }}
+{% endif %}
+{% if search.vsid is defined %}
+vsid = {{ search.vsid }}
+{% endif %}
 
 {% endfor %}

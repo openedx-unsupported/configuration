@@ -5,7 +5,6 @@
 # Dependencies:
 #
 #   * common
-#   * oraclejdk
 #
 # Example play:
 #
@@ -25,14 +24,12 @@
 # -  hosts: tag_role_elasticsearch:&tag_environment_stage
 #    roles:
 #    - common
-#    - oraclejdk
 #    - elasticsearch
 #
 
-- name: Install Elasticsearch repo key 
+- name: Install Elasticsearch repo key
   apt_key:
-    id: "{{ elasticsearch_apt_key }}"
-    keyserver: "{{ elasticsearch_apt_keyserver }}"
+    url: "{{ elasticsearch_apt_key_url }}"
     state: present
   tags:
     - install
@@ -49,14 +46,19 @@
 - name: install elasticsearch
   apt:
     pkg: "{{ elasticsearch_package_name }}={{ ELASTICSEARCH_VERSION }}"
-    state: present 
+    state: present
     install_recommends: yes
-    force: yes 
+    force: yes
     update_cache: yes
   tags:
     - install
     - install:base
   register: elasticsearch_reinstall
+
+  # Prevent elasticsearch from being upgraded.
+- dpkg_selections:
+    name: elasticsearch
+    selection: hold
 
 - name: create directories
   file:
@@ -74,7 +76,7 @@
 
 - name: update elasticsearch defaults
   template:
-    src: etc/default/elasticsearch.j2 
+    src: etc/default/elasticsearch.j2
     dest: /etc/default/elasticsearch
   tags:
     - install
@@ -82,35 +84,54 @@
 
 - name: drop the elasticsearch config
   template:
-    src: edx/etc/elasticsearch/elasticsearch.yml.j2 
+    src: edx/etc/elasticsearch/elasticsearch.yml.j2
     dest: "{{ elasticsearch_cfg_dir }}/elasticsearch.yml"
-    mode: 0744
+    mode: 0644
   tags:
     - install
     - install:configuration
 
 - name: drop the elasticsearch logging config
+  copy:
+    src: /etc/elasticsearch/log4j2.properties
+    dest: "{{ elasticsearch_cfg_dir }}/log4j2.properties"
+    remote_src: yes
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch jvm config
   template:
-    src: edx/etc/elasticsearch/logging.yml.j2 
-    dest: "{{ elasticsearch_cfg_dir }}/logging.yml"
-    mode: 0744
+    src: edx/etc/elasticsearch/jvm.options.j2 
+    dest: "{{ elasticsearch_cfg_dir }}/jvm.options"
+    mode: 0644
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch systemd service config
+  template:
+    src: lib/systemd/system/elasticsearch.service.j2 
+    dest: "/lib/systemd/system/elasticsearch.service"
+    mode: 0644
   tags:
     - install
     - install:configuration
 
 - name: Ensure elasticsearch is enabled and started
-  service: 
+  service:
     name: elasticsearch
-    state: started 
+    state: started
     enabled: yes
   tags:
     - manage
     - manage:start
 
 - name: Restart elastic when there has been an upgrade
-  service: 
-    name: elasticsearch 
-    state: restarted 
+  service:
+    name: elasticsearch
+    state: restarted
     enabled: yes
   when: elasticsearch_reinstall.changed
   tags:

@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
+from functools import reduce
 DOCUMENTATION = '''
 ---
 module: ec2_group
@@ -103,7 +107,7 @@ EXAMPLES = '''
 try:
     import boto.ec2
 except ImportError:
-    print "failed=True msg='boto required for this module'"
+    print("failed=True msg='boto required for this module'")
     sys.exit(1)
 
 
@@ -239,7 +243,7 @@ def main():
             '''found a match, delete it'''
             try:
                 group.delete()
-            except Exception, e:
+            except Exception as e:
                 module.fail_json(msg="Unable to delete security group '%s' - %s" % (group, e))
             else:
                 group = None
@@ -318,7 +322,7 @@ def main():
                     changed = True
 
         # Finally, remove anything left in the groupRules -- these will be defunct rules
-        for rule in groupRules.itervalues():
+        for rule in six.itervalues(groupRules):
             for grant in rule.grants:
                 grantGroup = None
                 if grant.group_id:
@@ -382,7 +386,7 @@ def main():
                 del groupRules[default_egress_rule]
 
         # Finally, remove anything left in the groupRules -- these will be defunct rules
-        for rule in groupRules.itervalues():
+        for rule in six.itervalues(groupRules):
             for grant in rule.grants:
                 grantGroup = None
                 if grant.group_id:

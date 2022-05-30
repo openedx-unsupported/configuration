@@ -1,0 +1,29 @@
+
+{% if NGINX_REDIRECT_TO_HTTPS %}
+     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
+  
+  # Redirect http to https on this instance
+  if ($scheme != "https") 
+  { 
+   set $do_redirect_to_https "true";
+  }
+
+  {% include "handle-ip-disclosure.j2" %}
+
+     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
+
+
+  {% include "handle-tls-terminated-elsewhere-ip-disclosure.j2" %}
+  # Forward to HTTPS terminated elsewhere
+  if ($http_x_forwarded_proto = "http") 
+  {
+   set $do_redirect_to_https "true";
+  }
+     {% endif %}
+
+  # Execute the actual redirect
+  if ($do_redirect_to_https = "true")
+  {
+  return 301 https://$host$request_uri;
+  }
+{% endif %}

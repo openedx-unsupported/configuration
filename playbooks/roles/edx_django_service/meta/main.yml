@@ -1,0 +1,30 @@
+---
+dependencies:
+  - common
+  - role: docker-tools
+    when: edx_django_service_enable_experimental_docker_shim
+    docker_users:
+      - "www-data"
+      - "{{ supervisor_user }}"
+      - "{{ edx_django_service_user }}"
+  - role: supervisor
+    supervisor_spec:
+      - service: "{{ edx_django_service_name }}"
+        migration_check_services: "{{ edx_django_service_migration_check_services }}"
+        python: "{{ edx_django_service_venv_bin_dir }}/python"
+        code: "{{ edx_django_service_code_dir }}"
+        env: "{{ edx_django_service_home }}/{{ edx_django_service_name }}_env"
+  - role: automated
+    AUTOMATED_USERS: "{{ edx_django_service_automated_users }}"
+    ENABLE_DOCKER_ACCESS_FOR_AUTOMATED_USERS: "{{ edx_django_service_enable_experimental_docker_shim }}"
+  - role: edx_service
+    edx_service_name: "{{ edx_django_service_name }}"
+    edx_service_config: "{{ edx_django_service_config }}"
+    edx_service_repos: "{{ edx_django_service_repos }}"
+    edx_service_user: "{{ edx_django_service_user }}"
+    edx_service_home: "{{ edx_django_service_home }}"
+    edx_service_packages:
+      debian: "{{ edx_django_service_debian_pkgs }}"
+      redhat: []
+    edx_service_decrypt_config_enabled: "{{ edx_django_service_decrypt_config_enabled }}"
+    edx_service_copy_config_enabled: "{{ edx_django_service_copy_config_enabled }}"

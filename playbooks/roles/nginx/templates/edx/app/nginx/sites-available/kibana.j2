@@ -14,40 +14,25 @@ server {
   {% if NGINX_ENABLE_SSL %}
 
   listen {{ KIBANA_NGINX_PORT }} {{ default_site }};
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ KIBANA_NGINX_PORT }} {{ default_site }};
+  {% endif %}
   listen {{ KIBANA_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ KIBANA_SSL_NGINX_PORT }} {{ default_site }} ssl;
+  {% endif %}
 
   ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
   ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
 
   {% else %}
   listen {{ KIBANA_NGINX_PORT }} {{ default_site }};
+  {% if NGINX_ENABLE_IPV6 %}
+  listen [::]:{{ KIBANA_NGINX_PORT }} {{ default_site }};
+  {% endif %}
   {% endif %}
   
-  # Nginx does not support nested condition or or conditions so
-  # there is an unfortunate mix of conditonals here.
-  {% if NGINX_REDIRECT_TO_HTTPS %}
-     {% if NGINX_HTTPS_REDIRECT_STRATEGY == "scheme" %}
-  # Redirect http to https over single instance
-  if ($scheme != "https") 
-  { 
-   set $do_redirect_to_https "true";
-  }
-
-     {% elif NGINX_HTTPS_REDIRECT_STRATEGY == "forward_for_proto" %}
-
-  # Forward to HTTPS if we're an HTTP request... and the server is behind ELB 
-  if ($http_x_forwarded_proto = "http") 
-  {
-   set $do_redirect_to_https "true";
-  }
-  {% endif %}
-
-  # Execute the actual redirect
-  if ($do_redirect_to_https = "true")
-  {
-  return 301 https://$host$request_uri;
-  }
-  {% endif %}
+  {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
   
   server_name {{ KIBANA_SERVER_NAME }};
 

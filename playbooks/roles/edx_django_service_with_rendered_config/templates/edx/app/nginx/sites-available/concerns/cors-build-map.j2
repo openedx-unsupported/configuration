@@ -1,0 +1,15 @@
+
+
+# The Origin request header indicates where a fetch originates from. It doesn't include any path information,
+# but only the server name (e.g. https://www.example.com).
+# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin for details.
+
+# Here we set the value that is included in the Access-Control-Allow-Origin response header. If the origin is one
+# of our known hosts--served via HTTP or HTTPS--we allow for CORS. Otherwise, we set the "null" value, disallowing CORS.
+
+map $http_origin $cors_origin {
+default "null";
+{% for host in edx_django_service_with_rendered_config_cors_whitelist %}
+  "~*^https?:\/\/{{ host|replace('.', '\.') }}$" $http_origin;
+{% endfor %}
+}

@@ -1,0 +1,22 @@
+# This is a playbook that edX uses to ensure that common configuration is
+# deployed, security updates are applied, users accounts are updated on the
+# machines and our monitoring software is updated or installed.
+#
+- name: Deploy common base edX configuration
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    SECURITY_UNATTENDED_UPGRADES: true
+    COMMON_SECURITY_UPDATES: true
+  roles:
+    - common
+    - role: datadog
+      when: COMMON_ENABLE_DATADOG
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+    - role: datadog-uninstall
+      when: not COMMON_ENABLE_DATADOG
+

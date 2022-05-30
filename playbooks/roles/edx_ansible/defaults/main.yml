@@ -20,18 +20,31 @@
 EDX_ANSIBLE_DUMP_VARS: false
 
 
-edx_ansible_debian_pkgs:
-  - python-pip
+edx_ansible_debian_pkgs_default:
   - python-apt
   - libmysqlclient-dev
   - git-core
   - build-essential
-  - python-dev
   - libxml2-dev
   - libxslt1-dev
   - curl
   - python-yaml
-  - python-mysqldb
+  - python3-pip
+  - python3-mysqldb
+
+edx_ansible_release_specific_debian_pkgs:
+  xenial:
+    - python-pip
+    - python-mysqldb
+    - python-dev
+  bionic:
+    - python-pip
+    - python-mysqldb
+    - python-dev
+  focal:
+    - python3-dev
+
+edx_ansible_debian_pkgs: "{{ edx_ansible_debian_pkgs_default + edx_ansible_release_specific_debian_pkgs[ansible_distribution_release] }}"
 
 edx_ansible_app_dir: "{{ COMMON_APP_DIR }}/edx_ansible"
 edx_ansible_code_dir: "{{ edx_ansible_app_dir }}/edx_ansible"
@@ -47,5 +60,5 @@ edx_ansible_requirements_files:
   - "{{ edx_ansible_code_dir }}/requirements.txt"
 
 # edX configuration repo
-configuration_version: master
+CONFIGURATION_VERSION: master
 edx_ansible_var_file: "{{ edx_ansible_app_dir }}/server-vars.yml"

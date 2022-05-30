@@ -1,0 +1,83 @@
+---
+- name: checkout graphite-api
+  git:
+    repo: "{{ GRAPHITE_API_GIT_URL }}"
+    dest: "{{ graphite_root }}/src/api"
+    version: "{{ GRAPHITE_API_VERSION }}"
+  tags:
+    - install
+    - install:code
+
+- name: install graphite-api dependencies
+  pip:
+    virtualenv: "{{ graphite_root }}"
+    requirements: "{{ graphite_root }}/src/api/requirements.txt"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install graphite-api
+  command: "{{ graphite_root }}/bin/python setup.py install"
+  args:
+    chdir: "{{ graphite_root }}/src/api"
+  tags:
+    - install
+    - install:app-requirements
+
+- name: install gunicorn
+  pip:
+    virtualenv: "{{ graphite_root }}"
+    name: gunicorn
+  tags:
+    - install
+    - install:app-requirements
+
+- name: configure graphite-api
+  template:
+    src: graphite-api/conf/graphite-api.yml.j2
+    dest: "{{ graphite_root }}/conf/graphite-api.yml"
+    owner: "{{ graphite_user }}"
+    group: "{{ graphite_group }}"
+  tags:
+    - install
+    - install:app-configuration
+
+- name: configure graphite-api service definitions
+  template:
+    src: "graphite-api/systemd/{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+  with_items:
+    - graphite-api.socket
+    - graphite-api.service
+  tags:
+    - install
+    - install:configuration
+
+- name: reload systemd configuration
+  command: systemctl daemon-reload
+  tags:
+    - install
+    - install:configuration
+
+- name: enable graphite-api
+  service:
+    name: "{{ item }}"
+    enabled: yes
+  with_items:
+    - graphite-api.socket
+    - graphite-api.service
+
+- name: stop graphite-api
+  service:
+    name: graphite-api
+    state: stopped
+  tags:
+    - manage:stop
+
+- name: restart graphite-api
+  service:
+    name: graphite-api
+    state: restarted
+  tags:
+    - manage:start
+    - manage:restart

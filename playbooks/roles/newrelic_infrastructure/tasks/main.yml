@@ -1,0 +1,174 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+# newrelic_infrastructure
+#
+# Overview:
+#
+# Installs the New Relic Infrastructure service https://newrelic.com/infrastructure
+##
+# Dependencies:
+#
+# Example play:
+#   roles:
+#   - common
+#   - newrelic_infrastructure
+#
+#
+- name: install license key
+  template:
+    src: etc/newrelic-infra.j2
+    dest: /etc/newrelic-infra.yml
+    mode: 0600
+  register: license_key_file
+  tags:
+    - install
+    - install:configuration
+
+- name: Add apt key for New Relic Infrastructure
+  apt_key:
+    url: "{{ NEWRELIC_INFRASTRUCTURE_KEY_URL }}"
+    state: present
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu'
+  retries: 10
+  delay: 10
+  register: nr_apt_key
+  until: nr_apt_key is succeeded
+
+# For focal, use the bionic repo for now.
+- name: Install apt repository for New Relic Infrastructure if neither bionic nor focal
+  apt_repository:
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO }}"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu' and (ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal')
+  retries: 10
+  delay: 10
+  register: nr_apt_repo
+  until: nr_apt_repo is succeeded
+
+- name: Install apt repository for New Relic Infrastructure if bionic
+  apt_repository:
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_BIONIC }}"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'bionic'
+  retries: 10
+  delay: 10
+  register: nr_apt_repo_bionic
+  until: nr_apt_repo_bionic is succeeded
+
+# For focal, use the bionic repo for now.
+- name: Install apt repository for New Relic Infrastructure if focal
+  apt_repository:
+    repo: "{{ NEWRELIC_INFRASTRUCTURE_DEBIAN_REPO_BIONIC }}"
+    state: present
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_release == 'focal'
+  retries: 10
+  delay: 10
+  register: nr_apt_repo_focal
+  until: nr_apt_repo_focal is succeeded
+
+- name: Install newrelic related system packages for Ubuntu
+  apt:
+    name: "{{ newrelic_infrastructure_debian_pkgs }}"
+    install_recommends: yes
+    state: latest
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Ubuntu'
+  retries: 10
+  delay: 10
+  register: nr_apt_pkg
+  until: nr_apt_pkg is succeeded
+
+- name: Configure the New Relic Servers yum repository
+  yum_repository:
+    name: "newrelic-infra"
+    baseurl: "{{ NEWRELIC_INFRASTRUCTURE_AMAZON_REPO }}"
+    gpgkey: "{{ NEWRELIC_INFRASTRUCTURE_KEY_URL }}"
+    gpgcheck: "yes"
+    state: present
+    description: New Relic Infrastructure
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Amazon'
+  retries: 10
+  delay: 10
+  register: nr_yum_repo
+  until: nr_yum_repo is succeeded
+
+- name: Install newrelic related system packages for Amazon
+  yum:
+    name: "{{ newrelic_infrastructure_redhat_pkgs }}"
+    enablerepo: "newrelic-infra"
+    state: latest
+    update_cache: yes
+  tags:
+    - install
+    - install:app-requirements
+  when: ansible_distribution == 'Amazon'
+  retries: 10
+  delay: 10
+  register: nr_yum_pkg
+  until: nr_yum_pkg is succeeded
+
+- name: Install newrelic display name script
+  copy:
+    src: "edx/bin/write_nr_display_name_config.sh"
+    dest: "/edx/bin/write_nr_display_name_config.sh"
+    owner: root
+    group: root
+    mode: u=rwx,g=r,o=r
+
+- name: configure logging
+  template:
+    src: etc/newrelic-infra/logging.d/logs.yml.j2
+    dest: /etc/newrelic-infra/logging.d/logs.yml
+    mode: 0600
+  tags:
+    - install
+    - install:configuration
+  when: NEWRELIC_LOGS
+
+
+# In Ubuntu>16.04, /etc/rc.local doesn't exist by default. Since this script isn't
+# used by the GoCD instance using Ubuntu 18.04, skip this task when running on Bionic.
+# See OPS-3341 and http://manpages.ubuntu.com/manpages/bionic/man8/systemd-rc-local-generator.8.html
+- name: Run newrelic display name script on boot
+  lineinfile:
+    dest: "/etc/rc.local"
+    line: "/edx/bin/write_nr_display_name_config.sh"
+    insertbefore: "exit 0"
+    mode: "u+x,g+x"
+  when: ansible_distribution_release != 'bionic' and ansible_distribution_release != 'focal'
+
+- name: Restart the infrastructure agent if the license key changes
+  service:
+    name: newrelic-infra
+    state: restarted
+  when: license_key_file.changed
+  tags:
+    - install
+    - install:configuration

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''
+"""
 EC2 external inventory script
 =================================
 
@@ -87,7 +87,7 @@ variable named:
 
 Security groups are comma-separated in 'ec2_security_group_ids' and
 'ec2_security_group_names'.
-'''
+"""
 
 # (c) 2012, Peter Sankauskas
 #
@@ -117,7 +117,9 @@ import boto
 from boto import ec2
 from boto import rds
 from boto import route53
-import ConfigParser
+import six.moves.configparser
+import traceback
+import six
 
 try:
     import json
@@ -125,13 +127,16 @@ except ImportError:
     import simplejson as json
 
 
-class Ec2Inventory(object):
+class Ec2Inventory:
+    def _empty_inventory(self):
+        return {"_meta": {"hostvars": {}}}
+
     def __init__(self):
         ''' Main execution path '''
 
         # Inventory grouped by instance IDs, tags, security groups, regions,
         # and availability zones
-        self.inventory = {}
+        self.inventory = self._empty_inventory()
 
         # Index of hostname (address) to instance ID
         self.index = {}
@@ -145,7 +150,6 @@ class Ec2Inventory(object):
             self.do_api_calls_update_cache()
         elif not self.is_cache_valid():
             self.do_api_calls_update_cache()
-
         # Data to print
         if self.args.host:
             data_to_print = self.get_host_info()
@@ -156,7 +160,7 @@ class Ec2Inventory(object):
                 data_to_print = self.get_inventory_from_cache()
             else:
                 data_to_print = self.json_format_dict(self.inventory, True)
-        print data_to_print
+        print(data_to_print)
 
 
     def is_cache_valid(self):
@@ -180,7 +184,7 @@ class Ec2Inventory(object):
     def read_settings(self):
         ''' Reads the settings from the ec2.ini file '''
 
-        config = ConfigParser.SafeConfigParser()
+        config = six.moves.configparser.SafeConfigParser()
         config.read(self.args.inifile)
 
         # is eucalyptus?
@@ -231,9 +235,9 @@ class Ec2Inventory(object):
         else:
             aws_profile = ""
 
-        self.cache_path_cache = cache_path + "/{}ansible-ec2.cache".format(aws_profile)
-        self.cache_path_tags = cache_path + "/{}ansible-ec2.tags.cache".format(aws_profile)
-        self.cache_path_index = cache_path + "/{}ansible-ec2.index".format(aws_profile)
+        self.cache_path_cache = cache_path + f"/{aws_profile}ansible-ec2.cache"
+        self.cache_path_tags = cache_path + f"/{aws_profile}ansible-ec2.tags.cache"
+        self.cache_path_index = cache_path + f"/{aws_profile}ansible-ec2.index"
         self.cache_max_age = config.getint('ec2', 'cache_max_age')
 
     def parse_cli_args(self):
@@ -246,7 +250,7 @@ class Ec2Inventory(object):
                            help='List instances (default: True)')
         parser.add_argument('--host', action='store',
                            help='Get all the variables about a specific instance')
-        parser.add_argument('--refresh-cache', action='store_true', default=False,
+        parser.add_argument('--refresh-cache', action='store_true', default=True,
                            help='Force refresh of cache by making API requests to EC2 (default: False - use cache files)')
 
         default_inifile = os.environ.get("ANSIBLE_EC2_INI", os.path.dirname(os.path.realpath(__file__))+'/ec2.ini')
@@ -294,18 +298,18 @@ class Ec2Inventory(object):
 
             reservations = conn.get_all_instances()
             for reservation in reservations:
-                instances = sorted(reservation.instances)
+                instances = sorted(reservation.instances, key=lambda x: x.id)
                 for instance in instances:
                     self.add_instance(instance, region)
 
         except boto.exception.BotoServerError as e:
             if  not self.eucalyptus:
-                print "Looks like AWS is down again:"
-            print e
+                print("Looks like AWS is down again:")
+            print(e)
             sys.exit(1)
 
     def get_rds_instances_by_region(self, region):
-	''' Makes an AWS API call to the list of RDS instances in a particular
+        ''' Makes an AWS API call to the list of RDS instances in a particular
         region '''
 
         try:
@@ -315,8 +319,8 @@ class Ec2Inventory(object):
                 for instance in instances:
                     self.add_rds_instance(instance, region)
         except boto.exception.BotoServerError as e:
-            print "Looks like AWS RDS is down: "
-            print e
+            print("Looks like AWS RDS is down: ")
+            print(e)
             sys.exit(1)
 
     def get_instance(self, region, instance_id):
@@ -381,12 +385,12 @@ class Ec2Inventory(object):
                 key = self.to_safe("security_group_" + group.name)
                 self.push(self.inventory, key, dest)
         except AttributeError:
-            print 'Package boto seems a bit older.'
-            print 'Please upgrade boto >= 2.3.0.'
+            print('Package boto seems a bit older.')
+            print('Please upgrade boto >= 2.3.0.')
             sys.exit(1)
 
         # Inventory: Group by tag keys
-        for k, v in instance.tags.iteritems():
+        for k, v in instance.tags.items():
             key = self.to_safe("tag_" + k + "=" + v)
             self.push(self.inventory, key, dest)
             self.keep_first(self.inventory, 'first_in_' + key, dest)
@@ -438,8 +442,8 @@ class Ec2Inventory(object):
                 key = self.to_safe("security_group_" + instance.security_group.name)
                 self.push(self.inventory, key, dest)
         except AttributeError:
-            print 'Package boto seems a bit older.'
-            print 'Please upgrade boto >= 2.3.0.'
+            print('Package boto seems a bit older.')
+            print('Please upgrade boto >= 2.3.0.')
             sys.exit(1)
 
         # Inventory: Group by engine
@@ -518,18 +522,17 @@ class Ec2Inventory(object):
         for key in vars(instance):
             value = getattr(instance, key)
             key = self.to_safe('ec2_' + key)
-
             # Handle complex types
-            if type(value) in [int, bool]:
+            if isinstance(value, (int, bool)):
                 instance_vars[key] = value
-            elif type(value) in [str, unicode]:
+            elif isinstance(value, str):
                 instance_vars[key] = value.strip()
             elif type(value) == type(None):
                 instance_vars[key] = ''
             elif key == 'ec2_region':
                 instance_vars[key] = value.name
             elif key == 'ec2_tags':
-                for k, v in value.iteritems():
+                for k, v in value.items():
                     key = self.to_safe('ec2_tag_' + k)
                     instance_vars[key] = v
             elif key == 'ec2_groups':
@@ -567,9 +570,9 @@ class Ec2Inventory(object):
         ''' Reads the inventory from the cache file and returns it as a JSON
         object '''
         if self.args.tags_only:
-            cache = open(self.cache_path_tags, 'r')
+            cache = open(self.cache_path_tags)
         else:
-            cache = open(self.cache_path_cache, 'r')
+            cache = open(self.cache_path_cache)
         json_inventory = cache.read()
         return json_inventory
 
@@ -577,7 +580,7 @@ class Ec2Inventory(object):
     def load_index_from_cache(self):
         ''' Reads the index from the cache file sets self.index '''
 
-        cache = open(self.cache_path_index, 'r')
+        cache = open(self.cache_path_index)
         json_index = cache.read()
         self.index = json.loads(json_index)
 
@@ -597,7 +600,7 @@ class Ec2Inventory(object):
         ''' Converts 'bad' characters in a string to underscores so they can be
         used as Ansible groups '''
 
-        return re.sub("[^A-Za-z0-9\-]", "_", word)
+        return re.sub(r"[^A-Za-z0-9\-]", "_", word)
 
 
     def json_format_dict(self, data, pretty=False):
@@ -612,5 +615,11 @@ class Ec2Inventory(object):
 
 
 # Run the script
-Ec2Inventory()
+RETRIES = 3
 
+for _ in range(RETRIES):
+    try:
+        Ec2Inventory()
+        break
+    except Exception:
+        traceback.print_exc()

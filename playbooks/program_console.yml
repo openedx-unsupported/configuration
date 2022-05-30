@@ -1,0 +1,21 @@
+- name: Deploy Program-console Frontend
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'program-console'
+    PROGRAM_CONSOLE_ENABLED: True
+    PROGRAM_CONSOLE_SANDBOX_BUILD: False
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - role: nginx
+      nginx_sites:
+      - program_console
+      PROGRAM_CONSOLE_NGINX_PORT: 8976
+    - program_console
+    - role: splunkforwarder
+      when: COMMON_ENABLE_SPLUNKFORWARDER
+    - role: newrelic_infrastructure
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE

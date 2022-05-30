@@ -1,0 +1,21 @@
+# Configure a Jenkins worker instance to run the user retirement jobs.
+
+- name: Configure instance(s)
+  hosts: jenkins_worker
+  become: True
+  gather_facts: True
+  vars:
+    mongo_enable_journal: False
+    serial_count: 1
+    COMMON_SECURITY_UPDATES: yes
+    SECURITY_UPGRADE_ON_ANSIBLE: true
+    MONGO_AUTH: false
+    jenkins_worker_install_python27: false
+  serial: "{{ serial_count }}"
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+    - docker-tools
+    - memcache
+    - mongo_3_2
+    - jenkins_worker
