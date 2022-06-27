@@ -33,5 +33,22 @@
 				"service_address": ":8125"
 			}
 		}
+	}{% if cloudwatch_logs_enabled %},
+	"logs": {
+		"logs_collected": {
+				"files": {
+						"collect_list": [
+								{%- for log_config in cloudwatch_logs_collect_list -%}
+								{
+										"file_path": "{{ log_config.file_path }}",
+										"log_group_name": "{{ log_config.log_group_name }}",
+										"log_stream_name": "{{ log_config.log_stream_name }}"
+								}{{ ", " if not loop.last else "" }}
+								{%- endfor -%}
+						]
+				}
+		},
+		"log_stream_name": "default_server_log_stream"
 	}
+	{% endif %}
 }
