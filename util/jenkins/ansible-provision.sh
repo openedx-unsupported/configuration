@@ -242,6 +242,22 @@ if [[ -z $ora_grading_version ]]; then
   ORA_GRADING_MFE_VERSION="master"
 fi
 
+if [[ -z $course_authoring ]]; then
+  course_authoring="false"
+fi
+
+if [[ -z $course_authoring_version ]]; then
+  COURSE_AUTHORING_MFE_VERSION="master"
+fi
+
+if [[ -z $library_authoring ]]; then
+  library_authoring="false"
+fi
+
+if [[ -z $library_authoring_version ]]; then
+  LIBRARY_AUTHORING_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -365,6 +381,18 @@ ORA_GRADING_SSL_NGINX_PORT: 443
 ORA_GRADING_MFE_VERSION: $ora_grading_version
 ORA_GRADING_MFE_ENABLED: $ora_grading
 ORA_GRADING_SANDBOX_BUILD: True
+
+COURSE_AUTHORING_NGINX_PORT: 80
+COURSE_AUTHORING_SSL_NGINX_PORT: 443
+COURSE_AUTHORING_MFE_VERSION: $course_authoring_version
+COURSE_AUTHORING_MFE_ENABLED: $course_authoring
+COURSE_AUTHORING_SANDBOX_BUILD: True
+
+LIBRARY_AUTHORING_NGINX_PORT: 80
+LIBRARY_AUTHORING_SSL_NGINX_PORT: 443
+LIBRARY_AUTHORING_MFE_VERSION: $library_authoring_version
+LIBRARY_AUTHORING_MFE_ENABLED: $library_authoring_grading
+LIBRARY_AUTHORING_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
 
