@@ -69,6 +69,7 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
     for item in rds_list:
         rds_host_endpoint = item["Endpoint"]
         rds_port = item["Port"]
+        print(rds_host_endpoint)
         connection = pymysql.connect(host=rds_host_endpoint, port=rds_port,
                                      user=username, password=password)
         cursor = connection.cursor()
