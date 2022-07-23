@@ -20,12 +20,21 @@ requirements:
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements.txt --exists-action w
 
+COMMON_CONSTRAINTS_TXT=requirements/common_constraints.txt
+.PHONY: $(COMMON_CONSTRAINTS_TXT)
+$(COMMON_CONSTRAINTS_TXT):
+	wget -O "$(@)" https://raw.githubusercontent.com/edx/edx-lint/master/edx_lint/files/common_constraints.txt || touch "$(@)"
+
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
-upgrade: ## update the pip requirements files to use the latest releases satisfying our constraints
+upgrade: $(COMMON_CONSTRAINTS_TXT)
+	## update the pip requirements files to use the latest releases satisfying our constraints
 	pip install -qr pre-requirements.txt --exists-action w
 	pip install -qr requirements/pip-tools.txt
 	# Make sure to compile files after any other files they include!
+	pip-compile --allow-unsafe --rebuild --upgrade -o requirements/pip.txt requirements/pip.in
 	pip-compile --upgrade -o requirements/pip-tools.txt requirements/pip-tools.in
+	pip install -qr requirements/pip.txt
+	pip install -qr requirements/pip-tools.txt
 	pip-compile --upgrade -o requirements.txt requirements/base.in
 	pip-compile --upgrade -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
 	pip-compile --upgrade -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
