@@ -4,6 +4,8 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2022-07-25
+    - Add new routing key for individual learner course regrade queue
  - 2022-06-08
     - Role: edxapp
         - Added a new `CELERY_RESULT_BACKEND` setting to allow operators to
