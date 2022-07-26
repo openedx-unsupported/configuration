@@ -40,17 +40,20 @@ class LifecycleInventory():
         parser = argparse.ArgumentParser()
         self.region = region
 
-    def get_e_d_from_tags(self, group):
+    def get_e_d_c_from_tags(self, group):
 
         environment = "default_environment"
         deployment = "default_deployment"
+        cluster = "default_cluster"
 
         for r in group['Tags']:
             if r['Key'] == "environment":
                 environment = r['Value']
             elif r['Key'] == "deployment":
                 deployment = r['Value']
-        return environment,deployment
+            elif r['Key'] == "cluster":
+                cluster = r['Value']
+        return environment,deployment,cluster
 
     def get_instance_dict(self):
         ec2 = boto3.client('ec2', region_name=self.region)
@@ -87,8 +90,9 @@ class LifecycleInventory():
 
                 private_ip_address = instances[instance['InstanceId']]['PrivateIpAddress']
                 if private_ip_address:
-                    environment,deployment = self.get_e_d_from_tags(group)
+                    environment,deployment,cluster = self.get_e_d_c_from_tags(group)
                     inventory[environment + "_" + deployment + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
+                    inventory[environment + "_" + deployment + "_" + cluster + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
                     inventory[group['AutoScalingGroupName']].append(private_ip_address)
                     inventory[group['AutoScalingGroupName'] + "_" + instance['LifecycleState'].replace(":","_")].append(private_ip_address)
                     inventory[instance['LifecycleState'].replace(":","_")].append(private_ip_address)
