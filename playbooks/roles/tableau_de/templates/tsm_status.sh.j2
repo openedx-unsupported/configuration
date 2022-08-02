@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Correctly installed aws_cli lives under /usr/local/bin 
+export PATH="/usr/local/bin:${PATH}"
+RUNNING_STATUS="RUNNING"
+
+TSM_STATUS=$(sudo runuser -u {{ tsm_admin_user }} tsm status)
+
+if [[ $TSM_STATUS == *"$RUNNING_STATUS"* ]]
+then
+    # TSM status is RUNNING, sending metric value '1'
+    aws cloudwatch put-metric-data --metric-name tableau_tsm_service_running --namespace AWS/EC2 --value 1 --region us-east-1
+else
+    # TSM Status is not RUNNING, sendin metric value '0'
+    aws cloudwatch put-metric-data --metric-name tableau_tsm_service_running --namespace AWS/EC2 --value 0 --region us-east-1
+fi
