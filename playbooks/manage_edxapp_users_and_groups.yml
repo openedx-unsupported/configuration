@@ -129,7 +129,7 @@
         {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
       with_items: "{{ django_groups }}"
-      when: (not service) and (not group_environment) or group_environment in item.environments
+      when: (not group_environment) or group_environment in item.environments
       become: true
       become_user: "{{ common_web_user }}"
 
@@ -142,7 +142,7 @@
         {% if item.get('permissions', []) | length %}--permissions {{ item.permissions | default([]) | map('quote') | join(' ') }}{% endif %}
         {% if item.get('remove') %}--remove{% endif %}
       with_items: "{{ django_groups }}"
-      when: (not service) and (not group_environment) or group_environment in item.environments
+      when: (not group_environment) or group_environment in item.environments
       become: true
       become_user: "{{ common_web_user }}"
 
@@ -159,7 +159,7 @@
         {% if item.get('unusable_password') %}--unusable-password{% endif %}
         {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
       with_items: "{{ django_users }}"
-      when: (not service) and (not item.get('unusable_password'))
+      when: not item.get('unusable_password')
       register: manage_users_result
       failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
       retries: 3
@@ -180,7 +180,7 @@
         {% if item.get('unusable_password') %}--unusable-password{% endif %}
         {% if item.get('initial_password_hash') %}--initial-password-hash {{ item.initial_password_hash | quote }}{% endif %}
       with_items: "{{ django_users }}"
-      when: (not service) and item.get('unusable_password')
+      when: item.get('unusable_password')
       register: manage_users_result
       failed_when: (manage_users_result is failed) and not (ignore_user_creation_errors | bool)
       retries: 3
