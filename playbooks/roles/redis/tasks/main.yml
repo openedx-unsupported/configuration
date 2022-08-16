@@ -21,7 +21,24 @@
 #
 #
 
-- name: Install redis system packages
+- name: add the redis repo signing key
+  apt_key:
+    url: "https://packages.redis.io/gpg"
+    state: present
+  retries: 3
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+- name: add the redis repo to the sources list
+  apt_repository:
+    repo: "{{ REDIS_REPO }}"
+    state: present
+  tags:
+    - "install"
+    - "install:app-requirements"
+
+- name: Install redis packages
   apt:
     name: "{{ redis_debian_pkgs }}"
     install_recommends: yes
@@ -29,6 +46,14 @@
     update_cache: yes
   notify:
     - reload redis
+
+- name: Pin redis package version
+  loop: "{{ redis_debian_pkgs }}"
+  dpkg_selections:
+    # Dpkg selection just wants the package name, not the package and version
+    # This turns "redis=6:6.2.6-3rl1~focal1" into just "redis"
+    name: "{{ item.split('=')[0] }}"
+    selection: hold
 
 - name: Update redis configuration
   template:
