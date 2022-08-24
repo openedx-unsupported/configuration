@@ -1,0 +1,168 @@
+---
+#
+# edX Configuration
+#
+# github:     https://github.com/edx/configuration
+# wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
+# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+#
+##
+# Defaults for role commerce_coordinator
+#
+
+COMMERCE_COORDINATOR_GIT_IDENTITY: !!null
+
+COMMERCE_COORDINATOR_ENABLED: True
+
+#
+# vars are namespace with the module name.
+#
+commerce_coordinator_service_name: 'commerce_coordinator'
+
+commerce_coordinator_user: "{{ commerce_coordinator_service_name }}"
+commerce_coordinator_home: "{{ COMMON_APP_DIR }}/{{ commerce_coordinator_service_name }}"
+commerce_coordinator_app_dir: "{{ COMMON_APP_DIR }}/{{ commerce_coordinator_service_name }}"
+commerce_coordinator_code_dir: "{{ commerce_coordinator_app_dir }}/{{ commerce_coordinator_service_name }}"
+commerce_coordinator_venvs_dir: "{{ commerce_coordinator_app_dir }}/venvs"
+commerce_coordinator_venv_dir: "{{ commerce_coordinator_venvs_dir }}/commerce_coordinator"
+commerce_coordinator_celery_default_queue: 'commerce_coordinator.default'
+commerce_coordinator_hostname: "commerce-coordinator"
+
+COMMERCE_COORDINATOR_USE_PYTHON38: True
+
+COMMERCE_COORDINATOR_CELERY_ALWAYS_EAGER: false
+COMMERCE_COORDINATOR_CELERY_BROKER_TRANSPORT: ''
+COMMERCE_COORDINATOR_CELERY_BROKER_USER: ''
+COMMERCE_COORDINATOR_CELERY_BROKER_PASSWORD: ''
+COMMERCE_COORDINATOR_CELERY_BROKER_HOSTNAME: ''
+COMMERCE_COORDINATOR_CELERY_BROKER_VHOST: ''
+
+commerce_coordinator_environment:
+  COMMERCE_COORDINATOR_CFG: '{{ COMMON_CFG_DIR }}/{{ commerce_coordinator_service_name }}.yml'
+
+commerce_coordinator_gunicorn_port: 18170
+
+commerce_coordinator_debian_pkgs: []
+
+COMMERCE_COORDINATOR_REPOS:
+  - PROTOCOL: '{{ COMMON_GIT_PROTOCOL }}'
+    DOMAIN: '{{ COMMON_GIT_MIRROR }}'
+    PATH: '{{ COMMON_GIT_PATH }}'
+    REPO: 'commerce-coordinator.git'
+    VERSION: '{{ COMMERCE_COORDINATOR_VERSION }}'
+    DESTINATION: "{{ commerce_coordinator_code_dir }}"
+    SSH_KEY: '{{ COMMERCE_COORDINATOR_GIT_IDENTITY }}'
+
+COMMERCE_COORDINATOR_NGINX_PORT: '1{{ commerce_coordinator_gunicorn_port }}'
+COMMERCE_COORDINATOR_SSL_NGINX_PORT: '4{{ commerce_coordinator_gunicorn_port }}'
+
+COMMERCE_COORDINATOR_DEFAULT_DB_NAME: 'commerce-coordinator'
+COMMERCE_COORDINATOR_MYSQL_HOST: 'localhost'
+# MySQL usernames are limited to 16 characters
+COMMERCE_COORDINATOR_MYSQL_USER: 'commerce-coordinator001'
+COMMERCE_COORDINATOR_MYSQL_PASSWORD: 'password'
+COMMERCE_COORDINATOR_MYSQL_CONN_MAX_AGE: 60
+
+COMMERCE_COORDINATOR_MEMCACHE: [ 'memcache' ]
+
+COMMERCE_COORDINATOR_DJANGO_SETTINGS_MODULE: 'commerce_coordinator.settings.production'
+COMMERCE_COORDINATOR_DOMAIN: 'localhost'
+COMMERCE_COORDINATOR_URL_ROOT: 'http://{{ COMMERCE_COORDINATOR_DOMAIN }}:{{ COMMERCE_COORDINATOR_NGINX_PORT }}'
+COMMERCE_COORDINATOR_API_ROOT: '{{ COMMERCE_COORDINATOR_URL_ROOT }}/api'
+COMMERCE_COORDINATOR_LOGOUT_URL: '{{ COMMERCE_COORDINATOR_URL_ROOT }}/logout/'
+
+COMMERCE_COORDINATOR_LANG: 'en_US.UTF-8'
+COMMERCE_COORDINATOR_LANGUAGE_CODE: 'en'
+COMMERCE_COORDINATOR_LANGUAGE_COOKIE_NAME: 'openedx-language-preference'
+
+COMMERCE_COORDINATOR_SERVICE_USER: 'commerce_coordinator_service_user'
+
+COMMERCE_COORDINATOR_DATA_DIR: '{{ COMMON_DATA_DIR }}/{{ commerce_coordinator_service_name }}'
+COMMERCE_COORDINATOR_MEDIA_ROOT: '{{ COMMERCE_COORDINATOR_DATA_DIR }}/media'
+COMMERCE_COORDINATOR_MEDIA_URL: '/api/media/'
+
+COMMERCE_COORDINATOR_MEDIA_STORAGE_BACKEND:
+  DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
+  MEDIA_ROOT: '{{ COMMERCE_COORDINATOR_MEDIA_ROOT }}'
+  MEDIA_URL: '{{ COMMERCE_COORDINATOR_MEDIA_URL }}'
+
+# TODO: Let edx_django_service manage COMMERCE_COORDINATOR_STATIC_ROOT in phase 2.
+COMMERCE_COORDINATOR_STATIC_ROOT: '{{ COMMERCE_COORDINATOR_DATA_DIR }}/staticfiles'
+COMMERCE_COORDINATOR_STATIC_URL: '/static/'
+
+COMMERCE_COORDINATOR_STATICFILES_STORAGE: 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
+COMMERCE_COORDINATOR_CORS_ORIGIN_ALLOW_ALL: false
+COMMERCE_COORDINATOR_CORS_ORIGIN_WHITELIST: []
+
+COMMERCE_COORDINATOR_CSRF_COOKIE_SECURE: false
+COMMERCE_COORDINATOR_CSRF_TRUSTED_ORIGINS: []
+
+COMMERCE_COORDINATOR_VERSION: 'main'
+
+COMMERCE_COORDINATOR_GUNICORN_EXTRA: ''
+
+COMMERCE_COORDINATOR_EXTRA_APPS: []
+
+COMMERCE_COORDINATOR_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+COMMERCE_COORDINATOR_CERTIFICATE_LANGUAGES:
+  'en': 'English'
+  'es_419': 'Spanish'
+
+# Used to automatically configure OAuth2 Client
+COMMERCE_COORDINATOR_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'commerce_coordinator-sso-key'
+COMMERCE_COORDINATOR_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'commerce_coordinator-sso-secret'
+COMMERCE_COORDINATOR_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'commerce_coordinator-backend-service-key'
+COMMERCE_COORDINATOR_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'commerce_coordinator-backend-service-secret'
+COMMERCE_COORDINATOR_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+
+# API key for segment.io
+COMMERCE_COORDINATOR_SEGMENT_KEY: !!null
+
+COMMERCE_COORDINATOR_DISCOVERY_BASE_URL: !!null
+COMMERCE_COORDINATOR_LMS_BASE_URL: !!null
+
+commerce_coordinator_service_config_overrides:
+  CERTIFICATE_LANGUAGES: '{{ COMMERCE_COORDINATOR_CERTIFICATE_LANGUAGES }}'
+  COMMERCE_COORDINATOR_SERVICE_USER: '{{ COMMERCE_COORDINATOR_SERVICE_USER }}'
+  LANGUAGE_COOKIE_NAME: '{{ COMMERCE_COORDINATOR_LANGUAGE_COOKIE_NAME }}'
+  SEGMENT_KEY: "{{ COMMERCE_COORDINATOR_SEGMENT_KEY }}"
+  DISCOVERY_BASE_URL: "{{ COMMERCE_COORDINATOR_DISCOVERY_BASE_URL }}"
+  LMS_BASE_URL: "{{ COMMERCE_COORDINATOR_LMS_BASE_URL }}"
+  CORS_ORIGIN_WHITELIST: "{{ COMMERCE_COORDINATOR_CORS_ORIGIN_WHITELIST }}"
+  CSRF_TRUSTED_ORIGINS: "{{ COMMERCE_COORDINATOR_CSRF_TRUSTED_ORIGINS }}"
+  CSRF_COOKIE_SECURE: "{{ COMMERCE_COORDINATOR_CSRF_COOKIE_SECURE }}"
+  CELERY_ALWAYS_EAGER: '{{ COMMERCE_COORDINATOR_CELERY_ALWAYS_EAGER }}'
+  CELERY_BROKER_TRANSPORT: '{{ COMMERCE_COORDINATOR_CELERY_BROKER_TRANSPORT }}'
+  CELERY_BROKER_USER: '{{ COMMERCE_COORDINATOR_CELERY_BROKER_USER }}'
+  CELERY_BROKER_PASSWORD: '{{ COMMERCE_COORDINATOR_CELERY_BROKER_PASSWORD }}'
+  CELERY_BROKER_HOSTNAME: '{{ COMMERCE_COORDINATOR_CELERY_BROKER_HOSTNAME }}'
+  CELERY_BROKER_VHOST: '{{ COMMERCE_COORDINATOR_CELERY_BROKER_VHOST }}'
+  CELERY_DEFAULT_EXCHANGE: 'commerce_coordinator'
+  CELERY_DEFAULT_ROUTING_KEY: 'commerce_coordinator'
+  CELERY_DEFAULT_QUEUE: '{{ commerce_coordinator_celery_default_queue }}'
+
+# See edx_django_service_automated_users for an example of what this should be
+COMMERCE_COORDINATOR_AUTOMATED_USERS: {}
+
+# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
+
+COMMERCE_COORDINATOR_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
+
+# Remote config
+COMMERCE_COORDINATOR_HERMES_ENABLED: "{{ COMMON_HERMES_ENABLED }}"
+
+COMMERCE_COORDINATOR_DECRYPT_CONFIG_ENABLED: "{{ COMMON_DECRYPT_CONFIG_ENABLED }}"
+COMMERCE_COORDINATOR_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
+
+# Worker settings
+worker_django_settings_module: "{{ COMMERCE_COORDINATOR_DJANGO_SETTINGS_MODULE }}"
+COMMERCE_COORDINATOR_CELERY_WORKERS:
+  - queue: '{{ commerce_coordinator_celery_default_queue }}'
+    concurrency: 1
+    monitor: True
+commerce_coordinator_workers: "{{ COMMERCE_COORDINATOR_CELERY_WORKERS }}"
+
+commerce_coordinator_post_migrate_commands: []
