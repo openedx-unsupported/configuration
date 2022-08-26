@@ -116,8 +116,12 @@
 
 - name: wipe initialization scripts from jenkins_commons
   file:
-    path: '{{ jenkins_home }}/init.groovy.d/'
+    path: '{{ jenkins_home }}/init.groovy.d/{{ item }}'
     state: absent
+    # Only delete files that don't match 9StartInQuietMode.groovy when start_jenkins_in_quiet_mode is on.
+    when: item != "9StartInQuietMode.groovy" and start_jenkins_in_quiet_mode
+    with_items: "{{ jenkins_common_configuration_scripts }}"
+
   tags:
     - jenkins-auth
 
