@@ -617,6 +617,10 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     done
 fi
 
+# TODO: Add if block
+pip install docker-compose
+docker-compose up ../util/jenkins/docker-compose.yml
+
 # deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
 cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
