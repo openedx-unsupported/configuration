@@ -44,4 +44,4 @@ Enabling Plugins
 
 There's a decent `guide on enabling the plugins through the edX platform`_, specifically using the ``TINYMCE_ADDITIONAL_PLUGINS`` extra JavaScript configuration.
 
-.. _guide on enabling the plugins through the edX platform: https://github.com/edx/edx-platform/blob/master/docs/guides/extensions/tinymce_plugins.rst
+.. _guide on enabling the plugins through the edX platform: https://github.com/openedx/edx-platform/blob/master/docs/guides/extensions/tinymce_plugins.rst

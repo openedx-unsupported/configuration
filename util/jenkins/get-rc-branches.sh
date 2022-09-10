@@ -17,7 +17,7 @@ usage() {
             -r    repo to look in
             -f    filter string for branch list
 
-  Example: $prog -r https://github.com/edx/edx-platform -f "rc/"
+  Example: $prog -r https://github.com/openedx/edx-platform -f "rc/"
 EOF
 }
 
