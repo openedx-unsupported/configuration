@@ -66,4 +66,4 @@ Contributing
 .. _Open EdX Installation options: https://open.edx.org/installation-options
 .. _Ansible: http://ansible.com/
 .. _OpenEdX Wiki: https://openedx.atlassian.net/wiki/display/OpenOPS/Open+edX+Operations+Home
-.. _change log: https://github.com/edx/configuration/blob/master/CHANGELOG.md
+.. _change log: https://github.com/openedx/configuration/blob/master/CHANGELOG.md
