@@ -18,14 +18,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: exams.app
-    # Use the Django devserver, so that we can hot-reload code changes
-    # TODO: What port do we want here?
-    command: bash -c 'while true; do python /edx/app/exams/manage.py runserver 0.0.0.0:18180; sleep 2; done'
+    command: bash -c 'while true; do python /edx/app/exams/manage.py runserver 0.0.0.0:18740; sleep 2; done'
     ports:
-      - "18180:18180"
+      - "18740:18740"
     depends_on:
       - mysql
-      - worker
     networks:
     # TODO: Figure out if the host network is viable to use https://stackoverflow.com/a/44544841
       - network_mode: "host"
@@ -33,18 +30,9 @@ services:
     stdin_open: true
     tty: true
     environment:
-      CELERY_ALWAYS_EAGER: 'false'
-      CELERY_BROKER_TRANSPORT: redis
-      CELERY_BROKER_HOSTNAME: edx.devstack.redis:6379
-      CELERY_BROKER_VHOST: 0
-      CELERY_BROKER_PASSWORD: password
-      DJANGO_SETTINGS_MODULE: exams.settings.devstack
+      DJANGO_SETTINGS_MODULE: exams.settings.production
       DJANGO_WATCHMAN_TIMEOUT: 30
       ENABLE_DJANGO_TOOLBAR: 1
-
-  memcached:
-    image: memcached:1.4.24
-    container_name: exams.memcache
 
 volumes:
   mysql8:

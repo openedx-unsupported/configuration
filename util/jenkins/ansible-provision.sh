@@ -617,9 +617,10 @@ if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
     done
 fi
 
-# TODO: Add if block
-pip install docker-compose
-docker-compose up ../util/jenkins/docker-compose.yml
+if [[ -z $edx_exams ]]; then
+  pip install docker-compose
+    docker-compose up ../util/jenkins/docker_compose/edx-exams-docker-compose.yml
+fi
 
 # deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
