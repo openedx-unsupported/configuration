@@ -136,7 +136,7 @@ apt-get update -y
 if [[ "${SHORT_DIST}" != focal ]] ;then
   apt-get install -y python2.7 python2.7-dev python-pip python-apt python-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
 else
-  apt-get install -y python3-pip python3-apt python3-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev
+  apt-get install -y python3-pip python3-apt python3-jinja2 build-essential sudo git-core libmysqlclient-dev libffi-dev libssl-dev rsyslogd
 fi
 
 apt-get install -y python${PYTHON_VERSION} python${PYTHON_VERSION}-dev python3-pip python3-apt
