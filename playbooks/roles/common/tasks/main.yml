@@ -1,4 +1,12 @@
 ---
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
+  tags:
+    - install
+    - install:base
+
 - name: Check Configuration Sources
   fail:
     msg: "Configuration Sources Checking (COMMON_EXTRA_CONFIGURATION_SOURCES_CHECKING) is enabled, you must define {{ item }}"
@@ -224,7 +232,7 @@
     name: rsyslog
     state: restarted
   become: True
-  when: config_templates.changed
+  when: config_templates.changed and docker_container.stdout != 'no'
 
 - name: Add ntp alert script
   template:
