@@ -17,9 +17,9 @@ if [[ -z "${CONFIGURATION_REPO}" ]]; then
   CONFIGURATION_REPO="https://github.com/openedx/configuration.git"
 fi
 
-if [[ -z "${CONFIGURATION_VERSION}" ]]; then
-    CONFIGURATION_VERSION="ihassan/test_ansible_issues"
-fi
+#if [[ -z "${CONFIGURATION_VERSION}" ]]; then
+CONFIGURATION_VERSION="ihassan/test_ansible_issues"
+#fi
 
 if [[ -z "${UPGRADE_OS}" ]]; then
   UPGRADE_OS=false
