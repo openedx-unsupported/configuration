@@ -17,7 +17,7 @@ ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
 ENV CONFIGURATION_REPO="https://github.com/openedx/configuration.git"
-ARG OPENEDX_RELEASE=ihassan/test_ansible_issues
+ARG OPENEDX_RELEASE="ihassan/test_ansible_issues"
 ENV CONFIGURATION_VERSION="${OPENEDX_RELEASE}"
 
 # Add the deadsnakes PPA to install Python 3.8

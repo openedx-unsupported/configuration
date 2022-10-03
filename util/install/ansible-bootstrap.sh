@@ -18,7 +18,7 @@ if [[ -z "${CONFIGURATION_REPO}" ]]; then
 fi
 
 if [[ -z "${CONFIGURATION_VERSION}" ]]; then
-    CONFIGURATION_VERSION=${OPENEDX_RELEASE-master}
+    CONFIGURATION_VERSION="ihassan/test_ansible_issues"
 fi
 
 if [[ -z "${UPGRADE_OS}" ]]; then
