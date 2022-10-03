@@ -1,9 +1,4 @@
 ---
-- name: Are we in a Docker container
-  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
-  ignore_errors: yes
-  register: docker_container
-
 - name: Check Configuration Sources
   fail:
     msg: "Configuration Sources Checking (COMMON_EXTRA_CONFIGURATION_SOURCES_CHECKING) is enabled, you must define {{ item }}"
@@ -221,6 +216,11 @@
     - { src: 'etc/logrotate.d/hourly/edx_logrotate.j2', dest: '/etc/logrotate.d/hourly/edx-services' }
     - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '0555' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2', dest: '/etc/logrotate.d/hourly/tracking.log' }
+
+- name: Are we in a Docker container
+  shell: echo $(egrep -q 'docker' /proc/self/cgroup && echo 'yes' || echo 'no')
+  ignore_errors: yes
+  register: docker_container
 
   # TODO: restarts no matter which template has changed, need to examine
   # the results
