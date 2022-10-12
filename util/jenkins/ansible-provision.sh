@@ -669,12 +669,12 @@ function provision_containerized_app() {
     # Replace deploy_host in app config file with sandbox DNS name
     echo "sed -i 's/deploy_host/${dns_name}.${dns_zone}/g' /var/tmp/${app_service_name}.yml"
 
-    # Install yq for yaml processing 
+    # Install yq for yaml processing
     echo "wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O /usr/bin/yq && chmod +x /usr/bin/yq"
 
     # Combine app config with jwt_signature config
     echo "yq eval-all '. as \$item ireduce ({}; . *+ \$item)' /var/tmp/${app_service_name}.yml  /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml"
-    
+
     # Provision IDA User in LMS
     echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser"
 
@@ -689,9 +689,34 @@ function provision_containerized_app() {
     # Create app database
     echo "mysql -uroot -e \"CREATE DATABASE \\\`${app_service_name}\\\`;\""
 
-    # Build app docker image and run app container
-    echo "docker build . -t ${app_service_name}:latest"
-    echo "docker run --rm -it -d -e DJANGO_SETTINGS_MODULE=${app_service_name}.settings.production -e ${app_cfg}=/${app_service_name}.yml -v '/edx/app/${app_repo}:/edx/app/${app_repo}/' -v '/edx/etc/${app_service_name}.yml:/${app_service_name}.yml' -v '/edx/var/${app_service_name}/staticfiles/:/var/tmp/' --name ${app_service_name}.app --network=host --entrypoint '/bin/bash' ${app_service_name}:latest -c 'while true; do exec gunicorn --workers=2 --name ${app_service_name} -c /edx/app/${app_repo}/${app_service_name}/docker_gunicorn_configuration.py --log-file - --max-requests=1000 ${app_service_name}.wsgi:application; sleep 2; done'"
+    # use heredoc to dynamically create docker compose file
+    echo "docker_compose_file=/var/tmp/docker-compose-${app_service_name}.yml"
+    echo "cat << 'EOF' > \$docker_compose_file
+    version: '2.1'
+    services:
+      app:
+        image: ${app_service_name}:latest
+        stdin_open: true
+        tty: true
+        build:
+          context: /edx/app/${app_repo}
+          dockerfile: Dockerfile
+        container_name: ${app_service_name}.app
+        command: bash -c 'while true; do exec gunicorn --workers=2 --name ${app_service_name} -c /edx/app/${app_repo}/${app_service_name}/docker_gunicorn_configuration.py --log-file - --max-requests=1000 ${app_service_name}.wsgi:application; sleep 2; done'
+        network_mode: 'host'
+        environment:
+          DJANGO_SETTINGS_MODULE: ${app_service_name}.settings.production
+          DJANGO_WATCHMAN_TIMEOUT: 30
+          ENABLE_DJANGO_TOOLBAR: 1
+          ${app_cfg}: /${app_service_name}.yml
+        volumes:
+          - /edx/app/${app_repo}:/edx/app/${app_repo}/
+          - /edx/etc/${app_service_name}.yml:/${app_service_name}.yml
+          - /edx/var/${app_service_name}/staticfiles/:/var/tmp/
+EOF"
+
+    # run docker compose to spin up service container
+    echo "docker-compose -f \$docker_compose_file up -d"
 
     # Wait for app container
     echo "sleep 5"
@@ -701,7 +726,6 @@ function provision_containerized_app() {
 
     # Run collectstatic
     echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py collectstatic --noinput\""
- 
      # Create superuser
     echo "docker exec -t ${app_service_name}.app bash -c \"echo 'from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser(\\\"edx\\\", \\\"edx@example.com\\\", \\\"edx\\\") if not User.objects.filter(username=\\\"edx\\\").exists() else None' | python /edx/app/${app_repo}/manage.py shell\""
 
@@ -744,7 +768,7 @@ EOF"
 }
 
 if [[ $edx_exams == 'true' ]]; then
-    
+
     app_hostname="edx-exams"
     app_service_name="edx_exams"
     app_repo="edx-exams"
@@ -756,7 +780,7 @@ if [[ $edx_exams == 'true' ]]; then
 cat << EOF > $provision_script
 $(provision_containerized_app)
 EOF
-  
+
     # copy app config file and run script to deploy app
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${WORKSPACE}/configuration-internal/k8s-sandbox-config/${app_service_name}.yml dest=/var/tmp/${app_service_name}.yml" -u ubuntu -b
     ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_script}" -u ubuntu -b
