@@ -602,6 +602,42 @@ done
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
     run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+    # Export LC_* vars. To be passed to remote instance via SSH where SSH configuration allows LC_* to be accepted as environment variables.
+    # LC_* is normally used for passing through locale settings of SSH clients to SSH servers.
+    export LC_WORKER_CFG=$(cat <<EOF
+worker_cfg:
+  - queue: default
+    service_variant: cms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: high
+    service_variant: cms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: default
+    service_variant: lms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: high
+    service_variant: lms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: high_mem
+    service_variant: lms
+    concurrency: 1
+    prefetch_optimization: default
+EOF
+)
+    # Remote SSH configuration allows using LC_* (normally for locale variables) to be passed as environment variables to the remote instance.
+    export LC_WORKER_OF="edxapp"
+    export LC_WORKER_IMAGE_NAME="$LC_WORKER_OF"
+    export LC_WORKER_SERVICE_REPO="edx-platform"
+    export LC_SANDBOX_USER="$github_username"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
+    unset LC_WORKER_OF
+    unset LC_WORKER_IMAGE_NAME
+    unset LC_WORKER_SERVICE_REPO
+    unset LC_SANDBOX_USER
 fi
 
 if [[ $reconfigure != "true" && $server_type == "full_edx_installation" ]]; then
