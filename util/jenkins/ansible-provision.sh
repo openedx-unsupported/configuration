@@ -788,5 +788,42 @@ EOF
     rm -f "${provision_script}"
 fi
 
+function provision_fluentd() {
+    echo "#!/usr/bin/env bash"
+    echo "set -ex"
+
+    echo "docker pull fluent/fluentd:edge-debian"
+
+    echo "fluentd_config=/var/tmp/fluentd.conf"
+    echo "cat << 'EOF' > \$fluentd_config
+    <source>
+        @type syslog
+        port 5140
+        bind 0.0.0.0
+        tag *
+        <transport udp>
+        </transport>
+        <parse>
+            @type none
+        </parse>
+    </source>
+
+    <match **>
+        @type stdout
+    </match>
+EOF"
+    echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
+}
+
+if [[ $fluentd_logging == 'true' ]]; then
+    provision_fluentd_script="/var/tmp/provision-fluentd-script.sh"
+cat << EOF > $provision_fluentd_script
+$(provision_fluentd)
+EOF
+    ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_fluentd_script}" -u ubuntu -b
+
+    rm -f "${provision_fluentd_script}"
+fi
+
 rm -f "$extra_vars_file"
 rm -f ${extra_vars_file}_clean
