@@ -214,6 +214,10 @@ if [[ -z $prospectus_version ]]; then
   PROSPECTUS_VERSION="master"
 fi
 
+if [[ -z $prospectus_contentful_environment ]]; then
+  prospectus_contentful_environment="master"
+fi
+
 if [[ $registrar == 'true' ]]; then
   program_console="true"
 fi
@@ -314,6 +318,7 @@ PROSPECTUS_NGINX_PORT: 80
 PROSPECTUS_SSL_NGINX_PORT: 443
 PROSPECTUS_VERSION: $prospectus_version
 PROSPECTUS_ENABLED: $prospectus
+PROSPECTUS_CONTENTFUL_ENVIRONMENT: $prospectus_contentful_environment
 PROSPECTUS_SANDBOX_BUILD: True
 
 AUTHN_NGINX_PORT: 80
