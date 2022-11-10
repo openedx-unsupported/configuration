@@ -58,7 +58,7 @@ install_pre_reqs
 # Check if docker image already exists. If it doesn't, build it.
 if ! $(docker image inspect ${LC_WORKER_IMAGE_NAME}:latest >/dev/null 2>&1 && echo true || echo false) ; then
   cd /edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}
-  docker build . -t ${LC_WORKER_IMAGE_NAME}:latest --target base
+  time DOCKER_BUILDKIT=1 docker build . -t ${LC_WORKER_IMAGE_NAME}:latest --target base
 fi
 
 # Render a docker-compose file for workers
