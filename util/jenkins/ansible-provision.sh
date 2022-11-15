@@ -804,9 +804,8 @@ function provision_fluentd() {
     <source>
         @type tail
         path /var/tmp/logs.log
+        pos_file /var/log/td-agent/log_file.pos
         tag *
-        <transport udp>
-        </transport>
         <parse>
             @type none
         </parse>
@@ -816,7 +815,7 @@ function provision_fluentd() {
         @type stdout
     </match>
 EOF"
-    echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf --mount type=bind,source=/var/tmp/logs.log,target=/var/tmp/logs.log"
+    echo "docker run --user root -d --network host --mount type=bind,source=/var/tmp/logs.log,target=/var/tmp/logs.log -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
 }
 
 if [[ $fluentd_logging == 'true' ]]; then
