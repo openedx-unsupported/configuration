@@ -805,6 +805,7 @@ function provision_fluentd() {
         @type tail
         path /var/tmp/tracking_logs.log
         pos_file /var/log/tracking_logs.pos
+        rotate_wait 10
         tag *
         <parse>
             @type none
