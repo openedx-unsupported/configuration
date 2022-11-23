@@ -842,12 +842,11 @@ function provision_fluentd() {
     echo "fluentd_config=/var/tmp/fluentd.conf"
     echo "cat << 'EOF' > \$fluentd_config
     <source>
-        @type syslog
-        port 5140
-        bind 0.0.0.0
+        @type tail
+        path /var/tmp/tracking_logs.log
+        pos_file /var/log/tracking_logs.pos
+        rotate_wait 10
         tag *
-        <transport udp>
-        </transport>
         <parse>
             @type none
         </parse>
@@ -857,7 +856,7 @@ function provision_fluentd() {
         @type stdout
     </match>
 EOF"
-    echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
+    echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
 }
 
 if [[ $fluentd_logging == 'true' ]]; then
