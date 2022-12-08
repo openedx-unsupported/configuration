@@ -672,10 +672,10 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-if [[ $run_oauth == "true" ]]; then
-    # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
+#if [[ $run_oauth == "true" ]]; then
+#    # Setup the OAuth2 clients
+#    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#fi
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
@@ -812,6 +812,15 @@ EOF"
      echo "ln -s  /edx/app/nginx/sites-available/${app_service_name} /etc/nginx/sites-enabled/${app_service_name}"
      echo "service nginx reload"
 }
+
+########### work for lms ##############
+
+# decrypt lms config file
+asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/lms.yml
+
+# copy app config file
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
+
 
 if [[ $edx_exams == 'true' ]]; then
 
