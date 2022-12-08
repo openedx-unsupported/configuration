@@ -607,7 +607,8 @@ done
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
     if [[ $edxapp_workers_docker_container_enabled == "true" ]]; then
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false --user ubuntu
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false -e @roles/edxapp/defaults/main.yml --user ubuntu
+      # run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false --user ubuntu
       # Export LC_* vars. To be passed to remote instance via SSH where SSH configuration allows LC_* to be accepted as environment variables.
       # LC_* is normally used for passing through locale settings of SSH clients to SSH servers.
       export LC_WORKER_CFG=$(cat <<EOF
