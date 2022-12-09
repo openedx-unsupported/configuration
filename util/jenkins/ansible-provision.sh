@@ -706,11 +706,18 @@ function provision_containerized_app() {
     echo "set -ex"
 
     # Create app staticfiles dir
-    echo "mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R"
+    # echo "mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R"
 
     # Checkout code in app directory
     echo "cd /edx/app/"
     echo "git clone https://github.com/edx/${app_repo}.git"
+
+    if [[ ${app_service_name} == 'lms' ]]; then # if lms, do these things
+        echo "touch /tmp/lms_jwt_signature.yml"
+        echo "docker pull openedx/lms:latest"
+        # generate JWT token, ensure JWT dir is mounted as volume
+        echo "docker run -e LMS_CFG=/edx/etc/lms.yml -v /tmp/lms_jwt_signature.yml:/tmp/lms_jwt_signature.yml -v /var/tmp/lms.yml:/edx/etc/lms.yml openedx/lms:latest python3 manage.py lms generate_jwt_signing_key --output-file /tmp/lms_jwt_signature.yml --strip-key-prefix"
+    fi
 
     # Replace deploy_host in app config file with sandbox DNS name
     echo "sed -i 's/deploy_host/${dns_name}.${dns_zone}/g' /var/tmp/${app_service_name}.yml"
@@ -721,96 +728,98 @@ function provision_containerized_app() {
     # Combine app config with jwt_signature config
     echo "yq eval-all '. as \$item ireduce ({}; . *+ \$item)' /var/tmp/${app_service_name}.yml  /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml"
 
-    # Provision IDA User in LMS
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser"
+    if [[ ${app_service_name} != 'lms' ]]; then # if not lms, do these things
+        # Provision IDA User in LMS
+        echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser"
 
-    # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker"
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker"
+        # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
+        echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker"
+        echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker"
+    fi
 
     # Checkout code version
     echo "cd /edx/app/${app_repo}"
     echo "git checkout ${app_version}"
 
-    # Create app database
-    echo "mysql -uroot -e \"CREATE DATABASE \\\`${app_service_name}\\\`;\""
-
-    # use heredoc to dynamically create docker compose file
-    echo "docker_compose_file=/var/tmp/docker-compose-${app_service_name}.yml"
-    echo "cat << 'EOF' > \$docker_compose_file
-    version: '2.1'
-    services:
-      app:
-        image: ${app_service_name}:latest
-        stdin_open: true
-        tty: true
-        build:
-          context: /edx/app/${app_repo}
-          dockerfile: Dockerfile
-        container_name: ${app_service_name}.app
-        command: bash -c 'while true; do exec gunicorn --workers=2 --name ${app_service_name} -c /edx/app/${app_repo}/${app_service_name}/docker_gunicorn_configuration.py --log-file - --max-requests=1000 ${app_service_name}.wsgi:application; sleep 2; done'
-        network_mode: 'host'
-        environment:
-          DJANGO_SETTINGS_MODULE: ${app_service_name}.settings.production
-          DJANGO_WATCHMAN_TIMEOUT: 30
-          ENABLE_DJANGO_TOOLBAR: 1
-          ${app_cfg}: /${app_service_name}.yml
-        volumes:
-          - /edx/app/${app_repo}:/edx/app/${app_repo}/
-          - /edx/etc/${app_service_name}.yml:/${app_service_name}.yml
-          - /edx/var/${app_service_name}/staticfiles/:/var/tmp/
-EOF"
-
-    # run docker compose to spin up service container
-    echo "docker-compose -f \$docker_compose_file up -d"
-
-    # Wait for app container
-    echo "sleep 5"
-
-    # Run migrations
-    echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py migrate\""
-
-    # Run collectstatic
-    echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py collectstatic --noinput\""
-     # Create superuser
-    echo "docker exec -t ${app_service_name}.app bash -c \"echo 'from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser(\\\"edx\\\", \\\"edx@example.com\\\", \\\"edx\\\") if not User.objects.filter(username=\\\"edx\\\").exists() else None' | python /edx/app/${app_repo}/manage.py shell\""
-
-    # Create Nginx config
-    echo "site_config=/edx/app/nginx/sites-available/${app_service_name}"
-    echo "cat << 'EOF' > \$site_config
-    server {
-       server_name ~^((stage|prod)-)?${app_hostname}.*;
-       listen 80;
-       rewrite ^ https://\$host\$request_uri? permanent;
-     }
-     server {
-       server_name ~^((stage|prod)-)?${app_hostname}.*;
-       listen 443 ssl;
-       ssl_certificate /etc/ssl/certs/wildcard.sandbox.edx.org.pem;
-       ssl_certificate_key /etc/ssl/private/wildcard.sandbox.edx.org.key;
-
-       location / {
-         try_files \$uri @proxy_to_app;
-       }
-       location ~ ^/(api)/ {
-          try_files \$uri @proxy_to_app;
-       }
-       location @proxy_to_app {
-          proxy_set_header X-Forwarded-Proto \$scheme;
-          proxy_set_header X-Forwarded-Port \$server_port;
-          proxy_set_header X-Forwarded-For \$remote_addr;
-          proxy_set_header Host \$http_host;
-          proxy_redirect off;
-          proxy_pass http://127.0.0.1:${app_gunicorn_port};
-       }
-       location ~ ^/static/(?P<file>.*) {
-         root /edx/var/${app_service_name};
-         try_files /staticfiles/\$file =404;
-       }
-     }
-EOF"
-     echo "ln -s  /edx/app/nginx/sites-available/${app_service_name} /etc/nginx/sites-enabled/${app_service_name}"
-     echo "service nginx reload"
+#    # Create app database
+#    echo "mysql -uroot -e \"CREATE DATABASE \\\`${app_service_name}\\\`;\""
+#
+#    # use heredoc to dynamically create docker compose file
+#    echo "docker_compose_file=/var/tmp/docker-compose-${app_service_name}.yml"
+#    echo "cat << 'EOF' > \$docker_compose_file
+#    version: '2.1'
+#    services:
+#      app:
+#        image: ${app_service_name}:latest
+#        stdin_open: true
+#        tty: true
+#        build:
+#          context: /edx/app/${app_repo}
+#          dockerfile: Dockerfile
+#        container_name: ${app_service_name}.app
+#        command: bash -c 'while true; do exec gunicorn --workers=2 --name ${app_service_name} -c /edx/app/${app_repo}/${app_service_name}/docker_gunicorn_configuration.py --log-file - --max-requests=1000 ${app_service_name}.wsgi:application; sleep 2; done'
+#        network_mode: 'host'
+#        environment:
+#          DJANGO_SETTINGS_MODULE: ${app_service_name}.settings.production
+#          DJANGO_WATCHMAN_TIMEOUT: 30
+#          ENABLE_DJANGO_TOOLBAR: 1
+#          ${app_cfg}: /${app_service_name}.yml
+#        volumes:
+#          - /edx/app/${app_repo}:/edx/app/${app_repo}/
+#          - /edx/etc/${app_service_name}.yml:/${app_service_name}.yml
+#          - /edx/var/${app_service_name}/staticfiles/:/var/tmp/
+#EOF"
+#
+#    # run docker compose to spin up service container
+#    echo "docker-compose -f \$docker_compose_file up -d"
+#
+#    # Wait for app container
+#    echo "sleep 5"
+#
+#    # Run migrations
+#    echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py migrate\""
+#
+#    # Run collectstatic
+#    echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py collectstatic --noinput\""
+#     # Create superuser
+#    echo "docker exec -t ${app_service_name}.app bash -c \"echo 'from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser(\\\"edx\\\", \\\"edx@example.com\\\", \\\"edx\\\") if not User.objects.filter(username=\\\"edx\\\").exists() else None' | python /edx/app/${app_repo}/manage.py shell\""
+#
+#    # Create Nginx config
+#    echo "site_config=/edx/app/nginx/sites-available/${app_service_name}"
+#    echo "cat << 'EOF' > \$site_config
+#    server {
+#       server_name ~^((stage|prod)-)?${app_hostname}.*;
+#       listen 80;
+#       rewrite ^ https://\$host\$request_uri? permanent;
+#     }
+#     server {
+#       server_name ~^((stage|prod)-)?${app_hostname}.*;
+#       listen 443 ssl;
+#       ssl_certificate /etc/ssl/certs/wildcard.sandbox.edx.org.pem;
+#       ssl_certificate_key /etc/ssl/private/wildcard.sandbox.edx.org.key;
+#
+#       location / {
+#         try_files \$uri @proxy_to_app;
+#       }
+#       location ~ ^/(api)/ {
+#          try_files \$uri @proxy_to_app;
+#       }
+#       location @proxy_to_app {
+#          proxy_set_header X-Forwarded-Proto \$scheme;
+#          proxy_set_header X-Forwarded-Port \$server_port;
+#          proxy_set_header X-Forwarded-For \$remote_addr;
+#          proxy_set_header Host \$http_host;
+#          proxy_redirect off;
+#          proxy_pass http://127.0.0.1:${app_gunicorn_port};
+#       }
+#       location ~ ^/static/(?P<file>.*) {
+#         root /edx/var/${app_service_name};
+#         try_files /staticfiles/\$file =404;
+#       }
+#     }
+#EOF"
+#     echo "ln -s  /edx/app/nginx/sites-available/${app_service_name} /etc/nginx/sites-enabled/${app_service_name}"
+#     echo "service nginx reload"
 }
 
 ########### work for lms ##############
@@ -821,6 +830,24 @@ asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configura
 # copy app config file
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
 
+# specify variable names
+app_hostname="courses"
+app_service_name="lms"
+app_repo="edx-platform"
+app_version="master"
+app_gunicorn_port=18000
+app_cfg=EDX_EXAMS_CFG
+
+provision_script="/var/tmp/provision-script-$$.sh"
+
+# call provision script to generate JWT and combine configs
+
+cat << EOF > $provision_script
+    $(provision_containerized_app)
+EOF
+
+ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_script}" -u ubuntu -b
+rm -f "${provision_script}"
 
 if [[ $edx_exams == 'true' ]]; then
 
