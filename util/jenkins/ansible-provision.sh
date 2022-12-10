@@ -706,34 +706,48 @@ function provision_containerized_app() {
     echo "set -ex"
 
     # Create app staticfiles dir
-    # echo "mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R"
-
+    if [[ ${app_service_name} == 'lms' ]]; then
+        echo "mkdir /edx/var/edxapp/staticfiles/ -p"
+    else
+        echo "mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R"
+    fi
     # Checkout code in app directory
     # echo "cd /edx/app/"
-    echo "git clone https://github.com/edx/${app_repo}.git /edx/app/${app_repo}"
+    # echo "git clone https://github.com/edx/${app_repo}.git /edx/app/edxapp/${app_repo}"
 
-    if [[ ${app_service_name} == 'lms' ]]; then # if lms, do these things
+    if [[ ${app_service_name} == 'lms' ]]; then # if lms, create image (if it doesn't exist) and generate JWT credentials
         app_image_name="${app_repo}:latest"
-        app_dir="/edx/app/${app_repo}"
-        echo "touch /tmp/lms_jwt_signature.yml"
+        app_dir="/edx/app/edxapp/${app_repo}"
+        echo "git clone https://github.com/edx/${app_repo}.git /edx/app/edxapp/${app_repo}"
+        echo "cd ${app_dir} && git checkout ${app_version}"
+        echo "touch /tmp/lms_jwt_signature.yml && chmod 777 /tmp/lms_jwt_signature.yml"
+        echo "chown :www-data /edx/etc/${app_service_name}.yml"
+        # Generate container image if it doesn't already exist
         echo "if ! $(docker image inspect ${app_image_name} >/dev/null 2>&1 && echo true || echo false) ; then"
         echo "  cd ${app_dir}"
         echo "  ls -lah"
         echo "  export DOCKER_BUILDKIT=1"
         echo "  docker build . -t ${app_image_name} --target base"
         echo "fi"
-        # generate JWT token, ensure JWT dir is mounted as volume
-        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -v /tmp/lms_jwt_signature.yml:/tmp/lms_jwt_signature.yml -v /edx/etc/lms.yml:/edx/etc/lms.yml -v ${app_dir}:${app_dir} openedx/lms:latest python3 manage.py lms generate_jwt_signing_key --output-file /tmp/lms_jwt_signature.yml --strip-key-prefix"
+        # generate JWT token, ensure JWT file is mounted as volume
+        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -v /tmp/lms_jwt_signature.yml:/tmp/lms_jwt_signature.yml -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform -v ${app_dir}:${app_dir} edx-platform:latest python3 manage.py lms generate_jwt_signing_key --output-file /tmp/lms_jwt_signature.yml --strip-key-prefix"
     fi
-
-    # Replace deploy_host in app config file with sandbox DNS name
-    # echo "sed -i 's/deploy_host/${dns_name}.${dns_zone}/g' /var/tmp/${app_service_name}.yml"
 
     # Install yq for yaml processing
     echo "wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O /usr/bin/yq && chmod +x /usr/bin/yq"
 
     # Combine app config with jwt_signature config
     echo "yq eval-all '. as \$item ireduce ({}; . *+ \$item)' /edx/etc/${app_service_name}.yml  /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml"
+
+    if [[ ${app_service_name} == 'lms' ]]; then # if lms, perform extra LMS tasks
+        # run lms migrations
+        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform -v ${app_dir}:${app_dir} edx-platform:latest python3 manage.py lms showmigrations --database default --settings \$EDX_PLATFORM_SETTINGS"
+        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform -v ${app_dir}:${app_dir} edx-platform:latest python3 manage.py lms migrate --database default --noinput --settings \$EDX_PLATFORM_SETTINGS"
+        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform -v ${app_dir}:${app_dir} edx-platform:latest python3 manage.py lms showmigrations --database student_module_history --settings \$EDX_PLATFORM_SETTINGS"
+        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform -v ${app_dir}:${app_dir} edx-platform:latest python3 manage.py lms migrate --database student_module_history --noinput --settings \$EDX_PLATFORM_SETTINGS"
+        # generate static assets
+        echo "docker run --network=host --rm -u='root' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform -v ${app_dir}:${app_dir} -v /edx/var/edxapp:/edx/var/edxapp edx-platform:latest paver update_assets --debug-collect --settings \$EDX_PLATFORM_SETTINGS"
+    fi
 
     if [[ ${app_service_name} != 'lms' ]]; then # if not lms, do these things
         # Provision IDA User in LMS
@@ -743,10 +757,6 @@ function provision_containerized_app() {
         echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker"
         echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker"
     fi
-
-    # Checkout code version
-    echo "cd /edx/app/${app_repo}"
-    echo "git checkout ${app_version}"
 
 #    # Create app database
 #    echo "mysql -uroot -e \"CREATE DATABASE \\\`${app_service_name}\\\`;\""
@@ -836,7 +846,7 @@ asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configura
 sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
 
 # copy app config file
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/edx/etc/lms.yml owner=edxapp group=www-data" -u ubuntu -b
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/edx/etc/lms.yml" -u ubuntu -b
 
 # specify variable names
 app_hostname="courses"
