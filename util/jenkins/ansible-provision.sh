@@ -640,7 +640,7 @@ EOF
       export LC_WORKER_IMAGE_NAME="$LC_WORKER_OF"
       export LC_WORKER_SERVICE_REPO="edx-platform"
       export LC_SANDBOX_USER="$github_username"
-      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
+      # ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
       unset LC_WORKER_OF
       unset LC_WORKER_IMAGE_NAME
       unset LC_WORKER_SERVICE_REPO
@@ -709,24 +709,31 @@ function provision_containerized_app() {
     # echo "mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R"
 
     # Checkout code in app directory
-    echo "cd /edx/app/"
-    echo "git clone https://github.com/edx/${app_repo}.git"
+    # echo "cd /edx/app/"
+    echo "git clone https://github.com/edx/${app_repo}.git /edx/app/${app_repo}"
 
     if [[ ${app_service_name} == 'lms' ]]; then # if lms, do these things
+        app_image_name="${app_repo}:latest"
+        app_dir="/edx/app/${app_repo}"
         echo "touch /tmp/lms_jwt_signature.yml"
-        echo "docker pull openedx/lms:latest"
+        echo "if ! $(docker image inspect ${app_image_name} >/dev/null 2>&1 && echo true || echo false) ; then"
+        echo "  cd ${app_dir}"
+        echo "  ls -lah"
+        echo "  export DOCKER_BUILDKIT=1"
+        echo "  docker build . -t ${app_image_name} --target base"
+        echo "fi"
         # generate JWT token, ensure JWT dir is mounted as volume
-        echo "docker run -e LMS_CFG=/edx/etc/lms.yml -v /tmp/lms_jwt_signature.yml:/tmp/lms_jwt_signature.yml -v /var/tmp/lms.yml:/edx/etc/lms.yml openedx/lms:latest python3 manage.py lms generate_jwt_signing_key --output-file /tmp/lms_jwt_signature.yml --strip-key-prefix"
+        echo "docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -v /tmp/lms_jwt_signature.yml:/tmp/lms_jwt_signature.yml -v /edx/etc/lms.yml:/edx/etc/lms.yml -v ${app_dir}:${app_dir} openedx/lms:latest python3 manage.py lms generate_jwt_signing_key --output-file /tmp/lms_jwt_signature.yml --strip-key-prefix"
     fi
 
     # Replace deploy_host in app config file with sandbox DNS name
-    echo "sed -i 's/deploy_host/${dns_name}.${dns_zone}/g' /var/tmp/${app_service_name}.yml"
+    # echo "sed -i 's/deploy_host/${dns_name}.${dns_zone}/g' /var/tmp/${app_service_name}.yml"
 
     # Install yq for yaml processing
     echo "wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O /usr/bin/yq && chmod +x /usr/bin/yq"
 
     # Combine app config with jwt_signature config
-    echo "yq eval-all '. as \$item ireduce ({}; . *+ \$item)' /var/tmp/${app_service_name}.yml  /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml"
+    echo "yq eval-all '. as \$item ireduce ({}; . *+ \$item)' /edx/etc/${app_service_name}.yml  /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml"
 
     if [[ ${app_service_name} != 'lms' ]]; then # if not lms, do these things
         # Provision IDA User in LMS
@@ -826,9 +833,10 @@ function provision_containerized_app() {
 
 # decrypt lms config file
 asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/lms.yml
+sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
 
 # copy app config file
-ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
+ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/edx/etc/lms.yml owner=edxapp group=www-data" -u ubuntu -b
 
 # specify variable names
 app_hostname="courses"
