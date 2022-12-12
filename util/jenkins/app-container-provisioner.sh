@@ -39,6 +39,11 @@ fi
 # Combine app config with jwt_signature config
 cat /edx/etc/${app_service_name}.yml /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml
 
+# create DB
+mysql -u root -e "CREATE DATABASE edxapp;"
+# create DB users
+mysql -u root -e "GRANT ALL PRIVILEGES ON edxapp.* TO 'edxapp001'@'localhost' IDENTIFIED BY 'password';"
+
 if [[ ${app_service_name} == 'lms' ]]; then # if lms, perform extra LMS tasks
     # run lms migrations
     docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes/edx-themes/edx-platform:/edx/var/edx-themes/edx-themes/edx-platform ${app_repo}:latest python3 manage.py lms showmigrations --database default
@@ -51,11 +56,11 @@ fi
 
 if [[ ${app_service_name} != 'lms' ]]; then # if not lms, do these things
     # Provision IDA User in LMS
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser"
+    source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser
 
     # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker"
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker"
+    source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker
+    source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker
 fi
 
 EOF
