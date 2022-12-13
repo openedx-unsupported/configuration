@@ -710,7 +710,7 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
 
     # copy app config file
-    ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/edx/etc/lms.yml" -u ubuntu -b
+    ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
 
     # specify variable names
     app_hostname="courses"
