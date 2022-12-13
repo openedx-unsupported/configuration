@@ -717,7 +717,7 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     app_service_name="lms"
     app_name="edxapp"
     app_repo="edx-platform"
-    app_version="master"
+    app_version=$edxapp_version
     app_gunicorn_port=18000
     app_cfg=EDX_EXAMS_CFG
 
