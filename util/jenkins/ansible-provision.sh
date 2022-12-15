@@ -703,6 +703,9 @@ if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
+# Install yq
+wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O $WORKSPACE/yq && chmod +x $WORKSPACE/yq
+
 ########### work for lms ##############
 if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     # decrypt lms config file
@@ -728,10 +731,13 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
 
     app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
 
+    set +x
+    app_theme_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
+
     # call provision script to generate JWT and combine configs
 
     write_app_deployment_script $app_provision_script
-
+    set -x
     # cat << EOF > $provision_script
     #     $(provision_containerized_app)
     # EOF

@@ -22,9 +22,14 @@ mkdir /edx/var/${app_name}/staticfiles/ -p && chmod 777 /edx/var/${app_name} -R
 
 # if application is lms, download and setup themes
 if [[ ${app_service_name} == 'lms' ]] ; then
+    set +x
+    echo -e "${app_theme_ssh_key}" > /tmp/theme_ssh_key
+    set -x
+    chmod 0600 /tmp/theme_ssh_key
     mkdir /edx/var/edx-themes
-    git clone https://github.com/edx/sample-themes.git /edx/var/edx-themes/edx-themes
+    GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/theme_ssh_key" git clone git@github.com:edx/edx-themes.git /edx/var/edx-themes/edx-themes
     cd /edx/var/edx-themes/edx-themes && git checkout ${themes_version}
+    rm -rf /tmp/theme_ssh_key
 fi
 
 git clone https://github.com/edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
