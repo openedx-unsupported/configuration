@@ -707,10 +707,15 @@ fi
 if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     # decrypt lms config file
     asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/lms.yml
+    # decrypt cms config file
+    asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/studio.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/cms.yml
+
     sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
+    sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/cms.yml
 
     # copy app config file
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
+    ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/cms.yml dest=/var/tmp/cms.yml" -u ubuntu -b
 
     # specify variable names
     app_hostname="courses"
