@@ -720,6 +720,9 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/cms.yml dest=/var/tmp/cms.yml" -u ubuntu -b
 
+    set +x
+    app_theme_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
+
     # specify variable names
     app_hostname="courses"
     app_service_name="lms"
@@ -731,21 +734,31 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
 
     app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
 
-    set +x
-    app_theme_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
-
-    # call provision script to generate JWT and combine configs
-
     write_app_deployment_script $app_provision_script
     set -x
-    # cat << EOF > $provision_script
-    #     $(provision_containerized_app)
-    # EOF
 
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $app_provision_script
 
-    # ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_script}" -u ubuntu -b
-    rm -f "${provision_script}"
+    rm -f "${app_provision_script}"
+
+    # create CMS provision script
+    # specify variable names
+    app_hostname="studio"
+    app_service_name="cms"
+    app_name="edxapp"
+    app_repo="edx-platform"
+    app_version=$edxapp_version
+    app_gunicorn_port=8001
+    app_cfg=CMS_CFG
+
+    app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
+
+    write_app_deployment_script $app_provision_script
+    set -x
+
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $app_provision_script
+
+    rm -f "${app_provision_script}"
 fi
 
 if [[ $edx_exams == 'true' ]]; then
