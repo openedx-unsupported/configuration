@@ -68,9 +68,11 @@ if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
     source "$dir/app-container-provisioner.sh"
+    source "$dir/demo-course-provisioner.sh"
 else
     source "$WORKSPACE/configuration/util/jenkins/ascii-convert.sh"
     source "$WORKSPACE/configuration/util/jenkins/app-container-provisioner.sh"
+    source "$WORKSPACE/configuration/util/jenkins/demo-course-provisioner.sh"
 fi
 
 if [[ -z $static_url_base ]]; then
@@ -721,7 +723,7 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/cms.yml dest=/var/tmp/cms.yml" -u ubuntu -b
 
     set +x
-    app_theme_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
+    app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
 
     # specify variable names
     app_hostname="courses"
@@ -731,6 +733,7 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     app_version=$edxapp_version
     app_gunicorn_port=8000
     app_cfg=LMS_CFG
+    app_admin_password=SANDBOX_ADMIN_PASSWORD
 
     app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
 
@@ -759,6 +762,15 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $app_provision_script
 
     rm -f "${app_provision_script}"
+
+    # create demo course and test users
+    demo_course_provision_script="/var/tmp/demo-provision-script.sh"
+    write_demo_course_script $demo_course_provision_script
+    set -x
+
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $demo_course_provision_script
+
+    rm -f "${demo_course_provision_script}"
 fi
 
 if [[ $edx_exams == 'true' ]]; then

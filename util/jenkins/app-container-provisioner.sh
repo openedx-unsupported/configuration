@@ -25,13 +25,25 @@ fi
 # if application is lms, download and setup themes
 if [[ ${app_service_name} == 'lms' ]] ; then
     set +x
-    echo -e "${app_theme_ssh_key}" > /tmp/theme_ssh_key
+    echo -e "${app_git_ssh_key}" > /tmp/theme_ssh_key
     set -x
     chmod 0600 /tmp/theme_ssh_key
     mkdir /edx/var/edx-themes
     GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/theme_ssh_key" git clone git@github.com:edx/edx-themes.git /edx/var/edx-themes/edx-themes
     cd /edx/var/edx-themes/edx-themes && git checkout ${themes_version}
     rm -rf /tmp/theme_ssh_key
+fi
+
+# if application is cms, copy demo course
+if [[ ${app_service_name} == 'cms' ]] ; then
+    set +x
+    echo -e "${app_git_ssh_key}" > /tmp/demo_ssh_key
+    set -x
+    chmod 0600 /tmp/demo_ssh_key
+    GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/demo_ssh_key" git clone git@github.com:edx/edx-demo-course.git /edx/app/demo/edx-demo-course
+    rm -rf /tmp/demo_ssh_key
+    mkdir /edx/var/edxapp/data
+    chmod 777 /edx/var/edxapp/data
 fi
 
 # checkout git repo. Does not need to be done for CMS because LMS will have already done this step
@@ -121,6 +133,11 @@ $(
 $(
   if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
     echo -e "      - /edx/var/edx-themes:/edx/var/edx-themes"
+  fi
+)
+$(
+  if [[ ${app_service_name} == 'cms' ]]; then
+    echo -e "      - /edx/app/demo:/edx/app/demo"
   fi
 )
 EOT
