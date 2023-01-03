@@ -8,26 +8,31 @@ function write_demo_course_script() {
 
 set -ex
 
+demo_hashed_password='pbkdf2_sha256\$20000\$TjE34FJjc3vv\$0B7GUmH8RwrOc/BvMoxjb5j8EgnWTt3sxorDANeF7Qw='
+
+# Clone demo course
+mkdir /edx/var/edxapp/data
+chmod 777 /edx/var/edxapp/data
+git clone https://github.com/openedx/openedx-demo-course.git /edx/app/demo/edx-demo-course
+
 # import demo course
-docker exec -t cms bash -c "python3 manage.py cms --settings=docker-production import /edx/app/edxapp/data /edx/app/demo/edx-demo-course"
+docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e CMS_CFG=/edx/etc/cms.yml -e DJANGO_SETTINGS_MODULE=cms.envs.docker-production -e SERVICE_VARIANT=cms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/cms.yml:/edx/etc/cms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/app/demo:/edx/app/demo -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py cms import /edx/var/edxapp/data /edx/app/demo/edx-demo-course
 
-# create staff user and enroll
-docker exec -t lms bash -c "python3 manage.py lms --settings=docker-production --service-variant lms manage_user staff staff@example.com --initial-password-hash \\\\"pbkdf2_sha256$20000$TjE34FJjc3vv$0B7GUmH8RwrOc/BvMoxjb5j8EgnWTt3sxorDANeF7Qw=\\\\" --staff && python3 manage.py lms --settings=docker-production --service-variant lms enroll_user_in_course -e staff@example.com -c course-v1:edX+DemoX+Demo_Course"
+# Create admin and demo users
+docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py lms manage_user edx edx@example.com --initial-password-hash \$demo_hashed_password --superuser --staff
+for user in honor audit verified staff ; do
+  email="\$user@example.com"
+  # Set staff flag for staff user
+  if [[ \$user == "staff" ]] ; then
+    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py lms manage_user \$user \$email --initial-password-hash \$demo_hashed_password --staff
+  else
+    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py lms manage_user \$user \$email --initial-password-hash \$demo_hashed_password
+  fi
+  # Enroll users in the demo course
+  docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py lms enroll_user_in_course -e \$email -c course-v1:edX+DemoX+Demo_Course
+done
 
-# create honor user and enroll
-docker exec -t lms bash -c "python3 manage.py lms --settings=docker-production --service-variant lms manage_user honor honor@example.com --initial-password-hash \\\\"pbkdf2_sha256$20000$TjE34FJjc3vv$0B7GUmH8RwrOc/BvMoxjb5j8EgnWTt3sxorDANeF7Qw=\\\\" && python3 manage.py lms --settings=docker-production --service-variant lms enroll_user_in_course -e honor@example.com -c course-v1:edX+DemoX+Demo_Course"
-
-# create audit user and enroll
-docker exec -t lms bash -c "python3 manage.py lms --settings=docker-production --service-variant lms manage_user audit audit@example.com --initial-password-hash \\\\"pbkdf2_sha256$20000$TjE34FJjc3vv$0B7GUmH8RwrOc/BvMoxjb5j8EgnWTt3sxorDANeF7Qw=\\\\" && python3 manage.py lms --settings=docker-production --service-variant lms enroll_user_in_course -e audit@example.com -c course-v1:edX+DemoX+Demo_Course"
-
-# create verified user and enroll
-docker exec -t lms bash -c "python3 manage.py lms --settings=docker-production --service-variant lms manage_user verified verified@example.com --initial-password-hash \\\\"pbkdf2_sha256$20000$TjE34FJjc3vv$0B7GUmH8RwrOc/BvMoxjb5j8EgnWTt3sxorDANeF7Qw=\\\\" && python3 manage.py lms --settings=docker-production --service-variant lms enroll_user_in_course -e verified@example.com -c course-v1:edX+DemoX+Demo_Course"
-
-# create admin user
-docker exec -t lms bash -c "python3 manage.py lms --settings=docker-production --service-variant lms manage_user admin admin@example.com --initial-password-hash \\\\"${app_admin_password}\\\\" --staff --superuser"
-
-# seed forums
-docker exec -t lms bash -c "python3 manage.py lms --settings=docker-production --service-variant lms seed_permission_roles course-v1:edX+DemoX+Demo_Course"
-
+# Seed forums for the demo course
+docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py lms seed_permissions_roles course-v1:edX+DemoX+Demo_Course
 EOF
 }
