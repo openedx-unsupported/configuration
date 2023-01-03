@@ -763,6 +763,10 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
 
     rm -f "${app_provision_script}"
 
+    # set admin password for demo users
+    set +x
+    admin_hashed_password="$($WORKSPACE/yq '.SANDBOX_ADMIN_PASSWORD' $WORKSPACE/configuration-internal/ansible/vars/developer-sandbox.yml)"
+
     # create demo course and test users
     demo_course_provision_script="/var/tmp/demo-provision-script.sh"
     write_demo_course_script $demo_course_provision_script
