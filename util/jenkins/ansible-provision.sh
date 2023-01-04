@@ -611,7 +611,10 @@ done
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
     if [[ $edxapp_workers_docker_container_enabled == "true" ]]; then
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false -e @roles/edxapp/defaults/main.yml --user ubuntu
+      cat << EOF > $WORKSPACE/celery_worker_extra_var.yml
+edxapp_celery_worker: false
+EOF
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/celery_worker_extra_var.yml -e @roles/edxapp/defaults/main.yml --user ubuntu
       # run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false --user ubuntu
       # Export LC_* vars. To be passed to remote instance via SSH where SSH configuration allows LC_* to be accepted as environment variables.
       # LC_* is normally used for passing through locale settings of SSH clients to SSH servers.
@@ -643,14 +646,18 @@ EOF
       export LC_WORKER_OF="edxapp"
       export LC_WORKER_IMAGE_NAME="$LC_WORKER_OF"
       export LC_WORKER_SERVICE_REPO="edx-platform"
+      export LC_WORKER_SERVICE_REPO_VERSION="$edxapp_version"
       export LC_SANDBOX_USER="$github_username"
-      # ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
+      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
       unset LC_WORKER_OF
       unset LC_WORKER_IMAGE_NAME
       unset LC_WORKER_SERVICE_REPO
       unset LC_SANDBOX_USER
     else
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=true --user ubuntu
+      cat << EOF > $WORKSPACE/celery_worker_extra_var.yml
+edxapp_celery_worker: true
+EOF
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/celery_worker_extra_var.yml --user ubuntu
     fi
 fi
 

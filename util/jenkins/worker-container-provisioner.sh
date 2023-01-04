@@ -55,6 +55,16 @@ EOF
 
 install_pre_reqs
 
+# checkout git repo
+if [ ! -d "/edx/app/${LC_WORKER_OF}" ]; then
+  mkdir /edx/app/${LC_WORKER_OF}
+fi
+
+if [ ! -d "/edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}" ]; then
+  git clone https://github.com/edx/${LC_WORKER_SERVICE_REPO}.git /edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}
+  cd /edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO} && git checkout ${LC_WORKER_SERVICE_REPO_VERSION}
+fi
+
 # Check if docker image already exists. If it doesn't, build it.
 if ! $(docker image inspect ${LC_WORKER_IMAGE_NAME}:latest >/dev/null 2>&1 && echo true || echo false) ; then
   cd /edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}

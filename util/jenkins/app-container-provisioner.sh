@@ -34,8 +34,12 @@ if [[ ${app_service_name} == 'lms' ]] ; then
     rm -rf /tmp/theme_ssh_key
 fi
 
-# checkout git repo. Does not need to be done for CMS because LMS will have already done this step
-if [[ ${app_service_name} != 'cms' ]] ; then
+# checkout git repo
+if [ ! -d "/edx/app/${app_name}" ]; then
+  mkdir /edx/app/${app_name}
+fi
+
+if [[ ! -d "/edx/app/${app_name}/${app_repo}" ]] ; then
     git clone https://github.com/edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
     cd /edx/app/${app_name}/${app_repo} && git checkout ${app_version}
 fi
