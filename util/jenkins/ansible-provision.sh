@@ -677,8 +677,49 @@ fi
 # Install yq
 wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O $WORKSPACE/yq && chmod +x $WORKSPACE/yq
 
+function provision_fluentd() {
+    echo "#!/usr/bin/env bash"
+    echo "set -ex"
+
+    # add tracking log file to host instance
+    echo "touch /var/tmp/tracking_logs.log"
+    echo "chown www-data:www-data /var/tmp/tracking_logs.log"
+
+    echo "docker pull fluent/fluentd:edge-debian"
+
+    # create fluentd config
+    echo "fluentd_config=/var/tmp/fluentd.conf"
+    echo "cat << 'EOF' > \$fluentd_config
+    <source>
+        @type tail
+        path /var/tmp/tracking_logs.log
+        pos_file /var/tmp/tracking_logs.pos
+        rotate_wait 10
+        tag *
+        <parse>
+            @type none
+        </parse>
+    </source>
+
+    <match **>
+        @type stdout
+    </match>
+EOF"
+    echo "docker run -d --name fluentd --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
+}
+
 ########### work for lms ##############
 if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
+
+    # create fluentd container for processing tracking logs
+    provision_fluentd_script="/var/tmp/provision-fluentd-script.sh"
+cat << EOF > $provision_fluentd_script
+$(provision_fluentd)
+EOF
+    ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_fluentd_script}" -u ubuntu -b
+
+    rm -f "${provision_fluentd_script}"
+
     # decrypt lms config file
     asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/lms.yml
     # decrypt cms config file
@@ -804,42 +845,6 @@ EOF
     ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_script}" -u ubuntu -b
 
     rm -f "${provision_script}"
-fi
-
-function provision_fluentd() {
-    echo "#!/usr/bin/env bash"
-    echo "set -ex"
-
-    echo "docker pull fluent/fluentd:edge-debian"
-
-    echo "fluentd_config=/var/tmp/fluentd.conf"
-    echo "cat << 'EOF' > \$fluentd_config
-    <source>
-        @type tail
-        path /var/tmp/tracking_logs.log
-        pos_file /var/log/tracking_logs.pos
-        rotate_wait 10
-        tag *
-        <parse>
-            @type none
-        </parse>
-    </source>
-
-    <match **>
-        @type stdout
-    </match>
-EOF"
-    echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
-}
-
-if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
-    provision_fluentd_script="/var/tmp/provision-fluentd-script.sh"
-cat << EOF > $provision_fluentd_script
-$(provision_fluentd)
-EOF
-    ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_fluentd_script}" -u ubuntu -b
-
-    rm -f "${provision_fluentd_script}"
 fi
 
 rm -f "$extra_vars_file"

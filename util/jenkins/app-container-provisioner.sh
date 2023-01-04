@@ -129,6 +129,7 @@ $(
 $(
   if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
     echo -e "      - /edx/var/edx-themes:/edx/var/edx-themes"
+    echo -e "      - /var/tmp/tracking_logs.log:/var/tmp/tracking_logs.log"
   fi
 )
 $(
