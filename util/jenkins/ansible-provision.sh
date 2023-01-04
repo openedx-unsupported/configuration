@@ -832,7 +832,7 @@ EOF"
     echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
 }
 
-if [[ $fluentd_logging == 'true' ]]; then
+if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     provision_fluentd_script="/var/tmp/provision-fluentd-script.sh"
 cat << EOF > $provision_fluentd_script
 $(provision_fluentd)
