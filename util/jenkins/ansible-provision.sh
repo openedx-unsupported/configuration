@@ -615,44 +615,6 @@ if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scra
 edxapp_celery_worker: false
 EOF
       run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/celery_worker_extra_var.yml -e @roles/edxapp/defaults/main.yml --user ubuntu
-      # run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false --user ubuntu
-      # Export LC_* vars. To be passed to remote instance via SSH where SSH configuration allows LC_* to be accepted as environment variables.
-      # LC_* is normally used for passing through locale settings of SSH clients to SSH servers.
-      export LC_WORKER_CFG=$(cat <<EOF
-worker_cfg:
-  - queue: default
-    service_variant: cms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: high
-    service_variant: cms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: default
-    service_variant: lms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: high
-    service_variant: lms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: high_mem
-    service_variant: lms
-    concurrency: 1
-    prefetch_optimization: default
-EOF
-)
-      # Remote SSH configuration allows using LC_* (normally for locale variables) to be passed as environment variables to the remote instance.
-      export LC_WORKER_OF="edxapp"
-      export LC_WORKER_IMAGE_NAME="$LC_WORKER_OF"
-      export LC_WORKER_SERVICE_REPO="edx-platform"
-      export LC_WORKER_SERVICE_REPO_VERSION="$edxapp_version"
-      export LC_SANDBOX_USER="$github_username"
-      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
-      unset LC_WORKER_OF
-      unset LC_WORKER_IMAGE_NAME
-      unset LC_WORKER_SERVICE_REPO
-      unset LC_SANDBOX_USER
     else
       cat << EOF > $WORKSPACE/celery_worker_extra_var.yml
 edxapp_celery_worker: true
@@ -758,7 +720,7 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     app_name="edxapp"
     app_repo="edx-platform"
     app_version=$edxapp_version
-    app_gunicorn_port=8001
+    app_gunicorn_port=8010
     app_cfg=CMS_CFG
 
     app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
@@ -782,6 +744,45 @@ if [[ $edxapp_workers_docker_container_enabled == 'true' ]]; then
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $demo_course_provision_script
 
     rm -f "${demo_course_provision_script}"
+
+    # edxapp celery workers
+    # Export LC_* vars. To be passed to remote instance via SSH where SSH configuration allows LC_* to be accepted as environment variables.
+    # LC_* is normally used for passing through locale settings of SSH clients to SSH servers.
+    export LC_WORKER_CFG=$(cat <<EOF
+worker_cfg:
+  - queue: default
+    service_variant: cms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: high
+    service_variant: cms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: default
+    service_variant: lms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: high
+    service_variant: lms
+    concurrency: 1
+    prefetch_optimization: default
+  - queue: high_mem
+    service_variant: lms
+    concurrency: 1
+    prefetch_optimization: default
+EOF
+)
+    # Remote SSH configuration allows using LC_* (normally for locale variables) to be passed as environment variables to the remote instance.
+    export LC_WORKER_OF="edxapp"
+    export LC_WORKER_IMAGE_NAME="$LC_WORKER_OF"
+    export LC_WORKER_SERVICE_REPO="edx-platform"
+    export LC_WORKER_SERVICE_REPO_VERSION="$edxapp_version"
+    export LC_SANDBOX_USER="$github_username"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
+    unset LC_WORKER_OF
+    unset LC_WORKER_IMAGE_NAME
+    unset LC_WORKER_SERVICE_REPO
+    unset LC_SANDBOX_USER
 fi
 
 if [[ $edx_exams == 'true' ]]; then
