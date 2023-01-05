@@ -685,10 +685,10 @@ function provision_fluentd() {
     echo "touch /var/tmp/tracking_logs.log"
     echo "chown www-data:www-data /var/tmp/tracking_logs.log"
 
-    echo "docker pull fluent/fluentd:edge-debian"
+    echo "mkdir /var/tmp/fluentd"
 
     # create fluentd config
-    echo "fluentd_config=/var/tmp/fluentd.conf"
+    echo "fluentd_config=/var/tmp/fluentd/fluentd.conf"
     echo "cat << 'EOF' > \$fluentd_config
     <source>
         @type tail
@@ -702,10 +702,43 @@ function provision_fluentd() {
     </source>
 
     <match **>
-        @type stdout
+        @type s3
+        s3_bucket fluentd-alangsto
+        s3_region us-east-1
+        path logs/
+        <format>
+            @type json
+        </format>
+        <buffer tag,time>
+            @type file
+            path /var/tmp/fluent/s3
+            timekey 3600 # 1 hour partition
+            timekey_wait 10m
+            timekey_use_utc true # use utc
+            chunk_limit_size 256m
+        </buffer>
     </match>
 EOF"
-    echo "docker run -d --name fluentd --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
+
+    # pull entrypoint.sh file and create fluentd dockerfile with s3 plugin
+    echo "curl https://raw.githubusercontent.com/fluent/fluentd-docker-image/master/v1.15/alpine/entrypoint.sh > /var/tmp/fluentd/entrypoint.sh"
+    echo "chmod +x /var/tmp/fluentd/entrypoint.sh"
+
+    echo "fluentd_dockerfile=/var/tmp/fluentd/Dockerfile"
+    echo "cat << 'EOF' > \$fluentd_dockerfile
+    FROM fluent/fluentd:v1.15-1
+    USER root
+    RUN fluent-gem install fluent-plugin-s3
+    COPY fluentd.conf /fluentd/etc/fluentd.conf
+    COPY entrypoint.sh /bin/
+    USER fluent
+EOF"
+
+    # build dockerfile
+    echo "cd /var/tmp/fluentd && docker build -t s3-fluentd:latest ./"
+
+    # run docker image
+    echo "docker run -d --name fluentd --network host -v /var/tmp:/var/tmp s3-fluentd:latest -c /fluentd/etc/fluentd.conf"
 }
 
 ########### work for lms ##############
