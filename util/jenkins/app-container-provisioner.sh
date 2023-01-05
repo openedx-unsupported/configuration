@@ -9,7 +9,7 @@ function write_app_deployment_script() {
 set -ex
 
 # Install yq for yaml processing
-wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O /usr/bin/yq && chmod +x /usr/bin/yq
+wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 -O /usr/bin/yq && chmod +x /usr/bin/yq
 
 chown :www-data /var/tmp/${app_service_name}.yml
 
@@ -25,7 +25,7 @@ fi
 # if application is lms, download and setup themes
 if [[ ${app_service_name} == 'lms' ]] ; then
     set +x
-    echo -e "${app_theme_ssh_key}" > /tmp/theme_ssh_key
+    echo -e "${app_git_ssh_key}" > /tmp/theme_ssh_key
     set -x
     chmod 0600 /tmp/theme_ssh_key
     mkdir /edx/var/edx-themes
@@ -34,8 +34,12 @@ if [[ ${app_service_name} == 'lms' ]] ; then
     rm -rf /tmp/theme_ssh_key
 fi
 
-# checkout git repo. Does not need to be done for CMS because LMS will have already done this step
-if [[ ${app_service_name} != 'cms' ]] ; then
+# checkout git repo
+if [ ! -d "/edx/app/${app_name}" ]; then
+  mkdir /edx/app/${app_name}
+fi
+
+if [[ ! -d "/edx/app/${app_name}/${app_repo}" ]] ; then
     git clone https://github.com/edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
     cd /edx/app/${app_name}/${app_repo} && git checkout ${app_version}
 fi
@@ -65,21 +69,25 @@ chown :www-data /edx/etc/${app_service_name}.yml
 
 if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
     # run migrations
-    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} showmigrations --database default
-    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} migrate --database default --noinput
-    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} showmigrations --database student_module_history
-    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e LMS_CFG=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} migrate --database student_module_history --noinput
+    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} showmigrations --database default
+    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} migrate --database default --noinput
+    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} showmigrations --database student_module_history
+    docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} migrate --database student_module_history --noinput
 else
     # Run app migrations
     docker run --network=host --rm -u='www-data' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_name}:/edx/var/${app_name} -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py migrate
     # Generate static assets
     docker run --network=host --rm -u='root' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_name}:/edx/var/${app_name} -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py collectstatic --noinput
+fi
+
+# oauth client setup
+if [[ ${app_service_name} != 'lms' ]]; then
     # Provision IDA User in LMS
-    docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser
+    docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms manage_user $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}_; fi)${app_service_name}_worker $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}_; fi)${app_service_name}_worker@example.com --staff --superuser
 
     # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
-    docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker
-    docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker
+    docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '$(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}-; fi)${app_service_name}-sso-key' --client-secret '$(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}-; fi)${app_service_name}-sso-secret' --scopes 'user_id' $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}-; fi)${app_service_name}-sso $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}_; fi)${app_service_name}_worker
+    docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms create_dot_application --grant-type client-credentials --client-id '$(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}-; fi)${app_service_name}-backend-service-key' --client-secret '$(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}-; fi)${app_service_name}-backend-service-secret' $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}-; fi)${app_service_name}-backend-service $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}_; fi)${app_service_name}_worker
 fi
 
 # generate lms/cms static assets
@@ -121,6 +129,11 @@ $(
 $(
   if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
     echo -e "      - /edx/var/edx-themes:/edx/var/edx-themes"
+  fi
+)
+$(
+  if [[ ${app_service_name} == 'cms' ]]; then
+    echo -e "      - /edx/app/demo:/edx/app/demo"
   fi
 )
 EOT
