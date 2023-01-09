@@ -283,7 +283,7 @@ edx_platform_repo: ${edx_platform_repo}
 
 EDXAPP_PLATFORM_NAME: $sandbox_platform_name
 SANDBOX_CONFIG: True
-CONFIGURE_JWTS: True
+CONFIGURE_JWTS: False
 
 EDXAPP_STATIC_URL_BASE: $static_url_base
 EDXAPP_LMS_NGINX_PORT: 80

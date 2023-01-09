@@ -39,21 +39,21 @@
   when: item != None and item != ''
   with_items: "{{ edxlocal_databases }}"
 
-#- name: create api user for the analytics api
-#  mysql_user:
-#    name: "{{ ANALYTICS_API_DATABASES.default.USER }}"
-#    password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
-#    priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
-#    login_unix_socket: "{{ mysql_socket }}"
-#  when: ANALYTICS_API_DATABASES is defined and ANALYTICS_API_DATABASES.default is defined
-#
-#- name: create read-only reports user for the analytics-api
-#  mysql_user:
-#    name: "{{ ANALYTICS_API_DATABASES.reports.USER }}"
-#    password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
-#    priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
-#    login_unix_socket: "{{ mysql_socket }}"
-#  when: ANALYTICS_API_DATABASES is defined and ANALYTICS_API_DATABASES.reports is defined
+- name: create api user for the analytics api
+  mysql_user:
+    name: "{{ ANALYTICS_API_DATABASES.default.USER }}"
+    password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
+    priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+    login_unix_socket: "{{ mysql_socket }}"
+  when: ANALYTICS_API_DATABASES is defined and ANALYTICS_API_DATABASES.default is defined
+
+- name: create read-only reports user for the analytics-api
+  mysql_user:
+    name: "{{ ANALYTICS_API_DATABASES.reports.USER }}"
+    password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
+    priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+    login_unix_socket: "{{ mysql_socket }}"
+  when: ANALYTICS_API_DATABASES is defined and ANALYTICS_API_DATABASES.reports is defined
 
 - name: create a database for the hive metastore
   mysql_db:
@@ -63,13 +63,13 @@
     login_unix_socket: "{{ mysql_socket }}"
   when: HIVE_METASTORE_DATABASE is defined
 
-#- name: setup the edx-notes-api db user
-#  mysql_user:
-#    name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
-#    password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
-#    priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
-#    login_unix_socket: "{{ mysql_socket }}"
-#  when: EDX_NOTES_API_MYSQL_DB_USER is defined
+- name: setup the edx-notes-api db user
+  mysql_user:
+    name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
+    password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
+    priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
+    login_unix_socket: "{{ mysql_socket }}"
+  when: EDX_NOTES_API_MYSQL_DB_USER is defined
 
 - name: setup the read-only db user
   mysql_user:
