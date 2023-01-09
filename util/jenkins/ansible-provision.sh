@@ -611,15 +611,16 @@ done
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
     if [[ $edxapp_workers_docker_container_enabled == "true" ]]; then
-      cat << EOF > $WORKSPACE/celery_worker_extra_var.yml
-edxapp_celery_worker: false
+      cat << EOF > $WORKSPACE/edxapp_extra_var.yml
+edxapp_containerized: true
 EOF
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/celery_worker_extra_var.yml -e @roles/edxapp/defaults/main.yml --user ubuntu
+      cat $WORKSPACE/edxapp_extra_var.yml
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/edxapp_extra_var.yml --user ubuntu
     else
-      cat << EOF > $WORKSPACE/celery_worker_extra_var.yml
-edxapp_celery_worker: true
+      cat << EOF > $WORKSPACE/edxapp_extra_var.yml
+edxapp_containerized: false
 EOF
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/celery_worker_extra_var.yml --user ubuntu
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/edxapp_extra_var.yml --user ubuntu
     fi
 fi
 

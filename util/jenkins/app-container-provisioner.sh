@@ -80,6 +80,19 @@ else
     docker run --network=host --rm -u='root' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_name}:/edx/var/${app_name} -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py collectstatic --noinput
 fi
 
+# Setup oauth clients for service other than CMS as part of the LMS setup
+if [[ ${app_service_name} == 'lms' ]]; then
+    service_worker_users=(enterprise veda discovery credentials insights registrar designer license_manager commerce_coordinator enterprise_catalog ecommerce retirement)
+    # Provision IDA User in LMS
+    for service_worker in "\${service_worker_users[@]}"; do
+      docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms manage_user \${service_worker}_worker \${service_worker}_worker@example.com --staff --superuser
+
+      # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
+      docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '\${service_worker}-sso-key' --client-secret '\${service_worker}-sso-secret' --scopes 'user_id' \${service_worker}-sso \${service_worker}_worker
+      docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms create_dot_application --grant-type client-credentials --client-id '\${service_worker}-backend-service-key' --client-secret '\${service_worker}-backend-service-secret' \${service_worker}-backend-service \${service_worker}_worker
+    done
+fi
+
 # oauth client setup
 if [[ ${app_service_name} != 'lms' ]]; then
     # Provision IDA User in LMS
