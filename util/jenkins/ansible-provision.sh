@@ -388,6 +388,21 @@ COMMERCE_COORDINATOR_ENABLED: $commerce_coordinator
 COMMERCE_COORDINATOR_DECRYPT_CONFIG_ENABLED: true
 COMMERCE_COORDINATOR_COPY_CONFIG_ENABLED: true
 
+EDX_EXAMS_NGINX_PORT: 80
+EDX_EXAMS_SSL_NGINX_PORT: 443
+EDX_EXAMS_DEFAULT_DB_NAME: 'edx_exams'
+EDX_EXAMS_MYSQL_USER: 'edx_exams001'
+EDX_EXAMS_MYSQL_PASSWORD: 'password'
+edx_exams_service_name: 'edx_exams'
+EDX_EXAMS_URL_ROOT: https://edx-exams-${deploy_host}
+EDX_EXAMS_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'edx_exams-sso-key'
+EDX_EXAMS_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'edx_exams-sso-secret'
+EDX_EXAMS_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'edx_exams-backend-service-key'
+EDX_EXAMS_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'edx_exams-backend-service-secret'
+EDX_EXAMS_LOGOUT_URL: '{{ EDX_EXAMS_URL_ROOT }}/logout/'
+EDX_EXAMS_SERVICE_USER_EMAIL: 'edx_exams_worker@example.com'
+EDX_EXAMS_SERVICE_USER_NAME: 'edx_exams_worker'
+
 ENTERPRISE_CATALOG_NGINX_PORT: 80
 ENTERPRISE_CATALOG_SSL_NGINX_PORT: 443
 ENTERPRISE_CATALOG_VERSION: $enterprise_catalog_version
@@ -425,6 +440,8 @@ ORA_GRADING_MFE_ENABLED: $ora_grading
 ORA_GRADING_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
+
+edxapp_container_enabled: $edxapp_container_enabled
 
 # User provided extra vars
 $extra_vars
@@ -855,21 +872,21 @@ if [[ $edx_exams == 'true' ]]; then
 
     app_hostname="edx-exams"
     app_service_name="edx_exams"
+    app_name="edx-exams"
     app_repo="edx-exams"
     app_version=$edx_exams_version
     app_gunicorn_port=18740
     app_cfg=EDX_EXAMS_CFG
 
-    provision_script="/var/tmp/provision-script-$$.sh"
-cat << EOF > $provision_script
-$(provision_containerized_app)
-EOF
+    app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
 
-    # copy app config file and run script to deploy app
+    write_app_deployment_script $app_provision_script
+    set -x
+
+    sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/configuration-internal/k8s-sandbox-config/$app_service_name.yml
     ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${WORKSPACE}/configuration-internal/k8s-sandbox-config/${app_service_name}.yml dest=/var/tmp/${app_service_name}.yml" -u ubuntu -b
-    ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_script}" -u ubuntu -b
-
-    rm -f "${provision_script}"
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $app_provision_script
+    rm -f "${app_provision_script}"
 fi
 
 rm -f "$extra_vars_file"
