@@ -28,9 +28,11 @@ if [[ ${app_service_name} == 'lms' && ! -d /edx/var/edx-themes ]] ; then
     echo -e "${app_git_ssh_key}" > /tmp/theme_ssh_key
     set -x
     chmod 0600 /tmp/theme_ssh_key
-    mkdir /edx/var/edx-themes
+    useradd -m -d /edx/var/edx-themes edx-themes -G www-data
     GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/theme_ssh_key" git clone git@github.com:edx/edx-themes.git /edx/var/edx-themes/edx-themes
     cd /edx/var/edx-themes/edx-themes && git checkout ${themes_version}
+    chown -R edx-themes:www-data /edx/var/edx-themes
+    sudo -u edx-themes git config --global safe.directory '/edx/var/edx-themes/edx-themes'
     rm -rf /tmp/theme_ssh_key
 fi
 
@@ -85,7 +87,7 @@ if [[ ${app_service_name} == 'lms' ]]; then
     service_worker_users=(enterprise veda discovery credentials insights registrar designer license_manager commerce_coordinator enterprise_catalog ecommerce retirement)
     # Provision IDA User in LMS
     for service_worker in "\${service_worker_users[@]}"; do
-      app_hostname=\$service_worker
+      app_hostname=\${service_worker/_/-}
       docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms manage_user \${service_worker}_worker \${service_worker}_worker@example.com --staff --superuser
 
       # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
