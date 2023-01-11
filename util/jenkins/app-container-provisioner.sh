@@ -19,7 +19,7 @@ fi
 
 if [[ ${app_service_name} != 'cms' && ${app_service_name} != 'lms' ]] ; then
     # Create app staticfiles dir
-    mkdir /edx/var/${app_name}/staticfiles/ -p && chmod 777 /edx/var/${app_name} -R
+    mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R
 fi
 
 # if application is lms, download and setup themes
@@ -77,14 +77,14 @@ if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
     docker run --network=host --rm -u='www-data' -e NO_PREREQ_INSTALL="1" -e SKIP_WS_MIGRATIONS="1" -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production -e SERVICE_VARIANT=${app_service_name} -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py ${app_service_name} migrate --database student_module_history --noinput
 else
     # Run app migrations
-    docker run --network=host --rm -u='www-data' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_name}:/edx/var/${app_name} -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py migrate
+    docker run --network=host --rm -u='www-data' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.settings.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_name}:/edx/var/${app_name} -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py migrate
     # Generate static assets
-    docker run --network=host --rm -u='root' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.envs.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_name}:/edx/var/${app_name} -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py collectstatic --noinput
+    docker run --network=host --rm -u='root' -e ${app_cfg}=/edx/etc/${app_service_name}.yml -e DJANGO_SETTINGS_MODULE=${app_service_name}.settings.production -v /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml -v /edx/var/${app_service_name}/staticfiles/:/var/tmp/ -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock ${app_repo}:latest python3 manage.py collectstatic --noinput
 fi
 
 # Setup oauth clients for service other than CMS as part of the LMS setup
 if [[ ${app_service_name} == 'lms' ]]; then
-    service_worker_users=(enterprise veda discovery credentials insights registrar designer license_manager commerce_coordinator enterprise_catalog ecommerce retirement)
+    service_worker_users=(enterprise veda discovery credentials insights registrar designer license_manager commerce_coordinator enterprise_catalog ecommerce retirement edx_exams)
     # Provision IDA User in LMS
     for service_worker in "\${service_worker_users[@]}"; do
       app_hostname=\${service_worker/_/-}
@@ -97,7 +97,7 @@ if [[ ${app_service_name} == 'lms' ]]; then
 fi
 
 # oauth client setup
-if [[ ${app_service_name} != 'lms' ]]; then
+if [[ ${app_service_name} != 'lms' && ${edxapp_container_enabled} == 'true' ]]; then
     # Provision IDA User in LMS
     docker run --network=host --rm -u='www-data' -e LMS_CFG=/edx/etc/lms.yml -e DJANGO_SETTINGS_MODULE=lms.envs.docker-production -e SERVICE_VARIANT=lms -e EDX_PLATFORM_SETTINGS=docker-production -v /edx/etc/lms.yml:/edx/etc/lms.yml -v /edx/var/edx-themes:/edx/var/edx-themes -v /edx/var/edxapp:/edx/var/edxapp -v /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock edx-platform:latest python3 manage.py lms manage_user $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}_; fi)${app_service_name}_worker $(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}_; fi)${app_service_name}_worker@example.com --staff --superuser
 
@@ -122,30 +122,34 @@ services:
     stdin_open: true
     tty: true
     container_name: ${app_service_name}
-    command: bash -c "gunicorn --workers=2 --name ${app_service_name} -c /edx/app/${app_name}/${app_repo}/${app_service_name}/docker_${app_service_name}_gunicorn.py --log-file - --max-requests=1000 ${app_service_name}.wsgi:application"
+    command: bash -c "gunicorn --workers=2 --name ${app_service_name} -c /edx/app/$(if [[ ${app_name} == 'edxapp' ]]; then echo ${app_name}/; fi)${app_repo}/${app_service_name}/$(if [[ ${app_name} == 'edxapp' ]]; then echo docker_${app_service_name}_gunicorn.py; else echo docker_gunicorn_configuration.py; fi) --log-file - --max-requests=1000 ${app_service_name}.wsgi:application"
     user: "www-data:www-data"
     network_mode: 'host'
     restart: on-failure
     environment:
-      - ${app_cfg}=/edx/etc/${app_service_name}.yml
       - EDX_REST_API_CLIENT_NAME=sandbox-edx-${app_service_name}
 $(
   if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
     echo -e "      - DJANGO_SETTINGS_MODULE=${app_service_name}.envs.docker-production"
     echo -e "      - EDX_PLATFORM_SETTINGS=docker-production"
     echo -e "      - SERVICE_VARIANT=${app_service_name}"
+    echo -e "      - ${app_cfg}=/edx/etc/${app_service_name}.yml"
   else
-    echo -e "      - DJANGO_SETTINGS_MODULE=${app_service_name}.envs.production"
+    echo -e "      - DJANGO_SETTINGS_MODULE=${app_service_name}.settings.production"
+    echo -e "      - ${app_cfg}=/${app_service_name}.yml"
   fi
 )
     volumes:
-      - /edx/var/${app_name}:/edx/var/${app_name}
-      - /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml
       - /var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock
 $(
   if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
+    echo -e "      - /edx/var/${app_name}:/edx/var/${app_name}"
     echo -e "      - /edx/var/edx-themes:/edx/var/edx-themes"
     echo -e "      - /var/tmp/tracking_logs.log:/var/tmp/tracking_logs.log"
+    echo -e "      - /edx/etc/${app_service_name}.yml:/edx/etc/${app_service_name}.yml"
+  else
+    echo -e "      - /edx/var/${app_service_name}/staticfiles/:/var/tmp/"
+    echo -e "      - /edx/etc/${app_service_name}.yml:/${app_service_name}.yml"
   fi
 )
 $(
