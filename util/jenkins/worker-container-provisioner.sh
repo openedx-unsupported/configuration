@@ -13,8 +13,8 @@ function install_pre_reqs() {
 function render_docker_compose() {
   # Set common environment variables and volumes for edxapp celery workers
   if [ "${LC_WORKER_OF}" == "edxapp" ] ; then
-    worker_service_volume_mappings=("/edx/var/edxapp:/edx/var/edxapp" "/edx/app/edxapp/edx-platform:/edx/app/edxapp/edx-platform" "/edx/etc/lms.yml:/edx/etc/lms.yml" "/edx/etc/studio.yml:/edx/etc/studio.yml" "/edx/app/${LC_WORKER_OF}/.boto:/edx/app/${LC_WORKER_OF}/.boto" "/var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock" "/dev/log:/dev/log")
-    worker_service_env_mappings=("CONCURRENCY=1" "LOGLEVEL=info" "LANG=en_US.UTF-8" "PYTHONPATH=/edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}" "BOTO_CONFIG=/edx/app/${LC_WORKER_OF}/.boto" "LMS_CFG=/edx/etc/lms.yml" "STUDIO_CFG=/edx/etc/studio.yml" "CMS_CFG=/edx/etc/studio.yml")
+    worker_service_volume_mappings=("/edx/var/edxapp:/edx/var/edxapp" "/edx/etc/lms.yml:/edx/etc/lms.yml" "/edx/etc/cms.yml:/edx/etc/cms.yml" "/edx/app/${LC_WORKER_OF}/.boto:/edx/app/${LC_WORKER_OF}/.boto" "/var/run/mysqld/mysqld.sock:/var/run/mysqld/mysqld.sock")
+    worker_service_env_mappings=("CONCURRENCY=1" "LOGLEVEL=info" "LANG=en_US.UTF-8" "PYTHONPATH=/edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}" "BOTO_CONFIG=/edx/app/${LC_WORKER_OF}/.boto" "LMS_CFG=/edx/etc/lms.yml" "STUDIO_CFG=/edx/etc/cms.yml" "CMS_CFG=/edx/etc/cms.yml")
   fi
 
   worker_celery_path="/edx/app/${LC_WORKER_OF}/venvs/${LC_WORKER_OF}/bin/celery"
@@ -43,7 +43,8 @@ $(
     done
       echo -e "    environment:"
       echo -e "      - SERVICE_VARIANT=${worker_service_variant}"
-      echo -e "      - DJANGO_SETTINGS_MODULE=${worker_service_variant}.envs.production"
+      echo -e "      - DJANGO_SETTINGS_MODULE=${worker_service_variant}.envs.docker-production"
+      echo -e "      - EDX_PLATFORM_SETTINGS=docker-production"
       echo -e "      - EDX_REST_API_CLIENT_NAME=edx.${worker_service_variant}.core.${worker_queue}"
     for env_map in ${worker_service_env_mappings[@]} ; do
       echo -e "      - ${env_map}"
@@ -54,6 +55,16 @@ EOF
 }
 
 install_pre_reqs
+
+# checkout git repo
+if [ ! -d "/edx/app/${LC_WORKER_OF}" ]; then
+  mkdir /edx/app/${LC_WORKER_OF}
+fi
+
+if [ ! -d "/edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}" ]; then
+  git clone https://github.com/edx/${LC_WORKER_SERVICE_REPO}.git /edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO}
+  cd /edx/app/${LC_WORKER_OF}/${LC_WORKER_SERVICE_REPO} && git checkout ${LC_WORKER_SERVICE_REPO_VERSION}
+fi
 
 # Check if docker image already exists. If it doesn't, build it.
 if ! $(docker image inspect ${LC_WORKER_IMAGE_NAME}:latest >/dev/null 2>&1 && echo true || echo false) ; then

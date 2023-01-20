@@ -46,6 +46,40 @@ run_ansible() {
   fi
 }
 
+# Install yq
+wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O $WORKSPACE/yq && chmod +x $WORKSPACE/yq
+
+function provision_fluentd() {
+    echo "#!/usr/bin/env bash"
+    echo "set -ex"
+
+    # add tracking log file to host instance
+    echo "touch /var/tmp/tracking_logs.log"
+    echo "chown www-data:www-data /var/tmp/tracking_logs.log"
+
+    echo "docker pull fluent/fluentd:edge-debian"
+
+    # create fluentd config
+    echo "fluentd_config=/var/tmp/fluentd.conf"
+    echo "cat << 'EOF' > \$fluentd_config
+    <source>
+        @type tail
+        path /var/tmp/tracking_logs.log
+        pos_file /var/tmp/tracking_logs.pos
+        rotate_wait 10
+        tag *
+        <parse>
+            @type none
+        </parse>
+    </source>
+
+    <match **>
+        @type stdout
+    </match>
+EOF"
+    echo "docker run -d --name fluentd --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
+}
+
 # This DATE_TIME will be used as instance launch time tag
 if [[ ! -n ${sandbox_life//[0-9]/} ]]  && [[ ${sandbox_life} -le 30 ]]; then
     TERMINATION_DATE_TIME=`date +"%m-%d-%Y %T" --date "${sandbox_life=7} days"`
@@ -67,8 +101,12 @@ fi
 if [[ -z $WORKSPACE ]]; then
     dir=$(dirname $0)
     source "$dir/ascii-convert.sh"
+    source "$dir/app-container-provisioner.sh"
+    source "$dir/demo-course-provisioner.sh"
 else
     source "$WORKSPACE/configuration/util/jenkins/ascii-convert.sh"
+    source "$WORKSPACE/configuration/util/jenkins/app-container-provisioner.sh"
+    source "$WORKSPACE/configuration/util/jenkins/demo-course-provisioner.sh"
 fi
 
 if [[ -z $static_url_base ]]; then
@@ -606,46 +644,159 @@ done
 # run non-deploy tasks for all plays
 if [[ $reconfigure == "true" || $server_type == "full_edx_installation_from_scratch" || $server_type == "ubuntu_20.04" ]]; then
     cat $extra_vars_file
-    if [[ $edxapp_workers_docker_container_enabled == "true" ]]; then
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=false --user ubuntu
+    if [[ $edxapp_container_enabled == "true" ]]; then
+      cat << EOF > $WORKSPACE/edxapp_extra_var.yml
+edxapp_containerized: true
+CAN_GENERATE_NEW_JWT_SIGNATURE: false
+EOF
+      ansible -i "${deploy_host}," $deploy_host -m include_role -a "name=memcache" -u ubuntu -b
+      for playbook in redis mongo_4_2; do
+          run_ansible $playbook.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+      done
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags "edxlocal"
+      # create fluentd container for processing tracking logs
+      provision_fluentd_script="/var/tmp/provision-fluentd-script.sh"
+      cat << EOF > $provision_fluentd_script
+$(provision_fluentd)
+EOF
+      ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_fluentd_script}" -u ubuntu -b
+
+      rm -f "${provision_fluentd_script}"
+
+      # decrypt lms config file
+      asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/lms.yml
+      # decrypt cms config file
+      asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/studio.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/cms.yml
+
+      sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
+      sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/cms.yml
+
+      # copy app config file
+      ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
+      ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/cms.yml dest=/var/tmp/cms.yml" -u ubuntu -b
+
+      set +x
+      app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
+
+      # specify variable names
+      app_hostname="courses"
+      app_service_name="lms"
+      app_name="edxapp"
+      app_repo="edx-platform"
+      app_version=$edxapp_version
+      app_gunicorn_port=8000
+      app_cfg=LMS_CFG
+      app_admin_password=SANDBOX_ADMIN_PASSWORD
+
+      app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
+
+      write_app_deployment_script $app_provision_script
+      set -x
+
+      ssh \
+        -o ControlMaster=auto \
+        -o ControlPersist=60s \
+        -o "ControlPath=/tmp/${app_service_name}-ssh-%h-%p-%r" \
+        -o ServerAliveInterval=30 \
+        -o ConnectTimeout=10 \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        ubuntu@${deploy_host} "sudo -n -s bash" < $app_provision_script
+
+      rm -f "${app_provision_script}"
+
+      # create CMS provision script
+      # specify variable names
+      app_hostname="studio"
+      app_service_name="cms"
+      app_name="edxapp"
+      app_repo="edx-platform"
+      app_version=$edxapp_version
+      app_gunicorn_port=8010
+      app_cfg=CMS_CFG
+
+      app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
+
+      write_app_deployment_script $app_provision_script
+      set -x
+
+      ssh \
+        -o ControlMaster=auto \
+        -o ControlPersist=60s \
+        -o "ControlPath=/tmp/${app_service_name}-ssh-%h-%p-%r" \
+        -o ServerAliveInterval=30 \
+        -o ConnectTimeout=10 \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        ubuntu@${deploy_host} "sudo -n -s bash" < $app_provision_script
+
+      rm -f "${app_provision_script}"
+
+      # set admin password for demo users
+      set +x
+      admin_hashed_password="$($WORKSPACE/yq '.SANDBOX_ADMIN_PASSWORD' $WORKSPACE/configuration-internal/ansible/vars/developer-sandbox.yml)"
+
+      # create demo course and test users
+      demo_course_provision_script="/var/tmp/demo-provision-script.sh"
+      write_demo_course_script $demo_course_provision_script
+      set -x
+
+      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $demo_course_provision_script
+
+      rm -f "${demo_course_provision_script}"
+
+      # edxapp celery workers
       # Export LC_* vars. To be passed to remote instance via SSH where SSH configuration allows LC_* to be accepted as environment variables.
       # LC_* is normally used for passing through locale settings of SSH clients to SSH servers.
       export LC_WORKER_CFG=$(cat <<EOF
-worker_cfg:
-  - queue: default
-    service_variant: cms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: high
-    service_variant: cms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: default
-    service_variant: lms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: high
-    service_variant: lms
-    concurrency: 1
-    prefetch_optimization: default
-  - queue: high_mem
-    service_variant: lms
-    concurrency: 1
-    prefetch_optimization: default
+  worker_cfg:
+    - queue: default
+      service_variant: cms
+      concurrency: 1
+      prefetch_optimization: default
+    - queue: high
+      service_variant: cms
+      concurrency: 1
+      prefetch_optimization: default
+    - queue: default
+      service_variant: lms
+      concurrency: 1
+      prefetch_optimization: default
+    - queue: high
+      service_variant: lms
+      concurrency: 1
+      prefetch_optimization: default
+    - queue: high_mem
+      service_variant: lms
+      concurrency: 1
+      prefetch_optimization: default
 EOF
-)
+  )
       # Remote SSH configuration allows using LC_* (normally for locale variables) to be passed as environment variables to the remote instance.
       export LC_WORKER_OF="edxapp"
       export LC_WORKER_IMAGE_NAME="$LC_WORKER_OF"
       export LC_WORKER_SERVICE_REPO="edx-platform"
+      export LC_WORKER_SERVICE_REPO_VERSION="$edxapp_version"
       export LC_SANDBOX_USER="$github_username"
-      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
+      ssh \
+        -o ControlMaster=auto \
+        -o ControlPersist=60s \
+        -o "ControlPath=/tmp/edxapp-workers-ssh-%h-%p-%r" \
+        -o ServerAliveInterval=30 \
+        -o ConnectTimeout=10 \
+        -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
+        ubuntu@${deploy_host} "sudo -n -s bash" < $WORKSPACE/configuration/util/jenkins/worker-container-provisioner.sh
       unset LC_WORKER_OF
       unset LC_WORKER_IMAGE_NAME
       unset LC_WORKER_SERVICE_REPO
       unset LC_SANDBOX_USER
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/edxapp_extra_var.yml --user ubuntu
     else
-      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e edxapp_celery_worker=true --user ubuntu
+      cat << EOF > $WORKSPACE/edxapp_extra_var.yml
+edxapp_containerized: false
+EOF
+      run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg -e @$WORKSPACE/edxapp_extra_var.yml --user ubuntu
     fi
 fi
 
@@ -671,10 +822,10 @@ if [[ $ret -ne 0 ]]; then
   exit $ret
 fi
 
-if [[ $run_oauth == "true" ]]; then
-    # Setup the OAuth2 clients
-    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-fi
+#if [[ $run_oauth == "true" ]]; then
+#    # Setup the OAuth2 clients
+#    run_ansible oauth_client_setup.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
+#fi
 
 # set the hostname
 run_ansible set_hostname.yml -i "${deploy_host}," -e hostname_fqdn=${deploy_host} --user ubuntu
@@ -700,118 +851,6 @@ if [[ $enable_newrelic == "true" ]]; then
     run_ansible run_role.yml -i "${deploy_host}," -e role=newrelic_infrastructure $extra_var_arg  --user ubuntu
 fi
 
-function provision_containerized_app() {
-    echo "#!/usr/bin/env bash"
-    echo "set -ex"
-
-    # Create app staticfiles dir
-    echo "mkdir /edx/var/${app_service_name}/staticfiles/ -p && chmod 777 /edx/var/${app_service_name} -R"
-
-    # Checkout code in app directory
-    echo "cd /edx/app/"
-    echo "git clone https://github.com/edx/${app_repo}.git"
-
-    # Replace deploy_host in app config file with sandbox DNS name
-    echo "sed -i 's/deploy_host/${dns_name}.${dns_zone}/g' /var/tmp/${app_service_name}.yml"
-
-    # Install yq for yaml processing
-    echo "wget https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64  -O /usr/bin/yq && chmod +x /usr/bin/yq"
-
-    # Combine app config with jwt_signature config
-    echo "yq eval-all '. as \$item ireduce ({}; . *+ \$item)' /var/tmp/${app_service_name}.yml  /tmp/lms_jwt_signature.yml > /edx/etc/${app_service_name}.yml"
-
-    # Provision IDA User in LMS
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production manage_user ${app_service_name}_worker ${app_service_name}_worker@example.com --staff --superuser"
-
-    # Create the DOT applications - one for single sign-on and one for backend service IDA-to-IDA authentication.
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type authorization-code --skip-authorization --redirect-uris 'https://${app_hostname}-${dns_name}.${dns_zone}/complete/edx-oauth2/' --client-id '${app_service_name}-sso-key' --client-secret '${app_service_name}-sso-secret' --scopes 'user_id' ${app_service_name}-sso ${app_service_name}_worker"
-    echo "source /edx/app/edxapp/edxapp_env && python /edx/app/edxapp/edx-platform/manage.py lms --settings=production create_dot_application --grant-type client-credentials --client-id '${app_service_name}-backend-service-key' --client-secret '${app_service_name}-backend-service-secret' ${app_service_name}-backend-service ${app_service_name}_worker"
-
-    # Checkout code version
-    echo "cd /edx/app/${app_repo}"
-    echo "git checkout ${app_version}"
-
-    # Create app database
-    echo "mysql -uroot -e \"CREATE DATABASE \\\`${app_service_name}\\\`;\""
-
-    # use heredoc to dynamically create docker compose file
-    echo "docker_compose_file=/var/tmp/docker-compose-${app_service_name}.yml"
-    echo "cat << 'EOF' > \$docker_compose_file
-    version: '2.1'
-    services:
-      app:
-        image: ${app_service_name}:latest
-        stdin_open: true
-        tty: true
-        build:
-          context: /edx/app/${app_repo}
-          dockerfile: Dockerfile
-        container_name: ${app_service_name}.app
-        command: bash -c 'while true; do exec gunicorn --workers=2 --name ${app_service_name} -c /edx/app/${app_repo}/${app_service_name}/docker_gunicorn_configuration.py --log-file - --max-requests=1000 ${app_service_name}.wsgi:application; sleep 2; done'
-        network_mode: 'host'
-        environment:
-          DJANGO_SETTINGS_MODULE: ${app_service_name}.settings.production
-          DJANGO_WATCHMAN_TIMEOUT: 30
-          ENABLE_DJANGO_TOOLBAR: 1
-          ${app_cfg}: /${app_service_name}.yml
-        volumes:
-          - /edx/app/${app_repo}:/edx/app/${app_repo}/
-          - /edx/etc/${app_service_name}.yml:/${app_service_name}.yml
-          - /edx/var/${app_service_name}/staticfiles/:/var/tmp/
-EOF"
-
-    # run docker compose to spin up service container
-    echo "docker-compose -f \$docker_compose_file up -d"
-
-    # Wait for app container
-    echo "sleep 5"
-
-    # Run migrations
-    echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py migrate\""
-
-    # Run collectstatic
-    echo "docker exec -t ${app_service_name}.app bash -c \"python3 manage.py collectstatic --noinput\""
-     # Create superuser
-    echo "docker exec -t ${app_service_name}.app bash -c \"echo 'from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser(\\\"edx\\\", \\\"edx@example.com\\\", \\\"edx\\\") if not User.objects.filter(username=\\\"edx\\\").exists() else None' | python /edx/app/${app_repo}/manage.py shell\""
-
-    # Create Nginx config
-    echo "site_config=/edx/app/nginx/sites-available/${app_service_name}"
-    echo "cat << 'EOF' > \$site_config
-    server {
-       server_name ~^((stage|prod)-)?${app_hostname}.*;
-       listen 80;
-       rewrite ^ https://\$host\$request_uri? permanent;
-     }
-     server {
-       server_name ~^((stage|prod)-)?${app_hostname}.*;
-       listen 443 ssl;
-       ssl_certificate /etc/ssl/certs/wildcard.sandbox.edx.org.pem;
-       ssl_certificate_key /etc/ssl/private/wildcard.sandbox.edx.org.key;
-
-       location / {
-         try_files \$uri @proxy_to_app;
-       }
-       location ~ ^/(api)/ {
-          try_files \$uri @proxy_to_app;
-       }
-       location @proxy_to_app {
-          proxy_set_header X-Forwarded-Proto \$scheme;
-          proxy_set_header X-Forwarded-Port \$server_port;
-          proxy_set_header X-Forwarded-For \$remote_addr;
-          proxy_set_header Host \$http_host;
-          proxy_redirect off;
-          proxy_pass http://127.0.0.1:${app_gunicorn_port};
-       }
-       location ~ ^/static/(?P<file>.*) {
-         root /edx/var/${app_service_name};
-         try_files /staticfiles/\$file =404;
-       }
-     }
-EOF"
-     echo "ln -s  /edx/app/nginx/sites-available/${app_service_name} /etc/nginx/sites-enabled/${app_service_name}"
-     echo "service nginx reload"
-}
-
 if [[ $edx_exams == 'true' ]]; then
 
     app_hostname="edx-exams"
@@ -831,42 +870,6 @@ EOF
     ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_script}" -u ubuntu -b
 
     rm -f "${provision_script}"
-fi
-
-function provision_fluentd() {
-    echo "#!/usr/bin/env bash"
-    echo "set -ex"
-
-    echo "docker pull fluent/fluentd:edge-debian"
-
-    echo "fluentd_config=/var/tmp/fluentd.conf"
-    echo "cat << 'EOF' > \$fluentd_config
-    <source>
-        @type tail
-        path /var/tmp/tracking_logs.log
-        pos_file /var/log/tracking_logs.pos
-        rotate_wait 10
-        tag *
-        <parse>
-            @type none
-        </parse>
-    </source>
-
-    <match **>
-        @type stdout
-    </match>
-EOF"
-    echo "docker run -d --network host -v /var/tmp/fluentd.conf:/fluentd/etc/fluentd.conf -v /var/tmp:/var/tmp fluent/fluentd:edge-debian -c /fluentd/etc/fluentd.conf"
-}
-
-if [[ $fluentd_logging == 'true' ]]; then
-    provision_fluentd_script="/var/tmp/provision-fluentd-script.sh"
-cat << EOF > $provision_fluentd_script
-$(provision_fluentd)
-EOF
-    ansible -c ssh -i "${deploy_host}," $deploy_host -m script -a "${provision_fluentd_script}" -u ubuntu -b
-
-    rm -f "${provision_fluentd_script}"
 fi
 
 rm -f "$extra_vars_file"
