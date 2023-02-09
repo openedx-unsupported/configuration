@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2023-01-18
+    - Updated sandbox deployment scripts to setup edx-platform in docker containers.
+    - Added Fluentd for checking tracking logs when running edx-platform in docker containers.
+
  - 2022-07-25
     - Add new routing key for individual learner course regrade queue
  - 2022-06-08
