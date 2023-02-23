@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2023-02-23
+     - Role: payment
+        - Add `PAYMENT_STRIPE_PUBLISHABLE_KEY` & `PAYMENT_STRIPE_RESPONSE_URL`
+          settings for operators running Payment MFE with Stripe.
+
  - 2023-01-18
     - Updated sandbox deployment scripts to setup edx-platform in docker containers.
     - Added Fluentd for checking tracking logs when running edx-platform in docker containers.
