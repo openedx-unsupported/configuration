@@ -899,7 +899,7 @@ if [[ $subscriptions == 'true' ]]; then
     app_service_name="subscriptions"
     app_name="subscriptions"
     app_repo="subscriptions"
-    app_version=$edx_exams_version
+    app_version=$subscriptions_version
     app_gunicorn_port=18750
     app_cfg=SUBSCRIPTIONS_CFG
 
