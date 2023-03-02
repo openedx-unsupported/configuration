@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2023-02-27
+     - Role: edx_django_service
+        - Enable Celery workers in supervisor when
+          `edx_django_service_enable_celery_workers` is true.
+
  - 2023-02-23
      - Role: payment
         - Add `PAYMENT_STRIPE_PUBLISHABLE_KEY` & `PAYMENT_STRIPE_RESPONSE_URL`
