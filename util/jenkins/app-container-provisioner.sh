@@ -84,7 +84,7 @@ fi
 
 # Setup oauth clients for service other than CMS as part of the LMS setup
 if [[ ${app_service_name} == 'lms' ]]; then
-    service_worker_users=(enterprise veda discovery credentials insights registrar designer license_manager commerce_coordinator enterprise_catalog ecommerce retirement edx_exams)
+    service_worker_users=(enterprise veda discovery credentials insights registrar designer license_manager commerce_coordinator enterprise_catalog ecommerce retirement edx_exams subscriptions)
     # Provision IDA User in LMS
     for service_worker in "\${service_worker_users[@]}"; do
       app_hostname=\${service_worker/_/-}
