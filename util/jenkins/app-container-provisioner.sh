@@ -45,7 +45,7 @@ if [[ ! -d "/edx/app/${app_name}/${app_repo}" ]] ; then
 
     # use SSH to clone if repo is private
     if [[ "$app_repo_is_private" = true ]] ; then
-        git clone git@github.com:edx/${app_repo}.git  /edx/app/${app_name}/${app_repo}
+        git clone git@github.com:edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
     else
         git clone https://github.com/edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
     fi
