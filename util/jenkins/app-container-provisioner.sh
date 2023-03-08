@@ -45,7 +45,12 @@ if [[ ! -d "/edx/app/${app_name}/${app_repo}" ]] ; then
 
     # use SSH to clone if repo is private
     if [[ "$app_repo_is_private" = true ]] ; then
-        git clone git@github.com:edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
+        set +x
+        echo -e "${app_git_ssh_key}" > /tmp/${app_service_name}_ssh_key
+        set -x
+        chmod 0600 /tmp/${app_service_name}_ssh_key
+        useradd -m -d /edx/var/${app_service_name} ${app_service_name} -G www-data
+        GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /tmp/${app_service_name}_ssh_key" git clone git@github.com:edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
     else
         git clone https://github.com/edx/${app_repo}.git /edx/app/${app_name}/${app_repo}
     fi
