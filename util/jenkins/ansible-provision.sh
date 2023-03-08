@@ -902,6 +902,7 @@ if [[ $subscriptions == 'true' ]]; then
     app_version=$subscriptions_version
     app_gunicorn_port=18750
     app_cfg=SUBSCRIPTIONS_CFG
+    app_repo_is_private=true
 
     app_provision_script="/var/tmp/app-container-provision-script-$$.sh"
 
