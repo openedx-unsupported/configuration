@@ -59,18 +59,6 @@ geo $http_x_forwarded_for $embargo {
   }
 {% endif %}
 
-# Maps to trace requests and identifying them across different components. First map creates a new variable named
-# trace_id, which is set to either the value of X-REQUEST-ID or Cloudflare CF-ray headers depending on whether http_x_request_id is
-# empty or not. Second map creates a new variable named uuid, which is set to either the value of trace_id or request_id, depending
-# on whether trace_id is set or not in first map.
-map $http_x_request_id $trace_id {
-  ""        "${http_cf_ray}";
-  default   "${http_x_request_id}";
-}
-map $trace_id $uuid {
-  ""        "${request_id}";
-  default   $trace_id;
-}
 
 server {
   # LMS configuration file for nginx, templated by ansible
@@ -124,8 +112,6 @@ error_page {{ k }} {{ v }};
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
 
-  # To track requests
-  add_header X-Request-ID $uuid;
 
   {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
 
