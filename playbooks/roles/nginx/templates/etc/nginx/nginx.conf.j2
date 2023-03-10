@@ -35,6 +35,20 @@ http {
         include /etc/nginx/mime.types;
         default_type application/octet-stream;
 
+        {% if NGINX_ENABLE_REQUEST_TRACKING_ID -%}
+        # Setting variables based on HTTP headers to track and differentiate requests across components: the first creates a new
+        # variable called trace_id based on X-REQUEST-ID or Cloudflare CF-ray headers, while the second creates a variable named
+        # request_tracking_id based on whether trace_id is set or not.
+        map $http_x_request_id $trace_id {
+          ""        "${http_cf_ray}";
+          default   "${http_x_request_id}";
+        }
+        map $trace_id $request_tracking_id {
+          ""        "${request_id}";
+          default   $trace_id;
+        }
+        {% endif %}
+
         ##
         # Logging Settings
         ##
@@ -52,7 +66,13 @@ http {
                                'referer=$http_referer user_agent="$http_user_agent" upstream_addr=$upstream_addr upstream_status=$upstream_status '
                                'request_time=$request_time request_id=$request_id upstream_response_time=$upstream_response_time '
                                'upstream_connect_time=$upstream_connect_time upstream_header_time=$upstream_header_time';
-
+        
+        {% if NGINX_ENABLE_REQUEST_TRACKING_ID -%}
+        log_format cf_custom '$http_x_forwarded_for - $remote_addr - $remote_user $http_x_forwarded_proto [$time_local] $request_tracking_id  '
+                            '"$request" $status $body_bytes_sent $request_time '
+                            '"$http_referer" "$http_user_agent"';
+        {% endif %}
+        
         log_format json_analytics escape=json '{'
                    '"msec": "$msec", ' # request unixtime in seconds with a milliseconds resolution
                    '"connection": "$connection", ' # connection serial number
