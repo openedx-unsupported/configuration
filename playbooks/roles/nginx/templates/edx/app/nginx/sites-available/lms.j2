@@ -112,7 +112,11 @@ error_page {{ k }} {{ v }};
   # Prevent invalid display courseware in IE 10+ with high privacy settings
   add_header P3P '{{ NGINX_P3P_MESSAGE }}';
 
-
+  {% if NGINX_ENABLE_REQUEST_TRACKING_ID -%}
+  # To track requests
+  add_header X-Request-ID $request_tracking_id;
+  {% endif %}
+ 
   {% include "handle-tls-redirect-and-ip-disclosure.j2" %}
 
   access_log {{ nginx_log_dir }}/access.log {{ NGINX_LOG_FORMAT_NAME }};
