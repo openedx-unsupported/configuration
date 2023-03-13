@@ -873,6 +873,8 @@ if [[ $enable_newrelic == "true" ]]; then
 fi
 
 if [[ $edx_exams == 'true' ]]; then
+    set +x
+    app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
 
     app_hostname="edx-exams"
     app_service_name="edx_exams"
@@ -894,6 +896,8 @@ if [[ $edx_exams == 'true' ]]; then
 fi
 
 if [[ $subscriptions == 'true' ]]; then
+    set +x
+    app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
 
     app_hostname="subscriptions"
     app_service_name="subscriptions"
