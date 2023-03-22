@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2023-03-22
+     - Role: prospectus
+        - Added `GATSBY_ZENDESK_KEY` to enable Zendesk chat web widget (classic) on edx.org Marketplace.
+
 - 2023-02-27
      - Role: edx_django_service
         - Enable Celery workers in supervisor when
