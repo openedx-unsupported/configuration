@@ -1,0 +1,42 @@
+---
+
+- name: Install falcon-sensor
+  apt:
+    name:
+      - falcon-sensor
+    state: present
+  tags:
+    - manage_crowdstrike_falcon_sensor_install
+
+- name: Check falconctl path status
+  stat:
+    path: "{{ crowdstrike_falcon_ctl_path }}"
+  register: falconctl_path
+  tags:
+    - manage_crowdstrike_falcon_register
+
+- name: Check falcon CID status
+  command: "{{ crowdstrike_falcon_ctl_path }} -g --cid"
+  register: falconctl_cid_check
+  when: falconctl_path.stat.exists
+  check_mode: no
+  changed_when: false
+  failed_when: false
+  tags:
+    - manage_crowdstrike_falcon_register
+
+- name: Register falcon
+  command: "{{ crowdstrike_falcon_ctl_path }} -s -f --cid={{ crowdstrike_falcon_sensor_cid }}"
+  when: falconctl_path.stat.exists and falconctl_cid_check is defined and falconctl_cid_check.rc != 0
+  notify:
+    - Restart falcon-sensor
+  tags:
+    - manage_crowdstrike_falcon_register
+
+- name: Manage falcon-sensor service
+  service:
+    name: falcon-sensor
+    state: started
+    enabled: yes
+  tags:
+    - manage_crowdstrike_falcon_sensor_service
