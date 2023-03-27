@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2023-03-27
+    - Changed default value of `MFE_ORDER_HISTORY_URL` to empty string `""` to
+      prevent MFE header dropdown from rendering `Order History` option when
+      Order History URL is not configured.
+
 - 2023-03-22
      - Role: prospectus
         - Added `GATSBY_ZENDESK_KEY` to enable Zendesk chat web widget (classic) on edx.org Marketplace.
