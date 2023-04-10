@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+ - 2022-11-11
+    - Changed default value of `EDXAPP_MONGO_REPLICA_SET` to `null` from existing
+      empty string `""`, to make it compatible with pymongo >= 3.11 in Nutmeg and above.
+
  - 2022-07-25
     - Add new routing key for individual learner course regrade queue
  - 2022-06-08
