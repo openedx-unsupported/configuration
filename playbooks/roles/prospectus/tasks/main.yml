@@ -5,6 +5,26 @@
     state: absent
   when: PROSPECTUS_GIT_IDENTITY != "none"
 
+- name: check if cache dir exists
+  stat:
+     path: "{{ prospectus_code_dir }}/.cache"
+  register: register_cache_dir
+
+- name: check if data dir exists
+  stat:
+     path: "{{ PROSPECTUS_DATA_DIR }}"
+  register: register_data_dir
+
+- name: create prospectus temp cache folder
+  file:
+    path: "/tmp/cache-data"
+    state: directory
+  when: PROSPECTUS_RETAIN_CACHE_PUBLIC_DIRS and register_cache_dir.stat.exists
+
+- name: move cache dir to temp
+  command: mv {{ prospectus_code_dir }}/.cache /tmp/cache-data/
+  when: PROSPECTUS_RETAIN_CACHE_PUBLIC_DIRS and register_cache_dir.stat.exists
+
 - name: Remove old git repo
   file:
     state: absent
@@ -19,6 +39,7 @@
   file:
     state: absent
     path: "{{ PROSPECTUS_DATA_DIR }}"
+  when: not PROSPECTUS_RETAIN_CACHE_PUBLIC_DIRS
 
 - name: Create prospectus app folder
   file:
@@ -58,6 +79,22 @@
   become_user: "{{ prospectus_user }}"
   register: prospectus_checkout
   when: PROSPECTUS_GIT_IDENTITY == "none"
+
+- name: move cache dir to {{ prospectus_code_dir }}
+  command: mv /tmp/cache-data/.cache "{{ prospectus_code_dir }}/"
+  when: PROSPECTUS_RETAIN_CACHE_PUBLIC_DIRS and register_cache_dir.stat.exists
+
+- name: create prospectus public folder
+  file:
+    path: "{{ prospectus_code_dir }}/public"
+    state: directory
+    owner: "{{ prospectus_user }}"
+    group: "{{ prospectus_user }}"
+  when: PROSPECTUS_RETAIN_CACHE_PUBLIC_DIRS and register_data_dir.stat.exists
+
+- name: move data dir to {{ prospectus_code_dir }}/public
+  shell: "mv {{ PROSPECTUS_DATA_DIR }}/* {{ prospectus_code_dir }}/public/"
+  when: PROSPECTUS_RETAIN_CACHE_PUBLIC_DIRS and register_data_dir.stat.exists
 
 - name: install python3.8
   apt:
