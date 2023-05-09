@@ -13,10 +13,10 @@ ED=$1
 ENABLE_ARG=$2
 
 case $ED in
-    loadtest-edx|stage-edx|prod-edx|prod-edge)
+    stage-edx|prod-edx|prod-edge)
         ;;
     *)
-        echo "ERROR: environment-deploy must be one of loadtest-edx, stage-edx, prod-edx or prod-edge"
+        echo "ERROR: environment-deploy must be one of stage-edx, prod-edx or prod-edge"
         echo
         usage
         ;;
