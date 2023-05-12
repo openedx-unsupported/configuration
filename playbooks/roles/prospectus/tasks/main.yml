@@ -58,8 +58,10 @@
     owner: "{{ prospectus_user }}"
     mode: "0600"
   when: PROSPECTUS_GIT_IDENTITY != "none"
+  tags:
+    - s3test
 
-- name: "Checkout prospectus repo into {{ prospectus_code_dir }}"
+- name: "Checkout prospectus repo into {{ prospectus_code_dir }} with key"
   git:
     dest: "{{ prospectus_code_dir }}"
     repo: "{{ prospectus_repo }}"
@@ -67,18 +69,22 @@
     accept_hostkey: yes
     key_file: "{{ prospectus_git_identity }}"
   become_user: "{{ prospectus_user }}"
-  register: prospectus_checkout
+  register: prospectus_checkout_with_key
   when: PROSPECTUS_GIT_IDENTITY != "none"
+  tags:
+    - s3test
 
-- name: Checkout prospectus repo into {{ prospectus_code_dir }}
+- name: Checkout prospectus repo into {{ prospectus_code_dir }} without key
   git:
     dest: "{{ prospectus_code_dir }}"
     repo: "{{ prospectus_repo }}"
     version: "{{ PROSPECTUS_VERSION }}"
     accept_hostkey: yes
   become_user: "{{ prospectus_user }}"
-  register: prospectus_checkout
+  register: prospectus_checkout_without_key
   when: PROSPECTUS_GIT_IDENTITY == "none"
+  tags:
+    - s3test
 
 - name: move cache dir to {{ prospectus_code_dir }}
   command: mv /tmp/cache-data/.cache "{{ prospectus_code_dir }}/"
@@ -225,10 +231,31 @@
 - name: Move prospectus public folder to var folder
   shell: "mv {{ prospectus_code_dir }}/public/* {{ PROSPECTUS_DATA_DIR }}"
 
+- name: Set prospectus_s3_prefix to prospectus_checkout_without_key.after
+  set_fact:
+    prospectus_s3_prefix: "{{ prospectus_checkout_without_key.after }}"
+  when: PROSPECTUS_GIT_IDENTITY == "none"
+  tags:
+    - s3test
+
+- name: Set prospectus_s3_prefix to prospectus_checkout_with_key.after
+  set_fact:
+    prospectus_s3_prefix: "{{ prospectus_checkout_with_key.after }}-{{ ansible_date_time.epoch }}"
+  when: PROSPECTUS_GIT_IDENTITY != "none"
+  tags:
+    - s3test
+
+- name: Set prospectus_s3_prefix to PROSPECTUS_UPLOAD_TO_S3_PREFIX
+  set_fact:
+    prospectus_s3_prefix: "{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}"
+  when: PROSPECTUS_UPLOAD_TO_S3_PREFIX != None
+  tags:
+    - s3test
+
 - name: Upload prospectus to S3
   community.aws.s3_sync:
     bucket: "{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}"
-    key_prefix: "{{ prospectus_checkout.after }}"
+    key_prefix: "{{ prospectus_s3_prefix }}"
     file_root: "{{ PROSPECTUS_DATA_DIR }}"
   when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
   tags:
