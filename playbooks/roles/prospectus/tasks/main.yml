@@ -252,13 +252,31 @@
   tags:
     - s3test
 
-- name: Upload prospectus to S3
-  community.aws.s3_sync:
-    bucket: "{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}"
-    key_prefix: "{{ prospectus_s3_prefix }}"
-    file_root: "{{ PROSPECTUS_DATA_DIR }}"
+- name: Set Prospectus S3 max concurrency
+  become_user: "{{ prospectus_user }}"
+  shell: 'aws configure set s3.max_concurrent_requests {{ PROSPECTUS_UPLOAD_TO_S3_MAX_CONCCURENCT_REQUESTS }}'
   when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
   tags:
     - install
     - install:system-requirements
     - s3test
+
+- name: Upload prospectus to S3
+  become_user: "{{ prospectus_user }}"
+  shell: 'aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}/{{ prospectus_s3_prefix }}'
+  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+  tags:
+    - install
+    - install:system-requirements
+    - s3test
+
+#- name: Upload prospectus to S3
+#  community.aws.s3_sync:
+#    bucket: "{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}"
+#    key_prefix: "{{ prospectus_s3_prefix }}"
+#    file_root: "{{ PROSPECTUS_DATA_DIR }}"
+#  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+#  tags:
+#    - install
+#    - install:system-requirements
+#    - s3test
