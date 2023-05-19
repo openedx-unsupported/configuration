@@ -11,6 +11,10 @@ server {
 
   add_header X-Frame-Options DENY;
 
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+  resolver 127.0.0.53;
+  {% endif %}
+
   {% if NGINX_ENABLE_SSL %}
 
   listen {{ prospectus_ssl_nginx_port }} ssl;
@@ -44,46 +48,64 @@ server {
   location = /404.html {
     root   {{ PROSPECTUS_DATA_DIR }};
     add_header Cache-Control "no-store, max-age=0" always;
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% endif %}
   }
 
   location /event {
     # this page is designed to be injected into other pages via an iframe
     add_header X-Frame-Options '';
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% endif %}
   }
 
   # Cache js/css for a long time at the edge, they are versioned in their names
   location ~ \.(js|css)$ {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% endif %}
   }
 
   # images sometimes change, we want to cache them for an hour at the edge to reduce bandwidth.
 
   location /images/ {
     add_header 'Cache-Control' 'public, max-age=3600';
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% endif %}
   }
   
   # favicon is requested a lot.  cache it at the edge.
 
   location /favicon.ico {
       add_header 'Cache-Control' 'public, max-age=86400';
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% endif %}
   }
 
 
   # Ignore the rollout group headers for the health check endpoint.
+  # TODO: S3 proxy pass or not?
   location /HealthCheck {
     try_files $uri $uri/index.html;
   }
-
+# TODO DO we still need these?
   location /es/bio/ {
     try_files $uri $uri/ /es/bio/index.html;
   }
 
+# TODO DO we still need these?
   location /bio/ {
     try_files $uri $uri/ /bio/index.html;
   }
 
   # preview pages are not cached, and have basic auth
 
+# TODO DO we still need these?
   location /secure-preview/ {
     {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       auth_basic            "Restricted";
@@ -93,6 +115,7 @@ server {
     add_header Cache-Control "no-store, max-age=0";
   }
 
+# TODO DO we still need these?
   location /es/secure-preview/ {
     {% if PROSPECTUS_PREVIEW_ENABLE_BASIC_AUTH|bool %}
       auth_basic            "Restricted";
@@ -102,11 +125,13 @@ server {
     add_header Cache-Control "no-store, max-age=0";
   }
 
+# TODO DO we still need these?
   location /preview/ {
     port_in_redirect off;
     add_header Cache-Control "no-store, max-age=0";
   }
 
+# TODO DO we still need these?
   location /es/preview/ {
     port_in_redirect off;
     add_header Cache-Control "no-store, max-age=0";
@@ -117,6 +142,7 @@ server {
   #   - to_path: URL to redirect to
   {% for redirect in PROSPECTUS_TEMPORARY_REDIRECTS %}
   location = {{ redirect.from_path }} {
+# Why are we using fastcgi?
     include fastcgi_params;
     fastcgi_param SERVER_PORT 80;
     port_in_redirect off;
@@ -126,7 +152,7 @@ server {
 
     
 
-  {% if prospectus_redirect_file is defined %}
+  {% if prospectus_redirect_file is defined and not PROSPECTUS_UPLOAD_TO_S3_ENABLED%}
         include fastcgi_params;
         fastcgi_param SERVER_PORT 80;
         include {{ prospectus_redirect_file }};
@@ -135,6 +161,17 @@ server {
 
     add_header 'Cache-Control' 'public, max-age=1800';
     try_files $uri $uri/index.html =404;
+
+# TODO if block and varables for the proxy path
+  location / {
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+  {% endif %}
+  }
 
   # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
   #   - router_path: The path you will go to on the router to access the content
@@ -156,6 +193,6 @@ server {
         proxy_pass {{ static_site.proxied_path }}/$1/index.html;
     }
 
-  {% endfor %}
+  {% endfor -%}
 }
 
