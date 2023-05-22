@@ -28,14 +28,22 @@ def objects_puller(environment):
     client = S3BotoWrapper()
     obj_dict = {}
     temp_dict = {}
+    print(client.list_buckets())
     for bucket in client.list_buckets():
+#        print(f"Bucket: {bucket}")
         if environment in bucket.name:
+#        if environment in bucket.name and bucket.name == "discussions.stage.edx.org":
+            print(f"Env: {environment}")
             obj_dict[bucket.name] = {}
             bucket_info = client.get_bucket(bucket.name)
             for obj in bucket_info.objects.all():
-                key = client.get_object(bucket.name, obj.key)
-                if key.server_side_encryption is None:
-                    temp_dict[obj.key] = str(key.server_side_encryption)
+#                print(f"Obj {obj}")
+                temp_dict[obj.key] = "None"
+                obj_dict[bucket.name] = temp_dict[obj.key]
+#                key = client.get_object(bucket.name, obj.key)
+#                print(f"Obj {obj} Key {key.server_side_encryption}")
+#                if key.server_side_encryption is None:
+#                    temp_dict[obj.key] = str(key.server_side_encryption)
             obj_dict[bucket.name] = temp_dict
     return obj_dict
 
