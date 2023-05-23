@@ -49,6 +49,9 @@ def controller(input_tsv_file, output_tsv_file, filter_out_encrypted):
 
     for bucket_name, object_key, encryption_status in reader:
         rows_read += 1
+# Test code to simulate session failure
+#        if rows_written > 250:
+#            session_valid = False
         # SSE = Server Side Encryption
         object_sse = encryption_status
 
