@@ -87,6 +87,9 @@ def controller(input_tsv_file, output_tsv_file, filter_out_encrypted):
     if rows_read != rows_written + rows_not_written:
         print()
         print(f"WARNING!!! Output file may not be trustworthy, Sum of rows_written and rows_not_written ({rows_written} + {rows_not_written} = {rows_written+rows_not_written}) does not equal number of rows read ({rows_read})")
+    if not filter_out_encrypted and rows_read != rows_written:
+        print()
+        print(f"WARNING!!! Output file may not be trustworthy, rows_written does not equal number of rows read ({rows_read})")
 
 
 if __name__ == '__main__':
