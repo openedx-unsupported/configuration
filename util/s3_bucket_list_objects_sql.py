@@ -51,6 +51,7 @@ def controller(bucket, sqlite_file, import_tsv_file):
 
     rows_written = 0
 
+    current_time = datetime.datetime.now()
     for obj in objects:
        if import_tsv_file:
            row_data = {
@@ -69,11 +70,15 @@ def controller(bucket, sqlite_file, import_tsv_file):
                'encryption_timestamp': None
            }
        db.execute(f"INSERT INTO {table_name} VALUES(:object_key, :bucket, :encryption_status, :list_timestamp, :encryption_timestamp)", row_data)
-       db.commit()
        rows_written += 1
 
-       if rows_written % 100 == 0:
-           print(f"Rows written {rows_written}")
+
+       rows_between_prints = 100000
+       if rows_written % rows_between_prints == 0:
+           db.commit()
+           previous_time = current_time
+           current_time = datetime.datetime.now()
+           print(f"Rows written {rows_written:,}; time to write {rows_between_prints:,} rows: {current_time - previous_time}")
 
 # Test code to stop after 2000 lines
 #       if rows_written == 2000:

@@ -48,6 +48,7 @@ def controller(bucket, sqlite_file):
     rows_written = 0
     status_count = defaultdict(int)
 
+    current_time = datetime.datetime.now()
     for object_key, bucket_name, encryption_status in objects_table:
         pass
         rows_read += 1
@@ -75,20 +76,22 @@ def controller(bucket, sqlite_file):
             print(f"ERROR!!! Update for {object_key} rowcount was {update_cursor.rowcount} instead of the expected 1")
             break
         rows_written += 1
-        db.commit()
 
         status_count[object_sse] += 1
-        if rows_read % 100 == 0:
+        rows_between_prints = 1000
+        if rows_read % rows_between_prints == 0:
+            db.commit()
             sum_status_count = sum(status_count.values())
-            print(f"SUM(status_count): {sum_status_count}, Rows read: {rows_read}, written: {rows_written}, status_count: {dict(status_count)}")
+            previous_time = current_time
+            current_time = datetime.datetime.now()
+            print(f"SUM(status_count): {sum_status_count:,}, Rows read: {rows_read:,}, written: {rows_written:,}, {rows_between_prints:,} rows written in {current_time - previous_time}, status_count: {dict(status_count)}")
 
     db.commit()
     db.close()
 
     sum_status_count = sum(status_count.values())
 
-    print(f"SUM(status_count): {sum_status_count}, Rows read: {rows_read}, written: {rows_written}, status_count: {dict(status_count)}")
-    print(f"Status count {dict(status_count)}")
+    print(f"SUM(status_count): {sum_status_count:,}, Rows read: {rows_read:,}, written: {rows_written:,}, status_count: {dict(status_count)}")
 
 
 if __name__ == '__main__':
