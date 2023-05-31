@@ -692,9 +692,29 @@ EOF
       sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
       sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/cms.yml
 
+      # Remove exiting private requirements if found
+      if [[ -f "$WORKSPACE/dockerfiles-internal/edx-platform-private/private_requirements.txt" ]] ; then
+          rm -f $WORKSPACE/dockerfiles-internal/edx-platform-private/private_requirements.txt
+      fi
+
+      # Extract private requirements for sandbox
+      readarray app_private_requirements < <(cat $WORKSPACE/configuration/playbooks/roles/edxapp/defaults/main.yml | $WORKSPACE/yq e -o=j -I=0 '.EDXAPP_PRIVATE_REQUIREMENTS[]')
+      for app_private_requirement in "${app_private_requirements[@]}"; do
+          if ! $(echo ${app_private_requirement} | $WORKSPACE/yq '. | has("extra_args")' -) ; then
+              req_name=$(echo "${app_private_requirement}" | $WORKSPACE/yq -e '.name' -)
+              echo -e "${req_name}" >> $WORKSPACE/dockerfiles-internal/edx-platform-private/private_requirements.txt
+          else
+              req_name=$(echo "${app_private_requirement}" | $WORKSPACE/yq -e '.name' -)
+              req_extra_args=$(echo "${app_private_requirement}" | $WORKSPACE/yq -e '.extra_args' -)
+              echo -e "${req_extra_args} ${req_name}" >> $WORKSPACE/dockerfiles-internal/edx-platform-private/private_requirements.txt
+          fi
+      done
+
       # copy app config file
       ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/lms.yml dest=/var/tmp/lms.yml" -u ubuntu -b
       ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/cms.yml dest=/var/tmp/cms.yml" -u ubuntu -b
+      # copy private Dockerfile and requirements file
+      ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/dockerfiles-internal/edx-platform-private dest=/var/tmp/" -u ubuntu -b
 
       set +x
       app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
