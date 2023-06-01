@@ -268,4 +268,16 @@
   tags:
     - install
     - install:system-requirements
+#    - s3test
+
+- name: Upload prospectus redirects from S3
+  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+  aws_s3:
+    bucket: "{{ PPROSPECTUS_REDIRECT_CONFIG_S3_BUCKET }}"
+    object: "prospectus-redirects/{{ prospectus_s3_prefix }}/{{ prospectus_redirect_file | basename }}"
+    src: "{{ prospectus_redirect_file }}"
+    mode: put
+    # Work around error "The bucket does not allow ACLs"
+    permission: []
+  tags:
     - s3test
