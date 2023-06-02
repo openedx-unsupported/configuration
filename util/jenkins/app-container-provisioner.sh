@@ -62,7 +62,9 @@ if ! $(docker image inspect ${app_image_name} >/dev/null 2>&1 && echo true || ec
     cd /edx/app/${app_name}/${app_repo}
     export DOCKER_BUILDKIT=1
     if [[ ${app_service_name} == 'lms' || ${app_service_name} == 'cms' ]]; then
-        docker build . -t ${app_repo}:latest --target base
+        docker build . -t ${app_repo}:base --target base
+        cd /var/tmp/edx-platform-private
+        docker build . --build-arg BASE_IMAGE=${app_repo} --build-arg BASE_TAG=base -t ${app_repo}:latest
     else
         docker build . -t ${app_repo}:latest
     fi
