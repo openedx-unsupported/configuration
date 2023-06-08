@@ -91,7 +91,15 @@ server {
   # Ignore the rollout group headers for the health check endpoint.
   # TODO: S3 proxy pass or not?
   location /HealthCheck {
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/HealthCheck/index.html;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+  {% else %}
     try_files $uri $uri/index.html;
+  {% endif %}
   }
 # TODO DO we still need these?
   location /es/bio/ {
