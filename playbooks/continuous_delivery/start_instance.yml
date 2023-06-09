@@ -1,0 +1,70 @@
+# This playbook will create an AMI from an EC2 instance launched with the
+# continuous_deliver/launche_instance playbook.
+#
+# Required variables for this playbook:
+#
+#   - instance_id                     - the ec2 instance ID use to create the AMI
+#   - edx_environment                 - value to use for the environment tag
+#   - deployment                      - value to use for the deploy tag
+#   - app_repo                        - the url of the github repo for this app
+#   - app_version                     - git hash of the app (play, service, IDA) being deployed
+#   - play                            - the play that was run
+#   - cache_id                        - the cache_id version
+#
+# Other variables
+#   - ec2_region                      - The region used to create the AMI
+#   - ami_creation_timeout            - how long to wait before giving up on AMI creation in seconds
+#   - ami_wait                        - (yes/no) should ansible pause while
+#   - no_reboot                       - (yes/no) should the instance not be rebooted during AMI creation
+#   - artifact_path                   - the path to where this ansible run stores the artifacts for the pipeline
+#   - extra_name_identifier           - Makes each AMI unique if desired - Default: 0
+#   - version_tags                    - A mapping of {app: [repo, version], ...}, used to generate
+#                                       a "version:app = repo version" tag on the AMI
+#
+# Example command line to run this playbook:
+#    ansible-playbook -vvvv -i "localhost," -c local \
+#       -e @overrides.yml \
+#       -e @/tmp/ansible-runtime/d057a5d9-4fc5-4a21-9646-4c135be0b7c8/launch_info.yml \
+#       -e play=pipline-test \
+#       -e deployment=edx \
+#       -e edx_environment=sandbox \
+#       -e app_version=12345 \
+#       -e cache_id=12345 \
+#       create_ami.yml
+#
+
+- hosts: all
+  vars:
+    ec2_region: us-east-1
+    ami_wait: yes
+    stop_wait: yes
+    ami_creation_timeout: 5400
+    ec2_timeout: 500
+    no_reboot: no
+    artifact_path: /tmp/ansible-runtime
+    extra_name_identifier: 0
+  gather_facts: False
+  connection: local
+  tasks:
+
+  - name: Fetch tags on the instance
+    ec2_tag:
+      region: "{{ ec2_region }}"
+      resource: "{{ instance_id }}"
+      state: list
+    register: instance_tags
+
+  - name: Start instance
+    ec2:
+      instance_ids: "{{ instance_id }}"
+      state: started
+      wait: "{{ stop_wait }}"
+      region: "{{ ec2_region }}"
+
+  - name: Wait for SSH to come up
+    wait_for:
+      host: "{{ instance_ip }}"
+      port: 22
+      delay: 60
+      timeout: "{{ ec2_timeout }}"
+      state: started
