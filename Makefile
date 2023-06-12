@@ -17,7 +17,7 @@ main.help:
 	@echo ''
 
 requirements:
-	pip install -qr pre-requirements.txt --exists-action w
+	pip install -qr requirements/pip.txt --exists-action w
 	pip install -qr requirements.txt --exists-action w
 
 COMMON_CONSTRAINTS_TXT=requirements/common_constraints.txt
@@ -28,7 +28,7 @@ $(COMMON_CONSTRAINTS_TXT):
 upgrade: export CUSTOM_COMPILE_COMMAND=make upgrade
 upgrade: $(COMMON_CONSTRAINTS_TXT)
 	## update the pip requirements files to use the latest releases satisfying our constraints
-	pip install -qr pre-requirements.txt --exists-action w
+	pip install -qr requirements/pip.txt
 	pip install -qr requirements/pip-tools.txt
 	# Make sure to compile files after any other files they include!
 	pip-compile --allow-unsafe --rebuild --upgrade -o requirements/pip.txt requirements/pip.in
@@ -44,7 +44,7 @@ upgrade: $(COMMON_CONSTRAINTS_TXT)
 	pip-compile --upgrade -o util/jenkins/requirements.txt requirements/jenkins.in
 	# Post process all of the files generated above to work around open pip-tools issues
 	util/post-pip-compile.sh \
- 	    requirements/pip-tools.txt \
+	    requirements/pip-tools.txt \
 	    requirements.txt \
 	    playbooks/roles/aws/templates/requirements.txt.j2 \
 	    util/elasticsearch/requirements.txt \
