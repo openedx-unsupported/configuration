@@ -107,14 +107,30 @@ server {
     try_files $uri $uri/index.html;
   {% endif %}
   }
-# TODO DO we still need these?
   location /es/bio/ {
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    rewrite ^ /{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html break;
+    proxy_pass http://edx-stage-prospectus-test.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+  {% else %}
     try_files $uri $uri/ /es/bio/index.html;
+  {% endif %}
   }
 
-# TODO DO we still need these?
   location /bio/ {
+  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+    rewrite ^ /{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html break;
+    proxy_pass http://edx-stage-prospectus-test.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+  {% else %}
     try_files $uri $uri/ /bio/index.html;
+  {% endif %}
   }
 
   # preview pages are not cached, and have basic auth
