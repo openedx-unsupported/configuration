@@ -270,14 +270,21 @@
     - install:system-requirements
 #    - s3test
 
-- name: Upload prospectus redirects to S3
+###JDM###- name: Upload prospectus redirects to S3
+###JDM###  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+###JDM###  aws_s3:
+###JDM###    bucket: "{{ PROSPECTUS_REDIRECT_CONFIG_S3_BUCKET }}"
+###JDM###    object: "prospectus-redirects/{{ prospectus_s3_prefix }}/{{ PROSPECTUS_ENVIRONMENT }}-{{ prospectus_redirect_file | basename }}"
+###JDM###    src: "{{ prospectus_redirect_file }}"
+###JDM###    mode: put
+###JDM###    # Work around error "The bucket does not allow ACLs"
+###JDM###    permission: []
+###JDM###  tags:
+###JDM###    - s3test
+
+- name: Download prospectus redirects to GoCD
   when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
-  aws_s3:
-    bucket: "{{ PROSPECTUS_REDIRECT_CONFIG_S3_BUCKET }}"
-    object: "prospectus-redirects/{{ prospectus_s3_prefix }}/{{ PROSPECTUS_ENVIRONMENT }}-{{ prospectus_redirect_file | basename }}"
+  fetch:
     src: "{{ prospectus_redirect_file }}"
-    mode: put
-    # Work around error "The bucket does not allow ACLs"
-    permission: []
-  tags:
-    - s3test
+    dest: "{{ artifact_path }}/prospectus-redirects.conf"
+    flat: yes
