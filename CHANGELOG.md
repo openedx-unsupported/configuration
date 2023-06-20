@@ -4,11 +4,6 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
- - 2023-06-20
-     - Role: prospectus
-        - Added `GATSBY_XPERT_STG_API_URL`, `GATSBY_XPERT_UAT_API_URL` and `GATSBY_XPERT_PROD_API_URL`
-          to enable Prospectus to communicate with the Xpert API
-
  - 2023-04-07
     - Changed default value of `EDXAPP_MONGO_REPLICA_SET` to `null` from existing
       empty string `""`, to make it compatible with pymongo >= 3.11 in Nutmeg and above.
