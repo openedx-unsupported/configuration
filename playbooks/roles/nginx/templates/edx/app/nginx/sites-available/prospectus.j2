@@ -11,7 +11,7 @@ server {
 
   add_header X-Frame-Options DENY;
 
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
   resolver 127.0.0.53;
   {% endif %}
 
@@ -54,24 +54,24 @@ server {
   location = /404.html {
     root   {{ PROSPECTUS_DATA_DIR }};
     add_header Cache-Control "no-store, max-age=0" always;
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
   {% endif %}
   }
 
   location /event {
     # this page is designed to be injected into other pages via an iframe
     add_header X-Frame-Options '';
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
   {% endif %}
   }
 
   # Cache js/css for a long time at the edge, they are versioned in their names
   location ~ \.(js|css)$ {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
   {% endif %}
   }
 
@@ -79,8 +79,8 @@ server {
 
   location /images/ {
     add_header 'Cache-Control' 'public, max-age=3600';
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
   {% endif %}
   }
   
@@ -88,8 +88,8 @@ server {
 
   location /favicon.ico {
       add_header 'Cache-Control' 'public, max-age=86400';
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
   {% endif %}
   }
 
@@ -97,37 +97,37 @@ server {
   # Ignore the rollout group headers for the health check endpoint.
   # TODO: S3 proxy pass or not?
   location /HealthCheck {
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/HealthCheck/index.html;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/HealthCheck/index.html;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
-    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
   {% else %}
     try_files $uri $uri/index.html;
   {% endif %}
   }
   location /es/bio/ {
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    rewrite ^ /{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html break;
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    rewrite ^ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/es/bio/index.html break;
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/es/bio/index.html;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
-    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
   {% else %}
     try_files $uri $uri/ /es/bio/index.html;
   {% endif %}
   }
 
   location /bio/ {
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    rewrite ^ /{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html break;
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    rewrite ^ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/bio/index.html break;
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/bio/index.html;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
-    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
   {% else %}
     try_files $uri $uri/ /bio/index.html;
   {% endif %}
@@ -194,12 +194,12 @@ server {
 
 # TODO if block and varables for the proxy path
   location / {
-  {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+  {% if PROSPECTUS_S3_HOSTING_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
-    proxy_redirect "/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}" " ";
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
   {% endif %}
   }
 

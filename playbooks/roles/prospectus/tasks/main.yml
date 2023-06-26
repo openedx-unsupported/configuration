@@ -245,17 +245,17 @@
   tags:
     - s3test
 
-- name: Set prospectus_s3_prefix to PROSPECTUS_UPLOAD_TO_S3_PREFIX
+- name: Set prospectus_s3_prefix to PROSPECTUS_S3_HOSTING_PREFIX
   set_fact:
-    prospectus_s3_prefix: "{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}"
-  when: PROSPECTUS_UPLOAD_TO_S3_PREFIX != None
+    prospectus_s3_prefix: "{{ PROSPECTUS_S3_HOSTING_PREFIX }}"
+  when: PROSPECTUS_S3_HOSTING_PREFIX != None
   tags:
     - s3test
 
 - name: Set Prospectus S3 max concurrency
   become_user: "{{ prospectus_user }}"
-  shell: 'aws configure set s3.max_concurrent_requests {{ PROSPECTUS_UPLOAD_TO_S3_MAX_CONCCURENCT_REQUESTS }}'
-  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+  shell: 'aws configure set s3.max_concurrent_requests {{ PROSPECTUS_S3_UPLOAD_MAX_CONCCURENCT_REQUESTS }}'
+  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
   tags:
     - install
     - install:system-requirements
@@ -263,15 +263,15 @@
 
 - name: Upload prospectus to S3
   become_user: "{{ prospectus_user }}"
-  shell: 'aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}/{{ prospectus_s3_prefix }}'
-  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+  shell: 'aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_S3_HOSTING_BUCKET }}/{{ prospectus_s3_prefix }}'
+  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
   tags:
     - install
     - install:system-requirements
 #    - s3test
 
 ###JDM###- name: Upload prospectus redirects to S3
-###JDM###  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+###JDM###  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
 ###JDM###  aws_s3:
 ###JDM###    bucket: "{{ PROSPECTUS_REDIRECT_CONFIG_S3_BUCKET }}"
 ###JDM###    object: "prospectus-redirects/{{ prospectus_s3_prefix }}/{{ PROSPECTUS_ENVIRONMENT }}-{{ prospectus_redirect_file | basename }}"
@@ -283,7 +283,7 @@
 ###JDM###    - s3test
 
 - name: Download prospectus redirects to GoCD
-  when: PROSPECTUS_UPLOAD_TO_S3_ENABLED|bool
+  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
   fetch:
     src: "{{ prospectus_redirect_file }}"
     dest: "{{ artifact_path }}/prospectus-redirects.conf"
