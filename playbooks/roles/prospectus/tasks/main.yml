@@ -59,7 +59,7 @@
     mode: "0600"
   when: PROSPECTUS_GIT_IDENTITY != "none"
 
-- name: "Checkout prospectus repo into {{ prospectus_code_dir }}"
+- name: "Checkout prospectus repo into {{ prospectus_code_dir }} with key"
   git:
     dest: "{{ prospectus_code_dir }}"
     repo: "{{ prospectus_repo }}"
@@ -67,17 +67,17 @@
     accept_hostkey: yes
     key_file: "{{ prospectus_git_identity }}"
   become_user: "{{ prospectus_user }}"
-  register: prospectus_checkout
+  register: prospectus_checkout_with_key
   when: PROSPECTUS_GIT_IDENTITY != "none"
 
-- name: Checkout prospectus repo into {{ prospectus_code_dir }}
+- name: Checkout prospectus repo into {{ prospectus_code_dir }} without key
   git:
     dest: "{{ prospectus_code_dir }}"
     repo: "{{ prospectus_repo }}"
     version: "{{ PROSPECTUS_VERSION }}"
     accept_hostkey: yes
   become_user: "{{ prospectus_user }}"
-  register: prospectus_checkout
+  register: prospectus_checkout_without_key
   when: PROSPECTUS_GIT_IDENTITY == "none"
 
 - name: move cache dir to {{ prospectus_code_dir }}
@@ -224,3 +224,47 @@
 
 - name: Move prospectus public folder to var folder
   shell: "mv {{ prospectus_code_dir }}/public/* {{ PROSPECTUS_DATA_DIR }}"
+
+- name: Set prospectus_s3_prefix to prospectus_checkout_without_key.after
+  ignore_errors: true
+  set_fact:
+    prospectus_s3_prefix: "{{ prospectus_checkout_without_key.after }}"
+  when: PROSPECTUS_GIT_IDENTITY == "none"
+
+- name: Set prospectus_s3_prefix to prospectus_checkout_with_key.after
+  ignore_errors: true
+  set_fact:
+    prospectus_s3_prefix: "{{ prospectus_checkout_with_key.after }}-{{ ansible_date_time.epoch }}"
+  when: PROSPECTUS_GIT_IDENTITY != "none"
+
+- name: Set prospectus_s3_prefix to PROSPECTUS_S3_HOSTING_PREFIX
+  ignore_errors: true
+  set_fact:
+    prospectus_s3_prefix: "{{ PROSPECTUS_S3_HOSTING_PREFIX }}"
+  when: PROSPECTUS_S3_HOSTING_PREFIX != None
+
+- name: Set Prospectus S3 max concurrency
+  ignore_errors: true
+  become_user: "{{ prospectus_user }}"
+  shell: 'aws configure set s3.max_concurrent_requests {{ PROSPECTUS_S3_UPLOAD_MAX_CONCCURENCT_REQUESTS }}'
+  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Upload prospectus to S3
+  ignore_errors: true
+  become_user: "{{ prospectus_user }}"
+  shell: 'aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_S3_HOSTING_BUCKET }}/{{ prospectus_s3_prefix }}'
+  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
+  tags:
+    - install
+    - install:system-requirements
+
+- name: Download prospectus redirects to GoCD
+  ignore_errors: true
+  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
+  fetch:
+    src: "{{ prospectus_redirect_file }}"
+    dest: "{{ artifact_path }}/prospectus-redirects.conf"
+    flat: yes
