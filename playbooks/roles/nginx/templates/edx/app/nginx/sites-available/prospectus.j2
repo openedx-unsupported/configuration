@@ -55,7 +55,7 @@ server {
     root   {{ PROSPECTUS_DATA_DIR }};
     add_header Cache-Control "no-store, max-age=0" always;
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
   {% endif %}
   }
 
@@ -63,7 +63,7 @@ server {
     # this page is designed to be injected into other pages via an iframe
     add_header X-Frame-Options '';
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
   {% endif %}
   }
 
@@ -71,7 +71,7 @@ server {
   location ~ \.(js|css)$ {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
   {% endif %}
   }
 
@@ -80,7 +80,7 @@ server {
   location /images/ {
     add_header 'Cache-Control' 'public, max-age=3600';
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
   {% endif %}
   }
   
@@ -89,7 +89,7 @@ server {
   location /favicon.ico {
       add_header 'Cache-Control' 'public, max-age=86400';
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
   {% endif %}
   }
 
@@ -98,7 +98,7 @@ server {
   # TODO: S3 proxy pass or not?
   location /HealthCheck {
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/HealthCheck/index.html;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/HealthCheck/index.html;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
@@ -110,7 +110,7 @@ server {
   location /es/bio/ {
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
     rewrite ^ /{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html break;
-    proxy_pass http://edx-stage-prospectus-test.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/es/bio/index.html;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
@@ -123,7 +123,7 @@ server {
   location /bio/ {
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
     rewrite ^ /{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html break;
-    proxy_pass http://edx-stage-prospectus-test.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}/bio/index.html;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
@@ -195,7 +195,7 @@ server {
 # TODO if block and varables for the proxy path
   location / {
   {% if PROSPECTUS_UPLOAD_TO_S3_ENABLED %}
-    proxy_pass http://{{ PROSPECTUS_UPLOAD_TO_S3_BUCKET }}.s3-website-us-east-1.amazonaws.com/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_UPLOAD_TO_S3_URL }}/{{ PROSPECTUS_UPLOAD_TO_S3_PREFIX }}$request_uri;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
