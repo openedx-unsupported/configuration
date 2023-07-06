@@ -468,6 +468,19 @@ EOF_AUTH
 
 fi
 
+if [[ $mongo_version == "4.2" ]]; then
+    cat << MONGO_VERSION >> $extra_vars_file
+MONGO_4_2_ENABLED: True
+MONGO_4_4_ENABLED: False
+MONGO_VERSION
+fi
+if [[ $mongo_version == "4.4" ]]; then
+    cat << MONGO_VERSION >> $extra_vars_file
+MONGO_4_2_ENABLED: False
+MONGO_4_4_ENABLED: True
+MONGO_VERSION
+fi
+
 if [[ -n $nginx_users ]]; then
    cat << EOF_AUTH >> $extra_vars_file
 NGINX_USERS: $nginx_users
@@ -671,7 +684,7 @@ edxapp_containerized: true
 CAN_GENERATE_NEW_JWT_SIGNATURE: false
 EOF
       ansible -i "${deploy_host}," $deploy_host -m include_role -a "name=memcache" -u ubuntu -b
-      for playbook in redis mongo_4_2; do
+      for playbook in redis $mongo_version; do
           run_ansible $playbook.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
       done
       run_ansible edx_continuous_integration.yml -i "${deploy_host}," $extra_var_arg --user ubuntu --tags "edxlocal"
