@@ -1,6 +1,7 @@
 import csv
 import sys
-
+import urllib.parse
+import logging
 from botocore.exceptions import ClientError
 import backoff
 import click
@@ -9,6 +10,23 @@ import concurrent.futures
 
 
 MAX_TRIES = 5
+inconsistent_acl_objects = []
+consistent_acl_objects = []
+
+
+# logging config
+
+# Set logging configuration
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+# create file handler that logs messages
+filehandler = logging.FileHandler('result.txt')
+filehandler.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    '%(message)s')
+filehandler.setFormatter(formatter)
+# add the handlers to logger
+logger.addHandler(filehandler)
 
 
 class S3BotoWrapper:
@@ -23,12 +41,14 @@ class S3BotoWrapper:
 def get_object_acl(bucket_name, object_name):
     client = S3BotoWrapper()
     try:
+        # Try encoding
+        object_name_decoded = urllib.parse.unquote(object_name)
         # Get the ACL for the object
-        response = client.get_object_acl(bucket_name, object_name)
+        response = client.get_object_acl(bucket_name, object_name_decoded)
         acl = response['Grants']
         return acl
     except Exception as e:
-        print(f"Error retrieving ACL for {object_name}: {str(e)}")
+        print(f"Error retrieving ACL for {object_name_decoded}: {str(e)}")
         return None
 
 
@@ -37,11 +57,13 @@ def check_acl_uniformity(object_acls):
     baseline_acl = list(object_acls.values())[0]
     # for acl in object_acls.values():
     for key, acl in object_acls.items():
-        print(key, acl)
         if acl != baseline_acl:
-            print("ACL are not same")
-            print(key, acl)
-            return False
+            acl_dict = {key: acl}
+            inconsistent_acl_objects.append(acl_dict)
+            # return False
+        else:
+            acl_cons_dict = {key: acl}
+            consistent_acl_objects.append(acl_cons_dict)
 
     return True
 
@@ -67,11 +89,12 @@ def read_csv_file(file_path):
 def controller(file_name):
     obj_dict = read_csv_file(file_name)
     is_acl_uniform = check_acl_uniformity(obj_dict)
-
-    if is_acl_uniform:
-        print("ACLs are the same for all objects in the bucket.")
-    else:
-        print("ACLs vary across objects in the bucket.")
+    logger.info("Objects with same acl")
+    for obj in consistent_acl_objects:
+        logger.info(obj)
+    logger.info("\n\nObjects with different acl")
+    for in_obj in inconsistent_acl_objects:
+        logger.info(in_obj)
 
 
 if __name__ == '__main__':
