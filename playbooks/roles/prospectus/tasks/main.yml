@@ -246,8 +246,8 @@
 - name: Set Prospectus S3 max concurrency
   ignore_errors: true
   become_user: "{{ prospectus_user }}"
-  shell: 'aws configure set s3.max_concurrent_requests {{ PROSPECTUS_S3_UPLOAD_MAX_CONCCURENCT_REQUESTS }}'
-  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
+  shell: 'aws configure set s3.max_concurrent_requests {{ PROSPECTUS_S3_UPLOAD_MAX_CONCURENCT_REQUESTS }}'
+  when: PROSPECTUS_S3_UPLOAD_ENABLED|bool
   tags:
     - install
     - install:system-requirements
@@ -256,14 +256,14 @@
   ignore_errors: true
   become_user: "{{ prospectus_user }}"
   shell: 'aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_S3_HOSTING_BUCKET }}/{{ prospectus_s3_prefix }}'
-  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
+  when: PROSPECTUS_S3_UPLOAD_ENABLED|bool
   tags:
     - install
     - install:system-requirements
 
 - name: Download prospectus redirects to GoCD
   ignore_errors: true
-  when: PROSPECTUS_S3_HOSTING_ENABLED|bool
+  when: PROSPECTUS_S3_UPLOAD_ENABLED|bool
   fetch:
     src: "{{ prospectus_redirect_file }}"
     dest: "{{ artifact_path }}/prospectus-redirects.conf"
