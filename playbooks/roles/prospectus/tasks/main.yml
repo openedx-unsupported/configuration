@@ -194,25 +194,28 @@
     - -2.algolianet.com
     - -3.algolianet.com
 
+- name: run prospectus build and print algolia DNS after build
+  block:
 # Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
-- name: run prospectus build
-  shell: "set -o pipefail && {{ prospectus_nodeenv_bin }}/npm run build | tee /tmp/prospectus.log"
-  args:
-    chdir: "{{ prospectus_code_dir }}"
-  environment: "{{ prospectus_env_vars }}"
-  become_user: "{{ prospectus_user }}"
-  tags:
-    - install
-    - install:app-requirements
-
-- name: Print algolia DNS after build
-  shell: "dig +noall +answer +stats $(grep GATSBY_ALGOLIA_APP_ID /edx/app/prospectus/prospectus/config/.env.common | cut -d '\"' -f 2){{ item }}"
-  loop:
-    - .algolia.net
-    - -dsn.algolia.net
-    - -1.algolianet.com
-    - -2.algolianet.com
-    - -3.algolianet.com
+  - name: run prospectus build
+    shell: "set -o pipefail && {{ prospectus_nodeenv_bin }}/npm run build | tee /tmp/prospectus.log"
+    args:
+      chdir: "{{ prospectus_code_dir }}"
+    environment: "{{ prospectus_env_vars }}"
+    become_user: "{{ prospectus_user }}"
+    tags:
+      - install
+      - install:app-requirements
+# Print algolia DNS after build even if build fails
+  always:
+  - name: Print algolia DNS after build
+    shell: "dig +noall +answer +stats $(grep GATSBY_ALGOLIA_APP_ID /edx/app/prospectus/prospectus/config/.env.common | cut -d '\"' -f 2){{ item }}"
+    loop:
+      - .algolia.net
+      - -dsn.algolia.net
+      - -1.algolianet.com
+      - -2.algolianet.com
+      - -3.algolianet.com
 
 - name: Install pngquant
   apt:
