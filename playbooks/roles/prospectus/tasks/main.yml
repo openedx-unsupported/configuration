@@ -185,6 +185,15 @@
     - install
     - install:app-requirements
 
+- name: Print algolia DNS before build
+  shell: "dig +noall +answer +stats $(grep GATSBY_ALGOLIA_APP_ID /edx/app/prospectus/prospectus/config/.env.common | cut -d '\"' -f 2){{ item }}"
+  loop:
+    - .algolia.net
+    - -dsn.algolia.net
+    - -1.algolianet.com
+    - -2.algolianet.com
+    - -3.algolianet.com
+
 # Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
 - name: run prospectus build
   shell: "set -o pipefail && {{ prospectus_nodeenv_bin }}/npm run build | tee /tmp/prospectus.log"
@@ -195,6 +204,15 @@
   tags:
     - install
     - install:app-requirements
+
+- name: Print algolia DNS after build
+  shell: "dig +noall +answer +stats $(grep GATSBY_ALGOLIA_APP_ID /edx/app/prospectus/prospectus/config/.env.common | cut -d '\"' -f 2){{ item }}"
+  loop:
+    - .algolia.net
+    - -dsn.algolia.net
+    - -1.algolianet.com
+    - -2.algolianet.com
+    - -3.algolianet.com
 
 - name: Install pngquant
   apt:
