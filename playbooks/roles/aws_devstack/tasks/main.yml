@@ -1,0 +1,38 @@
+- name: Remove dependencies that are no longer required
+  ansible.builtin.apt:
+    autoremove: yes
+
+- name: Run script to sync all repos
+  ansible.builtin.script:
+    cmd: /home/ubuntu/pull-all-repos-in-directory.sh
+
+- name: Mark all directories as safe for git on devstack
+  shell: "git config --global --add safe.directory '*'"
+
+- name: Run make on dev.pull.large-and-slow
+  make:
+    chdir: /home/ubuntu/edx-repos-devstack
+    target: dev.pull.large-and-slow
+
+- name: Run make on lms-shell
+  make:
+    chdir: /home/ubuntu/edx-repos-devstack
+    target: lms-shell
+
+- name: Make requirements
+  make:
+    chdir: /home/ubuntu/edx-repos/devstack
+    target: requirements
+
+- name: Run npm ci
+  community.general.npm:
+    ci: true
+    path: /home/ubuntu/edx-repos/devstack
+
+- name: Update paver assets
+  ansible.builtin.shell:
+    cmd: paver update_assets
+    chdir: /home/ubuntu/edx-repos/devstack
+
+-name : LMS migrate
+  command: /home/ubuntu/edx-repos/devstack/manage.py lms migrate
