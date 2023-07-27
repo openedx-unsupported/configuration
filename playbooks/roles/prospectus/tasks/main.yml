@@ -194,6 +194,25 @@
     - -2.algolianet.com
     - -3.algolianet.com
 
+- name: Print ulimit
+  shell: "ulimit -a"
+
+#- name: Increase file descriptor limit of the system
+#  lineinfile:
+#    dest: "{{ ulimit_conf_file }}"
+#    line: "{{ item.domain }}  {{ item.type }}  {{ item.item }}  {{ item.value }}"
+#  with_items: "{{ ulimit_config }}"
+
+- name: Increase ulimit for prospectus build
+  community.general.pam_limits:
+    domain: "{{ prospectus_user }}"
+    limit_type: soft
+    limit_item: nofile
+    value: 1048576
+
+- name: Print ulimit
+  shell: "ulimit -a"
+
 - name: run prospectus build and print algolia DNS after build
   block:
 # Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
