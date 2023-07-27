@@ -27,7 +27,11 @@ if [ "$1" = 'devpi' ]; then
     fi
 
     echo "[RUN]: Launching devpi-server..."
-    exec devpi-server --restrict-modify root --host 0.0.0.0 --port 3141
+    # Use `--indexer-backend null` to prevent devpi from downloading PyPI indexes
+    # on startup, which consumes 100% CPU for 20 minutes. These indexes only
+    # seem to be used for the devpi web interface, which doesn't seem to be
+    # in use.
+    exec devpi-server --restrict-modify root --host 0.0.0.0 --port 3141 --indexer-backend null
 fi
 
 echo "[RUN]: Builtin command not provided [devpi]"
