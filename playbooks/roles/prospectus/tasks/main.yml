@@ -210,8 +210,8 @@
     limit_item: nofile
     value: 1048576
 
-- name: Reset ansible connection to update ulimit
-  ansible.built.meta: reset_connection
+#- name: Reset ansible connection to update ulimit
+#  ansible.built.meta: reset_connection
 
 - name: Print ulimit
   shell: "ulimit -a"
@@ -220,7 +220,7 @@
   block:
 # Install with the shell command instead of the ansible npm module so we don't accidentally re-write package.json
   - name: run prospectus build
-    shell: "set -o pipefail && {{ prospectus_nodeenv_bin }}/npm run build | tee /tmp/prospectus.log"
+    shell: "set -o pipefail; ulimit -n 1048576; ulimit -n; {{ prospectus_nodeenv_bin }}/npm run build | tee /tmp/prospectus.log"
     args:
       # Have to set shell to bash because dash doesn't understand pipefail
       executable: "/bin/bash"
