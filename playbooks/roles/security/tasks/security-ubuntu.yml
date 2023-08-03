@@ -24,7 +24,9 @@
 - name: Disable unattended-upgrades if Xenial (16.04)
   command: "{{ item }}"
   when: ansible_distribution_release == 'xenial' and not SECURITY_UNATTENDED_UPGRADES
+  register: result_ubuntu
   retries: 3
+  until: result_ubuntu is succeeded
   with_items:
     - "systemctl disable apt-daily.service"
     - "systemctl disable apt-daily.timer"
