@@ -186,15 +186,15 @@ server {
     add_header 'Cache-Control' 'public, max-age=1800';
     try_files $uri $uri/index.html =404;
 
-  location / {
   {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  location / {
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
     proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
-  {% endif %}
   }
+  {% endif %}
 
   # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
   #   - router_path: The path you will go to on the router to access the content
