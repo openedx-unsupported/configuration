@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2023-08-29
+  - Role: prospectus
+    - Added `GATSBY_TURN_ON_SIDEBAR_FILTERS` flag to enable new sidebar changes
+
  - 2023-06-20
      - Role: prospectus
         - Added `GATSBY_XPERT_STG_API_URL`, `GATSBY_XPERT_UAT_API_URL` and `GATSBY_XPERT_PROD_API_URL`
