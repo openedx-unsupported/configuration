@@ -11,9 +11,9 @@ server {
 
   add_header X-Frame-Options DENY;
 
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
   resolver 127.0.0.53;
-  {% endif %}
+  {%- endif %}
 
   {% if NGINX_PROSPECTUS_DISABLE_INDEXING %}
 
@@ -54,7 +54,7 @@ server {
   location = /404.html {
     root   {{ PROSPECTUS_DATA_DIR }};
     add_header Cache-Control "no-store, max-age=0" always;
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # Prevent S3 errors from cookies being too large
     proxy_set_header Cookie "";
@@ -64,7 +64,7 @@ server {
   location /event {
     # this page is designed to be injected into other pages via an iframe
     add_header X-Frame-Options '';
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # Prevent S3 errors from cookies being too large
     proxy_set_header Cookie "";
@@ -74,7 +74,7 @@ server {
   # Cache js/css for a long time at the edge, they are versioned in their names
   location ~ \.(js|css)$ {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # Prevent S3 errors from cookies being too large
     proxy_set_header Cookie "";
@@ -85,7 +85,7 @@ server {
 
   location /images/ {
     add_header 'Cache-Control' 'public, max-age=3600';
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # Prevent S3 errors from cookies being too large
     proxy_set_header Cookie "";
@@ -96,7 +96,7 @@ server {
 
   location /favicon.ico {
       add_header 'Cache-Control' 'public, max-age=86400';
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # Prevent S3 errors from cookies being too large
     proxy_set_header Cookie "";
@@ -106,7 +106,7 @@ server {
 
   # Ignore the rollout group headers for the health check endpoint.
   location /HealthCheck {
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/HealthCheck/index.html;
     # Prevent S3 errors from cookies being too large
     proxy_set_header Cookie "";
@@ -119,7 +119,7 @@ server {
   {% endif %}
   }
   location /es/bio/ {
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     rewrite ^ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/es/bio/index.html break;
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/es/bio/index.html;
     # Prevent S3 errors from cookies being too large
@@ -134,7 +134,7 @@ server {
   }
 
   location /bio/ {
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
     rewrite ^ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/bio/index.html break;
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/bio/index.html;
     # Prevent S3 errors from cookies being too large
@@ -202,7 +202,7 @@ server {
     add_header 'Cache-Control' 'public, max-age=1800';
     try_files $uri $uri/index.html =404;
 
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  {%- if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
   location / {
     proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
     # Prevent S3 errors from cookies being too large
