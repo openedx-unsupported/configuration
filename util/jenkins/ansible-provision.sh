@@ -371,9 +371,6 @@ PAYMENT_MFE_VERSION: $payment_version
 PAYMENT_MFE_ENABLED: $payment
 PAYMENT_SANDBOX_BUILD: True
 
-VIDEO_PIPELINE_BASE_NGINX_PORT: 80
-VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
-
 LICENSE_MANAGER_NGINX_PORT: 80
 LICENSE_MANAGER_SSL_NGINX_PORT: 443
 LICENSE_MANAGER_VERSION: $license_manager_version
@@ -568,14 +565,6 @@ CREDENTIALS_URL_ROOT: "https://{{ CREDENTIALS_DOMAIN }}"
 CREDENTIALS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: true
 CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 
-VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
-VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
-VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
-
-VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
-VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
-VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
-
 LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
 
 COMMERCE_COORDINATOR_URL_ROOT: "https://commerce-coordinator-${deploy_host}"
@@ -638,11 +627,6 @@ EOF
     fi
 fi
 
-veda_web_frontend=${video_pipeline:-false}
-veda_pipeline_worker=${video_pipeline:-false}
-veda_encode_worker=${video_encode_worker:-false}
-video_pipeline_integration=${video_pipeline:-false}
-
 # ansible overrides for master's integration environment setup
 if [[ $masters_integration_environment == "true" ]]; then
     cat << EOF >> $extra_vars_file
@@ -668,7 +652,7 @@ EOF
 fi
 
 declare -A deploy
-plays="prospectus edxapp forum ecommerce credentials discovery enterprise_catalog analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration xqueue certs demo testcourses registrar program_console learner_portal"
+plays="prospectus edxapp forum ecommerce credentials discovery enterprise_catalog analyticsapi xqueue certs demo testcourses registrar program_console learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}
