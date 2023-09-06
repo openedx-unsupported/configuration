@@ -8,19 +8,21 @@
       find . -maxdepth 1 -type d -exec sh -c '(cd {} && git checkout master && git pull)' ';'
   args:
     chdir: /home/ubuntu/edx-repos
-    warn: false
+    ignore_errors: True
+    async: 600
+    poll: 60
 
 - name: Mark all directories as safe for git on devstack
   ansible.builtin.shell: "git config --global --add safe.directory '*'"
 
 - name: Run make on dev.pull.large-and-slow
   community.general.make:
-    chdir: /home/ubuntu/edx-repos-devstack
+    chdir: /home/ubuntu/edx-repos/devstack
     target: dev.pull.large-and-slow
 
 - name: Run make on lms-shell
   community.general.make:
-    chdir: /home/ubuntu/edx-repos-devstack
+    chdir: /home/ubuntu/edx-repos/devstack
     target: lms-shell
 
 - name: Make requirements
