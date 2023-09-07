@@ -203,10 +203,28 @@ server {
     try_files $uri $uri/index.html =404;
 
   {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  # Redirect URLs with trailing slashes to non-trailing slash equivalents
+  # Gatsby is setup to have the canonical URLs be the versions without trailing slashes
+  location ~ ^.+/$ {
+    # absolute_redirect off prevents adding http://localhost to the redirect
+    # We want a relative redirect, i.e. /learn/ -> /924c142-1/learn, not to http://localhost/924c142-1/learn
+    absolute_redirect off;
+    rewrite ^/(.*)/$ /$1 permanent;
+  }
+
   location / {
-    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
+    # absolute_redirect off prevents adding http://localhost to the redirect
+    # We want a relative redirect, i.e. /learn/ -> /924c142-1/learn, not to http://localhost/924c142-1/learn
+    absolute_redirect off;
+    # Adds trailing slash that S3 requires in order to serve index.html from a folder
+    # For instance in order to server edx.org/learn we need to ask s3 for {{ PROSPECTUS_S3_HOSTING_PREFIX }}/learn/
+    rewrite ^/((.*/)*[^.]*[^/])$ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/$1/ break;
+
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/;
+
     # Hide client headers from S3 to prevent request headers too big error
     proxy_pass_request_headers off;
+
     # proxy_redirect ensures redirects from s3 are rewritten
     # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
     # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
