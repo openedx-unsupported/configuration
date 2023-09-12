@@ -2,6 +2,14 @@
 #  apt:
 #    autoremove: yes
 #
+- name: Install read-only ssh key for the devstack repos
+    copy:
+      content: "{{ DEVSTACK_GIT_IDENTITY }}"
+      dest: /home/ubuntu/.ssh/id_rsa.ppk
+      force: yes
+      owner: "ubuntu"
+      mode: "0600"
+
 - name: SSH Keyscan for github
   ansible.builtin.shell:
     cmd: ssh-keyscan -t rsa github.com >> /home/ubuntu/.ssh/known_hosts
@@ -16,6 +24,22 @@
 
 - name: Mark all directories as safe for git on devstack
   ansible.builtin.shell: "git config --global --add safe.directory '*'"
+
+- name: Uninstall any docker packages
+  shell:
+    cmd: |
+      pip uninstall docker docker-py docker-compose
+  async: 600
+  poll: 10
+  become: true
+
+- name: Reinstall docker compose
+  shell:
+    cmd: |
+      pip install docker-compose
+  async: 600
+  poll: 10
+  become: true
 
 - name: Run make on dev.pull.large-and-slow
   community.general.make:
@@ -44,3 +68,8 @@
 
 - name : LMS migrate
   command: /home/ubuntu/edx-repos/devstack/manage.py lms migrate
+
+- name: Delete read-only ssh key
+  ansible.builtin.file:
+    state: absent
+    path: /home/ubuntu/.ssh/id_rsa.ppk
