@@ -4,6 +4,11 @@
   {%- set default_site = "" -%}
 {%- endif -%}
 
+
+{% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED and PROSPECTUS_S3_HOSTING_PROXY_CACHE_ENABLED %}
+proxy_cache_path {{ nginx_server_cache_dir }} levels=1:2 keys_zone=STATIC:10m max_size=10g use_temp_path=off;
+{% endif %}
+
 server {
   # Prospectus configuration file for nginx, templated by ansible
 
@@ -11,9 +16,14 @@ server {
 
   add_header X-Frame-Options DENY;
 
-  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+{% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
   resolver 127.0.0.53;
-  {% endif %}
+{% if PROSPECTUS_S3_HOSTING_PROXY_CACHE_ENABLED %}
+  proxy_cache STATIC;
+  proxy_cache_valid any 1m;
+  add_header X-nginx-cache-status $upstream_cache_status;
+{% endif %}
+{% endif %}
 
   {% if NGINX_PROSPECTUS_DISABLE_INDEXING %}
 
