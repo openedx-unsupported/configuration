@@ -1,0 +1,30 @@
+server {
+   server_name ~^((stage|prod)-)?edx-exams.*;
+   listen 80;
+   rewrite ^ https://$host$request_uri? permanent;
+}
+server {
+   server_name ~^((stage|prod)-)?edx-exams.*;
+   listen 443 ssl;
+   ssl_certificate /etc/ssl/certs/wildcard.sandbox.edx.org.pem;
+   ssl_certificate_key /etc/ssl/private/wildcard.sandbox.edx.org.key;
+
+   location / {
+       try_files $uri @proxy_to_app;
+   }
+   location ~ ^/(api)/ {
+       try_files $uri @proxy_to_app;
+   }
+   location @proxy_to_app {
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header X-Forwarded-Port $server_port;
+       proxy_set_header X-Forwarded-For $remote_addr;
+       proxy_set_header Host $http_host;
+       proxy_redirect off;
+       proxy_pass http://127.0.0.1:18740;
+   }
+   location ~ ^/static/(?P<file>.*) {
+       root /edx/var/edx_exams;
+       try_files /staticfiles/$file =404;
+   }
+}

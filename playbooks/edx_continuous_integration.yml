@@ -16,17 +16,23 @@
       - learner_portal
       - program_console
       - prospectus
+      - edx_exams
+      - subscriptions
       nginx_default_sites:
       - lms
+    - docker-tools
     - mysql
     - role: edxlocal
       tags: edxlocal
     - memcache
-    - mongo_4_2
+    - role: mongo_4_2
+      when: MONGO_4_2_ENABLED
+    - role: mongo_4_4
+      when: MONGO_4_4_ENABLED
     - role: redis
-    - { role: 'edxapp', celery_worker: True }
-    - edxapp
-    - testcourses
+    - { role: "edxapp", celery_worker: True, when: edxapp_containerized is defined and not edxapp_containerized }
+    - { role: "edxapp", when: edxapp_containerized is defined and not edxapp_containerized }
+    - { role: "testcourses", when: edxapp_containerized is defined and not edxapp_containerized }
     - oraclejdk
     - elasticsearch
     - opensearch
@@ -41,6 +47,8 @@
       when: REGISTRAR_ENABLED
     - role: license_manager
       when: LICENSE_MANAGER_ENABLED
+    - role: commerce_coordinator
+      when: COMMERCE_COORDINATOR_ENABLED
     - role: enterprise_catalog
       when: ENTERPRISE_CATALOG_ENABLED
     - role: learner_portal
@@ -66,7 +74,7 @@
     - role: mfe
       MFE_NAME: ora-grading
       when: ORA_GRADING_MFE_ENABLED
-    - oauth_client_setup
+    - { role: oauth_client_setup, when: edxapp_containerized is defined and not edxapp_containerized }
     - role: datadog
       when: COMMON_ENABLE_DATADOG
     - role: splunkforwarder

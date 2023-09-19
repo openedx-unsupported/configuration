@@ -2,10 +2,10 @@
 #
 # edX Configuration
 #
-# github:     https://github.com/edx/configuration
+# github:     https://github.com/openedx/configuration
 # wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
 # code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
-# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+# license:    https://github.com/openedx/configuration/blob/master/LICENSE.TXT
 #
 #
 # Tasks for role edx_ansible
@@ -56,3 +56,12 @@
 - include: deploy.yml
   tags:
     - deploy
+    
+- name: Start and enable running services 
+  ansible.builtin.systemd:
+    state: started
+    enabled: true
+    name: "{{ item }}"
+  with_items: "{{ edx_ansible_debian_running_services }}"
+  tags: 
+    - install:system-requirements

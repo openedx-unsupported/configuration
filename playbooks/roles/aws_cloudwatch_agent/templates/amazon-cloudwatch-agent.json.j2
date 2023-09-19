@@ -9,6 +9,24 @@
 			"InstanceId": "${aws:InstanceId}"
 		},
 		"metrics_collected": {
+		{% if cloudwatch_procstat_patterns -%}
+			"procstat": [
+			{%- for procstat_pattern in cloudwatch_procstat_patterns -%}
+                {
+                    "pattern": "{{ procstat_pattern }}",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_system",
+                        "cpu_time_user"
+                    ]
+				{%- if not loop.last -%}
+                },
+				{%- else -%}
+				}
+				{% endif -%}
+			{% endfor -%}
+            ],
+		{% endif -%}
 			"collectd": {
 				"metrics_aggregation_interval": 60
 			},

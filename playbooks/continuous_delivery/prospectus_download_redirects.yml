@@ -1,0 +1,26 @@
+- name: Download edX Prospectus Service nginx redirects file
+  hosts: all
+  become: True
+  gather_facts: True
+  vars:
+    ENABLE_DATADOG: False
+    ENABLE_NEWRELIC: False
+    CLUSTER_NAME: 'prospectus'
+    PROSPECTUS_DATA_DIR: "/edx/var/prospectus"
+    NGINX_OVERRIDE_DEFAULT_MAP_HASH_SIZE: True
+    NGINX_MAP_HASH_MAX_SIZE: 4096
+    NGINX_MAP_HASH_BUCKET_SIZE: 128
+    PROSPECTUS_ENABLED: True
+    PROSPECTUS_SANDBOX_BUILD: FALSE
+  roles:
+    - role: aws
+      when: COMMON_ENABLE_AWS_ROLE
+  tasks:
+    - name: Create redirects config directory
+      file:
+        path: "{{ prospectus_redirect_file | dirname }}"
+        state: directory
+    - name: Upload prospectus redirects from GoCD
+      copy:
+        src: "{{ artifact_path }}/prospectus-redirects.conf"
+        dest: "{{ prospectus_redirect_file }}"

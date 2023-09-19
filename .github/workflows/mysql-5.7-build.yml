@@ -1,0 +1,41 @@
+name: MySQL5.7 image build
+
+on:
+  push:
+    branches: 
+      - master
+    paths:
+      - "docker/build/mysql/Dockerfile"
+      - .github/workflows/mysql-5.7-build.yml
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        build_platform: ["linux/amd64"]
+    runs-on: ubuntu-latest
+    name: Build amd64 mysql image
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: ${{ matrix.build_platform }}
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      -
+        name: Build and push amd and arm image
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          context: docker/build/mysql/
+          tags: edxops/edx-mysql:5.7
+          platforms: ${{ matrix.build_platform }}

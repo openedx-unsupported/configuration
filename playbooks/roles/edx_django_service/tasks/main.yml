@@ -2,10 +2,10 @@
 #
 # edX Configuration
 #
-# github:     https://github.com/edx/configuration
+# github:     https://github.com/openedx/configuration
 # wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
 # code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
-# license:    https://github.com/edx/configuration/blob/master/LICENSE.TXT
+# license:    https://github.com/openedx/configuration/blob/master/LICENSE.TXT
 #
 #
 #
@@ -147,6 +147,9 @@
     creates: "{{ edx_django_service_nodeenv_dir }}"
   become_user: "{{ edx_django_service_user }}"
   when: not edx_django_service_enable_experimental_docker_shim
+  register: node_download_result
+  until: node_download_result is succeeded
+  retries: 5
   environment: "{{ edx_django_service_environment }}"
   tags:
     - install
@@ -343,6 +346,17 @@
     state: link
     force: yes
   when: not disable_edx_services
+  tags:
+    - install
+    - install:configuration
+
+- name: enable celery worker supervisor script
+  when: edx_django_service_enable_celery_workers and not disable_edx_services
+  file:
+    src: "{{ supervisor_available_dir }}/{{ edx_django_service_workers_supervisor_conf }}"
+    dest: "{{ supervisor_cfg_dir }}/{{ edx_django_service_workers_supervisor_conf }}"
+    state: link
+    force: yes
   tags:
     - install
     - install:configuration

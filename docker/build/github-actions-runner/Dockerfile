@@ -1,7 +1,7 @@
 FROM ubuntu:focal
 
 # Set the github runner version
-ARG RUNNER_VERSION="2.279.0"
+ARG RUNNER_VERSION="2.304.0"
 
 ENV GITHUB_ORGANIZATION=""
 ENV GITHUB_ACCESS_TOKEN=""

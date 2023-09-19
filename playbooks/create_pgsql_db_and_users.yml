@@ -1,0 +1,65 @@
+#
+# This play will create databases and user for an application.
+# It can be run like so:
+#
+# ansible-playbook -c local -i 'localhost,' create_pgsql_db_and_users.yml -e@./db.yml
+#
+# If running ansible from a python virtualenv you will need a command like the following
+#
+# ansible-playbook -c local -i 'localhost,' create_pgsql_db_and_users.yml -e@./db.yml -e "ansible_python_interpreter=$(which python)"
+#
+# the content of db.yml contains the following dictionaries
+
+# database_connection: &default_connection
+#   login_host: "pgsql.example.org"
+#   login_user: "root"
+#   login_password: "super-secure-password"
+
+# databases:
+#   - name: "example"
+#     state: "present"
+#     <<: *default_connection
+
+# database_users:
+#   - name: "example"
+#     db: "example"
+#     state: "present"
+#     password: "user-password"
+#     privileges: "ALL"
+#     <<: *default_connection
+
+- name: Create databases and users
+  hosts: all
+  gather_facts: False
+  tasks:
+    # Install required library, currently this needs to be available
+    # to system python.
+    - name: install PostgreSQL client
+      pip: name={{item}} state=present
+      with_items:
+        - psycopg2-binary
+
+    - name: create PostgreSQL databases
+      postgresql_db:
+        db: "{{ item.name}}"
+        state: "{{ item.state }}"
+        login_host: "{{ item.login_host }}"
+        login_user: "{{ item.login_user }}"
+        login_password: "{{ item.login_password }}"
+      with_items: "{{ databases }}"
+      tags:
+        - dbs
+
+    - name: create PostgreSQL users and assign privileges
+      postgresql_user:
+        db: "{{ item.db }}"
+        name: "{{ item.name }}"
+        state: "{{ item.state | default('present') }}"
+        priv: "{{ item.privileges }}"
+        password: "{{ item.password }}"
+        login_host: "{{ item.login_host }}"
+        login_user: "{{ item.login_user }}"
+        login_password: "{{ item.login_password }}"
+      with_items: "{{ database_users }}"
+      tags:
+        - users

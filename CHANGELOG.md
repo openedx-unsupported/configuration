@@ -4,6 +4,49 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2023-08-29
+  - Role: prospectus
+    - Added `GATSBY_TURN_ON_SIDEBAR_FILTERS` flag to enable new sidebar changes
+
+ - 2023-06-20
+     - Role: prospectus
+        - Added `GATSBY_XPERT_STG_API_URL`, `GATSBY_XPERT_UAT_API_URL` and `GATSBY_XPERT_PROD_API_URL`
+          to enable Prospectus to communicate with the Xpert API
+
+ - 2023-04-07
+    - Changed default value of `EDXAPP_MONGO_REPLICA_SET` to `null` from existing
+      empty string `""`, to make it compatible with pymongo >= 3.11 in Nutmeg and above.
+
+ - 2023-03-27
+    - Changed default value of `MFE_ORDER_HISTORY_URL` to empty string `""` to
+      prevent MFE header dropdown from rendering `Order History` option when
+      Order History URL is not configured.
+
+- 2023-03-22
+     - Role: prospectus
+        - Added `GATSBY_ZENDESK_KEY` to enable Zendesk chat web widget (classic) on edx.org Marketplace.
+
+- 2023-02-27
+     - Role: edx_django_service
+        - Enable Celery workers in supervisor when
+          `edx_django_service_enable_celery_workers` is true.
+
+ - 2023-02-23
+     - Role: payment
+        - Add `PAYMENT_STRIPE_PUBLISHABLE_KEY` & `PAYMENT_STRIPE_RESPONSE_URL`
+          settings for operators running Payment MFE with Stripe.
+
+ - 2023-01-18
+    - Updated sandbox deployment scripts to setup edx-platform in docker containers.
+    - Added Fluentd for checking tracking logs when running edx-platform in docker containers.
+
+ - 2022-07-25
+    - Add new routing key for individual learner course regrade queue
+ - 2022-06-08
+    - Role: edxapp
+        - Added a new `CELERY_RESULT_BACKEND` setting to allow operators to
+          override the default celery result backend.
+
  - 2022-06-06
     - Role: common
         - Remove PPA for `watchman` as we have shifted to Ubuntu 20.04,

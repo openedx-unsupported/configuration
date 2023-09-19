@@ -69,3 +69,35 @@
   tags:
     - ssh
     - ssh:keys
+
+- name: Create TSM Service Status Script Directory
+  file:
+    path: "{{ tableau_cron_dir }}"
+    state: directory 
+    mode: "{{ item.mode | default(0755) }}"
+    owner: "{{ centos_default_user }}"
+    group: "{{ tableau_user_group }}"
+  tags:
+    - install
+    - install:cron
+
+- name: Set up Tsm Service Status Script
+  template: 
+    src: "tsm_status.sh.j2" 
+    dest: "{{ tableau_cron_dir }}/tsm_status.sh" 
+    mode: 0775
+    owner: "{{ centos_default_user }}"
+    group: "{{ tableau_user_group }}"
+  tags: 
+    - install
+    - install:cron
+
+- name: Create Cron Job to collect TSM status metrics every 5 minutes
+  cron:
+    name: Check TSM Status and report metric to CloudWatch
+    minute: "*/5"
+    owner: "{{ centos_default_user }}"
+    job: "{{ tableau_cron_dir }}/tsm_status.sh"
+  tags:
+    - install
+    - install:cron

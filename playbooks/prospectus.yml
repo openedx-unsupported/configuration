@@ -14,11 +14,14 @@
     PROSPECTUS_SANDBOX_BUILD: FALSE
   roles:
     - role: aws
-      when: COMMON_ENABLE_AWS_ROLE
+      when: COMMON_ENABLE_AWS_ROLE|bool and PROSPECTUS_ENABLE_PRE_BUILD|bool
     - role: automated
       AUTOMATED_USERS: "{{ PROSPECTUS_AUTOMATED_USERS | default({}) }}"
+      when: PROSPECTUS_ENABLE_PRE_BUILD|bool
     - role: prospectus
+      when: PROSPECTUS_ENABLE_BUILD|bool
     - role: nginx
+      when: PROSPECTUS_ENABLE_NGINX|bool
       nginx_app_dir: "/etc/nginx"
       nginx_sites:
       - prospectus
@@ -26,6 +29,8 @@
       - prospectus
       PROSPECTUS_NGINX_PORT: 8000
     - role: splunkforwarder
-      when: COMMON_ENABLE_SPLUNKFORWARDER
+      when: COMMON_ENABLE_SPLUNKFORWARDER|bool and PROSPECTUS_ENABLE_POST_BUILD|bool
     - role: newrelic_infrastructure
-      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE
+      when: COMMON_ENABLE_NEWRELIC_INFRASTRUCTURE|bool and PROSPECTUS_ENABLE_POST_BUILD|bool
+    - role: insightvm_agent
+      when: COMMON_ENABLE_INSIGHTVM_AGENT|bool and PROSPECTUS_ENABLE_POST_BUILD|bool

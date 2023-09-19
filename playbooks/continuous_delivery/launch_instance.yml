@@ -90,8 +90,15 @@
       state: present
       tags:
         Name: "{{ automation_prefix }} {{ unique_key_name.stdout }}"
+        gocd_pipeline_url: "{{ lookup('ansible.builtin.env', 'GO_SERVER_URL')|default('', True) }}/pipelines/value_stream_map/{{ lookup('ansible.builtin.env', 'GO_PIPELINE_NAME')|default('', True) }}/{{ lookup('ansible.builtin.env', 'GO_PIPELINE_COUNTER')|default('', True) }}"
+        gocd_pipepline_name: "{{ lookup('ansible.builtin.env', 'GO_PIPELINE_NAME')|default('', True) }}"
+        gocd_pipepline_label: "{{ lookup('ansible.builtin.env', 'GO_PIPELINE_LABEL')|default('', True) }}"
+        gocd_pipepline_counter: "{{ lookup('ansible.builtin.env', 'GO_PIPELINE_COUNTER')|default('', True) }}"
+        gocd_stage_counter: "{{ lookup('ansible.builtin.env', 'GO_STAGE_COUNTER')|default('', True) }}"
+    register: tag_ec2_instance
     retries: 6
     delay: 15
+    until: tag_ec2_instance is succeeded
 
   - name: Wait for SSH to come up
     wait_for:

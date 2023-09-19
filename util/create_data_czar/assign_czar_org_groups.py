@@ -2,9 +2,7 @@
 assign_czar_org_groups.py
 
 Assigns data czars to the iam groups for their org based on the configuration specificed in the analytics-exporter
-repository, https://github.com/edx/analytics-exporter/blob/master/config/default.yaml.
-
-The file needs to be available locally as the repo is private.
+repository, https://github.com/openedx/edx-analytics-exporter/blob/master/sample-config.yaml
 
 Assumes that a group for the org has already been created using the create_org_data_czar_polcy.py script.
 

@@ -199,6 +199,6 @@ __________________________________________________________
   ECOMMERCE_CORS_ALLOW_CREDENTIALS: true
   ECOMMERCE_ENABLE_PAYMENT_MFE: true
 
-.. _decision record about asymmetric JWT: https://github.com/edx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0008-use-asymmetric-jwts.rst
+.. _decision record about asymmetric JWT: https://github.com/openedx/edx-platform/blob/master/openedx/core/djangoapps/oauth_dispatch/docs/decisions/0008-use-asymmetric-jwts.rst
 .. _Developer Documentation: https://edx.readthedocs.io/projects/edx-developer-docs/en/latest/developers_guide/micro_frontends_in_open_edx.html#overriding-brand-specific-elements
-.. _MFE_ENVIRONMENT_DEFAULT: https://github.com/edx/configuration/blob/master/playbooks/roles/mfe/defaults/main.yml#L95
+.. _MFE_ENVIRONMENT_DEFAULT: https://github.com/openedx/configuration/blob/master/playbooks/roles/mfe/defaults/main.yml#L95

@@ -1,0 +1,50 @@
+---
+# insightvm_agent
+#
+# Example play:
+#
+#   roles:
+#   - insightvm_agent
+
+- name: Check if Rapid7 Agent Currently Installed
+  stat:
+    path: /etc/systemd/system/ir_agent.service
+  register: r7_service
+  retries: 3
+  until: r7_service is succeeded
+  tags:
+    - manage_rapid7_check_agent
+
+- name: Pull Rapid7 Agent Installer from S3
+  aws_s3:
+    aws_access_key: "{{ R7_IAM_USER_ACCESS_KEY }}"
+    aws_secret_key: "{{ R7_IAM_USER_SECRET_KEY }}"
+    bucket: "{{ R7_BUCKET }}"
+    object: rapid7/rapid7_agent_installer.sh
+    dest: "{{ r7_installer_location }}"
+    mode: get
+    overwrite: different
+    ignore_nonexistent_bucket: true
+  tags:
+    - manage_rapid7_pull_installer
+  when: not r7_service.stat.exists|bool
+
+- name: Ensure File Permissions are set
+  file:
+    path: "{{ r7_installer_location }}"
+    mode: "0755"
+    owner: root
+    group: root
+  ignore_errors: "{{ ansible_check_mode }}"
+  tags:
+    - manage_rapid7_file_perms
+  when: not r7_service.stat.exists|bool
+
+- name: Agent Install
+  command: "/tmp/rapid7_agent_installer.sh install_start --token {{ R7_TOKEN }}"
+  no_log: true
+  tags:
+    - manage_rapid7_agent_install
+  ignore_errors: "{{ ansible_check_mode }}"
+  args:
+    creates: /etc/systemd/system/ir_agent.service
