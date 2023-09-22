@@ -28,30 +28,47 @@
     - install:system-requirements
   when: ansible_distribution_release != 'focal'
 
-- name: install package dependencies for focal
-  apt:
-    name: "{{ docker_tools_deps_deb_pkgs_focal }}"
-    update_cache: yes
-    cache_valid_time: "{{ cache_valid_time }}"
-  tags:
-    - install
-    - install:system-requirements
+- name: Docker repo Ubuntu Focal
   when: ansible_distribution_release == 'focal'
+  block:
+  - name: add docker apt key Ubuntu Focal
+    apt_key:
+      url: "{{ docker_apt_key_url }}"
+    tags:
+      - install
+      - install:configuration
 
-- name: add docker apt key
-  apt_key:
-    url: "{{ docker_apt_key_url }}"
-  tags:
-    - install
-    - install:configuration
+  - name: add docker repo Ubuntu Focal
+    ansible.builtin.apt_repository:
+      repo: "{{ item }}"
+      filename: 'docker'
+    with_items: "{{ docker_repos }}"
+    tags:
+      - install
+      - install:configuration
 
-- name: add docker repo
-  apt_repository:
-    repo: "{{ item }}"
-  with_items: "{{ docker_repos }}"
-  tags:
-    - install
-    - install:configuration
+- name: Docker repo post Ubuntu Focal
+  when: ansible_distribution_release != 'focal'
+  block:
+  - name: download docker repo key post Ubuntu Focal
+    ansible.builtin.get_url:
+      url: "{{ docker_apt_key_url }}"
+      dest: /etc/apt/keyrings/docker.asc
+
+# Apt can handle armored .asc files, but the offical docker instructions tell people to dearmor the key.
+# If we try to use the asc file on a box with docker already installed ansible will create a duplicate
+# entry and apt will complain with the error "Conflicting values set for option Signed-By..."
+  - name: Dearmor docker repo gpg key post Ubuntu Focal
+    ansible.builtin.shell:
+      cmd: 'gpg --dearmor < /etc/apt/keyrings/docker.asc > /etc/apt/keyrings/docker.gpg'
+
+  - name: add docker repo post Ubuntu Focal
+    apt_repository:
+      repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+      filename: 'docker'
+    tags:
+      - install
+      - install:configuration
 
 - name: install docker-engine
   apt:

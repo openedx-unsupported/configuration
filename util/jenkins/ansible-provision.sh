@@ -308,6 +308,22 @@ if [[ -z $ora_grading_version ]]; then
   ORA_GRADING_MFE_VERSION="master"
 fi
 
+if [[ -z $course_authoring ]]; then
+  course_authoring="false"
+fi
+
+if [[ -z $course_authoring_version ]]; then
+  COURSE_AUTHORING_MFE_VERSION="master"
+fi
+
+if [[ -z $library_authoring ]]; then
+  library_authoring="false"
+fi
+
+if [[ -z $library_authoring_version ]]; then
+  LIBRARY_AUTHORING_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -386,9 +402,6 @@ PAYMENT_SSL_NGINX_PORT: 443
 PAYMENT_MFE_VERSION: $payment_version
 PAYMENT_MFE_ENABLED: $payment
 PAYMENT_SANDBOX_BUILD: True
-
-VIDEO_PIPELINE_BASE_NGINX_PORT: 80
-VIDEO_PIPELINE_BASE_SSL_NGINX_PORT: 443
 
 LICENSE_MANAGER_NGINX_PORT: 80
 LICENSE_MANAGER_SSL_NGINX_PORT: 443
@@ -470,6 +483,18 @@ ORA_GRADING_SSL_NGINX_PORT: 443
 ORA_GRADING_MFE_VERSION: $ora_grading_version
 ORA_GRADING_MFE_ENABLED: $ora_grading
 ORA_GRADING_SANDBOX_BUILD: True
+
+COURSE_AUTHORING_NGINX_PORT: 80
+COURSE_AUTHORING_SSL_NGINX_PORT: 443
+COURSE_AUTHORING_MFE_VERSION: $course_authoring_version
+COURSE_AUTHORING_MFE_ENABLED: $course_authoring
+COURSE_AUTHORING_SANDBOX_BUILD: True
+
+LIBRARY_AUTHORING_NGINX_PORT: 80
+LIBRARY_AUTHORING_SSL_NGINX_PORT: 443
+LIBRARY_AUTHORING_MFE_VERSION: $library_authoring_version
+LIBRARY_AUTHORING_MFE_ENABLED: $library_authoring
+LIBRARY_AUTHORING_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
 
@@ -599,14 +624,6 @@ CREDENTIALS_DISCOVERY_API_URL: "{{ DISCOVERY_URL_ROOT }}/api/v1/"
 COURSE_AUTHORING_URL_ROOT: "https://course-authoring-${deploy_host}"
 LIBRARY_AUTHORING_URL_ROOT: "https://library-authoring-${deploy_host}"
 
-VIDEO_PIPELINE_DOMAIN: "veda-${deploy_host}"
-VIDEO_PIPELINE_BASE_URL_ROOT: "https://{{ VIDEO_PIPELINE_DOMAIN }}"
-VIDEO_PIPELINE_BASE_LMS_BASE_URL: "https://{{ EDXAPP_LMS_BASE }}"
-
-VEDA_WEB_FRONTEND_VERSION: ${video_pipeline_version:-master}
-VEDA_PIPELINE_WORKER_VERSION: ${video_pipeline_version:-master}
-VEDA_ENCODE_WORKER_VERSION: ${video_encode_worker_version:-master}
-
 LICENSE_MANAGER_URL_ROOT: "https://license-manager-${deploy_host}"
 
 COMMERCE_COORDINATOR_URL_ROOT: "https://commerce-coordinator-${deploy_host}"
@@ -669,11 +686,6 @@ EOF
     fi
 fi
 
-veda_web_frontend=${video_pipeline:-false}
-veda_pipeline_worker=${video_pipeline:-false}
-veda_encode_worker=${video_encode_worker:-false}
-video_pipeline_integration=${video_pipeline:-false}
-
 # ansible overrides for master's integration environment setup
 if [[ $masters_integration_environment == "true" ]]; then
     cat << EOF >> $extra_vars_file
@@ -699,7 +711,7 @@ EOF
 fi
 
 declare -A deploy
-plays="prospectus edxapp forum ecommerce credentials discovery enterprise_catalog analyticsapi veda_web_frontend veda_pipeline_worker veda_encode_worker video_pipeline_integration xqueue certs demo testcourses registrar program_console learner_portal"
+plays="prospectus edxapp forum ecommerce credentials discovery enterprise_catalog analyticsapi xqueue certs demo testcourses registrar program_console learner_portal"
 
 for play in $plays; do
     deploy[$play]=${!play}

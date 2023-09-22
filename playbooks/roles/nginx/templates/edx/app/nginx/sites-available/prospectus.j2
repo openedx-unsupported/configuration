@@ -4,12 +4,26 @@
   {%- set default_site = "" -%}
 {%- endif -%}
 
+
+{% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED and PROSPECTUS_S3_HOSTING_PROXY_CACHE_ENABLED %}
+proxy_cache_path {{ nginx_server_cache_dir }} levels=1:2 keys_zone=STATIC:10m max_size=10g use_temp_path=off;
+{% endif %}
+
 server {
   # Prospectus configuration file for nginx, templated by ansible
 
   server_name ~^((stage|prod)-)?prospectus.*;
 
   add_header X-Frame-Options DENY;
+
+{% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  resolver 127.0.0.53;
+{% if PROSPECTUS_S3_HOSTING_PROXY_CACHE_ENABLED %}
+  proxy_cache STATIC;
+  proxy_cache_valid any 1m;
+  add_header X-nginx-cache-status $upstream_cache_status;
+{% endif %}
+{% endif %}
 
   {% if NGINX_PROSPECTUS_DISABLE_INDEXING %}
 
@@ -50,42 +64,98 @@ server {
   location = /404.html {
     root   {{ PROSPECTUS_DATA_DIR }};
     add_header Cache-Control "no-store, max-age=0" always;
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/404.html;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  {% endif %}
   }
 
   location /event {
     # this page is designed to be injected into other pages via an iframe
     add_header X-Frame-Options '';
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  {% endif %}
   }
 
   # Cache js/css for a long time at the edge, they are versioned in their names
   location ~ \.(js|css)$ {
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  {% endif %}
   }
 
   # images sometimes change, we want to cache them for an hour at the edge to reduce bandwidth.
 
   location /images/ {
     add_header 'Cache-Control' 'public, max-age=3600';
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  {% endif %}
   }
   
   # favicon is requested a lot.  cache it at the edge.
 
   location /favicon.ico {
       add_header 'Cache-Control' 'public, max-age=86400';
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  {% endif %}
   }
 
 
   # Ignore the rollout group headers for the health check endpoint.
   location /HealthCheck {
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/HealthCheck/index.html;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
+  {% else %}
     try_files $uri $uri/index.html;
+  {% endif %}
   }
-
   location /es/bio/ {
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    rewrite ^ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/es/bio/index.html break;
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/es/bio/index.html;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
+  {% else %}
     try_files $uri $uri/ /es/bio/index.html;
+  {% endif %}
   }
 
   location /bio/ {
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+    rewrite ^ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/bio/index.html break;
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/bio/index.html;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
+  {% else %}
     try_files $uri $uri/ /bio/index.html;
+  {% endif %}
   }
 
   # preview pages are not cached, and have basic auth
@@ -142,6 +212,36 @@ server {
     add_header 'Cache-Control' 'public, max-age=1800';
     try_files $uri $uri/index.html =404;
 
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  # Redirect URLs with trailing slashes to non-trailing slash equivalents
+  # Gatsby is setup to have the canonical URLs be the versions without trailing slashes
+  location ~ ^.+/$ {
+    # absolute_redirect off prevents adding http://localhost to the redirect
+    # We want a relative redirect, i.e. /learn/ -> /924c142-1/learn, not to http://localhost/924c142-1/learn
+    absolute_redirect off;
+    rewrite ^/(.*)/$ /$1 permanent;
+  }
+
+  location / {
+    # absolute_redirect off prevents adding http://localhost to the redirect
+    # We want a relative redirect, i.e. /learn/ -> /924c142-1/learn, not to http://localhost/924c142-1/learn
+    absolute_redirect off;
+    # Adds trailing slash that S3 requires in order to serve index.html from a folder
+    # For instance in order to server edx.org/learn we need to ask s3 for {{ PROSPECTUS_S3_HOSTING_PREFIX }}/learn/
+    rewrite ^/((.*/)*[^.]*[^/])$ /{{ PROSPECTUS_S3_HOSTING_PREFIX }}/$1/ break;
+
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}/;
+
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+
+    # proxy_redirect ensures redirects from s3 are rewritten
+    # For example it will fix a redirect from s3 to prevent /school/mitx from trying to redirect to /924c142-1/school/mitx/
+    # The second parameter being " " is to prevent nginx sticking http://hostname in front of the location directive
+    proxy_redirect "/{{ PROSPECTUS_S3_HOSTING_PREFIX }}" " ";
+  }
+  {% endif %}
+
   # PROSPECTUS_STATIC_SITES will be a list of dictionaries which have a:
   #   - router_path: The path you will go to on the router to access the content
   #   - proxied_path: The path to proxy the requests to
@@ -162,6 +262,6 @@ server {
         proxy_pass {{ static_site.proxied_path }}/$1/index.html;
     }
 
-  {% endfor %}
+  {% endfor -%}
 }
 
