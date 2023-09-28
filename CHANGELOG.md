@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2023-09-28
+  - Role: prospectus
+    - Remove `GATSBY_TURN_ON_SIDEBAR_FILTERS` flag
+
 - 2023-08-29
   - Role: prospectus
     - Added `GATSBY_TURN_ON_SIDEBAR_FILTERS` flag to enable new sidebar changes
