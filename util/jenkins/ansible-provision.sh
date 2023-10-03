@@ -308,6 +308,22 @@ if [[ -z $library_authoring_version ]]; then
   LIBRARY_AUTHORING_MFE_VERSION="master"
 fi
 
+if [[ -z $profile ]]; then
+  profile="false"
+fi
+
+if [[ -z $profile_version ]]; then
+  PROFILE_MFE_VERSION="master"
+fi
+
+if [[ -z $learner_dashboard ]]; then
+  learner_dashboard="false"
+fi
+
+if [[ -z $learner_dashboard_version ]]; then
+  LEARNER_DASHBOARD_MFE_VERSION="master"
+fi
+
 # Lowercase the dns name to deal with an ansible bug
 dns_name="${dns_name,,}"
 
@@ -467,6 +483,18 @@ LIBRARY_AUTHORING_SSL_NGINX_PORT: 443
 LIBRARY_AUTHORING_MFE_VERSION: $library_authoring_version
 LIBRARY_AUTHORING_MFE_ENABLED: $library_authoring
 LIBRARY_AUTHORING_SANDBOX_BUILD: True
+
+PROFILE_NGINX_PORT: 80
+PROFILE_SSL_NGINX_PORT: 443
+PROFILE_MFE_VERSION: $profile_version
+PROFILE_MFE_ENABLED: $profile
+PROFILE_SANDBOX_BUILD: True
+
+LEARNER_DASHBOARD_NGINX_PORT: 80
+LEARNER_DASHBOARD_SSL_NGINX_PORT: 443
+LEARNER_DASHBOARD_MFE_VERSION: $learner_dashboard_version
+LEARNER_DASHBOARD_MFE_ENABLED: $learner_dashboard
+LEARNER_DASHBOARD_SANDBOX_BUILD: True
 
 mysql_server_version_5_7: True
 
