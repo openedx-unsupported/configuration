@@ -77,6 +77,21 @@
     - edxapp_cfg # Old deprecated tag, will remove when possible
     - edxapp_cfg_yaml_only # Used to render the yaml without the json until we remove the json configs
 
+- name: Install decrypt config private key from variable
+  local_action:
+    module: copy
+    content: "{{ DECRYPT_CONFIG_PRIVATE_KEY_VAR }}"
+    dest: "{{ DECRYPT_CONFIG_PRIVATE_KEY_PATH | default('/var/tmp') }}/private.key"
+    force: yes
+    mode: "0644"
+  no_log: True
+  when: edx_service_decrypt_config_enabled and DECRYPT_CONFIG_PRIVATE_KEY_VAR is defined
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+    - edxapp_cfg # Old deprecated tag, will remove when possible
+
 - name: Decrypt lms config
   local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/lms.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/lms.yml
   become: false
