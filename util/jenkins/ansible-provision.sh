@@ -124,7 +124,6 @@ if [[ ( -z $AWS_ACCESS_KEY_ID || -z $AWS_SECRET_ACCESS_KEY ) && (! -f $BOTO_CONF
 fi
 
 extra_vars_file="/var/tmp/extra-vars-$$.yml"
-sandbox_secure_vars_file="${WORKSPACE}/configuration-secure/ansible/vars/developer-sandbox.yml"
 sandbox_internal_vars_file="${WORKSPACE}/configuration-internal/ansible/vars/developer-sandbox.yml"
 extra_var_arg="-e@${extra_vars_file}"
 program_console="false"
@@ -132,7 +131,7 @@ program_console="false"
 if [[ $edx_internal == "true" ]]; then
     # if this is a an edx server include
     # the secret var file
-    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${sandbox_secure_vars_file} -e@${extra_vars_file} -e DECRYPT_CONFIG_PRIVATE_KEY=$WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key -e ENCRYPTED_CFG_DIR=$WORKSPACE/configuration-internal/sandbox-remote-config/sandbox -e UNENCRYPTED_CFG_DIR=$WORKSPACE"
+    extra_var_arg="-e@${sandbox_internal_vars_file} -e@${extra_vars_file} -e DECRYPT_CONFIG_PRIVATE_KEY_PATH=$WORKSPACE -e DECRYPT_CONFIG_PRIVATE_KEY=$WORKSPACE/private.key -e ENCRYPTED_CFG_DIR=$WORKSPACE/configuration-internal/sandbox-remote-config/sandbox -e UNENCRYPTED_CFG_DIR=$WORKSPACE"
 fi
 
 if [[ -z $region ]]; then
@@ -738,9 +737,9 @@ EOF
       rm -f "${provision_fluentd_script}"
 
       # decrypt lms config file
-      asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/lms.yml
+      asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/lms.yml --private_key_path $WORKSPACE/private.key --outfile_path $WORKSPACE/lms.yml
       # decrypt cms config file
-      asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/studio.yml --private_key_path $WORKSPACE/configuration-secure/ansible/keys/sandbox-remote-config/sandbox/private.key --outfile_path $WORKSPACE/cms.yml
+      asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path $WORKSPACE/configuration-internal/sandbox-remote-config/sandbox/studio.yml --private_key_path $WORKSPACE/private.key --outfile_path $WORKSPACE/cms.yml
 
       sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/lms.yml
       sed -i "s/deploy_host/${dns_name}.${dns_zone}/g" $WORKSPACE/cms.yml
@@ -770,7 +769,8 @@ EOF
       ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=$WORKSPACE/dockerfiles-internal/edx-platform-private dest=/var/tmp/" -u ubuntu -b
 
       set +x
-      app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
+
+      app_git_ssh_key=$(aws secretsmanager get-secret-value --secret-id  $configuration_secure_secret --query SecretString --output text | jq -r '._local_git_identity')
 
       # specify variable names
       app_hostname="courses"
@@ -909,7 +909,7 @@ fi
 
 # deploy the edx_ansible play
 run_ansible edx_ansible.yml -i "${deploy_host}," $extra_var_arg --user ubuntu
-cat $sandbox_secure_vars_file $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
+cat $sandbox_internal_vars_file $extra_vars_file | grep -v -E "_version|migrate_db" > ${extra_vars_file}_clean
 ansible -c ssh -i "${deploy_host}," $deploy_host -m copy -a "src=${extra_vars_file}_clean dest=/edx/app/edx_ansible/server-vars.yml" -u ubuntu -b
 ret=$?
 if [[ $ret -ne 0 ]]; then
@@ -947,7 +947,8 @@ fi
 
 if [[ $edx_exams == 'true' ]]; then
     set +x
-    app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
+    
+    app_git_ssh_key=$(aws secretsmanager get-secret-value --secret-id  $configuration_secure_secret --query SecretString --output text | jq -r '._local_git_identity')
 
     app_hostname="edx-exams"
     app_service_name="edx_exams"
@@ -970,8 +971,9 @@ fi
 
 if [[ $subscriptions == 'true' ]]; then
     set +x
-    app_git_ssh_key="$($WORKSPACE/yq '._local_git_identity' $WORKSPACE/configuration-secure/ansible/vars/developer-sandbox.yml)"
-
+    
+    app_git_ssh_key=$(aws secretsmanager get-secret-value --secret-id  $configuration_secure_secret --query SecretString --output text | jq -r '._local_git_identity')
+    
     app_hostname="subscriptions"
     app_service_name="subscriptions"
     app_name="subscriptions"
