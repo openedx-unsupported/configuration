@@ -105,6 +105,21 @@
     - install:configuration
     - install:app-configuration
 
+- name: Install decrypt config private key from variable
+  local_action:
+    module: copy
+    content: "{{ DECRYPT_CONFIG_PRIVATE_KEY_VAR }}"
+    dest: "{{ DECRYPT_CONFIG_PRIVATE_KEY_PATH | default('/var/tmp') }}/private.key"
+    force: yes
+    mode: "0644"
+  become: false
+  no_log: True
+  when: edx_service_decrypt_config_enabled and DECRYPT_CONFIG_PRIVATE_KEY_VAR is defined
+  tags:
+    - install
+    - install:configuration
+    - install:app-configuration
+
 - name: Decrypt app config file
   local_action: command asym_crypto_yaml decrypt-encrypted-yaml --secrets_file_path {{ ENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml --private_key_path {{ DECRYPT_CONFIG_PRIVATE_KEY }} --outfile_path {{ UNENCRYPTED_CFG_DIR }}/{{ edx_service_name }}.yml
   become: false
