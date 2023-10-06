@@ -361,6 +361,35 @@
     - install
     - install:configuration
 
+- name: copy ssl cert from variable
+  copy:
+    content: "{{ NGINX_SSL_CERT_VAR }}"
+    dest: "/etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }}"
+    owner: root
+    group: root
+    mode: 0644
+  when: 
+    - not ssl_cert.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_CERTIFICATE != 'ssl-cert-snakeoil.pem'
+    - NGINX_SSL_CERT_VAR is defined
+  tags:
+    - install
+    - install:configuration
+
+- name: copy ssl key from variable
+  copy:
+    content: "{{ NGINX_SSL_KEY_VAR }}"
+    dest: "/etc/ssl/private/{{ NGINX_SSL_KEY|basename }}"
+    owner: root
+    group: root
+    mode: 0640
+  when: 
+    - not ssl_key.stat.exists and NGINX_ENABLE_SSL and NGINX_SSL_KEY != 'ssl-cert-snakeoil.key'
+    - NGINX_SSL_KEY_VAR is defined
+  no_log: True
+  tags:
+    - install
+    - install:configuration
+
 # removing default link
 - name: Removing default nginx config and restart (enabled)
   file:
