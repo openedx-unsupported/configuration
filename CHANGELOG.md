@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2023-10-09
+
+  - Role: edxapp
+    - Setting default value for `EDXAPP_EDXAPP_SECRET_KEY` as if it is not override in config secure,
+      helper script template can still be generated
+
 - 2023-09-28
   - Role: prospectus
     - Remove `GATSBY_TURN_ON_SIDEBAR_FILTERS` flag
