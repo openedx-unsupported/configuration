@@ -40,7 +40,6 @@ Example:
 	app.config.HAYSTACK_CONNECTIONS.default.URL                                                          TODO                                                                                                 http://notes-elasticsearch-client:9200/
 	app.config.JWT_AUTH.JWT_AUTH_COOKIE_HEADER_PAYLOAD                                                   TODO                                                                                                 stage-edx-jwt-cookie-header-payload
 	app.config.JWT_AUTH.JWT_AUTH_COOKIE_SIGNATURE                                                        TODO                                                                                                 stage-edx-jwt-cookie-signature
-	app.config.JWT_AUTH.JWT_AUTH_REFRESH_COOKIE                                                          TODO                                                                                                 stage-edx-jwt-refresh-cookie
 	app.config.JWT_AUTH.JWT_ISSUERS                                                                      TODO                                                                                                 []
 	app.config.JWT_AUTH.JWT_PUBLIC_SIGNING_JWK_SET                                                       TODO                                                                                                 
 	app.config.RESULTS_DEFAULT_SIZE                                                                      TODO                                                                                                 25
