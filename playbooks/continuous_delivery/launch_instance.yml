@@ -100,13 +100,23 @@
     delay: 15
     until: tag_ec2_instance is succeeded
 
-  - name: Wait for SSH to come up
+  - name: Wait for SSH to come up (private ip)
     wait_for:
       host: "{{ ec2_instance_register.instances[0].private_ip }}"
       port: 22
       delay: 60
       timeout: "{{ ec2_timeout }}"
       state: started
+    when: not ec2_assign_public_ip
+
+  - name: Wait for SSH to come up (public ip)
+    wait_for:
+      host: "{{ ec2_instance_register.instances[0].public_ip }}"
+      port: 22
+      delay: 60
+      timeout: "{{ ec2_timeout }}"
+      state: started
+    when: ec2_assign_public_ip
 
   - name: Generate artifact for jobs down stream
     template:
