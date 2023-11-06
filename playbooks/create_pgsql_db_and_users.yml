@@ -25,7 +25,9 @@
 #     db: "example"
 #     state: "present"
 #     password: "user-password"
-#     privileges: "ALL"
+#     privs: "ALL"
+#     db_objects: "ALL_DEFAULT"
+#     db_object_type: "default_privs"
 #     <<: *default_connection
 
 - name: Create databases and users
@@ -50,12 +52,11 @@
       tags:
         - dbs
 
-    - name: create PostgreSQL users and assign privileges
+    - name: Create PostgreSQL users
       postgresql_user:
         db: "{{ item.db }}"
         name: "{{ item.name }}"
         state: "{{ item.state | default('present') }}"
-        priv: "{{ item.privileges }}"
         password: "{{ item.password }}"
         login_host: "{{ item.login_host }}"
         login_user: "{{ item.login_user }}"
@@ -63,3 +64,17 @@
       with_items: "{{ database_users }}"
       tags:
         - users
+
+    - name: Assign privileges
+      postgresql_privs:
+        roles: "{{ item.name }}"
+        db: "{{ item.db }}"
+        privs: "{{ item.privs }}"
+        objs: "{{ item.db_objects }}"
+        type: "{{ item.db_object_type }}"
+        login_host: "{{ item.login_host }}"
+        login_user: "{{ item.login_user }}"
+        login_password: "{{ item.login_password }}"
+      with_items: "{{ database_users }}"
+      tags:
+        - privileges
