@@ -79,6 +79,14 @@
             }"
     register: ami_register
 
+  - name: Allow AMI to be launched by another account
+    ec2_ami:
+      image_id: "{{ ami_register.image_id }}"
+      state: present
+      launch_permissions:
+        user_ids: "{{ allowed_accounts }}"
+    when: allowed_accounts is defined
+
   - name: Add any tags that are on the instance to the AMI
     ec2_tag:
       region: "{{ ec2_region }}"
