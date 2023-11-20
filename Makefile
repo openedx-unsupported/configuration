@@ -32,16 +32,16 @@ upgrade: $(COMMON_CONSTRAINTS_TXT)
 	pip install -qr requirements/pip-tools.txt
 	# Make sure to compile files after any other files they include!
 	pip-compile --allow-unsafe --rebuild --upgrade -o requirements/pip.txt requirements/pip.in
-	pip-compile -o requirements/pip-tools.txt requirements/pip-tools.in
+	pip-compile --upgrade -o requirements/pip-tools.txt requirements/pip-tools.in
 	pip install -qr requirements/pip.txt
 	pip install -qr requirements/pip-tools.txt
-	pip-compile -o requirements.txt requirements/base.in
-	pip-compile -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
-	pip-compile -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
-	pip-compile -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
-	pip-compile -o util/pingdom/requirements.txt requirements/pingdom.in
-	pip-compile -o util/vpc-tools/requirements.txt requirements/vpc-tools.in
-	pip-compile -o util/jenkins/requirements.txt requirements/jenkins.in
+	pip-compile --upgrade -o requirements.txt requirements/base.in
+	pip-compile --upgrade -o playbooks/roles/aws/templates/requirements.txt.j2 requirements/aws.in
+	pip-compile --upgrade -o util/elasticsearch/requirements.txt requirements/elasticsearch.in
+	pip-compile --upgrade -o util/jenkins/requirements-cloudflare.txt requirements/cloudflare.in
+	pip-compile --upgrade -o util/pingdom/requirements.txt requirements/pingdom.in
+	pip-compile --upgrade -o util/vpc-tools/requirements.txt requirements/vpc-tools.in
+	pip-compile --upgrade -o util/jenkins/requirements.txt requirements/jenkins.in
 	# Post process all of the files generated above to work around open pip-tools issues
 	util/post-pip-compile.sh \
 	    requirements/pip-tools.txt \
