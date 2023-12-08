@@ -81,15 +81,33 @@ server {
   {% endif %}
   }
 
-  # Cache js/css for a long time at the edge, they are versioned in their names
-  location ~ \.(js|css)$ {
+  # Look for hashed .css, .js and .map files in bucket/static_hashed to prevent 404 when cloudflare cache is cleared
+  # Regex only looks in root path, which are the only .css, .js and .map files with content hash filenames
+  location ~* ^/[^/]+\.(css|js|map)$ {
+    # Cache js/css for a long time at the edge, they are versioned in their names
     add_header 'Cache-Control' 'public, max-age=31536000, immutable';
   {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
-    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/{{ PROSPECTUS_S3_HOSTING_PREFIX }}$request_uri;
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/static_hashed$request_uri;
     # Hide client headers from S3 to prevent request headers too big error
     proxy_pass_request_headers off;
   {% endif %}
   }
+
+  {% if PROSPECTUS_S3_HOSTING_PROXY_ENABLED %}
+  # Look for /page-data/sq/d/*.js files in bucket/static_hashed to prevent 404 when cloudflare cache is cleared
+  location /page-data/sq/d/ {
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/static_hashed$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  }
+
+  # Look for /static/* files in bucket/static_hashed to prevent 404 when cloudflare cache is cleared
+  location /static/ {
+    proxy_pass {{ PROSPECTUS_S3_HOSTING_BUCKET_URL }}/static_hashed$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  }
+  {% endif %}
 
   # images sometimes change, we want to cache them for an hour at the edge to reduce bandwidth.
 

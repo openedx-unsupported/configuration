@@ -241,7 +241,15 @@
 
   - name: Upload prospectus to S3
     become_user: "{{ prospectus_user }}"
-    shell: 'aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_S3_HOSTING_BUCKET }}/{{ PROSPECTUS_S3_HOSTING_PREFIX | default(PROSPECTUS_VERSION, true) }}'
+    shell: "aws s3 sync --quiet {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_S3_HOSTING_BUCKET }}/{{ PROSPECTUS_S3_HOSTING_PREFIX | default(PROSPECTUS_VERSION, true) }}"
+    when: PROSPECTUS_S3_UPLOAD_ENABLED|bool
+    tags:
+      - install
+      - install:system-requirements
+
+  - name: Upload prospectus hashed static files to S3
+    become_user: "{{ prospectus_user }}"
+    shell: "aws s3 cp --recursive {{ PROSPECTUS_DATA_DIR }} s3://{{ PROSPECTUS_S3_HOSTING_BUCKET }}/static_hashed --exclude '*' --include '/*.css' --include '/*.js' --include '/*.map' --exclude '*/*' --include 'static/*' --include 'page-data/sq/d/*'"
     when: PROSPECTUS_S3_UPLOAD_ENABLED|bool
     tags:
       - install
