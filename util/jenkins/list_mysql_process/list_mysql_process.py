@@ -26,7 +26,7 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
-def rds_extractor(environment):
+def rds_extractor(environment, regioninclude):
     """
     Return list of all RDS instances across all the regions
     Returns:
@@ -45,16 +45,22 @@ def rds_extractor(environment):
     except ClientError as e:
         print(f"Unable to connect to AWS with error :{e}")
         sys.exit(1)
+    if regioninclude:
+        regions_list = {'Regions': [region for region in regions_list['Regions'] if region['RegionName'] in regioninclude]}
     for region in regions_list["Regions"]:
-        client = RDSBotoWrapper(region_name=region["RegionName"])
-        response = client.describe_db_instances()
-        for instance in response.get('DBInstances'):
-            if environment in instance.get("Endpoint").get("Address") and "test" not in instance["DBInstanceIdentifier"]:
-                temp_dict = {}
-                temp_dict["name"] = instance["DBInstanceIdentifier"]
-                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-                temp_dict["Port"] = instance.get("Port")
-                rds_list.append(temp_dict)
+        try:
+            client = RDSBotoWrapper(region_name=region["RegionName"])
+            response = client.describe_db_instances()
+            for instance in response.get('DBInstances'):
+                if environment in instance.get("Endpoint").get("Address") and "test" not in instance["DBInstanceIdentifier"]:
+                    temp_dict = {}
+                    temp_dict["name"] = instance["DBInstanceIdentifier"]
+                    temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                    temp_dict["Port"] = instance.get("Port")
+                    rds_list.append(temp_dict)
+        except ClientError as e:
+            print(f"Unable to get RDS from this region error :{e}")
+            sys.exit(1)
     return rds_list
 
 
@@ -112,7 +118,8 @@ def check_queries_running(rds_list, username, password):
 @click.option('--password', envvar='PASSWORD', required=True)
 @click.option('--environment', required=True, help='Use to identify the environment')
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
-def controller(username, password, environment, rdsignore):
+@click.option('--regioninclude', '-r', multiple=True, help='Regions to check, can be specified multiple times')
+def controller(username, password, environment, rdsignore, regioninclude):
     """
     Control execution of all other functions
     Arguments:
@@ -125,7 +132,7 @@ def controller(username, password, environment, rdsignore):
         environment (str):
             Get this from cli args
     """
-    rds_list = rds_extractor(environment)
+    rds_list = rds_extractor(environment, regioninclude)
     filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     process_list = check_queries_running(filtered_rds_list, username, password)
     if len(process_list) > 0:
