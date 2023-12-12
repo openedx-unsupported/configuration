@@ -118,7 +118,7 @@ def send_an_email(to_addr, from_addr, primary_keys_message, region):
     )
 
 
-def get_rds_from_all_regions():
+def get_rds_from_all_regions(whitelistregions):
     """
     Gets a list of RDS instances across all the regions and deployments in AWS
 
@@ -142,17 +142,23 @@ def get_rds_from_all_regions():
     except ClientError as e:
         print(f"Unable to connect to AWS with error :{e}")
         sys.exit(1)
+    if whitelistregions:
+        regions_list = {'Regions': [region for region in regions_list['Regions'] if region['RegionName'] in whitelistregions]}
     for region in regions_list["Regions"]:
-        print("Getting RDS instances in region {}".format(region["RegionName"]))
-        rds_client = RDSBotoWrapper(region_name=region["RegionName"])
-        response = rds_client.describe_db_instances()
-        for instance in response.get('DBInstances'):
-            if "test" not in instance["DBInstanceIdentifier"]:
-                temp_dict = dict()
-                temp_dict["name"] = instance["DBInstanceIdentifier"]
-                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-                temp_dict["Port"] = instance.get("Port")
-                rds_list.append(temp_dict)
+        try:
+            print("Getting RDS instances in region {}".format(region["RegionName"]))
+            rds_client = RDSBotoWrapper(region_name=region["RegionName"])
+            response = rds_client.describe_db_instances()
+            for instance in response.get('DBInstances'):
+                if "test" not in instance["DBInstanceIdentifier"]:
+                    temp_dict = dict()
+                    temp_dict["name"] = instance["DBInstanceIdentifier"]
+                    temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                    temp_dict["Port"] = instance.get("Port")
+                    rds_list.append(temp_dict)
+        except ClientError as e:
+            print(f"Unable to get RDS from this region error :{e}")
+            sys.exit(1)
     return rds_list
 
 
@@ -334,7 +340,8 @@ def get_metrics_and_calcuate_diff(namespace, metric_name, dimension, value, curr
 @click.option('--recipient', multiple=True, help='Recipient Email address')
 @click.option('--sender', multiple=True, help='Sender email address')
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
-def controller(username, password, environment, deploy, region, recipient, sender, rdsignore):
+@click.option('--whitelistregions', '-r', multiple=True, help='Regions to check, can be specified multiple times')
+def controller(username, password, environment, deploy, region, recipient, sender, rdsignore, whitelistregions):
     """
     calls other function and calculate the results
     :param username: username for the RDS.
@@ -342,7 +349,7 @@ def controller(username, password, environment, deploy, region, recipient, sende
     :return: None
     """
     # get list of all the RDSes across all the regions and deployments
-    rds_list = get_rds_from_all_regions()
+    rds_list = get_rds_from_all_regions(whitelistregions)
     filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     table_list = check_primary_keys(filtered_rds_list, username, password, environment, deploy)
     if len(table_list) > 0:
