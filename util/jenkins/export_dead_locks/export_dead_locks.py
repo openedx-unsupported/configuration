@@ -30,7 +30,7 @@ class RDSBotoWrapper:
         return self.client.describe_db_instances()
 
 
-def rds_extractor(environment):
+def rds_extractor(environment, whitelistregions):
     """
     Return list of all RDS instances across all the regions
     Returns:
@@ -49,19 +49,25 @@ def rds_extractor(environment):
     except ClientError as e:
         print(f"Unable to connect to AWS with error :{e}")
         sys.exit(1)
+    if whitelistregions:
+        regions_list = {'Regions': [region for region in regions_list['Regions'] if region['RegionName'] in whitelistregions]}
     for region in regions_list["Regions"]:
-        rds_client = RDSBotoWrapper(region_name=region["RegionName"])
-        response = rds_client.describe_db_instances()
-        for instance in response.get('DBInstances'):
-            if environment in instance.get("Endpoint").get("Address") and "test" not in instance["DBInstanceIdentifier"]:
-                temp_dict = {}
-                temp_dict["name"] = instance["DBInstanceIdentifier"]
-                temp_dict["ARN"] = instance["DBInstanceArn"]
-                temp_dict["Region"] = region["RegionName"]
-                temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
-                temp_dict["Username"] = instance.get("MasterUsername")
-                temp_dict["Port"] = instance.get("Port")
-                rds_list.append(temp_dict)
+        try:
+            rds_client = RDSBotoWrapper(region_name=region["RegionName"])
+            response = rds_client.describe_db_instances()
+            for instance in response.get('DBInstances'):
+                if environment in instance.get("Endpoint").get("Address") and "test" not in instance["DBInstanceIdentifier"]:
+                    temp_dict = {}
+                    temp_dict["name"] = instance["DBInstanceIdentifier"]
+                    temp_dict["ARN"] = instance["DBInstanceArn"]
+                    temp_dict["Region"] = region["RegionName"]
+                    temp_dict["Endpoint"] = instance.get("Endpoint").get("Address")
+                    temp_dict["Username"] = instance.get("MasterUsername")
+                    temp_dict["Port"] = instance.get("Port")
+                    rds_list.append(temp_dict)
+        except ClientError as e:
+            print(f"Unable to get RDS from this region error :{e}")
+            sys.exit(1)
     return rds_list
 
 
@@ -110,8 +116,9 @@ def rds_controller(rds_list, username, password, hostname, splunkusername, splun
 @click.option('--port', required=True, help='Use to identify the splunk port')
 @click.option('--indexname', required=True, help='Use to identify the splunk index name')
 @click.option('--rdsignore', '-i', multiple=True, help='RDS name tags to not check, can be specified multiple times')
-def main(username, password, environment, hostname, splunkusername, splunkpassword, port, indexname, rdsignore):
-    rds_list = rds_extractor(environment)
+@click.option('--whitelistregions', '-r', multiple=True, help='Regions to check, can be specified multiple times')
+def main(username, password, environment, hostname, splunkusername, splunkpassword, port, indexname, rdsignore, whitelistregions):
+    rds_list = rds_extractor(environment, whitelistregions)
     filtered_rds_list = list([x for x in rds_list if x['name'] not in rdsignore])
     rds_controller(filtered_rds_list, username, password, hostname, splunkusername, splunkpassword, port, indexname)
 
