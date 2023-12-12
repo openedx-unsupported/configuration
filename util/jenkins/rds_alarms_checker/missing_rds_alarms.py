@@ -34,7 +34,7 @@ class CWBotoWrapper:
         return self.client.describe_alarms(**kwargs)
 
 
-def rds_extractor():
+def rds_extractor(whitelistregions):
     """
     Return list of all RDS instances across all the regions
     Returns:
@@ -53,16 +53,22 @@ def rds_extractor():
     except ClientError as e:
         print(f"Unable to connect to AWS with error :{e}")
         sys.exit(1)
+    if whitelistregions:
+        regions_list = {'Regions': [region for region in regions_list['Regions'] if region['RegionName'] in whitelistregions]}
     for region in regions_list["Regions"]:
-        client = RDSBotoWrapper(region_name=region["RegionName"])
-        response = client.describe_db_instances()
-        for instance in response.get('DBInstances'):
-            if "test" not in instance["DBInstanceIdentifier"]:
-                temp_dict = {}
-                temp_dict["name"] = instance["DBInstanceIdentifier"]
-                temp_dict["ARN"] = instance["DBInstanceArn"]
-                temp_dict["Region"] = region["RegionName"]
-                rds_list.append(temp_dict)
+        try:
+            client = RDSBotoWrapper(region_name=region["RegionName"])
+            response = client.describe_db_instances()
+            for instance in response.get('DBInstances'):
+                if "test" not in instance["DBInstanceIdentifier"]:
+                    temp_dict = {}
+                    temp_dict["name"] = instance["DBInstanceIdentifier"]
+                    temp_dict["ARN"] = instance["DBInstanceArn"]
+                    temp_dict["Region"] = region["RegionName"]
+                    rds_list.append(temp_dict)
+        except ClientError as e:
+            print(f"Unable to get RDS from this region error :{e}")
+            sys.exit(1)
     return rds_list
 
 
@@ -79,11 +85,12 @@ def cloudwatch_alarm_checker(alarmprefix, region):
 
 @click.command()
 @click.option('--ignore', type=(str), multiple=True, help='RDS Instances to ignore')
-def controller(ignore):
+@click.option('--whitelistregions', '-r', multiple=True, help='Regions to check, can be specified multiple times')
+def controller(ignore, whitelistregions):
     """
     Control execution of all other functions
     """
-    rds = rds_extractor()
+    rds = rds_extractor(whitelistregions)
     missing_alarm = []
     # List of RDS we don't care about
     ignore_rds_list = list(ignore)
