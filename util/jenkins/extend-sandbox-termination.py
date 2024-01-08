@@ -1,4 +1,3 @@
-__author__ = 'arbab'
 '''
 This script will be used to modify/extend the termination date on the sandbox.
 '''
