@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2024-01-25
+  - Role: mfe
+    - Added `MFE_ENVIRONMENT_DEFAULT_EXTRA` to allow operators to add extra environment variables to all MFEs when
+      deploying them with the `mfe_deployer` role.
+
  - 2023-04-07
     - Changed default value of `EDXAPP_MONGO_REPLICA_SET` to `null` from existing
       empty string `""`, to make it compatible with pymongo >= 3.11 in Nutmeg and above.
