@@ -4,6 +4,11 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2024-01-25
+  - Role: mfe
+    - Added `MFE_ENVIRONMENT_DEFAULT_EXTRA` to allow operators to add extra environment variables to all MFEs when
+      deploying them with the `mfe_deployer` role.
+
 - 2023-10-09
 
   - Role: edxapp
