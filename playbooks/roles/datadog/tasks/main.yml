@@ -22,7 +22,7 @@
 
 - name: Add apt key for datadog
   apt_key:
-    id: "382E94DE"
+    id: "33EE313BAD9589B7"
     url: "{{ COMMON_UBUNTU_APT_KEYSERVER }}{{ datadog_apt_key }}"
     state: present
   tags:
@@ -30,7 +30,7 @@
 
 - name: Install apt repository for datadog
   apt_repository:
-    repo: 'deb http://apt.datadoghq.com/ stable main'
+    repo: 'deb http://apt.datadoghq.com/ stable 7'
     state: present
     update_cache: yes
   tags:
@@ -43,22 +43,45 @@
     - datadog
 
 - name: Bootstrap config
-  shell: cp datadog.conf.example datadog.conf
+  shell: cp datadog.yaml.example datadog.yaml
   args:
-    chdir: /etc/dd-agent/
-    creates: /etc/dd-agent/datadog.conf
+    chdir: /etc/datadog-agent/
+    creates: /etc/datadog-agent/datadog.yaml
   tags:
     - datadog
 
 - name: Update api-key
   lineinfile:
-    dest: "/etc/dd-agent/datadog.conf"
+    dest: "/etc/datadog-agent/datadog.yaml"
     regexp: "^api_key:.*"
-    line: "api_key:{{ DATADOG_API_KEY }}"
+    line: "api_key: {{ DATADOG_API_KEY }}"
   notify:
     - restart the datadog service
   tags:
     - datadog
+
+- name: Update site
+  lineinfile:
+    dest: "/etc/datadog-agent/datadog.yaml"
+    regexp: "^# site:.*"
+    line: "site: {{ DATADOG_SITE }}"
+  notify:
+    - restart the datadog service
+  tags:
+    - datadog
+
+- name: Write MongoDB monitoring config
+  template:
+    src: "conf.yaml.j2"
+    dest: "/etc/datadog-agent/conf.d/mongo.d/conf.yaml"
+    owner: "{{ datadog_user }}"
+    group: "{{ datadog_user }}"
+    mode: 0644
+  notify:
+    - restart the datadog service
+  tags:
+    - datadog
+  when: DATADOG_MONGODB_MONITORING | default(false) | bool
 
 - name: Ensure started and enabled
   service:
