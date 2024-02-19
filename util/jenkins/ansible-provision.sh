@@ -520,16 +520,16 @@ EOF_AUTH
 
 fi
 
-if [[ $mongo_version == "4.2" ]]; then
-    cat << MONGO_VERSION >> $extra_vars_file
-MONGO_4_2_ENABLED: True
-MONGO_4_4_ENABLED: False
-MONGO_VERSION
-fi
 if [[ $mongo_version == "4.4" ]]; then
     cat << MONGO_VERSION >> $extra_vars_file
 MONGO_4_2_ENABLED: False
 MONGO_4_4_ENABLED: True
+MONGO_VERSION
+fi
+if [[ $mongo_version == "5.0" ]]; then
+    cat << MONGO_VERSION >> $extra_vars_file
+MONGO_4_4_ENABLED: False
+MONGO_5_0_ENABLED: True
 MONGO_VERSION
 fi
 
