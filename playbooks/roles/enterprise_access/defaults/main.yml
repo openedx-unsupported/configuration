@@ -37,6 +37,8 @@ ENTERPRISE_ACCESS_CELERY_BROKER_VHOST: ''
 
 ENTERPRISE_ACCESS_USE_PYTHON38: True
 
+ENTERPRISE_ACCESS_ENVIRONMENT_EXTRA: {}
+
 enterprise_access_environment:
   ENTERPRISE_ACCESS_CFG: '{{ COMMON_CFG_DIR }}/{{ enterprise_access_service_name }}.yml'
 
@@ -55,7 +57,10 @@ ENTERPRISE_ACCESS_MYSQL_HOST: 'localhost'
 ENTERPRISE_ACCESS_MYSQL_USER: 'entaccess001'
 ENTERPRISE_ACCESS_MYSQL_PASSWORD: 'password'
 
-ENTERPRISE_ACCESS_MEMCACHE: [ 'memcache' ]
+ENTERPRISE_ACCESS_MEMCACHE: [ 'localhost:11211' ]
+# The memcache config of edx_django_service is overriden in defaults/main.yml to use PyMemcacheCache
+# as enterprise-access runs on Django 4.2 which doesn't support MemcachedCache backend.
+ENTERPRISE_ACCESS_MEMCACHE_BACKEND: 'django.core.cache.backends.memcached.PyMemcacheCache'
 
 ENTERPRISE_ACCESS_DJANGO_SETTINGS_MODULE: 'enterprise_access.settings.production'
 ENTERPRISE_ACCESS_DOMAIN: 'localhost'
@@ -76,7 +81,6 @@ DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
 MEDIA_ROOT: '{{ ENTERPRISE_ACCESS_MEDIA_ROOT }}'
 MEDIA_URL: '{{ ENTERPRISE_ACCESS_MEDIA_URL }}'
 
-# TODO: Let edx_django_service manage ENTERPRISE_ACCESS_STATIC_ROOT in phase 2.
 ENTERPRISE_ACCESS_STATIC_ROOT: '{{ ENTERPRISE_ACCESS_DATA_DIR }}/staticfiles'
 ENTERPRISE_ACCESS_STATIC_URL: '/static/'
 
@@ -97,13 +101,7 @@ ENTERPRISE_ACCESS_EXTRA_APPS: []
 
 ENTERPRISE_ACCESS_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
 
-ENTERPRISE_ACCESS_CERTIFICATE_LANGUAGES:
-'en': 'English'
-'es_419': 'Spanish'
-
 enterprise_access_service_config_overrides:
-  CERTIFICATE_LANGUAGES: '{{ ENTERPRISE_ACCESS_CERTIFICATE_LANGUAGES }}'
-  ENTERPRISE_ACCESS_SERVICE_USER: '{{ ENTERPRISE_ACCESS_SERVICE_USER }}'
   LANGUAGE_COOKIE_NAME: '{{ ENTERPRISE_ACCESS_LANGUAGE_COOKIE_NAME }}'
   CSRF_COOKIE_SECURE: "{{ ENTERPRISE_ACCESS_CSRF_COOKIE_SECURE }}"
   CELERY_ALWAYS_EAGER: '{{ ENTERPRISE_ACCESS_CELERY_ALWAYS_EAGER }}'
@@ -119,10 +117,6 @@ enterprise_access_service_config_overrides:
 # See edx_django_service_automated_users for an example of what this should be
 ENTERPRISE_ACCESS_AUTOMATED_USERS: {}
 
-# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
-ENTERPRISE_ACCESS_LMS_URL_ROOT: !!null
-ENTERPRISE_ACCESS_DISCOVERY_API_URL:  !!null
-
 ENTERPRISE_ACCESS_CSRF_COOKIE_SECURE: false
 
 ENTERPRISE_ACCESS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING: false
@@ -133,7 +127,6 @@ ENTERPRISE_ACCESS_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'enterprise-access-sso-key'
 ENTERPRISE_ACCESS_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'enterprise-access-sso-secret'
 ENTERPRISE_ACCESS_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'enterprise-access-backend-service-key'
 ENTERPRISE_ACCESS_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'enterprise-access-backend-service-secret'
-ENTERPRISE_ACCESS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 ENTERPRISE_ACCESS_GIT_IDENTITY: !!null
 
@@ -164,4 +157,3 @@ ENTERPRISE_ACCESS_CELERY_WORKERS:
   - queue: '{{ enterprise_access_celery_default_queue }}'
     concurrency: 4
     monitor: True
-enterprise_access_workers: "{{ ENTERPRISE_ACCESS_CELERY_WORKERS }}"

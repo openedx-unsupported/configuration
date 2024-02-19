@@ -4,7 +4,7 @@
 #
 # github:     https://github.com/openedx/configuration
 # wiki:       https://openedx.atlassian.net/wiki/display/OpenOPS
-# code style: https://openedx.atlassian.net/wiki/display/OpenOPS/Ansible+Code+Conventions
+# code style: https://openedx.atlassian.net/wiki/spaces/OpenOPS/pages/26837527/Ansible+Code+Conventions
 # license:    https://github.com/openedx/configuration/blob/master/LICENSE.TXT
 #
 ##
@@ -24,18 +24,11 @@ enterprise_subsidy_code_dir: "{{ enterprise_subsidy_app_dir }}/{{ enterprise_sub
 enterprise_subsidy_venvs_dir: "{{ enterprise_subsidy_app_dir }}/venvs"
 enterprise_subsidy_venv_dir: "{{ enterprise_subsidy_venvs_dir }}/enterprise_subsidy"
 
-enterprise_subsidy_celery_default_queue: 'enterprise_subsidy.default'
-
 enterprise_subsidy_hostname: 'enterprise-subsidy'
 
-ENTERPRISE_SUBSIDY_CELERY_ALWAYS_EAGER: false
-ENTERPRISE_SUBSIDY_CELERY_BROKER_TRANSPORT: ''
-ENTERPRISE_SUBSIDY_CELERY_BROKER_USER: ''
-ENTERPRISE_SUBSIDY_CELERY_BROKER_PASSWORD: ''
-ENTERPRISE_SUBSIDY_CELERY_BROKER_HOSTNAME: ''
-ENTERPRISE_SUBSIDY_CELERY_BROKER_VHOST: ''
-
 ENTERPRISE_SUBSIDY_USE_PYTHON38: True
+
+ENTERPRISE_SUBSIDY_ENVIRONMENT_EXTRA: {}
 
 enterprise_subsidy_environment:
   EDX_ENTERPRISE_SUBSIDY_CFG: '{{ COMMON_CFG_DIR }}/{{ enterprise_subsidy_service_name }}.yml'
@@ -55,7 +48,7 @@ ENTERPRISE_SUBSIDY_MYSQL_HOST: 'localhost'
 ENTERPRISE_SUBSIDY_MYSQL_USER: 'entsubsidy001'
 ENTERPRISE_SUBSIDY_MYSQL_PASSWORD: 'password'
 
-ENTERPRISE_SUBSIDY_MEMCACHE: [ 'enterprise_subsidy' ]
+ENTERPRISE_SUBSIDY_MEMCACHE: [ 'localhost:11211' ]
 # The memcache config of edx_django_service is overriden in defaults/main.yml to use PyMemcacheCache
 # as enterprise-subsidy runs on Django 4.2 which doesn't support MemcachedCache backend.
 ENTERPRISE_SUBSIDY_MEMCACHE_BACKEND: 'django.core.cache.backends.memcached.PyMemcacheCache'
@@ -79,7 +72,6 @@ DEFAULT_FILE_STORAGE: 'django.core.files.storage.FileSystemStorage'
 MEDIA_ROOT: '{{ ENTERPRISE_SUBSIDY_MEDIA_ROOT }}'
 MEDIA_URL: '{{ ENTERPRISE_SUBSIDY_MEDIA_URL }}'
 
-# TODO: Let edx_django_service manage ENTERPRISE_SUBSIDY_STATIC_ROOT in phase 2.
 ENTERPRISE_SUBSIDY_STATIC_ROOT: '{{ ENTERPRISE_SUBSIDY_DATA_DIR }}/staticfiles'
 ENTERPRISE_SUBSIDY_STATIC_URL: '/static/'
 
@@ -100,31 +92,12 @@ ENTERPRISE_SUBSIDY_EXTRA_APPS: []
 
 ENTERPRISE_SUBSIDY_SESSION_EXPIRE_AT_BROWSER_CLOSE: false
 
-ENTERPRISE_SUBSIDY_CERTIFICATE_LANGUAGES:
-'en': 'English'
-'es_419': 'Spanish'
-
 enterprise_subsidy_service_config_overrides:
-  CERTIFICATE_LANGUAGES: '{{ ENTERPRISE_SUBSIDY_CERTIFICATE_LANGUAGES }}'
-  ENTERPRISE_SUBSIDY_SERVICE_USER: '{{ ENTERPRISE_SUBSIDY_SERVICE_USER }}'
   LANGUAGE_COOKIE_NAME: '{{ ENTERPRISE_SUBSIDY_LANGUAGE_COOKIE_NAME }}'
   CSRF_COOKIE_SECURE: "{{ ENTERPRISE_SUBSIDY_CSRF_COOKIE_SECURE }}"
-  CELERY_ALWAYS_EAGER: '{{ ENTERPRISE_SUBSIDY_CELERY_ALWAYS_EAGER }}'
-  CELERY_BROKER_TRANSPORT: '{{ ENTERPRISE_SUBSIDY_CELERY_BROKER_TRANSPORT }}'
-  CELERY_BROKER_USER: '{{ ENTERPRISE_SUBSIDY_CELERY_BROKER_USER }}'
-  CELERY_BROKER_PASSWORD: '{{ ENTERPRISE_SUBSIDY_CELERY_BROKER_PASSWORD }}'
-  CELERY_BROKER_HOSTNAME: '{{ ENTERPRISE_SUBSIDY_CELERY_BROKER_HOSTNAME }}'
-  CELERY_BROKER_VHOST: '{{ ENTERPRISE_SUBSIDY_CELERY_BROKER_VHOST }}'
-  CELERY_DEFAULT_EXCHANGE: 'enterprise_subsidy'
-  CELERY_DEFAULT_ROUTING_KEY: 'enterprise_subsidy'
-  CELERY_DEFAULT_QUEUE: '{{ enterprise_subsidy_celery_default_queue }}'
 
 # See edx_django_service_automated_users for an example of what this should be
 ENTERPRISE_SUBSIDY_AUTOMATED_USERS: {}
-
-# NOTE: These variables are only needed to create the demo site (e.g. for sandboxes)
-ENTERPRISE_SUBSIDY_LMS_URL_ROOT: !!null
-ENTERPRISE_SUBSIDY_DISCOVERY_API_URL:  !!null
 
 ENTERPRISE_SUBSIDY_CSRF_COOKIE_SECURE: false
 
@@ -136,7 +109,6 @@ ENTERPRISE_SUBSIDY_SOCIAL_AUTH_EDX_OAUTH2_KEY: 'enterprise-subsidy-sso-key'
 ENTERPRISE_SUBSIDY_SOCIAL_AUTH_EDX_OAUTH2_SECRET: 'enterprise-subsidy-sso-secret'
 ENTERPRISE_SUBSIDY_BACKEND_SERVICE_EDX_OAUTH2_KEY: 'enterprise-subsidy-backend-service-key'
 ENTERPRISE_SUBSIDY_BACKEND_SERVICE_EDX_OAUTH2_SECRET: 'enterprise-subsidy-backend-service-secret'
-ENTERPRISE_SUBSIDY_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
 
 ENTERPRISE_SUBSIDY_GIT_IDENTITY: !!null
 
@@ -160,11 +132,3 @@ ENTERPRISE_SUBSIDY_COPY_CONFIG_ENABLED: "{{ COMMON_COPY_CONFIG_ENABLED }}"
 ENTERPRISE_SUBSIDY_ENABLE_ADMIN_URLS_RESTRICTION: false
 ENTERPRISE_SUBSIDY_ADMIN_URLS:
   - admin
-
-# Worker settings
-worker_django_settings_module: "{{ ENTERPRISE_SUBSIDY_DJANGO_SETTINGS_MODULE }}"
-ENTERPRISE_SUBSIDY_CELERY_WORKERS:
-  - queue: '{{ enterprise_subsidy_celery_default_queue }}'
-    concurrency: 4
-    monitor: True
-enterprise_subsidy_workers: "{{ ENTERPRISE_SUBSIDY_CELERY_WORKERS }}"
