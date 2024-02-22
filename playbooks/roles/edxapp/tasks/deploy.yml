@@ -216,6 +216,23 @@
     - install
     - install:app-requirements
 
+- name: "Install Datadog APM requirements"
+  when: COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP
+  pip:
+    name:
+      - ddtrace
+    extra_args: "--exists-action w {{ item.extra_args|default('') }}"
+    virtualenv: "{{ edxapp_venv_dir }}"
+    state: present
+  become_user: "{{ edxapp_user }}"
+  register: edxapp_install_datadog_reqs
+  until: edxapp_install_datadog_reqs is succeeded
+  retries: 5
+  delay: 15
+  tags:
+    - install
+    - install:app-requirements
+
 # Pulling Atlas translations into the repo needs to happen after
 # Python dependencies have been installed. Note: This task leaves the
 # git working directory in a "dirty" state.
