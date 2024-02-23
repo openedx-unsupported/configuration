@@ -246,26 +246,6 @@
     - install
     - install:app-requirements
 
-- name: "Pull translations using Atlas"
-  shell: |
-    set -eu -o pipefail
-    # Pull down the Atlas binary into a bin/ dir and add it to the PATH for the Make recipe
-    mkdir -p bin
-    curl -sS -L https://github.com/openedx/openedx-atlas/releases/latest/download/atlas -o ./bin/atlas
-    chmod +x ./bin/atlas
-    source {{ edxapp_venv_dir }}/bin/activate
-    # Use production-like environment and minimal config to avoid needing dev dependencies or full config.
-    PATH="./bin/:$PATH" DJANGO_SETTINGS_MODULE=lms.envs.production \
-      LMS_CFG=lms/envs/minimal.yml STUDIO_CFG=lms/envs/minimal.yml \
-      OPENEDX_ATLAS_PULL=true make pull_translations
-    rm ./bin/atlas
-  args:
-    executable: /usr/bin/bash
-    chdir: "{{ edxapp_code_dir }}"
-  become_user: "{{ edxapp_user }}"
-  tags:
-    - install
-
 # Set the npm registry
 # This needs to be done as root since npm is weird about
 # chown - https://github.com/npm/npm/issues/3565
