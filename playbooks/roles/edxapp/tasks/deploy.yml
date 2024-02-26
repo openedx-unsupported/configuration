@@ -357,33 +357,6 @@
   failed_when: "'17017' not in sandbox_test3.stdout"
   when: EDXAPP_SANDBOX_ENFORCE
 
-- name: "Pull translations using Atlas (after Python dependencies and Node installed)"
-  shell: |
-    set -eu -o pipefail
-    # Pull down the Atlas binary into a bin/ dir and add it to the PATH for the Make recipe
-    mkdir -p bin
-    curl -sS -L https://github.com/openedx/openedx-atlas/releases/latest/download/atlas -o ./bin/atlas
-    chmod +x ./bin/atlas
-    source {{ edxapp_venv_dir }}/bin/activate
-    # Use production-like environment and minimal config to avoid needing dev dependencies or full config.
-    PATH="./bin/:$PATH" DJANGO_SETTINGS_MODULE=lms.envs.production \
-      LMS_CFG=lms/envs/minimal.yml STUDIO_CFG=lms/envs/minimal.yml \
-      OPENEDX_ATLAS_PULL=true make pull_translations || {
-        # Debugging for https://github.com/edx/edx-arch-experiments/issues/548
-        echo "pull_translations failed. Contents of test_root/log/npm-install.log:"
-        echo "===================================================================="
-        cat test_root/log/npm-install.log
-        echo "===================================================================="
-        exit 1
-    }
-    rm ./bin/atlas
-  args:
-    executable: /usr/bin/bash
-    chdir: "{{ edxapp_code_dir }}"
-  become_user: "{{ edxapp_user }}"
-  tags:
-    - install
-
 - name: compiling all py files in the edx-platform repo
   shell: "{{ edxapp_venv_bin }}/python -m compileall -q -x '.git/.*|node_modules/.*' {{ edxapp_code_dir }}"
   become_user: "{{ edxapp_user }}"
