@@ -1398,8 +1398,8 @@ Add any new changes to the top (right below this line).
 
  - 2015-05-27
      - Role: edxapp
-       - Removed deprecated variables EDXAPP_PLATFORM_TWITTER_URL, EDXAPP_PLATFORM_MEETUP_URL, EDXAPP_PLATFORM_LINKEDIN_URL, and EDXAPP_PLATFORM_GOOGLE_PLUS_URL in favor of EDXAPP_SOCIAL_MEDIA_FOOTER_URLS.  These variables haven't been used in edx-platform since March 17, 2015 (when https://github.com/edx/edx-platform/pull/7383 was merged).  This change is backwards incompatible with versions of edx-platform from before March 17, 2015.
-       - Added EDXAPP_MOBILE_STORE_URLS and EDXAPP_FOOTER_ORGANIZATION_IMAGE variables, used in https://github.com/edx/edx-platform/pull/8175 (v3 version of the edx.org footer).
+       - Removed deprecated variables EDXAPP_PLATFORM_TWITTER_URL, EDXAPP_PLATFORM_MEETUP_URL, EDXAPP_PLATFORM_LINKEDIN_URL, and EDXAPP_PLATFORM_GOOGLE_PLUS_URL in favor of EDXAPP_SOCIAL_MEDIA_FOOTER_URLS.  These variables haven't been used in edx-platform since March 17, 2015 (when https://github.com/openedx/edx-platform/pull/7383 was merged).  This change is backwards incompatible with versions of edx-platform from before March 17, 2015.
+       - Added EDXAPP_MOBILE_STORE_URLS and EDXAPP_FOOTER_ORGANIZATION_IMAGE variables, used in https://github.com/openedx/edx-platform/pull/8175 (v3 version of the edx.org footer).
 
 
        - We now remove the default syslog.d conf file (50-default.conf) this will
@@ -1526,7 +1526,7 @@ Add any new changes to the top (right below this line).
  - 2014-05-28
      - Role: Edxapp
        - The repo.txt requirements file is no longer being processed in anyway.  This file was removed from edxplatform
-         via pull #3487(https://github.com/edx/edx-platform/pull/3487)
+         via pull #3487(https://github.com/openedx/edx-platform/pull/3487)
 
  - 2014-05-19
 
