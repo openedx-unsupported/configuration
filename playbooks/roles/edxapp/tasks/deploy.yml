@@ -216,6 +216,22 @@
     - install
     - install:app-requirements
 
+- name: "Pull translations using Atlas after Python dependencies installed"
+  shell: |
+    set -eu -o pipefail
+    source {{ edxapp_venv_dir }}/bin/activate
+    # Use production Django settings because otherwise debug_toolbar will be referenced and cause
+    # an error (we don't have developer Python deps installed.) Use minimal configs because the
+    # real configs aren't installed until later in the playbook.
+    DJANGO_SETTINGS_MODULE=lms.envs.production LMS_CFG=lms/envs/minimal.yml STUDIO_CFG=lms/envs/minimal.yml \
+      OPENEDX_ATLAS_PULL=true make pull_translations
+  args:
+    executable: /usr/bin/bash
+    chdir: "{{ edxapp_code_dir }}"
+  become_user: "{{ edxapp_user }}"
+  tags:
+    - install
+
 # If using CAS and you have a function for mapping attributes, install
 # the module here.  The next few tasks set up the python code sandbox
 - name: install CAS attribute module
