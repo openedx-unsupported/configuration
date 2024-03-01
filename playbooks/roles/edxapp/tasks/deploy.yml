@@ -216,18 +216,25 @@
     - install
     - install:app-requirements
 
-- name: "Pull translations using Atlas after Python dependencies installed"
+# Pulling Atlas translations into the repo needs to happen after
+# Python dependencies have been installed. Note: This task leaves the
+# git working directory in a "dirty" state.
+- name: "Pull translations using Atlas"
   shell: |
-    set -eu -o pipefail
-    source {{ edxapp_venv_dir }}/bin/activate
-    # Use production Django settings because otherwise debug_toolbar will be referenced and cause
-    # an error (we don't have developer Python deps installed.) Use minimal configs because the
-    # real configs aren't installed until later in the playbook.
-    DJANGO_SETTINGS_MODULE=lms.envs.production LMS_CFG=lms/envs/minimal.yml STUDIO_CFG=lms/envs/minimal.yml \
-      OPENEDX_ATLAS_PULL=true make pull_translations
+    source "{{ edxapp_venv_dir }}/bin/activate"
+    make pull_translations
   args:
     executable: /usr/bin/bash
     chdir: "{{ edxapp_code_dir }}"
+  environment:
+    # Use production Django settings because otherwise debug_toolbar will be
+    # referenced and cause an error (we don't have developer Python deps installed.)
+    EDX_PLATFORM_SETTINGS: production
+    # Use minimal configs because the real configs aren't installed until
+    # later in the playbook.
+    LMS_CFG: lms/envs/minimal.yml
+    STUDIO_CFG: lms/envs/minimal.yml
+    OPENEDX_ATLAS_PULL: true
   become_user: "{{ edxapp_user }}"
   tags:
     - install
