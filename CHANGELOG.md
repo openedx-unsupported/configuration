@@ -4,6 +4,9 @@
 All notable changes to this project will be documented in this file.
 Add any new changes to the top (right below this line).
 
+- 2024-03-20
+  - Add `COMMON_ENABLE_DATADOG_APP` for APM instrumention, supported in LMS and CMS so far. Disabled by default.
+
 - 2024-01-25
   - Role: mfe
     - Added `MFE_ENVIRONMENT_DEFAULT_EXTRA` to allow operators to add extra environment variables to all MFEs when

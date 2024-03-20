@@ -4,8 +4,10 @@
 
 {% set edxapp_venv_bin = edxapp_venv_dir + "/bin" %}
 
+{% set executable = edxapp_venv_bin + '/gunicorn' %}
+
 {% if COMMON_ENABLE_NEWRELIC_APP %}
-{% set executable = edxapp_venv_bin + '/newrelic-admin run-program ' + edxapp_venv_bin + '/gunicorn' %}
+{% set executable = edxapp_venv_bin + '/newrelic-admin run-program ' + executable %}
 
 export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ EDXAPP_CMS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }}"
 export NEW_RELIC_APP_NAME="{{ EDXAPP_NEWRELIC_CMS_APPNAME }}"
@@ -16,10 +18,11 @@ if command -v ec2metadata >/dev/null 2>&1; then
   export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
 fi
 export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
 
-{% else %}
-{% set executable = edxapp_venv_bin + '/gunicorn' %}
-{% endif %}
+{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}
+{% set executable = edxapp_venv_bin + '/ddtrace-run ' + executable %}
+{% endif -%}
 
 export PORT="{{ edxapp_cms_gunicorn_port }}"
 export ADDRESS="{{ edxapp_cms_gunicorn_host }}"
