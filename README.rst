@@ -1,9 +1,19 @@
 Configuration Management
 ########################
 
-This repository is a collection of tools and scripts that edx.org uses to deploy 
+DEPRECATION WARNING
+*******************
+
+This repository is Deprecated and is planned to be archived after the Redwood
+Cut (Late April 2024). See https://github.com/openedx/public-engineering/issues/51
+for more details and up-to-date information.
+
+Description
+***********
+
+This repository is a collection of tools and scripts that edx.org uses to deploy
 openedx. The purpose of this repository is to share portions of our toolchain
-with the community. This repository is *not* the best way to get started running 
+with the community. This repository is *not* the best way to get started running
 openedx. For that, please look at `Open EdX Installation options`_, which contains
 links to the recommended paths for new installations.
 
@@ -28,7 +38,7 @@ What is in this Repo?
   be used to configure individual services in the openedx platform. See
   `Open EdX Installation options`_ before trying to use any of the scripts in
   this directory.
-* `docker </docker>`__: This directory contains dockerfiles that can be used to 
+* `docker </docker>`__: This directory contains dockerfiles that can be used to
   test that playbooks execute cleanly.  See `Makefiles <Makefiles.rst>`__ for
   Documentation on how to run these containers.
 * `requirements </requirements>`__ : inputs for `pip-compile <https://github.com/jazzband/pip-tools>`__
@@ -44,13 +54,13 @@ Roadmap
 *******
 
 This repository is in ``sustained`` status.  The goal is to deprecate this codebase
-and move the deployment code into the repos with the application code. 
+and move the deployment code into the repos with the application code.
 
-With the adoption of containerized application platforms like `Kubernetes 
-<https://kubernetes.io/>`__, the tools in this repository are complex 
+With the adoption of containerized application platforms like `Kubernetes
+<https://kubernetes.io/>`__, the tools in this repository are complex
 and inappropriate for building small single purpose containers.
 
-At edx.org, we are focusing on deployment of applications using `Terraform 
+At edx.org, we are focusing on deployment of applications using `Terraform
 <https://www.terraform.io/>`__ and `Kubernetes <https://kubernetes.io/>`__.  We
 hope to provide open source tooling for this soon.
 
@@ -59,7 +69,7 @@ Contributing
 ************
 
 * Bugfixes: If you would like to contribute a bugfix to this codebase, please open
-  a pull request. A bot will automatically walk your contribution through the 
+  a pull request. A bot will automatically walk your contribution through the
   `Open Source Contribution process <https://edx-developer-guide.readthedocs.io/en/latest/process/overview.html>`__.
 
 
