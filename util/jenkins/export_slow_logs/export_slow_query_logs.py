@@ -93,49 +93,52 @@ def rds_controller(rds_list, username, password):
         connection = pymysql.connect(host=rds_host_endpoint, port=rds_port,
                                      user=username, password=password)
         cursor = connection.cursor()
-        print(f"Checking slow log on RDS HOST {rds_host_endpoint}")
-        cursor.execute("""
-                      SELECT *
-                      FROM mysql.slow_log
-                      WHERE start_time > DATE_ADD(NOW(), INTERVAL -1 HOUR);
-                    """)
-        rds_result = cursor.fetchall()
-        cursor.close()
-        connection.close()
-        if len(rds_result) > 0:
-            cw_logs = []
-            sequencetoken = None
-            client = CWBotoWrapper()
-            loggroupname= "/slowlogs/" + rds_host_endpoint
-            try:
-                client.create_log_group(logGroupName=loggroupname)
-                print(('Created CloudWatch log group named "%s"', loggroupname))
-            except ClientError:
-                print(('CloudWatch log group named "%s" already exists', loggroupname))
-            LOG_STREAM = time.strftime('%Y-%m-%d') + "/[$LATEST]" + uuid.uuid4().hex
-            client.create_log_stream(logGroupName=loggroupname, logStreamName=LOG_STREAM)
-            for tables in rds_result:
-                temp = {}
-                temp["timestamp"] = int(tables[0].strftime("%s")) * 1000
-                temp["message"] = "User@Host: " + str(tables[1]) + \
-                    "Query_time: " + str(tables[2]) + " Lock_time: " + str(tables[3]) + \
-                    " Rows_sent: " + str(tables[4]) + " Rows_examined: " + str(tables[5]) +\
-                    "Slow Query: " + str(tables[10])
-                cw_logs.append(temp)
-            if sequencetoken == None:
-                response = client.put_log_events(
-                                        logGroupName=loggroupname,
-                                        logStreamName=LOG_STREAM,
-                                        logEvents=cw_logs
-                                        )
-            else:
-                response = client.put_log_events(
-                    logGroupName=loggroupname,
-                    logStreamName=LOG_STREAM,
-                    logEvents=cw_logs,
-                    sequenceToken=sequencetoken
-                )
-            sequencetoken = response["nextSequenceToken"]
+        try:
+            print(f"Checking slow log on RDS HOST {rds_host_endpoint}")
+            cursor.execute("""
+                          SELECT *
+                          FROM mysql.slow_log
+                          WHERE start_time > DATE_ADD(NOW(), INTERVAL -1 HOUR);
+                        """)
+            rds_result = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            if len(rds_result) > 0:
+                cw_logs = []
+                sequencetoken = None
+                client = CWBotoWrapper()
+                loggroupname= "/slowlogs/" + rds_host_endpoint
+                try:
+                    client.create_log_group(logGroupName=loggroupname)
+                    print(('Created CloudWatch log group named "%s"', loggroupname))
+                except ClientError:
+                    print(('CloudWatch log group named "%s" already exists', loggroupname))
+                LOG_STREAM = time.strftime('%Y-%m-%d') + "/[$LATEST]" + uuid.uuid4().hex
+                client.create_log_stream(logGroupName=loggroupname, logStreamName=LOG_STREAM)
+                for tables in rds_result:
+                    temp = {}
+                    temp["timestamp"] = int(tables[0].strftime("%s")) * 1000
+                    temp["message"] = "User@Host: " + str(tables[1]) + \
+                        "Query_time: " + str(tables[2]) + " Lock_time: " + str(tables[3]) + \
+                        " Rows_sent: " + str(tables[4]) + " Rows_examined: " + str(tables[5]) +\
+                        "Slow Query: " + str(tables[10])
+                    cw_logs.append(temp)
+                if sequencetoken == None:
+                    response = client.put_log_events(
+                                            logGroupName=loggroupname,
+                                            logStreamName=LOG_STREAM,
+                                            logEvents=cw_logs
+                                            )
+                else:
+                    response = client.put_log_events(
+                        logGroupName=loggroupname,
+                        logStreamName=LOG_STREAM,
+                        logEvents=cw_logs,
+                        sequenceToken=sequencetoken
+                    )
+                sequencetoken = response["nextSequenceToken"]
+        except Exception as e:
+            print(e)
 
 
 @click.command()
