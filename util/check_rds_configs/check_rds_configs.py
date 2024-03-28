@@ -112,9 +112,10 @@ def cli(db_engine, ignore):
         db_cluster_identifier = cluster['DBClusterIdentifier']
         tags = rds.list_tags_for_resource(ResourceName=arn)['TagList']
         print("Checking cluster tags on DB cluster {}".format(db_cluster_identifier))
-        exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_cluster_identifier, tags)
-        if cluster['CopyTagsToSnapshot'] == False:
-            cluster_with_disabled_snapshot_tags.append(cluster['DBClusterIdentifier'])
+        if db_cluster_identifier not in ignore_rds and "test" not in db_cluster_identifier:
+            exit_status, clusters_without_tags = check_tags(clusters_without_tags, db_cluster_identifier, tags)
+            if cluster['CopyTagsToSnapshot'] == False:
+                cluster_with_disabled_snapshot_tags.append(cluster['DBClusterIdentifier'])
 
         for instance in cluster['DBClusterMembers']:
             db_identifier = instance['DBInstanceIdentifier']
