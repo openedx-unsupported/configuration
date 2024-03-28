@@ -139,6 +139,7 @@ def rds_controller(rds_list, username, password):
                 sequencetoken = response["nextSequenceToken"]
         except Exception as e:
             print(e)
+            print(f"the following RDS has issue: {rds_host_endpoint}")
 
 
 @click.command()
