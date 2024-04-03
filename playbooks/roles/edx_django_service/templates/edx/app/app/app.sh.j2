@@ -4,13 +4,11 @@
 
 {% set edx_django_service_venv_bin = edx_django_service_venv_dir + "/bin" %}
 
-{% if COMMON_ENABLE_NEWRELIC_APP %}
-{% set executable = edx_django_service_venv_bin + '/newrelic-admin run-program ' + edx_django_service_venv_bin + '/gunicorn' %}
-{% else %}
 {% set executable = edx_django_service_venv_bin + '/gunicorn' %}
-{% endif %}
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = edx_django_service_venv_bin + '/newrelic-admin run-program ' + executable %}
+
 export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ edx_django_service_enable_newrelic_distributed_tracing }}"
 export NEW_RELIC_APP_NAME="{{ edx_django_service_newrelic_appname }}"
 HOSTNAME=$(hostname)
@@ -20,6 +18,11 @@ if command -v ec2metadata >/dev/null 2>&1; then
   export NEW_RELIC_PROCESS_HOST_DISPLAY_NAME="$HOSTNAME-$INSTANCEID"
 fi
 export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}
+{% set executable = edx_django_service_venv_bin + '/ddtrace-run ' + executable %}
+export DD_TAGS="service:{{ edx_django_service_name }}"
 {% endif -%}
 
 export EDX_REST_API_CLIENT_NAME="{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}"

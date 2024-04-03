@@ -212,6 +212,19 @@
     - install
     - install:app-requirements
 
+- name: "Install Datadog APM requirements"
+  when: COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP
+  pip:
+    name:
+      - ddtrace
+    extra_args: "--exists-action w {{ item.extra_args|default('') }}"
+    virtualenv: "{{ edx_django_service_venv_dir }}"
+    state: present
+  become_user: "{{ edx_django_service_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: Check for existing make_migrate container
   command: "docker ps -aq --filter name='{{ edx_django_service_name }}.make_migrate'"
   register: edx_django_service_make_migrate_container
