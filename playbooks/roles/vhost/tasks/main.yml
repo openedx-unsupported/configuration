@@ -70,6 +70,22 @@
   when: COMMON_OBJECT_STORE_LOG_SYNC
         and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
 
+- name: Set maximum disk space usage for systemd journal
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: '^#?SystemMaxUse='
+    line: 'SystemMaxUse=1G'
+    state: present
+  register: journald_config_line
+  when: ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
+
+- name: Restart systemd-journald (ubuntu/debian)
+  service:
+    name: systemd-journald
+    state: restarted
+  when: >
+    journald_config_line.changed and ansible_distribution in common_debian_variants
+
 - name: Update /etc/dhcp/dhclient.conf
   template:
     src: etc/dhcp/dhclient.conf.j2
