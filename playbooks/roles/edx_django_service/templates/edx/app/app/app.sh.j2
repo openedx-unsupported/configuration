@@ -23,6 +23,16 @@ export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
 {% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}
 {% set executable = edx_django_service_venv_bin + '/ddtrace-run ' + executable %}
 export DD_TAGS="service:{{ edx_django_service_name }}"
+# Workaround for
+# https://github.com/edx/edx-arch-experiments/issues/591 (heavy
+# streams of trace-debug logs from ddtrace.)
+#
+# ddtrace is behaving as if DD_TRACE_DEBUG=true, even though that
+# should be false by default, and we're not setting it anywhere that
+# we can find.  Overriding it to false doesn't work, and none of the
+# other trace-related configs that are documented seem to help, but
+# from testing DD_TRACE_LOG_STREAM_HANDLER=false seems to help.
+export DD_TRACE_LOG_STREAM_HANDLER=false
 {% endif -%}
 
 export EDX_REST_API_CLIENT_NAME="{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}-{{ edx_django_service_name }}"
