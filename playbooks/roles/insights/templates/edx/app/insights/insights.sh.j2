@@ -3,16 +3,20 @@
 # {{ ansible_managed }}
 
 {% set insights_venv_bin = insights_home + '/venvs/' + insights_service_name + '/bin' %}
-{% if COMMON_ENABLE_NEWRELIC_APP %}
-{% set executable = insights_venv_bin + '/newrelic-admin run-program ' + insights_venv_bin + '/gunicorn' %}
-{% else %}
+
 {% set executable = insights_venv_bin + '/gunicorn' %}
-{% endif %}
 
 {% if COMMON_ENABLE_NEWRELIC_APP %}
+{% set executable = insights_venv_bin + '/newrelic-admin run-program ' + insights_venv_bin + '/gunicorn' %}
+
 export NEW_RELIC_DISTRIBUTED_TRACING_ENABLED="{{ INSIGHTS_ENABLE_NEWRELIC_DISTRIBUTED_TRACING }}"
 export NEW_RELIC_APP_NAME="{{ INSIGHTS_NEWRELIC_APPNAME }}"
 export NEW_RELIC_LICENSE_KEY="{{ NEWRELIC_LICENSE_KEY }}"
+{% endif -%}
+
+{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}
+{% set executable = insights_venv_bin + '/ddtrace-run ' + executable %}
+export DD_TAGS="service:{{ insights_service_name }}"
 {% endif -%}
 
 source {{ insights_app_dir }}/insights_env

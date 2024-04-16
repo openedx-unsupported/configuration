@@ -21,6 +21,19 @@
     - install
     - install:app-requirements
 
+- name: "Install Datadog APM requirements"
+  when: COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP
+  pip:
+    name:
+      - ddtrace
+    extra_args: "--exists-action w"
+    virtualenv: '{{ ecommerce_worker_home }}/venvs/{{ ecommerce_worker_service_name }}'
+    state: present
+  become_user: "{{ ecommerce_worker_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: write out the supervisor wrapper
   template:
     src: edx/app/ecomworker/ecomworker.sh.j2
