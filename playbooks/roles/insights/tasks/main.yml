@@ -45,6 +45,19 @@
     - install
     - install:app-requirements
 
+- name: "Install Datadog APM requirements"
+  when: COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP
+  pip:
+    name:
+      - ddtrace
+    extra_args: "--exists-action w"
+    virtualenv: "{{ insights_venv_dir }}"
+    state: present
+  become_user: "{{ insights_user }}"
+  tags:
+    - install
+    - install:app-requirements
+
 - name: create nodeenv
   shell: "{{ insights_venv_dir }}/bin/nodeenv {{ insights_nodeenv_dir }}  --node={{ INSIGHTS_NODE_VERSION }} --prebuilt --force"
   become_user: "{{ insights_user }}"
