@@ -15,7 +15,9 @@ command={{ executable }} -c {{ xqueue_app_dir }}/xqueue_gunicorn.py {{ XQUEUE_GU
 user={{ common_web_user }}
 directory={{ xqueue_code_dir }}
 
-environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ XQUEUE_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}DD_TAGS=service:{{ XQUEUE_DATADOG_APPNAME }},{% endif -%}PID=/var/tmp/xqueue.pid,PORT={{ xqueue_gunicorn_port }},ADDRESS={{ xqueue_gunicorn_host }},LANG={{ XQUEUE_LANG }},DJANGO_SETTINGS_MODULE=xqueue.{{ XQUEUE_SETTINGS }},XQUEUE_CFG={{ COMMON_CFG_DIR }}/xqueue.yml
+# Copied DD_TRACE_LOG_STREAM_HANDLER config from edx_django_service. This is required
+# to disable Datadog trace debug logging.
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ XQUEUE_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}DD_TAGS=service:{{ XQUEUE_DATADOG_APPNAME }},DD_TRACE_LOG_STREAM_HANDLER=false,{% endif -%}PID=/var/tmp/xqueue.pid,PORT={{ xqueue_gunicorn_port }},ADDRESS={{ xqueue_gunicorn_host }},LANG={{ XQUEUE_LANG }},DJANGO_SETTINGS_MODULE=xqueue.{{ XQUEUE_SETTINGS }},XQUEUE_CFG={{ COMMON_CFG_DIR }}/xqueue.yml
 
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
