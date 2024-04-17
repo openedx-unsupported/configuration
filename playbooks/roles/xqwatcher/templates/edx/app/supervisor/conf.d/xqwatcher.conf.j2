@@ -13,12 +13,14 @@
 {% endif -%}
 
 [program:{{ xqwatcher_service_name }}]
-command={{ executable }} -m {{ xqwatcher_module }} -d {{ xqwatcher_conf_dir }} 
+command={{ executable }} -m {{ xqwatcher_module }} -d {{ xqwatcher_conf_dir }}
 process_name=%(program_name)s
 user={{ common_web_user }}
 directory={{ xqwatcher_code_dir }}
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
-environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ XQWATCHER_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}DD_TAGS=service:{{ XQWATCHER_DATADOG_APPNAME }},{% endif -%}
+# Copied DD_TRACE_LOG_STREAM_HANDLER config from edx_django_service. This is required
+# to disable Datadog trace debug logging.
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_APP_NAME={{ XQWATCHER_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}DD_TAGS=service:{{ XQWATCHER_DATADOG_APPNAME }},DD_TRACE_LOG_STREAM_HANDLER=false,{% endif -%}
 killasgroup=true
 stopasgroup=true
