@@ -70,12 +70,17 @@
   when: COMMON_OBJECT_STORE_LOG_SYNC
         and not (ansible_distribution_release == 'precise' or ansible_distribution_release == 'trusty')
 
-- name: Set maximum disk space usage for systemd journal
+- name: Set maximum disk space usage, free space, retention, and file age for systemd journal
   lineinfile:
     path: /etc/systemd/journald.conf
-    regexp: '^#?SystemMaxUse='
-    line: 'SystemMaxUse=1G'
+    regexp: '^#?{{ item.regexp }}'
+    line: '{{ item.line }}'
     state: present
+  with_items:
+    - { regexp: 'SystemMaxUse=', line: 'SystemMaxUse=500M' }
+    - { regexp: 'SystemKeepFree=', line: 'SystemKeepFree=1G' }
+    - { regexp: 'MaxRetentionSec=', line: 'MaxRetentionSec=1month' }
+    - { regexp: 'MaxFileSec=', line: 'MaxFileSec=1week' }
   register: journald_config_line
   when: ansible_distribution_release == 'bionic' or ansible_distribution_release == 'focal'
 
