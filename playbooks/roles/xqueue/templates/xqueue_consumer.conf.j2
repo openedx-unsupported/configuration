@@ -6,12 +6,16 @@
 {% set executable = xqueue_venv_bin + '/django-admin run_consumer' %}
 {% endif %}
 
+{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}
+{% set executable = xqueue_venv_bin + '/ddtrace-run ' + executable %}
+{% endif -%}
+
 command={{ executable }} --pythonpath={{ xqueue_code_dir }} --settings=xqueue.{{ XQUEUE_SETTINGS }}
 
 user={{ common_web_user }}
 directory={{ xqueue_code_dir }}
 
-environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_STARTUP_TIMEOUT=10,NEW_RELIC_APP_NAME={{ XQUEUE_CONSUMER_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}LANG={{ XQUEUE_LANG }},XQUEUE_CFG={{ COMMON_CFG_DIR }}/xqueue.yml
+environment={% if COMMON_ENABLE_NEWRELIC_APP %}NEW_RELIC_STARTUP_TIMEOUT=10,NEW_RELIC_APP_NAME={{ XQUEUE_CONSUMER_NEWRELIC_APPNAME }},NEW_RELIC_LICENSE_KEY={{ NEWRELIC_LICENSE_KEY }},{% endif -%}{% if COMMON_ENABLE_DATADOG and COMMON_ENABLE_DATADOG_APP %}DD_TAGS=service:{{ XQUEUE_CONSUMER_DATADOG_APPNAME }},{% endif -%}LANG={{ XQUEUE_LANG }},XQUEUE_CFG={{ COMMON_CFG_DIR }}/xqueue.yml
 
 stdout_logfile={{ supervisor_log_dir }}/%(program_name)s-stdout.log
 stderr_logfile={{ supervisor_log_dir }}/%(program_name)s-stderr.log
