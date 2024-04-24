@@ -120,6 +120,15 @@ server {
   {% endif %}
   }
   
+  # want to avoid caching app-data.json file as an out-of-date hash leads to the application refreshing
+  location /page-data/ {
+    port_in_redirect off;
+    add_header Cache-Control "no-store, max-age=0";
+    proxy_pass http://edx-stage-prospectus-static.s3-website-us-east-1.amazonaws.com/71058f2-5803$request_uri;
+    # Hide client headers from S3 to prevent request headers too big error
+    proxy_pass_request_headers off;
+  }
+
   # favicon is requested a lot.  cache it at the edge.
 
   location /favicon.ico {
