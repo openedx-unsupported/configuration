@@ -520,6 +520,28 @@ EOF_AUTH
 
 fi
 
+if [[ $mongo_version == "5.0" ]]; then
+    cat << MONGO_VERSION >> $extra_vars_file
+MONGO_5_0_ENABLED: True
+MONGO_6_0_ENABLED: False
+MONGO_7_0_ENABLED: False
+MONGO_VERSION
+fi
+if [[ $mongo_version == "6.0" ]]; then
+    cat << MONGO_VERSION >> $extra_vars_file
+MONGO_5_0_ENABLED: False
+MONGO_6_0_ENABLED: True
+MONGO_7_0_ENABLED: False
+MONGO_VERSION
+fi
+if [[ $mongo_version == "7.0" ]]; then
+    cat << MONGO_VERSION >> $extra_vars_file
+MONGO_5_0_ENABLED: False
+MONGO_6_0_ENABLED: False
+MONGO_7_0_ENABLED: True
+MONGO_VERSION
+fi
+
 if [[ -n $nginx_users ]]; then
    cat << EOF_AUTH >> $extra_vars_file
 NGINX_USERS: $nginx_users
